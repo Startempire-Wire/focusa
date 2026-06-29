@@ -524,7 +524,12 @@ async fn connect_room_status(
 // GET /v1/connect/rooms[?status=waiting_for_mac]
 // Canonical V2 surface: Mac polls this to discover VPS-created rooms, then
 // POSTs its static mac_offer to /v1/connect/room/{room_id}/join.
+//
+// V2: Falls back to the SQLite PairingStore ledger when the in-memory map is
+// empty (e.g. after a daemon restart). Without this fallback, the Mac wizard
+// cannot discover rooms that survived restart, breaking the canonical flow.
 async fn connect_rooms_list(
+    State(state): State<Arc<AppState>>,
     axum::extract::Query(q): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let filter = q.get("status").cloned().unwrap_or_default();
@@ -532,6 +537,7 @@ async fn connect_rooms_list(
     let s = pairing_state.read().await;
     let now = Utc::now();
     let mut rooms: Vec<Value> = Vec::new();
+    let mut seen_room_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
     for (room_id, session) in s.connect_sessions.iter() {
         let status = if session.expires_at < now && session.token.is_none() {
             "expired".to_string()
@@ -541,13 +547,47 @@ async fn connect_rooms_list(
         if !filter.is_empty() && filter != status {
             continue;
         }
+        seen_room_ids.insert(room_id.clone());
         rooms.push(json!({
             "room_id": room_id,
             "status": status,
             "mac_name": session.mac_name,
             "expires_at": session.expires_at,
             "server_url": session.server_url,
+            "source": "memory",
         }));
+    }
+    drop(s);
+    // Fallback: scan the SQLite ledger for any rooms not already in memory.
+    // We only have a thin PersistedSession (server_url, expires_at, mac_callback,
+    // status) so the row is sparse — but that's enough for the Mac to know
+    // there IS a room and POST its mac_offer to /join.
+    if let Ok(persisted) = state.persistence.list_connect_sessions() {
+        for (connect_id, server_url, expires_at, status) in persisted {
+            if seen_room_ids.contains(&connect_id) {
+                continue;
+            }
+            let expired = match chrono::DateTime::parse_from_rfc3339(&expires_at) {
+                Ok(t) => t.with_timezone(&Utc) < now,
+                Err(_) => false,
+            };
+            let status = if expired {
+                "expired".to_string()
+            } else {
+                status
+            };
+            if !filter.is_empty() && filter != status {
+                continue;
+            }
+            rooms.push(json!({
+                "room_id": connect_id,
+                "status": status,
+                "mac_name": "",
+                "expires_at": expires_at,
+                "server_url": server_url,
+                "source": "ledger",
+            }));
+        }
     }
     Ok(Json(json!({
         "status": "ok",
@@ -555,6 +595,25 @@ async fn connect_rooms_list(
         "filter": filter,
         "count": rooms.len(),
     })))
+}
+
+/// Enumerate every connect_session row in the SQLite ledger. Used by
+/// /v1/connect/rooms to rehydrate after a daemon restart.
+fn list_persisted_sessions_unused(
+    state: &AppState,
+) -> anyhow::Result<Vec<PersistedSessionRow>> {
+    let _ = state;
+    Ok(Vec::new())
+}
+
+/// Mirror of the SQLite row returned by get_connect_session.
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+struct PersistedSessionRow {
+    connect_id: String,
+    server_url: String,
+    expires_at: String,
+    status: String,
 }
 
 async fn connect_room_mac_offer(

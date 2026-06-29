@@ -1356,6 +1356,33 @@ impl SqlitePersistence {
     }
 
     /// Mark a connect session as completed.
+    /// V2: Enumerate every non-expired connect_session row. Used by
+    /// /v1/connect/rooms to rehydrate the room list after a daemon
+    /// restart so VPS-created rooms are discoverable.
+    pub fn list_connect_sessions(&self) -> anyhow::Result<Vec<(String, String, String, String)>> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut stmt = conn.prepare(
+            "SELECT connect_id, server_url, expires_at, status FROM connect_sessions
+             WHERE expires_at > ?1 ORDER BY created_at DESC",
+        )?;
+        let now = chrono::Utc::now().to_rfc3339();
+        let rows = stmt.query_map(params![now], |row| {
+            let connect_id: String = row.get(0)?;
+            let server_url: String = row.get(1)?;
+            let expires_at: String = row.get(2)?;
+            let status: String = row.get(3)?;
+            Ok((connect_id, server_url, expires_at, status))
+        })?;
+        let mut result = Vec::new();
+        for r in rows {
+            result.push(r?);
+        }
+        Ok(result)
+    }
+
     pub fn complete_connect_session(&self, connect_id: &str) -> anyhow::Result<()> {
         let conn = self
             .conn
