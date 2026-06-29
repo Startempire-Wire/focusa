@@ -220,6 +220,16 @@ impl SqlitePersistence {
             );
             CREATE INDEX IF NOT EXISTS idx_device_tokens_expires ON device_tokens(expires_at);
             CREATE INDEX IF NOT EXISTS idx_device_tokens_device ON device_tokens(device_id);
+            -- V2 Invariant 6: at most one active (non-revoked, non-expired)
+            -- token per (device_id, host) tuple. Re-pair revokes the prior
+            -- active token server-side so the menubar can't end up with two
+            -- live tokens for the same logical device. Tokens are revoked
+            -- by deleting the row (see revoke_device_tokens_by_device +
+            -- revoke_active_token_for_device_host), which keeps the
+            -- UNIQUE partial index in sync.
+            CREATE UNIQUE INDEX IF NOT EXISTS uniq_device_tokens_device_host_active
+              ON device_tokens(device_id, issued_to)
+              WHERE issued_to IS NOT NULL;
 
             CREATE TABLE IF NOT EXISTS sync_cursors (
                 peer_id TEXT PRIMARY KEY,
@@ -1569,6 +1579,96 @@ impl SqlitePersistence {
             "DELETE FROM device_tokens WHERE device_id = ?1",
             params![device_id],
         )?;
+        Ok(n)
+    }
+
+    /// V2 Invariant 6: revoke any prior active (non-expired) token for
+    /// the same (device_id, host) tuple before minting a new one. Re-pair
+    /// of the same Mac against the same VPS host should supersede the
+    /// old token, not stack on top of it. Returns the number of rows
+    /// deleted (0 or 1 in practice).
+    ///
+    /// Issued_to is stored as-is in device_tokens.issued_to. We treat
+    /// NULL issued_to as 'any host' (defensive) and match on
+    /// device_id+issued_to exactly. The partial UNIQUE index
+    /// uniq_device_tokens_device_host_active guarantees no two active
+    /// rows can coexist, so this is the canonical cleanup.
+    pub fn revoke_active_token_for_device_host(
+        &self,
+        device_id: &str,
+        host: &str,
+    ) -> anyhow::Result<usize> {
+        let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
+        let now = chrono::Utc::now().to_rfc3339();
+        let n = conn.execute(
+            "DELETE FROM device_tokens
+             WHERE device_id = ?1 AND issued_to = ?2 AND expires_at > ?3",
+            params![device_id, host, now],
+        )?;
+        Ok(n)
+    }
+
+    /// V2 Invariant 6 (stricter): revoke any prior active token for the
+    /// same (mac_name, host) tuple by looking up all device_ids ever
+    /// paired under that mac_name on that host. This catches re-pair
+    /// across fresh device_id generations. Returns the number of rows
+    /// deleted (0..=N).
+    ///
+    /// Used as a defense-in-depth alongside
+    /// revoke_active_token_for_device_host, which catches re-pair
+    /// within the same device_id (e.g. duplicate /join retries).
+    ///
+    /// Note: device_records is stored in a JSONL file (devices.jsonl),
+    /// NOT a SQL table. We read it directly, collect distinct
+    /// device_ids for (mac_name, host), then issue a single SQL DELETE
+    /// against the device_tokens table for those device_ids.
+    pub fn revoke_active_tokens_for_mac_host(
+        &self,
+        mac_name: &str,
+        host: &str,
+    ) -> anyhow::Result<usize> {
+        if mac_name.is_empty() {
+            return Ok(0);
+        }
+        // Step 1: read device_records JSONL ledger for this host.
+        let records = self.read_device_records(host, usize::MAX)?;
+        let device_ids: Vec<String> = records
+            .into_iter()
+            .filter(|r| r.name == mac_name && r.host == host && !r.revoked)
+            .map(|r| r.device_id)
+            .filter(|id| !id.is_empty())
+            .collect();
+        // Dedupe.
+        let mut device_ids = device_ids;
+        device_ids.sort();
+        device_ids.dedup();
+        if device_ids.is_empty() {
+            return Ok(0);
+        }
+        // Step 2: build IN clause with one '?' per device_id, then
+        // execute a single DELETE for all of them.
+        let placeholders = std::iter::repeat("?")
+            .take(device_ids.len())
+            .collect::<Vec<_>>()
+            .join(",");
+        let sql = format!(
+            "DELETE FROM device_tokens
+             WHERE issued_to = ?1
+               AND expires_at > ?2
+               AND device_id IN ({})",
+            placeholders
+        );
+        let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
+        let now = chrono::Utc::now().to_rfc3339();
+        let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
+        params.push(Box::new(host.to_string()));
+        params.push(Box::new(now));
+        for d in &device_ids {
+            params.push(Box::new(d.clone()));
+        }
+        let param_refs: Vec<&dyn rusqlite::ToSql> =
+            params.iter().map(|b| b.as_ref() as &dyn rusqlite::ToSql).collect();
+        let n = conn.execute(&sql, &param_refs[..])?;
         Ok(n)
     }
 
