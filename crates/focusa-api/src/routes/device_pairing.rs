@@ -913,6 +913,33 @@ async fn connect_room_mac_offer(
     }
 
     let mut updated = existing;
+    // V2 P1.4 nonce mismatch rejection: if /mac-offer or /join has
+    // already bound a nonce for this room, refuse to overwrite it with
+    // a different one. The Mac's nonce is the per-pair identifier
+    // embedded in the QR; if a subsequent call carries a different
+    // nonce for the same room, treat it as a hostile replay and reject
+    // with 409. This protects against an attacker who intercepts the
+    // PWA tab and tries to swap in their own nonce to redirect the
+    // mac_callback fast path to a URL they control.
+    if !updated.mac_nonce.trim().is_empty()
+        && updated.mac_nonce != mac_nonce
+    {
+        tracing::warn!(
+            room_id = %room_id,
+            existing_nonce = %updated.mac_nonce,
+            attempted_nonce = %mac_nonce,
+            "V2 P1.4: mac_nonce mismatch on /mac-offer or /join; rejecting"
+        );
+        return Err(rejection(
+            StatusCode::CONFLICT,
+            json!({
+                "status": "conflict",
+                "failure_class": "mac_nonce_mismatch",
+                "message": "room already has a mac_nonce bound; refusing to overwrite",
+                "room_id": room_id,
+            }),
+        ));
+    }
     updated.mac_name = mac_name;
     updated.mac_nonce = mac_nonce;
     updated.mac_pubkey = body.mac_pubkey;
