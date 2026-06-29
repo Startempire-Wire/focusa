@@ -188,6 +188,10 @@ async fn main() -> anyhow::Result<()> {
     // Clone persistence for API server (sync routes need direct DB access).
     let persistence = daemon.persistence();
 
+    // V2: rehydrate PairingStore state from SQLite at startup so the in-memory
+    // maps (connect_sessions, tokens) are not empty after a daemon restart.
+    // The actual call happens inside server::run after AppState is built.
+
     // Bonjour / mDNS advertise port (read before config is moved below).
     let bonjour_port = config
         .api_bind
