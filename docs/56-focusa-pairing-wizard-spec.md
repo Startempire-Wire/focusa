@@ -1,4 +1,4 @@
-# Focusa Pairing Wizard Spec (v0.9.35-dev)
+# Focusa Pairing Wizard Spec (v0.9.39-dev)
 
 **Status:** Canonical for `focusa pairing wizard` Rust subcommand.
 **Architecture overview:** `docs/55-focusa-self-host-architecture.md` §6.
@@ -28,12 +28,12 @@ $ focusa pairing wizard
 
   ╔══════════════════════════════════════════════════════════╗
   ║          Focusa Pairing Wizard                           ║
-  ║          focusa-pairing-wizard v0.9.35-dev               ║
+  ║          focusa-pairing-wizard v0.9.39-dev               ║
   ╚══════════════════════════════════════════════════════════╝
 
 ▶  Welcome to Focusa pairing.
 
-✓  Focusa daemon detected (v0.9.35-dev) at http://127.0.0.1:8787
+✓  Focusa daemon detected (v0.9.39-dev) at http://127.0.0.1:8787
 
 ▶  Resolving phone-reachable URL…
 ✓  Tailscale MagicDNS resolves: focusa-vps.tail-net.ts.net → 100.94.238.56
@@ -138,7 +138,7 @@ The wizard DOES depend on:
 
 ## 11. Versioning
 
-This spec ships with v0.9.35-dev. Predecessors:
+This spec ships with v0.9.39-dev. Predecessors:
 
 - v0.9.34-dev: `crates/focusa-cli/scripts/focusa-pairing-wizard.sh` (bash + python qrcode)
 - v0.9.33-dev: `scripts/phone-bridge-transport.sh` (bash, no QR)

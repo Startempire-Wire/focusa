@@ -1,4 +1,4 @@
-# Focusa Intel-Mac Operator Runbook (v0.9.35-dev → v0.9.35 GA)
+# Focusa Intel-Mac Operator Runbook (v0.9.39-dev → v0.9.35 GA)
 
 **Status:** Canonical for self-host pairing on Intel Mac (also applies to Apple Silicon).
 **Owner surface:** `apps/menubar/` (Tauri), `crates/focusa-cli/` (wizard), `crates/focusa-api/` (daemon).
@@ -30,7 +30,7 @@ curl install.focusa.dev/focusa | bash
 
 # 2.2 Verify daemon is healthy
 focusa pairing status
-# Expected: daemon: 0.9.35-dev (http://127.0.0.1:8787)
+# Expected: daemon: 0.9.39-dev (http://127.0.0.1:8787)
 
 # 2.3 If you have Tailscale on this VPS, the wizard will auto-discover:
 tailscale status | grep -i hostname
@@ -57,7 +57,7 @@ The wizard output looks like:
 ```
   ╔══════════════════════════════════════════════════════════╗
   ║          Focusa Pairing Wizard                           ║
-  ║          focusa-pairing-wizard v0.9.35-dev               ║
+  ║          focusa-pairing-wizard v0.9.39-dev               ║
   ╚══════════════════════════════════════════════════════════╝
   ...
   Pairing URL: https://focusa-vps.tail-net.ts.net/connect/room/019f.../scan
@@ -70,10 +70,10 @@ The menubar `.app` is published with every tag. Download the Intel build (the op
 
 ```bash
 # 4.1 Download (replace URL with the latest v* tag from the GitHub Releases page)
-# Latest:  https://github.com/Startempire-Wire/focusa/releases/download/v0.9.35-dev/Focusa_x64.app.tar.gz
-# DMG alt: https://github.com/Startempire-Wire/focusa/releases/download/v0.9.35-dev/Focusa_0.9.35-dev_x64.dmg
+# Latest:  https://github.com/Startempire-Wire/focusa/releases/download/v0.9.39-dev/Focusa_x64.app.tar.gz
+# DMG alt: https://github.com/Startempire-Wire/focusa/releases/download/v0.9.39-dev/Focusa_0.9.39-dev_x64.dmg
 curl -L -o /tmp/Focusa_x64.app.tar.gz \
-  https://github.com/Startempire-Wire/focusa/releases/download/v0.9.35-dev/Focusa_x64.app.tar.gz
+  https://github.com/Startempire-Wire/focusa/releases/download/v0.9.39-dev/Focusa_x64.app.tar.gz
 
 # 4.2 Extract (it contains a top-level Focusa.app/)
 mkdir -p /tmp/focusa-app
@@ -235,7 +235,7 @@ Until those secrets are configured, the pipeline still uploads an unsigned `.app
 - `docs/53-focusa-device-pairing-spec.md` §2.0 — canonical pairing flow
 - `docs/56-focusa-pairing-wizard-spec.md` — wizard CLI contract
 - `docs/57-focusa-pairing-revoke-and-repair.md` — revoke + re-pair semantics
-- `apps/menubar/src/lib/components/FirstRunWizard.svelte` — Mac wizard source code (the v0.9.35-dev state machine)
+- `apps/menubar/src/lib/components/FirstRunWizard.svelte` — Mac wizard source code (the v0.9.39-dev state machine)
 - `apps/menubar/src-tauri/src/main.rs` — Tauri commands + Bonjour discovery
 - `crates/focusa-cli/src/commands/pairing_wizard.rs` — wizard Rust source
 - `crates/focusa-core/src/bonjour.rs` — Bonjour module (currently a stub; full mdns-sd integration queued for v0.9.36)

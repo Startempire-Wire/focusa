@@ -1,4 +1,4 @@
-//! focusa pairing cycle-test — Revoke + re-pair cycle harness (focusa-ui0y v0.9.35-dev).
+//! focusa pairing cycle-test — Revoke + re-pair cycle harness (focusa-ui0y v0.9.39-dev).
 //!
 //! Runs the full pairing cycle N times against a live daemon:
 //!   1. Create room via focusa pairing create-room

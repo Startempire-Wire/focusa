@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Focusa first-run wizard (focusa-ui0y v0.9.35-dev).
+  // Focusa first-run wizard (focusa-ui0y v0.9.39-dev).
   //
   // Replaces FirstRunConnect.svelte for the VPS-initiated pairing model.
   // State machine:

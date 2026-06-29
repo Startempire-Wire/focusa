@@ -192,7 +192,8 @@ impl SqlitePersistence {
               status TEXT NOT NULL DEFAULT 'waiting_for_mac',
               created_at TEXT NOT NULL,
               expires_at TEXT NOT NULL,
-              completed_at TEXT
+              completed_at TEXT,
+              room_claim_secret TEXT
             );
             CREATE INDEX IF NOT EXISTS idx_connect_sessions_expires ON connect_sessions(expires_at);
             CREATE INDEX IF NOT EXISTS idx_crdt_events_machine ON crdt_events(machine_id);
@@ -247,6 +248,24 @@ impl SqlitePersistence {
             );
             "#,
         )?;
+
+        // V2 P0 round 2: add room_claim_secret column to existing
+        // connect_sessions tables that were created before the column
+        // existed. SQLite has no IF NOT EXISTS for ALTER TABLE ADD
+        // COLUMN, so probe via PRAGMA table_info first.
+        let has_room_secret: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('connect_sessions') WHERE name='room_claim_secret'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap_or(0);
+        if has_room_secret == 0 {
+            conn.execute(
+                "ALTER TABLE connect_sessions ADD COLUMN room_claim_secret TEXT",
+                [],
+            )?;
+        }
 
         let existing: Option<String> = conn
             .query_row(
@@ -1349,6 +1368,7 @@ impl SqlitePersistence {
         scopes_json: Option<&str>,
         created_at: &str,
         expires_at: &str,
+        room_claim_secret: Option<&str>,
     ) -> anyhow::Result<()> {
         let conn = self
             .conn
@@ -1357,8 +1377,8 @@ impl SqlitePersistence {
         conn.execute(
             r#"INSERT INTO connect_sessions
                (connect_id, device_id, mac_nonce, mac_pubkey, mac_callback, server_url,
-                scopes_json, status, created_at, expires_at, completed_at)
-               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'waiting_for_mac', ?8, ?9, NULL)
+                scopes_json, status, created_at, expires_at, completed_at, room_claim_secret)
+               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'waiting_for_mac', ?8, ?9, NULL, ?10)
                ON CONFLICT(connect_id) DO UPDATE SET
                  device_id=COALESCE(excluded.device_id, connect_sessions.device_id),
                  mac_nonce=COALESCE(excluded.mac_nonce, connect_sessions.mac_nonce),
@@ -1366,10 +1386,11 @@ impl SqlitePersistence {
                  mac_callback=COALESCE(excluded.mac_callback, connect_sessions.mac_callback),
                  server_url=excluded.server_url,
                  scopes_json=excluded.scopes_json,
-                 expires_at=excluded.expires_at"#,
+                 expires_at=excluded.expires_at,
+                 room_claim_secret=COALESCE(excluded.room_claim_secret, connect_sessions.room_claim_secret)"#,
             params![
                 connect_id, device_id, mac_nonce, mac_pubkey, mac_callback, server_url,
-                scopes_json, created_at, expires_at,
+                scopes_json, created_at, expires_at, room_claim_secret,
             ],
         )?;
         Ok(())
@@ -1398,6 +1419,95 @@ impl SqlitePersistence {
             let mac_callback: Option<String> = row.get(2).ok();
             let status: String = row.get(3)?;
             return Ok(Some((server_url, expires_at, mac_callback, status)));
+        }
+        Ok(None)
+    }
+
+    /// V2 P0 round 2: full lookup including device_id, scopes, created_at,
+    /// room_claim_secret. Used by /status rehydration.
+    #[allow(clippy::type_complexity)]
+    pub fn get_connect_session_with_meta(
+        &self,
+        connect_id: &str,
+    ) -> anyhow::Result<
+        Option<(
+            String,
+            String,
+            String,
+            Option<String>,
+            String,
+            String,
+            String,
+        )>,
+    > {
+        let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
+        let mut stmt = conn.prepare(
+            "SELECT device_id, server_url, expires_at, mac_callback, status, scopes_json, room_claim_secret
+             FROM connect_sessions
+             WHERE connect_id = ?1 AND expires_at > ?2",
+        )?;
+        let now = chrono::Utc::now().to_rfc3339();
+        let mut rows = stmt.query(params![connect_id, now])?;
+        if let Some(row) = rows.next()? {
+            let device_id: Option<String> = row.get(0).ok();
+            let server_url: String = row.get(1)?;
+            let expires_at: String = row.get(2)?;
+            let mac_callback: Option<String> = row.get(3).ok();
+            let status: String = row.get(4)?;
+            let scopes_json: Option<String> = row.get(5).ok();
+            let room_claim_secret: Option<String> = row.get(6).ok();
+            let scopes_json = scopes_json.unwrap_or_else(|| "[]".into());
+            return Ok(Some((
+                device_id.unwrap_or_default(),
+                server_url,
+                expires_at,
+                mac_callback,
+                status,
+                scopes_json,
+                room_claim_secret.unwrap_or_default(),
+            )));
+        }
+        Ok(None)
+    }
+
+    /// V2 P0 round 2: look up a device_token row by device_id.
+    pub fn get_device_token_by_device_id(
+        &self,
+        device_id: &str,
+    ) -> anyhow::Result<Option<crate::types::DeviceToken>> {
+        use crate::types::DeviceToken;
+        let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
+        let mut stmt = conn.prepare(
+            "SELECT token, scopes_json, issued_at, expires_at, issued_to
+             FROM device_tokens WHERE device_id = ?1
+             ORDER BY issued_at DESC LIMIT 1",
+        )?;
+        let mut rows = stmt.query(params![device_id])?;
+        if let Some(row) = rows.next()? {
+            let token: String = row.get(0)?;
+            let scopes_json: Option<String> = row.get(1).ok();
+            let issued_at: String = row.get(2)?;
+            let expires_at: String = row.get(3)?;
+            let issued_to: Option<String> = row.get(4).ok();
+            let scopes: Vec<String> = scopes_json
+                .as_deref()
+                .and_then(|j| serde_json::from_str(j).ok())
+                .unwrap_or_default();
+            let issued_at_dt = chrono::DateTime::parse_from_rfc3339(&issued_at)
+                .map(|t| t.with_timezone(&chrono::Utc))
+                .unwrap_or_else(|_| chrono::Utc::now());
+            let expires_at_dt = chrono::DateTime::parse_from_rfc3339(&expires_at)
+                .map(|t| t.with_timezone(&chrono::Utc))
+                .unwrap_or_else(|_| chrono::Utc::now() + chrono::Duration::days(30));
+            return Ok(Some(DeviceToken {
+                device_id: device_id.to_string(),
+                token,
+                scopes,
+                issued_at: issued_at_dt,
+                expires_at: expires_at_dt,
+                last_used_at: None,
+                issued_to: issued_to.unwrap_or_else(|| "ledger".to_string()),
+            }));
         }
         Ok(None)
     }
@@ -1688,7 +1798,7 @@ impl SqlitePersistence {
         let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
         let mut stmt = conn.prepare(
             "SELECT device_id, mac_nonce, mac_pubkey, mac_callback, server_url,
-                    scopes_json, status, created_at, expires_at
+                    scopes_json, status, created_at, expires_at, room_claim_secret
              FROM connect_sessions WHERE connect_id = ?1 AND expires_at > ?2",
         )?;
         let now = chrono::Utc::now().to_rfc3339();
@@ -1703,6 +1813,7 @@ impl SqlitePersistence {
             let status: String = row.get(6)?;
             let created_at: String = row.get(7)?;
             let expires_at: String = row.get(8)?;
+            let room_claim_secret: Option<String> = row.get(9).ok();
             let _ = (); // no-op marker
             let scopes: Vec<String> = scopes_json
                 .as_deref()
@@ -1726,6 +1837,7 @@ impl SqlitePersistence {
                 created_at: created_at_dt,
                 expires_at: expires_at_dt,
                 status,
+                room_claim_secret: room_claim_secret.unwrap_or_default(),
             }))
         } else {
             Ok(None)
@@ -1747,6 +1859,10 @@ pub struct PersistedConnectSessionFull {
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub expires_at: chrono::DateTime<chrono::Utc>,
     pub status: String,
+    /// V2 P0 round 2: room_claim_secret persisted to the ledger so
+    /// the secret survives daemon restart. Empty string for rooms
+    /// created by /firstrun (Mac-creates) — they have no secret.
+    pub room_claim_secret: String,
 }
 
 fn curator_eval_ledger_dir_for_project(data_dir: &Path, project_root: &str) -> PathBuf {

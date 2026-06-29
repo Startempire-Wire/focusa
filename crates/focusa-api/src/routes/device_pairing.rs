@@ -82,7 +82,7 @@ use super::pairing_store;
 use rand::{RngCore, rngs::OsRng};
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
@@ -111,6 +111,13 @@ pub struct ConnectSession {
     /// hidden even if token_delivered was never set.
     pub token_delivered: bool,
     pub delivered_at: Option<DateTime<Utc>>,
+    /// V2 P0 round 2: room_claim_secret. The VPS mints a fresh random
+    /// secret when creating the room and embeds it in the terminal QR.
+    /// The phone must present it on /join (and /mac-offer). Without
+    /// this, any reachable client that polls /v1/connect/rooms can
+    /// discover a waiting room and bind a Mac offer before the
+    /// legitimate phone flow completes.
+    pub room_claim_secret: String,
 }
 
 /// V2: PairingState is a **runtime cache over the SQLite ledger**, NOT
@@ -126,6 +133,11 @@ pub struct PairingState {
     pub tokens: HashMap<String, DeviceToken>,     // token -> token (public for auth middleware)
     #[allow(private_interfaces)]
     pub connect_sessions: HashMap<String, ConnectSession>, // connect_id -> rendezvous (public for /v1/connect/rooms)
+    /// V2 P0: tracks which legacy pair-codes have already had their
+    /// token returned via /v1/device/pair/status. One-shot semantics:
+    /// first call returns the token, subsequent calls return
+    /// `token_present=true, token=null, status=consumed`.
+    consumed_pair_codes: HashSet<String>,
 }
 
 type SharedPairingState = Arc<RwLock<PairingState>>;
@@ -147,7 +159,7 @@ pub fn router() -> axum::Router<Arc<AppState>> {
             "/v1/connect/room/start",
             axum::routing::post(connect_room_start),
         )
-        // focusa-ui0y v0.9.35-dev: VPS-initiated room creation.
+        // focusa-ui0y v0.9.39-dev: VPS-initiated room creation.
         .route(
             "/v1/connect/room/create",
             axum::routing::post(connect_room_create),
@@ -156,7 +168,7 @@ pub fn router() -> axum::Router<Arc<AppState>> {
             "/v1/connect/room/{room_id}/status",
             axum::routing::get(connect_room_status),
         )
-        // v0.9.35-dev: list rooms so the Mac can discover VPS-created rooms
+        // v0.9.39-dev: list rooms so the Mac can discover VPS-created rooms
         // and POST its static mac_offer to /join. Canonical V2 flow.
         .route(
             "/v1/connect/rooms",
@@ -166,7 +178,7 @@ pub fn router() -> axum::Router<Arc<AppState>> {
             "/v1/connect/room/{room_id}/mac-offer",
             axum::routing::post(connect_room_mac_offer),
         )
-        // v0.9.35-dev: Mac joins a VPS-created room
+        // v0.9.39-dev: Mac joins a VPS-created room
         .route(
             "/v1/connect/room/{room_id}/join",
             axum::routing::post(connect_room_join),
@@ -177,7 +189,7 @@ pub fn router() -> axum::Router<Arc<AppState>> {
         )
         .route("/connect", axum::routing::get(connect_mediator_page))
         .route("/connect/firstrun", axum::routing::get(connect_firstrun_page))
-        // v0.9.35-dev: PWA /scan page with getUserMedia camera. Replaces
+        // v0.9.39-dev: PWA /scan page with getUserMedia camera. Replaces
         // /firstrun as the canonical phone-side entry point.
         .route("/connect/room/{room_id}/scan", axum::routing::get(connect_room_scan_page))
         .route("/connect/{room_id}", axum::routing::get(connect_room_page))
@@ -215,6 +227,17 @@ fn generate_code() -> String {
 
 fn generate_token() -> String {
     // 32-byte cryptographically random token, base64url-no-pad encoded.
+    let mut bytes = [0u8; 32];
+    OsRng.fill_bytes(&mut bytes);
+    URL_SAFE_NO_PAD.encode(bytes)
+}
+
+/// V2 P0 round 2: generates a room_claim_secret. 32 random bytes
+/// encoded as URL-safe base64 (no padding). The phone must present
+/// the exact same secret on /join (and /mac-offer); an attacker who
+/// can poll /v1/connect/rooms without knowing the secret cannot
+/// bind a Mac offer to a room they didn't legitimately create.
+fn generate_room_claim_secret() -> String {
     let mut bytes = [0u8; 32];
     OsRng.fill_bytes(&mut bytes);
     URL_SAFE_NO_PAD.encode(bytes)
@@ -517,6 +540,11 @@ pub struct ConnectRoomJoinRequest {
     pub mac_pubkey_v2: Option<String>,
     /// Optional ephemeral callback URL on the Mac.
     pub mac_callback: Option<String>,
+    /// V2 P0 round 2: room_claim_secret presented by the phone. The
+    /// daemon only binds the mac_offer to a room if this matches the
+    /// room's stored secret. Required for rooms minted by
+    /// /v1/connect/room/create (VPS-initiated flow).
+    pub room_claim_secret: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -644,6 +672,7 @@ fn one_shot_status_payload(session: &mut ConnectSession) -> (bool, Value) {
 }
 
 async fn connect_room_start(
+    State(state): State<Arc<AppState>>,
     Json(body): Json<ConnectRoomStartRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let now = Utc::now();
@@ -671,6 +700,7 @@ async fn connect_room_start(
         token: None,
                 token_delivered: false,
             delivered_at: None,
+            room_claim_secret: String::new(),
         };
 
     shared_state()
@@ -678,6 +708,45 @@ async fn connect_room_start(
         .await
         .connect_sessions
         .insert(room_id.clone(), session);
+
+    // V2 P0: legacy /v1/connect/start persists too. Strict: roll back
+    // the in-memory session if PairingStore rejects it. Legacy route:
+    // no room_claim_secret needed (deprecated; canonical V2 path is
+    // /v1/connect/room/create).
+    if let Err(e) = pairing_store::put_session(
+        &state,
+        &room_id,
+        Some(&device_id),
+        Some(""),
+        None,
+        None,
+        &server_url,
+        Some(&scopes),
+        &now.to_rfc3339(),
+        &expires.to_rfc3339(),
+        None,
+    ) {
+        tracing::error!(
+            room_id = %room_id,
+            error = %e,
+            "V2 P0 strict persistence: connect_room_start put_session failed; rolling back"
+        );
+        let rid_owned = room_id.clone();
+        tokio::spawn(async move {
+            let s = shared_state();
+            let mut w = s.write().await;
+            w.connect_sessions.remove(&rid_owned);
+        });
+        return Err(rejection(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            json!({
+                "status": "error",
+                "failure_class": "storage_unwritable",
+                "message": format!("connect_room_start persistence failed: {}", e),
+                "room_id": room_id,
+            }),
+        ));
+    }
 
     tracing::info!(
         room_id = %room_id,
@@ -741,8 +810,100 @@ async fn connect_room_status(
     drop(s);
     match pairing_store::get_session(&state, room_id.trim()) {
         Ok(Some(p)) => {
-            // Reconstruct a minimal status payload from the persisted row.
+            // V2 P0 round 2: token delivery survives daemon restart
+            // for rooms where approve succeeded but the Mac hasn't
+            // polled yet. We rehydrate the session into memory,
+            // preserve one-shot semantics, and on first poll the
+            // token is delivered; on second poll it's gone.
+            //
+            // Steps:
+            //   1) Find the device_tokens row keyed by device_id.
+            //   2) Rehydrate a minimal ConnectSession into the
+            //      in-memory map, with token=Some(real_token).
+            //   3) Run one_shot_status_payload (which flips
+            //      token_delivered, hides the token after first
+            //      delivery, and returns consumed+null on second
+            //      call).
+            //
+            // This is bounded: the rehydrated session lives only
+            // until either (a) the Mac picks up the token via
+            // one_shot_status_payload, or (b) the room expires.
             let status = p.status.clone();
+            let device_id_for_lookup = p.device_id.clone();
+            let persisted_token: Option<String> = state
+                .persistence
+                .get_device_token_by_device_id(&device_id_for_lookup)
+                .ok()
+                .flatten()
+                .map(|t| t.token);
+            if !status.is_empty() && status != "completed" {
+                // Room is still waiting (not yet approved); just
+                // surface the persisted view.
+                return Ok(Json(json!({
+                    "status": status,
+                    "room_id": room_id,
+                    "connect_id": room_id,
+                    "server_url": p.server_url,
+                    "mac_callback": p.mac_callback,
+                    "expires_at": p.expires_at,
+                    "expired": status == "expired",
+                    "diagnostics": {
+                        "surface": "phone_bridge_flow",
+                        "event": "room_rehydrated_from_ledger",
+                        "room_state": status.clone(),
+                        "next_step_hint": "Room was rehydrated from SQLite after daemon restart.",
+                    },
+                })));
+            }
+            if status == "completed" {
+                if let Some(token_str) = persisted_token {
+                    // Rehydrate into memory so one_shot_status_payload
+                    // can enforce the canonical contract.
+                    let mut s = pairing_state.write().await;
+                    let now = Utc::now();
+                    let created_at = chrono::DateTime::parse_from_rfc3339(&p.created_at)
+                        .map(|t| t.with_timezone(&Utc))
+                        .unwrap_or(now);
+                    let expires_at = chrono::DateTime::parse_from_rfc3339(&p.expires_at)
+                        .map(|t| t.with_timezone(&Utc))
+                        .unwrap_or(now + chrono::Duration::seconds(300));
+                    let rehydrated = ConnectSession {
+                        connect_id: room_id.trim().to_string(),
+                        device_id: p.device_id.clone(),
+                        mac_name: String::new(),
+                        mac_nonce: String::new(),
+                        mac_pubkey: None,
+                        mac_callback: p.mac_callback.clone(),
+                        server_url: p.server_url.clone(),
+                        scopes: p.scopes.clone(),
+                        created_at,
+                        expires_at,
+                        status: "completed".to_string(),
+                        token: Some(token_str.clone()),
+                        token_delivered: false,
+                        delivered_at: None,
+                        room_claim_secret: p.room_claim_secret.clone(),
+                    };
+                    s.connect_sessions.insert(
+                        room_id.trim().to_string(),
+                        rehydrated,
+                    );
+                    drop(s);
+                    // Now run the canonical one-shot logic.
+                    let mut s = pairing_state.write().await;
+                    if let Some(session) =
+                        s.connect_sessions.get_mut(room_id.trim())
+                    {
+                        let (_expired, payload) =
+                            one_shot_status_payload(session);
+                        // Persist token_delivered flag so subsequent
+                        // in-memory restart doesn't double-deliver.
+                        let delivered = session.token_delivered;
+                        let _ = delivered; // attached to session in memory
+                        return Ok(Json(payload));
+                    }
+                }
+            }
             Ok(Json(json!({
                 "status": status,
                 "room_id": room_id,
@@ -897,16 +1058,65 @@ struct PersistedSessionRow {
     status: String,
 }
 
-async fn connect_room_mac_offer(
-    Path(room_id): Path<String>,
-    Json(body): Json<ConnectRoomMacOfferRequest>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let mac_name = body.mac_name.unwrap_or_else(|| "Focusa Mac".to_string());
-    let mac_nonce = body
-        .mac_nonce
-        .unwrap_or_else(|| Uuid::now_v7().simple().to_string());
+/// V2 P1.4 /mac-offer+join shared binding: validate mac_callback with
+/// the LAN/Tailscale-aware validator, then bind (room_id, mac_name,
+/// mac_nonce, mac_pubkey, mac_callback) atomically. Idempotent retry
+/// with the same nonce succeeds; a different nonce returns 409
+/// `mac_nonce_mismatch` (prevents a hostile PWA tab from swapping the
+/// nonce to redirect the mac_callback fast path to a URL the attacker
+/// controls).
+///
+/// The validator is V2's mainline validator `validate_mac_callback_url`,
+/// which permits loopback, RFC1918 private IPv4, link-local, and
+/// Tailscale ranges while requiring the `/focusa-phone-bridge/<nonce>`
+/// path. This is intentionally different from the more restrictive
+/// `validate_pairing_url` used by `server_url` (which only allows
+/// https:// or http://127.0.0.1).
+/// Canonical mac_offer binding produced by `bind_mac_offer_to_room_fields`.
+#[derive(Debug, Clone)]
+struct BoundMacOffer {
+    mac_name: String,
+    mac_nonce: String,
+    mac_pubkey: Option<String>,
+    mac_callback: Option<String>,
+}
+
+/// V2 P0 round-2: snapshot of a DevicePairCode row used by pair_status
+/// to release the immutable lock before mutating the consumed_codes set.
+#[derive(Debug, Clone)]
+struct PairCodeSnapshot {
+    code: String,
+    device_id: String,
+    device_name: String,
+    platform: String,
+    scopes: Vec<String>,
+    expires_at: DateTime<Utc>,
+    status: String,
+    already_consumed: bool,
+}
+
+/// V2 P0 round-2: snapshot of a DeviceToken row used by pair_status
+/// (device_id-keyed branch) to release the immutable lock before
+/// mutating the consumed_codes set.
+#[derive(Debug, Clone)]
+struct DeviceTokenSnapshot {
+    token: String,
+    scopes: Vec<String>,
+    issued_at: DateTime<Utc>,
+    expires_at: DateTime<Utc>,
+}
+fn bind_mac_offer_to_room_fields(
+    rid: &str,
+    mac_name: String,
+    mac_nonce: String,
+    mac_pubkey: Option<String>,
+    mac_callback: Option<String>,
+) -> Result<BoundMacOffer, (StatusCode, Json<Value>)> {
     if mac_name.trim().is_empty() || mac_nonce.trim().is_empty() {
-        tracing::warn!(room_id = %room_id, "phone bridge mac offer rejected: missing mac_name or mac_nonce");
+        tracing::warn!(
+            room_id = %rid,
+            "phone bridge mac offer binding rejected: missing mac_name or mac_nonce"
+        );
         return Err(rejection(
             StatusCode::UNPROCESSABLE_ENTITY,
             json!({
@@ -916,6 +1126,165 @@ async fn connect_room_mac_offer(
             }),
         ));
     }
+
+    // Empty-string callback is treated as "not provided" (Mac may emit
+    // "" when bridge startup failed). The bridge is optional in V2.
+    let normalized_callback: Option<String> = match mac_callback {
+        None => None,
+        Some(cb) => {
+            let trimmed = cb.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                // V2 P0: validate with the LAN/Tailscale-aware validator.
+                validate_mac_callback_url(trimmed, "mac_callback")?;
+                Some(trimmed.to_string())
+            }
+        }
+    };
+
+    // Caller pre-checks room existence and existing nonce mismatch; this
+    // function only does the canonical validation/normalization.
+    Ok(BoundMacOffer { mac_name, mac_nonce, mac_pubkey, mac_callback: normalized_callback })
+}
+
+/// V2 P0 nonce mismatch helper: returns Err if the existing bound
+/// nonce for the room is non-empty and differs from the candidate.
+fn reject_nonce_mismatch(
+    rid: &str,
+    existing_nonce: &str,
+    candidate_nonce: &str,
+) -> Result<(), (StatusCode, Json<Value>)> {
+    if !existing_nonce.trim().is_empty()
+        && existing_nonce != candidate_nonce
+    {
+        tracing::warn!(
+            room_id = %rid,
+            existing_nonce = %existing_nonce,
+            attempted_nonce = %candidate_nonce,
+            "V2 P0: mac_nonce mismatch on /mac-offer or /join; rejecting"
+        );
+        return Err(rejection(
+            StatusCode::CONFLICT,
+            json!({
+                "status": "conflict",
+                "failure_class": "mac_nonce_mismatch",
+                "message": "room already has a mac_nonce bound; refusing to overwrite",
+                "room_id": rid,
+            }),
+        ));
+    }
+    Ok(())
+}
+
+/// V2 P0 strict persistence helper: wraps `pairing_store::put_session`
+/// for trust-critical transitions (room_create, room_firstrun, room_join).
+/// On persistence failure, rolls back the just-inserted in-memory session
+/// and returns 500 storage_unwritable so callers can see the rollback
+/// happened instead of silently returning an inconsistent room.
+#[allow(clippy::too_many_arguments)]
+fn strict_put_session_with_rollback(
+    state: &AppState,
+    rid: &str,
+    device_id: &str,
+    mac_nonce: Option<&str>,
+    mac_pubkey: Option<&str>,
+    mac_callback: Option<&str>,
+    server_url: &str,
+    scopes: &[String],
+    created_at: &str,
+    expires_at: &str,
+    room_claim_secret: Option<&str>,
+) -> Result<(), (StatusCode, Json<Value>)> {
+    if let Err(e) = pairing_store::put_session(
+        state,
+        rid,
+        Some(device_id),
+        mac_nonce,
+        mac_pubkey,
+        mac_callback,
+        server_url,
+        Some(scopes),
+        created_at,
+        expires_at,
+        room_claim_secret,
+    ) {
+        tracing::error!(
+            room_id = %rid,
+            error = %e,
+            "V2 P0 strict persistence: put_session failed; rolling back in-memory session"
+        );
+        // Rollback the in-memory insert asynchronously (don't hold the
+        // lock across an await in this sync block).
+        let rid_owned = rid.to_string();
+        tokio::spawn(async move {
+            let s = shared_state();
+            let mut w = s.write().await;
+            w.connect_sessions.remove(&rid_owned);
+        });
+        return Err(rejection(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            json!({
+                "status": "error",
+                "failure_class": "storage_unwritable",
+                "message": format!("PairingStore persistence failed: {}", e),
+                "room_id": rid,
+            }),
+        ));
+    }
+    Ok(())
+}
+
+/// V2 P0 strict persistence helper for legacy transitions (pair_complete
+/// consumes the code in the SQLite ledger). Trust-critical: if the
+/// consume fails, return 500 so the caller knows the ledger diverges
+/// from memory.
+fn strict_consume_code(
+    state: &AppState,
+    code: &str,
+) -> Result<(), (StatusCode, Json<Value>)> {
+    if let Err(e) = pairing_store::consume_code(state, code) {
+        tracing::error!(
+            code = %code,
+            error = %e,
+            "V2 P0 strict persistence: consume_code failed"
+        );
+        return Err(rejection(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            json!({
+                "status": "error",
+                "failure_class": "storage_unwritable",
+                "message": format!("PairingStore consume_code failed: {}", e),
+                "code": code,
+            }),
+        ));
+    }
+    Ok(())
+}
+
+async fn connect_room_mac_offer(
+    Path(room_id): Path<String>,
+    Json(body): Json<ConnectRoomMacOfferRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    // V2 P0/P1.4: route through the shared mac_offer binding helper so
+    // /mac-offer and /join have identical validation (LAN/Tailscale
+    // aware) and identical nonce-mismatch protection.
+    let mac_callback = body
+        .mac_callback
+        .clone()
+        .and_then(|s| if s.trim().is_empty() { None } else { Some(s) });
+    let bound = bind_mac_offer_to_room_fields(
+        &room_id,
+        body.mac_name.unwrap_or_else(|| "Focusa Mac".to_string()),
+        body.mac_nonce
+            .unwrap_or_else(|| Uuid::now_v7().simple().to_string()),
+        body.mac_pubkey.clone(),
+        mac_callback,
+    )?;
+    let mac_name = bound.mac_name;
+    let mac_nonce = bound.mac_nonce;
+    let mac_pubkey = bound.mac_pubkey;
+    let mac_callback = bound.mac_callback;
 
     let now = Utc::now();
     let pairing_state = shared_state();
@@ -951,46 +1320,15 @@ async fn connect_room_mac_offer(
     // embedded in the QR; if a subsequent call carries a different
     // nonce for the same room, treat it as a hostile replay and reject
     // with 409. This protects against an attacker who intercepts the
-    // PWA tab and tries to swap in their own nonce to redirect the
-    // mac_callback fast path to a URL they control.
-    if !updated.mac_nonce.trim().is_empty()
-        && updated.mac_nonce != mac_nonce
-    {
-        tracing::warn!(
-            room_id = %room_id,
-            existing_nonce = %updated.mac_nonce,
-            attempted_nonce = %mac_nonce,
-            "V2 P1.4: mac_nonce mismatch on /mac-offer or /join; rejecting"
-        );
-        return Err(rejection(
-            StatusCode::CONFLICT,
-            json!({
-                "status": "conflict",
-                "failure_class": "mac_nonce_mismatch",
-                "message": "room already has a mac_nonce bound; refusing to overwrite",
-                "room_id": room_id,
-            }),
-        ));
-    }
+    // V2 P0: nonce mismatch protection (shared with /join).
+    reject_nonce_mismatch(&room_id, &updated.mac_nonce, &mac_nonce)?;
+
     updated.mac_name = mac_name;
     updated.mac_nonce = mac_nonce;
-    updated.mac_pubkey = body.mac_pubkey;
-    // V2 P1.2: validate the mac_callback URL on every mac-offer path
-    // (canonical /mac-offer and /join both run the same shape, so we
-    // don't risk drift). Empty-string callback is treated as "not
-    // provided" (Mac may emit "" when bridge startup failed). The
-    // bridge is optional in V2 anyway.
-    if let Some(cb) = body
-        .mac_callback
-        .as_deref()
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-    {
-        validate_mac_callback_url(cb, "mac_callback")?;
-        updated.mac_callback = Some(cb.to_string());
-    } else {
-        updated.mac_callback = None;
-    }
+    updated.mac_pubkey = mac_pubkey;
+    // mac_callback was already validated and normalized by
+    // bind_mac_offer_to_room_fields; just bind it on the session.
+    updated.mac_callback = mac_callback;
     if let Some(scopes) = body.scopes {
         updated.scopes = scopes;
     }
@@ -1031,6 +1369,7 @@ async fn connect_room_approve(
 }
 
 async fn connect_start(
+    State(state): State<Arc<AppState>>,
     Json(body): Json<ConnectStartRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let now = Utc::now();
@@ -1062,8 +1401,8 @@ async fn connect_start(
         device_id: device_id.clone(),
         mac_name: mac_name.clone(),
         mac_nonce: mac_nonce.clone(),
-        mac_pubkey: body.mac_pubkey,
-        mac_callback: body.mac_callback,
+        mac_pubkey: body.mac_pubkey.clone(),
+        mac_callback: body.mac_callback.clone(),
         server_url: server_url.clone(),
         scopes: scopes.clone(),
         created_at: now,
@@ -1072,6 +1411,7 @@ async fn connect_start(
         token: None,
                 token_delivered: false,
             delivered_at: None,
+            room_claim_secret: String::new(),
         };
 
     let pairing_state = shared_state();
@@ -1080,6 +1420,43 @@ async fn connect_start(
         .await
         .connect_sessions
         .insert(connect_id.clone(), session);
+
+    // V2 P0: legacy /v1/connect persists too. Strict: roll back in
+    // memory if PairingStore rejects. Legacy route: no room_claim_secret.
+    if let Err(e) = pairing_store::put_session(
+        &state,
+        &connect_id,
+        Some(&device_id),
+        Some(&mac_nonce),
+        body.mac_pubkey.as_deref(),
+        body.mac_callback.as_deref(),
+        &server_url,
+        Some(&scopes),
+        &now.to_rfc3339(),
+        &expires.to_rfc3339(),
+        None,
+    ) {
+        tracing::error!(
+            connect_id = %connect_id,
+            error = %e,
+            "V2 P0 strict persistence: connect_start put_session failed; rolling back"
+        );
+        let cid_owned = connect_id.clone();
+        tokio::spawn(async move {
+            let s = shared_state();
+            let mut w = s.write().await;
+            w.connect_sessions.remove(&cid_owned);
+        });
+        return Err(rejection(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            json!({
+                "status": "error",
+                "failure_class": "storage_unwritable",
+                "message": format!("connect_start persistence failed: {}", e),
+                "connect_id": connect_id,
+            }),
+        ));
+    }
 
     Ok(Json(json!({
         "status": "pending",
@@ -1395,6 +1772,7 @@ s.tokens.insert(token.clone(), device_token.clone());
                 &completed.connect_id,
                 &completed.device_id,
                 &completed.mac_name,
+                &completed.mac_nonce,
                 token,
                 expires_at,
                 &completed.server_url,
@@ -1460,17 +1838,24 @@ async fn dispatch_mac_callback(
     connect_id: &str,
     device_id: &str,
     device_name: &str,
+    mac_nonce: &str,
     token: &str,
     token_expires_at: chrono::DateTime<chrono::Utc>,
     server_url: &str,
     host: &str,
 ) -> bool {
+    // V2 P1 (round 2): include mac_nonce in the payload so the Tauri
+    // bridge handler can verify path nonce == payload.mac_nonce. Without
+    // this, a same-LAN caller who learned the callback URL (which
+    // includes a random nonce) could POST a syntactically valid
+    // mac_completion_payload even though they don't know the mac_nonce.
     let payload = serde_json::json!({
         "protocol": "focusa-connect-v1",
         "role": "mac_completion_payload",
         "connect_id": connect_id,
         "device_id": device_id,
         "device_name": device_name,
+        "mac_nonce": mac_nonce,
         "token": token,
         "token_expires_at": token_expires_at.to_rfc3339(),
         "server_url": server_url,
@@ -1760,8 +2145,10 @@ async fn pair_complete(
             ));
         }
     };
-    // V2: drop the consumed code from the SQLite ledger.
-    let _ = pairing_store::consume_code(&state, &code);
+    // V2 P0: drop the consumed code from the SQLite ledger. Strict: if
+    // consume fails, return 500 so the caller knows the ledger diverges
+    // from in-memory state.
+    strict_consume_code(&state, &code)?;
 
     // The token was already inserted into the in-memory pairing_state.tokens
     // above; look it up by device_id for the response.
@@ -1841,37 +2228,64 @@ async fn pair_status(
     axum::extract::Query(query): axum::extract::Query<PairStatusRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let pairing_state = shared_state();
-    let s = pairing_state.read().await;
+    let mut s = pairing_state.write().await;
     if let Some(code) = query.code.as_deref() {
         let code = code.trim().to_uppercase();
-        if let Some(pair) = s.pending.get(&code) {
+        // Snapshot the pair from the immutable borrow so we can release
+        // the lock before mutating consumed_pair_codes.
+        let pair_snapshot: Option<PairCodeSnapshot> = s.pending.get(&code).map(|pair| {
+            PairCodeSnapshot {
+                code: code.clone(),
+                device_id: pair.device_id.clone(),
+                device_name: pair.device_name.clone(),
+                platform: pair.platform.clone(),
+                scopes: pair.scopes.clone(),
+                expires_at: pair.expires_at,
+                status: pair.status.clone(),
+                already_consumed: s.consumed_pair_codes.contains(&code),
+            }
+        });
+        if let Some(snap) = pair_snapshot {
             let now = Utc::now();
-            let expired = pair.expires_at < now;
-            let token = if pair.status == "Completed" {
+            let expired = snap.expires_at < now;
+            // Look up the token (clone it out, no borrow held).
+            let token: Option<String> = if snap.status == "Completed" && !snap.already_consumed {
                 s.tokens
                     .iter()
-                    .find(|(_, t)| t.device_id == pair.device_id)
+                    .find(|(_, t)| t.device_id == snap.device_id)
                     .map(|(_, t)| t.token.clone())
             } else {
                 None
             };
             let status_str: String = if expired {
                 "expired".to_string()
+            } else if snap.already_consumed && snap.status == "Completed" {
+                "consumed".to_string()
             } else {
-                pair.status.to_lowercase()
+                snap.status.to_lowercase()
             };
+            if token.is_some() {
+                s.consumed_pair_codes.insert(snap.code.clone());
+                tracing::info!(
+                    code = %snap.code,
+                    device_id = %snap.device_id,
+                    "V2 P0: pair_status one-shot token delivery (legacy route)"
+                );
+            }
             return Ok(Json(json!({
                 "status": status_str,
-                "code": code,
-                "device_id": pair.device_id,
-                "device_name": pair.device_name,
-                "platform": pair.platform,
-                "scopes": pair.scopes,
-                "expires_at": pair.expires_at,
+                "code": snap.code,
+                "device_id": snap.device_id,
+                "device_name": snap.device_name,
+                "platform": snap.platform,
+                "scopes": snap.scopes,
+                "expires_at": snap.expires_at,
                 "expired": expired,
                 "token": token,
+                "token_present": snap.status == "Completed",
+                "one_shot_consumed": snap.already_consumed,
                 "next_tools": ["focusa_device_pair_list"],
-                "rehydrate_id": pair.device_id,
+                "rehydrate_id": snap.device_id,
             })));
         }
         return Err(rejection(
@@ -1885,15 +2299,43 @@ async fn pair_status(
     }
     if let Some(device_id) = query.device_id.as_deref() {
         let now = Utc::now();
-        if let Some(token) = s.tokens.values().find(|t| t.device_id == device_id) {
+        // V2 P0: device_id-keyed lookup should also be one-shot. Use a
+        // synthetic "device:<id>" key for the consumed set.
+        let consume_key = format!("device:{}", device_id);
+        let already_consumed = s.consumed_pair_codes.contains(&consume_key);
+        // First, clone the token out from under the immutable borrow so we
+        // can later acquire a mutable borrow on `s`.
+        let token_snapshot: Option<DeviceTokenSnapshot> = s
+            .tokens
+            .values()
+            .find(|t| t.device_id == device_id)
+            .map(|t| DeviceTokenSnapshot {
+                token: t.token.clone(),
+                scopes: t.scopes.clone(),
+                issued_at: t.issued_at,
+                expires_at: t.expires_at,
+            });
+        if let Some(snap) = token_snapshot {
+            let response_token = if !already_consumed {
+                s.consumed_pair_codes.insert(consume_key);
+                tracing::info!(
+                    device_id = %device_id,
+                    "V2 P0: pair_status one-shot token delivery via device_id (legacy route)"
+                );
+                Some(snap.token)
+            } else {
+                None
+            };
             return Ok(Json(json!({
-                "status": "completed",
+                "status": if already_consumed { "consumed" } else { "completed" },
                 "device_id": device_id,
-                "token": token.token,
-                "scopes": token.scopes,
-                "issued_at": token.issued_at,
-                "expires_at": token.expires_at,
-                "expired": token.expires_at < now,
+                "token": response_token,
+                "token_present": true,
+                "one_shot_consumed": already_consumed,
+                "scopes": snap.scopes,
+                "issued_at": snap.issued_at,
+                "expires_at": snap.expires_at,
+                "expired": snap.expires_at < now,
                 "next_tools": ["focusa_device_pair_list"],
                 "rehydrate_id": device_id,
             })));
@@ -2772,6 +3214,7 @@ async fn connect_room_firstrun(
         token: None,
                 token_delivered: false,
             delivered_at: None,
+            room_claim_secret: String::new(),
         };
     {
         let state_ref = shared_state();
@@ -2779,18 +3222,21 @@ async fn connect_room_firstrun(
         s.connect_sessions
             .insert(room_id.clone(), session.clone());
     }
-    let _ = pairing_store::put_session(
+    // V2 P0: strict persistence — roll back in-memory session if
+    // put_session fails. firstrun is Mac-creates; no room_claim_secret.
+    strict_put_session_with_rollback(
         &state,
         &room_id,
-        Some(&device_id),
+        &device_id,
         Some(&mac_nonce),
         None,
         mac_callback.as_deref(),
         &server_url,
-        Some(&scopes),
+        &scopes,
         &now.to_rfc3339(),
         &expires.to_rfc3339(),
-    );
+        None,
+    )?;
     let mac_offer = serde_json::json!({
         "protocol": "focusa-connect-v1",
         "role": "mac_handoff_offer",
@@ -2845,7 +3291,7 @@ async fn connect_room_firstrun(
     })))
 }
 
-// ---------- focusa-ui0y v0.9.35-dev: VPS-initiated room model ----------
+// ---------- focusa-ui0y v0.9.39-dev: VPS-initiated room model ----------
 
 async fn connect_room_create(
     State(state): State<Arc<AppState>>,
@@ -2873,6 +3319,12 @@ async fn connect_room_create(
             return Err(rej);
         }
     };
+    // V2 P0 round 2: mint a fresh random room_claim_secret. The phone
+    // must present it on /join (and /mac-offer). Without this, any
+    // reachable client that polls /v1/connect/rooms can discover a
+    // waiting room and bind a Mac offer before the legitimate phone
+    // flow completes. The secret lives in the session + SQLite ledger.
+    let room_claim_secret = generate_room_claim_secret();
 
     let session = ConnectSession {
         connect_id: room_id.clone(),
@@ -2889,6 +3341,7 @@ async fn connect_room_create(
         token: None,
         token_delivered: false,
         delivered_at: None,
+        room_claim_secret: room_claim_secret.clone(),
     };
     {
         let state_ref = shared_state();
@@ -2896,18 +3349,21 @@ async fn connect_room_create(
         s.connect_sessions
             .insert(room_id.clone(), session.clone());
     }
-    let _ = pairing_store::put_session(
+    // V2 P0: strict persistence — roll back in-memory session if
+    // put_session fails.
+    strict_put_session_with_rollback(
         &state,
         &room_id,
-        Some(&device_id),
+        &device_id,
         None,
         None,
         None,
         &server_url,
-        Some(&scopes),
+        &scopes,
         &now.to_rfc3339(),
         &expires.to_rfc3339(),
-    );
+        Some(&room_claim_secret),
+    )?;
 
     // pair_url points to the PWA scan page, NOT to firstrun (which was Mac-creates).
     let pair_url = format!(
@@ -2920,7 +3376,7 @@ async fn connect_room_create(
         room_id = %room_id,
         device_id = %device_id,
         server_url = %server_url,
-        "VPS-initiated pairing room created (v0.9.35-dev)"
+        "VPS-initiated pairing room created (v0.9.39-dev)"
     );
 
     Ok(Json(json!({
@@ -2931,8 +3387,13 @@ async fn connect_room_create(
         "connect_id": room_id,
         "device_id": device_id,
         "server_url": server_url,
+        // V2 P0 round 2: room_claim_secret. Embedded in the terminal
+        // QR payload (pair_url_qr_payload) so the phone can present it
+        // on /join. Anyone who can poll /v1/connect/rooms without this
+        // secret cannot bind a Mac offer to the room.
+        "room_claim_secret": room_claim_secret,
         "pair_url": pair_url,
-        "pair_url_qr_payload": pair_url,
+        "pair_url_qr_payload": format!("{}#secret={}", pair_url, room_claim_secret),
         "scan_url": pair_url,
         "scopes": scopes,
         "expires_at": expires,
@@ -2961,7 +3422,7 @@ async fn connect_room_create(
             "surface": "phone_bridge_flow",
             "event": "room_created",
             "room_state": "waiting_for_mac",
-            "next_step_hint": "Phone scans pair_url QR (terminal). PWA loads. PWA camera scans Mac static mac_offer QR. Mac joins via /join. Phone taps Approve."
+            "next_step_hint": "Phone scans pair_url QR (terminal). PWA loads. PWA camera scans Mac static mac_offer QR. Mac joins via /join with the room_claim_secret. Phone taps Approve."
         },
         "rehydrate_id": room_id,
     })))
@@ -2974,20 +3435,33 @@ async fn connect_room_join(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let rid = room_id.trim().to_string();
     let now = Utc::now();
-    let mac_name = bounded_label(body.mac_name.clone(), "operator-mac", 128);
-    let mac_nonce = body
+    let mac_name_in = bounded_label(body.mac_name.clone(), "operator-mac", 128);
+    let mac_nonce_in = body
         .mac_nonce
         .clone()
         .or(body.mac_nonce_v2.clone())
         .unwrap_or_default();
-    let mac_pubkey = body.mac_pubkey.clone().or(body.mac_pubkey_v2.clone());
-    let mac_callback = body
+    let mac_pubkey_in = body.mac_pubkey.clone().or(body.mac_pubkey_v2.clone());
+    let mac_callback_in = body
         .mac_callback
         .clone()
         .and_then(|s| if s.trim().is_empty() { None } else { Some(s) });
-    if let Some(cb) = &mac_callback {
-        validate_pairing_url(cb, "mac_callback")?;
-    }
+
+    // V2 P0: route the mac_offer binding through the shared helper so
+    // /join uses validate_mac_callback_url (LAN/Tailscale aware) instead
+    // of validate_pairing_url (https://-only), and shares the nonce
+    // mismatch guard with /mac-offer.
+    let bound = bind_mac_offer_to_room_fields(
+        &rid,
+        mac_name_in,
+        mac_nonce_in,
+        mac_pubkey_in,
+        mac_callback_in,
+    )?;
+    let mac_name = bound.mac_name;
+    let mac_nonce = bound.mac_nonce;
+    let mac_pubkey = bound.mac_pubkey;
+    let mac_callback = bound.mac_callback;
 
     let updated_session = {
         let state_ref = shared_state();
@@ -3026,6 +3500,55 @@ async fn connect_room_join(
                 }),
             ));
         }
+        // V2 P0 round 2: room_claim_secret enforcement. Rooms created
+        // by /v1/connect/room/create carry a random secret that the
+        // phone must present on /join. Without this, any reachable
+        // client that polls /v1/connect/rooms can discover a waiting
+        // room and bind a Mac offer before the legitimate phone flow
+        // completes. /firstrun is Mac-creates; it has no secret and
+        // skips this check.
+        if !session.room_claim_secret.trim().is_empty() {
+            let presented = body
+                .room_claim_secret
+                .as_deref()
+                .map(str::trim)
+                .unwrap_or("");
+            if presented.is_empty() {
+                tracing::warn!(
+                    room_id = %rid,
+                    mac_name = %mac_name,
+                    "phone bridge join rejected: missing room_claim_secret"
+                );
+                return Err(rejection(
+                    StatusCode::UNAUTHORIZED,
+                    json!({
+                        "status": "unauthorized",
+                        "failure_class": "room_claim_secret_missing",
+                        "message": "room was created by /v1/connect/room/create and requires room_claim_secret on /join",
+                        "room_id": rid,
+                    }),
+                ));
+            }
+            if presented != session.room_claim_secret {
+                tracing::warn!(
+                    room_id = %rid,
+                    mac_name = %mac_name,
+                    "phone bridge join rejected: room_claim_secret mismatch"
+                );
+                return Err(rejection(
+                    StatusCode::FORBIDDEN,
+                    json!({
+                        "status": "forbidden",
+                        "failure_class": "room_claim_secret_mismatch",
+                        "message": "room_claim_secret does not match",
+                        "room_id": rid,
+                    }),
+                ));
+            }
+        }
+        // V2 P0: nonce mismatch protection (shared with /mac-offer).
+        reject_nonce_mismatch(&rid, &session.mac_nonce, &mac_nonce)?;
+
         session.mac_name = mac_name.clone();
         session.mac_nonce = mac_nonce.clone();
         session.mac_pubkey = mac_pubkey.clone();
@@ -3035,23 +3558,28 @@ async fn connect_room_join(
         }
         session.clone()
     };
-    let _ = pairing_store::put_session(
+    // V2 P0: strict persistence — roll back the in-memory mac binding if
+    // put_session fails. The mac_nonce/callback/payload must survive
+    // daemon restart; losing it would cause the mac_callback fast path
+    // to fail silently after restart.
+    strict_put_session_with_rollback(
         &state,
         &rid,
-        Some(&updated_session.device_id),
+        &updated_session.device_id,
         Some(&mac_nonce),
         mac_pubkey.as_deref(),
         mac_callback.as_deref(),
         &updated_session.server_url,
-        Some(&updated_session.scopes),
+        &updated_session.scopes,
         &updated_session.created_at.to_rfc3339(),
         &updated_session.expires_at.to_rfc3339(),
-    );
+        Some(&updated_session.room_claim_secret),
+    )?;
 
     tracing::info!(
         room_id = %rid,
         mac_name = %mac_name,
-        "Mac joined pairing room (v0.9.35-dev /join)"
+        "Mac joined pairing room (v0.9.39-dev /join)"
     );
 
     Ok(Json(json!({
@@ -3075,7 +3603,7 @@ async fn connect_room_join(
     })))
 }
 
-// ---------- focusa-ui0y v0.9.35-dev: PWA /connect/room/<id>/scan ----------
+// ---------- focusa-ui0y v0.9.39-dev: PWA /connect/room/<id>/scan ----------
 
 async fn connect_room_scan_page(
     axum::extract::Path(room_id): axum::extract::Path<String>,

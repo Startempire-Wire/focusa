@@ -1,4 +1,4 @@
-//! focusa pairing email-link subcommand (focusa-ui0y v0.9.35-dev G13).
+//! focusa pairing email-link subcommand (focusa-ui0y v0.9.39-dev G13).
 //!
 //! Operator-side helper for the "phone camera broken" / "operator on a
 //! different device" fallback. Generates a one-time deep link and
@@ -235,10 +235,10 @@ async fn send_smtp(
     let _ = stream.read(&mut buf).await?;
     // We don't actually do TLS here — that's a v0.9.36 follow-up. For
     // production SMTP, operators should use a relay with opportunistic
-    // TLS or pre-encrypted port 465. For the v0.9.35-dev email-link
+    // TLS or pre-encrypted port 465. For the v0.9.39-dev email-link
     // helper we print a clear warning.
     tracing::warn!(
-        "SMTP STARTTLS sent but TLS handshake not implemented in v0.9.35-dev; \
+        "SMTP STARTTLS sent but TLS handshake not implemented in v0.9.39-dev; \
          for production, use port 465 (SMTPS) or a TLS-encrypting proxy. \
          For self-host testing, the mailto: link is recommended."
     );

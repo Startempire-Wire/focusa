@@ -22,6 +22,12 @@ pub struct PersistedSession {
     pub expires_at: String,
     pub mac_callback: Option<String>,
     pub status: String,
+    /// V2 P0 round 2: device_id, scopes, created_at, room_claim_secret
+    /// are needed by /status when rehydrating after restart.
+    pub device_id: String,
+    pub scopes: Vec<String>,
+    pub created_at: String,
+    pub room_claim_secret: String,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -83,6 +89,7 @@ pub fn put_session(
     scopes: Option<&[String]>,
     created_at: &str,
     expires_at: &str,
+    room_claim_secret: Option<&str>,
 ) -> Result<()> {
     let scopes_json = scopes
         .map(|s| serde_json::to_string(s).unwrap_or_else(|_| "[]".into()))
@@ -97,6 +104,7 @@ pub fn put_session(
         Some(&scopes_json),
         created_at,
         expires_at,
+        room_claim_secret,
     )?;
     // V2: PairingStore durability — force a WAL checkpoint so a SIGKILL
     // of the daemon immediately after put does not lose the row. Without
@@ -107,15 +115,22 @@ pub fn put_session(
 }
 
 pub fn get_session(state: &AppState, connect_id: &str) -> Result<Option<PersistedSession>> {
-    let row = state.persistence.get_connect_session(connect_id)?;
-    Ok(row.map(|(server_url, expires_at, mac_callback, status)| {
-        PersistedSession {
-            server_url,
-            expires_at,
-            mac_callback,
-            status,
-        }
-    }))
+    let row = state.persistence.get_connect_session_with_meta(connect_id)?;
+    Ok(row.map(
+        |(device_id, server_url, expires_at, mac_callback, status, scopes_json, room_claim_secret)| {
+            let scopes: Vec<String> = serde_json::from_str(&scopes_json).unwrap_or_default();
+            PersistedSession {
+                device_id,
+                server_url,
+                expires_at,
+                mac_callback,
+                scopes,
+                created_at: chrono::Utc::now().to_rfc3339(),
+                status,
+                room_claim_secret,
+            }
+        },
+    ))
 }
 
 pub fn complete_session(state: &AppState, connect_id: &str) -> Result<()> {

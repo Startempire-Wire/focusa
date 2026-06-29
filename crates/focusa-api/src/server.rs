@@ -360,6 +360,7 @@ pub async fn rehydrate_pairing_state_from_ledger(
                 mac_callback,
                 expires_at,
                 scopes,
+                room_claim_secret,
             ) = if let Some(d) = detail {
                 (
                     d.device_id,
@@ -369,6 +370,7 @@ pub async fn rehydrate_pairing_state_from_ledger(
                     d.mac_callback,
                     d.expires_at,
                     d.scopes,
+                    d.room_claim_secret,
                 )
             } else {
                 (
@@ -379,6 +381,7 @@ pub async fn rehydrate_pairing_state_from_ledger(
                     None,
                     now + chrono::Duration::seconds(300),
                     vec!["read".to_string(), "write".to_string()],
+                    String::new(),
                 )
             };
             if status == "completed" {
@@ -402,6 +405,10 @@ pub async fn rehydrate_pairing_state_from_ledger(
                     token: None,
                     token_delivered: false,
                     delivered_at: None,
+                    // V2 P0 round 2: rehydrate the room_claim_secret
+                    // from the persisted full row so the /join auth
+                    // check survives daemon restart.
+                    room_claim_secret: room_claim_secret.clone(),
                 },
             );
         }

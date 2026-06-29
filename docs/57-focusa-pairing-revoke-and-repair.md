@@ -1,4 +1,4 @@
-# Focusa Pairing — Revoke + Re-pair Spec (v0.9.35-dev)
+# Focusa Pairing — Revoke + Re-pair Spec (v0.9.39-dev)
 
 **Status:** Canonical for the revoke + re-pair cycle.
 **Architecture overview:** `docs/55-focusa-self-host-architecture.md` §7.
@@ -185,7 +185,7 @@ FOCUSA_CYCLE_TEST_URL=http://127.0.0.1:8787 \
 
 ### 6.4 Bug surfacing
 
-The Rust cycle test surfaced a real response-shape drift between v0.9.34-dev and v0.9.35-dev: the revoke endpoint returns `{ledger_appended: true}` for fresh revokes and `{status: "completed"}` for idempotent re-revokes — not the `{revoked: true}` field the original bash test assumed. The Rust test asserts on either accepted shape and passes; the bash test would have hard-failed. **The Rust version is the source of truth** going forward.
+The Rust cycle test surfaced a real response-shape drift between v0.9.34-dev and v0.9.39-dev: the revoke endpoint returns `{ledger_appended: true}` for fresh revokes and `{status: "completed"}` for idempotent re-revokes — not the `{revoked: true}` field the original bash test assumed. The Rust test asserts on either accepted shape and passes; the bash test would have hard-failed. **The Rust version is the source of truth** going forward.
 
 ## 7. What gets persisted
 
@@ -232,4 +232,4 @@ device_id                             name                created_at            
 
 ## 9. Versioning
 
-This spec ships with v0.9.35-dev. The revoke + re-pair flow is unchanged from v0.9.34-dev (the API and CLI exist); this spec formalizes the semantics, idempotency guarantees, multi-device model, token expiry handling, and the automated test cycle.
+This spec ships with v0.9.39-dev. The revoke + re-pair flow is unchanged from v0.9.34-dev (the API and CLI exist); this spec formalizes the semantics, idempotency guarantees, multi-device model, token expiry handling, and the automated test cycle.

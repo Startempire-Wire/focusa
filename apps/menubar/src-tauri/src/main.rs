@@ -118,10 +118,21 @@ fn handle_bridge_callback(mut stream: TcpStream, nonce: String) {
                         && v.get("connect_id").and_then(|x| x.as_str()).is_some()
                         && v.get("token").and_then(|x| x.as_str()).is_some() =>
                 {
-                    if let Ok(mut completions) = bridge_completions().lock() {
+                    // V2 P1 (round 2): verify path nonce == payload.mac_nonce.
+                    // Without this, a same-LAN caller who learns the
+                    // callback URL (which embeds a random nonce) could
+                    // POST a syntactically valid mac_completion_payload
+                    // even without knowing the mac_nonce. Now they have
+                    // to bind both.
+                    let payload_nonce = v.get("mac_nonce").and_then(|x| x.as_str());
+                    if payload_nonce != Some(nonce.as_str()) {
+                        "HTTP/1.1 422 Unprocessable Entity\r\nconnection: close\r\n\r\nmac_nonce mismatch"
+                    } else if let Ok(mut completions) = bridge_completions().lock() {
                         completions.insert(nonce, body);
+                        "HTTP/1.1 200 OK\r\ncontent-type: text/plain\r\nconnection: close\r\n\r\nFocusa Phone Bridge completion received. You can return to the Mac app."
+                    } else {
+                        "HTTP/1.1 500 Internal Server Error\r\nconnection: close\r\n\r\ncompletion store poisoned"
                     }
-                    "HTTP/1.1 200 OK\r\ncontent-type: text/plain\r\nconnection: close\r\n\r\nFocusa Phone Bridge completion received. You can return to the Mac app."
                 }
                 _ => "HTTP/1.1 422 Unprocessable Entity\r\nconnection: close\r\n\r\ninvalid completion payload",
             }
@@ -171,22 +182,43 @@ fn focusa_start_bridge_callback(nonce: String) -> Result<String, String> {
             // V2 P1.5: bound the listener to 30s so a missed callback doesn't
             // pin an ephemeral port. After 30s without success, the
             // listener exits and frees the port.
+            //
+            // V2 P0 (round 2): use set_nonblocking(true) and poll the
+            // deadline every iteration. The previous version called
+            // set_nonblocking(false) before listener.incoming().next(),
+            // which would block indefinitely on Linux/macOS until a
+            // connection arrived — the deadline check at the top of the
+            // loop never ran, so the 30s TTL was effectively meaningless.
             let deadline = std::time::Instant::now() + Duration::from_secs(30);
             let mut handled = false;
+            // Set nonblocking so accept() returns WouldBlock instead of
+            // blocking the thread when no connection is pending.
+            if let Err(e) = listener.set_nonblocking(true) {
+                tracing::error!(nonce = %nonce, error = %e, "V2 P0: set_nonblocking(true) failed; aborting listener");
+                if let Ok(mut listeners) = bridge_listeners().lock() {
+                    listeners.remove(&nonce);
+                }
+                return;
+            }
             loop {
                 if std::time::Instant::now() >= deadline || handled {
                     break;
                 }
-                listener
-                    .set_nonblocking(false)
-                    .unwrap_or(());
-                // Accept up to 1 request; subsequent calls return 404.
-                match listener.incoming().next() {
-                    Some(Ok(stream)) => {
+                match listener.accept() {
+                    Ok((stream, _peer)) => {
                         handle_bridge_callback(stream, nonce.clone());
                         handled = true;
                     }
-                    _ => break,
+                    Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                        // No connection ready; sleep briefly and check
+                        // the deadline. 50ms is small enough to feel
+                        // responsive while keeping the poll cheap.
+                        std::thread::sleep(Duration::from_millis(50));
+                    }
+                    Err(e) => {
+                        tracing::error!(nonce = %nonce, error = %e, "V2 P0: listener.accept() failed; aborting");
+                        break;
+                    }
                 }
             }
             if let Ok(mut listeners) = bridge_listeners().lock() {

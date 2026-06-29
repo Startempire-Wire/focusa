@@ -1,4 +1,4 @@
-//! Focusa pairing wizard (focusa-ui0y v0.9.35-dev).
+//! Focusa pairing wizard (focusa-ui0y v0.9.39-dev).
 //!
 //! Canonical operator entry point for self-host pairing. Replaces the bash
 //! script at `crates/focusa-cli/scripts/focusa-pairing-wizard.sh`.
@@ -299,7 +299,7 @@ async fn run_wizard(args: WizardArgs) -> Result<()> {
     println!();
     println!("  ╔══════════════════════════════════════════════════════════╗");
     println!("  ║          Focusa Pairing Wizard                           ║");
-    println!("  ║          focusa-pairing-wizard v0.9.35-dev               ║");
+    println!("  ║          focusa-pairing-wizard v0.9.39-dev               ║");
     println!("  ╚══════════════════════════════════════════════════════════╝");
     println!();
 

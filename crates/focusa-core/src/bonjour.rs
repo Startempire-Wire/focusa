@@ -1,4 +1,4 @@
-//! Bonjour / mDNS service advertisement for Focusa (focusa-ui0y v0.9.35-dev).
+//! Bonjour / mDNS service advertisement for Focusa (focusa-ui0y v0.9.39-dev).
 //!
 //! The daemon advertises `_focusa._tcp.local` so the Mac menubar wizard
 //! can auto-discover the VPS on the LAN without operator input (G08).
@@ -11,7 +11,7 @@
 //! the daemon's first non-loopback IPv4 address as the host IP. The
 //! service name is `focusa-daemon`. TXT record keys:
 //!   - url     (e.g. https://focusa-vps.tail-net.ts.net)
-//!   - version (e.g. 0.9.35-dev)
+//!   - version (e.g. 0.9.39-dev)
 //!   - port    (e.g. 8787)
 
 use anyhow::{Context, Result};

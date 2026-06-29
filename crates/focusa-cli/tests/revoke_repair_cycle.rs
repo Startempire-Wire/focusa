@@ -1,4 +1,4 @@
-//! Revoke + re-pair cycle integration test (focusa-ui0y v0.9.35-dev).
+//! Revoke + re-pair cycle integration test (focusa-ui0y v0.9.39-dev).
 //!
 //! Runs the full pairing cycle N times against a live daemon. Requires a
 //! Focusa daemon reachable at FOCUSA_CYCLE_TEST_URL (default

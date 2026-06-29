@@ -1,4 +1,4 @@
-//! focusa pairing status + history subcommands (focusa-ui0y v0.9.35-dev G11+G12).
+//! focusa pairing status + history subcommands (focusa-ui0y v0.9.39-dev G11+G12).
 //!
 //! Both subcommands are operator-friendly views over the PairingStore.
 //! They hit the daemon's REST API (no direct DB access from the CLI) so

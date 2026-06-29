@@ -1,6 +1,6 @@
 # Focusa Device Pairing Spec (focusa-ui0y)
 
-**Status:** Canonical. v0.9.35-dev replaces v0.9.34-dev.
+**Status:** Canonical. v0.9.39-dev replaces v0.9.34-dev.
 **Architecture overview:** `docs/55-focusa-self-host-architecture.md`
 **Wizard spec:** `docs/56-focusa-pairing-wizard-spec.md`
 **Revoke + re-pair spec:** `docs/57-focusa-pairing-repair.md`
@@ -29,7 +29,7 @@ Context Authority addendum: Phone Bridge pairing is guarded by `focusa pair --js
 
 ## 2. Pairing Model (operator-facing)
 
-### 2.0 Primary model — VPS-initiated room, phone-as-bridge (v0.9.35-dev)
+### 2.0 Primary model — VPS-initiated room, phone-as-bridge (v0.9.39-dev)
 
 Focusa pairing is a three-party protocol with a strict ownership model:
 

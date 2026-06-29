@@ -10,7 +10,7 @@ use clap::{Parser, Subcommand};
 mod api_client;
 mod commands;
 
-/// Pairing umbrella (focusa-ui0y v0.9.35-dev). Aggregates the pairing
+/// Pairing umbrella (focusa-ui0y v0.9.39-dev). Aggregates the pairing
 /// subcommands under a single `focusa pairing ...` namespace.
 #[derive(Subcommand, Debug)]
 enum PairingCmd {
@@ -23,7 +23,7 @@ enum PairingCmd {
     Transport(commands::pairing_transport::TransportCmd),
     /// Single-command pairing root-cause report.
     Doctor(commands::pairing_doctor::DoctorArgs),
-    /// Revoke + re-pair cycle harness (v0.9.35-dev core test).
+    /// Revoke + re-pair cycle harness (v0.9.39-dev core test).
     CycleTest(commands::pairing_cycle_test::CycleTestArgs),
     /// One-shot operator dashboard view (G11).
     Status(commands::pairing_dashboard::StatusArgs),
@@ -105,7 +105,7 @@ enum Commands {
     /// Open a Mac Pairing Room and print a phone-scannable QR.
     Pair(commands::pair::PairArgs),
 
-    /// Pairing umbrella (focusa-ui0y v0.9.35-dev): wizard, transport, doctor.
+    /// Pairing umbrella (focusa-ui0y v0.9.39-dev): wizard, transport, doctor.
     #[command(subcommand)]
     Pairing(PairingCmd),
 
@@ -116,7 +116,7 @@ enum Commands {
     /// Single-command pairing root-cause report (focusa-gkrj).
     PairingDoctor(commands::pairing_doctor::DoctorArgs),
 
-    /// Interactive pairing wizard + non-interactive room creation (focusa-ui0y v0.9.35-dev).
+    /// Interactive pairing wizard + non-interactive room creation (focusa-ui0y v0.9.39-dev).
     #[command(subcommand)]
     PairingWizard(commands::pairing_wizard::WizardCmd),
 

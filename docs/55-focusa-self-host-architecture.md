@@ -1,6 +1,6 @@
-# Focusa Self-Host Architecture (v0.9.35-dev)
+# Focusa Self-Host Architecture (v0.9.39-dev)
 
-**Status:** Canonical. v0.9.35-dev replaces v0.9.34-dev for self-host flows.
+**Status:** Canonical. v0.9.39-dev replaces v0.9.34-dev for self-host flows.
 **Owner:** Focusa daemon + menubar + CLI.
 **Predecessors:** v0.9.33-dev (JSON-QR, in-app scanner), v0.9.34-dev (URL-QR, Mac-creates-room).
 
@@ -197,7 +197,7 @@ Tokens expire in 30 days. On expiry, Mac receives `401 token_expired` and FirstR
 
 From v0.9.33-dev:
 - **`focusa device pair-complete <code>`** operator CLI flow — kept as headless pairing path (no GUI, no phone).
-- **`focusa_start_bridge_callback`** TCP fast-path — kept as Phase-2 latency optimization (Mac polls in v0.9.35-dev Phase-1; bridge callback becomes a "latency: instant" toggle).
+- **`focusa_start_bridge_callback`** TCP fast-path — kept as Phase-2 latency optimization (Mac polls in v0.9.39-dev Phase-1; bridge callback becomes a "latency: instant" toggle).
 - **PairingPanel.svelte** — post-pair management UI (list, revoke, history). Lives separately from the wizard.
 - **PairingDoctor + PairingTransport subcommands** — ops tools, always available.
 
@@ -210,7 +210,7 @@ From v0.9.34-dev:
 
 ## 12. What was removed
 
-| Removed (v0.9.35-dev) | Replaced by |
+| Removed (v0.9.39-dev) | Replaced by |
 |---|---|
 | Mac-creates-room `/v1/connect/room/firstrun` | VPS-creates `/v1/connect/room/create` + Mac-joins `/v1/connect/room/{id}/join` |
 | URL-shaped QR on Mac (`pair_url_qr_payload`) | Static mac_offer QR on Mac (no VPS URL embedded) |
@@ -221,7 +221,7 @@ From v0.9.34-dev:
 
 ## 13. Implementation status
 
-| Surface | Status (v0.9.35-dev) |
+| Surface | Status (v0.9.39-dev) |
 |---|---|
 | `POST /v1/connect/room/create` (VPS-creates) | pending |
 | `POST /v1/connect/room/{id}/join` (Mac-joins) | pending |
@@ -295,7 +295,7 @@ focusa pairing doctor
 
 ## 15. Versioning
 
-This doc describes **v0.9.35-dev**. Predecessors are documented for context but are no longer canonical for new development. See:
+This doc describes **v0.9.39-dev**. Predecessors are documented for context but are no longer canonical for new development. See:
 
 - `docs/53-focusa-device-pairing-spec.md` §2.0 — pairing API contract
 - `docs/54-focusa-pairing-room-plan.md` — room state machine + storage
@@ -304,15 +304,15 @@ This doc describes **v0.9.35-dev**. Predecessors are documented for context but 
 
 ---
 
-## 16. Known Gaps (v0.9.35-dev → v0.9.35 GA)
+## 16. Known Gaps (v0.9.39-dev → v0.9.35 GA)
 
-These are the explicit gaps between v0.9.35-dev and a fully smooth, signed, notarized, distribution-ready Intel-Mac test. Each gap has a bead, an owner surface, and a test that proves it's closed. **None of these gaps is a blocker for shipping the daemon + CLI + headless-test stack** — the gaps block a smooth Intel-Mac operator experience only.
+These are the explicit gaps between v0.9.39-dev and a fully smooth, signed, notarized, distribution-ready Intel-Mac test. Each gap has a bead, an owner surface, and a test that proves it's closed. **None of these gaps is a blocker for shipping the daemon + CLI + headless-test stack** — the gaps block a smooth Intel-Mac operator experience only.
 
 | # | Gap | Owner surface | Bead | Test that proves closure |
 |---|---|---|---|---|
-| **G01** | `tauri.conf.json` version stamp stuck at `0.9.33-dev` | `apps/menubar/src-tauri/tauri.conf.json` | `focusa-7lqf` (P0) | tauri.conf.json reads `0.9.35-dev` |
-| **G02** | No v0.9.35-dev Intel-Mac `.app` bundle (latest release is v0.9.33-dev) | release.yml + Tauri build | `focusa-2mzd` (P1) | release asset exists for `v0.9.35-dev-x86_64-apple-darwin` |
-| **G03** | `FirstRunConnect.svelte` uses v0.9.34-dev model (URL-shaped QR, Mac-creates-room) instead of v0.9.35-dev (static mac_offer, VPS-creates, Mac-joins) | `apps/menubar/src/lib/components/FirstRunConnect.svelte` | `focusa-73qu` (P1) | menubar_headless_e2e renders VPS-initiated flow |
+| **G01** | `tauri.conf.json` version stamp stuck at `0.9.33-dev` | `apps/menubar/src-tauri/tauri.conf.json` | `focusa-7lqf` (P0) | tauri.conf.json reads `0.9.39-dev` |
+| **G02** | No v0.9.39-dev Intel-Mac `.app` bundle (latest release is v0.9.33-dev) | release.yml + Tauri build | `focusa-2mzd` (P1) | release asset exists for `v0.9.39-dev-x86_64-apple-darwin` |
+| **G03** | `FirstRunConnect.svelte` uses v0.9.34-dev model (URL-shaped QR, Mac-creates-room) instead of v0.9.39-dev (static mac_offer, VPS-creates, Mac-joins) | `apps/menubar/src/lib/components/FirstRunConnect.svelte` | `focusa-73qu` (P1) | menubar_headless_e2e renders VPS-initiated flow |
 | **G04** | No `FirstRunWizard.svelte` (6-step wizard component: welcome → vps_install → vps_discover → show_qr → waiting_phone → connected) | `apps/menubar/src/lib/components/` | `focusa-73qu` (P1) | wizard renders all 6 steps with state persistence |
 | **G05** | Mac does not display a STATIC `mac_offer` QR (idle state); instead it embeds VPS URL in the QR | `FirstRunConnect.svelte` | `focusa-wb65` (P1) | QR payload contains only `mac_offer`, no `server_url` |
 | **G06** | Mac has no Tailscale MagicDNS auto-discovery (relies on operator-pasted URL) | `FirstRunConnect.svelte` + daemon helper | `focusa-59kh` (P1) | Mac auto-finds VPS when on Tailscale network |
@@ -331,13 +331,13 @@ These are the explicit gaps between v0.9.35-dev and a fully smooth, signed, nota
 
 ### 16.1 Why G01–G15 are NOT blocked by G16–G18
 
-**Codesign + notarize (G16, G17, G18) are independent of all other gaps.** An unsigned `.app` builds and runs fine on Intel Mac after the user right-clicks → Open → confirm. The cost is two extra dialogs per first launch, which is acceptable for a `dev` release tagged as `0.9.35-dev`.
+**Codesign + notarize (G16, G17, G18) are independent of all other gaps.** An unsigned `.app` builds and runs fine on Intel Mac after the user right-clicks → Open → confirm. The cost is two extra dialogs per first launch, which is acceptable for a `dev` release tagged as `0.9.39-dev`.
 
 The Mac UI half (G03–G10) is testable on Intel Mac **without codesign** by:
 1. Building the `.app` via `npm run tauri build` from this branch
 2. `xattr -dr com.apple.quarantine Focusa.app` (removes quarantine)
 3. Right-click → Open → confirm
-4. The `.app` will report `v0.9.35-dev` and use the v0.9.35-dev model
+4. The `.app` will report `v0.9.39-dev` and use the v0.9.39-dev model
 
 Codesign becomes mandatory only at the GA tag (no `-dev` suffix). Until then, the operator accepts the right-click → Open dance.
 

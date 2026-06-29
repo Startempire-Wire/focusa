@@ -1,4 +1,4 @@
-//! Menubar headless e2e test (focusa-ui0y v0.9.35-dev).
+//! Menubar headless e2e test (focusa-ui0y v0.9.39-dev).
 //!
 //! Proves that the Focusa Mac menubar's pairing flow plumbing works
 //! WITHOUT a real Mac, by:
