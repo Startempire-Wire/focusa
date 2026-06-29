@@ -1042,6 +1042,18 @@ pub struct PersistedDeviceToken {
     pub issued_to: String,
 }
 
+/// V2: SQL row shape for the device_tokens table, used by
+/// list_device_tokens(). Aliased so callers don't have to spell out the
+/// long tuple type.
+pub type DeviceTokenRow = (
+    String,
+    String,
+    Option<String>,
+    String,
+    String,
+    Option<String>,
+);
+
 pub struct PeerRecord {
     pub peer_id: String,
     pub name: String,
@@ -1544,9 +1556,7 @@ impl SqlitePersistence {
         Ok(())
     }
 
-    pub fn list_device_tokens(
-        &self,
-    ) -> anyhow::Result<Vec<(String, String, Option<String>, String, String, Option<String>)>> {
+    pub fn list_device_tokens(&self) -> anyhow::Result<Vec<DeviceTokenRow>> {
         let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
         let mut stmt = conn.prepare(
             "SELECT token, device_id, scopes_json, issued_at, expires_at, issued_to
@@ -1647,10 +1657,7 @@ impl SqlitePersistence {
         }
         // Step 2: build IN clause with one '?' per device_id, then
         // execute a single DELETE for all of them.
-        let placeholders = std::iter::repeat("?")
-            .take(device_ids.len())
-            .collect::<Vec<_>>()
-            .join(",");
+        let placeholders = vec!["?"; device_ids.len()].join(",");
         let sql = format!(
             "DELETE FROM device_tokens
              WHERE issued_to = ?1

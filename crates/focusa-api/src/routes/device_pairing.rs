@@ -1006,7 +1006,7 @@ async fn connect_status(
         session.created_at,
         session.status.clone(),
     );
-    drop(session);
+    let _ = session;
     let (
         session_token,
         session_token_delivered,
@@ -1362,6 +1362,7 @@ s.tokens.insert(token.clone(), device_token.clone());
 /// Keychain. The endpoint is on the operator's LAN, so we use a short
 /// timeout and treat any failure as non-fatal (the Mac can still poll
 /// /status and pick up the token via Phase-1).
+#[allow(clippy::too_many_arguments)]
 async fn dispatch_mac_callback(
     url: &str,
     connect_id: &str,
@@ -1924,7 +1925,7 @@ async fn pair_revoke(
     // P0 invariant: revoked tokens stay revoked across restart.
     if let Err(e) = state
         .persistence
-        .revoke_device_tokens_by_device(&device_id)
+        .revoke_device_tokens_by_device(device_id)
     {
         tracing::warn!(
             device_id = %device_id,
