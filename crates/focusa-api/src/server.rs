@@ -328,6 +328,124 @@ pub fn menubar_cors_layer() -> CorsLayer {
 /// V2: Global access to AppState for auth middleware token lookup.
 static APP_STATE: std::sync::OnceLock<Arc<AppState>> = std::sync::OnceLock::new();
 
+/// V2: Rehydrate PairingStore in-memory maps (connect_sessions, tokens) from
+/// the SQLite ledger on daemon startup. Without this, the first /join or
+/// /approve after a daemon restart would 404 (in-memory miss). The auth
+/// middleware also rehydrates tokens on demand; this is the eager path.
+pub async fn rehydrate_pairing_state_from_ledger(
+    state: &Arc<AppState>,
+) -> anyhow::Result<(usize, usize)> {
+    use crate::routes::device_pairing::shared_state;
+    let persistence = &state.persistence;
+    let shared = shared_state();
+    let mut s = shared.write().await;
+    // Load all non-expired connect_sessions.
+    let now = chrono::Utc::now();
+    let now_str = now.to_rfc3339();
+    // Use the list helper to enumerate rooms.
+    if let Ok(persisted) = persistence.list_connect_sessions() {
+        for (connect_id, server_url, _expires_at, status) in persisted {
+            // We need expires_at as DateTime<Utc> for the in-memory shape.
+            // list_connect_sessions already filters expired.
+            // Pull the full row to get expires_at + device_id + mac_name etc.
+            let detail = persistence
+                .get_connect_session_full(&connect_id)
+                .ok()
+                .flatten();
+            let (
+                device_id,
+                mac_name,
+                mac_nonce,
+                mac_pubkey,
+                mac_callback,
+                expires_at,
+                scopes,
+            ) = if let Some(d) = detail {
+                (
+                    d.device_id,
+                    d.mac_name,
+                    d.mac_nonce,
+                    d.mac_pubkey,
+                    d.mac_callback,
+                    d.expires_at,
+                    d.scopes,
+                )
+            } else {
+                (
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                    None,
+                    None,
+                    now + chrono::Duration::seconds(300),
+                    vec!["read".to_string(), "write".to_string()],
+                )
+            };
+            if status == "completed" {
+                // completed rooms: don't rehydrate in-memory (they're done).
+                continue;
+            }
+            s.connect_sessions.insert(
+                connect_id.clone(),
+                crate::routes::device_pairing::ConnectSession {
+                    connect_id: connect_id.clone(),
+                    device_id: device_id.clone(),
+                    mac_name,
+                    mac_nonce,
+                    mac_pubkey,
+                    mac_callback,
+                    server_url,
+                    scopes,
+                    created_at: now,
+                    expires_at,
+                    status,
+                    token: None,
+                    token_delivered: false,
+                    delivered_at: None,
+                },
+            );
+        }
+    }
+    // Load all non-expired device_tokens.
+    let rehydrated_tokens = if let Ok(rows) = persistence.list_device_tokens() {
+        let mut count = 0;
+        for (token, device_id, scopes_json, issued_at, expires_at, issued_to) in rows {
+            if s.tokens.contains_key(&token) {
+                continue;
+            }
+            let scopes: Vec<String> = scopes_json
+                .as_deref()
+                .and_then(|j| serde_json::from_str(j).ok())
+                .unwrap_or_else(|| vec!["read".to_string(), "write".to_string()]);
+            let issued_at_dt = chrono::DateTime::parse_from_rfc3339(&issued_at)
+                .map(|t| t.with_timezone(&chrono::Utc))
+                .unwrap_or_else(|_| now);
+            let expires_at_dt = chrono::DateTime::parse_from_rfc3339(&expires_at)
+                .map(|t| t.with_timezone(&chrono::Utc))
+                .unwrap_or_else(|_| now + chrono::Duration::seconds(86400 * 30));
+            s.tokens.insert(
+                token.clone(),
+                focusa_core::types::DeviceToken {
+                    token,
+                    device_id,
+                    scopes,
+                    issued_at: issued_at_dt,
+                    expires_at: expires_at_dt,
+                    last_used_at: None,
+                    issued_to: issued_to.unwrap_or_else(|| "ledger".to_string()),
+                },
+            );
+            count += 1;
+        }
+        count
+    } else {
+        0
+    };
+    let rehydrated_rooms = s.connect_sessions.len();
+    drop(s);
+    Ok((rehydrated_rooms, rehydrated_tokens))
+}
+
 pub fn set_app_state(state: Arc<AppState>) {
     let _ = APP_STATE.set(state);
 }
@@ -849,6 +967,22 @@ pub async fn run(
     });
 
     let app = build_router(state.clone());
+
+    // V2: Rehydrate PairingStore in-memory maps (connect_sessions, tokens)
+    // from the SQLite ledger on daemon startup so /join and /approve do not
+    // 404 after a daemon restart.
+    match rehydrate_pairing_state_from_ledger(&state).await {
+        Ok((rooms, tokens)) => {
+            tracing::info!(
+                rooms = rooms,
+                tokens = tokens,
+                "V2: PairingStore rehydrated from ledger on startup"
+            );
+        }
+        Err(e) => {
+            tracing::warn!(error = %e, "V2: PairingStore rehydrate on startup failed");
+        }
+    }
     let listener = tokio::net::TcpListener::bind(&bind_addr).await?;
 
     let scheduler_url = scheduler_base_url(&bind_addr);

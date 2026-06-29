@@ -1021,6 +1021,17 @@ impl SqlitePersistence {
 }
 
 #[derive(Debug, Clone)]
+/// V2: Full DeviceToken record rehydrated from SQLite on daemon restart.
+/// Mirrors focusa_core::types::DeviceToken but persisted via the device_tokens
+/// SQLite table (no JSONL audit) so reads are cheap.
+pub struct PersistedDeviceToken {
+    pub device_id: String,
+    pub scopes: Vec<String>,
+    pub issued_at: chrono::DateTime<chrono::Utc>,
+    pub expires_at: chrono::DateTime<chrono::Utc>,
+    pub issued_to: String,
+}
+
 pub struct PeerRecord {
     pub peer_id: String,
     pub name: String,
@@ -1374,6 +1385,59 @@ impl SqlitePersistence {
     /// /v1/connect/rooms to rehydrate the room list after a daemon
     /// restart so VPS-created rooms are discoverable.
     pub fn list_connect_sessions(&self) -> anyhow::Result<Vec<(String, String, String, String)>> {
+        let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
+        let now = chrono::Utc::now().to_rfc3339();
+        let mut stmt = conn.prepare(
+            "SELECT connect_id, server_url, expires_at, status FROM connect_sessions WHERE expires_at > ?1 AND status != 'completed' ORDER BY created_at ASC",
+        )?;
+        let rows = stmt.query_map(params![now], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+            ))
+        })?;
+        let mut out = Vec::new();
+        for r in rows {
+            out.push(r?);
+        }
+        Ok(out)
+    }
+
+    /// V2: Mark a connect_session as completed in the SQLite ledger. Used by
+    /// /v1/connect/room/approve after the token is minted, so the durable
+    /// record reflects the transition (and so the room is no longer
+    /// rehydrated as in-flight on the next daemon restart).
+    pub fn complete_connect_session(&self, connect_id: &str) -> anyhow::Result<()> {
+        let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
+        let now = chrono::Utc::now().to_rfc3339();
+        conn.execute(
+            "UPDATE connect_sessions SET status = 'completed' WHERE connect_id = ?1",
+            params![connect_id],
+        )?;
+        // best-effort token-delivery timestamp
+        let _ = conn.execute(
+            "UPDATE connect_sessions SET expires_at = ?1 WHERE connect_id = ?2 AND expires_at > ?1",
+            params![now, connect_id],
+        );
+        Ok(())
+    }
+
+    /// V2: Force a WAL checkpoint so all just-committed writes are visible
+    /// to readers and the on-disk file is consistent. Called after every
+    /// trust transition (room create, room join, room approve, token revoke).
+    pub fn checkpoint_wal(&self) -> anyhow::Result<()> {
+        let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
+        conn.execute_batch("PRAGMA wal_checkpoint(PASSIVE);")?;
+        Ok(())
+    }
+
+    /// V2: List non-completed, non-expired connect_sessions. Used by
+    /// rehydrate_pairing_state_from_ledger and by /v1/connect/rooms.
+    pub fn list_active_connect_sessions(
+        &self,
+    ) -> anyhow::Result<Vec<(String, String, String, String)>> {
         let conn = self
             .conn
             .lock()
@@ -1424,6 +1488,45 @@ impl SqlitePersistence {
         }
     }
 
+    /// V2: Load the FULL DeviceToken-shaped record (with scopes) for auth
+    /// rehydration after daemon restart. Uses the storage JSON column to
+    /// preserve the granted scopes exactly as minted.
+    pub fn load_device_token_full(&self, token: &str) -> anyhow::Result<Option<PersistedDeviceToken>> {
+        let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
+        let mut stmt = conn.prepare(
+            "SELECT device_id, scopes_json, issued_at, expires_at, issued_to FROM device_tokens
+             WHERE token = ?1 AND expires_at > ?2",
+        )?;
+        let now = chrono::Utc::now().to_rfc3339();
+        let mut rows = stmt.query(params![token, now])?;
+        if let Some(row) = rows.next()? {
+            let device_id: String = row.get(0)?;
+            let scopes_json: Option<String> = row.get(1).ok();
+            let issued_at: String = row.get(2)?;
+            let expires_at: String = row.get(3)?;
+            let issued_to: Option<String> = row.get(4).ok();
+            let scopes: Vec<String> = scopes_json
+                .as_deref()
+                .and_then(|j| serde_json::from_str(j).ok())
+                .unwrap_or_else(|| vec!["read".to_string(), "write".to_string()]);
+            let issued_at_dt = chrono::DateTime::parse_from_rfc3339(&issued_at)
+                .map(|t| t.with_timezone(&chrono::Utc))
+                .unwrap_or_else(|_| chrono::Utc::now());
+            let expires_at_dt = chrono::DateTime::parse_from_rfc3339(&expires_at)
+                .map(|t| t.with_timezone(&chrono::Utc))
+                .unwrap_or_else(|_| chrono::Utc::now() + chrono::Duration::seconds(86400 * 30));
+            Ok(Some(PersistedDeviceToken {
+                device_id,
+                scopes,
+                issued_at: issued_at_dt,
+                expires_at: expires_at_dt,
+                issued_to: issued_to.unwrap_or_else(|| "ledger".to_string()),
+            }))
+        } else {
+            Ok(None)
+        }
+    }
+
     /// V2: Revoke a device token (used by /v1/device/pair/revoke).
     pub fn revoke_device_token(&self, token: &str) -> anyhow::Result<()> {
         let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
@@ -1431,35 +1534,112 @@ impl SqlitePersistence {
         Ok(())
     }
 
-    pub fn complete_connect_session(&self, connect_id: &str) -> anyhow::Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        conn.execute(
-            "UPDATE connect_sessions SET status = 'completed', completed_at = ?1
-             WHERE connect_id = ?2",
-            params![chrono::Utc::now().to_rfc3339(), connect_id],
+    pub fn list_device_tokens(
+        &self,
+    ) -> anyhow::Result<Vec<(String, String, Option<String>, String, String, Option<String>)>> {
+        let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
+        let mut stmt = conn.prepare(
+            "SELECT token, device_id, scopes_json, issued_at, expires_at, issued_to
+             FROM device_tokens WHERE expires_at > ?1",
         )?;
-        Ok(())
+        let now = chrono::Utc::now().to_rfc3339();
+        let rows = stmt.query_map(params![now], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, Option<String>>(2).ok().flatten(),
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, Option<String>>(5).ok().flatten(),
+            ))
+        })?;
+        let mut out = Vec::new();
+        for r in rows {
+            out.push(r?);
+        }
+        Ok(out)
     }
 
-    /// V2: Force a WAL checkpoint so a SIGKILL of the daemon immediately
-    /// after the transaction does not lose the row. Used by PairingStore
-    /// after every put/complete to ensure the room survives a kill -9.
-    pub fn checkpoint_wal(&self) -> anyhow::Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        conn.execute_batch("PRAGMA wal_checkpoint(PASSIVE);")?;
-        Ok(())
+    /// V2: Revoke ALL tokens for a given device_id. Used by pair_revoke so
+    /// that a daemon restart cannot resurrect a revoked device via the
+    /// auth middleware's SQLite fallback.
+    pub fn revoke_device_tokens_by_device(&self, device_id: &str) -> anyhow::Result<usize> {
+        let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
+        let n = conn.execute(
+            "DELETE FROM device_tokens WHERE device_id = ?1",
+            params![device_id],
+        )?;
+        Ok(n)
     }
 
-    /// Get the device pairing ledger file path for a host (for API exposure).
-    pub fn device_pairing_path_for_host(&self, host: &str) -> PathBuf {
-        device_pairing_dir_for_project(self.data_dir.as_path(), host).join("devices.jsonl")
+    /// V2: Load the FULL connect_session row (including all fields used by
+    /// /join, /approve, /status) for in-memory rehydrate on daemon startup.
+    pub fn get_connect_session_full(
+        &self,
+        connect_id: &str,
+    ) -> anyhow::Result<Option<PersistedConnectSessionFull>> {
+        let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
+        let mut stmt = conn.prepare(
+            "SELECT device_id, mac_nonce, mac_pubkey, mac_callback, server_url,
+                    scopes_json, status, created_at, expires_at
+             FROM connect_sessions WHERE connect_id = ?1 AND expires_at > ?2",
+        )?;
+        let now = chrono::Utc::now().to_rfc3339();
+        let mut rows = stmt.query(params![connect_id, now])?;
+        if let Some(row) = rows.next()? {
+            let device_id: Option<String> = row.get(0).ok();
+            let mac_nonce: Option<String> = row.get(1).ok();
+            let mac_pubkey: Option<String> = row.get(2).ok();
+            let mac_callback: Option<String> = row.get(3).ok();
+            let server_url: String = row.get(4)?;
+            let scopes_json: Option<String> = row.get(5).ok();
+            let status: String = row.get(6)?;
+            let created_at: String = row.get(7)?;
+            let expires_at: String = row.get(8)?;
+            let _ = (); // no-op marker
+            let scopes: Vec<String> = scopes_json
+                .as_deref()
+                .and_then(|j| serde_json::from_str(j).ok())
+                .unwrap_or_else(|| vec!["read".to_string(), "write".to_string()]);
+            let created_at_dt = chrono::DateTime::parse_from_rfc3339(&created_at)
+                .map(|t| t.with_timezone(&chrono::Utc))
+                .unwrap_or_else(|_| chrono::Utc::now());
+            let expires_at_dt = chrono::DateTime::parse_from_rfc3339(&expires_at)
+                .map(|t| t.with_timezone(&chrono::Utc))
+                .unwrap_or_else(|_| chrono::Utc::now() + chrono::Duration::seconds(300));
+            Ok(Some(PersistedConnectSessionFull {
+                connect_id: connect_id.to_string(),
+                device_id: device_id.unwrap_or_default(),
+                mac_name: String::new(),
+                mac_nonce: mac_nonce.unwrap_or_default(),
+                mac_pubkey,
+                mac_callback,
+                server_url,
+                scopes,
+                created_at: created_at_dt,
+                expires_at: expires_at_dt,
+                status,
+            }))
+        } else {
+            Ok(None)
+        }
     }
+}
+
+/// V2: Full connect_session record rehydrated from the SQLite ledger.
+/// Mirrors ConnectSession but persisted via the connect_sessions table.
+pub struct PersistedConnectSessionFull {
+    pub connect_id: String,
+    pub device_id: String,
+    pub mac_name: String,
+    pub mac_nonce: String,
+    pub mac_pubkey: Option<String>,
+    pub mac_callback: Option<String>,
+    pub server_url: String,
+    pub scopes: Vec<String>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub expires_at: chrono::DateTime<chrono::Utc>,
+    pub status: String,
 }
 
 fn curator_eval_ledger_dir_for_project(data_dir: &Path, project_root: &str) -> PathBuf {
