@@ -38,6 +38,12 @@
   let invoke: InvokeFn = headlessStub;
   let invokeLoadError: unknown = null;
 
+  // V2 P1.1: PUBLIC_PAIRING_URL_KEY stores the operator-entered Advanced
+  // fallback URL. Canonical V2 does NOT save a permanent pairing URL —
+  // Tailscale/Bonjour are auto-discovered and ephemeral. This entry is
+  // marked clearly as non-canonical and is reset when the wizard
+  // advances to 'connected' (below). Spec deviation accepted as
+  // pragmatic fallback for operators without Tailscale.
   const PUBLIC_PAIRING_URL_KEY = 'focusa_public_pairing_url';
   const WIZARD_STATE_KEY = 'focusa_wizard_state_v1';
   const BRIDGE_POLL_INTERVAL_MS = 1500;
@@ -469,11 +475,13 @@
       } catch {
         /* ignore */
       }
+      // V2 P0.2: full token NEVER enters localStorage. Keychain is the
+      // durable secret store; the api client reads the in-memory token
+      // from the pairing store via getCurrentAuthToken(). We scrub any
+      // pre-existing mirror from older builds so a stale copy can't be
+      // exfiltrated by an injected script.
       try {
-        // V2: mirror the device token to localStorage so api.requestJson()
-        // can attach `Authorization: Bearer <token>` to subsequent calls.
-        // The Keychain copy is the durable store; this is a hot-path cache.
-        localStorage.setItem('focusa_device_token', token);
+        localStorage.removeItem('focusa_device_token');
       } catch {
         /* ignore */
       }
@@ -660,8 +668,10 @@
   {:else if step === 'connected_degraded'}
     <div class="card" style="border-color:#a0651f;background:#2a1f10;">
       <h3 style="color:#f0a050;">Paired (degraded)</h3>
-      <p>macOS Keychain refused to save the token. The Focusa daemon has not
-      been told this Mac is trusted beyond this process.</p>
+      <p>macOS Keychain refused to save the token. The daemon already minted
+      and persisted a device token for this pairing, but this Mac failed
+      to durably store the credential. This connection will not survive
+      app restart or next device-token rotation.</p>
       <p>Repair options:</p>
       <ol class="how-it-works">
         <li>Open <strong>Keychain Access</strong> → unlock the login keychain.</li>

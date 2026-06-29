@@ -53,6 +53,20 @@ fn is_mutation_request(method: &Method, path: &str) -> bool {
     !matches!(*method, Method::GET | Method::HEAD | Method::OPTIONS) && path != "/v1/health"
 }
 
+/// V2 P1.4: pre-auth pairing routes get a stricter cap so an
+/// unauthenticated attacker cannot burn the global mutation bucket.
+fn is_preauth_pairing_mutation(method: &Method, path: &str) -> bool {
+    if !is_mutation_request(method, path) {
+        return false;
+    }
+    // POST/DELETE/PUT to room create, room mac-offer, room join,
+    // room approve, room firstrun — all pre-auth V2 Bridge Room paths.
+    path.starts_with("/v1/connect/room/")
+        || path.starts_with("/v1/device/pair/start")
+        || path.starts_with("/v1/device/pair/complete")
+        || path.starts_with("/v1/device/pair/status")
+}
+
 fn hash_value(value: &str) -> u64 {
     let mut hasher = DefaultHasher::new();
     value.hash(&mut hasher);
@@ -105,7 +119,14 @@ fn request_is_limited(method: &Method, path: &str, headers: &HeaderMap) -> bool 
         return false;
     }
 
-    let limit = mutation_rate_limit_per_window();
+    // V2 P1.4: pre-auth pairing routes get a tighter cap. An attacker
+    // without a Bearer can't burn the global bucket, but they shouldn't
+    // be able to brute-force room codes either.
+    let limit = if is_preauth_pairing_mutation(method, path) {
+        env_u32("FOCUSA_PREAUTH_PAIRING_RATE_LIMIT_PER_WINDOW", 20)
+    } else {
+        mutation_rate_limit_per_window()
+    };
     let window = mutation_rate_limit_window();
     let now = Instant::now();
     let key = rate_key(method, path, headers);

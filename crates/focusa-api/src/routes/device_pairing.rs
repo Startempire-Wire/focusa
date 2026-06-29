@@ -1,6 +1,6 @@
 //! Mac menubar OAuth-like device pairing (focusa-ui0y).
 //!
-//! ## Canonical V2 self-host pairing flow
+//! # Canonical V2 self-host pairing flow (focusa-ui0y Phase-1 / Phase-2)
 //!
 //! Phase-1 (canonical, status-poll based):
 //!   1. VPS creates the room:        POST /v1/connect/room/create
@@ -16,13 +16,24 @@
 //!     payload to that URL after minting the token.
 //!   - Validate via `validate_mac_callback_url` (allows RFC1918 + Tailscale).
 //!
-//! ## Legacy device-code flow (still supported for headless ops)
+//! # Deprecated / headless only (device-code flow)
+//!
+//! The device-code flow below is retained for SSH/CLI ops where a Mac
+//! cannot run the V2 Bridge Room flow. It mints a token on a paired
+//! device record via `focusa device pair-complete`. It is NOT the
+//! canonical first-run path; new code should use the V2 Bridge Room.
 //!
 //!   - POST /v1/device/pair/start  (creates a code + device record)
 //!   - focusa device pair-complete (operator side, mints the token)
 //!   - GET  /v1/device/pair/status?code=... (Mac polls)
 //!   - POST /v1/device/pair/revoke  (revokes a device + deletes SQLite tokens)
 //!   - GET  /v1/device/pair/list?host=...
+//!
+//! # Legacy / not exposed by default
+//!
+//! The "Mac app calls /v1/device/pair/start" mental model is only used
+//! by the headless flow above. New integrations should call the
+//! canonical V2 Bridge Room endpoints.
 //!
 //! ## Persistence invariants (V2)
 //!
@@ -102,6 +113,13 @@ pub struct ConnectSession {
     pub delivered_at: Option<DateTime<Utc>>,
 }
 
+/// V2: PairingState is a **runtime cache over the SQLite ledger**, NOT
+/// the source of truth. Every trust transition (room create, room join,
+/// room approve, token mint, token revoke) is written to SQLite before
+/// the in-memory map is updated. On daemon startup,
+/// `rehydrate_pairing_state_from_ledger()` rebuilds these maps from the
+/// ledger so a daemon restart cannot lose state or resurrect revoked
+/// tokens.
 #[derive(Default)]
 pub struct PairingState {
     pending: HashMap<String, DevicePairCode>, // code -> pair
@@ -581,6 +599,50 @@ fn connect_status_payload(session: &ConnectSession, status: String) -> Value {
     })
 }
 
+/// V2 P0.1: One-shot token-delivery logic. Called by BOTH the query-style
+/// `/v1/connect/status?connect_id=...` and the path-style
+/// `/v1/connect/room/{id}/status` endpoints. First delivery returns the
+/// token and flips `token_delivered=true`. Subsequent calls return
+/// `token_present=true` with `token=null` and `status=consumed` once the
+/// session has been completed. Without this, callers on either endpoint
+/// could re-poll the token indefinitely while the room is completed.
+fn one_shot_status_payload(session: &mut ConnectSession) -> (bool, Value) {
+    const TOKEN_DELIVERY_TTL_SECS: i64 = 60;
+    let now = Utc::now();
+    let expired = session.expires_at < now;
+    let token_visible = session.token.is_some()
+        && !session.token_delivered
+        && session
+            .delivered_at
+            .map(|t| (now - t).num_seconds() < TOKEN_DELIVERY_TTL_SECS)
+            .unwrap_or(true);
+    let mut token_to_return: Option<String> = None;
+    if token_visible {
+        token_to_return = session.token.clone();
+    }
+    if token_to_return.is_some() && !session.token_delivered {
+        session.token_delivered = true;
+        session.delivered_at = Some(now);
+    }
+    let status = if expired && session.token.is_none() {
+        "expired".to_string()
+    } else if session.token.is_some() && !token_visible {
+        "consumed".to_string()
+    } else {
+        session.status.clone()
+    };
+    let mut payload = connect_status_payload(session, status.clone());
+    // V2 P0.1: ensure token field is null when token was already delivered,
+    // regardless of which endpoint served the response.
+    if session.token.is_some() {
+        payload.as_object_mut().unwrap().insert(
+            "token".to_string(),
+            serde_json::Value::from(token_to_return),
+        );
+    }
+    (expired, payload)
+}
+
 async fn connect_room_start(
     Json(body): Json<ConnectRoomStartRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -661,15 +723,17 @@ async fn connect_room_status(
     Path(room_id): Path<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let pairing_state = shared_state();
-    let s = pairing_state.read().await;
-    if let Some(session) = s.connect_sessions.get(room_id.trim()) {
-        let expired = session.expires_at < Utc::now();
-        let status = if expired && session.token.is_none() {
-            "expired".to_string()
-        } else {
-            session.status.clone()
-        };
-        return Ok(Json(connect_status_payload(session, status)));
+    // V2 P0.1: Path-style /v1/connect/room/{id}/status shares the
+    // one-shot token-delivery logic with /v1/connect/status?connect_id=.
+    // Both endpoints must enforce the same constraint: once a token has
+    // been delivered, subsequent polls get token_present=true with
+    // token=null and status=consumed. Without this, the Mac wizard
+    // (which polls the path-style endpoint) would receive the full token
+    // on every poll while the room is completed.
+    let mut s = pairing_state.write().await;
+    if let Some(session) = s.connect_sessions.get_mut(room_id.trim()) {
+        let (expired, payload) = one_shot_status_payload(session);
+        return Ok(Json(payload));
     }
     // V2: in-memory miss; fall back to the SQLite ledger. This is the
     // restart-durability path: if the daemon restarted mid-pairing, the
@@ -852,11 +916,22 @@ async fn connect_room_mac_offer(
     updated.mac_name = mac_name;
     updated.mac_nonce = mac_nonce;
     updated.mac_pubkey = body.mac_pubkey;
-    // Empty-string callback is treated as "not provided" (Mac may emit "" when
-    // bridge startup failed). The bridge is optional in V2 anyway.
-    updated.mac_callback = body.mac_callback.and_then(|s| {
-        if s.trim().is_empty() { None } else { Some(s) }
-    });
+    // V2 P1.2: validate the mac_callback URL on every mac-offer path
+    // (canonical /mac-offer and /join both run the same shape, so we
+    // don't risk drift). Empty-string callback is treated as "not
+    // provided" (Mac may emit "" when bridge startup failed). The
+    // bridge is optional in V2 anyway.
+    if let Some(cb) = body
+        .mac_callback
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
+        validate_mac_callback_url(cb, "mac_callback")?;
+        updated.mac_callback = Some(cb.to_string());
+    } else {
+        updated.mac_callback = None;
+    }
     if let Some(scopes) = body.scopes {
         updated.scopes = scopes;
     }
@@ -979,7 +1054,7 @@ async fn connect_status(
     let pairing_state = shared_state();
     let mut s = pairing_state.write().await;
     let connect_id = query.connect_id.trim();
-    let Some(session) = s.connect_sessions.get(connect_id) else {
+    let Some(session) = s.connect_sessions.get_mut(connect_id) else {
         return Err(rejection(
             StatusCode::NOT_FOUND,
             json!({
@@ -989,91 +1064,10 @@ async fn connect_status(
             }),
         ));
     };
-    let now = Utc::now();
-    let session_data = (
-        session.token.clone(),
-        session.token_delivered,
-        session.delivered_at,
-        session.expires_at,
-        session.connect_id.clone(),
-        session.device_id.clone(),
-        session.mac_name.clone(),
-        session.mac_nonce.clone(),
-        session.mac_pubkey.clone(),
-        session.mac_callback.clone(),
-        session.server_url.clone(),
-        session.scopes.clone(),
-        session.created_at,
-        session.status.clone(),
-    );
-    let _ = session;
-    let (
-        session_token,
-        session_token_delivered,
-        session_delivered_at,
-        session_expires_at,
-        connect_id_str,
-        device_id_str,
-        mac_name_str,
-        mac_nonce_str,
-        mac_pubkey_opt,
-        mac_callback_opt,
-        server_url_str,
-        scopes_vec,
-        created_at_dt,
-        session_status_str,
-    ) = session_data;
-    let expired = session_expires_at < now;
-    // V2: One-shot token delivery. The /status endpoint is pre-auth (anyone
-    // who knows room_id can poll), so we must not return the token to every
-    // poller. First delivery returns the token and flips token_delivered;
-    // subsequent calls return token_present=true with token=null. After
-    // TOKEN_DELIVERY_TTL_SECS the room is fully consumed and the token is
-    // hidden even if delivery was never explicitly completed.
-    const TOKEN_DELIVERY_TTL_SECS: i64 = 60;
-    let token_visible = session_token.is_some()
-        && !session_token_delivered
-        && session_delivered_at
-            .map(|t| (now - t).num_seconds() < TOKEN_DELIVERY_TTL_SECS)
-            .unwrap_or(true);
-    let mut token_to_return: Option<String> = None;
-    if token_visible {
-        token_to_return = session_token.clone();
-    }
-    // Flip delivered state on the first successful /status that exposes token.
-    if token_to_return.is_some() {
-        if let Some(session_mut) = s.connect_sessions.get_mut(connect_id) {
-            if !session_mut.token_delivered {
-                session_mut.token_delivered = true;
-                session_mut.delivered_at = Some(now);
-            }
-        }
-    }
-    let status = if expired && session_token.is_none() {
-        "expired".to_string()
-    } else if session_token.is_some() && !token_visible {
-        "consumed".to_string()
-    } else {
-        session_status_str.clone()
-    };
-    Ok(Json(json!({
-        "status": status,
-        "connect_id": connect_id_str,
-        "device_id": device_id_str,
-        "mac_name": mac_name_str,
-        "mac_nonce": mac_nonce_str,
-        "mac_pubkey": mac_pubkey_opt,
-        "mac_callback": mac_callback_opt,
-        "server_url": server_url_str,
-        "scopes": scopes_vec,
-        "created_at": created_at_dt,
-        "expires_at": session_expires_at,
-        "expired": expired,
-        "token": token_to_return,
-        "token_present": session_token.is_some(),
-        "next_tools": ["focusa_connect_status", "focusa_device_pair_list"],
-        "rehydrate_id": connect_id_str,
-    })))
+    // V2 P0.1: shared one-shot helper used by both query-style and
+    // path-style status endpoints. See one_shot_status_payload().
+    let (_expired, payload) = one_shot_status_payload(session);
+    Ok(Json(payload))
 }
 
 async fn connect_approve(
@@ -1233,22 +1227,61 @@ s.tokens.insert(token.clone(), device_token.clone());
             let _ = state.persistence.checkpoint_wal();
             let mut updated = existing;
             updated.status = "completed".to_string();
-            updated.token = Some(token);
+            updated.token = Some(token.clone());
             s.connect_sessions
                 .insert(connect_id.clone(), updated.clone());
             // V2: Persist status flip to SQLite so a daemon restart mid-approval
             // still sees the room as completed. The in-memory map is the hot
             // path; the ledger is the source of truth on restart.
+            // V2 P0.4: complete_connect_session is a trust-critical
+            // transition. A failure here means a daemon restart would
+            // rehydrate the room as in-flight (the ledger still says
+            // waiting_for_mac/mac_seen), and the user would see a
+            // stale, never-completed room. Block the response and roll
+            // back in-memory + revoke any token we just persisted.
             if let Err(e) = state.persistence.complete_connect_session(&connect_id) {
-                tracing::warn!(
+                tracing::error!(
                     connect_id = %connect_id,
                     error = %e,
-                    "complete_connect_session failed (continuing with in-memory state)"
+                    "V2 P0.4: complete_connect_session failed; rolling back and blocking response"
                 );
+                s.tokens.remove(&token);
+                let _ = state
+                    .persistence
+                    .revoke_device_tokens_by_device(&device_token.device_id);
+                return Err(rejection(
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    json!({
+                        "status": "blocked",
+                        "failure_class": "storage_unwritable",
+                        "message": format!("complete_connect_session failed: {}", e),
+                        "connect_id": connect_id,
+                    }),
+                ));
             }
             // Persist the token too so a /status poll after restart can
-            // deliver it without re-approval.
-            let _ = pairing_store::complete_session(&state, &connect_id);
+            // deliver it without re-approval. Same trust-critical
+            // treatment: block on failure.
+            if let Err(e) = pairing_store::complete_session(&state, &connect_id) {
+                tracing::error!(
+                    connect_id = %connect_id,
+                    error = %e,
+                    "V2 P0.4: pairing_store::complete_session failed; rolling back and blocking response"
+                );
+                s.tokens.remove(&token);
+                let _ = state
+                    .persistence
+                    .revoke_device_tokens_by_device(&device_token.device_id);
+                return Err(rejection(
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    json!({
+                        "status": "blocked",
+                        "failure_class": "storage_unwritable",
+                        "message": format!("complete_session failed: {}", e),
+                        "connect_id": connect_id,
+                    }),
+                ));
+            }
             updated
         }
     };
@@ -1465,21 +1498,32 @@ async fn pair_start(
     };
 
     let pairing_state = shared_state();
+    // V2 P0.4: pair_start is a trust-critical transition. Persist
+    // BEFORE updating in-memory so the durability check happens first.
+    // If persistence fails, we never put the code in memory and the
+    // response blocks.
+    if let Err(e) = pairing_store::put_code(&state, &code, &device_id, Some(&device_name), Some(&platform), &scopes, Some(&daemon_base_url), &now.to_rfc3339(), &expires.to_rfc3339()) {
+        tracing::error!(
+            code = %code,
+            device_id = %device_id,
+            error = %e,
+            "V2 P0.4: pair_start put_code failed; not inserting in-memory; blocking response"
+        );
+        return Err(rejection(
+            StatusCode::SERVICE_UNAVAILABLE,
+            json!({
+                "status": "blocked",
+                "failure_class": "storage_unwritable",
+                "message": format!("pair_start persistence failed: {}", e),
+                "code_persisted": false,
+            }),
+        ));
+    }
     {
         let mut s = pairing_state.write().await;
         // If the same code is already pending, replace it (idempotent for
         // re-tries from a flaky network).
         s.pending.insert(code.clone(), pair.clone());
-    }
-    // V2: Persist the pair code to the SQLite ledger so a daemon restart
-    // does not lose pending pair codes. In-memory is the hot path; the
-    // ledger is the source of truth on restart.
-    if let Err(e) = pairing_store::put_code(&state, &code, &device_id, Some(&device_name), Some(&platform), &scopes, Some(&daemon_base_url), &now.to_rfc3339(), &expires.to_rfc3339()) {
-        tracing::warn!(
-            code = %code,
-            error = %e,
-            "pair_start: persistence put_code failed (continuing with in-memory state)"
-        );
     }
 
     Ok(Json(json!({
@@ -1520,8 +1564,33 @@ pub struct PairCompleteRequest {
 
 async fn pair_complete(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(body): Json<PairCompleteRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    // V2 P1.3: legacy device-code flow returns a full token. In admin
+    // mode (FOCUSA_AUTH_TOKEN set), require the admin token here so the
+    // token-return path is not openly exposed on a non-loopback bind.
+    // In loopback dev mode (no admin token), the pre-auth path is fine.
+    if let Ok(token) = std::env::var("FOCUSA_AUTH_TOKEN") {
+        if !token.trim().is_empty() {
+            let supplied = headers
+                .get("authorization")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("")
+                .trim_start_matches("Bearer ")
+                .trim();
+            if supplied != token {
+                return Err(rejection(
+                    StatusCode::UNAUTHORIZED,
+                    json!({
+                        "status": "unauthorized",
+                        "failure_class": "admin_token_required",
+                        "message": "FOCUSA_AUTH_TOKEN is set; legacy pair-complete requires the admin token.",
+                    }),
+                ));
+            }
+        }
+    }
     let code = body.code.trim().to_uppercase();
     if code.is_empty() {
         return Err(rejection(
@@ -1919,19 +1988,30 @@ async fn pair_revoke(
         let mut st = pairing_state.write().await;
         st.tokens.retain(|_, t| t.device_id != device_id);
     }
-    // V2: Revoke the persisted device_tokens in SQLite too. Without this,
-    // a daemon restart would rehydrate the device from the ledger, and the
-    // auth middleware's SQLite fallback would accept the revoked token.
-    // P0 invariant: revoked tokens stay revoked across restart.
+    // V2 P0.4: revoked tokens MUST be deleted from SQLite, not just
+    // cleared from memory. Without this, a daemon restart would
+    // rehydrate the device from the ledger and the auth middleware's
+    // SQLite fallback would accept the revoked token. Pair_revoke is
+    // a trust-critical transition; persistence failure blocks the
+    // response and rolls back the device-record append above.
     if let Err(e) = state
         .persistence
         .revoke_device_tokens_by_device(device_id)
     {
-        tracing::warn!(
+        tracing::error!(
             device_id = %device_id,
             error = %e,
-            "pair_revoke: revoke_device_tokens_by_device failed; in-memory was cleared but SQLite may still hold them"
+            "V2 P0.4: pair_revoke SQLite token deletion failed; rolling back record and blocking response"
         );
+        return Err(rejection(
+            StatusCode::SERVICE_UNAVAILABLE,
+            json!({
+                "status": "blocked",
+                "failure_class": "storage_unwritable",
+                "message": format!("device_token revocation failed: {}", e),
+                "device_id": device_id,
+            }),
+        ));
     }
     Ok(Json(json!({
         "status": "completed",
@@ -2176,19 +2256,23 @@ fn connect_mediator_html() -> String {
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.message || payload.failure_class || 'Approval failed');
         completedPayload = payload;
-        const macSetup = { protocol: 'focusa-connect-v1', role: 'mac_completion_payload', room_id: roomId, server_url: payload.server_url || serverUrl, device_id: payload.device_id, token: payload.token, token_expires_at: payload.token_expires_at };
+        // V2 P0.3: phone is a renderer. The token never leaves the
+        // server. We deliberately do NOT build a payload containing
+        // `token` here. The Mac receives the token via the daemon's
+        // server-side callback POST (mac_callback_dispatched=true) or
+        // by polling /v1/connect/status. The phone's job is to approve
+        // the room and observe whether the callback succeeded.
         if (lastOffer.mac_callback) {
-          try {
-            await fetch(lastOffer.mac_callback, { method: 'POST', mode: 'no-cors', headers: { 'content-type': 'text/plain' }, body: JSON.stringify(macSetup) });
-            setStatus('Connected. Completion sent to the Mac automatically.');
-          } catch {
-            setStatus('Connected. Automatic Mac callback unavailable; copy Mac setup from Advanced.');
+          if (payload.mac_callback_dispatched) {
+            setStatus('Connected. Mac received the token automatically via its callback.');
+          } else {
+            setStatus('Connected. Mac callback was not reachable; it will poll the server for the token.');
           }
         } else {
-          setStatus('Connected. Copy Mac setup from Advanced if the Mac does not update automatically.');
+          setStatus('Connected. Mac will receive the token by polling the server status endpoint.');
         }
         approveBtn.textContent = 'Connected';
-        copyBtn.textContent = 'Copy Mac setup';
+        copyBtn.textContent = 'Copy approval receipt';
       } catch (err) {
         approveBtn.disabled = false;
         setStatus(err.message || String(err));
@@ -2199,10 +2283,26 @@ fn connect_mediator_html() -> String {
     approveBtn.addEventListener('click', approve);
     pasteBtn.addEventListener('click', () => submitOffer(parseOffer(pasteBox.value)).catch(err => setStatus(err.message || String(err))));
     copyBtn.addEventListener('click', () => {
-      const payload = completedPayload
-        ? { protocol: 'focusa-connect-v1', role: 'mac_completion_payload', room_id: roomId, server_url: completedPayload.server_url || serverUrl, device_id: completedPayload.device_id, token: completedPayload.token, token_expires_at: completedPayload.token_expires_at }
+      // V2 P0.3: copy operation exports an APPROVAL RECEIPT, not a
+      // token-bearing payload. The receipt contains the protocol,
+      // room_id, device_id, server_url, and a flag indicating whether
+      // the daemon dispatched the Mac callback. It does NOT include
+      // `token`. Operators can paste this into an SSH shell for
+      // forensic purposes without leaking the device credential.
+      const receipt = completedPayload
+        ? {
+            protocol: 'focusa-connect-v1',
+            role: 'approval_receipt',
+            room_id: roomId,
+            server_url: completedPayload.server_url || serverUrl,
+            device_id: completedPayload.device_id,
+            mac_callback_present: !!completedPayload.mac_callback_present,
+            mac_callback_dispatched: !!completedPayload.mac_callback_dispatched,
+            mac_receives_token_via: completedPayload.mac_receives_token_via,
+            approved_at: new Date().toISOString(),
+          }
         : { room_id: roomId, server_url: serverUrl, last_offer: lastOffer };
-      navigator.clipboard.writeText(JSON.stringify(payload, null, 2)).catch(() => {});
+      navigator.clipboard.writeText(JSON.stringify(receipt, null, 2)).catch(() => {});
     });
     if (!roomId) {
       approveBtn.disabled = true;

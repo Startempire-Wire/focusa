@@ -96,16 +96,56 @@ fn read_http_body(stream: &mut TcpStream) -> Result<(String, String), String> {
 }
 
 fn handle_bridge_callback(mut stream: TcpStream, nonce: String) {
+    // V2 P1.5 hardening: validate Content-Type, body shape, role/protocol,
+    // and nonce binding before storing the completion payload. The Mac
+    // holds the secret; the LAN bridge only forwards.
+    const VALID_CT_PREFIX: &str = "application/json";
+    const REQUIRED_PROTOCOL: &str = "focusa-connect-v1";
+    const REQUIRED_ROLE: &str = "mac_completion_payload";
+
     let response = match read_http_body(&mut stream) {
-        Ok((header, body)) if header.starts_with("POST ") && header.contains(&format!("/focusa-phone-bridge/{nonce}")) => {
-            if let Ok(mut completions) = bridge_completions().lock() {
-                completions.insert(nonce, body);
+        Ok((header, body))
+            if header.starts_with("POST ")
+                && header.contains(&format!("/focusa-phone-bridge/{nonce}"))
+                && content_type_is(&header, VALID_CT_PREFIX)
+                && body_bytes_are_valid_json(&body) =>
+        {
+            // Reject if payload doesn't carry our protocol + role.
+            match serde_json::from_str::<serde_json::Value>(&body) {
+                Ok(v)
+                    if v.get("protocol").and_then(|x| x.as_str()) == Some(REQUIRED_PROTOCOL)
+                        && v.get("role").and_then(|x| x.as_str()) == Some(REQUIRED_ROLE)
+                        && v.get("connect_id").and_then(|x| x.as_str()).is_some()
+                        && v.get("token").and_then(|x| x.as_str()).is_some() =>
+                {
+                    if let Ok(mut completions) = bridge_completions().lock() {
+                        completions.insert(nonce, body);
+                    }
+                    "HTTP/1.1 200 OK\r\ncontent-type: text/plain\r\nconnection: close\r\n\r\nFocusa Phone Bridge completion received. You can return to the Mac app."
+                }
+                _ => "HTTP/1.1 422 Unprocessable Entity\r\nconnection: close\r\n\r\ninvalid completion payload",
             }
-            "HTTP/1.1 200 OK\r\ncontent-type: text/html\r\naccess-control-allow-origin: *\r\nconnection: close\r\n\r\nFocusa Phone Bridge completion received. You can return to the Mac app."
         }
-        _ => "HTTP/1.1 404 Not Found\r\naccess-control-allow-origin: *\r\nconnection: close\r\n\r\nNot found",
+        _ => "HTTP/1.1 404 Not Found\r\nconnection: close\r\n\r\nNot found",
     };
     let _ = stream.write_all(response.as_bytes());
+}
+
+/// V2 P1.5: request must declare application/json (or +json variant).
+fn content_type_is(header: &str, prefix: &str) -> bool {
+    header
+        .to_ascii_lowercase()
+        .split('\r')
+        .filter_map(|line| line.split_once(':').map(|(k, v)| (k.trim(), v.trim())))
+        .find(|(k, _)| k.eq_ignore_ascii_case("content-type"))
+        .map(|(_, v)| v.split(';').next().map(|m| m.trim().starts_with(prefix)).unwrap_or(false))
+        .unwrap_or(false)
+}
+
+/// V2 P1.5: required-schema validation. Cheap shape probe so we don't
+/// store arbitrary attacker-controlled blobs.
+fn body_bytes_are_valid_json(body: &str) -> bool {
+    serde_json::from_str::<serde_json::Value>(body).is_ok()
 }
 
 #[tauri::command]
@@ -128,8 +168,26 @@ fn focusa_start_bridge_callback(nonce: String) -> Result<String, String> {
     std::thread::spawn({
         let nonce = nonce.clone();
         move || {
-            for stream in listener.incoming().take(1).flatten() {
-                handle_bridge_callback(stream, nonce.clone());
+            // V2 P1.5: bound the listener to 30s so a missed callback doesn't
+            // pin an ephemeral port. After 30s without success, the
+            // listener exits and frees the port.
+            let deadline = std::time::Instant::now() + Duration::from_secs(30);
+            let mut handled = false;
+            loop {
+                if std::time::Instant::now() >= deadline || handled {
+                    break;
+                }
+                listener
+                    .set_nonblocking(false)
+                    .unwrap_or(());
+                // Accept up to 1 request; subsequent calls return 404.
+                match listener.incoming().next() {
+                    Some(Ok(stream)) => {
+                        handle_bridge_callback(stream, nonce.clone());
+                        handled = true;
+                    }
+                    _ => break,
+                }
             }
             if let Ok(mut listeners) = bridge_listeners().lock() {
                 listeners.remove(&nonce);
