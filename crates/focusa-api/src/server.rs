@@ -265,6 +265,26 @@ pub fn menubar_cors_layer() -> CorsLayer {
     use axum::http::HeaderValue;
     use tower_http::cors::AllowOrigin;
 
+    // Extract origin (scheme + host + port) from a URL string without
+    // pulling in the `url` crate. Handles http://, https://, and URLs with
+    // optional port.
+    fn origin_from_url(s: &str) -> Option<String> {
+        let s = s.trim().trim_end_matches('/');
+        let (scheme, rest) = if let Some(r) = s.strip_prefix("https://") {
+            ("https", r)
+        } else if let Some(r) = s.strip_prefix("http://") {
+            ("http", r)
+        } else {
+            return None;
+        };
+        // rest is host[:port][/path]
+        let host_port = rest.split('/').next().unwrap_or(rest);
+        if host_port.is_empty() {
+            return None;
+        }
+        Some(format!("{scheme}://{host_port}"))
+    }
+
     let mut allowed: Vec<HeaderValue> = vec![
         HeaderValue::from_static("tauri://localhost"),
         HeaderValue::from_static("http://tauri.localhost"),
@@ -272,6 +292,20 @@ pub fn menubar_cors_layer() -> CorsLayer {
         HeaderValue::from_static("http://localhost:1420"),
         HeaderValue::from_static("http://127.0.0.1:1420"),
     ];
+    // V2: The phone PWA at /connect/room/<id>/scan is loaded in the phone's
+    // browser, NOT in a Tauri webview. The browser origin is whatever the
+    // operator's daemon public URL is (e.g. https://focusa-vps.tail-net.ts.net).
+    // Auto-allow that origin so the PWA's fetch(/join, /approve) succeeds
+    // without manual CORS configuration.
+    for var in &["FOCUSA_PAIRING_URL", "FOCUSA_PUBLIC_URL"] {
+        if let Ok(public_url) = std::env::var(var) {
+            if let Some(origin) = origin_from_url(&public_url) {
+                if let Ok(hv) = HeaderValue::from_str(&origin) {
+                    allowed.push(hv);
+                }
+            }
+        }
+    }
     if let Ok(extra) = std::env::var("FOCUSA_CORS_ALLOWED_ORIGINS") {
         for raw in extra.split(',') {
             let trimmed = raw.trim();
