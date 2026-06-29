@@ -53,6 +53,35 @@ async fn is_authorized(auth_header: &str) -> bool {
     if s.tokens.contains_key(token) {
         return true;
     }
+    drop(s);
+
+    // V2: Fall back to the SQLite device_tokens ledger. This is the
+    // daemon-restart-survival path: a token minted by a previous daemon
+    // instance is still valid in the new instance because it was
+    // persisted at mint time.
+    let req_state = crate::server::app_state_for_token_lookup();
+    if let Some(state) = req_state {
+        if let Ok(Some((device_id, _expires_at))) = state.persistence.get_device_token(token) {
+            // Re-populate the in-memory map so subsequent requests are fast.
+            let pairing_state = crate::routes::device_pairing::shared_state();
+            let mut s = pairing_state.write().await;
+            if !s.tokens.contains_key(token) {
+                s.tokens.insert(
+                    token.to_string(),
+                    focusa_core::types::DeviceToken {
+                        token: token.to_string(),
+                        device_id,
+                        scopes: vec!["read".to_string(), "write".to_string()],
+                        issued_at: chrono::Utc::now(),
+                        expires_at: chrono::Utc::now() + chrono::Duration::seconds(86400 * 30),
+                        last_used_at: None,
+                        issued_to: "ledger".to_string(),
+                    },
+                );
+            }
+            return true;
+        }
+    }
 
     false
 }

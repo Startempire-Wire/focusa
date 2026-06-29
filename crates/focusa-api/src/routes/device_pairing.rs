@@ -908,7 +908,18 @@ async fn connect_approve(
                 last_used_at: None,
                 issued_to: host.clone(),
             };
-            s.tokens.insert(token.clone(), device_token);
+            s.tokens.insert(token.clone(), device_token.clone());
+            // V2: Persist the token to SQLite so it survives a daemon
+            // restart. The in-memory map is the hot path; SQLite is the
+            // source of truth on restart.
+            let _ = state.persistence.put_device_token(
+                &token,
+                &device_token.device_id,
+                Some(&serde_json::to_string(&device_token.scopes).unwrap_or_else(|_| "[\"read\",\"write\"]".into())),
+                &now.to_rfc3339(),
+                &token_expires.to_rfc3339(),
+                Some(&host),
+            );
             let mut updated = existing;
             updated.status = "completed".to_string();
             updated.token = Some(token);

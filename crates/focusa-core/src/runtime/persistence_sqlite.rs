@@ -207,6 +207,20 @@ impl SqlitePersistence {
                 status TEXT NOT NULL DEFAULT 'pending'
             );
 
+            -- V2: device_tokens survives daemon restart. Each row is a
+            -- Bearer-acceptable device token minted at pair completion.
+            CREATE TABLE IF NOT EXISTS device_tokens (
+                token TEXT PRIMARY KEY,
+                device_id TEXT NOT NULL,
+                scopes_json TEXT,
+                issued_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                last_used_at TEXT,
+                issued_to TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_device_tokens_expires ON device_tokens(expires_at);
+            CREATE INDEX IF NOT EXISTS idx_device_tokens_device ON device_tokens(device_id);
+
             CREATE TABLE IF NOT EXISTS sync_cursors (
                 peer_id TEXT PRIMARY KEY,
                 last_event_id TEXT,
@@ -1381,6 +1395,40 @@ impl SqlitePersistence {
             result.push(r?);
         }
         Ok(result)
+    }
+
+    /// V2: Persist a device token so it survives daemon restart.
+    pub fn put_device_token(&self, token: &str, device_id: &str, scopes_json: Option<&str>, issued_at: &str, expires_at: &str, issued_to: Option<&str>) -> anyhow::Result<()> {
+        let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
+        conn.execute(
+            "INSERT OR REPLACE INTO device_tokens
+             (token, device_id, scopes_json, issued_at, expires_at, last_used_at, issued_to)
+             VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?6)",
+            params![token, device_id, scopes_json, issued_at, expires_at, issued_to],
+        )?;
+        Ok(())
+    }
+
+    /// V2: Look up a device token by its Bearer string.
+    pub fn get_device_token(&self, token: &str) -> anyhow::Result<Option<(String, String)>> {
+        let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
+        let mut stmt = conn.prepare(
+            "SELECT device_id, expires_at FROM device_tokens WHERE token = ?1 AND expires_at > ?2",
+        )?;
+        let now = chrono::Utc::now().to_rfc3339();
+        let mut rows = stmt.query(params![token, now])?;
+        if let Some(row) = rows.next()? {
+            Ok(Some((row.get(0)?, row.get(1)?)))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// V2: Revoke a device token (used by /v1/device/pair/revoke).
+    pub fn revoke_device_token(&self, token: &str) -> anyhow::Result<()> {
+        let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
+        conn.execute("DELETE FROM device_tokens WHERE token = ?1", params![token])?;
+        Ok(())
     }
 
     pub fn complete_connect_session(&self, connect_id: &str) -> anyhow::Result<()> {

@@ -325,7 +325,20 @@ pub fn menubar_cors_layer() -> CorsLayer {
 }
 
 /// Build the axum Router with all routes.
+/// V2: Global access to AppState for auth middleware token lookup.
+static APP_STATE: std::sync::OnceLock<Arc<AppState>> = std::sync::OnceLock::new();
+
+pub fn set_app_state(state: Arc<AppState>) {
+    let _ = APP_STATE.set(state);
+}
+
+pub fn app_state_for_token_lookup() -> Option<Arc<AppState>> {
+    APP_STATE.get().cloned()
+}
+
 pub fn build_router(state: Arc<AppState>) -> Router {
+    set_app_state(state.clone());
+
     Router::new()
         .merge(routes::health::router())
         .merge(routes::info::router())
