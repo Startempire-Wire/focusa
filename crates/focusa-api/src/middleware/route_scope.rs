@@ -16,9 +16,48 @@ fn token_enabled() -> bool {
         .unwrap_or(false)
 }
 
+/// V2 P2 #12: enumerate the pre-auth pairing routes so route_scope_layer
+/// can explicitly bypass them, rather than relying on layer-ordering
+/// (which is brittle and easy to drift if a future refactor changes the
+/// order). The auth_layer still gates these routes when FOCUSA_AUTH_TOKEN
+/// is set (admin-token mode).
+///
+/// Pre-auth pairing routes include the V2 self-host Bridge Room flow:
+///   - /v1/connect/start, /v1/connect/status, /v1/connect/approve
+///   - /v1/connect/rooms, /v1/connect/room/create,
+///     /v1/connect/room/{id}/join, /v1/connect/room/{id}/scan
+///   - /v1/device/pair/start, /v1/device/pair/complete,
+///     /v1/device/pair/status, /v1/device/pair/qr
+///   - /v1/device/pair/list, /v1/device/pair/revoke
+///     (list and revoke are admin-token-only when FOCUSA_AUTH_TOKEN set)
+///   - /v1/connect/room/join, /v1/connect/room/approve
+fn is_preauth_pairing_route(method: &Method, path: &str) -> bool {
+    if path.starts_with("/v1/connect/") {
+        return true;
+    }
+    if path.starts_with("/v1/device/pair/") {
+        // list and revoke are still admin-gated via auth_layer when token enabled.
+        return !path.starts_with("/v1/device/pair/list")
+            && !path.starts_with("/v1/device/pair/revoke");
+    }
+    if method == Method::GET && path.starts_with("/connect/room/") {
+        // PWA /scan page is pre-auth (no Bearer header in phone browser).
+        return true;
+    }
+    let _ = method; // method unused for the connect/device paths above
+    false
+}
+
 fn route_scope(method: &Method, path: &str) -> &'static str {
     if method == Method::GET && path == "/v1/health" {
         return "public:health";
+    }
+    // V2 P2 #12: pre-auth pairing routes bypass scope check. They are
+    // needed before a device token exists, so requiring any scope would
+    // be a chicken-and-egg. Auth-layer still gates them when
+    // FOCUSA_AUTH_TOKEN is configured (admin-token mode).
+    if is_preauth_pairing_route(method, path) {
+        return "public:pairing";
     }
     if path.starts_with("/v1/workpoint/") {
         return if method == Method::GET || path.ends_with("/resume") || path.ends_with("/status") {

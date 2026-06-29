@@ -166,17 +166,36 @@ async fn daemon_health(url: &str) -> Result<serde_json::Value> {
     Ok(resp.json().await?)
 }
 
-async fn create_room(server_url: &str) -> Result<CreatedRoom> {
-    let url = format!("{}/v1/connect/room/create", server_url.trim_end_matches('/'));
+/// V2: Create a Bridge Room on the daemon.
+///
+/// V2 distinguishes two URLs:
+///   * `daemon_api_url` — where the CLI POSTs (the daemon's REST API).
+///   * `public_connect_url` — what the phone PWA actually opens. Often the
+///     same as daemon_api_url on a LAN dev box, but in production with a
+///     TLS-terminating proxy, FOCUSA_PAIRING_URL points at the public
+///     origin so the phone sees a valid HTTPS URL.
+///
+/// The CLI always sends BOTH in the request body, so the daemon can prefer
+/// the explicit public_connect_url over its env fallback. This avoids the
+/// "QR embeds 127.0.0.1 even though the operator set FOCUSA_PAIRING_URL"
+/// bug the V2 audit flagged.
+async fn create_room(
+    daemon_api_url: &str,
+    public_connect_url: &str,
+) -> Result<CreatedRoom> {
+    let url = format!("{}/v1/connect/room/create", daemon_api_url.trim_end_matches('/'));
+    let body = serde_json::json!({
+        "server_url": public_connect_url,
+    });
     let resp = reqwest::Client::new()
         .post(&url)
-        .json(&serde_json::json!({}))
+        .json(&body)
         .timeout(Duration::from_secs(5))
         .send()
         .await
         .with_context(|| format!("POST {url}"))?;
     if !resp.status().is_success() {
-        error!(server_url = %server_url, http_status = %resp.status(), "create-room request failed");
+        error!(daemon_api_url = %daemon_api_url, http_status = %resp.status(), "create-room request failed");
         bail!("create-room returned HTTP {}", resp.status());
     }
     let v: serde_json::Value = resp.json().await?;
@@ -224,14 +243,23 @@ fn render_terminal_qr(data: &str) -> Result<String> {
 }
 
 async fn run_create_room(args: CreateRoomArgs) -> Result<()> {
-    // Honor operator-supplied --server-url; otherwise auto-detect from Tailscale / env.
-    let public_url = args
+    // V2: split daemon_api_url (where the CLI POSTs) from public_connect_url
+    // (what the phone PWA opens). They are usually the same on a LAN dev
+    // box but can differ when FOCUSA_PAIRING_URL points at a TLS proxy.
+    let public_connect_url = args
         .server_url
         .as_deref()
         .filter(|s| !s.trim().is_empty())
         .map(|s| s.to_string())
         .unwrap_or_else(|| resolve_public_url(false).0);
-    let room = create_room(&public_url).await?;
+    let daemon_api_url = daemon_url();
+    let room = create_room(&daemon_api_url, &public_connect_url).await?;
+    if !args.json {
+        eprintln!(
+            "[v2-audit-9] daemon_api_url={} public_connect_url={} embedded_server_url={}",
+            daemon_api_url, public_connect_url, room.server_url
+        );
+    }
     if args.json {
         println!("{}", serde_json::to_string_pretty(&room)?);
     } else {
@@ -246,12 +274,23 @@ async fn run_create_room(args: CreateRoomArgs) -> Result<()> {
 async fn run_wizard(args: WizardArgs) -> Result<()> {
     if args.json {
         // JSON mode: just create the room and print
-        let (public_url, source) = resolve_public_url(args.no_tailnet);
-        let room = create_room(&public_url).await?;
+        let (public_connect_url, source) = resolve_public_url(args.no_tailnet);
+        let daemon_api_url = daemon_url();
+        let room = create_room(&daemon_api_url, &public_connect_url).await?;
         let mut obj = serde_json::to_value(&room)?;
-        obj.as_object_mut()
-            .unwrap()
-            .insert("public_url_source".to_string(), serde_json::json!(source));
+        let obj_mut = obj.as_object_mut().unwrap();
+        obj_mut.insert(
+            "daemon_api_url".to_string(),
+            serde_json::json!(daemon_api_url),
+        );
+        obj_mut.insert(
+            "public_connect_url".to_string(),
+            serde_json::json!(public_connect_url),
+        );
+        obj_mut.insert(
+            "public_url_source".to_string(),
+            serde_json::json!(source),
+        );
         println!("{}", serde_json::to_string_pretty(&obj)?);
         return Ok(());
     }
@@ -305,7 +344,12 @@ async fn run_wizard(args: WizardArgs) -> Result<()> {
 
     println!();
     println!("▶  Creating pairing room…");
-    let room = create_room(&public_url).await?;
+    let daemon_api_url = daemon_url();
+    let room = create_room(&daemon_api_url, &public_url).await?;
+    eprintln!(
+        "[v2-audit-9] daemon_api_url={} public_connect_url={} embedded_server_url={}",
+        daemon_api_url, public_url, room.server_url
+    );
     println!(
         "✓  Room {}…  expires in {}s",
         &room.room_id.chars().take(8).collect::<String>(),

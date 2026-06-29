@@ -2,17 +2,42 @@
 //!
 //! Source: docs/25-26 (Capability Permissions), G1-12-api.md
 //!
-//! V2 auth model:
-//! - `FOCUSA_AUTH_TOKEN` = admin/service token (full access)
-//! - DeviceToken = per-device pairing token (issued at pair-completion, lives
-//!   in-memory in the pairing state map AND in the pairing_store SQLite ledger)
-//! - Bearer <device_token> from a paired Mac is accepted on protected routes.
-//! - Pre-auth routes (Mac join / phone PWA approve / room status / connect
-//!   pages) skip both checks.
+//! V2 auth model and operating modes:
 //!
-//! If no `FOCUSA_AUTH_TOKEN` AND no device has ever paired, auth is disabled
-//! (local-first loopback default). Non-loopback startup is rejected unless
-//! `FOCUSA_AUTH_TOKEN` is present.
+//! ## Mode A — loopback dev (no FOCUSA_AUTH_TOKEN set, daemon on
+//! 127.0.0.1):
+//!   - No Bearer required. `is_authorized` short-circuits to true.
+//!   - Pre-auth pairing routes (Mac join, phone PWA approve, /status,
+//!     /scan page) work without any setup.
+//!   - Pairing mints a device token that subsequent calls use as Bearer.
+//!   - Intended for local development and integration tests.
+//!
+//! ## Mode B — non-loopback self-host (daemon on Tailscale or
+//! 0.0.0.0, FOCUSA_AUTH_TOKEN set):
+//!   - All protected routes require Bearer <FOCUSA_AUTH_TOKEN> OR
+//!     Bearer <paired-device-token>.
+//!   - Pre-auth pairing routes are still reachable without auth so a
+//!     Mac can join, but `/v1/device/pair/{list,revoke}` require the
+//!     admin token to prevent post-pair enumeration.
+//!   - On daemon startup, the bind loopback guard at main.rs:130
+//!     refuses to bind non-loopback if FOCUSA_AUTH_TOKEN is unset.
+//!
+//! ## Mode C — public deployment (Tailscale HTTPS proxy in front):
+//!   - Same as Mode B, plus the operator should treat FOCUSA_AUTH_TOKEN
+//!     as a secret and rotate it on revocation.
+//!   - Pre-auth pairing routes are attack surface; recommend Tailscale
+//!     ACLs or per-IP rate limiting at the proxy layer.
+//!
+//! Token types:
+//!   - `FOCUSA_AUTH_TOKEN` env: admin/service token (full access).
+//!   - DeviceToken: per-device pairing token (issued at pair-completion,
+//!     lives in-memory + SQLite ledger).
+//!   - Bearer <device_token> from a paired Mac is accepted on protected
+//!     routes when an admin token is also configured.
+//!
+//! Pre-auth routes (Mac join / phone PWA approve / room status / connect
+//! pages) skip auth entirely in all modes. Scope enforcement for those
+//! routes is handled by route_scope_layer via the `public:pairing` token.
 
 use axum::extract::Request;
 use axum::http::StatusCode;

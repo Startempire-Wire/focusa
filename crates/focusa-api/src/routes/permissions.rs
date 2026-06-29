@@ -20,6 +20,13 @@ impl PermissionContext {
         if self.scopes.contains("admin:*") {
             return true;
         }
+        if scope.starts_with("public:") {
+            // Pre-auth public routes (health, pairing) are always allowed.
+            // The auth_layer decides whether to require an admin token for
+            // public:pairing; route_scope_layer only enforces scope, not
+            // identity.
+            return true;
+        }
         if scope.ends_with(":read") && self.scopes.contains("read:*") {
             return true;
         }

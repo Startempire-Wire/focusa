@@ -1106,6 +1106,10 @@ async fn connect_approve(
 
     let now = Utc::now();
     let pairing_state = shared_state();
+    // V2 callback fast path: capture token + expiry minted inside the
+    // inner block so the server-side POST can use them.
+    let mut callback_token: Option<String> = None;
+    let mut callback_token_expires: Option<chrono::DateTime<chrono::Utc>> = None;
     let completed = {
         let mut s = pairing_state.write().await;
         let Some(existing) = s.connect_sessions.get(&connect_id).cloned() else {
@@ -1148,6 +1152,11 @@ async fn connect_approve(
         } else {
             let token = generate_token();
             let token_expires = now + Duration::seconds(TOKEN_TTL_SECS);
+            // Capture for outer-scope callback dispatch below. We move
+            // these values OUT of the inner block so the mac_callback
+            // POST can include the actual token + its expiry.
+            callback_token = Some(token.clone());
+            callback_token_expires = Some(token_expires);
             let device_token = DeviceToken {
                 token: token.clone(),
                 device_id: existing.device_id.clone(),
@@ -1158,6 +1167,41 @@ async fn connect_approve(
                 issued_to: host.clone(),
             };
 s.tokens.insert(token.clone(), device_token.clone());
+            // V2 Invariant 6: server-side uniqueness for (mac_name, host).
+            // The menubar identifies a device by (mac_name, host). Re-pair
+            // of the same Mac against the same VPS must supersede the old
+            // token, not stack on top of it. We revoke any prior active
+            // token for that (mac_name, host) tuple, which catches
+            // re-pair across fresh device_id generations. The
+            // (device_id, host) revoke below is the inner-loop guard for
+            // duplicate /join retries within the same device_id.
+            let revoked_by_mac = state
+                .persistence
+                .revoke_active_tokens_for_mac_host(&existing.mac_name, &host)
+                .unwrap_or(0);
+            if revoked_by_mac > 0 {
+                tracing::info!(
+                    mac_name = %existing.mac_name,
+                    host = %host,
+                    revoked_count = revoked_by_mac,
+                    "V2: revoked prior active tokens for (mac_name, host) before minting new one"
+                );
+            }
+            let revoked = state
+                .persistence
+                .revoke_active_token_for_device_host(
+                    &device_token.device_id,
+                    &host,
+                )
+                .unwrap_or(0);
+            if revoked > 0 {
+                tracing::info!(
+                    device_id = %device_token.device_id,
+                    host = %host,
+                    revoked_count = revoked,
+                    "V2: revoked prior active token for (device_id, host) before minting new one"
+                );
+            }
             // V2: Persist the token to SQLite so it survives a daemon
             // restart. The in-memory map is the hot path; SQLite is the
             // source of truth on restart. STRICT: a failure here means the
@@ -1239,6 +1283,43 @@ s.tokens.insert(token.clone(), device_token.clone());
         "phone bridge approval completed"
     );
 
+    // V2 P0 #3: server-side callback fast path. If the Mac's mac_offer
+    // included a mac_callback URL, POST the completed payload to it now.
+    // This is the canonical Phase-2 fast path: the Mac opens an ephemeral
+    // LAN HTTP listener, includes the URL in mac_offer, and the VPS POSTs
+    // the completed device token directly to it after minting. The Mac
+    // stores the token in Keychain without polling /status.
+    //
+    // The callback is best-effort. If the Mac's listener is unreachable
+    // (e.g. ephemeral port closed, LAN address rotated), the Mac falls
+    // back to polling /status which still works via Phase-1.
+    let callback_dispatched = if let Some(cb_url) = completed.mac_callback.as_ref() {
+        if let (Some(token), Some(expires_at)) = (
+            callback_token.as_ref().or(completed.token.as_ref()),
+            callback_token_expires,
+        ) {
+            dispatch_mac_callback(
+                cb_url,
+                &completed.connect_id,
+                &completed.device_id,
+                &completed.mac_name,
+                token,
+                expires_at,
+                &completed.server_url,
+                &host,
+            )
+            .await
+        } else {
+            tracing::warn!(
+                connect_id = %completed.connect_id,
+                "V2 callback skipped: token not minted (should be impossible here)"
+            );
+            false
+        }
+    } else {
+        false
+    };
+
     Ok(Json(json!({
         "status": "completed",
         "canonical": false,
@@ -1256,17 +1337,90 @@ s.tokens.insert(token.clone(), device_token.clone());
         // receives the token via GET /status (which is the canonical
         // Phase-1 channel) or via the mac_callback TCP bridge.
         "token_present": completed.token.is_some(),
-        "mac_receives_token_via": "room_status_poll",
+        "mac_receives_token_via": if callback_dispatched { "mac_callback" } else { "room_status_poll" },
+        "mac_callback_dispatched": callback_dispatched,
         "next_tools": ["focusa_connect_status", "focusa_device_pair_list"],
         "diagnostics": {
             "surface": "phone_bridge_flow",
             "event": "approval_completed",
             "mac_callback_present": completed.mac_callback.is_some(),
+            "mac_callback_dispatched": callback_dispatched,
             "token_present": true,
-            "next_step_hint": "Mac callback should store this token automatically; use Mac Completion Payload fallback if needed."
+            "next_step_hint": if callback_dispatched {
+                "Mac received the token via callback; status should transition to connected."
+            } else {
+                "Mac callback not dispatched; Mac will receive the token by polling /status."
+            }
         },
         "rehydrate_id": completed.connect_id,
     })))
+}
+
+/// V2: best-effort POST of the completed device token to the Mac's
+/// ephemeral callback URL. Returns true on HTTP 2xx, false otherwise.
+/// The Mac is expected to receive this payload and store the token in
+/// Keychain. The endpoint is on the operator's LAN, so we use a short
+/// timeout and treat any failure as non-fatal (the Mac can still poll
+/// /status and pick up the token via Phase-1).
+async fn dispatch_mac_callback(
+    url: &str,
+    connect_id: &str,
+    device_id: &str,
+    device_name: &str,
+    token: &str,
+    token_expires_at: chrono::DateTime<chrono::Utc>,
+    server_url: &str,
+    host: &str,
+) -> bool {
+    let payload = serde_json::json!({
+        "protocol": "focusa-connect-v1",
+        "role": "mac_completion_payload",
+        "connect_id": connect_id,
+        "device_id": device_id,
+        "device_name": device_name,
+        "token": token,
+        "token_expires_at": token_expires_at.to_rfc3339(),
+        "server_url": server_url,
+        "host": host,
+    });
+    let client = match reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .build()
+    {
+        Ok(c) => c,
+        Err(e) => {
+            tracing::warn!(error = %e, "V2 callback: reqwest client build failed");
+            return false;
+        }
+    };
+    match client.post(url).json(&payload).send().await {
+        Ok(resp) if resp.status().is_success() => {
+            tracing::info!(
+                url = %url,
+                connect_id = %connect_id,
+                "V2 callback dispatched: mac_completion_payload delivered"
+            );
+            true
+        }
+        Ok(resp) => {
+            tracing::warn!(
+                url = %url,
+                connect_id = %connect_id,
+                status = %resp.status(),
+                "V2 callback dispatch returned non-2xx; Mac must fall back to /status poll"
+            );
+            false
+        }
+        Err(e) => {
+            tracing::warn!(
+                url = %url,
+                connect_id = %connect_id,
+                error = %e,
+                "V2 callback dispatch failed (network/timeout); Mac must fall back to /status poll"
+            );
+            false
+        }
+    }
 }
 
 async fn pair_start(
@@ -1455,6 +1609,12 @@ async fn pair_complete(
                 issued_to: host.clone(),
             };
             s.tokens.insert(token.clone(), device_token);
+            // V2 Invariant 6: revoke any prior active token for the same
+            // (device_id, host) before persisting. Re-pair must supersede
+            // the old token, not stack on top of it.
+            let _ = state
+                .persistence
+                .revoke_active_token_for_device_host(&p.device_id, &host);
             // Mark the pending pair as completed.
             let mut updated = p.clone();
             updated.status = "Completed".to_string();
