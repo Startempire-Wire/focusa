@@ -42,6 +42,7 @@ interface StoredDeviceMeta {
 
 const STORAGE_KEY = 'focusa_paired_device_meta';
 let currentAuthToken: string | null = null;
+export function getCurrentAuthToken(): string | null { return currentAuthToken; }
 
 function daemonRoot(): string {
   return getApiUrl().replace(/\/$/, '');
@@ -128,6 +129,8 @@ function persistDeviceMeta(d: StoredDeviceMeta): void {
 
 function clearStoredDeviceMeta(): void {
   try { localStorage.removeItem(STORAGE_KEY); } catch {}
+  // V2: scrub any pre-existing token mirror from older builds.
+  try { localStorage.removeItem('focusa_device_token'); } catch {}
 }
 
 function deviceTime(device: PairedDevice): number {
@@ -321,6 +324,7 @@ function createPairingStore() {
       if (stored?.deviceId === deviceId) {
         await clearPairingToken(deviceId).catch((err) => diagnosticsStore.record({ area: 'pairing', phase: 'keychain_clear', error: err, context: { deviceId } }));
         currentAuthToken = null;
+        try { localStorage.removeItem('focusa_device_token'); } catch {}
         clearStoredDeviceMeta();
         state = { kind: 'idle' };
       }
@@ -341,14 +345,13 @@ function createPairingStore() {
     try {
       const token = await loadPairingToken(stored.deviceId);
       currentAuthToken = token;
-      // V2: mirror to localStorage so api.requestJson() attaches the Bearer
-      // header on the very first API call after app launch. Without this
-      // mirror, the API client wouldn't see the Keychain-backed token until
-      // the user re-pairs.
+      // V2: the full token NEVER enters localStorage. The api client reads
+      // it from the in-memory `currentAuthToken` rune. Best-effort: scrub
+      // any previously-mirrored copy from older builds.
       try {
-        localStorage.setItem('focusa_device_token', token);
+        localStorage.removeItem('focusa_device_token');
       } catch {
-        /* ignore quota errors */
+        /* ignore */
       }
       state = {
         kind: 'completed',

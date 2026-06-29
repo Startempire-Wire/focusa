@@ -1,4 +1,5 @@
 import { diagnosticsStore } from '$lib/stores/diagnostics.svelte';
+import { getCurrentAuthToken } from '$lib/stores/pairing.svelte';
 
 export const DEFAULT_API_URL = 'http://127.0.0.1:8787';
 export const SAVED_CONNECTIONS_KEY = 'focusa_saved_connections_v1';
@@ -145,14 +146,15 @@ export async function requestJson<T = any>(path: string, options: ApiRequestOpti
   const { timeoutMs = 3000, method = 'GET', body, headers = {} } = options;
   const base = getApiUrl();
   const url = `${base}${path}`;
-  // V2: inject the device pairing token as Bearer if present in localStorage.
-  // (Keychain-backed tokens are loaded on app start and mirrored here so
-  // every API call is authenticated without per-call Tauri round-trips.)
+  // V2: inject the device pairing token as Bearer from the in-memory
+  // currentAuthToken (Keychain-backed). The full token is NEVER mirrored to
+  // localStorage anymore. The api module is consumed by Svelte components
+  // that import { currentAuthToken } from the pairing store.
   const mergedHeaders = { ...headers };
   if (!mergedHeaders['Authorization'] && !mergedHeaders['authorization']) {
     try {
-      const tok = localStorage.getItem('focusa_device_token');
-      if (tok && tok.trim().length > 0) {
+      const tok = getCurrentAuthToken();
+      if (tok && typeof tok === 'string' && tok.trim().length > 0) {
         mergedHeaders['Authorization'] = `Bearer ${tok.trim()}`;
       }
     } catch {
