@@ -123,7 +123,9 @@ The Mac app must learn the VPS URL to poll the room. Three discovery paths, in p
 2. **Bonjour/mDNS** — VPS daemon registers `_focusa._tcp.local` on port 8787 with TXT record containing the room_id (if active). Mac discovers on LAN.
 3. **Operator-CLI handoff** — `focusa pairing show --mac` on VPS prints the room URL to stdout; operator can paste once into Mac Settings as a last-resort fallback. **This is the only place URL paste appears in the operator UI.**
 
-There is no permanent "Server URL" field in the Mac app. There is no `PUBLIC_PAIRING_URL_KEY` localStorage key. The first-run wizard auto-discovers and forgets any URL it was given after first successful connection.
+There is no permanent "Server URL" field in the Mac app by default. The first-run wizard auto-discovers and forgets any URL it was given after first successful connection via Tailscale, Bonjour, or QR scan.
+
+**V2 P1.1 exception — Advanced paste fallback:** Operators who cannot use Tailscale or Bonjour may manually enter a focusa daemon URL in the Mac app. This URL is persisted to `localStorage` under `PUBLIC_PAIRING_URL_KEY`. This path is **explicitly non-canonical** and is reset after a successful pairing. The canonical V2 architecture expects Tailscale MagicDNS, Bonjour, or a one-shot CLI handoff (`focusa pairing show --mac`) — never a permanently stored URL.
 
 ## 6. The wizard (two surfaces, one state machine)
 
@@ -213,7 +215,7 @@ From v0.9.34-dev:
 | Mac-creates-room `/v1/connect/room/firstrun` | VPS-creates `/v1/connect/room/create` + Mac-joins `/v1/connect/room/{id}/join` |
 | URL-shaped QR on Mac (`pair_url_qr_payload`) | Static mac_offer QR on Mac (no VPS URL embedded) |
 | `Settings.svelte` `publicPairingUrl` paste field | Tailscale MagicDNS + Bonjour auto-discovery |
-| `PUBLIC_PAIRING_URL_KEY` localStorage | None — Mac forgets any URL after first successful connection |
+| `PUBLIC_PAIRING_URL_KEY` localStorage | **V2 P1.1**: persisted for operators without Tailscale/Bonjour; explicitly non-canonical; reset after successful pairing |
 | `focusa-pairing-wizard.sh` bash script | `focusa pairing wizard` Rust subcommand |
 | `FirstRunConnect.svelte` (single QR panel) | `FirstRunWizard.svelte` (6-step wizard component) |
 

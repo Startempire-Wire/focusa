@@ -81,7 +81,9 @@ URL discovery on the Mac side follows strict priority:
 2. Bonjour/mDNS (`_focusa._tcp.local` on port 8787)
 3. One-shot CLI handoff (`focusa pairing show --mac`) — only fallback that involves paste, used only when discovery fails
 
-There is **no permanent "Server URL" field** in the Mac app. There is no `PUBLIC_PAIRING_URL_KEY` localStorage key. The first-run wizard auto-discovers and forgets any URL it was given after first successful connection.
+There is **no permanent "Server URL" field** in the Mac app by default. The first-run wizard auto-discovers and forgets any URL it was given after first successful connection via Tailscale, Bonjour, or QR scan.
+
+**V2 P1.1 exception — Advanced paste fallback:** Operators who cannot use Tailscale or Bonjour may manually enter a focusa daemon URL in the Mac app. This URL is persisted to `localStorage` under `PUBLIC_PAIRING_URL_KEY`. This path is **explicitly non-canonical** and is reset after a successful pairing. The canonical V2 architecture expects Tailscale MagicDNS, Bonjour, or a one-shot CLI handoff (`focusa pairing show --mac`) — never a permanently stored URL.
 
 Apple-like fallbacks, in strict order:
 

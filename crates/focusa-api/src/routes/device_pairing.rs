@@ -777,16 +777,33 @@ async fn connect_room_status(
 // V2: Falls back to the SQLite PairingStore ledger when the in-memory map is
 // empty (e.g. after a daemon restart). Without this fallback, the Mac wizard
 // cannot discover rooms that survived restart, breaking the canonical flow.
+/// V2 P1.4 room list minimization: limit returned rooms to
+/// ROOMS_LIST_MAX (default 50, cap 250) so a pre-auth endpoint doesn't
+/// expose the full room table to unauthenticated scanners. The caller
+/// can pass `?limit=N&offset=N` to page through rooms. Rooms are sorted
+/// by expires_at descending (newest first) so the most-relevant rooms
+/// are visible at the top of the first page.
+const ROOMS_LIST_DEFAULT_LIMIT: usize = 50;
+const ROOMS_LIST_HARD_CAP: usize = 250;
+
 async fn connect_rooms_list(
     State(state): State<Arc<AppState>>,
     axum::extract::Query(q): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let filter = q.get("status").cloned().unwrap_or_default();
+    let limit: usize = q
+        .get("limit")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(ROOMS_LIST_DEFAULT_LIMIT)
+        .min(ROOMS_LIST_HARD_CAP);
+    let offset: usize = q.get("offset").and_then(|v| v.parse().ok()).unwrap_or(0);
+
     let pairing_state = shared_state();
     let s = pairing_state.read().await;
     let now = Utc::now();
     let mut rooms: Vec<Value> = Vec::new();
     let mut seen_room_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
+    // Collect all candidate rooms first, then sort + paginate.
     for (room_id, session) in s.connect_sessions.iter() {
         let status = if session.expires_at < now && session.token.is_none() {
             "expired".to_string()
@@ -838,10 +855,25 @@ async fn connect_rooms_list(
             }));
         }
     }
+    // V2 P1.4: sort by expires_at descending (newest first) then paginate.
+    rooms.sort_by(|a, b| {
+        let a_exp = a["expires_at"].as_str().unwrap_or("");
+        let b_exp = b["expires_at"].as_str().unwrap_or("");
+        b_exp.cmp(a_exp)
+    });
+    let total = rooms.len();
+    let rooms = if offset >= total {
+        Vec::new()
+    } else {
+        rooms.into_iter().skip(offset).take(limit).collect()
+    };
     Ok(Json(json!({
         "status": "ok",
         "rooms": rooms,
         "filter": filter,
+        "limit": limit,
+        "offset": offset,
+        "total": total,
         "count": rooms.len(),
     })))
 }
