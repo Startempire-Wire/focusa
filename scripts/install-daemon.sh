@@ -492,7 +492,7 @@ fi
 assert_single_process
 
 if [[ "$NO_VERIFY" -eq 0 ]]; then
-  payload="$(wait_for_health 30 "$EXPECTED_VERSION" || true)"
+  payload="$(wait_for_health 60 "$EXPECTED_VERSION" || true)"
   if [[ -z "$payload" ]]; then
     rollback "health verification failed for $HEALTH_URL"
   fi
