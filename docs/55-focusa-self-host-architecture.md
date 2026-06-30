@@ -72,17 +72,17 @@ The phone is **not** a participant with persistent state. No app install, no loc
                         └─────────────────────────┘
 ```
 
-**Step 1 — VPS creates the room.** Operator runs `focusa pairing wizard` on the VPS terminal. The wizard detects Tailscale MagicDNS (or falls back to `FOCUSA_PUBLIC_URL` env, then to `http://127.0.0.1:8787` for dev), calls `POST /v1/connect/room/create`, and receives a `room_id` + a `pair_url` containing the room_id.
+**Step 1 — VPS creates the room.** Operator runs `focusa pairing wizard` on the VPS terminal. The wizard detects Tailscale MagicDNS (or falls back to `FOCUSA_PUBLIC_URL` env, then to `http://127.0.0.1:8787` for dev), calls `POST /v1/connect/room/create`, and receives a `room_id`, `room_claim_secret`, and a `pair_url` containing `#secret=<room_claim_secret>`.
 
-**Step 2 — VPS prints terminal QR.** Wizard renders `pair_url` as a Unicode-block QR (50×50 cells, ~25 lines tall) directly in the terminal. Operator picks up phone.
+**Step 2 — VPS prints terminal QR.** Wizard renders the secret-bearing `pair_url` as a Unicode-block QR (50×50 cells, ~25 lines tall) directly in the terminal. Operator picks up phone.
 
-**Step 3 — Phone native camera scans terminal QR.** Opens browser at `https://<vps>/connect/room/<room_id>/scan`. The Focusa Connect Page PWA loads. PWA reads `room_id` from URL, requests browser-camera permission via `getUserMedia`.
+**Step 3 — Phone native camera scans terminal QR.** Opens browser at `https://<vps>/connect/room/<room_id>/scan#secret=...`. The Focusa Connect Page PWA loads. PWA reads the secret from `location.hash`, immediately removes the hash from the visible URL via `history.replaceState`, then requests browser-camera permission via `getUserMedia`.
 
-**Step 4 — PWA browser camera scans Mac's static mac_offer QR.** Operator points phone at the Mac menubar. PWA camera reads the `mac_offer` payload (mac_name, mac_nonce, mac_pubkey). PWA POSTs `{mac_name, mac_nonce, mac_pubkey}` to `/v1/connect/room/<room_id>/join`.
+**Step 4 — PWA browser camera scans Mac's static mac_offer QR.** Operator points phone at the Mac menubar. PWA camera reads the `mac_offer` payload (mac_name, mac_nonce, mac_pubkey, optional mac_callback). PWA POSTs `{mac_name, mac_nonce, mac_pubkey, mac_callback, room_claim_secret}` to `/v1/connect/room/<room_id>/mac-offer`.
 
 **Step 5 — PWA shows Approve.** VPS room state flips to `mac_seen`. PWA renders "Tap Approve to pair this Mac." Operator taps Approve. PWA POSTs `{host, operator_id, completed_by}` to `/v1/connect/room/<room_id>/approve`. VPS room flips to `completed`. Token minted.
 
-**Step 6 — Mac receives token.** Mac, which discovered the VPS via Tailscale MagicDNS (or Bonjour fallback) in the background and was already polling `/v1/connect/room/<room_id>/status` (room_id learned from the `mac_offer` it generated), sees `status=completed, token=…`. Mac writes token to Keychain. FirstRunWizard flips to `connected`. Done.
+**Step 6 — Mac receives token.** Mac, which discovered the VPS via Tailscale MagicDNS (or Bonjour fallback) in the background, waits for the phone to bind its static QR to a room, then polls `/v1/connect/room/<room_id>/status`. If mac_callback is reachable, the daemon can also push the completion payload immediately. Mac writes token to Keychain. FirstRunWizard flips to `connected`. Done.
 
 ## 4. State machine: room
 
@@ -212,7 +212,7 @@ From v0.9.34-dev:
 
 | Removed (v0.9.39-dev) | Replaced by |
 |---|---|
-| Mac-creates-room `/v1/connect/room/firstrun` | VPS-creates `/v1/connect/room/create` + Mac-joins `/v1/connect/room/{id}/join` |
+| Mac-creates-room `/v1/connect/room/firstrun` | VPS-creates `/v1/connect/room/create` + phone binds `/v1/connect/room/{id}/mac-offer` with `room_claim_secret` |
 | URL-shaped QR on Mac (`pair_url_qr_payload`) | Static mac_offer QR on Mac (no VPS URL embedded) |
 | `Settings.svelte` `publicPairingUrl` paste field | Tailscale MagicDNS + Bonjour auto-discovery |
 | `PUBLIC_PAIRING_URL_KEY` localStorage | **V2 P1.1**: persisted for operators without Tailscale/Bonjour; explicitly non-canonical; reset after successful pairing |
@@ -224,10 +224,10 @@ From v0.9.34-dev:
 | Surface | Status (v0.9.39-dev) |
 |---|---|
 | `POST /v1/connect/room/create` (VPS-creates) | pending |
-| `POST /v1/connect/room/{id}/join` (Mac-joins) | pending |
+| `POST /v1/connect/room/{id}/join` (legacy binder) | pending / legacy-compatible only |
 | `GET /v1/connect/room/{id}/status` | done (v0.9.34-dev) |
 | `POST /v1/connect/room/{id}/approve` | done (v0.9.34-dev) |
-| `POST /v1/connect/room/{id}/mac-offer` | done (v0.9.34-dev, rename pending) |
+| `POST /v1/connect/room/{id}/mac-offer` | done; canonical phone-side binder with `room_claim_secret` |
 | `/connect/room/<id>/scan` PWA with getUserMedia | pending |
 | `/connect/firstrun` page | done (v0.9.34-dev, deprecated in favor of `/scan`) |
 | `focusa pairing wizard` Rust subcommand | pending |

@@ -176,7 +176,7 @@ FOCUSA_CYCLE_TEST_URL=http://127.0.0.1:8787 \
 | Step | API | Assertion |
 |---|---|---|
 | 1. Create room | `POST /v1/connect/room/create` | Returns `room_id` |
-| 2. Mac joins | `POST /v1/connect/room/{id}/join` | `status == "mac_seen"` |
+| 2. Phone binds Mac offer | `POST /v1/connect/room/{id}/mac-offer` + `room_claim_secret` | `status == "mac_seen"` |
 | 3. Phone approves | `POST /v1/connect/room/{id}/approve` | `status == "completed"` |
 | 4. Verify completed | `GET /v1/connect/room/{id}/status` | `status == "completed"` + token present |
 | 5. Revoke | `POST /v1/device/pair/revoke` | `ledger_appended == true` OR `status == "completed"` |

@@ -4,14 +4,17 @@
 //! different device" fallback. Generates a one-time deep link and
 //! delivers it to the operator's email (or prints it for mailto:).
 //!
-//! Three delivery modes (auto-detected):
-//!   1. SMTP env vars set (SMTP_HOST, SMTP_USER, SMTP_PASS, EMAIL_TO):
-//!      Sends a real email via the lettre crate (no extra dep needed;
-//!      we use a small SMTP client implementation in pure Rust).
-//!   2. --mailto flag: prints a mailto: URL to stdout (operator pastes
-//!      into their email client; works on any Mac/Linux without any
-//!      SMTP setup).
+//! Delivery modes (auto-detected):
+//!   1. --mailto: prints a mailto: URL to stdout (operator pastes into
+//!      their email client; works on any Mac/Linux without SMTP setup).
+//!   2. --sendmail-command: pipes a complete RFC822 message to an
+//!      external TLS-capable relay command such as `sendmail -t` or
+//!      `msmtp --read-envelope-from --read-recipients`.
 //!   3. Neither: prints the deep link to stdout; operator copies it.
+//!
+//! Built-in raw SMTP is intentionally disabled. Pairing links now carry
+//! room_claim_secret bootstrap material and must not be sent by an
+//! internal plaintext SMTP sender.
 //!
 //! The link itself points to `<pair_url>?source=email` and the PWA
 //! detects the source for analytics.
@@ -36,21 +39,27 @@ pub struct EmailLinkArgs {
     /// Base URL of the Focusa daemon (default 127.0.0.1:8787).
     #[arg(long, default_value = "http://127.0.0.1:8787")]
     pub base_url: String,
-    /// SMTP server (env SMTP_HOST). Required for SMTP delivery.
+    /// SMTP server hint (env SMTP_HOST). Built-in SMTP is disabled; if set
+    /// without --sendmail-command we fail closed with guidance.
     #[arg(long, env = "SMTP_HOST")]
     pub smtp_host: Option<String>,
-    /// SMTP port (env SMTP_PORT). Default 587.
+    /// SMTP port hint (env SMTP_PORT). Kept for compatibility/guidance only.
     #[arg(long, env = "SMTP_PORT", default_value = "587")]
     pub smtp_port: u16,
-    /// SMTP user (env SMTP_USER).
+    /// SMTP user hint (env SMTP_USER). Kept for compatibility/guidance only.
     #[arg(long, env = "SMTP_USER")]
     pub smtp_user: Option<String>,
-    /// SMTP password (env SMTP_PASS).
+    /// SMTP password hint (env SMTP_PASS). Kept for compatibility/guidance only.
     #[arg(long, env = "SMTP_PASS")]
     pub smtp_pass: Option<String>,
-    /// From address (env SMTP_FROM). Default: SMTP_USER.
+    /// From address used with --sendmail-command. Default: SMTP_FROM, then
+    /// SMTP_USER, then focusa@localhost.
     #[arg(long, env = "SMTP_FROM")]
     pub smtp_from: Option<String>,
+    /// External mailer command, e.g. `sendmail -t` or
+    /// `msmtp --read-envelope-from --read-recipients`.
+    #[arg(long, env = "FOCUSA_PAIRING_SENDMAIL_COMMAND")]
+    pub sendmail_command: Option<String>,
     /// JSON output.
     #[arg(long)]
     pub json: bool,
@@ -122,7 +131,9 @@ pub async fn run(args: EmailLinkArgs) -> Result<()> {
             urlencoding(&body)
         );
         report.delivered_via = "mailto".to_string();
-        report.instructions.push(format!("Open in your email client: {mailto}"));
+        report
+            .instructions
+            .push(format!("Open in your email client: {mailto}"));
         if args.json {
             println!("{}", serde_json::to_string_pretty(&report)?);
         } else {
@@ -137,153 +148,108 @@ pub async fn run(args: EmailLinkArgs) -> Result<()> {
         return Ok(());
     }
 
-    // V2: SMTP delivery is REFUSED unless real TLS is configured. The
-    // previous implementation sent STARTTLS then proceeded in plaintext,
-    // which leaks the auth credentials and message body. Operators who
-    // really need SMTP must configure either:
-    //   - --smtp-port 465 (implicit TLS / SMTPS)  [implemented below]
-    //   - sendmail/msmtp adapter (not in this binary)
-    // For everything else we recommend --mailto (zero-credential, works
-    // in any email client) or stdout mode.
-    if args.smtp_user.is_some() || args.smtp_pass.is_some() {
-        if args.smtp_port != 465 {
-            anyhow::bail!(
-                "SMTP AUTH requires SMTPS (port 465). \
-                 Plaintext SMTP and STARTTLS-without-real-TLS are disabled. \
-                 Use --mailto, omit --to for stdout, or set --smtp-port 465 \
-                 and configure your SMTP server for implicit TLS."
-            );
+    if let Some(command) = args.sendmail_command.as_deref() {
+        let to = args
+            .to
+            .as_deref()
+            .context("--to is required with --sendmail-command")?;
+        let smtp_from = args
+            .smtp_from
+            .as_deref()
+            .or(args.smtp_user.as_deref())
+            .unwrap_or("focusa@localhost");
+        send_via_sendmail(command, smtp_from, to, &args.subject, &body)
+            .await
+            .with_context(|| format!("external mailer failed: {command}"))?;
+        report.delivered_via = "sendmail".to_string();
+        report
+            .instructions
+            .push(format!("Sent via external mailer to {to}"));
+        if args.json {
+            println!("{}", serde_json::to_string_pretty(&report)?);
+        } else {
+            println!("Focusa pairing email sent");
+            println!("  Room:    {room_id}");
+            println!("  To:      {to}");
+            println!("  Subject: {}", args.subject);
+            println!("  URL:     {deliverable_url}");
+            println!("  Mailer:  {command}");
         }
+        return Ok(());
     }
-    if args.smtp_port == 465 {
+
+    if args.smtp_host.is_some() || args.smtp_user.is_some() || args.smtp_pass.is_some() {
         anyhow::bail!(
-            "SMTP port 465 (implicit TLS / SMTPS) requires a TLS-capable SMTP client. \
-             This binary does not bundle a TLS client. Recommended alternatives:\n  \
-             1. Use --mailto (zero-credential, opens in your default mail client).\n  \
-             2. Use a local SMTP relay like msmtp or sendmail that does TLS for you:\n     \
-                msmtp --host=YOUR_SMTP_HOST --port=465 --tls=on < message_file\n  \
-             3. Omit --to to print the raw pairing link to stdout."
+            "Built-in SMTP delivery is disabled because pairing links now carry room_claim_secret bootstrap material. \
+             Use --mailto, omit --to for stdout, or pass --sendmail-command 'sendmail -t' / \
+             --sendmail-command 'msmtp --read-envelope-from --read-recipients'."
         );
     }
-    let smtp_host = args.smtp_host.as_deref().context(
-        "SMTP delivery requested but SMTP_HOST not set. \
-         Use --mailto for mailto: link, or omit --to to print the raw URL.",
-    )?;
-    let smtp_user = args.smtp_user.as_deref().unwrap_or("");
-    let smtp_pass = args.smtp_pass.as_deref().unwrap_or("");
-    let smtp_from = args.smtp_from.as_deref().unwrap_or(smtp_user);
-    let to = args.to.as_deref().context("--to is required for SMTP delivery")?;
 
-    send_smtp(
-        smtp_host,
-        args.smtp_port,
-        smtp_user,
-        smtp_pass,
-        smtp_from,
-        to,
-        &args.subject,
-        &body,
-    )
-    .await
-    .with_context(|| format!("SMTP send to {smtp_host}"))?;
+    if args.to.is_some() {
+        anyhow::bail!(
+            "--to without --mailto or --sendmail-command would require the disabled built-in SMTP path. \
+             Use --mailto, stdout mode, or --sendmail-command."
+        );
+    }
 
-    report.delivered_via = "smtp".to_string();
-    report.instructions.push(format!("Sent via SMTP to {to}"));
     if args.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else {
-        println!("Focusa pairing email sent");
+        println!("Focusa pairing link");
         println!("  Room:    {room_id}");
-        println!("  To:      {to}");
-        println!("  Subject: {}", args.subject);
         println!("  URL:     {deliverable_url}");
     }
     Ok(())
 }
 
-/// Minimal SMTP client: opens a TCP connection, upgrades with STARTTLS if
-/// available, sends EHLO + AUTH LOGIN + MAIL FROM + RCPT TO + DATA + QUIT.
-/// No external dependency. Supports plain auth and no-auth.
-#[allow(clippy::too_many_arguments)]
-async fn send_smtp(
-    host: &str,
-    port: u16,
-    user: &str,
-    pass: &str,
+async fn send_via_sendmail(
+    command: &str,
     from: &str,
     to: &str,
     subject: &str,
     body: &str,
 ) -> Result<()> {
-    use tokio::io::{AsyncReadExt, AsyncWriteExt};
-    use tokio::net::TcpStream;
+    use std::process::Stdio;
+    use tokio::io::AsyncWriteExt;
+    use tokio::process::Command;
 
-    let mut stream = TcpStream::connect((host, port))
-        .await
-        .with_context(|| format!("connect {host}:{port}"))?;
-    let mut buf = vec![0u8; 4096];
-
-    // Read greeting
-    let _ = stream.read(&mut buf).await?;
-    // EHLO
-    stream
-        .write_all(format!("EHLO focusa\r\n").as_bytes())
-        .await?;
-    let _ = stream.read(&mut buf).await?;
-    // STARTTLS
-    stream.write_all(b"STARTTLS\r\n").await?;
-    let _ = stream.read(&mut buf).await?;
-    // We don't actually do TLS here — that's a v0.9.36 follow-up. For
-    // production SMTP, operators should use a relay with opportunistic
-    // TLS or pre-encrypted port 465. For the v0.9.39-dev email-link
-    // helper we print a clear warning.
-    tracing::warn!(
-        "SMTP STARTTLS sent but TLS handshake not implemented in v0.9.39-dev; \
-         for production, use port 465 (SMTPS) or a TLS-encrypting proxy. \
-         For self-host testing, the mailto: link is recommended."
-    );
-    // AUTH LOGIN if user/pass provided
-    if !user.is_empty() {
-        use base64::Engine;
-        let b64u = base64::engine::general_purpose::STANDARD.encode(user);
-        let b64p = base64::engine::general_purpose::STANDARD.encode(pass);
-        stream
-            .write_all(format!("AUTH LOGIN {b64u}\r\n").as_bytes())
-            .await?;
-        let _ = stream.read(&mut buf).await?;
-        stream
-            .write_all(format!("{b64p}\r\n").as_bytes())
-            .await?;
-        let _ = stream.read(&mut buf).await?;
-    }
-    // MAIL FROM
-    stream
-        .write_all(format!("MAIL FROM:<{from}>\r\n").as_bytes())
-        .await?;
-    let _ = stream.read(&mut buf).await?;
-    // RCPT TO
-    stream
-        .write_all(format!("RCPT TO:<{to}>\r\n").as_bytes())
-        .await?;
-    let _ = stream.read(&mut buf).await?;
-    // DATA
-    stream.write_all(b"DATA\r\n").await?;
-    let _ = stream.read(&mut buf).await?;
     let message = format!(
         "From: {from}\r\n\
          To: {to}\r\n\
          Subject: {subject}\r\n\
          Content-Type: text/plain; charset=utf-8\r\n\
          \r\n\
-         {body}\r\n\
-         .\r\n"
+         {body}\r\n"
     );
-    stream.write_all(message.as_bytes()).await?;
-    let _ = stream.read(&mut buf).await?;
-    // QUIT
-    stream.write_all(b"QUIT\r\n").await?;
-    let _ = stream.read(&mut buf).await?;
-    stream.shutdown().await.ok();
+
+    let mut child = Command::new("sh")
+        .arg("-lc")
+        .arg(command)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .with_context(|| format!("spawn external mailer: {command}"))?;
+
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin.write_all(message.as_bytes()).await?;
+        stdin.shutdown().await.ok();
+    }
+
+    let output = child.wait_with_output().await?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        anyhow::bail!(
+            "external mailer exited with {}{}",
+            output.status,
+            if stderr.is_empty() {
+                "".to_string()
+            } else {
+                format!(": {stderr}")
+            }
+        );
+    }
     Ok(())
 }
 

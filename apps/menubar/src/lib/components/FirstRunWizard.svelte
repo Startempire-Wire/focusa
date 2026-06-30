@@ -225,18 +225,14 @@
     }
   }
 
-  // ---------- Step: show_qr ----------
-  // The Mac generates a mac_offer (name + nonce + pubkey) and POSTs to the
-  // VPS /v1/connect/room/{id}/join endpoint. The VPS already created the
-  // room via `focusa pairing wizard` on the VPS terminal. The Mac discovers
   // ---------- Step: vps_discover -> idle (static mac_offer QR) ----------
-  // Canonical v0.9.35 flow: the Mac does NOT create the room.
+  // Canonical flow: the Mac does NOT create or self-join the room.
   // The VPS-side `focusa pairing wizard` creates the room and prints a QR
   // for the phone to scan. The Mac idles showing a STATIC mac_offer QR
   // (mac_name + nonce + pubkey + callback). The phone's PWA scans the
-  // Mac's mac_offer QR, POSTs it to /join, then operator taps Approve.
-  // The Mac polls /v1/connect/rooms?status=waiting_for_mac to discover
-  // rooms and POSTs its mac_offer to /join, then polls /status for token.
+  // Mac QR, POSTs it to /mac-offer together with room_claim_secret, then
+  // operator taps Approve. The Mac only watches room state and polls
+  // /status after the phone has already bound this QR to a room.
   let idleStartInFlight = $state(false);
   let macNonce = $state('');
   let macCallback = $state('');
@@ -261,8 +257,8 @@
         macCallback = '';
       }
       // Build the canonical mac_offer payload. The phone PWA parses this from
-      // the QR and POSTs it to /join. mac_callback is optional per spec but
-      // included when the bridge is available.
+      // the QR and POSTs it to /mac-offer together with room_claim_secret.
+      // mac_callback is optional per spec but included when the bridge is available.
       macOffer = JSON.stringify({
         protocol: 'focusa-connect-v1',
         role: 'mac_handoff_offer',
@@ -285,39 +281,33 @@
     }
   }
 
-  // Poll /v1/connect/rooms?status=waiting_for_mac every 1.5s.
-  // When a room appears, POST our mac_offer to /join, then transition to
-  // waiting_phone and start polling that room's /status.
+  // Poll /v1/connect/rooms every 1.5s.
+  // The Mac does NOT self-join rooms anymore. Instead it waits for the
+  // phone PWA to bind this mac_offer via /mac-offer + room_claim_secret,
+  // then attaches to the now-bound room and polls that room's /status.
   async function pollRoomsList(): Promise<void> {
-    if (!discoveredUrl || !macOffer) return;
+    if (!discoveredUrl || !macOffer || !macName) return;
     try {
-      const resp = await fetch(
-        new URL('/v1/connect/rooms?status=waiting_for_mac', discoveredUrl),
-        { headers: { accept: 'application/json' } },
-      );
+      const resp = await fetch(new URL('/v1/connect/rooms?limit=10', discoveredUrl), {
+        headers: { accept: 'application/json' },
+      });
       if (!resp.ok) return;
-      const body = (await resp.json()) as { rooms?: Array<{ room_id: string }> };
+      const body = (await resp.json()) as {
+        rooms?: Array<{ room_id: string; status?: string; mac_name?: string }>;
+      };
       const rooms = body.rooms || [];
-      if (rooms.length === 0) return;
-      const candidate = rooms[0];
-      // POST our mac_offer to /join on the first waiting room.
-      const joinResp = await fetch(
-        new URL(`/v1/connect/room/${encodeURIComponent(candidate.room_id)}/join`, discoveredUrl),
-        {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(JSON.parse(macOffer)),
-        },
+      const candidate = rooms.find(
+        (room) => room.mac_name === macName && room.status && room.status !== 'waiting_for_mac',
       );
-      if (!joinResp.ok) return;
+      if (!candidate) return;
       roomId = candidate.room_id;
       diagnosticsStore.record({
         area: 'first_run_wizard',
-        phase: 'mac_offer_posted',
+        phase: 'room_tracking_attached',
         error_class: 'network',
-        message: `mac_offer posted to room ${roomId}`,
+        message: `phone bound mac_offer; attached to room ${roomId}`,
         url: discoveredUrl,
-        context: { room_id: roomId.slice(0, 8) },
+        context: { room_id: roomId.slice(0, 8), room_status: candidate.status || 'unknown' },
       });
       stopRoomDiscovery();
       advanceTo('waiting_phone');
@@ -641,7 +631,7 @@
       {#if macCallback}
         <p class="dim">Bridge: <code>{macCallback}</code></p>
       {/if}
-      <p class="dim">Mac is watching for new pairing rooms every 1.5s.</p>
+      <p class="dim">Mac is waiting for the phone to bind this QR to a room, then it will attach and poll status every 1.5s.</p>
       <button class="utility" onclick={() => { stopRoomDiscovery(); advanceTo('vps_discover'); }}>Cancel</button>
     </div>
   {:else if step === 'waiting_phone'}

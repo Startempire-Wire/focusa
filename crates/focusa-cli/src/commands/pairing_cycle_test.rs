@@ -14,7 +14,7 @@
 //!   - docs/55 §7 (revoke + re-pair)
 //!   - docs/57 §6 (test cycle)
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use clap::Parser;
 use serde::Serialize;
 use std::time::Duration;
@@ -347,7 +347,9 @@ pub async fn run(args: CycleTestArgs) -> Result<()> {
                             .unwrap_or("");
                         if event == "room_rehydrated_from_ledger" {
                             if !args.json {
-                                println!("  restart durability: PASS (room rehydrated from SQLite)");
+                                println!(
+                                    "  restart durability: PASS (room rehydrated from SQLite)"
+                                );
                             }
                         } else {
                             warn!(event = %event, "room found but not rehydrated from ledger");
@@ -388,7 +390,10 @@ pub async fn run(args: CycleTestArgs) -> Result<()> {
                     );
                     println!("  fragments_found:   {}", report.fragments_found.join(", "));
                     if !report.fragments_missing.is_empty() {
-                        println!("  fragments_missing: {}", report.fragments_missing.join(", "));
+                        println!(
+                            "  fragments_missing: {}",
+                            report.fragments_missing.join(", ")
+                        );
                     }
                     if report.passed {
                         println!("  ✓ PWA scan page verify PASS");
@@ -525,11 +530,7 @@ async fn mac_join(
     Ok(())
 }
 
-async fn phone_approve(
-    client: &reqwest::Client,
-    base: &str,
-    room_id: &str,
-) -> Result<String> {
+async fn phone_approve(client: &reqwest::Client, base: &str, room_id: &str) -> Result<String> {
     let url = format!("{base}/v1/connect/room/{room_id}/approve");
     let resp = client
         .post(&url)
@@ -563,11 +564,7 @@ async fn phone_approve(
     Ok(device_id)
 }
 
-async fn verify_completed(
-    client: &reqwest::Client,
-    base: &str,
-    room_id: &str,
-) -> Result<()> {
+async fn verify_completed(client: &reqwest::Client, base: &str, room_id: &str) -> Result<()> {
     let url = format!("{base}/v1/connect/room/{room_id}/status");
     let resp = client.get(&url).send().await.context("GET status")?;
     if !resp.status().is_success() {
@@ -621,12 +618,7 @@ async fn verify_completed(
     Ok(())
 }
 
-async fn revoke(
-    client: &reqwest::Client,
-    base: &str,
-    device_id: &str,
-    host: &str,
-) -> Result<()> {
+async fn revoke(client: &reqwest::Client, base: &str, device_id: &str, host: &str) -> Result<()> {
     let url = format!("{base}/v1/device/pair/revoke");
     let resp = client
         .post(&url)
@@ -702,7 +694,10 @@ async fn verify_pwa_scan(client: &reqwest::Client, base: &str) -> Result<PwaVeri
         .await
         .context("POST /v1/connect/room/create for pwa-verify")?;
     if !create_resp.status().is_success() {
-        bail!("create-room for pwa-verify returned HTTP {}", create_resp.status());
+        bail!(
+            "create-room for pwa-verify returned HTTP {}",
+            create_resp.status()
+        );
     }
     let v: serde_json::Value = create_resp.json().await?;
     let room_id = v
@@ -735,6 +730,10 @@ async fn verify_pwa_scan(client: &reqwest::Client, base: &str) -> Result<PwaVeri
         "Pair this Mac",
         "/v1/connect/room/",
         "mac_handoff_offer",
+        "location.hash.replace(/^#/, '')",
+        "history.replaceState(null, '', location.pathname + location.search)",
+        "room_claim_secret",
+        "/mac-offer",
     ];
     let mut found: Vec<String> = Vec::new();
     let mut missing: Vec<String> = Vec::new();

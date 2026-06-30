@@ -130,7 +130,7 @@ pub struct ConnectSession {
 #[derive(Default)]
 pub struct PairingState {
     pending: HashMap<String, DevicePairCode>, // code -> pair
-    pub tokens: HashMap<String, DeviceToken>,     // token -> token (public for auth middleware)
+    pub tokens: HashMap<String, DeviceToken>, // token -> token (public for auth middleware)
     #[allow(private_interfaces)]
     pub connect_sessions: HashMap<String, ConnectSession>, // connect_id -> rendezvous (public for /v1/connect/rooms)
     /// V2 P0: tracks which legacy pair-codes have already had their
@@ -170,10 +170,7 @@ pub fn router() -> axum::Router<Arc<AppState>> {
         )
         // v0.9.39-dev: list rooms so the Mac can discover VPS-created rooms
         // and POST its static mac_offer to /join. Canonical V2 flow.
-        .route(
-            "/v1/connect/rooms",
-            axum::routing::get(connect_rooms_list),
-        )
+        .route("/v1/connect/rooms", axum::routing::get(connect_rooms_list))
         .route(
             "/v1/connect/room/{room_id}/mac-offer",
             axum::routing::post(connect_room_mac_offer),
@@ -188,10 +185,16 @@ pub fn router() -> axum::Router<Arc<AppState>> {
             axum::routing::post(connect_room_approve),
         )
         .route("/connect", axum::routing::get(connect_mediator_page))
-        .route("/connect/firstrun", axum::routing::get(connect_firstrun_page))
+        .route(
+            "/connect/firstrun",
+            axum::routing::get(connect_firstrun_page),
+        )
         // v0.9.39-dev: PWA /scan page with getUserMedia camera. Replaces
         // /firstrun as the canonical phone-side entry point.
-        .route("/connect/room/{room_id}/scan", axum::routing::get(connect_room_scan_page))
+        .route(
+            "/connect/room/{room_id}/scan",
+            axum::routing::get(connect_room_scan_page),
+        )
         .route("/connect/{room_id}", axum::routing::get(connect_room_page))
         // focusa-ui0y WhatsApp-like first-run: Mac creates a rendezvous and
         // receives the public server_url to embed in the URL-QR.
@@ -383,7 +386,8 @@ fn validate_mac_callback_url(url: &str, field: &str) -> Result<String, (StatusCo
         .split(':')
         .next()
         .unwrap_or("");
-    let host_ok = is_loopback_host(host_part) || is_private_ipv4(host_part) || is_tailscale_host(host_part);
+    let host_ok =
+        is_loopback_host(host_part) || is_private_ipv4(host_part) || is_tailscale_host(host_part);
     if !host_ok {
         return Err(rejection(
             StatusCode::UNPROCESSABLE_ENTITY,
@@ -419,10 +423,7 @@ fn is_private_ipv4(host: &str) -> bool {
     if parts.len() != 4 {
         return false;
     }
-    let octets: Option<Vec<u8>> = parts
-        .iter()
-        .map(|p| p.parse::<u8>().ok())
-        .collect();
+    let octets: Option<Vec<u8>> = parts.iter().map(|p| p.parse::<u8>().ok()).collect();
     let Some(o) = octets else { return false };
     if o[0] == 10 {
         return true;
@@ -444,10 +445,7 @@ fn is_tailscale_host(host: &str) -> bool {
     if parts.len() != 4 {
         return false;
     }
-    let octets: Option<Vec<u8>> = parts
-        .iter()
-        .map(|p| p.parse::<u8>().ok())
-        .collect();
+    let octets: Option<Vec<u8>> = parts.iter().map(|p| p.parse::<u8>().ok()).collect();
     let Some(o) = octets else { return false };
     o[0] == 100 && (64..=127).contains(&o[1])
 }
@@ -576,6 +574,9 @@ pub struct ConnectRoomMacOfferRequest {
     pub mac_nonce: Option<String>,
     pub mac_pubkey: Option<String>,
     pub mac_callback: Option<String>,
+    /// V2 P0.3: VPS-created rooms carry a room_claim_secret. Any pre-auth
+    /// route that binds mac_nonce/mac_callback to such a room must require it.
+    pub room_claim_secret: Option<String>,
     pub scopes: Option<Vec<String>>,
 }
 
@@ -698,10 +699,10 @@ async fn connect_room_start(
         expires_at: expires,
         status: "waiting_for_mac".to_string(),
         token: None,
-                token_delivered: false,
-            delivered_at: None,
-            room_claim_secret: String::new(),
-        };
+        token_delivered: false,
+        delivered_at: None,
+        room_claim_secret: String::new(),
+    };
 
     shared_state()
         .write()
@@ -884,18 +885,13 @@ async fn connect_room_status(
                         delivered_at: None,
                         room_claim_secret: p.room_claim_secret.clone(),
                     };
-                    s.connect_sessions.insert(
-                        room_id.trim().to_string(),
-                        rehydrated,
-                    );
+                    s.connect_sessions
+                        .insert(room_id.trim().to_string(), rehydrated);
                     drop(s);
                     // Now run the canonical one-shot logic.
                     let mut s = pairing_state.write().await;
-                    if let Some(session) =
-                        s.connect_sessions.get_mut(room_id.trim())
-                    {
-                        let (_expired, payload) =
-                            one_shot_status_payload(session);
+                    if let Some(session) = s.connect_sessions.get_mut(room_id.trim()) {
+                        let (_expired, payload) = one_shot_status_payload(session);
                         // Persist token_delivered flag so subsequent
                         // in-memory restart doesn't double-deliver.
                         let delivered = session.token_delivered;
@@ -1041,9 +1037,7 @@ async fn connect_rooms_list(
 
 /// Enumerate every connect_session row in the SQLite ledger. Used by
 /// /v1/connect/rooms to rehydrate after a daemon restart.
-fn list_persisted_sessions_unused(
-    state: &AppState,
-) -> anyhow::Result<Vec<PersistedSessionRow>> {
+fn list_persisted_sessions_unused(state: &AppState) -> anyhow::Result<Vec<PersistedSessionRow>> {
     let _ = state;
     Ok(Vec::new())
 }
@@ -1145,7 +1139,12 @@ fn bind_mac_offer_to_room_fields(
 
     // Caller pre-checks room existence and existing nonce mismatch; this
     // function only does the canonical validation/normalization.
-    Ok(BoundMacOffer { mac_name, mac_nonce, mac_pubkey, mac_callback: normalized_callback })
+    Ok(BoundMacOffer {
+        mac_name,
+        mac_nonce,
+        mac_pubkey,
+        mac_callback: normalized_callback,
+    })
 }
 
 /// V2 P0 nonce mismatch helper: returns Err if the existing bound
@@ -1155,9 +1154,7 @@ fn reject_nonce_mismatch(
     existing_nonce: &str,
     candidate_nonce: &str,
 ) -> Result<(), (StatusCode, Json<Value>)> {
-    if !existing_nonce.trim().is_empty()
-        && existing_nonce != candidate_nonce
-    {
+    if !existing_nonce.trim().is_empty() && existing_nonce != candidate_nonce {
         tracing::warn!(
             room_id = %rid,
             existing_nonce = %existing_nonce,
@@ -1239,10 +1236,7 @@ fn strict_put_session_with_rollback(
 /// consumes the code in the SQLite ledger). Trust-critical: if the
 /// consume fails, return 500 so the caller knows the ledger diverges
 /// from memory.
-fn strict_consume_code(
-    state: &AppState,
-    code: &str,
-) -> Result<(), (StatusCode, Json<Value>)> {
+fn strict_consume_code(state: &AppState, code: &str) -> Result<(), (StatusCode, Json<Value>)> {
     if let Err(e) = pairing_store::consume_code(state, code) {
         tracing::error!(
             code = %code,
@@ -1314,6 +1308,48 @@ async fn connect_room_mac_offer(
     }
 
     let mut updated = existing;
+    // V2 P0.3: if this room came from /v1/connect/room/create, the phone
+    // must present room_claim_secret before any pre-auth route can bind the
+    // Mac offer fields. /mac-offer is equivalent authority to /join here.
+    if !updated.room_claim_secret.trim().is_empty() {
+        let presented = body
+            .room_claim_secret
+            .as_deref()
+            .map(str::trim)
+            .unwrap_or("");
+        if presented.is_empty() {
+            tracing::warn!(
+                room_id = %room_id,
+                mac_name = %mac_name,
+                "phone bridge mac offer rejected: missing room_claim_secret"
+            );
+            return Err(rejection(
+                StatusCode::UNAUTHORIZED,
+                json!({
+                    "status": "unauthorized",
+                    "failure_class": "room_claim_secret_missing",
+                    "message": "room was created by /v1/connect/room/create and requires room_claim_secret on /mac-offer",
+                    "room_id": room_id,
+                }),
+            ));
+        }
+        if presented != updated.room_claim_secret {
+            tracing::warn!(
+                room_id = %room_id,
+                mac_name = %mac_name,
+                "phone bridge mac offer rejected: room_claim_secret mismatch"
+            );
+            return Err(rejection(
+                StatusCode::FORBIDDEN,
+                json!({
+                    "status": "forbidden",
+                    "failure_class": "room_claim_secret_mismatch",
+                    "message": "room_claim_secret does not match",
+                    "room_id": room_id,
+                }),
+            ));
+        }
+    }
     // V2 P1.4 nonce mismatch rejection: if /mac-offer or /join has
     // already bound a nonce for this room, refuse to overwrite it with
     // a different one. The Mac's nonce is the per-pair identifier
@@ -1409,10 +1445,10 @@ async fn connect_start(
         expires_at: expires,
         status: "pending".to_string(),
         token: None,
-                token_delivered: false,
-            delivered_at: None,
-            room_claim_secret: String::new(),
-        };
+        token_delivered: false,
+        delivered_at: None,
+        room_claim_secret: String::new(),
+    };
 
     let pairing_state = shared_state();
     pairing_state
@@ -1596,7 +1632,7 @@ async fn connect_approve(
                 last_used_at: None,
                 issued_to: host.clone(),
             };
-s.tokens.insert(token.clone(), device_token.clone());
+            s.tokens.insert(token.clone(), device_token.clone());
             // V2 Invariant 6: server-side uniqueness for (mac_name, host).
             // The menubar identifies a device by (mac_name, host). Re-pair
             // of the same Mac against the same VPS must supersede the old
@@ -1619,10 +1655,7 @@ s.tokens.insert(token.clone(), device_token.clone());
             }
             let revoked = state
                 .persistence
-                .revoke_active_token_for_device_host(
-                    &device_token.device_id,
-                    &host,
-                )
+                .revoke_active_token_for_device_host(&device_token.device_id, &host)
                 .unwrap_or(0);
             if revoked > 0 {
                 tracing::info!(
@@ -1641,7 +1674,10 @@ s.tokens.insert(token.clone(), device_token.clone());
             if let Err(e) = state.persistence.put_device_token(
                 &token,
                 &device_token.device_id,
-                Some(&serde_json::to_string(&device_token.scopes).unwrap_or_else(|_| "[\"read\",\"write\"]".into())),
+                Some(
+                    &serde_json::to_string(&device_token.scopes)
+                        .unwrap_or_else(|_| "[\"read\",\"write\"]".into()),
+                ),
                 &now.to_rfc3339(),
                 &token_expires.to_rfc3339(),
                 Some(&host),
@@ -1946,7 +1982,17 @@ async fn pair_start(
     // BEFORE updating in-memory so the durability check happens first.
     // If persistence fails, we never put the code in memory and the
     // response blocks.
-    if let Err(e) = pairing_store::put_code(&state, &code, &device_id, Some(&device_name), Some(&platform), &scopes, Some(&daemon_base_url), &now.to_rfc3339(), &expires.to_rfc3339()) {
+    if let Err(e) = pairing_store::put_code(
+        &state,
+        &code,
+        &device_id,
+        Some(&device_name),
+        Some(&platform),
+        &scopes,
+        Some(&daemon_base_url),
+        &now.to_rfc3339(),
+        &expires.to_rfc3339(),
+    ) {
         tracing::error!(
             code = %code,
             device_id = %device_id,
@@ -2081,7 +2127,7 @@ async fn pair_complete(
     let pairing_state = shared_state();
 
     // Look up the pending pair; reject if missing, expired, or already completed.
-    let pair = {
+    let (pair, token, token_expires, device_token) = {
         let mut s = pairing_state.write().await;
         let p = s.pending.get(&code).cloned();
         if let Some(p) = p {
@@ -2110,7 +2156,10 @@ async fn pair_complete(
                     }),
                 ));
             }
-            // Generate the token and mark the pair as completed.
+            // Generate the token and prepare the completed pair, but do
+            // not mutate the in-memory cache yet. Legacy pair_complete is
+            // trust-critical too: memory updates happen only after durable
+            // token persistence and durable code consumption both succeed.
             let token = generate_token();
             let token_expires = now + Duration::seconds(TOKEN_TTL_SECS);
             let device_token = DeviceToken {
@@ -2122,18 +2171,15 @@ async fn pair_complete(
                 last_used_at: None,
                 issued_to: host.clone(),
             };
-            s.tokens.insert(token.clone(), device_token);
             // V2 Invariant 6: revoke any prior active token for the same
             // (device_id, host) before persisting. Re-pair must supersede
             // the old token, not stack on top of it.
             let _ = state
                 .persistence
                 .revoke_active_token_for_device_host(&p.device_id, &host);
-            // Mark the pending pair as completed.
             let mut updated = p.clone();
             updated.status = "Completed".to_string();
-            s.pending.insert(code.clone(), updated.clone());
-            updated
+            (updated, token, token_expires, device_token)
         } else {
             return Err(rejection(
                 StatusCode::NOT_FOUND,
@@ -2145,21 +2191,49 @@ async fn pair_complete(
             ));
         }
     };
-    // V2 P0: drop the consumed code from the SQLite ledger. Strict: if
-    // consume fails, return 500 so the caller knows the ledger diverges
-    // from in-memory state.
-    strict_consume_code(&state, &code)?;
+    if let Err(e) = state.persistence.put_device_token(
+        &token,
+        &device_token.device_id,
+        Some(
+            &serde_json::to_string(&device_token.scopes)
+                .unwrap_or_else(|_| "[\"read\",\"write\"]".into()),
+        ),
+        &now.to_rfc3339(),
+        &token_expires.to_rfc3339(),
+        Some(&host),
+    ) {
+        return Err(rejection(
+            StatusCode::SERVICE_UNAVAILABLE,
+            json!({
+                "status": "blocked",
+                "failure_class": "storage_unwritable",
+                "message": format!("token mint persistence failed: {}", e),
+                "device_id": pair.device_id,
+            }),
+        ));
+    }
 
-    // The token was already inserted into the in-memory pairing_state.tokens
-    // above; look it up by device_id for the response.
-    let token = pairing_state
-        .read()
-        .await
-        .tokens
-        .iter()
-        .find(|(_, t)| t.device_id == pair.device_id)
-        .map(|(_, t)| t.token.clone())
-        .unwrap_or_default();
+    // V2 P0/P1: consume the legacy code only after the token row is durable.
+    // If consume fails, revoke the newly persisted token before returning so
+    // the legacy flow does not leave ledger-only credentials behind.
+    if let Err((status, payload)) = strict_consume_code(&state, &code) {
+        if let Err(revoke_err) = state.persistence.revoke_device_token(&token) {
+            tracing::error!(
+                code = %code,
+                device_id = %device_token.device_id,
+                token = %token,
+                error = %revoke_err,
+                "legacy pair_complete cleanup failed after consume_code error"
+            );
+        }
+        return Err((status, payload));
+    }
+
+    {
+        let mut s = pairing_state.write().await;
+        s.tokens.insert(token.clone(), device_token.clone());
+        s.pending.insert(code.clone(), pair.clone());
+    }
 
     let completion = DevicePairCompletion {
         code: code.clone(),
@@ -2198,6 +2272,7 @@ async fn pair_complete(
         "status": "completed",
         "canonical": false,
         "advisory": true,
+        "delivery_class": "legacy_token_delivery",
         "code": code,
         "device_id": pair.device_id,
         "device_name": pair.device_name,
@@ -2233,8 +2308,8 @@ async fn pair_status(
         let code = code.trim().to_uppercase();
         // Snapshot the pair from the immutable borrow so we can release
         // the lock before mutating consumed_pair_codes.
-        let pair_snapshot: Option<PairCodeSnapshot> = s.pending.get(&code).map(|pair| {
-            PairCodeSnapshot {
+        let pair_snapshot: Option<PairCodeSnapshot> =
+            s.pending.get(&code).map(|pair| PairCodeSnapshot {
                 code: code.clone(),
                 device_id: pair.device_id.clone(),
                 device_name: pair.device_name.clone(),
@@ -2243,8 +2318,7 @@ async fn pair_status(
                 expires_at: pair.expires_at,
                 status: pair.status.clone(),
                 already_consumed: s.consumed_pair_codes.contains(&code),
-            }
-        });
+            });
         if let Some(snap) = pair_snapshot {
             let now = Utc::now();
             let expired = snap.expires_at < now;
@@ -2494,15 +2568,13 @@ async fn pair_revoke(
     // rehydrate the device from the ledger and the auth middleware's
     // SQLite fallback would accept the revoked token. Pair_revoke is
     // a trust-critical transition; persistence failure blocks the
-    // response and rolls back the device-record append above.
-    if let Err(e) = state
-        .persistence
-        .revoke_device_tokens_by_device(device_id)
-    {
+    // response. The append-only revoked record is an intent/evidence
+    // marker; it is not rolled back.
+    if let Err(e) = state.persistence.revoke_device_tokens_by_device(device_id) {
         tracing::error!(
             device_id = %device_id,
             error = %e,
-            "V2 P0.4: pair_revoke SQLite token deletion failed; rolling back record and blocking response"
+            "V2 P0.4: pair_revoke SQLite token deletion failed after revoked-intent append; blocking response"
         );
         return Err(rejection(
             StatusCode::SERVICE_UNAVAILABLE,
@@ -2658,6 +2730,11 @@ fn connect_mediator_html() -> String {
       const match = location.pathname.match(/^\/connect\/([^/?#]+)/);
       return match ? decodeURIComponent(match[1]) : '';
     })();
+    const roomClaimSecret = (() => {
+      const secret = new URLSearchParams(location.hash.replace(/^#/, '')).get('secret') || '';
+      if (secret) history.replaceState(null, '', location.pathname + location.search);
+      return secret;
+    })();
     const scanBtn = document.getElementById('scanBtn');
     const approveBtn = document.getElementById('approveBtn');
     const advancedDetails = document.getElementById('advancedDetails');
@@ -2709,8 +2786,9 @@ fn connect_mediator_html() -> String {
       if (!roomId) throw new Error('Missing Bridge Room id. Start from the QR shown by `focusa pair`.');
       const body = validateOffer(offer);
       if (!body.mac_nonce) throw new Error('Mac offer missing nonce');
+      if (!roomClaimSecret) throw new Error('Missing room claim secret. Re-open the VPS QR link.');
       const response = await fetch(`/v1/connect/room/${encodeURIComponent(roomId)}/mac-offer`, {
-        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body)
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, room_claim_secret: roomClaimSecret })
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.message || payload.failure_class || 'Mac offer rejected');
@@ -3174,7 +3252,11 @@ async fn connect_room_firstrun(
     let server_url_raw = body
         .server_url
         .clone()
-        .or_else(|| std::env::var("FOCUSA_PAIRING_URL").ok().filter(|s| !s.trim().is_empty()))
+        .or_else(|| {
+            std::env::var("FOCUSA_PAIRING_URL")
+                .ok()
+                .filter(|s| !s.trim().is_empty())
+        })
         .unwrap_or_else(|| "http://127.0.0.1:8787".to_string());
     let server_url = match validate_pairing_url(&server_url_raw, "server_url") {
         Ok(u) => u,
@@ -3212,15 +3294,14 @@ async fn connect_room_firstrun(
         expires_at: expires,
         status: "waiting_for_phone".to_string(),
         token: None,
-                token_delivered: false,
-            delivered_at: None,
-            room_claim_secret: String::new(),
-        };
+        token_delivered: false,
+        delivered_at: None,
+        room_claim_secret: String::new(),
+    };
     {
         let state_ref = shared_state();
         let mut s = state_ref.write().await;
-        s.connect_sessions
-            .insert(room_id.clone(), session.clone());
+        s.connect_sessions.insert(room_id.clone(), session.clone());
     }
     // V2 P0: strict persistence — roll back in-memory session if
     // put_session fails. firstrun is Mac-creates; no room_claim_secret.
@@ -3307,7 +3388,11 @@ async fn connect_room_create(
     let server_url_raw = body
         .server_url
         .clone()
-        .or_else(|| std::env::var("FOCUSA_PAIRING_URL").ok().filter(|s| !s.trim().is_empty()))
+        .or_else(|| {
+            std::env::var("FOCUSA_PAIRING_URL")
+                .ok()
+                .filter(|s| !s.trim().is_empty())
+        })
         .unwrap_or_else(|| "http://127.0.0.1:8787".to_string());
     let server_url = match validate_pairing_url(&server_url_raw, "server_url") {
         Ok(u) => u,
@@ -3346,8 +3431,7 @@ async fn connect_room_create(
     {
         let state_ref = shared_state();
         let mut s = state_ref.write().await;
-        s.connect_sessions
-            .insert(room_id.clone(), session.clone());
+        s.connect_sessions.insert(room_id.clone(), session.clone());
     }
     // V2 P0: strict persistence — roll back in-memory session if
     // put_session fails.
@@ -3665,6 +3749,11 @@ async fn connect_room_scan_page(
       }});
     }}
     const ROOM_ID = {rid_json};
+    const ROOM_CLAIM_SECRET = (() => {{
+      const secret = new URLSearchParams(location.hash.replace(/^#/, '')).get('secret') || '';
+      if (secret) history.replaceState(null, '', location.pathname + location.search);
+      return secret;
+    }})();
     const video = document.getElementById('video');
     const approveBtn = document.getElementById('approve');
     const statusEl = document.getElementById('status');
@@ -3688,7 +3777,10 @@ async fn connect_room_scan_page(
     }}
 
     function postJoin(offer) {{
-      return fetch('/v1/connect/room/' + encodeURIComponent(ROOM_ID) + '/join', {{
+      if (!ROOM_CLAIM_SECRET) {{
+        throw new Error('Missing room claim secret. Re-open the VPS QR link.');
+      }}
+      return fetch('/v1/connect/room/' + encodeURIComponent(ROOM_ID) + '/mac-offer', {{
         method: 'POST',
         headers: {{'content-type': 'application/json'}},
         body: JSON.stringify({{
@@ -3696,6 +3788,7 @@ async fn connect_room_scan_page(
           mac_nonce: offer.nonce || offer.mac_nonce || '',
           mac_pubkey: offer.mac_pubkey || null,
           mac_callback: offer.mac_callback || null,
+          room_claim_secret: ROOM_CLAIM_SECRET,
         }})
       }});
     }}

@@ -60,19 +60,22 @@ The canonical flow is:
    Operator points phone at the Mac menubar.
    PWA camera reads mac_offer from the Mac's static QR.
 
-5. PWA POSTs {mac_name, mac_nonce, mac_pubkey} to
-   /v1/connect/room/{room_id}/join. Room status → mac_seen.
+5. PWA reads `#secret=<room_claim_secret>` from the VPS QR into memory,
+   immediately removes the hash from the visible URL, then POSTs
+   {mac_name, mac_nonce, mac_pubkey, room_claim_secret} to
+   /v1/connect/room/{room_id}/mac-offer. Room status → mac_seen.
    PWA renders "Tap Approve to pair this Mac."
    Operator taps Approve. PWA POSTs to /v1/connect/room/{room_id}/approve.
    VPS mints token. Room status → completed.
 
 6. Mac, which discovered the VPS via Tailscale MagicDNS (or Bonjour fallback)
-   in the background, polls /v1/connect/room/<room_id>/status.
+   in the background, waits for the phone to bind its static QR to a room,
+   then polls /v1/connect/room/<room_id>/status.
    Polls return status=completed, token=… . Mac stores token in Keychain.
    FirstRunWizard flips to connected. Done.
 ```
 
-The room is **VPS-owned**. No room is ever created client-side. The Mac only joins rooms the VPS has created.
+The room is **VPS-owned**. No room is ever created client-side. The phone owns the bootstrap `room_claim_secret`; the Mac never self-joins canonical rooms.
 
 The QR displayed by the Mac is the **mac_offer** (just Mac identity), not a URL. The QR displayed by the VPS terminal is the **pair_url** (just the room URL). The phone is the bridge that connects them via two camera uses: native for terminal, browser (via PWA) for Mac.
 
