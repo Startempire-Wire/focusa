@@ -3068,7 +3068,7 @@ async fn session_transfer(
         }),
         ..Default::default()
     };
-    let card_payload = card(State(state), Query(query)).await.0;
+    let card_payload = card(ScopeContext::default(), State(state), Query(query)).await.0;
     let project_root = card_payload
         .pointer("/project_identity/project_root")
         .and_then(Value::as_str)

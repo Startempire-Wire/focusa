@@ -1292,6 +1292,7 @@ mod tests {
             command_store: Arc::new(RwLock::new(HashMap::new())),
             token_store: Arc::new(RwLock::new(focusa_core::permissions::TokenStore::new())),
             writer_claims: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            focus_stack_by_scope: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
             started_at: Instant::now(),
             pi_rpc_session: Arc::new(Mutex::new(None)),
             supervisor_perf: Arc::new(crate::server::SupervisorPerfCounters::default()),

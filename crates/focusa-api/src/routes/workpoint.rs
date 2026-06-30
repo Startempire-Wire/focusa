@@ -2505,6 +2505,7 @@ async fn resume(
     drop(focusa);
 
     let resume_render_dispatch_warning = match dispatch_event(
+        _scope.clone(),
         &state,
         FocusaEvent::WorkpointResumeRendered {
             workpoint_id: Some(workpoint_id),
@@ -2980,6 +2981,7 @@ async fn drift_check(
 
     if req.emit.unwrap_or(false) && decision.drift_detected {
         dispatch_event(
+            _scope.clone(),
             &state,
             FocusaEvent::WorkpointDriftDetected {
                 workpoint_id: Some(workpoint_id),
