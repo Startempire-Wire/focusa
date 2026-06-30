@@ -149,7 +149,8 @@ jobs:
           gh release download "${{ steps.cfg.outputs.tag }}" \
             --repo "$GITHUB_REPOSITORY" \
             --pattern "${{ steps.cfg.outputs.asset_name }}" \
-            --dir /tmp/focusa-release
+            --dir /tmp/focusa-release \
+            --clobber
           chmod +x "/tmp/focusa-release/${{ steps.cfg.outputs.asset_name }}"
 
       - name: Show deploy plan
