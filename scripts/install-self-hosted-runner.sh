@@ -15,6 +15,24 @@ DRY_RUN=0
 
 log() { printf '[focusa-runner] %s\n' "$*"; }
 die() { printf '[focusa-runner][error] %s\n' "$*" >&2; exit 1; }
+
+# V2 deploy-path helper: ensure the focusa deploy state directory exists and
+# is writable by the runner, so install-daemon.sh / safe-disk-cleanup.sh can
+# write backups + audit logs without needing root sudoers.
+prepare_focusa_state_dir() {
+  local state_dir="${FOCUSA_STATE_DIR:-/usr/local/lib/focusa}"
+  local backup_dir="${FOCUSA_BACKUP_DIR:-${state_dir}/backups}"
+  local audit_dir
+  audit_dir="$(dirname "${FOCUSA_DEPLOY_AUDIT_LOG:-/var/log/focusa/deploy-audit.jsonl}")"
+  if [[ ! -d "$state_dir" || ! -w "$state_dir" ]]; then
+    log "creating focusa state dir at $state_dir"
+    mkdir -p "$backup_dir" "$audit_dir" || true
+    if [[ -d "$state_dir" ]]; then
+      chown -R "$RUNNER_USER:$RUNNER_GROUP" "$state_dir" || true
+    fi
+  fi
+}
+
 usage() {
   cat <<'USAGE'
 Usage: scripts/install-self-hosted-runner.sh [--dry-run]
@@ -47,6 +65,9 @@ else
   log "creating runner user: $RUNNER_USER"
   [[ "$DRY_RUN" -eq 1 ]] || useradd --system --create-home --home-dir "/home/$RUNNER_USER" --shell /bin/bash "$RUNNER_USER"
 fi
+
+# V2: ensure focusa state + audit parents exist and are runner-writable
+[[ "$DRY_RUN" -eq 1 ]] || prepare_focusa_state_dir
 
 if [[ -z "$RUNNER_VERSION" ]]; then
   RUNNER_VERSION="$(gh api repos/actions/runner/releases/latest --jq '.tag_name' | sed 's/^v//')"
@@ -86,9 +107,10 @@ sudo -u "$RUNNER_USER" bash -lc "cd '$RUNNER_ROOT' && ./config.sh --url 'https:/
 
 cat > "$SUDOERS_PATH" <<EOF
 Defaults:${RUNNER_USER} !requiretty
-${RUNNER_USER} ALL=(root) NOPASSWD: /bin/bash ${RUNNER_ROOT}/_work/focusa/focusa/scripts/install-daemon.sh *, /bin/bash ${RUNNER_ROOT}/_work/focusa/focusa/scripts/safe-disk-cleanup.sh *
+${RUNNER_USER} ALL=(root) NOPASSWD: /bin/bash ${RUNNER_ROOT}/_work/focusa/focusa/scripts/install-daemon.sh *, /bin/bash ${RUNNER_ROOT}/_work/focusa/focusa/scripts/safe-disk-cleanup.sh *, /usr/bin/systemctl start focusa-daemon.service, /usr/bin/systemctl stop focusa-daemon.service, /usr/bin/systemctl is-active focusa-daemon.service, /usr/bin/systemctl show focusa-daemon.service, /usr/bin/systemctl daemon-reload
 EOF
 chmod 440 "$SUDOERS_PATH"
+
 
 cd "$RUNNER_ROOT"
 ./svc.sh install "$RUNNER_USER"
