@@ -12,8 +12,8 @@ use crate::routes::bounded::{observe_resource_mode_transition, resource_mode_sta
 use crate::routes::sse::EventBroadcaster;
 use axum::middleware as axum_mw;
 use axum::{Router, extract::DefaultBodyLimit};
-use tower_http::services::ServeDir;
 use focusa_core::runtime::persistence_sqlite::SqlitePersistence;
+use tower_http::services::ServeDir;
 
 /// Vendored static files directory (e.g. jsQR for offline PWA /scan pages).
 const STATIC_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/static");
@@ -1014,7 +1014,11 @@ pub async fn run(
     });
 
     tracing::info!("Listening on {}", bind_addr);
-    axum::serve(listener, app).await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .await?;
 
     Ok(())
 }

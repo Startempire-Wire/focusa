@@ -2054,13 +2054,36 @@ pub struct PairCompleteRequest {
 
 async fn pair_complete(
     State(state): State<Arc<AppState>>,
+    axum::extract::ConnectInfo(remote_addr): axum::extract::ConnectInfo<std::net::SocketAddr>,
     headers: axum::http::HeaderMap,
     Json(body): Json<PairCompleteRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // V2 P1.3: legacy device-code flow returns a full token. In admin
     // mode (FOCUSA_AUTH_TOKEN set), require the admin token here so the
     // token-return path is not openly exposed on a non-loopback bind.
-    // In loopback dev mode (no admin token), the pre-auth path is fine.
+    // Even without an admin token, refuse non-loopback callers unless the
+    // operator explicitly opts in via FOCUSA_ENABLE_LEGACY_PAIR_COMPLETE_NON_LOOPBACK=1.
+    if !remote_addr.ip().is_loopback() {
+        let allow_non_loopback = std::env::var("FOCUSA_ENABLE_LEGACY_PAIR_COMPLETE_NON_LOOPBACK")
+            .ok()
+            .map(|v| {
+                matches!(
+                    v.trim(),
+                    "1" | "true" | "TRUE" | "yes" | "YES" | "on" | "ON"
+                )
+            })
+            .unwrap_or(false);
+        if !allow_non_loopback {
+            return Err(rejection(
+                StatusCode::FORBIDDEN,
+                json!({
+                    "status": "forbidden",
+                    "failure_class": "legacy_pair_complete_non_loopback_disabled",
+                    "message": "legacy pair-complete is loopback-only unless FOCUSA_ENABLE_LEGACY_PAIR_COMPLETE_NON_LOOPBACK=1",
+                }),
+            ));
+        }
+    }
     if let Ok(token) = std::env::var("FOCUSA_AUTH_TOKEN") {
         if !token.trim().is_empty() {
             let supplied = headers
