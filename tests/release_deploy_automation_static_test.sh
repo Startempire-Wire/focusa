@@ -13,7 +13,7 @@ echo "=== release deploy automation static test ==="
 
 grep -Fq 'name: Deploy Live Daemon' .github/workflows/deploy-live-daemon.yml || { echo "✗ workflow name missing"; exit 1; }
 grep -Fq 'types: [published]' .github/workflows/deploy-live-daemon.yml || { echo "✗ release trigger missing"; exit 1; }
-rg -q 'workflow_dispatch:' .github/workflows/deploy-live-daemon.yml || { echo "✗ workflow_dispatch trigger missing"; exit 1; }
+grep -Fq 'workflow_dispatch:' .github/workflows/deploy-live-daemon.yml || { echo "✗ workflow_dispatch trigger missing"; exit 1; }
 rg -q 'gh release download' .github/workflows/deploy-live-daemon.yml || { echo "✗ release artifact download missing"; exit 1; }
 rg -q 'install-daemon.sh' .github/workflows/deploy-live-daemon.yml || { echo "✗ installer invocation missing"; exit 1; }
 rg -q 'safe-disk-cleanup.sh' .github/workflows/deploy-live-daemon.yml || { echo "✗ safe disk cleanup preflight missing"; exit 1; }
