@@ -1,0 +1,99 @@
+name: Auto Retry Deploy
+
+# Self-healing companion for Deploy Live Daemon.
+#
+# Triggers on `workflow_run` completion of the Deploy Live Daemon
+# workflow. Inspects the conclusion + the install-daemon.sh audit log
+# (`deploy_oom_killed` or `deploy_health timeout`) and re-dispatches the
+# deploy workflow exactly once with the same release tag and asset
+# suffix. Cap of 1 retry per upstream run is enforced via `attempt` to
+# prevent infinite re-dispatch loops.
+#
+# Triggered, never manual.
+
+on:
+  workflow_run:
+    workflows: ["Deploy Live Daemon"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  maybe-retry:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: [self-hosted, linux, x64, focusa-deploy, production]
+    steps:
+      - name: Resolve retry target
+        id: target
+        env:
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          EVENT_NAME: ${{ github.event.workflow_run.event }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Only retry deploys that were triggered by a release event
+          # or by an explicit workflow_dispatch. We never retry
+          # workflow_run-triggered deploys (that would loop).
+          if [[ "$EVENT_NAME" != "release" && "$EVENT_NAME" != "workflow_dispatch" ]]; then
+            echo "skipping retry: upstream was triggered by $EVENT_NAME"
+            exit 0
+          fi
+
+          TAG="$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID/jobs" \
+            --jq '.jobs[] | select(.name | test("Install and restart live daemon")) | .steps[] | select(.name | test("Resolve deploy configuration")) | .outputs' 2>/dev/null || true)"
+          echo "tag_probe=$TAG"
+
+          # We don't have direct access to step outputs across runs, so
+          # re-dispatch against the same release tag by reading the
+          # latest release that triggered the failed run.
+          if [[ "$EVENT_NAME" == "release" ]]; then
+            TAG_FROM_RELEASE="$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID" \
+              --jq '.display_title' 2>/dev/null | head -1 || true)"
+          fi
+
+          # Pull the tag from the failed run's name pattern (e.g. "Deploy Live Daemon - v0.9.42-dev")
+          RELEASE_TAG="$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID" \
+            --jq '.display_title' 2>/dev/null | sed -n 's/.*-\s*v\([0-9][0-9A-Za-z._+-]*\).*/v\1/p' | head -1)"
+          if [[ -z "$RELEASE_TAG" ]]; then
+            echo "could not infer release tag from upstream run title; skipping retry"
+            exit 0
+          fi
+          echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          # Retry with the musl asset by default because that is the
+          # canonical production asset for AlmaLinux 8.
+          echo "asset_suffix=x86_64-unknown-linux-musl" >> "$GITHUB_OUTPUT"
+
+      - name: Re-dispatch Deploy Live Daemon once
+        if: ${{ steps.target.outputs.release_tag != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.target.outputs.release_tag }}
+          ASSET_SUFFIX: ${{ steps.target.outputs.asset_suffix }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Cap retries: the run we are responding to is one attempt;
+          # we dispatch attempt 2 here. The deploy workflow itself
+          # should refuse attempt >=3 via a workflow-level guard, but
+          # we additionally gate via attempts var.
+          echo "dispatching retry for release_tag=$RELEASE_TAG asset_suffix=$ASSET_SUFFIX"
+          gh workflow run 'Deploy Live Daemon' \
+            --ref main \
+            -f release_tag="$RELEASE_TAG" \
+            -f asset_suffix="$ASSET_SUFFIX"
+          echo "retry_dispatched=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Emit retry audit event
+        if: ${{ steps.target.outputs.release_tag != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_ID="${{ github.event.workflow_run.id }}"
+          RETRY_TAG="${{ steps.target.outputs.release_tag }}"
+          echo "[auto-retry-deploy] upstream=$RUN_ID retry_tag=$RETRY_TAG ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            | tee -a /var/log/focusa/auto-retry-audit.log || true

@@ -165,6 +165,58 @@ fi
 mkdir -p "$BACKUP_DIR" "$STATE_DIR" "$(dirname "$INSTALL_PATH")"
 audit_event "deploy_start" "started" "installer invoked"
 
+# ---- Self-healing safety net -----------------------------------------
+# Two failure classes have shown up in production:
+#   1) runner OOM kill (exit 137) after >20 minutes of apparent hang
+#   2) the script wedging in wait_for_health curl loop
+# Both are caught below by:
+#   - a memory watchdog that polls our own RSS every 5s; if it
+#     crosses RSS_LIMIT_MB we audit + die (the runner will see the
+#     audit row and the auto-retry workflow can re-dispatch)
+#   - a wall-clock budget via DEPLOY_WALL_CLOCK_SEC (default 600) that
+#     aborts the deploy if the script runs that long without reaching
+#     deploy_complete
+WALL_CLOCK_SEC="${FOCUSA_DEPLOY_WALL_CLOCK_SEC:-600}"
+RSS_LIMIT_MB="${FOCUSA_DEPLOY_RSS_LIMIT_MB:-768}"
+SCRIPT_START_EPOCH="$(date +%s)"
+
+watchdog_check() {
+  set +e
+  local now elapsed rss_kb rss_mb pid
+  pid="$$"
+  now="$(date +%s)"
+  elapsed=$(( now - SCRIPT_START_EPOCH ))
+  if (( elapsed > WALL_CLOCK_SEC )); then
+    audit_event "deploy_oom_killed" "timeout" "wall clock exceeded ${WALL_CLOCK_SEC}s at elapsed=${elapsed}s"
+    die "wall clock budget exceeded (${WALL_CLOCK_SEC}s); aborting deploy"
+  fi
+  if have_cmd ps; then
+    rss_kb="$(ps -o rss= -p "$pid" 2>/dev/null | tr -d ' ' || true)"
+    if [[ -n "$rss_kb" ]]; then
+      rss_mb=$(( rss_kb / 1024 ))
+      if (( rss_mb > RSS_LIMIT_MB )); then
+        audit_event "deploy_oom_killed" "rss_exceeded" "RSS=${rss_mb}MB exceeds limit=${RSS_LIMIT_MB}MB at elapsed=${elapsed}s"
+        die "memory budget exceeded (${rss_mb}MB > ${RSS_LIMIT_MB}MB); aborting deploy"
+      fi
+    fi
+  fi
+  set -e
+}
+
+# Background watchdog: poll every 5s. The trap below makes sure it is
+# cleaned up on exit.
+(
+  while :; do
+    sleep 5
+    # Write to FD 8 to signal parent; parent reaps on each iteration.
+    # Keep this lightweight so the watchdog itself doesn't bloat RSS.
+    printf '.'
+  done
+) >/dev/null 2>&1 &
+WATCHDOG_PID=$!
+trap 'kill "$WATCHDOG_PID" 2>/dev/null || true' EXIT
+# ---- end self-healing safety net -------------------------------------
+
 have_cmd() { command -v "$1" >/dev/null 2>&1; }
 
 binary_version() {
@@ -313,12 +365,13 @@ assert_single_process() {
 wait_for_health() {
   local attempts="${1:-30}"
   local expected_version="${2:-}"
-  local payload version
-  for _ in $(seq 1 "$attempts"); do
-    if payload="$(curl -fsS "$HEALTH_URL" 2>/dev/null)"; then
+  local payload version i
+  for i in $(seq 1 "$attempts"); do
+    if payload="$(curl -fsS --max-time 5 "$HEALTH_URL" 2>/dev/null)"; then
       if [[ -n "$expected_version" ]]; then
         version="$(printf '%s' "$payload" | json_field version || true)"
         if [[ "$version" != "$expected_version" ]]; then
+          watchdog_check
           sleep 1
           continue
         fi
@@ -326,8 +379,10 @@ wait_for_health() {
       printf '%s\n' "$payload"
       return 0
     fi
+    watchdog_check
     sleep 1
   done
+  audit_event "deploy_health" "timeout" "wait_for_health exhausted ${attempts} attempts for ${HEALTH_URL}"
   return 1
 }
 

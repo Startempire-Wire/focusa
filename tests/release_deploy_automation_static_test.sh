@@ -64,6 +64,15 @@ assert_grep 'ExecStart=${INSTALL_PATH}' scripts/install-daemon.sh 'unit ExecStar
 assert_grep 'x86_64-unknown-linux-musl' .github/workflows/deploy-live-daemon.yml 'musl default suffix missing (AlmaLinux 8 glibc)'
 assert_grep '/usr/bin/sed' scripts/install-self-hosted-runner.sh 'runner sudoers sed allowlist missing'
 
+# Self-healing safety net (wall clock + RSS) and auto-retry workflow
+assert_grep 'WALL_CLOCK_SEC' scripts/install-daemon.sh 'wall clock guard missing'
+assert_grep 'RSS_LIMIT_MB' scripts/install-daemon.sh 'RSS memory guard missing'
+assert_grep 'deploy_oom_killed' scripts/install-daemon.sh 'OOM audit event missing'
+assert_grep 'deploy_health' scripts/install-daemon.sh 'health-timeout audit event missing'
+assert_grep 'watchdog_check' scripts/install-daemon.sh 'watchdog wiring missing'
+assert_grep 'workflow_run' .github/workflows/auto-retry-deploy.yml 'auto-retry must be self-triggered via workflow_run'
+assert_grep 'Auto Retry Deploy' .github/workflows/auto-retry-deploy.yml 'auto-retry workflow name missing'
+
 # install-self-hosted-runner.sh assertions
 assert_grep 'actions.runner' scripts/install-self-hosted-runner.sh 'runner service setup missing'
 assert_grep 'focusa-deploy,production' scripts/install-self-hosted-runner.sh 'runner labels missing'
