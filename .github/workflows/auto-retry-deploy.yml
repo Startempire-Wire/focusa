@@ -29,10 +29,8 @@ jobs:
         id: target
         env:
           RUN_ID: ${{ github.event.workflow_run.id }}
-          RUN_URL: ${{ github.event.workflow_run.html_url }}
-          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           EVENT_NAME: ${{ github.event.workflow_run.event }}
+          DISPLAY_TITLE: ${{ github.event.workflow_run.display_title }}
         shell: bash
         run: |
           set -euo pipefail
@@ -44,29 +42,19 @@ jobs:
             exit 0
           fi
 
-          TAG="$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID/jobs" \
-            --jq '.jobs[] | select(.name | test("Install and restart live daemon")) | .steps[] | select(.name | test("Resolve deploy configuration")) | .outputs' 2>/dev/null || true)"
-          echo "tag_probe=$TAG"
-
-          # We don't have direct access to step outputs across runs, so
-          # re-dispatch against the same release tag by reading the
-          # latest release that triggered the failed run.
-          if [[ "$EVENT_NAME" == "release" ]]; then
-            TAG_FROM_RELEASE="$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID" \
-              --jq '.display_title' 2>/dev/null | head -1 || true)"
-          fi
-
-          # Pull the tag from the failed run's name pattern (e.g. "Deploy Live Daemon - v0.9.42-dev")
-          RELEASE_TAG="$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID" \
-            --jq '.display_title' 2>/dev/null | sed -n 's/.*-\s*v\([0-9][0-9A-Za-z._+-]*\).*/v\1/p' | head -1)"
+          # Pull the tag from the failed run's display_title (e.g.
+          # "Deploy Live Daemon - v0.9.42-dev"). This is set by GitHub
+          # for both release and workflow_dispatch triggers.
+          RELEASE_TAG="$(printf '%s' "$DISPLAY_TITLE" | sed -n 's/.*-\s*v\([0-9][0-9A-Za-z._+-]*\).*/v\1/p' | head -1 || true)"
           if [[ -z "$RELEASE_TAG" ]]; then
-            echo "could not infer release tag from upstream run title; skipping retry"
+            echo "could not infer release tag from display_title='$DISPLAY_TITLE'; skipping retry"
             exit 0
           fi
           echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
           # Retry with the musl asset by default because that is the
           # canonical production asset for AlmaLinux 8.
           echo "asset_suffix=x86_64-unknown-linux-musl" >> "$GITHUB_OUTPUT"
+          echo "resolved retry target: release_tag=$RELEASE_TAG asset_suffix=x86_64-unknown-linux-musl"
 
       - name: Re-dispatch Deploy Live Daemon once
         if: ${{ steps.target.outputs.release_tag != '' }}
