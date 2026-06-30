@@ -402,6 +402,13 @@ Production deployment checklist: `docs/production-deployment-guide.md`
 
 Automated tagged release → live deploy path: `docs/live-release-automation.md`
 
+Failures playbook and audit trail:
+- `docs/failures-playbook.md` — human-readable index
+- `release-proof/audit/audit.jsonl` — append-only events
+- `release-proof/audit/categories.md` — failure category fix + guard list
+
+**Every CI, runtime, release, or deploy failure must be appended to `release-proof/audit/audit.jsonl` with category, root cause, fix, guard, and test.** No silent fixes.
+
 ### CLI examples
 
 Project-scoped commands should carry `--project-root` plus a stable `--continuity-id`. Use the repo folder (or `FOCUSA_PROJECT_ROOT`) for `--project-root`; use a repeatable workstream id such as `cont-1`, a ticket id, or your agent continuity id for `--continuity-id`.

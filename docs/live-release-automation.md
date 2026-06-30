@@ -142,3 +142,18 @@ This gives a quick tag-based rollback without editing the VPS manually.
 - Do not tag manually if you want version surfaces committed cleanly; use `scripts/create-dev-release-tag.sh`.
 - Do not run ad-hoc `focusa-daemon &` alongside systemd.
 - Use GitHub Actions as the canonical deploy path so build/release/live state stay aligned.
+
+## Audit trail
+
+Every addition and every failure during release/CI/deploy must be captured in:
+
+- `release-proof/audit/audit.jsonl` — append-only ledger
+- `release-proof/audit/categories.md` — failure category playbook
+- `docs/failures-playbook.md` — human-readable index
+
+Rules:
+
+- no silent fixes
+- each failure pairs with a category fix and a regression guard
+- commit evidence citations are required on closed beads to pass the
+  `bd-evidence` push policy
