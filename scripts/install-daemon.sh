@@ -242,7 +242,9 @@ binary_version() {
   local from_name=""
   from_name="$(printf '%s' "$base" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+)?' | head -1 || true)"
   if [[ -n "$from_name" ]]; then
-    printf '%s\n' "$from_name"
+    # EXPECTED_VERSION is supplied without the leading `v` (e.g. `0.9.42-dev`)
+    # so callers can compare directly. Strip it here too.
+    printf '%s\n' "${from_name#v}"
     return 0
   fi
   # Fallback: actually run --version, but with a hard 3s timeout so
