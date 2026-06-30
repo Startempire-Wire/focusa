@@ -3,6 +3,7 @@
 //! GET  /v1/ascc/frame/:frame_id   — get ASCC data for a frame
 //! POST /v1/ascc/update-delta      — update focus state delta
 
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -158,6 +159,7 @@ fn persist_ascc_checkpoint(
 ///
 /// Returns checkpoints and focus state for the specified frame.
 async fn get_frame_ascc(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Path(frame_id): Path<Uuid>,
 ) -> AppResult {
@@ -193,6 +195,7 @@ struct UpdateDeltaBody {
 }
 
 async fn update_delta(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(body): Json<UpdateDeltaBody>,
 ) -> AppResult {

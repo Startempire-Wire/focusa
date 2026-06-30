@@ -1,4 +1,5 @@
 use crate::routes::metacognition::capture_learning_signal;
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Path, Query, State};
 use axum::{
@@ -357,6 +358,7 @@ pub(crate) fn append_prediction_record(mut payload: Value) -> std::io::Result<Va
 }
 
 async fn record(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(body): Json<PredictionBody>,
 ) -> Json<Value> {
@@ -417,6 +419,7 @@ async fn recent(Query(params): Query<HashMap<String, String>>) -> Json<Value> {
 }
 
 async fn evaluate(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Path(prediction_id): Path<String>,
     Json(body): Json<EvaluateBody>,
@@ -487,6 +490,7 @@ async fn evaluate(
 }
 
 async fn capture_outcome(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(body): Json<CaptureOutcomeBody>,
 ) -> Json<Value> {

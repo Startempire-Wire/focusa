@@ -2,6 +2,7 @@
 
 use crate::routes::bounded::{record_json_response_size, resource_mode_status};
 use crate::routes::permissions::{forbid, permission_context};
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode};
@@ -2058,6 +2059,7 @@ fn secondary_loop_closure_bundle_for_status(
 }
 
 async fn health(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -2111,6 +2113,7 @@ async fn health(
 }
 
 async fn status(
+    _scope: ScopeContext,
     Query(query): Query<WorkLoopStatusQuery>,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -2360,6 +2363,7 @@ async fn status(
 }
 
 async fn status_deep(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -2420,6 +2424,7 @@ async fn status_deep(
 }
 
 async fn closure_replay_evidence(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -2462,6 +2467,7 @@ async fn closure_replay_evidence(
 }
 
 async fn closure_replay_bundle(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -2493,6 +2499,7 @@ async fn closure_replay_bundle(
 }
 
 async fn enable(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<EnableWorkLoopRequest>,
@@ -2549,6 +2556,7 @@ async fn enable(
 }
 
 async fn pause(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<ReasonRequest>,
@@ -2584,6 +2592,7 @@ async fn pause(
 }
 
 async fn resume(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<ReasonRequest>,
@@ -2608,6 +2617,7 @@ async fn resume(
 }
 
 async fn select_next(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<SelectNextRequest>,
@@ -2668,6 +2678,7 @@ async fn select_next(
 }
 
 async fn set_decision_context(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<DecisionContextRequest>,
@@ -2738,6 +2749,7 @@ async fn set_decision_context(
 }
 
 async fn start_pi_driver(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<PiDriverStartRequest>,
@@ -2978,6 +2990,7 @@ async fn start_pi_driver(
 }
 
 async fn prompt_pi_driver(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<PiDriverPromptRequest>,
@@ -3011,6 +3024,7 @@ async fn prompt_pi_driver(
 }
 
 async fn abort_pi_driver(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -3034,6 +3048,7 @@ async fn abort_pi_driver(
 }
 
 async fn stop_pi_driver(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -3052,6 +3067,7 @@ async fn stop_pi_driver(
 }
 
 async fn attach_session(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<SessionAttachRequest>,
@@ -3109,6 +3125,7 @@ async fn attach_session(
 }
 
 async fn abort_session(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<ReasonRequest>,
@@ -3167,6 +3184,7 @@ async fn abort_session(
 }
 
 async fn ingest_transport_event(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<TransportEventRequest>,
@@ -3197,6 +3215,7 @@ async fn ingest_transport_event(
 }
 
 async fn set_pause_flags(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<PauseFlagsRequest>,
@@ -3267,6 +3286,7 @@ async fn set_pause_flags(
 }
 
 async fn delegate_authorship(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<DelegationRequest>,
@@ -3296,6 +3316,7 @@ async fn delegate_authorship(
 }
 
 async fn clear_delegated_authorship(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<ReasonRequest>,
@@ -3325,6 +3346,7 @@ async fn clear_delegated_authorship(
 }
 
 async fn transport_degraded(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<ReasonRequest>,
@@ -3350,6 +3372,7 @@ async fn transport_degraded(
 }
 
 async fn checkpoints(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let focusa = state.focusa.read().await;
@@ -3365,6 +3388,7 @@ async fn checkpoints(
 }
 
 async fn heartbeat(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -3385,6 +3409,7 @@ async fn heartbeat(
 }
 
 async fn checkpoint(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<CheckpointRequest>,
@@ -3409,6 +3434,7 @@ async fn checkpoint(
 }
 
 async fn stop(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<ReasonRequest>,

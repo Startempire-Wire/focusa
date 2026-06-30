@@ -4,6 +4,7 @@
 //! filesystem/project signals; it does not select work or mutate cognitive state.
 
 use crate::routes::predictions::read_predictions;
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::{
     Json, Router,
@@ -1874,6 +1875,7 @@ async fn identity(Query(query): Query<ProjectIdentityQuery>) -> Json<Value> {
 }
 
 async fn verify(
+    _scope: ScopeContext,
     State(_state): State<Arc<AppState>>,
     Json(body): Json<ProjectVerifyRequest>,
 ) -> Json<Value> {
@@ -2720,6 +2722,7 @@ fn scoped_workpoint_record<'a>(
 }
 
 async fn card(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Query(query): Query<ProjectIdentityQuery>,
 ) -> Json<Value> {
@@ -3048,6 +3051,7 @@ async fn card(
 }
 
 async fn session_transfer(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(body): Json<ProjectSessionTransferRequest>,
 ) -> Json<Value> {

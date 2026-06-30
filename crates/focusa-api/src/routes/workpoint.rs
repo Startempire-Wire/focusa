@@ -5,6 +5,7 @@ use crate::routes::bounded::{
     lowmem_caps_active, resource_mode_status,
 };
 use crate::routes::permissions::{forbid, permission_context};
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode};
@@ -1208,6 +1209,7 @@ fn workpoint_visibility_wait_attempts() -> usize {
 }
 
 async fn wait_for_workpoint_record(
+    _scope: ScopeContext,
     state: &Arc<AppState>,
     workpoint_id: Uuid,
 ) -> Option<WorkpointRecord> {
@@ -1370,6 +1372,7 @@ fn workpoint_no_active_to_link() -> (StatusCode, Json<Value>) {
 }
 
 async fn materialize_workpoint_events(
+    _scope: ScopeContext,
     state: &Arc<AppState>,
     events: Vec<FocusaEvent>,
     correlation_id: &'static str,
@@ -1412,6 +1415,7 @@ async fn materialize_workpoint_events(
 }
 
 async fn dispatch_event(
+    _scope: ScopeContext,
     state: &Arc<AppState>,
     event: FocusaEvent,
 ) -> Result<(), (StatusCode, Json<Value>)> {
@@ -1558,6 +1562,7 @@ fn validate_workpoint_checkpoint_request(
 }
 
 async fn checkpoint(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(mut req): Json<WorkpointCheckpointRequest>,
@@ -1760,6 +1765,7 @@ async fn checkpoint(
 }
 
 async fn idempotency_cache_status(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -1771,6 +1777,7 @@ async fn idempotency_cache_status(
 }
 
 async fn current(
+    _scope: ScopeContext,
     Query(query): Query<WorkpointCurrentQuery>,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -2404,6 +2411,7 @@ fn workpoint_resume_packet_v2(
 }
 
 async fn resume(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(mut req): Json<WorkpointResumeRequest>,
@@ -2676,6 +2684,7 @@ async fn resume(
 }
 
 async fn resolve_active_object(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(req): Json<ActiveObjectResolveRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -2709,6 +2718,7 @@ async fn resolve_active_object(
 }
 
 async fn link_evidence(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(req): Json<WorkpointEvidenceLinkRequest>,
@@ -2916,6 +2926,7 @@ async fn link_evidence(
 }
 
 async fn drift_check(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(req): Json<WorkpointDriftCheckRequest>,
