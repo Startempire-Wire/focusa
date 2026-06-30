@@ -5,7 +5,7 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { getSettingsListTheme } from "@mariozechner/pi-coding-agent";
 import { Container, Text, type SettingItem, SettingsList } from "@mariozechner/pi-tui";
-import { S, focusaFetch, getFocusState, getEffectiveFocusSnapshot, persistState, persistAuthoritativeState, createPiFrame, ensurePiFrame, getFocusaAvailable, getActiveFrameId, getTurnCount, getSessionCwd, getCurrentScopeStore } from "./state.js";
+import { S, focusaFetch, getFocusState, getEffectiveFocusSnapshot, persistState, persistAuthoritativeState, createPiFrame, ensurePiFrame, getFocusaAvailable, getActiveFrameId, getTurnCount, getSessionCwd, getCurrentScopeStore , getTotalCompactions, setCompilationErrors, resetFileEditCounts} from "./state.js";
 import { saveConfigOverrides } from "./config.js";
 
 function nonEmptyLines(items: any[] | undefined): string[] {
@@ -385,7 +385,7 @@ export function registerCommands(pi: ExtensionAPI) {
       const frame = getActiveFrameId() ?? "none";
       const wbm = S.wbmEnabled ? (S.wbmDeep ? "deep" : S.wbmNoCatalogue ? "on (no-catalogue)" : "on") : "off";
       const tier = S.currentTier ? ` | Tier: ${S.currentTier.toUpperCase()}` : "";
-      const compactions = S.totalCompactions ? ` | Compactions: ${S.totalCompactions}` : "";
+      const compactions = getTotalCompactions() ? ` | Compactions: ${getTotalCompactions()}` : "";
       const focusState = await getFocusState();
       const titleLine = S.activeFrameTitle ? `\nTitle: ${S.activeFrameTitle}` : "";
       const goalLine = S.activeFrameGoal ? `\nGoal: ${S.activeFrameGoal}` : "";
@@ -560,8 +560,8 @@ export function registerCommands(pi: ExtensionAPI) {
       S.localConstraints = [];
       S.localFailures = [];
       S.lastFocusSnapshot = { decisions: [], constraints: [], failures: [], intent: "", currentFocus: "" };
-      S.compilationErrors = [];
-      S.fileEditCounts = {};
+      setCompilationErrors([]);
+      resetFileEditCounts();
       S.cataloguedDecisions = [];
       S.cataloguedFacts = [];
       S.compactResumePending = false;

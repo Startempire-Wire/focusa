@@ -9,7 +9,7 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
 import type { PiGoverningPriorKind } from "./state.js";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, persistState, projectRootConfirmationRequired, projectRootConfirmationSummary, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, maybeCaptureReportSummaryFromAssistantOutput, recordToolOutputPressure, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, markVisibleRecapEmittedIfPresent, observeProjectThreadHintsFromText, formatProjectSwitchLedgerLines, buildCurrentAskScopeVerdict, formatCurrentAskScopeVerdictLines, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary, getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, getLatestReportSummary } from "./state.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, persistState, projectRootConfirmationRequired, projectRootConfirmationSummary, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, maybeCaptureReportSummaryFromAssistantOutput, recordToolOutputPressure, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, markVisibleRecapEmittedIfPresent, observeProjectThreadHintsFromText, formatProjectSwitchLedgerLines, buildCurrentAskScopeVerdict, formatCurrentAskScopeVerdictLines, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary, getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, getLatestReportSummary , setLastStreamLen, resetToolUsageBatch, getToolUsageBatch, pushToToolUsageBatch, setLongSessionSignaled, getLongSessionSignaled, getCurrentTaskTurnStart, setCurrentTaskTurnStart, incrementTotalCompactions, getLastStreamLen, pushCompilationError, getCompilationErrors, incrementFileEditCount, getFileEditCounts } from "./state.js";
 import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
@@ -974,7 +974,7 @@ export function registerTurns(pi: ExtensionAPI) {
     const newTaskText = storedAskText.slice(0, 500);
     S.currentTaskStartTime = Date.now();
     S.currentTaskLabel = newTaskText;
-    S.currentTaskTurnStart = S.turnCount + 1;
+    setCurrentTaskTurnStart(S.turnCount + 1);
     S.currentTaskInputTokenEstimate = estimateTokens(newTaskText);
     S.currentTaskOutputTokenEstimate = 0;
     S.currentTaskProviderInputTokens = 0;
@@ -1098,8 +1098,8 @@ export function registerTurns(pi: ExtensionAPI) {
   // ── turn_start (§34.2B) ───────────────────────────────────────────────────
   pi.on("turn_start", async (_event, _ctx) => {
     S.turnCount++;
-    S.lastStreamLen = 0;
-    S.toolUsageBatch = [];
+    setLastStreamLen(0);
+    resetToolUsageBatch();
     // Reset dedup flag so next compaction can re-trigger auto-resume
     S.compactResumePending = false;
     if (S.focusaAvailable) {
@@ -1276,17 +1276,17 @@ export function registerTurns(pi: ExtensionAPI) {
     }
 
     // §33.4: Flush batched tool usage
-    if (S.focusaAvailable && S.toolUsageBatch.length) {
-      S.currentTaskToolCalls += S.toolUsageBatch.length;
-      focusaPost("/telemetry/tool-usage", { turn_id: `pi-turn-${S.turnCount}`, tools: S.toolUsageBatch });
+    if (S.focusaAvailable && getToolUsageBatch().length) {
+      S.currentTaskToolCalls += getToolUsageBatch().length;
+      focusaPost("/telemetry/tool-usage", { turn_id: `pi-turn-${S.turnCount}`, tools: getToolUsageBatch() });
       queueTraceTelemetry({
         event_type: "tools_invoked",
         turn_id: `pi-turn-${S.turnCount}`,
         frame_id: S.activeFrameId,
         surface: "pi",
-        tools: S.toolUsageBatch,
+        tools: getToolUsageBatch(),
       });
-      S.toolUsageBatch = [];
+      resetToolUsageBatch();
     }
 
     // §37.3 + §10.4: Widget with all badges
@@ -1334,10 +1334,10 @@ export function registerTurns(pi: ExtensionAPI) {
   pi.on("message_update", async (event, _ctx) => {
     if (!S.focusaAvailable) return;
     const fullText = extractText((event as any).message?.content);
-    if (S.turnCount % 10 !== 0 && fullText.length - S.lastStreamLen < 500) return;
-    const delta = fullText.slice(S.lastStreamLen);
+    if (S.turnCount % 10 !== 0 && fullText.length - getLastStreamLen() < 500) return;
+    const delta = fullText.slice(getLastStreamLen());
     if (!delta) return;
-    S.lastStreamLen = fullText.length;
+    setLastStreamLen(fullText.length);
     focusaPost("/turn/append", { turn_id: `pi-turn-${S.turnCount}`, delta: delta.slice(-500) });
   });
 
@@ -1375,8 +1375,8 @@ export function registerTurns(pi: ExtensionAPI) {
 
     // Long session detection
     const elapsed = (Date.now() - S.sessionStartTime) / 60_000;
-    if (elapsed > 45 && !S.longSessionSignaled) {
-      S.longSessionSignaled = true;
+    if (elapsed > 45 && !getLongSessionSignaled()) {
+      setLongSessionSignaled(true);
       if (S.focusaAvailable) {
         focusaPost("/focus-gate/ingest-signal", {
           signal_type: "long_session", surface: "pi",
@@ -1386,7 +1386,7 @@ export function registerTurns(pi: ExtensionAPI) {
     }
 
     // Tool error rate detection
-    const recentErrors = S.compilationErrors.filter(t => Date.now() - t < 300_000);
+    const recentErrors = getCompilationErrors().filter(t => Date.now() - t < 300_000);
     if (recentErrors.length >= 3) {
       ctx.ui.notify(`⚠️ ${recentErrors.length} compilation errors in 5 min — consider a different approach`, "warning");
       if (S.focusaAvailable) {
@@ -1415,7 +1415,7 @@ export function registerTurns(pi: ExtensionAPI) {
     }
 
     if (isError && /compil|tsc|typecheck|build|lint/i.test(toolName + " " + content.slice(0, 200))) {
-      S.compilationErrors.push(Date.now());
+      pushCompilationError(Date.now());
     }
 
     const targetRefs = [ev.params?.path, ev.input?.path, ev.params?.url, ev.input?.url]
@@ -1502,11 +1502,11 @@ export function registerTurns(pi: ExtensionAPI) {
     if (toolName === "edit" || toolName === "write") {
       const path = ev.params?.path || ev.input?.path || "";
       if (path) {
-        S.fileEditCounts[path] = (S.fileEditCounts[path] || 0) + 1;
-        if (S.fileEditCounts[path] >= 5 && S.focusaAvailable) {
+        incrementFileEditCount(path);
+        if (getFileEditCounts()[path] >= 5 && S.focusaAvailable) {
           focusaPost("/focus-gate/ingest-signal", {
             signal_type: "file_churn", surface: "pi",
-            payload: { path, count: S.fileEditCounts[path] },
+            payload: { path, count: getFileEditCounts()[path] },
           });
         }
       }
@@ -1515,6 +1515,6 @@ export function registerTurns(pi: ExtensionAPI) {
 
   // ── tool_call (§33.4 batched usage) ───────────────────────────────────────
   pi.on("tool_call", async (event, _ctx) => {
-    S.toolUsageBatch.push((event as any).toolName || (event as any).name || "");
+    pushToToolUsageBatch((event as any).toolName || (event as any).name || "");
   });
 }

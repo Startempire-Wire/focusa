@@ -10,7 +10,7 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity, normalizeProjectRoot, resolvePiProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, persistState, estimateTokens, getTurnCount, getActiveFrameId, getContinuityId, getSessionFrameKey, getSessionCwd, getCurrentScopeStore, getLastProjectRootResolution, getLastProjectIdentity, setLastProjectIdentity, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary , getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, getLatestReportSummary , setLastProjectVerify } from "./state.js";
+import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity, normalizeProjectRoot, resolvePiProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, persistState, estimateTokens, getTurnCount, getActiveFrameId, getContinuityId, getSessionFrameKey, getSessionCwd, getCurrentScopeStore, getLastProjectRootResolution, getLastProjectIdentity, setLastProjectIdentity, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary , getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, getLatestReportSummary , setLastProjectVerify , getToolUsageBatch, getCurrentTaskTurnStart} from "./state.js";
 import { FOCUSA_TOOL_CONTRACTS, focusaToolContractSummary } from "./tool-contracts.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
@@ -868,7 +868,7 @@ function currentTaskTimingAndTokens() {
   const now = Date.now();
   const elapsedMs = Math.max(0, now - (S.currentTaskStartTime || S.sessionStartTime || now));
   const providerTotal = S.currentTaskProviderInputTokens + S.currentTaskProviderOutputTokens;
-  const estimatedTotal = S.currentTaskInputTokenEstimate + S.currentTaskOutputTokenEstimate + estimateTokens(JSON.stringify(S.toolUsageBatch || []));
+  const estimatedTotal = S.currentTaskInputTokenEstimate + S.currentTaskOutputTokenEstimate + estimateTokens(JSON.stringify(getToolUsageBatch() || []));
   const totalTokens = providerTotal > 0 ? providerTotal : estimatedTotal;
   return {
     task_timing: {
@@ -879,9 +879,9 @@ function currentTaskTimingAndTokens() {
       elapsed_ms: elapsedMs,
       elapsed_seconds: Math.floor(elapsedMs / 1000),
       elapsed_hms: formatElapsedHms(elapsedMs),
-      turn_start: S.currentTaskTurnStart,
+      turn_start: getCurrentTaskTurnStart(),
       turn_end: S.turnCount,
-      turn_count: Math.max(0, S.turnCount - (S.currentTaskTurnStart || S.turnCount) + 1),
+      turn_count: Math.max(0, S.turnCount - (getCurrentTaskTurnStart() || S.turnCount) + 1),
       task_label: S.currentTaskLabel || S.currentAsk?.text || "",
     },
     token_usage: {

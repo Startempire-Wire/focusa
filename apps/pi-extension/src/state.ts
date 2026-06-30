@@ -2839,13 +2839,13 @@ export class TypedScopeStore {
   currentTaskTurnStart: number = 0;
 
   /** Turn state: tool usage batch (PI-07) */
-  toolUsageBatch: Array<{ name: string; result: string; tookMs: number; at: number }> = [];
+  toolUsageBatch: Array<string> = [];
 
   /** Turn state: last stream len (PI-07) */
   lastStreamLen: number = 0;
 
   /** Turn state: compilation errors (PI-07) */
-  compilationErrors: Array<{ file: string; line: number; message: string }> = [];
+  compilationErrors: Array<number> = [];
 
   /** Turn state: file edit counts (PI-07) */
   fileEditCounts: Record<string, number> = {};
@@ -3197,6 +3197,100 @@ export function setLastStreamLen(v: number): void {
   const store = getCurrentScopeStore();
   if (store) store.lastStreamLen = v;
 }
+/** PI-07: Get tool usage batch from scope store or S fallback. */
+export function getToolUsageBatch(): Array<string> {
+  const store = getCurrentScopeStore();
+  return store ? store.toolUsageBatch : S.toolUsageBatch;
+}
+
+/** PI-07: Push a tool name to tool usage batch on both scope store and S. */
+export function pushToToolUsageBatch(name: string): void {
+  S.toolUsageBatch.push(name);
+  const store = getCurrentScopeStore();
+  if (store) store.toolUsageBatch.push(name);
+}
+
+/** PI-07: Reset tool usage batch on both scope store and S. */
+export function resetToolUsageBatch(): void {
+  S.toolUsageBatch = [];
+  const store = getCurrentScopeStore();
+  if (store) store.toolUsageBatch = [];
+}
+
+/** PI-07: Get total compactions from scope store or S. */
+export function getTotalCompactions(): number {
+  const store = getCurrentScopeStore();
+  return store ? store.totalCompactions : S.totalCompactions;
+}
+
+/** PI-07: Get long session signaled flag from scope store or S. */
+export function getLongSessionSignaled(): boolean {
+  const store = getCurrentScopeStore();
+  return store ? store.longSessionSignaled : S.longSessionSignaled;
+}
+
+/** PI-07: Set long session signaled flag on both scope store and S. */
+export function setLongSessionSignaled(v: boolean): void {
+  S.longSessionSignaled = v;
+  const store = getCurrentScopeStore();
+  if (store) store.longSessionSignaled = v;
+}
+
+/** PI-07: Get compilation errors array from scope store or S. */
+export function getCompilationErrors(): Array<number> {
+  const store = getCurrentScopeStore();
+  return store ? store.compilationErrors : S.compilationErrors;
+}
+
+/** PI-07: Push a compilation error on both scope store and S. */
+export function pushCompilationError(err: number): void {
+  S.compilationErrors.push(err);
+  const store = getCurrentScopeStore();
+  if (store) store.compilationErrors.push(err);
+}
+
+/** PI-07: Get file edit counts record from scope store or S. */
+export function getFileEditCounts(): Record<string, number> {
+  const store = getCurrentScopeStore();
+  return store ? store.fileEditCounts : S.fileEditCounts;
+}
+
+/** PI-07: Increment file edit count for a path on both scope store and S. */
+export function incrementFileEditCount(fpath: string): void {
+  const orig = S.fileEditCounts[fpath] ?? 0;
+  S.fileEditCounts[fpath] = orig + 1;
+  const store = getCurrentScopeStore();
+  if (store) store.fileEditCounts[fpath] = orig + 1;
+}
+/** PI-07: Set total compactions on both scope store and S. */
+export function setTotalCompactions(v: number): void {
+  S.totalCompactions = v;
+  const store = getCurrentScopeStore();
+  if (store) store.totalCompactions = v;
+}
+
+/** PI-07: Set compilation errors array on both scope store and S. */
+export function setCompilationErrors(arr: Array<number>): void {
+  S.compilationErrors = arr;
+  const store = getCurrentScopeStore();
+  if (store) store.compilationErrors = arr;
+}
+
+/** PI-07: Reset file edit counts on both scope store and S. */
+export function resetFileEditCounts(): void {
+  S.fileEditCounts = {};
+  const store = getCurrentScopeStore();
+  if (store) store.fileEditCounts = {};
+}
+
+/** PI-07: Set file edit counts record on both scope store and S. */
+export function setFileEditCounts(rec: Record<string, number>): void {
+  S.fileEditCounts = rec;
+  const store = getCurrentScopeStore();
+  if (store) store.fileEditCounts = rec;
+}
+
+
 
 /** PI-08: Get in-tool-context flag from scope store (no S fallback — new field). */
 export function getInToolContext(): boolean {

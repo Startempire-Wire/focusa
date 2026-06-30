@@ -3,7 +3,7 @@
 //        §33.10 (customInstructions), §35.6 (files), §38.1 (trim)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, persistAuthoritativeState, sanitizeFocusFailures, ensureContinuityId, getScopedWorkpointPacket, isWorkpointPacketScopedToCurrentSession, isProjectRootAuthoritySafe, projectRootAuthorityFailure, normalizeWorkpointResumePacketEnvelope, normalizeProjectRoot, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, isExplicitContinuationAsk, isNonTaskStatusLikeText, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, formatProjectSwitchLedgerLines, buildCurrentAskScopeVerdict, formatCurrentAskScopeVerdictLines, getTurnCount, getActiveFrameId, getContinuityId, getSessionFrameKey, getSessionCwd, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary , getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, getLatestReportSummary, setLatestReportSummary } from "./state.js";
+import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, persistAuthoritativeState, sanitizeFocusFailures, ensureContinuityId, getScopedWorkpointPacket, isWorkpointPacketScopedToCurrentSession, isProjectRootAuthoritySafe, projectRootAuthorityFailure, normalizeWorkpointResumePacketEnvelope, normalizeProjectRoot, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, isExplicitContinuationAsk, isNonTaskStatusLikeText, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, formatProjectSwitchLedgerLines, buildCurrentAskScopeVerdict, formatCurrentAskScopeVerdictLines, getTurnCount, getActiveFrameId, getContinuityId, getSessionFrameKey, getSessionCwd, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary , getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, getLatestReportSummary, setLatestReportSummary , getTotalCompactions, incrementTotalCompactions } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 function basename(value: string): string {
@@ -357,7 +357,7 @@ export function isFocusaContextContinuityHealthy(): boolean {
 
 export type ContextPressureWarningKind = "auto_suggest" | "hard_unconfirmed" | "handoff_unconfirmed";
 
-export function contextPressureWarningCopy(kind: ContextPressureWarningKind, pct: number, totalCompactions = S.totalCompactions): string {
+export function contextPressureWarningCopy(kind: ContextPressureWarningKind, pct: number, totalCompactions = getTotalCompactions()): string {
   const pctLabel = Number.isFinite(pct) ? pct.toFixed(0) : "unknown";
   if (kind === "auto_suggest") return `💡 Context at ${pctLabel}% — Focusa anchors are unconfirmed; checkpoint/resume Workpoint, /fork optional for UI isolation`;
   if (kind === "hard_unconfirmed") return `⚠️ Context ${pctLabel}% — Focusa will try checkpointed compaction; scoped Workpoint anchor not yet confirmed`;
@@ -564,7 +564,7 @@ export function registerCompaction(pi: ExtensionAPI) {
     // sendMessage is still async when hasQueuedMessages() fires -> miss.
     // Also dedup: only resume once per compaction cycle.
     const compactionEntry = (event as any).compactionEntry || {};
-    const compactOrdinal = S.totalCompactions || compactionEntry.details?.totalCompactions || "unknown";
+    const compactOrdinal = getTotalCompactions() || compactionEntry.details?.totalCompactions || "unknown";
     const compactResumeKey = String(compactionEntry.id || compactionEntry.uuid || compactionEntry.timestamp || `${getSessionFrameKey() || "session"}:compact:${compactOrdinal}`);
     const recentlySubmitted = S.lastCompactResumeKey === compactResumeKey || (Date.now() - S.lastCompactResumeAt < 30_000 && compactOrdinal !== "unknown");
     if (!S.compactResumePending && !recentlySubmitted) {
@@ -603,7 +603,7 @@ export function registerCompaction(pi: ExtensionAPI) {
           const directive = v2Prompt
             ? `Call focusa_workpoint_resume first if uncertain; treat WorkpointResumePacketV2 as canonical only when canonical=true and project_root+continuity_id match. Use the injected TrajectoryResumePacket as TL north-star context, then use focusa_trajectory_view for refresh and focusa_traverse for bounded supporting slices. Include prediction/metacog context in trajectory review and final task report. Never use transcript tail as authority.`
             : `No verified WorkpointResumePacketV2 is available for this exact project_root+continuity_id; call focusa_workpoint_resume, focusa_trajectory_view, focusa_metacog_doctor, focusa_predict_recent/stats, or focusa_tool_doctor before trusting any carryover.`;
-          const note = S.totalCompactions > 0 ? ` [compaction #${S.totalCompactions}]` : "";
+          const note = getTotalCompactions() > 0 ? ` [compaction #${getTotalCompactions()}]` : "";
           const steerMessage = `# Compaction Complete${note}
 ## Last Active Focus
 ${S.lastCompactDecision || "pre-compaction work"}
@@ -677,7 +677,7 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
   const onDone = () => {
     S.lastCompactTime = Date.now();
     S.compactsThisHour++;
-    S.totalCompactions++;
+    incrementTotalCompactions();
     S.turnsSinceCompact = 0;
     S.currentTier = "";
     S.forkSuggested = false; // Reset after compaction frees space
@@ -697,8 +697,8 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
     if (!focusaContinuityReady) {
       ctx.ui.notify(contextPressureWarningCopy("hard_unconfirmed", pct), "warning");
       // §18: Suggest handoff after N compactions only when Workpoint continuity is not healthy.
-      if (S.totalCompactions >= cfg.autoSuggestHandoffAfterNCompactions) {
-        ctx.ui.notify(contextPressureWarningCopy("handoff_unconfirmed", pct, S.totalCompactions), "warning");
+      if (getTotalCompactions() >= cfg.autoSuggestHandoffAfterNCompactions) {
+        ctx.ui.notify(contextPressureWarningCopy("handoff_unconfirmed", pct, getTotalCompactions()), "warning");
       }
     }
     if (S.focusaAvailable) {

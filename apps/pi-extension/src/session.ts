@@ -5,7 +5,7 @@
 //        §38.3 (health toggle)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState, adoptPiProjectRoot, normalizeProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, buildFocusaSessionIdentity, syncSFieldsToScopeStore, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary, getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, setLastProjectVerify, setLatestReportSummary, getLatestReportSummary, getLastProjectRootResolution, setLastProjectRootResolution, setLastProjectIdentity } from "./state.js";
+import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState, adoptPiProjectRoot, normalizeProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, buildFocusaSessionIdentity, syncSFieldsToScopeStore, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary, getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, setLastProjectVerify, setLatestReportSummary, getLatestReportSummary, getLastProjectRootResolution, setLastProjectRootResolution, setLastProjectIdentity, setTotalCompactions } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
@@ -584,7 +584,7 @@ export function registerSession(pi: ExtensionAPI) {
         S.wbmNoCatalogue = e.data.wbmNoCatalogue || false;
         S.cataloguedDecisions = e.data.cataloguedDecisions || [];
         S.cataloguedFacts = e.data.cataloguedFacts || [];
-        S.totalCompactions = e.data.totalCompactions || 0;
+        setTotalCompactions(e.data.totalCompactions || 0);
         S.lastCompactResumeKey = e.data.lastCompactResumeKey || "";
         S.lastCompactResumeAt = e.data.lastCompactResumeAt || 0;
         S.activeFrameTitle = e.data.frameTitle || "";
@@ -820,7 +820,7 @@ export function registerSession(pi: ExtensionAPI) {
         S.turnCount = d.turnCount || 0;
         S.wbmEnabled = d.wbmEnabled || false;
         S.wbmNoCatalogue = d.wbmNoCatalogue || false;
-        S.totalCompactions = d.totalCompactions || 0;
+        setTotalCompactions(d.totalCompactions || 0);
         S.lastCompactResumeKey = d.lastCompactResumeKey || "";
         S.lastCompactResumeAt = d.lastCompactResumeAt || 0;
         S.activeFrameTitle = d.frameTitle || "";
