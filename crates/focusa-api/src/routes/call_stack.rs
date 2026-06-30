@@ -108,7 +108,7 @@ async fn design(
         ));
     }
 
-    let identity = project_identity_payload_for_scope(Some(project_root), Some(project_root));
+    let identity = project_identity_payload_for_scope(Some(project_root), Some(project_root), None);
     let identity_status = identity
         .get("project_identity")
         .and_then(|pi: &Value| pi.get("status"))

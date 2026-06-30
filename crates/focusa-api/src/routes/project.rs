@@ -1785,10 +1785,16 @@ fn project_identity_cache_key(
     cwd: Option<&str>,
     project_root: Option<&str>,
     remote_hint: &RemoteProjectHint,
+    scope: Option<&crate::scope::ScopeContext>,
 ) -> String {
+    let scope_root = scope.and_then(|s| s.project_root.as_deref()).unwrap_or_default();
+    let scope_cont = scope.and_then(|s| s.continuity_id.as_deref()).unwrap_or_default();
     format!(
-        "cwd={}\nproject_root={}\nremote_host={}\nremote_repo_remote={}\nremote_workspace_kind={}\nremote_deploy_root={}\npersisted_project_root={}\npersisted_project_fingerprint={}\npersisted_project_id={}\npersisted_canonical_name={}",
+        "cwd={}\nproject_root={}\nscope_root={}\nscope_cont={}\nremote_host={}\nremote_repo_remote={}\nremote_workspace_kind={}\nremote_deploy_root={}\npersisted_project_root={}\npersisted_project_fingerprint={}\npersisted_project_id={}\npersisted_canonical_name={}",
         cwd.unwrap_or_default(),
+        project_root.unwrap_or_default(),
+        scope_root,
+        scope_cont,
         project_root.unwrap_or_default(),
         remote_hint.remote_host.as_deref().unwrap_or_default(),
         remote_hint
@@ -1826,9 +1832,10 @@ fn project_identity_payload_for_scope_with_remote(
     cwd: Option<&str>,
     project_root: Option<&str>,
     remote_hint: RemoteProjectHint,
+    scope: Option<&crate::scope::ScopeContext>,
 ) -> Value {
-    let key = project_identity_cache_key(cwd, project_root, &remote_hint);
-    let cache = PROJECT_IDENTITY_PAYLOAD_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let key = project_identity_cache_key(cwd, project_root, &remote_hint, scope);
+    let cache = PROJECT_IDENTITY_PAYLOAD_CACHE.get_or_init(|| Mutex::new(HashMap::new(, None)));
     if let Ok(guard) = cache.lock()
         && let Some((cached_at, payload)) = guard.get(&key)
         && cached_at.elapsed() <= PROJECT_IDENTITY_PAYLOAD_CACHE_TTL
@@ -1851,8 +1858,9 @@ fn project_identity_payload_for_scope_with_remote(
 pub(crate) fn project_identity_payload_for_scope(
     cwd: Option<&str>,
     project_root: Option<&str>,
+    scope: Option<&crate::scope::ScopeContext>,
 ) -> Value {
-    project_identity_payload_for_scope_with_remote(cwd, project_root, RemoteProjectHint::default())
+    project_identity_payload_for_scope_with_remote(cwd, project_root, RemoteProjectHint::default(), scope)
 }
 
 async fn identity(Query(query): Query<ProjectIdentityQuery>) -> Json<Value> {
@@ -1861,7 +1869,8 @@ async fn identity(Query(query): Query<ProjectIdentityQuery>) -> Json<Value> {
         query.cwd.as_deref(),
         query.project_root.as_deref(),
         remote_hint,
-    ))
+        None,
+    , None))
 }
 
 async fn verify(
@@ -2719,6 +2728,7 @@ async fn card(
         query.cwd.as_deref(),
         query.project_root.as_deref(),
         remote_hint,
+        None,
     );
     let project = identity_payload
         .get("project_identity")
@@ -3318,6 +3328,7 @@ mod tests {
                 remote_deploy_root: Some("/home/planmarr/public_html".to_string()),
                 ..RemoteProjectHint::default()
             },
+            None,
         );
 
         assert_eq!(
@@ -3356,7 +3367,7 @@ mod tests {
             ),
         )
         .unwrap();
-        let payload = project_identity_payload_for_scope(root.to_str(), None);
+        let payload = project_identity_payload_for_scope(root.to_str(), None, None);
         assert_eq!(
             payload
                 .pointer("/project_identity/project_urls/root_url")
@@ -3406,7 +3417,7 @@ mod tests {
             "define('WP_HOME', 'https://asapdigest.com');\ndefine('WP_SITEURL', 'https://asapdigest.com');\n",
         )
         .unwrap();
-        let payload = project_identity_payload_for_scope(root.to_str(), None);
+        let payload = project_identity_payload_for_scope(root.to_str(), None, None);
         assert_eq!(
             payload
                 .pointer("/project_identity/project_urls/live_url")
@@ -3482,7 +3493,7 @@ mod tests {
         )
         .unwrap();
 
-        let payload = project_identity_payload_for_scope(root.to_str(), None);
+        let payload = project_identity_payload_for_scope(root.to_str(), None, None);
         assert_eq!(
             payload
                 .pointer("/project_identity/project_urls/live_url")
@@ -3570,6 +3581,7 @@ mod tests {
                 persisted_canonical_name: Some("Other".to_string()),
                 ..RemoteProjectHint::default()
             },
+            None,
         );
         assert_eq!(
             payload
@@ -3623,7 +3635,7 @@ mod tests {
             ),
         )
         .unwrap();
-        let payload = project_identity_payload_for_scope(root.to_str(), None);
+        let payload = project_identity_payload_for_scope(root.to_str(), None, None);
         assert_eq!(
             payload
                 .pointer("/project_identity/aliases/0")

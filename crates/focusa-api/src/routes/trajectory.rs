@@ -1072,9 +1072,9 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
     let using_prior_project_trajectory = persisted_prior_project_trajectory.is_some();
     let persisted_trajectory = persisted_exact_trajectory.or(persisted_prior_project_trajectory);
     let project_identity_api = if project_root != "unbound" {
-        project_identity_payload_for_scope(Some(project_root.as_str()), Some(project_root.as_str()))
+        project_identity_payload_for_scope(Some(project_root.as_str()), Some(project_root.as_str()), None)
     } else {
-        project_identity_payload_for_scope(None, None)
+        project_identity_payload_for_scope(None, None, None)
     };
     let project_identity_record = project_identity_api
         .get("project_identity")
@@ -2197,7 +2197,7 @@ async fn define_goal(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // QN Addendum (2026-06-08): Reject agent runtime paths as project scope
     let project_root = body.project_root.as_deref().unwrap_or("");
-    let identity = project_identity_payload_for_scope(Some(project_root), Some(project_root));
+    let identity = project_identity_payload_for_scope(Some(project_root), Some(project_root), None);
     let identity_status = identity
         .get("project_identity")
         .and_then(|pi| pi.get("status"))
@@ -2389,7 +2389,7 @@ async fn assess(
     // QN Addendum (2026-06-08): Reject agent runtime paths as project scope
     let project_root = body.project_root.as_deref().unwrap_or("");
     if !project_root.is_empty() {
-        let identity = project_identity_payload_for_scope(Some(project_root), Some(project_root));
+        let identity = project_identity_payload_for_scope(Some(project_root), Some(project_root), None);
         let identity_status = identity
             .get("project_identity")
             .and_then(|pi| pi.get("status"))
