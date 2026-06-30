@@ -13,6 +13,7 @@ TMP_GLOB_2="/tmp/focusa-deploy-*"
 APPLY=0
 VERBOSE=0
 RETENTION_DAYS="${FOCUSA_CLEANUP_RETENTION_DAYS:-14}"
+BACKUP_KEEP="${FOCUSA_CLEANUP_BACKUP_KEEP:-5}"
 
 log() { printf '[focusa-cleanup] %s\n' "$*"; }
 warn() { printf '[focusa-cleanup][warn] %s\n' "$*" >&2; }
@@ -30,6 +31,7 @@ Options:
   --min-free-gb N         Required free space after cleanup (default 15).
   --max-usage-pct N       Required max disk usage after cleanup (default 92).
   --retention-days N      Age cutoff for pruning backup/temp files (default 14).
+  --backup-keep N         Keep only the N most recent backups (default 5).
   --verbose               Show every removal candidate.
   --help                  Show help.
 USAGE
@@ -44,6 +46,7 @@ while [[ $# -gt 0 ]]; do
     --min-free-gb) MIN_FREE_GB="${2:?}"; shift 2 ;;
     --max-usage-pct) MAX_USAGE_PCT="${2:?}"; shift 2 ;;
     --retention-days) RETENTION_DAYS="${2:?}"; shift 2 ;;
+    --backup-keep) BACKUP_KEEP="${2:?}"; shift 2 ;;
     --verbose) VERBOSE=1; shift ;;
     --help|-h) usage; exit 0 ;;
     *) die "Unknown argument: $1" ;;
@@ -123,10 +126,21 @@ cleanup_tmp_dirs() {
 
 cleanup_backups() {
   [[ -d "$BACKUP_DIR" ]] || return 0
+  # V2: keep only the N most recent backups; prune everything else.
+  # This replaces the older "keep for N days" rule so the list is bounded
+  # even if the install path is hit many times per day.
+  if (( BACKUP_KEEP < 0 )); then
+    return 0
+  fi
   while IFS= read -r path; do
     [[ -n "$path" ]] || continue
     remove_path "$path"
-  done < <(find "$BACKUP_DIR" -type f -name '*.bak' -mtime +"$RETENTION_DAYS" 2>/dev/null | sort)
+  done < <(
+    find "$BACKUP_DIR" -type f -name '*.bak' -printf '%T@ %p\n' 2>/dev/null \
+      | sort -rn \
+      | tail -n +$((BACKUP_KEEP + 1)) \
+      | sed 's/^[0-9.]* //'
+  )
 }
 
 cleanup_runner_temp() {

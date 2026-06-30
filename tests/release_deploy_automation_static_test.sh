@@ -49,6 +49,8 @@ assert_grep 'binary_checksum' scripts/install-daemon.sh 'checksum capture missin
 assert_grep 'target' scripts/safe-disk-cleanup.sh 'target cleanup missing'
 assert_grep '/tmp/focusa-release-' scripts/safe-disk-cleanup.sh 'temp cleanup missing'
 assert_grep 'MIN_FREE_GB' scripts/safe-disk-cleanup.sh 'disk threshold guard missing'
+assert_grep 'BACKUP_KEEP' scripts/safe-disk-cleanup.sh 'backup keep bound missing'
+assert_grep 'backup_keep=${{ steps.cfg.outputs.backup_keep }}' .github/workflows/deploy-live-daemon.yml 'workflow backup_keep wiring missing'
 
 # install-self-hosted-runner.sh assertions
 assert_grep 'actions.runner' scripts/install-self-hosted-runner.sh 'runner service setup missing'
