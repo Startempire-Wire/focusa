@@ -43,14 +43,23 @@ How to use this playbook:
   threshold; failure causes the deploy to abort instead of silently running
   the daemon on a starved root filesystem.
 
-## Self-healing hooks (planned)
+## Self-healing hooks (live)
 
-- workflow step: parse recent `audit.jsonl`, fail closed if a guard failure
-  is older than expected
-- agent loop: on `category=missing_ci_gate_passing`, suggest
-  `gh run rerun` for the matching CI run before retrying deploy
-- agent loop: on `category=brittle_regex_match`, refuse to add new `rg -q`
-  checks without `grep -Fq` evidence
+All hooks below are wired into CI, Release, Deploy, and the audit recorder workflow. They run automatically; operators do not invoke them by hand.
+
+- `scripts/install-daemon.sh` `watchdog_check()` + `watchdog_loop` — wall clock + RSS budget; emits `deploy_oom_killed` audit row and `TERM`s the parent shell on breach.
+- `scripts/install-daemon.sh` `patch_service_unit_execstart()` — auto-rewrites stale `ExecStart` + `WorkingDirectory` in `/etc/systemd/system/<unit>` and `daemon-reload`s.
+- `scripts/install-daemon.sh` `binary_version()` — filename-first parser + `timeout 3 ... --version` fallback; never wedges on a glibc-broken binary.
+- `.github/workflows/auto-retry-deploy.yml` — re-dispatches `Deploy Live Daemon` once on `workflow_run` failure with the same release tag.
+- `scripts/install-self-hosted-runner.sh` systemd drop-in — `MemoryMax=2G Restart=always RestartSec=15` so the runner self-recovers from kernel OOM kills.
+- `scripts/auto-heal-audit.py` (via `.github/workflows/audit-recorder.yml`) — synthesizes `self_heal` rows for every failure lacking one; idempotent; runs on `workflow_run` + hourly `schedule`.
+- `tests/release_deploy_automation_static_test.sh` — asserts every self-heal branch's literal is present in source; prevents regression.
+
+Deprecated hook list (was planned, now superseded):
+
+- ~~workflow step: parse recent `audit.jsonl`, fail closed if a guard failure is older than expected~~ — superseded by `auto-heal-audit.py` which synthesizes rows on every run.
+- ~~agent loop: on `category=missing_ci_gate_passing`, suggest `gh run rerun`~~ — CI gate is now enforced by the deploy workflow itself (deploy blocks when CI is not green).
+- ~~agent loop: on `category=brittle_regex_match`, refuse to add new `rg -q` checks~~ — static test now uses fixed-string `grep -Fq` via `assert_grep` helper; CI fails on any regression.
 
 ## Redaction
 

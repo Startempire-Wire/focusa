@@ -56,7 +56,7 @@ Optional, with defaults shown:
 - `FOCUSA_DEPLOY_INSTALL_ROOT` = `/usr/local`
 - `FOCUSA_DEPLOY_SERVICE_NAME` = `focusa-daemon`
 - `FOCUSA_DEPLOY_HEALTH_URL` = `http://127.0.0.1:8787/v1/health`
-- `FOCUSA_DEPLOY_ASSET_SUFFIX` = `x86_64-unknown-linux-gnu`
+- `FOCUSA_DEPLOY_ASSET_SUFFIX` = `x86_64-unknown-linux-musl` (AlmaLinux 8 ships glibc 2.28; the Ubuntu-built gnu binary requires glibc >= 2.39, so the musl static-pie artifact is canonical)
 - `FOCUSA_DEPLOY_REQUIRE_SERVICE` = `1`
 - `FOCUSA_DEPLOY_USE_SUDO` = `1`
 - `FOCUSA_DEPLOY_AUDIT_LOG` = `/var/log/focusa/deploy-audit.jsonl`
@@ -139,9 +139,63 @@ This gives a quick tag-based rollback without editing the VPS manually.
 
 ## Operator guidance
 
-- Do not tag manually if you want version surfaces committed cleanly; use `scripts/create-dev-release-tag.sh`.
+- Do not tag manually if you want version surfaces committed cleanly; use `scripts/create-dev-release-tag.sh`. (Manual `git tag -d && git push :refs/tags/<t> && git tag -a` is acceptable only for re-pointing an existing tag during fast iterations; the script is preferred.)
 - Do not run ad-hoc `focusa-daemon &` alongside systemd.
 - Use GitHub Actions as the canonical deploy path so build/release/live state stay aligned.
+
+## Self-healing safety net
+
+The deploy pipeline self-heals at three layers; operators do not need to intervene for any of these.
+
+### Runner layer (kernel OOM protection)
+
+`scripts/install-self-hosted-runner.sh` writes a systemd drop-in for the runner unit:
+
+- `MemoryMax=2G` (overridable via `FOCUSA_RUNNER_MEMORY_MAX`)
+- `Restart=always`
+- `RestartSec=15`
+
+If the runner is kernel OOM-killed, systemd restarts it within 15s and the runner reconnects to GitHub. Without this, a transient memory spike would silently kill the runner and the next deploy would fail with no audit trail.
+
+### Script layer (wall clock + RSS + binary version)
+
+`scripts/install-daemon.sh` ships a `watchdog_check()` that runs in a background loop (`watchdog_loop`):
+
+- wall clock budget: `WALL_CLOCK_SEC` (default 600s)
+- RSS budget: `RSS_LIMIT_MB` (default 768MB)
+
+On breach it audit-logs `deploy_oom_killed` and `TERM`s the parent shell. The script also has:
+
+- `binary_version()` that parses version from filename first (e.g. `focusa-daemon-v0.9.42-dev-x86_64-unknown-linux-musl` → `0.9.42-dev`) and only falls back to `timeout 3 ... --version`
+- `curl --max-time 5` on health probes
+- `patch_service_unit_execstart()` that auto-rewrites a stale systemd `ExecStart` and reloads systemd, so a unit pointing at a deleted in-tree build artifact self-heals without operator action
+
+### Workflow layer (auto-retry)
+
+`.github/workflows/auto-retry-deploy.yml` listens on `workflow_run` completion of `Deploy Live Daemon`. If the upstream failed AND was triggered by `release` or `workflow_dispatch`, it re-dispatches the workflow once with the same tag + musl asset. Never retries `workflow_run`-triggered deploys (no infinite loops).
+
+### Audit layer
+
+`scripts/auto-heal-audit.py` is idempotent and is invoked on every CI / Release / Deploy workflow run + on `workflow_run` + on an hourly schedule. It scans `release-proof/audit/audit.jsonl` and synthesizes a `self_heal` row for every failure row that lacks one.
+
+## Intermittent health hang recovery (operator recipe)
+
+If `/v1/health` is responding 200 sometimes and hanging other times (TCP accept then no response), the upstream daemon is likely in a mem0-seeding race. Symptoms in the journal:
+
+```
+focusa_core::runtime::daemon: Focusa daemon starting (version ...)
+focusa_core::server: Listening on 127.0.0.1:8787
+focusa_core::runtime::daemon: Startup: Mem0 memories seeded count=5
+```
+
+then nothing for >30s, then a restart.
+
+**Recovery:**
+
+1. `systemctl restart focusa-daemon.service`
+2. Wait 30s for mem0 seed.
+3. `curl -fsS --max-time 5 http://127.0.0.1:8787/v1/health`
+4. If still hung, `journalctl -u focusa-daemon.service -n 50 --no-pager` and file an upstream daemon bug; the deploy automation's behavior is correct (rollback on persistent failure).
 
 ## Audit trail
 
