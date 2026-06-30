@@ -222,9 +222,12 @@ validate_service_execstart() {
 }
 
 stop_service_and_strays() {
+  # V2 deploy: explicitly disable set -e for the kill block so a single
+  # permission error or missing pid does not abort the whole deploy.
+  set +e
   if service_exists; then
     log "stopping service $SERVICE_UNIT"
-    sudo -n systemctl stop "$SERVICE_UNIT" 2>/dev/null || systemctl stop "$SERVICE_UNIT" || true
+    sudo -n systemctl stop "$SERVICE_UNIT" 2>/dev/null || systemctl stop "$SERVICE_UNIT"
     sleep 2
   fi
 
@@ -234,16 +237,21 @@ stop_service_and_strays() {
     warn "found stray ${BIN_NAME} pid(s): $(tr '\n' ' ' <<<"$pids")"
     # V2 deploy: use sudo to stop processes owned by root so the
     # unprivileged runner can fully take over the daemon slot.
-    sudo -n kill -TERM $pids 2>/dev/null || kill -TERM $pids || true
+    sudo -n kill -TERM $pids 2>/dev/null
+    kill -TERM $pids 2>/dev/null
+    true
     sleep 2
   fi
 
   pids="$(pgrep -x "$BIN_NAME" || true)"
   if [[ -n "$pids" ]]; then
     warn "forcing remaining ${BIN_NAME} pid(s) down: $(tr '\n' ' ' <<<"$pids")"
-    sudo -n kill -KILL $pids 2>/dev/null || kill -KILL $pids || true
+    sudo -n kill -KILL $pids 2>/dev/null
+    kill -KILL $pids 2>/dev/null
+    true
     sleep 1
   fi
+  set -e
 }
 
 start_service() {
