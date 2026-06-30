@@ -14,13 +14,13 @@ echo "=== release deploy automation static test ==="
 grep -Fq 'name: Deploy Live Daemon' .github/workflows/deploy-live-daemon.yml || { echo "✗ workflow name missing"; exit 1; }
 grep -Fq 'types: [published]' .github/workflows/deploy-live-daemon.yml || { echo "✗ release trigger missing"; exit 1; }
 grep -Fq 'workflow_dispatch:' .github/workflows/deploy-live-daemon.yml || { echo "✗ workflow_dispatch trigger missing"; exit 1; }
-rg -q 'gh release download' .github/workflows/deploy-live-daemon.yml || { echo "✗ release artifact download missing"; exit 1; }
-rg -q 'install-daemon.sh' .github/workflows/deploy-live-daemon.yml || { echo "✗ installer invocation missing"; exit 1; }
-rg -q 'safe-disk-cleanup.sh' .github/workflows/deploy-live-daemon.yml || { echo "✗ safe disk cleanup preflight missing"; exit 1; }
-rg -q 'Require successful GitHub CI for target commit' .github/workflows/deploy-live-daemon.yml || { echo "✗ CI gate missing"; exit 1; }
-rg -q 'runs-on: \[self-hosted, linux, x64, focusa-deploy\]' .github/workflows/deploy-live-daemon.yml || { echo "✗ self-hosted runner binding missing"; exit 1; }
-rg -q 'Cleanup release artifact temp dir' .github/workflows/deploy-live-daemon.yml || { echo "✗ temp artifact cleanup missing"; exit 1; }
-rg -q 'concurrency:' .github/workflows/deploy-live-daemon.yml || { echo "✗ deploy concurrency guard missing"; exit 1; }
+grep -Fq 'gh release download' .github/workflows/deploy-live-daemon.yml || { echo "✗ release artifact download missing"; exit 1; }
+grep -Fq 'install-daemon.sh' .github/workflows/deploy-live-daemon.yml || { echo "✗ installer invocation missing"; exit 1; }
+grep -Fq 'safe-disk-cleanup.sh' .github/workflows/deploy-live-daemon.yml || { echo "✗ safe disk cleanup preflight missing"; exit 1; }
+grep -Fq 'Require successful GitHub CI for target commit' .github/workflows/deploy-live-daemon.yml || { echo "✗ CI gate missing"; exit 1; }
+grep -Fq 'runs-on: [self-hosted, linux, x64, focusa-deploy]' .github/workflows/deploy-live-daemon.yml || { echo "✗ self-hosted runner binding missing"; exit 1; }
+grep -Fq 'Cleanup release artifact temp dir' .github/workflows/deploy-live-daemon.yml || { echo "✗ temp artifact cleanup missing"; exit 1; }
+grep -Fq 'concurrency:' .github/workflows/deploy-live-daemon.yml || { echo "✗ deploy concurrency guard missing"; exit 1; }
 
 rg -q 'flock -n 9' scripts/install-daemon.sh || { echo "✗ deploy lock missing"; exit 1; }
 rg -q 'backup saved to' scripts/install-daemon.sh || { echo "✗ backup path log missing"; exit 1; }
