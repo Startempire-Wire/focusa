@@ -55,6 +55,16 @@ jobs:
           test -f "$APP_PATH/Contents/Info.plist"
           /usr/bin/plutil -lint "$APP_PATH/Contents/Info.plist"
 
+  release-automation-static:
+    name: Release Automation (static)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Static proof
+        run: |
+          chmod +x tests/release_deploy_automation_static_test.sh
+          ./tests/release_deploy_automation_static_test.sh
+
   spec-gates:
     name: Spec Gates (strict)
     runs-on: ubuntu-latest

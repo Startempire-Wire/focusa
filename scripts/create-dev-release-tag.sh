@@ -3,10 +3,10 @@
 #
 # Default dry-run:
 #   scripts/create-dev-release-tag.sh
-# Push release tag + main and wait for GitHub CI/Release workflows:
+# Push release tag + main and wait for GitHub CI/Release/Deploy workflows:
 #   scripts/create-dev-release-tag.sh --push
 # Push without waiting for GitHub workflows:
-#   scripts/create-dev-release-tag.sh --push --no-wait-ci
+#   scripts/create-dev-release-tag.sh --push --no-wait-ci --no-wait-deploy
 # Pin a major/minor lane:
 #   scripts/create-dev-release-tag.sh --base 0.9 --push
 
@@ -17,6 +17,7 @@ BASE="0.9"
 PUSH=0
 DRY_RUN=0
 WAIT_CI=1
+WAIT_DEPLOY=1
 CI_TIMEOUT_SECS=1800
 
 while [[ $# -gt 0 ]]; do
@@ -44,6 +45,14 @@ while [[ $# -gt 0 ]]; do
     --ci-timeout)
       CI_TIMEOUT_SECS="${2:?--ci-timeout requires seconds}"
       shift 2
+      ;;
+    --wait-deploy)
+      WAIT_DEPLOY=1
+      shift
+      ;;
+    --no-wait-deploy)
+      WAIT_DEPLOY=0
+      shift
       ;;
     -h|--help)
       sed -n '1,18p' "$0"
@@ -118,8 +127,9 @@ if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
 fi
 
 echo "Next dev release tag: ${TAG}"
-echo "Stamping menubar version: ${VERSION}"
+echo "Stamping release surfaces: ${VERSION}"
 scripts/stamp-menubar-version.py "${TAG}"
+python3 scripts/verify-version-surfaces.py "${TAG}"
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   git diff --stat
@@ -151,7 +161,12 @@ if [[ "$PUSH" -eq 1 ]]; then
   if [[ "$WAIT_CI" -eq 1 ]]; then
     wait_for_workflow "CI" "$HEAD_SHA"
     wait_for_workflow "Release" "$HEAD_SHA"
-    echo "GitHub CI and Release workflows passed for ${TAG}."
+    if [[ "$WAIT_DEPLOY" -eq 1 ]]; then
+      wait_for_workflow "Deploy Live Daemon" "$HEAD_SHA"
+      echo "GitHub CI, Release, and Deploy workflows passed for ${TAG}."
+    else
+      echo "GitHub CI and Release workflows passed for ${TAG}."
+    fi
   else
     echo "Not waiting for GitHub workflows. Track with: gh run list --commit ${HEAD_SHA}"
   fi

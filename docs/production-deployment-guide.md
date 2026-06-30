@@ -2,19 +2,20 @@
 
 ## Scope
 
-This document covers a supported production deployment pattern for the Focusa daemon and operator tools on a Linux VPS behind HTTPS.
+Supported Linux VPS deployment pattern for the Focusa daemon behind HTTPS, with systemd service management and GitHub Actions live deploy automation.
 
-## 1) Install or install directory
+See also: `docs/live-release-automation.md`
 
-Use system binaries from a release tag, then run as a dedicated user (example: `focusa`):
+## 1) Install layout
+
+Use a stable install root and keep the daemon system-managed:
 
 ```bash
-mkdir -p /opt/focusa/bin
-cp focusa focusa-daemon /opt/focusa/bin/
-chown -R focusa:focusa /opt/focusa
+sudo mkdir -p /opt/focusa /opt/focusa/repo
+sudo mkdir -p /usr/local/bin
 ```
 
-Set `FOCUSA_PROJECT_ROOT` and `FOCUSA_CONTINUITY_ID` in service env:
+Recommended runtime env:
 
 ```bash
 export FOCUSA_PROJECT_ROOT=/opt/focusa/repo
@@ -24,9 +25,11 @@ export FOCUSA_PUBLIC_STREAM=1
 export FOCUSA_PAIRING_URL=https://focusa.example.com
 ```
 
-## 2) systemd daemon service
+## 2) systemd service
 
-Create `/etc/systemd/system/focusa.service`:
+Use `focusa-daemon.service` as the canonical service name.
+
+Create `/etc/systemd/system/focusa-daemon.service`:
 
 ```ini
 [Unit]
@@ -42,123 +45,53 @@ WorkingDirectory=/opt/focusa
 Environment=FOCUSA_PROJECT_ROOT=/opt/focusa/repo
 Environment=FOCUSA_CONTINUITY_ID=focusa-prod-01
 Environment=FOCUSA_LOG_LEVEL=info
-Environment=FOCUSA_API_BASE_URL=http://127.0.0.1:8787
+Environment=FOCUSA_PUBLIC_STREAM=1
 Environment=FOCUSA_PAIRING_URL=https://focusa.example.com
-ExecStart=/opt/focusa/bin/focusa-daemon
-Restart=on-failure
-RestartSec=3
-NoNewPrivileges=yes
-PrivateTmp=yes
-ProtectSystem=full
-ProtectHome=true
+ExecStart=/usr/local/bin/focusa-daemon
+Restart=always
+RestartSec=2
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-Enable:
+Enable it:
 
 ```bash
-systemctl daemon-reload
-systemctl enable --now focusa
-systemctl status focusa
-journalctl -u focusa -f
+sudo systemctl daemon-reload
+sudo systemctl enable --now focusa-daemon.service
 ```
 
-## 3) Reverse proxy + TLS
-
-Use Nginx/Caddy reverse proxy to expose HTTPS on 443 only and keep daemon on localhost-only port.
-
-Example Nginx block:
-
-```nginx
-server {
-    listen 80;
-    server_name focusa.example.com;
-    return 301 https://$host$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name focusa.example.com;
-
-    ssl_certificate     /etc/letsencrypt/live/focusa.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/focusa.example.com/privkey.pem;
-
-    location / {
-        proxy_pass http://127.0.0.1:8787;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        # Keep long-lived websocket/event style calls safe
-        proxy_read_timeout 3600s;
-    }
-}
-```
-
-TLS: issue certs with certbot
+## 3) Health proof
 
 ```bash
-certbot --nginx -d focusa.example.com
+curl -sS http://127.0.0.1:8787/v1/health | jq .
 ```
 
-## 4) Rate limiting (nginx)
+Expected fields include:
 
-Basic per-IP burst/rate controls:
+- `ok: true`
+- `status: ok`
+- `version: <release version>`
 
-```nginx
-limit_req_zone $binary_remote_addr zone=api_limit:10m rate=5r/s;
+## 4) Live release automation
 
-server {
-    location / {
-        limit_req zone=api_limit burst=20 nodelay;
-        limit_req_status 429;
-    }
-}
-```
+Preferred path:
 
-## 5) Log rotation
+- release from `scripts/create-dev-release-tag.sh --push`
+- GitHub `Release` workflow builds/tag-stamps artifacts
+- GitHub `Deploy Live Daemon` workflow installs the new daemon on the VPS
+- installer restarts systemd, verifies `/v1/health`, and auto-rolls back on failure
 
-`journalctl` defaults are often enough, but persistent compact logs are preferred:
+Do not run ad-hoc background daemon instances in parallel with systemd-managed production.
 
-```ini
-# /etc/systemd/journald.conf
-SystemMaxUse=200M
-SystemKeepFree=10%
-MaxRetentionSec=2week
-```
+## 5) Rollback
 
-For file logs, rotate with `/etc/logrotate.d/focusa`:
+Two rollback layers exist:
 
-```text
-/var/log/focusa/*.log {
-    daily
-    rotate 14
-    compress
-    missingok
-    notifempty
-    copytruncate
-}
-```
+1. **automatic rollback** inside `scripts/install-daemon.sh` if start/health/version checks fail
+2. **manual rollback** by re-running the `Deploy Live Daemon` workflow with an older release tag
 
-## 6) Health checks
+## 6) Menubar releases
 
-From the VPS:
-
-```bash
-curl -sS https://focusa.example.com/v1/health | jq .
-curl -sS https://focusa.example.com/v1/workpoint/current?project_root=/opt/focusa/repo&continuity_id=focusa-cont-01 | jq .
-```
-
-## 7) Release asset provenance
-
-Production installs should pull artifacts from the signed GitHub release tag for the target version and verify checksums/signature policy in your org process.
-
-Recommended checklist:
-
-- Deploy daemon + CLI/TUI artifacts from latest tag page
-- Verify `FOCUSA_PAIRING_URL` resolves to public host used by menubar pairing paths
-- Confirm reverse proxy/TLS and rate limit are active before opening the service
-- Record deployment evidence in runtime/beads workflow as routine evidence
+The menubar app is released from the same Git tag through GitHub Actions. The release assets include the latest macOS DMGs and `.app.tar.gz` archives built from the tagged version.
