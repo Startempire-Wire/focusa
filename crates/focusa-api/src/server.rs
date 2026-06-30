@@ -18,7 +18,7 @@ use tower_http::services::ServeDir;
 /// Vendored static files directory (e.g. jsQR for offline PWA /scan pages).
 const STATIC_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/static");
 use focusa_core::types::{
-    Action, FocusaConfig, FocusaState, WorkLoopPolicy, WorkLoopPolicyOverrides, WorkLoopPreset,
+    Action, FocusaConfig, FocusaState, FocusStackState, WorkLoopPolicy, WorkLoopPolicyOverrides, WorkLoopPreset,
     WorkLoopStatus,
 };
 use serde::{Deserialize, Serialize};
@@ -235,6 +235,8 @@ pub struct AppState {
     pub token_store: Arc<RwLock<focusa_core::permissions::TokenStore>>,
     /// Scoped writer claims for continuous work-loop mutations, keyed by ProjectRootKey + WorkstreamKey + WorkItemKey.
     pub writer_claims: Arc<TokioRwLock<HashMap<String, String>>>,
+    /// FocusStackState by scope key — FS-01: Focus State reducer scope enforcement.
+    pub focus_stack_by_scope: Arc<TokioRwLock<HashMap<String, FocusStackState>>>,
     /// Process start time for uptime reporting.
     pub started_at: Instant,
     /// Optional daemon-owned Pi RPC transport session for continuous work.

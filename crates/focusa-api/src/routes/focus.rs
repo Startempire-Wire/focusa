@@ -8,6 +8,7 @@
 //! GET  /v1/focusa/enabled — get focusa toggle state (Pi-session-local)
 //! PATCH /v1/focusa/enabled — set focusa toggle state
 
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
@@ -355,7 +356,9 @@ fn resolve_scoped_frame<'a>(
     })
 }
 
+/// FS-01: scoped focus stack read.
 async fn get_stack(
+    scope: ScopeContext,
     Query(query): Query<FocusStackQuery>,
     State(state): State<Arc<AppState>>,
 ) -> Json<serde_json::Value> {
@@ -403,7 +406,9 @@ async fn get_stack(
     }))
 }
 
+/// FS-01: scoped focus frame read.
 async fn get_scoped_frame(
+    scope: ScopeContext,
     Query(query): Query<ScopedFrameQuery>,
     State(state): State<Arc<AppState>>,
 ) -> Json<serde_json::Value> {
@@ -578,7 +583,9 @@ struct PushFrameBody {
     continuity_id: Option<String>,
 }
 
+/// FS-01: scoped focus stack push.
 async fn push_frame(
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(body): Json<PushFrameBody>,
 ) -> FocusResult {
@@ -668,7 +675,9 @@ fn default_completion_reason() -> CompletionReason {
     CompletionReason::GoalAchieved
 }
 
+/// FS-01: scoped focus stack pop.
 async fn pop_frame(
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(body): Json<PopFrameBody>,
 ) -> FocusResult {
@@ -709,7 +718,9 @@ struct SetActiveBody {
     frame_id: uuid::Uuid,
 }
 
+/// FS-01: scoped focus stack set-active.
 async fn set_active(
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(body): Json<SetActiveBody>,
 ) -> FocusResult {
@@ -865,7 +876,9 @@ fn slot_cap(slot_kind: &str) -> usize {
     }
 }
 
+/// FS-01: scoped focus state mutation.
 async fn update_delta(
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(body): Json<UpdateDeltaBody>,
 ) -> FocusResult {
