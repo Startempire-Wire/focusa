@@ -5,6 +5,7 @@
 //! Focus State, switch frames, or execute actions.
 
 use crate::routes::project::project_identity_payload_for_scope;
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Query, State};
 use axum::{
@@ -2180,6 +2181,7 @@ fn attach_trajectory_tool_result(
 }
 
 async fn view(
+    _scope: ScopeContext,
     Query(query): Query<TrajectoryViewQuery>,
     State(state): State<Arc<AppState>>,
 ) -> Json<Value> {
@@ -2192,6 +2194,7 @@ async fn view(
 }
 
 async fn define_goal(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(body): Json<TrajectoryDefineGoalRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -2383,6 +2386,7 @@ async fn define_goal(
 }
 
 async fn assess(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(body): Json<TrajectoryAssessRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -2446,6 +2450,7 @@ async fn assess(
 }
 
 async fn propose_workpoint(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(body): Json<TrajectoryProposeWorkpointRequest>,
 ) -> Json<Value> {
@@ -2458,6 +2463,7 @@ async fn propose_workpoint(
 }
 
 async fn checkpoint(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(body): Json<TrajectoryCheckpointRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -2499,6 +2505,7 @@ async fn checkpoint(
 }
 
 async fn resume(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(body): Json<TrajectoryResumeRequest>,
 ) -> Json<Value> {
@@ -2519,6 +2526,7 @@ pub struct HltHistoryRequest {
 }
 
 async fn hlt_history(
+    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Query(query): Query<HltHistoryRequest>,
 ) -> Json<Value> {
