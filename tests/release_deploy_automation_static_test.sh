@@ -10,6 +10,7 @@ echo "=== release deploy automation static test ==="
 [[ -f scripts/verify-version-surfaces.py ]] || { echo "✗ missing verify-version-surfaces.py"; exit 1; }
 [[ -f scripts/safe-disk-cleanup.sh ]] || { echo "✗ missing safe-disk-cleanup.sh"; exit 1; }
 [[ -f scripts/install-self-hosted-runner.sh ]] || { echo "✗ missing install-self-hosted-runner.sh"; exit 1; }
+[[ -f scripts/deploy-smoke-check.sh ]] || { echo "✗ missing deploy-smoke-check.sh"; exit 1; }
 
 grep -Fq 'name: Deploy Live Daemon' .github/workflows/deploy-live-daemon.yml || { echo "✗ workflow name missing"; exit 1; }
 grep -Fq 'types: [published]' .github/workflows/deploy-live-daemon.yml || { echo "✗ release trigger missing"; exit 1; }
@@ -20,6 +21,7 @@ grep -Fq 'safe-disk-cleanup.sh' .github/workflows/deploy-live-daemon.yml || { ec
 grep -Fq 'Require successful GitHub CI for target commit' .github/workflows/deploy-live-daemon.yml || { echo "✗ CI gate missing"; exit 1; }
 grep -Fq 'runs-on: [self-hosted, linux, x64, focusa-deploy]' .github/workflows/deploy-live-daemon.yml || { echo "✗ self-hosted runner binding missing"; exit 1; }
 grep -Fq 'Cleanup release artifact temp dir' .github/workflows/deploy-live-daemon.yml || { echo "✗ temp artifact cleanup missing"; exit 1; }
+grep -Fq 'Self-healing smoke check' .github/workflows/deploy-live-daemon.yml || { echo "✗ post-deploy smoke check missing"; exit 1; }
 grep -Fq 'concurrency:' .github/workflows/deploy-live-daemon.yml || { echo "✗ deploy concurrency guard missing"; exit 1; }
 
 rg -q 'flock -n 9' scripts/install-daemon.sh || { echo "✗ deploy lock missing"; exit 1; }

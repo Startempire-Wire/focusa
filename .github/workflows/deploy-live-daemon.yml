@@ -228,6 +228,33 @@ jobs:
           LIVE_VERSION="$(cat /tmp/focusa-live-version.txt)"
           test "$LIVE_VERSION" = "${{ steps.cfg.outputs.version }}"
 
+      - name: Self-healing smoke check
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ steps.cfg.outputs.use_sudo }}" == "0" ]]; then
+            SUDO=""
+          else
+            SUDO="sudo -n"
+          fi
+          chmod 755 scripts/deploy-smoke-check.sh
+          if [[ -n "$SUDO" ]]; then
+            $SUDO env \
+              FOCUSA_DAEMON_URL='${{ steps.cfg.outputs.health_url }}' \
+              FOCUSA_EXPECTED_VERSION='${{ steps.cfg.outputs.version }}' \
+              FOCUSA_SERVICE_NAME='${{ steps.cfg.outputs.service_name }}' \
+              FOCUSA_DEPLOY_AUDIT_LOG='${{ steps.cfg.outputs.audit_log }}' \
+              /bin/bash "$GITHUB_WORKSPACE/scripts/deploy-smoke-check.sh"
+          else
+            env \
+              FOCUSA_DAEMON_URL='${{ steps.cfg.outputs.health_url }}' \
+              FOCUSA_EXPECTED_VERSION='${{ steps.cfg.outputs.version }}' \
+              FOCUSA_SERVICE_NAME='${{ steps.cfg.outputs.service_name }}' \
+              FOCUSA_DEPLOY_AUDIT_LOG='${{ steps.cfg.outputs.audit_log }}' \
+              /bin/bash "$GITHUB_WORKSPACE/scripts/deploy-smoke-check.sh"
+          fi
+
       - name: Cleanup release artifact temp dir
         if: ${{ !inputs.dry_run }}
         shell: bash
