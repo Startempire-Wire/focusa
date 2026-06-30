@@ -1791,7 +1791,7 @@ fn project_identity_cache_key(
     let scope_root = scope.and_then(|s| s.project_root.as_deref()).unwrap_or_default();
     let scope_cont = scope.and_then(|s| s.continuity_id.as_deref()).unwrap_or_default();
     format!(
-        "cwd={}\nproject_root={}\nscope_root={}\nscope_cont={}\nremote_host={}\nremote_repo_remote={}\nremote_workspace_kind={}\nremote_deploy_root={}\npersisted_project_root={}\npersisted_project_fingerprint={}\npersisted_project_id={}\npersisted_canonical_name={}",
+        "cwd={}\nproject_root={}\nscope_root={}\nscope_cont={}\nremote_host={}\nremote_repo_remote={}\nremote_workspace_kind={}\nremote_deploy_root={}\npersisted_project_root={}\npersisted_project_fingerprint={}\npersisted_project_id={}\npersisted_canonical_name={}\ndeprecated_persisted_fallback={}",
         cwd.unwrap_or_default(),
         project_root.unwrap_or_default(),
         scope_root,
@@ -1827,6 +1827,9 @@ fn project_identity_cache_key(
             .as_deref()
             .unwrap_or_default()
     )
+
+    // HINT: If you remove persisted_canonical_name from the format string,
+    // also remove it from the format!() arguments above.
 }
 
 fn project_identity_payload_for_scope_with_remote(
@@ -1871,7 +1874,7 @@ async fn identity(Query(query): Query<ProjectIdentityQuery>) -> Json<Value> {
         query.project_root.as_deref(),
         remote_hint,
         None,
-    , None))
+    ))
 }
 
 async fn verify(
