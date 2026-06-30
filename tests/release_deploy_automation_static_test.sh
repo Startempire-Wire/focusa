@@ -90,4 +90,37 @@ assert_grep 'audit_event "smoke_check"' scripts/deploy-smoke-check.sh 'smoke che
 assert_grep 'verify-version-surfaces.py' .github/workflows/release.yml 'release workflow does not verify stamped versions'
 assert_grep 'Deploy Live Daemon' scripts/create-dev-release-tag.sh 'create-dev-release-tag does not wait for deploy workflow'
 
+# audit schema validation (single canonical shape)
+assert_grep 'audit-schema.py' scripts/audit-schema.py 'audit schema script must self-reference'
+assert_grep 'REQUIRED_FAILURE' scripts/audit-schema.py 'audit schema missing required failure fields'
+assert_grep 'REQUIRED_ADDITION' scripts/audit-schema.py 'audit schema missing required addition fields'
+assert_grep 'REQUIRED_SELF_HEAL' scripts/audit-schema.py 'audit schema missing required self_heal fields'
+assert_grep 'VALID_CATEGORIES' scripts/audit-schema.py 'audit schema missing category enum'
+assert_grep 'VALID_SUBSYSTEMS' scripts/audit-schema.py 'audit schema missing subsystem enum'
+if ! python3 scripts/audit-schema.py validate release-proof/audit/audit.jsonl >/dev/null; then
+  echo "✗ audit schema validation failed"
+  python3 scripts/audit-schema.py validate release-proof/audit/audit.jsonl
+  exit 1
+fi
+
+# changelog generator
+assert_grep 'changelog-gen.py' scripts/changelog-gen.py 'changelog gen must self-reference'
+assert_grep 'CATEGORIES_BY_LAYER' scripts/changelog-gen.py 'changelog gen missing layer grouping'
+assert_grep 'Layer 1 — Runner' scripts/changelog-gen.py 'changelog gen missing runner layer'
+
+# install-daemon contract spec
+assert_grep 'binary_version' docs/install-daemon-contract.md 'contract missing binary_version'
+assert_grep 'patch_service_unit_execstart' docs/install-daemon-contract.md 'contract missing execstart patch'
+assert_grep 'watchdog_check' docs/install-daemon-contract.md 'contract missing watchdog'
+assert_grep 'wait_for_health' docs/install-daemon-contract.md 'contract missing wait_for_health'
+
+# operator runbook
+assert_grep 'GitHub Actions is down' docs/deploy-runbook.md 'runbook must cover GitHub outage'
+assert_grep 'Runner token is expired' docs/deploy-runbook.md 'runbook must cover token expiry'
+assert_grep 'Audit trail fails to validate' docs/deploy-runbook.md 'runbook must cover audit validation'
+
+# cross-links
+assert_grep 'self-heal-chain.md' docs/production-deployment-guide.md 'prod guide missing self-heal link'
+assert_grep 'deploy-runbook.md' docs/production-deployment-guide.md 'prod guide missing runbook link'
+
 echo "Release deploy automation static test: PASS"

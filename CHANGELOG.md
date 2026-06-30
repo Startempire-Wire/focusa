@@ -1,292 +1,205 @@
-# Changelog
-
-Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
-
-## Unreleased — post-release HLT dogfood hardening
-
-### Spec98 authority-plane hardening
-
-- Fixed scoped Trajectory active selection to fail closed unless both `project_root` and `continuity_id` are present; this prevents cross-workstream canonical trajectory bleed during resume and scope recovery.
-- Revalidated Focus Gate, Expression Engine, Reference Store, runtime telemetry/cognition plane, and Spec98 runtime bleed + CRDT proof gates.
-
-### Context Authority hardening
-
-- Added `focusa action preflight` (`focusa.operational_context_gate.v1`) to block risky mutations when current ask, environment role, runtime state, or proposed action conflict; the Phone Bridge incident golden test blocks GitHub release binary replacement on a live build host.
-- Added `focusa action classify-intent` (`focusa.intent_mode_gate.v1`) so planning prompts such as “Maybe we can...” are no-mutation planning states, not implementation authorization.
-- Added `focusa env contract show/init` (`focusa.environment_contract.v1`) for durable install role, project root, owner, binary policy, pairing state, and host facts.
-- Added `focusa runtime inventory` (`focusa.runtime_inventory.v1`) for daemon pid/user/bind/version/lock and CLI path/version hygiene.
-- Added `focusa binary inspect` and `focusa binary preflight-install` (`focusa.binary_provenance.v1`, `focusa.binary_preflight.v1`) with release-asset policy and GLIBC compatibility blocking.
-- Hardened Trajectory Ladder projection so generic bootstrap HLT is a degraded placeholder, does not satisfy the long-term-goal gate, and cannot let Workpoint/current_focus populate MLG/STG.
-- Added context-authority fields to `focusa pair --json`: `environment_contract`, `runtime_inventory`, and `action_preflight`.
-- Added context-authority validation scripts under `tests/spec_context_authority_*`.
-
-
-- Added Pi `focusa_session_transfer` wrapper for game-save style save/continue across Pi sessions without forking.
-- Expanded bootstrap `inferred_workpoint_candidate` to use prior session workpath, prediction, metacog prompt, ontology, trajectory STG, file changes, git activity, current ask, and prior Workpoint signals.
-- Added project-card `crosswire_health` and effective ontology bridge status so reporting cards show whether each signal feeds future predictions.
-- Documented TrajectoryReporting elapsed/token cards across public API, CLI, README, project-card, and prediction algorithm docs.
-- Added TrajectoryReporting card fields for HLT/LTG/MTG/STG, waypoint accomplishment status, elapsed wall-clock time, and token efficiency.
-- Surfaced `shortest_path_to_success` selected path/cost/eliminations in Pi `focusa_project_card` UX.
-- Added `success_sequence.shortest_path_to_success` with weighted path candidates and eliminated-path reasons.
-- Reduced prediction hot-path timeout risk with an mtime/size keyed prediction-store cache and compact evaluate responses.
-- Reduced project-card hot-path timeout risk with read-only projected weights, bounded JSONL outcome tails, and compact Pi response echoes.
-- Made project-card `success_sequence` outcome-aware using stored algorithm-run outcome scores.
-- Added Pi `focusa_project_card_outcome` tool parity and synchronized public tool contract registry/choreography docs.
-- Surfaced project-card `prior_session_context` and `success_sequence` prominently in the Pi `focusa_project_card` tool response.
-- Added prior-informed project-card bootstrap context from trajectory HLG/MLG/STG/waypoints, recent Focus decisions/results, prediction stats, algorithm outcomes, and metacog prompts.
-- Added project-card algorithm outcome attachment via `/v1/project/card/outcome` and `focusa project card-outcome`, linking final results to `algorithm_run_id` and updating learned weights.
-- Added portable project-card algorithm persistence: append-only JSONL run ledger plus compact learned-weights JSON with conservative online updates from evaluated predictions.
-- Added lightweight prediction formulas (weighted score, sigmoid/logit/softmax, expected value, decay/EMA, z-score, Brier, log loss) to project-card algorithmic intelligence.
-- Added `/v1/project/card`, `focusa project card`, and `focusa_project_card` so ontology, trajectory, Workpoint/evidence, prediction, and metacog signals synthesize advisory bootstrap/re-bootstrap project intelligence.
-- Added end-of-task learning-loop and project-intelligence flywheel surfaces so prediction/metacog signals feed ontology-grounded project cards, trajectory bootstrap/re-bootstrap, compaction cards, and final reports.
-- Added Pi extension check/typecheck scripts and verified current Pi, menubar, Rust workspace, release build, and restarted daemon.
-- Refreshed GitHub Release workflow notes to generate current functional dogfood proof language and added a static guard against stale fixed-count/generic release claims.
-- Hardened the menubar cockpit slice after dogfood: current version docs, manual release-proof gate, shared API-base audit status, sync write confirmations, and stronger Spec96 static coverage.
-
-## Unreleased — project-root terminology and trajectory accuracy
-
-- Clarified public/runtime language: `project_root` is the project folder/container holding related files, while Trajectory is the functional route from current state to destination and waypoints.
-- Replaced user-facing project-root “scope boundary” wording across Pi, CLI/API awareness cards, ProjectIdentity/Workpoint docs, and OpenClaw awareness text; `scope_mismatch` remains only as backward-compatible failure taxonomy.
-- Deployed release binaries after final cross-layer verification; live daemon health, status, and tool-contract parity were rechecked.
-- Refreshed public README/spec documentation for the 58-tool surface, including ProjectIdentity, Trajectory, `focusa_traverse`, `focusa_resource_mode`, and `focusa_silent_sessions`.
-- Added friendly Focusa onboarding Q plus tool choreography routes so models favor project identity → trajectory → Workpoint → evidence → prediction/metacog over note-only workflows.
-- Added implementation-to-spec audit coverage and filled CLI/contract gaps for Focus State updates, scoped Workpoint commands, metacog recent reads, lineage extract, and snapshot parity.
-- Added model-visible awareness documentation and per-call `PROJECT_INFRA`/`PROJECT_ARCHITECTURE` trajectory context so agents see project folder, continuity, canonical name, repo, workspace kind, stack/key dirs, deploy/docs/tests, and architecture-boundary guidance.
-- Added machine-readable tool choreography registry/API with exact per-tool next-tool routes for all 58 tools, plus live dynamic weights from evaluated prediction evidence.
-- Reworded context-pressure warnings to reflect Focusa preserving scoped anchors; warnings now point to Workpoint checkpoint/resume and treat `/fork`/handoff as optional UI-isolation paths, with runtime copy guard coverage.
-- Tuned daemon ResourceMode thresholds and LowMem pruning so repeated audits enter bounded LowMem before emergency, preserving hot Workpoint/contract routes; added bounded extended-soak and parallel-load regression coverage.
-- Added CLI parity smoke coverage for project identity, trajectory, scoped Workpoint, Focus State update, metacog recent reads, lineage extract, snapshots, resource mode, and prediction record/evaluate/read paths.
-- Materialized canonical Workpoint checkpoints through the sync reducer path so safe `project_root + continuity_id` writes are visible immediately instead of depending on queued daemon read-model lag.
-- Reworded the missing active Pi frame fallback to `Attentive and awaiting operator direction`, surfaced it in the Utility Card/quickstart, and added validation so agents stay helpful while scratch fallback/recovery guidance remains available.
-- Added model-facing no-deadend recovery guidance (`recovery_hint`, `misuse_hint`, `next_tools`) to Focusa tool result envelopes and documented out-of-order recovery routes.
-- Updated Tool Result Envelope docs to require recovery/misuse hints so models know why a tool failed and the next safe route.
-- Added Spec89 failure-recovery envelope fixture/schema guard for no-deadend tool-result behavior.
-- Extended API error envelopes for unknown/wrong routes with `failure_class`, `recovery_hint`, `misuse_hint`, `next_tools`, and `details.tool_result_v1` so route mistakes do not dead-end models.
-- Added degraded evidence-capture fallback for trajectory clarity hot/cold timeout/resource pressure so the model sees why linking is blocked and proof handles are preserved with Workpoint checkpoint/resume recovery.
-- Replaced opaque prediction tool `unavailable` fallbacks with structured no-deadend responses carrying why, recovery/misuse hints, retry posture, and next tools.
-- Replaced opaque SilentSession blocked/not-found responses with why, recovery/misuse hints, retry posture, next tools, and `tool_result_v1`.
-- Replaced opaque work-loop dispatch/Pi RPC failures with no-guess envelopes carrying why, recovery/misuse hints, next tools, and `tool_result_v1`.
-- Replaced opaque command submit/status/log rejections with no-guess envelopes carrying why, recovery/misuse hints, next tools, and `tool_result_v1`.
-- Replaced opaque Workpoint reducer, persistence, dispatch, and missing-active evidence failures with no-guess envelopes.
-- Replaced opaque thread validation, not-found, and dispatch failures with no-guess envelopes.
-- Replaced opaque ASCC frame and delta dispatch failures with no-guess envelopes.
-- Replaced opaque constitution active/load failures with no-guess envelopes.
-- Replaced opaque capabilities agent, lineage node, and reference id lookup failures with no-guess envelopes.
-- Replaced opaque SQLite event read/not-found failures with no-guess envelopes.
-- Replaced opaque ECS content validation, dispatch, handle, and blob lookup failures with no-guess envelopes.
-- Replaced opaque trust permission and daemon dispatch failures with no-guess envelopes.
-- Replaced opaque proposal resolution payload and dispatch failures with no-guess envelopes.
-- Replaced opaque ontology validation and dispatch failures with no-guess envelopes.
-- Replaced opaque capabilities-extra dispatch and inactive-session failures with no-guess envelopes.
-- Replaced opaque legacy JSONL event read/not-found failures with no-guess envelopes.
-- Replaced opaque proxy auth, upstream, validation, and ACP failures with no-guess envelopes.
-- Replaced opaque info, telemetry-debug, and training contribution lookup failures with no-guess envelopes.
-- Replaced opaque trajectory reducer and persistence failures with no-guess envelopes.
-- Replaced raw attachment and Focus Gate StatusCode failures with no-guess envelopes, and documented API route failure envelope expectations.
-- Replaced raw sync route StatusCode failures with no-guess envelopes for persistence, peer lookup, validation, delegated receive/transfer, and upstream peer failures.
-- Replaced remaining raw instance, token, visual workflow, and memory mutation failures with no-guess envelopes.
-- Replaced raw session resume and sync receive/transfer implementation failures with no-guess envelopes.
-- Replaced final raw focus mutation/toggle failures with no-guess envelopes.
-- Refreshed export CLI/schema/audit docs and regression tests to reflect the implemented endpoint-backed export baseline.
-- Fixed SQLite export event reads to use `payload_json`, restoring `/v1/export/run` against the current events schema.
-- Converted State Hygiene Apply from approval placeholder to approved, non-destructive Focus State note append via `/v1/focus/update`.
-- Added `/v1/doctor` API/CLI parity metadata and export provenance, eligibility, quality, and redaction summaries.
-- Added durable Pi project-root memory so safe verified project folders persist across Pi sessions and broad cwd resumes.
-- Refreshed stale export/FOM audit docs and static guards to reflect implemented export and Focus Stack invariant baselines.
-- Repaired ECS resolve/content/rehydrate readback by falling back to canonical disk handle metadata for legacy lossy state.
-- Added default-on Pi vital-info prompts for project root, project verify, Workpoint, and Trajectory; every other tool surface is opt-in.
-- Repaired procedural memory reinforce semantics so missing rule IDs return typed not-found failures instead of accepted no-ops.
-- Repaired Pi compaction fallback so generic continuation prompts do not overwrite mission/next-slice resume context.
-- Added prior-project trajectory fallback for Pi reloads so existing long-term goals can orient new continuity without prompting for a new trajectory.
-- Added mobile-friendly A/B/C/D inferred trajectory choices, keeping freeform trajectory editing as an optional fallback only.
-- Added mobile-friendly A/B/C/D inferred Workpoint checkpoint choices, keeping freeform Workpoint editing as an optional fallback only.
-- Added marker-backed, repo/SvelteKit-scanned, and WordPress/live-root scanned project environment/deploy facts with confidence/source labels to ProjectIdentity and Pi Focus Slice.
-- Hardened Pi trajectory setup prompts so inferred options use only current project/session/continuity-scoped seeds, preventing cross-session bleed from global Focus State text.
-- Added ProjectIdentity `project_summary` and `summary_lines` so querying `focusa_project_identity` directly returns the compact at-a-glance project card facts.
-- Hardened ProjectIdentity URL inference to filter docs/reference/upstream URLs, prevent parent `public_html` bleed, and mark local-only projects with public repo instead of false live targets.
-
-## Unreleased — Spec93 release publication proof
-
-- Published `v0.9.12-dev` and recorded final release proof in `docs/evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md`.
-
-## Unreleased — Spec93 rollout evidence
-
-- Added `docs/evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md` with OpenClaw/Wirebot live injection proof.
-
-## Unreleased — Docs/runtime parity validation
-
-- Added docs-runtime parity and live OpenClaw injection proof guards.
-
-## Unreleased — OpenClaw Focusa awareness plugin
-
-- Added `apps/focusa-awareness` plugin skeleton to inject `/v1/awareness/card` into OpenClaw/Wirebot `before_agent_start`.
-- Added plugin/config validation guards and enabled `focusa-awareness` in `/data/wirebot/users/verious/openclaw.json`; live activation requires operator-approved gateway restart. Also documented/fixed production systemd startup to use optional `/run/wirebot/gateway.env` so ExecStartPre can recreate tmpfs secrets after reboot.
-
-## Unreleased — Spec93 awareness card API
-
-- Added `/v1/awareness/card` and `focusa awareness card` for OpenClaw/Wirebot and other non-Pi agents.
-- Added `scripts/prove-non-pi-agent-awareness-live.mjs` live proof harness.
-
-## Unreleased — Non-Pi agent awareness spec
-
-- Added Spec93 and current usage docs for Focusa awareness outside Pi, explicitly including OpenClaw/oprnclaw Wirebot, Claude Code, OpenCode, and Letta.
-- Added `scripts/validate-non-pi-agent-awareness.mjs` guard.
-
-## Unreleased — Skill reload hygiene
-
-- Fixed predictive-power skill frontmatter and documented that stale `~/apps/pi-extension/skills` compatibility path must be an empty directory, not a symlink to repo skills, to avoid Pi skill collisions.
-- Added `scripts/validate-skill-hygiene.mjs`.
-
-## Unreleased — Agent awareness layer
-
-- Added a Pi startup/reload Focusa Utility Card injected into the system prompt and displayed once per session so agents know when to use Workpoints, doctor, evidence, predictions, metacognition, work-loop, and compaction fallbacks.
-- Added public agent-awareness quickstart/docs and `scripts/validate-agent-awareness.mjs` guard.
-
-## Unreleased — Public docs polish/prediction sweep
-
-- Updated public README/docs snapshot language to `v0.9.11-dev` and documented Spec92 polish, prediction loop, Workpoint scope guard, daemon/CLI/API freshness, and compaction fallbacks.
-- Regenerated current CLI/API references and added predictive-power tool index coverage for all 47 Pi tools.
-- Documented skill path hygiene for stale `~/apps/pi-extension/skills` reload warnings.
-
-## Unreleased — Intelligent compaction fallbacks
-
-- Replaced bare `none` Focusa compaction summary fields with Workpoint/current-ask/frame/local-shadow/session fallback hydration.
-- Added `scripts/validate-compaction-fallbacks.mjs` guard and `docs/current/COMPACTION_FALLBACKS.md`.
-
-## Unreleased — Spec92 full rollout proof
-
-- Recorded full Spec92 rollout evidence in `docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md`.
-- Live daemon rebuilt/restarted and verified after full gates.
-
-## Unreleased — Workpoint session scope guard
-
-- Added `project_root` to Workpoint checkpoints/resume packets and reject mismatched resume packets with `rejected_scope_mismatch`.
-- Pi checkpoint/resume calls now send current session/project root and clear mismatched packets instead of injecting cross-session context.
-- Added first-class prediction Pi tools, tool contracts, docs, and predictive-power skill.
-- Added real Rust tests for Workpoint project-root guard and durable prediction store.
-
-## Unreleased — Spec92 cookbook and drift validation
-
-- Added `docs/current/AGENT_COMMAND_COOKBOOK.md`.
-- Added `scripts/validate-spec92-surface.mjs` to prevent docs/CLI/API/Mac surface drift.
-
-## Unreleased — Spec92 prediction loop
-
-- Added prediction record, recent, evaluate, and stats API under `/v1/predictions*`.
-- Added `focusa predict record/recent/evaluate/stats`.
-- Added `docs/current/PREDICTIVE_POWER_GUIDE.md`.
-
-## Unreleased — Spec92 Mac mission control
-
-- Added Mac app Mission tab with live daemon, Workpoint, Work-loop, tool-contract, token, cache, release, and recovery cards.
-- Added `docs/current/MAC_APP_MISSION_CONTROL.md`.
-
-## Unreleased — Spec92 error and empty-state envelopes
-
-- Expanded CLI JSON failures and API non-JSON HTTP failures to include recovery-first Spec92 envelope fields.
-- Added `docs/current/ERROR_EMPTY_STATES.md`.
-
-## Unreleased — Spec92 safe cleanup command
-
-- Added `focusa cleanup --safe` and `--dry-run` for recoverable cleanup of known generated residue while preserving `.beads/`, `data/`, and `target/`.
-
-## Unreleased — Spec92 release prove command
-
-- Added `focusa release prove --tag <tag>` release-proof orchestration with Spec90/91 validation, work-loop wiring proof, daemon health, Guardian scans, optional cargo gates, optional GitHub release lookup, and standard Spec92 envelope.
-
-## Unreleased — daemon resilience and Pi holdover
-
-- Hardened live `focusa-daemon` systemd restart policy with `Restart=always`, `RestartSec=1`, and disabled start-limit throttling.
-- Added Pi extension in-session holdover/kickstart: tools remain available, daemon start/restart is attempted automatically, health probes accelerate, and SSE/state reconciliation resumes when daemon returns.
-- Added `docs/current/DAEMON_RESILIENCE.md`.
-
-## Unreleased — Spec92 agent status command
-
-- Added `focusa status --agent` with live Workpoint, Work-loop, token-budget, cache, and daemon status envelope.
-
-## Unreleased — Spec92 continue command
-
-- Added full `focusa continue` command with work-loop writer governance, optional next-work selection, optional enable, Workpoint/Work-loop refresh, and standard Spec92 envelopes.
-- Added `docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md`.
-
-## Unreleased — Spec92 full doctor command center
-
-- Added full `focusa doctor` command-center checks plus standard Spec92 output envelope; expanded token-budget visibility with `focusa tokens doctor` and `focusa tokens compact-plan`.
-
-## Unreleased — Spec92 cache metadata doctor
-
-- Added `POST /v1/telemetry/cache-metadata` and `GET /v1/telemetry/cache-metadata/status` for bounded cache metadata records.
-- Added `focusa cache doctor` CLI visibility.
-- Pi provider hook now emits cache metadata derived from bounded provider-request summaries.
-
-## Unreleased — Spec92 token budget telemetry
-
-- Added `POST /v1/telemetry/token-budget` and `GET /v1/telemetry/token-budget/status` for bounded Spec92 token-budget records.
-- Added `focusa telemetry token-budget` CLI visibility.
-- Pi `before_provider_request` hook now records bounded token-budget metadata to the daemon when available.
-- Added `docs/current/EFFICIENCY_GUIDE.md`.
-
-## Unreleased — Spec92 hook telemetry foundation
-
-- Added first Spec92 implementation slice: missing Pi hook registrations for resources, agent/message/provider/tool execution, and session tree lifecycle events.
-- Added bounded in-memory hook/token telemetry and exposed summary details through `focusa_tool_doctor`.
-- Added current hook coverage docs at `docs/current/HOOK_COVERAGE.md`.
-
-## Unreleased — Spec92 polish/prediction spec
-
-- Added Spec92 for agent-first polish, missing Pi hooks, token efficiency, cache UX, command-center surfaces, Mac mission-control polish, and predictive-power accumulation.
-- Documented how Focusa can accumulate predictive power using current event, Workpoint, metacognition, telemetry, CLT, ontology, and evidence frameworks.
-
-## Unreleased — command documentation pass
-
-- Added `docs/current/PRODUCTION_RELEASE_COMMANDS.md` with copy/paste release, daemon restart, GitHub proof, Mac app, and cleanup commands.
-- Updated current runtime, validation, and Pi extension docs with concrete commands for current build verification.
-
-## Unreleased — GitHub release and Mac app refresh
-
-- Fixed GitHub CI/release clippy and spec-gate blockers.
-- Updated the Mac menubar app to version `0.9.9` across package, Tauri, lockfile, and UI version surfaces.
-- Updated the Mac menubar app to current Focusa core/API surfaces: health, ontology tool contracts, Workpoint, Work-loop, recent events, state dump, and live canvas events.
-- Added Bun lockfile for the menubar app because the release workflow installs with Bun.
-- Updated release-note examples to use the active release tag instead of stale `v0.2.10` paths.
-- Restored pending-gated compaction auto-resume retry wiring required by strict spec gates.
-
-## Unreleased — Spec91 live tool contract proof
-
-- Added Spec91 for live runtime proof that the daemon ontology tool-contract projection matches the canonical registry.
-- Added `scripts/prove-focusa-tool-contracts-live.mjs`.
-- Added read-only `--safe-fixtures` live probes for representative Workpoint, Work-loop, tree/lineage, metacognition, and Focus State surfaces.
-- Added live proof docs at `docs/current/LIVE_TOOL_CONTRACT_PROOF.md`.
-
-## Unreleased — Spec90 tool contract foundation
-
-- Added Spec90 for ontology-backed Focusa tool contracts and parity hardening.
-- Added current machine-readable registry for all 43 `focusa_*` Pi tools.
-- Added JSON registry projection and `GET /v1/ontology/tool-contracts` API projection.
-- Added deterministic contract validation script.
-- Upgraded `focusa_tool_doctor` to report contract coverage summary.
-- Added current tool contract registry documentation.
-
-## v0.9.2-dev — Focusa tool docs split
-
-- Added one individual doc for each current `focusa_*` Pi tool under `docs/focusa-tools/tools/`.
-- Added a root README table linking all 43 individual tool docs.
-- Kept family docs as navigation pages only.
-- Validation: root README links 43/43 current tools with no missing or extra links.
-
-## v0.9.1-dev — Focused skills and tool-doc navigation
-
-- Added companion Pi skills: `focusa-workpoint`, `focusa-metacognition`, `focusa-work-loop`, `focusa-cli-api`, `focusa-troubleshooting`, `focusa-docs-maintenance`.
-- Added focused tool family docs and linked them from README.
-- Validated Pi skill loader diagnostics for project, extension, and installed skill directories.
-
-## v0.9.0-dev — Public runtime docs alignment
-
-- Updated GitHub-facing README and high-risk public docs to describe the current Rust core/API/CLI/Pi runtime snapshot.
-- Removed pre-implementation and finished/frozen wording from key public docs.
-- Documented current Workpoint, evidence, metacognition, state hygiene, and tool-result envelope behavior.
-
-## Earlier current-build milestones
-
-- Spec88 Workpoint continuity: checkpoint/current/resume/drift/evidence-link APIs and Pi tools.
-- Spec89 tool hardening: common tool result envelope, Workpoint-linked evidence, tool doctor, active-object resolver, work-loop UX, metacog quality gates, dedupe/hygiene surfaces, live release proof.
+# Changelog — auto-generated from `release-proof/audit/audit.jsonl`
+
+_Last regenerated: 2026-06-30._
+
+> Do not edit this file by hand. Regenerate via:
+> `python3 scripts/changelog-gen.py`
+>
+> See also: `docs/self-heal-chain.md` · `docs/failures-playbook.md` · `release-proof/audit/categories.md`
+
+## How to read this
+
+Each section groups audit rows by **self-heal layer**:
+
+- Layer 1 — Runner
+- Layer 2 — Script
+- Layer 3 — Workflow
+- Layer 4 — Audit
+- Layer 5 — Repo / Ops
+
+Each row links back to the canonical ledger entry by `id`.
+
+## v0.9.42-dev — release in scope
+
+### Layer 1 — Runner
+
+- **fail-2026-06-30-hosted-ssh-refused** (`infrastructure_blocked`, `info`): ssh: connect to host host.philoveracity.com port 22: Connection refused
+  - fix: Move deploy to self-hosted runner on VPS
+  - guard: Self-hosted runner installed with focusa-deploy label
+  - test: scripts/install-self-hosted-runner.sh
+  - linked run: `manual-probe-2026-06-30`
+- **add-2026-06-30-self-hosted-runner** (`policy_violation`, `info`): Added reproducible self-hosted runner installer with narrow sudoers rule, label set focusa-deploy,production, and version-locked GitHub Actions runner.
+- **add-2026-06-30-narrow-sudoers** (`policy_violation`, `info`): Expanded sudoers allowlist to cover kill, install, mv, cp, rm, ln, and a short set of systemctl subcommands so install-daemon.sh can complete end-to-end under the runner user.
+
+### Layer 2 — Script
+
+- **add-2026-06-30-deploy-automation** (`policy_violation`, `info`): Added FOCUSA_DEPLOY_AUDIT_LOG + append-only deploy audit events (deploy_start/preflight/complete/rollback) with full GitHub context.
+- **add-2026-06-30-cleanup** (`disk_pressure`, `info`): Added scoped safe disk cleanup that only removes rebuildable Focusa paths (target/.tmp/tmp backups/runner temp) and fails closed below min_free_gb/above max_usage_pct.
+- **fail-2026-06-30-deploy-gate-ci** (`missing_ci_gate_passing`, `info`): Deploy blocked: no successful CI push run on main for 88adf8b92c06823b72de0d15b56de27898e1643b
+  - fix: CI gate already correct; fix is upstream by getting CI green
+  - guard: CI gate refuses deploy without successful CI run on main for target SHA
+  - test: deploy workflow CI gate step
+  - linked run: `28416984267`
+- **add-2026-06-30-smoke-check** (`self_heal`, `info`): Added reusable smoke check that verifies service is active, daemon pid is unique, /v1/health responds, and version matches expected. Emits append-only audit events. Used as Deploy Live Daemon self-healing hook.
+- **fail-2026-06-30-gh-release-clobber** (`artifact_already_exists`, `info`): gh release download exits 1 with 'already exists (use --clobber)' when /tmp/focusa-release contains a previous artifact
+  - fix: Add --clobber flag to gh release download call
+  - guard: static proof will check workflow contains --clobber after deploy
+  - test: tests/release_deploy_automation_static_test.sh
+  - linked run: `28421773920`
+- **fail-2026-06-30-install-perms** (`permission_denied`, `info`): install: cannot create regular file '/usr/local/bin/focusa-daemon.new': Permission denied; kill: Operation not permitted on root-owned daemon pids
+  - fix: install-daemon.sh now uses sudo -n internally for kill/install/mv and systemctl; sudoers allowlist broadened to those specific binaries; fail closed to direct call if sudo fails
+  - guard: static proof asserts sudoers and script plumbing
+  - test: tests/release_deploy_automation_static_test.sh
+  - linked run: `28422646410`
+- **fail-2026-06-30-kill-sete** (`strict_mode_kill`, `info`): install-daemon.sh aborted at line 235 kill -TERM after sudo -n
+  - fix: Wrapped stop_service_and_strays in set +e / set -e so individual kill errors cannot abort the deploy; both sudo and direct kill run with 2>/dev/null and a final `true`
+  - guard: static proof asserts scripts/install-daemon.sh wraps stop_service_and_strays
+  - test: tests/release_deploy_automation_static_test.sh
+  - linked run: `28423372137`
+
+### Layer 3 — Workflow
+
+- **fail-2026-06-30-version-drift-mac-files** (`stale_version_surface`, `info`): Cargo.toml 0.9.40-dev, tauri.conf.json 0.9.40-dev, menubar package.json 0.9.35-dev
+  - fix: verify-version-surfaces.py invoked from release.yml + stamp commit in create-dev-release-tag.sh
+  - guard: verify-version-surfaces.py in CI
+  - test: scripts/verify-version-surfaces.py
+  - linked run: `manual-2026-06-30`
+- **add-2026-06-30-ci-gate** (`missing_ci_gate_passing`, `info`): Gate Deploy Live Daemon on a successful GitHub CI push run on main for the exact target commit.
+- **add-2026-06-30-cleanup-preflight** (`disk_pressure`, `info`): Run safe-disk-cleanup preflight before deploy with min_free_gb / max_usage_pct thresholds.
+- **add-2026-06-30-temp-cleanup** (`disk_pressure`, `info`): Cleanup /tmp/focusa-release after successful deploy.
+- **fail-2026-06-30-static-1** (`brittle_regex_match`, `info`): ✗ workflow name missing
+  - fix: Use fixed-string grep -Fq
+  - guard: Local and CI must both pass via shared static script
+  - test: tests/release_deploy_automation_static_test.sh
+  - linked run: `28416975360`
+- **fail-2026-06-30-static-2** (`brittle_regex_match`, `info`): ✗ release trigger missing
+  - fix: grep -Fq 'types: [published]'
+  - guard: Use exact GitHub Actions surface markers
+  - test: tests/release_deploy_automation_static_test.sh
+  - linked run: `28417177324`
+- **fail-2026-06-30-spec-gates-stale-version** (`stale_version_surface`, `info`): settings polish shows current menubar version
+  - fix: Run stamp-menubar-version.py + verify-version-surfaces.py for the latest tag and commit
+  - guard: CI gate verify-version-surfaces.py against latest tag + spec gates compare visible version
+  - test: scripts/verify-version-surfaces.py + scripts/stamp-menubar-version.py
+  - linked run: `28417177324`
+- **fail-2026-06-30-static-3** (`brittle_regex_match`, `info`): ✗ workflow_dispatch trigger missing
+  - fix: grep -Fq 'workflow_dispatch:'
+  - guard: All workflow YAML checks use -Fq
+  - test: tests/release_deploy_automation_static_test.sh
+  - linked run: `28417401788`
+- **fail-2026-06-30-static-4** (`brittle_regex_match`, `info`): ✗ release artifact download missing
+  - fix: grep -Fq 'gh release download'
+  - guard: All workflow YAML checks use -Fq
+  - test: tests/release_deploy_automation_static_test.sh
+  - linked run: `28417602030`
+- **add-2026-06-30-smoke-step** (`self_heal`, `info`): Added Self-healing smoke check step after Verify deployed version locally so the workflow surfaces and audits version/process drift post-deploy.
+- **fail-2026-06-30-static-rg-quote** (`brittle_regex_match`, `info`): ✗ deploy lock missing in CI despite local PASS
+  - fix: Rewrite the entire static proof to use a single grep -Fq -- needle assertion helper instead of rg
+  - guard: all workflow + script checks use assert_grep helper with -Fq
+  - test: tests/release_deploy_automation_static_test.sh
+  - linked run: `28418579907`
+
+### Layer 4 — Audit
+
+- **add-2026-06-30-audit** (`policy_violation`, `info`): Capture old/new binary checksum + current_version in audit log so rollback path is auditable.
+- **add-2026-06-30-execstart** (`stale_execut`, `info`): Validate systemd ExecStart references canonical install path before deploy.
+- **add-2026-06-30-version-surfaces** (`policy_violation`, `info`): Verify root + menubar version surfaces against the release tag in CI and pre-release.
+- **add-2026-06-30-failures-playbook** (`policy_violation`, `info`): Created structured playbook indexing each failure with category/root_cause/fix/guard/test so future agents do not repeat mistakes.
+- **add-2026-06-30-assert-helper** (`brittle_regex_match`, `info`): Introduced assert_grep helper that wraps grep -Fq -- needle so future brittle_regex_match failures convert to fixed-string checks automatically.
+
+### Layer 5 — Repo / Ops
+
+- **fail-2026-06-30-stale-execstart** (`permission_denied`, `critical`): Deploy proof 28424197504 failed because /etc/systemd/system/focusa-daemon.service ExecStart=/home/wirebot/focusa/target/release/focusa-daemon (deleted during safe-disk-cleanup.sh target removal).
+  - fix: 1) Patch systemd unit ExecStart=/usr/local/bin/focusa-daemon and WorkingDirectory=/usr/local/lib/focusa. 2) Add install-daemon.sh auto-patch: if unit ExecStart does not match INSTALL_PATH, rewrite and daemon-reload before stop/start. 3) Add static test to assert unit ExecStart canonicalization rule.
+  - guard: install-daemon.sh validate_service_execstart rejects mismatched ExecStart; auto-patch path added.
+  - test: tests/release_deploy_automation_static_test.sh: new assert_grep for unit-path canonicalization branch in install-daemon.sh
+  - linked run: `28424197504`
+- **fail-2026-06-30-deploy-oom-killed** (`hang_or_oom`, `critical`): Deploy proof 28427772346 was OOM-killed after 23m wall clock (exit 137). install-daemon.sh had no wall-clock or RSS guard.
+  - fix: 1) install-daemon.sh: add watchdog_check() that polls wall-clock and RSS each iteration of wait_for_health and dies with deploy_oom_killed audit event on overrun. 2) curl --max-time 5 to bound a single request. 3) New .github/workflows/auto-retry-deploy.yml: self-triggered on workflow_run completion of Deploy Live Daemon; re-dispatches once with the same release tag and the canonical musl asset when conclusion=failure. 4) Static test asserts both watchdog and auto-retry.
+  - guard: WALL_CLOCK_SEC=600 and RSS_LIMIT_MB=768 (env overridable); auto-retry capped at one attempt per upstream failure.
+  - test: tests/release_deploy_automation_static_test.sh: WALL_CLOCK_SEC / RSS_LIMIT_MB / deploy_oom_killed / deploy_health / watchdog_check / workflow_run / Auto Retry Deploy all present
+  - linked run: `28427772346`
+- **add-2026-06-30-wall-clock-rss-watchdog** (`self_heal`, `info`): Auto-heal: install-daemon.sh self-bounds wall clock and RSS; emits deploy_oom_killed audit row.
+  - fix: Added watchdog_check + curl --max-time 5 + auto-retry workflow
+  - guard: WALL_CLOCK_SEC, RSS_LIMIT_MB env vars; auto-retry.yml re-dispatches once on failure
+  - test: static test asserts
+  - linked run: `28427772346`
+- **fail-2026-06-30-runner-oom-killed** (`hang_or_oom`, `critical`): Deploy proof 28433719501 lost runner communication after 28m. actions.runner systemd unit was kernel OOM-killed (signal=KILL) so my script watchdog never ran.
+  - fix: 1) install-self-hosted-runner.sh now writes a systemd drop-in for the runner unit: MemoryMax=2G + Restart=always + RestartSec=15. 2) Applied same drop-in to live runner immediately. 3) Auto Retry Deploy workflow now fires automatically on deploy failure (verified triggered run 28435325539).
+  - guard: MemoryMax=2G (overridable via FOCUSA_RUNNER_MEMORY_MAX), Restart=always on the runner unit; auto-retry.yml re-dispatches once on Deploy Live Daemon failure.
+  - test: static test asserts MemoryMax= + Restart=always in install-self-hosted-runner.sh
+  - linked run: `28433719501`
+- **add-2026-06-30-runner-restart-memorymax** (`self_heal`, `info`): Auto-heal: runner unit self-recovers from OOM kills and has a hard memory ceiling.
+  - fix: MemoryMax=2G + Restart=always in install-self-hosted-runner.sh and live override drop-in
+  - guard: MemoryMax env var, Restart=always
+  - test: static test
+  - linked run: `28433719501`
+- **fail-2026-06-30-binary-version-zombie** (`hang_or_oom`, `critical`): Deploy run 28439067838 spawned 5 zombie install-daemon.sh processes blocked on binary_version() invoking the gnu binary via --version. The gnu binary is glibc-incompatible (AlmaLinux 8) and segfaults inside libc, leaving the version probe wedged.
+  - fix: 1) binary_version() now parses the version from the binary's canonical filename first; only runs --version as fallback under timeout 3. 2) Background watchdog_loop now invokes watchdog_check every 5s and dies (TERM $$) on overrun instead of being a no-op. 3) Killed live stuck processes manually as part of recovery.
+  - guard: binary_version prefers filename-based extraction; --version fallback bounded by timeout 3; watchdog_loop is real and audit-loggable.
+  - test: static test asserts timeout 3 + watchdog_loop
+  - linked run: `28439067838`
+- **add-2026-06-30-binary-version-filename-first** (`self_heal`, `info`): Auto-heal: binary_version reads version from filename; --version fallback is timeout-bounded. Background watchdog now actually calls watchdog_check.
+  - fix: Filename-first extraction; timeout 3 fallback; real watchdog_loop
+  - guard: filename parser, timeout 3
+  - test: static test
+  - linked run: `28439067838`
+- **fail-2026-06-30-health-attempts-30** (`health_timeout`, `warning`): Deploy proof 28442594742 reported failure because wait_for_health timed out at 30 attempts (30s). The musl daemon takes ~10-30s to seed Mem0 before serving /v1/health, so 30s was too short.
+  - fix: Bumped wait_for_health attempts to 60 (60s) at the deploy step. The watchdog still caps the whole script at 600s wall clock.
+  - guard: wait_for_health 60 + watchdog_check on every iteration + curl --max-time 5 per probe
+  - test: static test asserts watchdog_check + curl timeout
+  - linked run: `28442594742`
+- **fail-2026-06-30-health-intermittent** (`intermittent_health`, `warning`): Deploy run 28443558667 reported failure (wait_for_health timed out at 60 attempts), but daemon v0.9.42-dev is live and /v1/health responds ~70% of attempts. Daemon crash-loops on mem0 seed under load.
+  - fix: Deploy proof correctly reported failure for the deploy; daemon is running the new version. Long-term: ship a daemon-side fix for /v1/health hang; deploy proof already correctly rolls back on persistent health failure. Audit trail captures intermittent pattern for triage.
+  - guard: wait_for_health 60s + watchdog_check + curl --max-time 5 + auto-rollback on persistent failure + auto-retry workflow
+  - test: static test asserts watchdog, retry, musl default, auto-patch
+  - linked run: `28443558667`
+- **fail-2026-06-30-hostname-unwrap** (`hostname_assumption`, `info`): Initial hostname used FQDN style
+  - fix: Use $(hostname -s) for runner_name
+  - guard: Documented default
+  - test: dry-run output validated
+  - linked run: `dry-run-2026-06-30`
+- **fail-2026-06-30-cargo-clean-perm** (`permission_denied`, `info`): as-user wirebot cargo clean: Permission denied
+  - fix: Documented last-resort root path + fix-user-perms
+  - guard: Workflow invokes scripts via sudo -n (narrow rule) not as wirebot
+  - test: scripts/install-self-hosted-runner.sh sudoers
+  - linked run: `manual-cleanup-2026-06-30`
+- **fail-2026-06-30-target-rebuild-blocked** (`disk_pressure`, `info`): Disk 95% critical, 18G free
+  - fix: rm -rf /home/wirebot/focusa/target + fix-user-perms wirebot
+  - guard: safe-disk-cleanup.sh before deploy + git pre-deploy disk threshold check
+  - test: tests/release_deploy_automation_static_test.sh
+  - linked run: `manual-cleanup-2026-06-30`
+- **fail-2026-06-30-disc-evidence-policy** (`policy_violation`, `info`): bd-evidence BLOCKED: closed beads missing required evidence citations
+  - fix: Reopen + close with explicit Evidence citations: list including /v1/health
+  - guard: Close all beads with explicit Evidence citations: lines
+  - test: git push hook
+  - linked run: `manual-close-2026-06-30`
+- **add-2026-06-30-auto-heal** (`self_heal`, `info`): Auto-heal hook: detects new audit.jsonl rows that lack a 'self_heal' flag and emits a synthesis row so follow-up automation knows what to patch.
+- **fail-2026-06-30-static-1** (`brittle_regex_match`, `auto`)
+- **fail-2026-06-30-static-2** (`brittle_regex_match`, `auto`)
+- **fail-2026-06-30-static-3** (`brittle_regex_match`, `auto`)
+- **fail-2026-06-30-static-4** (`brittle_regex_match`, `auto`)
+- **fail-2026-06-30-spec-gates-stale-version** (`stale_version_surface`, `auto`)
+- **fail-2026-06-30-deploy-gate-ci** (`missing_ci_gate_passing`, `auto`)
+- **fail-2026-06-30-hosted-ssh-refused** (`infrastructure_blocked`, `auto`)
+- **fail-2026-06-30-target-rebuild-blocked** (`disk_pressure`, `auto`)
+- **fail-2026-06-30-cargo-clean-perm** (`permission_denied`, `auto`)
+- **fail-2026-06-30-hostname-unwrap** (`hostname_assumption`, `auto`)
+- **fail-2026-06-30-disc-evidence-policy** (`policy_violation`, `auto`)
+- **fail-2026-06-30-version-drift-mac-files** (`stale_version_surface`, `auto`)
+- **fail-2026-06-30-static-rg-quote** (`brittle_regex_match`, `auto`)
+- **fail-2026-06-30-self-test** (`self_test`, `info`): manual trial failure
+  - fix: none yet
+  - guard: auto-heal-audit
+  - test: scripts/auto-heal-audit.py
+- **fail-2026-06-30-self-test** (`self_test`, `auto`)
+- **add-2026-06-30-bounded-backups** (`disk_pressure`, `info`): Replaced age-based retention with bounded most-recent-N retention so the deploy backup list cannot grow without bound. Default BACKUP_KEEP=5; tunable via --backup-keep or FOCUSA_DEPLOY_BACKUP_KEEP var; wired through the Deploy Live Daemon workflow.
+- **fail-2026-06-30-gh-release-clobber** (`artifact_already_exists`, `auto`)
+- **fail-2026-06-30-install-perms** (`permission_denied`, `auto`)
+- **fail-2026-06-30-kill-sete** (`strict_mode_kill`, `auto`)
+
+## At-a-glance
+
+- addition: 19
+- failure: 23
+- self_heal: 17
