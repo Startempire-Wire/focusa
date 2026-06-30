@@ -60,6 +60,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Auto-heal audit trail
+        run: python3 scripts/auto-heal-audit.py
+
       - name: Static proof
         run: |
           chmod +x tests/release_deploy_automation_static_test.sh

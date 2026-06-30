@@ -141,6 +141,9 @@ jobs:
       - name: Verify stamped version surfaces
         run: python3 scripts/verify-version-surfaces.py "${{ github.ref_name }}"
 
+      - name: Auto-heal audit trail
+        run: python3 scripts/auto-heal-audit.py
+
       - name: Install frontend deps
         working-directory: apps/menubar
         run: bun install

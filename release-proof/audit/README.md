@@ -6,7 +6,7 @@ automation.
 
 Files:
 
-- `audit.jsonl` — append-only events: `addition` and `failure`
+- `audit.jsonl` — append-only events: `addition`, `failure`, `self_heal`
 - `categories.md` — failure category playbook with category-level fix and guard
 
 How to record a new event:
@@ -27,6 +27,16 @@ How to record a new event:
   "linked_run":"<GH run id or manual>"
 }
 ```
+
+Auto-heal:
+
+- Run `python3 scripts/auto-heal-audit.py` after any CI, release, or deploy run.
+- It scans the latest entries and synthesizes one `self_heal` row per `failure` that lacks one.
+- Idempotent: re-running produces no duplicates.
+- Triggered automatically by:
+  - `Release` workflow (`Run auto-heal-audit` step after version surface verification)
+  - `Deploy Live Daemon` workflow (`Auto-heal audit trail` step after temp cleanup)
+  - `CI` workflow (`Auto-heal audit trail` step before static proof)
 
 Required:
 

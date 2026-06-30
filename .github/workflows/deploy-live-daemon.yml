@@ -259,3 +259,8 @@ jobs:
         if: ${{ !inputs.dry_run }}
         shell: bash
         run: rm -rf /tmp/focusa-release
+
+      - name: Auto-heal audit trail
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        run: python3 scripts/auto-heal-audit.py
