@@ -21,6 +21,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: deploy-live-daemon-production
@@ -29,19 +30,18 @@ concurrency:
 jobs:
   deploy:
     name: Deploy Live Daemon
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, focusa-deploy]
     environment: production
     env:
-      DEPLOY_HOST: ${{ secrets.FOCUSA_DEPLOY_HOST }}
-      DEPLOY_USER: ${{ secrets.FOCUSA_DEPLOY_USER }}
-      DEPLOY_SSH_KEY: ${{ secrets.FOCUSA_DEPLOY_SSH_KEY }}
-      DEPLOY_PORT: ${{ vars.FOCUSA_DEPLOY_PORT }}
       DEPLOY_INSTALL_ROOT: ${{ vars.FOCUSA_DEPLOY_INSTALL_ROOT }}
       DEPLOY_SERVICE_NAME: ${{ vars.FOCUSA_DEPLOY_SERVICE_NAME }}
       DEPLOY_HEALTH_URL: ${{ vars.FOCUSA_DEPLOY_HEALTH_URL }}
       DEPLOY_ASSET_SUFFIX_DEFAULT: ${{ vars.FOCUSA_DEPLOY_ASSET_SUFFIX }}
       DEPLOY_REQUIRE_SERVICE: ${{ vars.FOCUSA_DEPLOY_REQUIRE_SERVICE }}
       DEPLOY_USE_SUDO: ${{ vars.FOCUSA_DEPLOY_USE_SUDO }}
+      DEPLOY_AUDIT_LOG: ${{ vars.FOCUSA_DEPLOY_AUDIT_LOG }}
+      DEPLOY_MIN_FREE_GB: ${{ vars.FOCUSA_DEPLOY_MIN_FREE_GB }}
+      DEPLOY_MAX_USAGE_PCT: ${{ vars.FOCUSA_DEPLOY_MAX_USAGE_PCT }}
     steps:
       - uses: actions/checkout@v6
 
@@ -50,41 +50,87 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git fetch --tags --force --quiet origin || true
           TAG="${{ github.event.release.tag_name || inputs.release_tag }}"
           [[ -n "$TAG" ]] || { echo "missing release tag" >&2; exit 1; }
           VERSION="${TAG#v}"
+          TAG_SHA="$(git rev-list -n 1 "$TAG")"
+          [[ -n "$TAG_SHA" ]] || { echo "could not resolve tag sha for $TAG" >&2; exit 1; }
           SUFFIX="${{ inputs.asset_suffix }}"
           if [[ -z "$SUFFIX" ]]; then
             SUFFIX="${DEPLOY_ASSET_SUFFIX_DEFAULT:-x86_64-unknown-linux-gnu}"
           fi
           ASSET_NAME="focusa-daemon-${TAG}-${SUFFIX}"
-          PORT="${DEPLOY_PORT:-22}"
           INSTALL_ROOT="${DEPLOY_INSTALL_ROOT:-/usr/local}"
           SERVICE_NAME="${DEPLOY_SERVICE_NAME:-focusa-daemon}"
           HEALTH_URL="${DEPLOY_HEALTH_URL:-http://127.0.0.1:8787/v1/health}"
           REQUIRE_SERVICE="${DEPLOY_REQUIRE_SERVICE:-1}"
           USE_SUDO="${DEPLOY_USE_SUDO:-1}"
+          AUDIT_LOG="${DEPLOY_AUDIT_LOG:-/var/log/focusa/deploy-audit.jsonl}"
+          MIN_FREE_GB="${DEPLOY_MIN_FREE_GB:-15}"
+          MAX_USAGE_PCT="${DEPLOY_MAX_USAGE_PCT:-92}"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag_sha=$TAG_SHA" >> "$GITHUB_OUTPUT"
           echo "asset_name=$ASSET_NAME" >> "$GITHUB_OUTPUT"
-          echo "port=$PORT" >> "$GITHUB_OUTPUT"
           echo "install_root=$INSTALL_ROOT" >> "$GITHUB_OUTPUT"
           echo "service_name=$SERVICE_NAME" >> "$GITHUB_OUTPUT"
           echo "health_url=$HEALTH_URL" >> "$GITHUB_OUTPUT"
           echo "require_service=$REQUIRE_SERVICE" >> "$GITHUB_OUTPUT"
           echo "use_sudo=$USE_SUDO" >> "$GITHUB_OUTPUT"
+          echo "audit_log=$AUDIT_LOG" >> "$GITHUB_OUTPUT"
+          echo "min_free_gb=$MIN_FREE_GB" >> "$GITHUB_OUTPUT"
+          echo "max_usage_pct=$MAX_USAGE_PCT" >> "$GITHUB_OUTPUT"
 
-      - name: Validate deploy secrets
+      - name: Require successful GitHub CI for target commit
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const targetSha = `${{ steps.cfg.outputs.tag_sha }}`;
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'ci.yml',
+              head_sha: targetSha,
+              per_page: 50,
+            });
+            const successRun = runs.data.workflow_runs.find(run =>
+              run.status === 'completed' &&
+              run.conclusion === 'success' &&
+              run.event === 'push' &&
+              run.head_branch === 'main'
+            );
+            if (!successRun) {
+              core.setFailed(`Deploy blocked: no successful CI push run on main for ${targetSha}`);
+              return;
+            }
+            core.info(`Using successful CI run ${successRun.id}: ${successRun.html_url}`);
+
+      - name: Safe disk cleanup preflight
+        if: ${{ !inputs.dry_run }}
         shell: bash
         run: |
           set -euo pipefail
-          missing=()
-          [[ -n "${DEPLOY_HOST:-}" ]] || missing+=(FOCUSA_DEPLOY_HOST)
-          [[ -n "${DEPLOY_USER:-}" ]] || missing+=(FOCUSA_DEPLOY_USER)
-          [[ -n "${DEPLOY_SSH_KEY:-}" ]] || missing+=(FOCUSA_DEPLOY_SSH_KEY)
-          if (( ${#missing[@]} > 0 )); then
-            printf 'Missing deploy secret(s): %s\n' "${missing[*]}" >&2
-            exit 1
+          if [[ "${{ steps.cfg.outputs.use_sudo }}" == "0" ]]; then
+            SUDO=""
+          else
+            SUDO="sudo -n"
+          fi
+          chmod 755 scripts/safe-disk-cleanup.sh
+          if [[ -n "$SUDO" ]]; then
+            $SUDO /bin/bash "$GITHUB_WORKSPACE/scripts/safe-disk-cleanup.sh" \
+              --apply \
+              --project-root "$GITHUB_WORKSPACE" \
+              --backup-dir '${{ steps.cfg.outputs.install_root }}/lib/focusa/backups' \
+              --min-free-gb '${{ steps.cfg.outputs.min_free_gb }}' \
+              --max-usage-pct '${{ steps.cfg.outputs.max_usage_pct }}'
+          else
+            /bin/bash "$GITHUB_WORKSPACE/scripts/safe-disk-cleanup.sh" \
+              --apply \
+              --project-root "$GITHUB_WORKSPACE" \
+              --backup-dir '${{ steps.cfg.outputs.install_root }}/lib/focusa/backups' \
+              --min-free-gb '${{ steps.cfg.outputs.min_free_gb }}' \
+              --max-usage-pct '${{ steps.cfg.outputs.max_usage_pct }}'
           fi
 
       - name: Download daemon artifact from release
@@ -101,18 +147,6 @@ jobs:
             --dir /tmp/focusa-release
           chmod +x "/tmp/focusa-release/${{ steps.cfg.outputs.asset_name }}"
 
-      - name: Configure SSH
-        if: ${{ !inputs.dry_run }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -p "${{ steps.cfg.outputs.port }}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-
       - name: Show deploy plan
         shell: bash
         run: |
@@ -120,35 +154,22 @@ jobs:
           tag=${{ steps.cfg.outputs.tag }}
           version=${{ steps.cfg.outputs.version }}
           asset=${{ steps.cfg.outputs.asset_name }}
-          host=$DEPLOY_HOST
-          user=$DEPLOY_USER
-          port=${{ steps.cfg.outputs.port }}
           install_root=${{ steps.cfg.outputs.install_root }}
           service=${{ steps.cfg.outputs.service_name }}
           health_url=${{ steps.cfg.outputs.health_url }}
           require_service=${{ steps.cfg.outputs.require_service }}
           use_sudo=${{ steps.cfg.outputs.use_sudo }}
+          audit_log=${{ steps.cfg.outputs.audit_log }}
+          min_free_gb=${{ steps.cfg.outputs.min_free_gb }}
+          max_usage_pct=${{ steps.cfg.outputs.max_usage_pct }}
           dry_run=${{ inputs.dry_run }}
           EOF
-
-      - name: Upload artifact and installer
-        if: ${{ !inputs.dry_run }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          REMOTE_DIR="/tmp/focusa-deploy-${GITHUB_RUN_ID}"
-          ssh -p "${{ steps.cfg.outputs.port }}" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$REMOTE_DIR'"
-          scp -P "${{ steps.cfg.outputs.port }}" \
-            "/tmp/focusa-release/${{ steps.cfg.outputs.asset_name }}" \
-            scripts/install-daemon.sh \
-            "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_DIR/"
 
       - name: Install and restart live daemon
         if: ${{ !inputs.dry_run }}
         shell: bash
         run: |
           set -euo pipefail
-          REMOTE_DIR="/tmp/focusa-deploy-${GITHUB_RUN_ID}"
           if [[ "${{ steps.cfg.outputs.use_sudo }}" == "0" ]]; then
             SUDO=""
           else
@@ -159,13 +180,55 @@ jobs:
           else
             REQUIRE_FLAG=""
           fi
-          ssh -p "${{ steps.cfg.outputs.port }}" "$DEPLOY_USER@$DEPLOY_HOST" "chmod 755 '$REMOTE_DIR/install-daemon.sh' '$REMOTE_DIR/${{ steps.cfg.outputs.asset_name }}' && $SUDO env FOCUSA_INSTALL_ROOT='${{ steps.cfg.outputs.install_root }}' FOCUSA_DAEMON_URL='${{ steps.cfg.outputs.health_url }}' '$REMOTE_DIR/install-daemon.sh' --binary '$REMOTE_DIR/${{ steps.cfg.outputs.asset_name }}' --expected-version '${{ steps.cfg.outputs.version }}' --service-name '${{ steps.cfg.outputs.service_name }}' --health-url '${{ steps.cfg.outputs.health_url }}' $REQUIRE_FLAG && rm -rf '$REMOTE_DIR'"
+          chmod 755 scripts/install-daemon.sh "/tmp/focusa-release/${{ steps.cfg.outputs.asset_name }}"
+          if [[ -n "$SUDO" ]]; then
+            $SUDO env \
+              FOCUSA_INSTALL_ROOT='${{ steps.cfg.outputs.install_root }}' \
+              FOCUSA_DAEMON_URL='${{ steps.cfg.outputs.health_url }}' \
+              FOCUSA_DEPLOY_AUDIT_LOG='${{ steps.cfg.outputs.audit_log }}' \
+              FOCUSA_GITHUB_RUN_ID='${{ github.run_id }}' \
+              FOCUSA_GITHUB_RUN_ATTEMPT='${{ github.run_attempt }}' \
+              FOCUSA_GITHUB_ACTOR='${{ github.actor }}' \
+              FOCUSA_GITHUB_SHA='${{ steps.cfg.outputs.tag_sha }}' \
+              FOCUSA_GITHUB_TAG='${{ steps.cfg.outputs.tag }}' \
+              FOCUSA_GITHUB_WORKFLOW='${{ github.workflow }}' \
+              FOCUSA_GITHUB_REPOSITORY='${{ github.repository }}' \
+              /bin/bash "$GITHUB_WORKSPACE/scripts/install-daemon.sh" \
+                --binary "/tmp/focusa-release/${{ steps.cfg.outputs.asset_name }}" \
+                --expected-version '${{ steps.cfg.outputs.version }}' \
+                --service-name '${{ steps.cfg.outputs.service_name }}' \
+                --health-url '${{ steps.cfg.outputs.health_url }}' \
+                $REQUIRE_FLAG
+          else
+            env \
+              FOCUSA_INSTALL_ROOT='${{ steps.cfg.outputs.install_root }}' \
+              FOCUSA_DAEMON_URL='${{ steps.cfg.outputs.health_url }}' \
+              FOCUSA_DEPLOY_AUDIT_LOG='${{ steps.cfg.outputs.audit_log }}' \
+              FOCUSA_GITHUB_RUN_ID='${{ github.run_id }}' \
+              FOCUSA_GITHUB_RUN_ATTEMPT='${{ github.run_attempt }}' \
+              FOCUSA_GITHUB_ACTOR='${{ github.actor }}' \
+              FOCUSA_GITHUB_SHA='${{ steps.cfg.outputs.tag_sha }}' \
+              FOCUSA_GITHUB_TAG='${{ steps.cfg.outputs.tag }}' \
+              FOCUSA_GITHUB_WORKFLOW='${{ github.workflow }}' \
+              FOCUSA_GITHUB_REPOSITORY='${{ github.repository }}' \
+              /bin/bash "$GITHUB_WORKSPACE/scripts/install-daemon.sh" \
+                --binary "/tmp/focusa-release/${{ steps.cfg.outputs.asset_name }}" \
+                --expected-version '${{ steps.cfg.outputs.version }}' \
+                --service-name '${{ steps.cfg.outputs.service_name }}' \
+                --health-url '${{ steps.cfg.outputs.health_url }}' \
+                $REQUIRE_FLAG
+          fi
 
-      - name: Verify deployed version over SSH
+      - name: Verify deployed version locally
         if: ${{ !inputs.dry_run }}
         shell: bash
         run: |
           set -euo pipefail
-          ssh -p "${{ steps.cfg.outputs.port }}" "$DEPLOY_USER@$DEPLOY_HOST" "curl -fsS '${{ steps.cfg.outputs.health_url }}' | python3 -c 'import json,sys; data=json.load(sys.stdin); print(data.get("version",""))'" | tee /tmp/focusa-live-version.txt
+          curl -fsS '${{ steps.cfg.outputs.health_url }}' | python3 -c 'import json,sys; data=json.load(sys.stdin); print(data.get("version",""))' | tee /tmp/focusa-live-version.txt
           LIVE_VERSION="$(cat /tmp/focusa-live-version.txt)"
           test "$LIVE_VERSION" = "${{ steps.cfg.outputs.version }}"
+
+      - name: Cleanup release artifact temp dir
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        run: rm -rf /tmp/focusa-release

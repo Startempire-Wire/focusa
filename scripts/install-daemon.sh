@@ -13,17 +13,64 @@ SERVICE_NAME="${FOCUSA_SERVICE_NAME:-focusa-daemon}"
 HEALTH_URL_DEFAULT="${FOCUSA_DAEMON_URL:-http://127.0.0.1:8787}"
 EXPECTED_VERSION="${FOCUSA_EXPECTED_VERSION:-}"
 BINARY=""
+CURRENT_VERSION=""
+CURRENT_CHECKSUM=""
+NEW_CHECKSUM=""
 NO_RESTART=0
 NO_VERIFY=0
 REQUIRE_SERVICE=0
 LOCK_FILE="${FOCUSA_DEPLOY_LOCK_FILE:-/tmp/focusa-daemon-deploy.lock}"
 STATE_DIR="${FOCUSA_STATE_DIR:-${INSTALL_ROOT}/lib/focusa}"
 BACKUP_DIR="${FOCUSA_BACKUP_DIR:-${STATE_DIR}/backups}"
+AUDIT_LOG="${FOCUSA_DEPLOY_AUDIT_LOG:-/var/log/focusa/deploy-audit.jsonl}"
+GITHUB_RUN_ID="${FOCUSA_GITHUB_RUN_ID:-}"
+GITHUB_RUN_ATTEMPT="${FOCUSA_GITHUB_RUN_ATTEMPT:-}"
+GITHUB_ACTOR="${FOCUSA_GITHUB_ACTOR:-}"
+GITHUB_SHA="${FOCUSA_GITHUB_SHA:-}"
+GITHUB_TAG="${FOCUSA_GITHUB_TAG:-}"
+GITHUB_WORKFLOW="${FOCUSA_GITHUB_WORKFLOW:-}"
+GITHUB_REPOSITORY="${FOCUSA_GITHUB_REPOSITORY:-}"
 HEALTH_URL=""
 
 log() { printf '[focusa-deploy] %s\n' "$*"; }
 warn() { printf '[focusa-deploy][warn] %s\n' "$*" >&2; }
 die() { printf '[focusa-deploy][error] %s\n' "$*" >&2; exit 1; }
+
+audit_event() {
+  local event="$1"
+  local outcome="$2"
+  local note="${3:-}"
+  local live_version="${4:-}"
+  mkdir -p "$(dirname "$AUDIT_LOG")"
+  python3 - "$AUDIT_LOG" "$event" "$outcome" "$note" "$live_version" <<'PY'
+import json, os, sys, time
+path, event, outcome, note, live_version = sys.argv[1:6]
+entry = {
+    "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    "event": event,
+    "outcome": outcome,
+    "note": note,
+    "expected_version": os.environ.get("EXPECTED_VERSION", ""),
+    "live_version": live_version,
+    "install_root": os.environ.get("INSTALL_ROOT", ""),
+    "install_path": os.environ.get("INSTALL_PATH", ""),
+    "service_name": os.environ.get("SERVICE_NAME", ""),
+    "health_url": os.environ.get("HEALTH_URL", ""),
+    "backup_path": os.environ.get("BACKUP_PATH", ""),
+    "github": {
+        "run_id": os.environ.get("GITHUB_RUN_ID", ""),
+        "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT", ""),
+        "actor": os.environ.get("GITHUB_ACTOR", ""),
+        "sha": os.environ.get("GITHUB_SHA", ""),
+        "tag": os.environ.get("GITHUB_TAG", ""),
+        "workflow": os.environ.get("GITHUB_WORKFLOW", ""),
+        "repository": os.environ.get("GITHUB_REPOSITORY", ""),
+    },
+}
+with open(path, "a", encoding="utf-8") as fh:
+    fh.write(json.dumps(entry, separators=(",", ":")) + "\n")
+PY
+}
 
 usage() {
   cat <<'USAGE'
@@ -116,6 +163,7 @@ if ! flock -n 9; then
 fi
 
 mkdir -p "$BACKUP_DIR" "$STATE_DIR" "$(dirname "$INSTALL_PATH")"
+audit_event "deploy_start" "started" "installer invoked"
 
 have_cmd() { command -v "$1" >/dev/null 2>&1; }
 
@@ -128,6 +176,17 @@ binary_version() {
     return 0
   fi
   printf '%s\n' "$out" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+([-.+][0-9A-Za-z._-]+)?' | head -1 || true
+}
+
+binary_checksum() {
+  local path="$1"
+  if have_cmd sha256sum; then
+    sha256sum "$path" | awk '{print $1}'
+  elif have_cmd shasum; then
+    shasum -a 256 "$path" | awk '{print $1}'
+  else
+    printf '\n'
+  fi
 }
 
 json_field() {
@@ -146,6 +205,20 @@ PY
 
 service_exists() {
   systemctl list-unit-files "$SERVICE_UNIT" >/dev/null 2>&1
+}
+
+validate_service_execstart() {
+  service_exists || return 0
+  local execstart=""
+  execstart="$(systemctl show -p ExecStart --value "$SERVICE_UNIT" 2>/dev/null || true)"
+  if [[ -z "$execstart" ]]; then
+    warn "could not read ExecStart for $SERVICE_UNIT"
+    return 0
+  fi
+  if [[ "$execstart" != *"$INSTALL_PATH"* ]]; then
+    audit_event "deploy_preflight" "failed" "service ExecStart does not reference install path: $INSTALL_PATH"
+    die "service ExecStart mismatch for $SERVICE_UNIT; expected reference to $INSTALL_PATH"
+  fi
 }
 
 stop_service_and_strays() {
@@ -236,20 +309,27 @@ if [[ -n "$EXPECTED_VERSION" ]]; then
   fi
 fi
 
+validate_service_execstart
+NEW_CHECKSUM="$(binary_checksum "$BINARY")"
 log "installing $BIN_NAME from $BINARY to $INSTALL_PATH"
 BACKUP_PATH=""
 if [[ -f "$INSTALL_PATH" ]]; then
+  CURRENT_VERSION="$(binary_version "$INSTALL_PATH")"
+  CURRENT_CHECKSUM="$(binary_checksum "$INSTALL_PATH")"
   stamp="$(date +%Y%m%d-%H%M%S)"
   BACKUP_PATH="$BACKUP_DIR/${BIN_NAME}.${stamp}.bak"
   cp -p "$INSTALL_PATH" "$BACKUP_PATH"
   ln -sfn "$BACKUP_PATH" "$STATE_DIR/${BIN_NAME}.previous"
   log "backup saved to $BACKUP_PATH"
 fi
+audit_event "deploy_preflight" "ready" "current_version=${CURRENT_VERSION:-unknown} current_checksum=${CURRENT_CHECKSUM:-unknown} new_checksum=${NEW_CHECKSUM:-unknown}"
 
 rollback() {
   local why="$1"
   warn "$why"
+  audit_event "deploy_rollback" "started" "$why"
   if [[ -z "$BACKUP_PATH" || ! -f "$BACKUP_PATH" ]]; then
+    audit_event "deploy_rollback" "failed" "rollback unavailable; no prior binary backup exists"
     die "rollback unavailable; no prior binary backup exists"
   fi
   warn "rolling back to $BACKUP_PATH"
@@ -258,10 +338,11 @@ rollback() {
   if [[ "$NO_RESTART" -eq 0 ]]; then
     start_service
     if [[ "$NO_VERIFY" -eq 0 ]]; then
-      wait_for_health 20 "" >/dev/null || die "rollback restart failed; daemon still unhealthy"
+      wait_for_health 20 "" >/dev/null || { audit_event "deploy_rollback" "failed" "rollback restart failed; daemon still unhealthy"; die "rollback restart failed; daemon still unhealthy"; }
     fi
     assert_single_process
   fi
+  audit_event "deploy_rollback" "applied" "$why"
   die "deploy failed and rollback was applied"
 }
 
@@ -272,6 +353,7 @@ echo "${EXPECTED_VERSION:-unknown}" > "$STATE_DIR/live-version"
 
 if [[ "$NO_RESTART" -eq 1 ]]; then
   log "installed without restart (--no-restart)"
+  audit_event "deploy_install" "completed" "installed without restart" ""
   exit 0
 fi
 
@@ -295,4 +377,5 @@ if [[ "$NO_VERIFY" -eq 0 ]]; then
   fi
 fi
 
+audit_event "deploy_complete" "success" "deploy complete current_version=${CURRENT_VERSION:-unknown} current_checksum=${CURRENT_CHECKSUM:-unknown} new_checksum=${NEW_CHECKSUM:-unknown}" "${version:-}"
 log "deploy complete"

@@ -4,6 +4,14 @@
 
 Always run the newest tagged Focusa daemon in production without duplicate daemons, while keeping rollback fast and explicit.
 
+The live deploy hook now assumes a **self-hosted GitHub Actions runner on the VPS** with labels:
+
+- `self-hosted`
+- `linux`
+- `x64`
+- `focusa-deploy`
+- `production`
+
 ## Release model
 
 Focusa now uses a tag-driven release/deploy model:
@@ -12,7 +20,7 @@ Focusa now uses a tag-driven release/deploy model:
 2. CI proves build/tests/clippy/static deploy automation.
 3. `scripts/create-dev-release-tag.sh --push` creates the next tag, stamps version surfaces, and pushes `main` + tag.
 4. `Release` workflow builds artifacts from the tag and verifies stamped version surfaces.
-5. `Deploy Live Daemon` workflow downloads the daemon asset from that GitHub release, uploads it to the VPS, installs it, restarts the service, verifies `/v1/health`, and rolls back automatically on failure.
+5. `Deploy Live Daemon` workflow runs only on a self-hosted VPS runner after a successful GitHub `CI` run for the exact target commit, performs a safe disk-cleanup preflight, installs the daemon, restarts the service, verifies `/v1/health`, and rolls back automatically on failure.
 
 ## Canonical commands
 
@@ -31,23 +39,29 @@ Rollback is just a redeploy of an earlier release tag.
 
 ## Required GitHub configuration
 
-### Secrets
+### Self-hosted runner
 
-- `FOCUSA_DEPLOY_HOST`
-- `FOCUSA_DEPLOY_USER`
-- `FOCUSA_DEPLOY_SSH_KEY`
+Install with:
+
+```bash
+sudo scripts/install-self-hosted-runner.sh
+```
+
+This creates the `github-runner` user, installs the runner under `/opt/actions-runner-focusa`, configures the `focusa-deploy,production` labels, and writes a narrow sudoers rule so the runner can execute only the privileged deploy/cleanup scripts.
 
 ### Repository variables
 
 Optional, with defaults shown:
 
-- `FOCUSA_DEPLOY_PORT` = `22`
 - `FOCUSA_DEPLOY_INSTALL_ROOT` = `/usr/local`
 - `FOCUSA_DEPLOY_SERVICE_NAME` = `focusa-daemon`
 - `FOCUSA_DEPLOY_HEALTH_URL` = `http://127.0.0.1:8787/v1/health`
 - `FOCUSA_DEPLOY_ASSET_SUFFIX` = `x86_64-unknown-linux-gnu`
 - `FOCUSA_DEPLOY_REQUIRE_SERVICE` = `1`
 - `FOCUSA_DEPLOY_USE_SUDO` = `1`
+- `FOCUSA_DEPLOY_AUDIT_LOG` = `/var/log/focusa/deploy-audit.jsonl`
+- `FOCUSA_DEPLOY_MIN_FREE_GB` = `15`
+- `FOCUSA_DEPLOY_MAX_USAGE_PCT` = `92`
 
 ## VPS install/restart safeguards
 
@@ -55,12 +69,24 @@ Optional, with defaults shown:
 
 - deploy lock via `flock` so two deploys cannot overlap
 - backup of the current binary before replacement
+- service `ExecStart` validation so systemd points at the canonical install path
 - service stop + stray process cleanup before install
 - restart through systemd
 - `/v1/health` verification after restart
 - version check against the expected release tag version
+- checksum capture for old/new binaries in the audit trail
 - automatic rollback to the previous binary if start/health/version checks fail
 - duplicate-daemon guard using `pgrep -x focusa-daemon`
+- append-only deploy audit log entries for deploy start, preflight, completion, and rollback
++
++`scripts/safe-disk-cleanup.sh` runs before deploy to reclaim only scoped, rebuildable Focusa cruft such as:
++
++- repo `target/`
++- repo `.tmp/`
++- old `/tmp/focusa-release-*` and `/tmp/focusa-deploy-*`
++- stale deploy backups past retention
++
++It fails closed if free space or disk usage remains below configured thresholds.
 
 ## Recommended systemd unit
 
