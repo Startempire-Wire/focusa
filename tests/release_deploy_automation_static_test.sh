@@ -16,7 +16,11 @@ assert_grep() {
   local needle="$1"
   local file="$2"
   local label="$3"
-  if ! grep -Fq -- "$needle" "$file"; then
+  if [[ "$needle" == --* ]]; then
+    # Caller explicitly passed the needle as --needle; grep needs it as --end-of-options sentinel.
+    needle="${needle#--}"
+  fi
+  if ! grep -Fq -e "$needle" "$file"; then
     echo "✗ $label"
     exit 1
   fi
@@ -27,8 +31,7 @@ assert_grep 'name: Deploy Live Daemon' .github/workflows/deploy-live-daemon.yml 
 assert_grep 'types: [published]' .github/workflows/deploy-live-daemon.yml 'release trigger missing'
 assert_grep 'workflow_dispatch:' .github/workflows/deploy-live-daemon.yml 'workflow_dispatch trigger missing'
 assert_grep 'gh release download' .github/workflows/deploy-live-daemon.yml 'release artifact download missing'
-assert_grep 'gh release download' .github/workflows/deploy-live-daemon.yml 'release artifact clobber missing'
-assert_grep -- '--clobber' .github/workflows/deploy-live-daemon.yml 'release artifact clobber flag missing'
+assert_grep --clobber .github/workflows/deploy-live-daemon.yml 'release artifact clobber flag missing'
 assert_grep 'install-daemon.sh' .github/workflows/deploy-live-daemon.yml 'installer invocation missing'
 assert_grep 'safe-disk-cleanup.sh' .github/workflows/deploy-live-daemon.yml 'safe disk cleanup preflight missing'
 assert_grep 'Require successful GitHub CI for target commit' .github/workflows/deploy-live-daemon.yml 'CI gate missing'
