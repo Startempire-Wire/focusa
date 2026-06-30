@@ -79,10 +79,7 @@ pub async fn run(args: DoctorArgs) -> Result<()> {
     let mut uptime_ms: Option<u64> = None;
     if daemon_reachable {
         if let Ok(h) = client.get("/v1/health").await {
-            daemon_version = h
-                .get("version")
-                .and_then(|v| v.as_str())
-                .map(String::from);
+            daemon_version = h.get("version").and_then(|v| v.as_str()).map(String::from);
             uptime_ms = h.get("uptime_ms").and_then(|v| v.as_u64());
         }
     }
@@ -108,7 +105,11 @@ pub async fn run(args: DoctorArgs) -> Result<()> {
             .post("/v1/connect/room/start", &body)
             .await
             .ok()
-            .and_then(|v| v.get("connect_url").and_then(|x| x.as_str()).map(String::from))
+            .and_then(|v| {
+                v.get("connect_url")
+                    .and_then(|x| x.as_str())
+                    .map(String::from)
+            })
     } else {
         None
     };

@@ -75,7 +75,11 @@ pub async fn run_status(args: StatusArgs) -> Result<()> {
         .build()?;
 
     // Daemon health
-    if let Ok(r) = client.get(format!("{}/v1/health", args.base_url)).send().await {
+    if let Ok(r) = client
+        .get(format!("{}/v1/health", args.base_url))
+        .send()
+        .await
+    {
         if r.status().is_success() {
             report.daemon_reachable = true;
             if let Ok(v) = r.json::<Value>().await {
@@ -99,10 +103,18 @@ pub async fn run_status(args: StatusArgs) -> Result<()> {
         return Ok(());
     }
     // Count active rooms (status=waiting_for_phone or mac_seen) via /v1/connect/room/create (no list endpoint yet, so we approximate)
-    if let Ok(r) = client.get(format!("{}/v1/device/pair/list", args.base_url)).send().await {
+    if let Ok(r) = client
+        .get(format!("{}/v1/device/pair/list", args.base_url))
+        .send()
+        .await
+    {
         if r.status().is_success() {
             if let Ok(v) = r.json::<Value>().await {
-                let devices = v.get("devices").and_then(|x| x.as_array()).cloned().unwrap_or_default();
+                let devices = v
+                    .get("devices")
+                    .and_then(|x| x.as_array())
+                    .cloned()
+                    .unwrap_or_default();
                 let paired = devices
                     .iter()
                     .filter(|d| !d.get("revoked").and_then(|x| x.as_bool()).unwrap_or(false))
@@ -116,7 +128,11 @@ pub async fn run_status(args: StatusArgs) -> Result<()> {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else {
         println!("Focusa Pairing Status");
-        println!("  daemon:    {} ({})", report.daemon_version.as_deref().unwrap_or("?"), args.base_url);
+        println!(
+            "  daemon:    {} ({})",
+            report.daemon_version.as_deref().unwrap_or("?"),
+            args.base_url
+        );
         if let Some(up) = report.daemon_uptime_ms {
             println!("  uptime:    {} ms", up);
         }
@@ -149,15 +165,31 @@ pub async fn run_history(args: HistoryArgs) -> Result<()> {
         anyhow::bail!("GET {url} returned HTTP {}", r.status());
     }
     let v: Value = r.json().await.context("decode /v1/device/pair/list")?;
-    let devices = v.get("devices").and_then(|x| x.as_array()).cloned().unwrap_or_default();
+    let devices = v
+        .get("devices")
+        .and_then(|x| x.as_array())
+        .cloned()
+        .unwrap_or_default();
 
     let entries: Vec<HistoryEntry> = devices
         .into_iter()
         .take(args.limit)
         .map(|d| HistoryEntry {
-            device_id: d.get("device_id").and_then(|x| x.as_str()).unwrap_or("?").to_string(),
-            host: d.get("host").and_then(|x| x.as_str()).unwrap_or("?").to_string(),
-            created_at: d.get("created_at").and_then(|x| x.as_str()).unwrap_or("?").to_string(),
+            device_id: d
+                .get("device_id")
+                .and_then(|x| x.as_str())
+                .unwrap_or("?")
+                .to_string(),
+            host: d
+                .get("host")
+                .and_then(|x| x.as_str())
+                .unwrap_or("?")
+                .to_string(),
+            created_at: d
+                .get("created_at")
+                .and_then(|x| x.as_str())
+                .unwrap_or("?")
+                .to_string(),
             revoked: d.get("revoked").and_then(|x| x.as_bool()).unwrap_or(false),
             token_preview: d
                 .get("token")
@@ -178,7 +210,10 @@ pub async fn run_history(args: HistoryArgs) -> Result<()> {
         return Ok(());
     }
     println!("Focusa Pairing History ({} entries)", entries.len());
-    println!("  {:<40}  {:<20}  {:<22}  {:<6}  token", "device_id", "host", "created_at", "revoked");
+    println!(
+        "  {:<40}  {:<20}  {:<22}  {:<6}  token",
+        "device_id", "host", "created_at", "revoked"
+    );
     for e in &entries {
         println!(
             "  {:<40}  {:<20}  {:<22}  {:<6}  {}",

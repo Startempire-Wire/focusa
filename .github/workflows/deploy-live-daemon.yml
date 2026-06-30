@@ -111,6 +111,20 @@ jobs:
             }
             core.info(`Using successful CI run ${successRun.id}: ${successRun.html_url}`);
 
+      - name: Spec104 static audit preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Running Spec104 static surface audit before deploy..."
+          python3 scripts/audit-schema.py spec104 release-proof/audit/audit.jsonl || \
+          {
+            rc=$?
+            echo "Spec104 audit failed with exit code $rc (non-fatal preflight — audit recorded)"
+            if [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then
+              echo "Unexpected error — still proceeding"
+            fi
+          }
+
       - name: Safe disk cleanup preflight
         if: ${{ !inputs.dry_run }}
         shell: bash

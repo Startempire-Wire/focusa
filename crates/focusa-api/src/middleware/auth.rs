@@ -46,16 +46,18 @@ use axum::response::Response;
 
 const PRE_AUTH_PATHS: &[&str] = &[
     "/v1/health",
-    "/v1/connect/room/",      // /join, /approve, /status, /mac-offer
-    "/v1/connect/rooms",       // list rooms (Mac polls this)
-    "/v1/connect/",            // /connect/start, /connect/status, /connect/approve
-    "/connect/",               // /connect/room/<id>/scan, /connect/firstrun, /connect/mediator, etc.
+    "/v1/connect/room/", // /join, /approve, /status, /mac-offer
+    "/v1/connect/rooms", // list rooms (Mac polls this)
+    "/v1/connect/",      // /connect/start, /connect/status, /connect/approve
+    "/connect/",         // /connect/room/<id>/scan, /connect/firstrun, /connect/mediator, etc.
     "/static/",
-    "/pair/",                  // legacy /pair/<device_id>
+    "/pair/", // legacy /pair/<device_id>
 ];
 
 fn is_pre_auth(path: &str) -> bool {
-    PRE_AUTH_PATHS.iter().any(|p| path.starts_with(p) || path == p.trim_end_matches('/'))
+    PRE_AUTH_PATHS
+        .iter()
+        .any(|p| path.starts_with(p) || path == p.trim_end_matches('/'))
 }
 
 /// V2 auth: accept admin token OR device pairing token.
@@ -113,10 +115,7 @@ async fn is_authorized(auth_header: &str) -> bool {
 }
 
 /// Auth middleware — admin token or device pairing token.
-pub async fn auth_layer(
-    req: Request,
-    next: Next,
-) -> Result<Response, StatusCode> {
+pub async fn auth_layer(req: Request, next: Next) -> Result<Response, StatusCode> {
     let path = req.uri().path();
 
     // Pre-auth routes bypass auth entirely (pairing bootstrap is public).

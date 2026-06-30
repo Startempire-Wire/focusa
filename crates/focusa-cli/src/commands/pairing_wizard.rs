@@ -17,10 +17,10 @@
 //!   - docs/56-focusa-pairing-wizard-spec.md
 //!   - docs/57-focusa-pairing-revoke-and-repair.md
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use clap::{Args, Subcommand};
-use qrcode::render::unicode;
 use qrcode::QrCode;
+use qrcode::render::unicode;
 use serde::Serialize;
 use std::io::{IsTerminal, Write};
 use std::time::Duration;
@@ -113,7 +113,12 @@ fn detect_tailscale_hostname() -> Option<(String, String)> {
             return None;
         }
     };
-    let name = v.get("Self")?.get("DNSName")?.as_str()?.trim_end_matches('.').to_string();
+    let name = v
+        .get("Self")?
+        .get("DNSName")?
+        .as_str()?
+        .trim_end_matches('.')
+        .to_string();
     let ip = v
         .get("TailscaleIPs")?
         .as_array()?
@@ -146,7 +151,10 @@ fn resolve_public_url(no_tailnet: bool) -> (String, String) {
             // (HTTP on port 8787), NOT an HTTPS public origin. The daemon
             // serves the API on its own port; HTTPS would require a separate
             // TLS-terminating proxy that isn't part of the self-host default.
-            return (format!("http://{name}:8787"), format!("tailscale MagicDNS {name} → {ip} (daemon API on 8787)"));
+            return (
+                format!("http://{name}:8787"),
+                format!("tailscale MagicDNS {name} → {ip} (daemon API on 8787)"),
+            );
         }
     }
     (daemon_url(), "daemon URL fallback".to_string())
@@ -179,11 +187,11 @@ async fn daemon_health(url: &str) -> Result<serde_json::Value> {
 /// the explicit public_connect_url over its env fallback. This avoids the
 /// "QR embeds 127.0.0.1 even though the operator set FOCUSA_PAIRING_URL"
 /// bug the V2 audit flagged.
-async fn create_room(
-    daemon_api_url: &str,
-    public_connect_url: &str,
-) -> Result<CreatedRoom> {
-    let url = format!("{}/v1/connect/room/create", daemon_api_url.trim_end_matches('/'));
+async fn create_room(daemon_api_url: &str, public_connect_url: &str) -> Result<CreatedRoom> {
+    let url = format!(
+        "{}/v1/connect/room/create",
+        daemon_api_url.trim_end_matches('/')
+    );
     let body = serde_json::json!({
         "server_url": public_connect_url,
     });
@@ -200,15 +208,50 @@ async fn create_room(
     }
     let v: serde_json::Value = resp.json().await?;
     Ok(CreatedRoom {
-        status: v.get("status").and_then(|x| x.as_str()).unwrap_or("?").to_string(),
-        room_id: v.get("room_id").and_then(|x| x.as_str()).unwrap_or("").to_string(),
-        device_id: v.get("device_id").and_then(|x| x.as_str()).unwrap_or("").to_string(),
-        server_url: v.get("server_url").and_then(|x| x.as_str()).unwrap_or("").to_string(),
-        pair_url: v.get("pair_url").and_then(|x| x.as_str()).unwrap_or("").to_string(),
-        expires_in_secs: v.get("expires_in_secs").and_then(|x| x.as_i64()).unwrap_or(0),
-        join_url: v.get("join_url").and_then(|x| x.as_str()).unwrap_or("").to_string(),
-        approve_url: v.get("approve_url").and_then(|x| x.as_str()).unwrap_or("").to_string(),
-        poll_url: v.get("poll_url").and_then(|x| x.as_str()).unwrap_or("").to_string(),
+        status: v
+            .get("status")
+            .and_then(|x| x.as_str())
+            .unwrap_or("?")
+            .to_string(),
+        room_id: v
+            .get("room_id")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string(),
+        device_id: v
+            .get("device_id")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string(),
+        server_url: v
+            .get("server_url")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string(),
+        pair_url: v
+            .get("pair_url")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string(),
+        expires_in_secs: v
+            .get("expires_in_secs")
+            .and_then(|x| x.as_i64())
+            .unwrap_or(0),
+        join_url: v
+            .get("join_url")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string(),
+        approve_url: v
+            .get("approve_url")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string(),
+        poll_url: v
+            .get("poll_url")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string(),
     })
 }
 
@@ -216,10 +259,18 @@ async fn poll_room(poll_url: &str, timeout_secs: u64) -> Result<(String, Option<
     let start = std::time::Instant::now();
     let client = reqwest::Client::new();
     while start.elapsed().as_secs() < timeout_secs {
-        let resp = client.get(poll_url).timeout(Duration::from_secs(3)).send().await;
+        let resp = client
+            .get(poll_url)
+            .timeout(Duration::from_secs(3))
+            .send()
+            .await;
         if let Ok(r) = resp {
             if let Ok(v) = r.json::<serde_json::Value>().await {
-                let status = v.get("status").and_then(|x| x.as_str()).unwrap_or("?").to_string();
+                let status = v
+                    .get("status")
+                    .and_then(|x| x.as_str())
+                    .unwrap_or("?")
+                    .to_string();
                 let token = v.get("token").and_then(|x| x.as_str()).map(str::to_string);
                 if status == "completed" {
                     return Ok((status, token));
@@ -229,8 +280,8 @@ async fn poll_room(poll_url: &str, timeout_secs: u64) -> Result<(String, Option<
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
     warn!(timeout_secs, "wizard timed out waiting for phone approval");
-        bail!("timeout waiting for phone approval ({}s)", timeout_secs)
-    }
+    bail!("timeout waiting for phone approval ({}s)", timeout_secs)
+}
 
 fn render_terminal_qr(data: &str) -> Result<String> {
     let code = QrCode::new(data.as_bytes()).context("QR encode failed")?;
@@ -287,10 +338,7 @@ async fn run_wizard(args: WizardArgs) -> Result<()> {
             "public_connect_url".to_string(),
             serde_json::json!(public_connect_url),
         );
-        obj_mut.insert(
-            "public_url_source".to_string(),
-            serde_json::json!(source),
-        );
+        obj_mut.insert("public_url_source".to_string(), serde_json::json!(source));
         println!("{}", serde_json::to_string_pretty(&obj)?);
         return Ok(());
     }
@@ -397,7 +445,10 @@ async fn run_wizard(args: WizardArgs) -> Result<()> {
     }
 
     println!();
-    println!("▶  Waiting for Mac to join + phone to approve (timeout {}s)…", args.timeout);
+    println!(
+        "▶  Waiting for Mac to join + phone to approve (timeout {}s)…",
+        args.timeout
+    );
     let poll_result = poll_room(&room.poll_url, args.timeout).await;
     match poll_result {
         Ok((status, token)) => {

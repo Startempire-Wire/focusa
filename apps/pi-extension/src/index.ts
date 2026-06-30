@@ -5,7 +5,7 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { createRequire } from "module";
-import { S, getEffectiveFocusSnapshot } from "./state.js";
+import { S, getEffectiveFocusSnapshot, getFocusaAvailable, getActiveFrameId } from "./state.js";
 
 // ESM compat: require() for synchronous imports in message renderer callback
 const require = createRequire(import.meta.url);
@@ -69,14 +69,14 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
   pi.registerShortcut("ctrl+shift+f", {
     description: "Show Focusa status",
     handler: async (ctx) => {
-      const up = S.focusaAvailable ? "✅" : "❌";
+      const up = getFocusaAvailable() ? "✅" : "❌";
       const snapshot = getEffectiveFocusSnapshot();
       const tier = S.currentTier ? ` | ${S.currentTier.toUpperCase()}` : "";
       const title = S.activeFrameTitle ? ` | ${S.activeFrameTitle}` : "";
       const goal = S.activeFrameGoal ? ` | ${S.activeFrameGoal}` : "";
       const mission = snapshot.intent ? ` | Mission: ${snapshot.intent}` : "";
       const focus = snapshot.currentFocus ? ` | Focus: ${snapshot.currentFocus}` : "";
-      ctx.ui.notify(`Focusa: ${up}${title}${goal}${mission}${focus} | Frame: ${S.activeFrameId ?? "none"} | D:${snapshot.decisions.length} C:${snapshot.constraints.length} F:${snapshot.failures.length}${tier}`, "info");
+      ctx.ui.notify(`Focusa: ${up}${title}${goal}${mission}${focus} | Frame: ${getActiveFrameId() ?? "none"} | D:${snapshot.decisions.length} C:${snapshot.constraints.length} F:${snapshot.failures.length}${tier}`, "info");
     },
   });
 

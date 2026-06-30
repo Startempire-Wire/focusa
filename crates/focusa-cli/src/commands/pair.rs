@@ -430,7 +430,10 @@ pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
         )
     })?;
     let health = ApiClient::new().get("/v1/health").await?;
-    let daemon_version = health.get("version").and_then(Value::as_str).unwrap_or("unknown");
+    let daemon_version = health
+        .get("version")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
     if daemon_version != env!("CARGO_PKG_VERSION") {
         anyhow::bail!(
             "Focusa pairing blocked: daemon version {daemon_version} does not match CLI version {}. recovery_hint: replace/restart the daemon from the same release before pairing; do not continue with a stale daemon.",

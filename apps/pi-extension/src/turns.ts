@@ -9,7 +9,7 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
 import type { PiGoverningPriorKind } from "./state.js";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, persistState, projectRootConfirmationRequired, projectRootConfirmationSummary, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, maybeCaptureReportSummaryFromAssistantOutput, recordToolOutputPressure, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, markVisibleRecapEmittedIfPresent, observeProjectThreadHintsFromText, formatProjectSwitchLedgerLines, buildCurrentAskScopeVerdict, formatCurrentAskScopeVerdictLines } from "./state.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, persistState, projectRootConfirmationRequired, projectRootConfirmationSummary, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, maybeCaptureReportSummaryFromAssistantOutput, recordToolOutputPressure, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, markVisibleRecapEmittedIfPresent, observeProjectThreadHintsFromText, formatProjectSwitchLedgerLines, buildCurrentAskScopeVerdict, formatCurrentAskScopeVerdictLines, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary, getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, getLatestReportSummary } from "./state.js";
 import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
@@ -80,19 +80,19 @@ async function checkpointDiscontinuity(reason: string, extra: Record<string, any
     });
     const packet = await focusaFetch("/workpoint/resume", { method: "POST", body: JSON.stringify({ mode: "compact_prompt", continuity_id: ensureContinuityId(root), session_id: S.sessionFrameKey, project_root: root }) });
     if (packet?.status === "rejected_scope_mismatch") {
-      S.activeWorkpointPacket = null;
-      S.activeWorkpointSummary = "";
+      setActiveWorkpointPacket(null);
+      setActiveWorkpointSummary("");
       return;
     }
     if (packet?.status === "completed") {
       const candidate = packet.resume_packet || packet;
       if (!isWorkpointPacketScopedToCurrentSession(candidate)) {
-        S.activeWorkpointPacket = null;
-        S.activeWorkpointSummary = "";
+        setActiveWorkpointPacket(null);
+        setActiveWorkpointSummary("");
         return;
       }
-      S.activeWorkpointPacket = stampWorkpointPacketForCurrentPiSession(candidate);
-      S.activeWorkpointSummary = packet.rendered_summary || packet.next_step_hint || "";
+      setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(candidate));
+      setActiveWorkpointSummary(packet.rendered_summary || packet.next_step_hint || "");
       S.lastWorkpointUpdate = Date.now();
     }
   } catch { /* best effort */ }
@@ -121,7 +121,7 @@ function formatWorkpointContextSections(): string[] {
       ? blockers.map((b: any) => b.reason).filter(Boolean).slice(0, 6)
       : ["Do not override WorkpointResumePacket from transcript tail."];
   return [
-    `WORKPOINT: ${S.activeWorkpointSummary || packet.next_slice || packet.mission || "active typed packet present"}`,
+    `WORKPOINT: ${getActiveWorkpointSummary() || packet.next_slice || packet.mission || "active typed packet present"}`,
     `WORKPOINT_CANONICAL: ${packet.canonical !== false}`,
     `ACTIVE_OBJECT_SET:\n${activeObjects.map((x: string) => `  - ${x}`).join("\n")}`,
     `ACTION_INTENT: ${action.action_type || "unknown"}${action.target_ref ? ` -> ${action.target_ref}` : ""}`,
@@ -527,7 +527,7 @@ export function registerTurns(pi: ExtensionAPI) {
       const toolAffordanceLines = getToolAffordanceFocusSliceLines({
         resourceModeActive: false,
         hasTrajectory: trajectoryLines.length > 0,
-        hasWorkpoint: Boolean(S.activeWorkpointPacket),
+        hasWorkpoint: Boolean(getActiveWorkpointPacket()),
         hasOntologyAmbiguity: false,
       });
       const scopeKind = S.queryScope?.scopeKind || "mission_carryover";
@@ -554,7 +554,7 @@ export function registerTurns(pi: ExtensionAPI) {
     const data = await getFocusState();
     if (!data?.fs) {
       const trajectoryLines = await getTrajectoryFocusSliceLines();
-      const toolAffordanceLines = getToolAffordanceFocusSliceLines({ resourceModeActive: false, hasTrajectory: trajectoryLines.length > 0, hasWorkpoint: Boolean(S.activeWorkpointPacket), hasOntologyAmbiguity: false });
+      const toolAffordanceLines = getToolAffordanceFocusSliceLines({ resourceModeActive: false, hasTrajectory: trajectoryLines.length > 0, hasWorkpoint: Boolean(getActiveWorkpointPacket()), hasOntologyAmbiguity: false });
       const visibleRecapReason = toolOutputVisibleRecapReason();
       const attentionLines = formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({ currentAskText: S.currentAsk?.text, currentAskKind: S.currentAsk?.kind, queryScopeKind: S.queryScope?.scopeKind, projectRoot: S.sessionCwd, workpointPacket: getScopedWorkpointPacket(), visibleRecapReason }));
       const lines = [
@@ -690,7 +690,7 @@ export function registerTurns(pi: ExtensionAPI) {
     const toolAffordanceLines = getToolAffordanceFocusSliceLines({
       resourceModeActive: resourceModeLines.length > 0,
       hasTrajectory: trajectoryLines.length > 0,
-      hasWorkpoint: Boolean(S.activeWorkpointPacket),
+      hasWorkpoint: Boolean(getActiveWorkpointPacket()),
       hasOntologyAmbiguity: ontologyObjectLines.length > 1 || ontologyUncertaintyLines.length > 0,
     });
 
@@ -715,7 +715,7 @@ export function registerTurns(pi: ExtensionAPI) {
       buildSliceSection("project_switch_ledger", "PROJECT_SWITCH_LEDGER", formatProjectSwitchLedgerLines(askText), S.projectSwitchLedger.length > 0, (values) => `PROJECT_SWITCH_LEDGER:\n${values.map((value) => `  - ${value}`).join("\n")}`, 0, 5, 96),
       buildSliceSection("resource_mode", "RESOURCE_MODE", resourceModeLines, resourceModeLines.length > 0, (values) => values.join("\n"), 0, 4, 100),
       buildSliceSection("trajectory", "PROJECT_TRAJECTORY", trajectoryLines, trajectoryLines.length > 0, (values) => `PROJECT_TRAJECTORY:\n${values.map((value) => `  - ${value}`).join("\n")}`, 0, 5, 100),
-      buildSliceSection("workpoint", "WORKPOINT", formatWorkpointContextSections(), Boolean(S.activeWorkpointPacket), (values) => values.join("\n"), 0, 6, 100),
+      buildSliceSection("workpoint", "WORKPOINT", formatWorkpointContextSections(), Boolean(getActiveWorkpointPacket()), (values) => values.join("\n"), 0, 6, 100),
       buildSliceSection("uiai_first_web_research", "UIAI_FIRST_WEB_RESEARCH", getUiaiFirstFocusSliceLines(askText), currentAskLooksLikeWebResearch(askText), (values) => values.join("\n"), 0, 4, 98),
       buildSliceSection("tool_affordances", "TOOL_AFFORDANCES", toolAffordanceLines, toolAffordanceLines.length > 0, (values) => values.join("\n"), 0, 7, 95),
       { key: "focus_frame", text: `FOCUS_FRAME: ${frame?.title || "(untitled)"}`, include: missionIncluded && Boolean(frame?.title), selectedCount: frame?.title ? 1 : 0, excludedCount: 0, priority: 10, relevanceScore: missionIncluded ? 50 : 0 },
@@ -763,7 +763,7 @@ export function registerTurns(pi: ExtensionAPI) {
     const staleOrAdvisory = [
       trajectoryLines.length ? "trajectory_advisory" : "",
       toolAffordanceLines.length ? "tool_affordances_advisory" : "",
-      S.activeWorkpointPacket ? "" : "workpoint_not_verified",
+      getActiveWorkpointPacket() ? "" : "workpoint_not_verified",
     ].filter(Boolean);
     const contextReceiptLines = contextReceiptHelpful ? [
       `CONTEXT_RECEIPT: included=${scopedEntries.length} excluded=${receiptExcludedCount} omitted_bytes=${Math.max(0, receiptExcludedCount * 96)} rehydrate_refs=focusa_workpoint_resume,focusa_trajectory_view,focusa_traverse reason=current_ask+Workpoint+trajectory_gap stale_or_advisory=${staleOrAdvisory.join(",") || "none"}`,
@@ -1221,7 +1221,7 @@ export function registerTurns(pi: ExtensionAPI) {
         await checkpointDiscontinuity("context_overflow", { active_object_refs: ["provider_error_text:context_length_exceeded"] });
       }
 
-      const expectedActionType = S.activeWorkpointPacket?.action_intent?.action_type;
+      const expectedActionType = getActiveWorkpointPacket()?.action_intent?.action_type;
       if (expectedActionType && assistantOutput.trim()) {
         focusaFetch("/workpoint/drift-check", {
           method: "POST",
@@ -1236,7 +1236,7 @@ export function registerTurns(pi: ExtensionAPI) {
             turn_id: `pi-turn-${S.turnCount}`,
             frame_id: S.activeFrameId,
             surface: "pi",
-            workpoint_id: drift?.workpoint_id || S.activeWorkpointPacket?.workpoint_id,
+            workpoint_id: drift?.workpoint_id || getActiveWorkpointPacket()?.workpoint_id,
             expected_action_type: expectedActionType,
             drift_detected: Boolean(drift?.drift_detected),
             next_step_hint: drift?.next_step_hint,
@@ -1435,7 +1435,7 @@ export function registerTurns(pi: ExtensionAPI) {
         ok: !isError,
         target_refs: targetRefs,
         evidence_refs: [],
-        workpoint_id: S.activeWorkpointPacket?.workpoint_id || S.activeWorkpointPacket?.workpoint?.workpoint_id || null,
+        workpoint_id: getActiveWorkpointPacket()?.workpoint_id || getActiveWorkpointPacket()?.workpoint?.workpoint_id || null,
         action_intent: S.currentAsk?.text || null,
         summary: content.slice(0, 500),
         error: isError ? content.slice(0, 500) : null,
@@ -1458,7 +1458,7 @@ export function registerTurns(pi: ExtensionAPI) {
         tool_output_bytes: pressure.totalBytes,
         tool_output_tokens: pressure.totalTokens,
         tool_output_results: pressure.resultCount,
-        latest_report_summary_ref: S.latestReportSummary?.handle || "none",
+        latest_report_summary_ref: getLatestReportSummary()?.handle || "none",
       });
     }
     if ((content.length > byteThreshold || tokens > tokenThreshold) && S.focusaAvailable) {

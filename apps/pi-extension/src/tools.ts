@@ -10,7 +10,7 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity, normalizeProjectRoot, resolvePiProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, persistState, estimateTokens } from "./state.js";
+import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity, normalizeProjectRoot, resolvePiProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, persistState, estimateTokens, getTurnCount, getActiveFrameId, getContinuityId, getSessionFrameKey, getSessionCwd, getCurrentScopeStore, getLastProjectRootResolution, getLastProjectIdentity, setLastProjectIdentity, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary , getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, getLatestReportSummary , setLastProjectVerify } from "./state.js";
 import { FOCUSA_TOOL_CONTRACTS, focusaToolContractSummary } from "./tool-contracts.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
@@ -27,7 +27,7 @@ function ensureScratchDir(): void {
 }
 
 function appendScratchpadLine(note: string, tag?: string): { saved: boolean; turn: number } {
-  const turn = S.turnCount;
+  const turn = getTurnCount();
   const dir = scratchDir(turn);
   ensureScratchDir();
   const ts = new Date().toISOString().slice(11, 23);
@@ -46,8 +46,8 @@ function emitWriteTelemetry(event: string, body: Record<string, any>): void {
   focusaPost("/telemetry/ops", {
     event,
     surface: "pi",
-    turn_id: `pi-turn-${S.turnCount}`,
-    frame_id: S.activeFrameId,
+    turn_id: `pi-turn-${getTurnCount()}`,
+    frame_id: getActiveFrameId(),
     ...body,
   });
 }
@@ -73,7 +73,7 @@ function mirrorFailedFocusWrite(kind: string, reason: PushDeltaFailureReason, pa
     reason,
     payload,
     meta,
-    turn: S.turnCount,
+    turn: getTurnCount(),
     at: new Date().toISOString(),
   });
   const scratch = appendScratchpadLine(note, "focusa-fallback");
@@ -449,15 +449,15 @@ function toolTrajectoryProjectRoot(details: Record<string, unknown>): string {
   const trajectory = objectValue(details.trajectory);
   const candidate = objectValue(details.trajectory_candidate);
   const workpoint = objectValue(details.workpoint);
-  const cached = objectValue(S.lastTrajectoryClarity);
+  const cached = objectValue(getLastTrajectoryClarity());
   const candidates = [
     details.project_root,
     projectIdentity.project_root,
     trajectory.project_root,
     candidate.project_root,
     workpoint.project_root,
-    objectValue(S.activeWorkpointPacket).project_root,
-    objectValue(S.lastProjectIdentity).project_root,
+    objectValue(getActiveWorkpointPacket()).project_root,
+    objectValue(getLastProjectIdentity()).project_root,
     cached.project_root,
     resolvePiProjectRoot(S.sessionCwd || process.cwd()),
   ];
@@ -506,7 +506,7 @@ function cachedToolTrajectoryLadder(details: Record<string, unknown>, refreshed?
     || normalizeToolTrajectoryLadder(details.trajectory, "tool_details.trajectory")
     || normalizeToolTrajectoryLadder(details.trajectory_candidate, "tool_details.trajectory_candidate")
     || normalizeToolTrajectoryLadder(refreshed, "pi_state.lastTrajectoryClarity")
-    || normalizeToolTrajectoryLadder(S.lastTrajectoryClarity, "pi_state.lastTrajectoryClarity");
+    || normalizeToolTrajectoryLadder(getLastTrajectoryClarity(), "pi_state.lastTrajectoryClarity");
 }
 
 function formatToolTrajectoryLadderSummary(ladder: Record<string, unknown>): string {
@@ -520,8 +520,8 @@ function formatToolTrajectoryLadderSummary(ladder: Record<string, unknown>): str
 
 async function ensureToolTrajectoryClarity(tool: string, details: Record<string, unknown>): Promise<Record<string, unknown> | null> {
   const projectRoot = toolTrajectoryProjectRoot(details);
-  if (!projectRoot) return objectValue(S.lastTrajectoryClarity);
-  const cached = objectValue(S.lastTrajectoryClarity);
+  if (!projectRoot) return objectValue(getLastTrajectoryClarity());
+  const cached = objectValue(getLastTrajectoryClarity());
   const cachedRoot = typeof cached.project_root === "string" ? normalizeProjectRoot(cached.project_root) : "";
   const cachedLadder = normalizeToolTrajectoryLadder(cached, "pi_state.lastTrajectoryClarity");
   const cachedAt = Number(cached.refreshed_at || 0);
@@ -530,7 +530,7 @@ async function ensureToolTrajectoryClarity(tool: string, details: Record<string,
   if (cachedToolTrajectoryLadder(details, null) && cachedRoot === projectRoot) return cached;
   try {
     const refreshed = await refreshTrajectoryClarityLifecycle(`tool_hlt_pickup:${tool}`, projectRoot);
-    return objectValue(refreshed || S.lastTrajectoryClarity);
+    return objectValue(refreshed || getLastTrajectoryClarity());
   } catch {
     return cached;
   }
@@ -726,7 +726,7 @@ function timeoutPreservedText(surface: string, noun = "fallback"): string {
 }
 
 function resolveActiveWorkpointContext(): { workpoint_id: string | null; evidence_refs: string[]; summary?: string } {
-  const packet = S.activeWorkpointPacket || null;
+  const packet = getActiveWorkpointPacket() || null;
   const workpoint = packet?.resume_packet?.workpoint || packet?.workpoint || packet;
   const workpointId = String(workpoint?.workpoint_id || packet?.workpoint_id || "") || null;
   const verificationRecords = Array.isArray(workpoint?.verification_records) ? workpoint.verification_records : [];
@@ -734,7 +734,7 @@ function resolveActiveWorkpointContext(): { workpoint_id: string | null; evidenc
     .map((record: any) => String(record?.evidence_ref || record?.result || ""))
     .filter(Boolean)
     .slice(0, 8);
-  return { workpoint_id: workpointId, evidence_refs: evidenceRefs, summary: S.activeWorkpointSummary || undefined };
+  return { workpoint_id: workpointId, evidence_refs: evidenceRefs, summary: getActiveWorkpointSummary() || undefined };
 }
 
 function ontologyCandidateDeltaRefs(tool: string, result: any, status: FocusaToolStatus): string[] {
@@ -1046,7 +1046,7 @@ async function resolveFocusaToolProjectRoot(explicitProjectRoot?: unknown): Prom
   const sessionRoot = resolvePiProjectRoot(S.sessionCwd || process.cwd());
   if (isProjectRootAuthoritySafe(sessionRoot)) return sessionRoot;
 
-  const localScope = focusaToolWorkpointScope(S.activeWorkpointPacket);
+  const localScope = focusaToolWorkpointScope(getActiveWorkpointPacket());
   if (localScope) {
     if (!S.continuityId) S.continuityId = localScope.continuityId;
     return localScope.projectRoot;
@@ -1057,7 +1057,7 @@ async function resolveFocusaToolProjectRoot(explicitProjectRoot?: unknown): Prom
 
 function projectRootConfirmationGate(projectRoot: string, explicitProjectRoot?: unknown): any | null {
   if (explicitProjectRoot || !projectRootConfirmationRequired(projectRoot)) return null;
-  const resolution = S.lastProjectRootResolution;
+  const resolution = getLastProjectRootResolution();
   const candidates = resolution?.candidates || [];
   return {
     content: [{ type: "text", text: `project root confirmation required → ${projectRootConfirmationSummary(projectRoot)}. Use interview/menu to confirm the correct project_root before Focusa state writes.` }],
@@ -1114,7 +1114,7 @@ function allowsWorkpointBootstrapFromClarity(body: any, projectRoot: string, act
 export async function pushDelta(delta: { decisions?: string[]; constraints?: string[]; failures?: string[]; intent?: string; current_focus?: string; next_steps?: string[]; open_questions?: string[]; recent_results?: string[]; notes?: string[]; artifacts?: Array<{ kind: string; label: string; path_or_id?: string }> }): Promise<PushDeltaResult> {
   const targets = deltaTargets(delta);
   let recoveredFrame = false;
-  emitWriteTelemetry("focusa_write_attempt", { targets, had_frame: !!S.activeFrameId });
+  emitWriteTelemetry("focusa_write_attempt", { targets, had_frame: !!getActiveFrameId() });
 
   if (!S.focusaAvailable) {
     const recoveredOnline = await checkFocusa().catch(() => false);
@@ -1134,7 +1134,7 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
   if (delta.recent_results?.some(v => !validateSlot(v, 300))) { emitWriteTelemetry("focusa_write_failed", { targets, reason: "validation_rejected" }); return { ok: false, reason: "validation_rejected" }; }
   if (delta.notes?.some(v => !validateSlot(v, 200))) { emitWriteTelemetry("focusa_write_failed", { targets, reason: "validation_rejected" }); return { ok: false, reason: "validation_rejected" }; }
 
-  if (!S.activeFrameId) {
+  if (!getActiveFrameId()) {
     emitWriteTelemetry("focusa_write_recovery_attempt", { targets, reason: "no_active_frame", strategy: "refresh_scoped_frame" });
     const refreshed = await getFocusState().catch(() => null);
     if (refreshed?.frame?.id) {
@@ -1143,7 +1143,7 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
     }
   }
 
-  if (!S.activeFrameId) {
+  if (!getActiveFrameId()) {
     emitWriteTelemetry("focusa_write_recovery_attempt", { targets, reason: "no_active_frame", strategy: "create_or_adopt_scoped_frame" });
     const frameId = await ensurePiFrame(undefined, undefined, "pi-auto-recover");
     recoveredFrame = recoveredFrame || !!frameId;
@@ -1158,8 +1158,8 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
     // Refresh frame identity before writes; stale paused Pi frames are a common
     // source of reducer rejections and scratchpad fallbacks after rescope/compact.
     await getFocusState().catch(() => null);
-    const projectRoot = normalizeProjectRoot(S.sessionCwd || resolvePiProjectRoot(process.cwd()));
-    const continuityId = S.continuityId || ensureContinuityId(projectRoot);
+    const projectRoot = normalizeProjectRoot(getSessionCwd() || resolvePiProjectRoot(process.cwd()));
+    const continuityId = getContinuityId() || ensureContinuityId(projectRoot);
     if (!isProjectRootAuthoritySafe(projectRoot) || !continuityId) {
       emitWriteTelemetry("focusa_write_failed", { targets, reason: "scope_mismatch", project_root: projectRoot || null, continuity_id: continuityId || null });
       return { ok: false, reason: "scope_mismatch", api_reason: "focus_update_requires_safe_project_root_and_continuity_id" };
@@ -1167,16 +1167,16 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
     const postUpdate = () => focusaFetch("/focus/update", {
       method: "POST",
       body: JSON.stringify({
-        frame_id: S.activeFrameId,
+        frame_id: getActiveFrameId(),
         project_root: projectRoot,
         continuity_id: continuityId,
-        turn_id: `pi-turn-${S.turnCount}`,
+        turn_id: `pi-turn-${getTurnCount()}`,
         delta,
       }),
     });
     let response = await postUpdate();
     if (["no_active_frame", "frame_unavailable", "rejected_scope_mismatch"].includes(String(response?.status || ""))) {
-      emitWriteTelemetry("focusa_write_recovery_attempt", { targets, reason: response?.status === "rejected_scope_mismatch" ? "scope_mismatch" : "stale_frame", stale_frame_id: S.activeFrameId, active_frame_id: response?.active_frame_id, target_frame_id: response?.target_frame_id, failure_class: response?.failure_class });
+      emitWriteTelemetry("focusa_write_recovery_attempt", { targets, reason: response?.status === "rejected_scope_mismatch" ? "scope_mismatch" : "stale_frame", stale_frame_id: getActiveFrameId(), active_frame_id: response?.active_frame_id, target_frame_id: response?.target_frame_id, failure_class: response?.failure_class });
       S.activeFrameId = null;
       const frameId = await ensurePiFrame(undefined, undefined, "pi-stale-frame-recover");
       recoveredFrame = recoveredFrame || !!frameId;
@@ -1204,7 +1204,9 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
       return { ok: false, reason: "write_failed", api_reason: response.reason || response.status || "unknown" };
     }
     S.focusaAvailable = true;
-    emitWriteTelemetry("focusa_write_succeeded", { targets, recovered_frame: recoveredFrame, frame_id: response.frame_id || S.activeFrameId });
+    const store = getCurrentScopeStore();
+    if (store) store.focusaAvailable = true;
+    emitWriteTelemetry("focusa_write_succeeded", { targets, recovered_frame: recoveredFrame, frame_id: response.frame_id || getActiveFrameId() });
     return { ok: true };
   } catch {
     const online = await checkFocusa().catch(() => false);
@@ -1215,7 +1217,7 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
 }
 
 function persistedProjectIdentityFields(): Record<string, string> {
-  const identity = S.lastProjectIdentity || {};
+  const identity = getLastProjectIdentity() || {};
   const fields: Record<string, string> = {};
   const root = normalizeProjectRoot(identity.project_root);
   if (root) fields.persisted_project_root = root;
@@ -1766,7 +1768,7 @@ export function registerTools(pi: ExtensionAPI) {
       input: compactApiEcho(body),
       next_step_hint: `Retry ${action} after focusa_tool_doctor/resource_mode; do not treat timeout fallback as canonical.`,
     };
-    S.lastTrajectoryClarity = {
+    setLastTrajectoryClarity({
       reason: `${action}_timeout_preserved`,
       refreshed_at: Date.now(),
       project_root: body.project_root,
@@ -1780,7 +1782,7 @@ export function registerTools(pi: ExtensionAPI) {
       current_state: body.observed_state || null,
       active_gap: body.summary || body.action_type || body.target_ref || null,
       timeout_preserved: true,
-    };
+    });
     try { S.pi?.appendEntry("focusa-trajectory-timeout-fallback", fallback); } catch { /* best effort */ }
     persistState();
     return { content: [{ type: "text", text: timeoutPreservedText(`trajectory ${action}`) }], details: { ok: false, status: "timeout_preserved", endpoint, canonical: false, degraded: true, advisory_only: true, failure_class: "hot_path_timeout", fallback: compactFallbackPacket(fallback), response: compactApiEcho(response), next_tools: nextTools.slice(0, 4) } } as any;
@@ -2771,7 +2773,7 @@ export function registerTools(pi: ExtensionAPI) {
         const live = liveContractList.find((item: any) => item?.name === contract.name);
         return live && stableJson(live) !== stableJson(contract);
       }).map((contract) => contract.name);
-      const repairProjectRoot = S.lastProjectRootResolution?.projectRoot || resolvePiProjectRoot(S.sessionCwd || process.cwd());
+      const repairProjectRoot = getLastProjectRootResolution()?.projectRoot || resolvePiProjectRoot(S.sessionCwd || process.cwd());
       const portableDaemonRestart =
         "if command -v focusa-daemon >/dev/null 2>&1; then nohup focusa-daemon >/tmp/focusa-daemon.log 2>&1 & elif command -v systemctl >/dev/null 2>&1; then systemctl restart focusa-daemon; else echo 'start focusa-daemon manually from this checkout' >&2; fi";
       const contractDrift = {
@@ -2805,7 +2807,7 @@ export function registerTools(pi: ExtensionAPI) {
       const resourceMode = resource.body?.resource_mode || {};
       const latestTransition = resourceMode.latest_transition || (Array.isArray(resource.body?.transition_history) ? resource.body.transition_history[0] : null);
       const transitionLabel = latestTransition ? `${String(latestTransition.from_mode || "?")}→${String(latestTransition.to_mode || "?")}` : "none";
-      const sessionResolution = S.lastProjectRootResolution;
+      const sessionResolution = getLastProjectRootResolution();
       const sessionRoot = sessionResolution?.projectRoot || resolvePiProjectRoot(S.sessionCwd || process.cwd());
       const sessionScopeSafe = isProjectRootAuthoritySafe(sessionRoot);
       const projectRootNeedsConfirmation = sessionResolution?.requiresOperatorConfirmation === true;
@@ -3019,7 +3021,7 @@ export function registerTools(pi: ExtensionAPI) {
       const body = result.body || {};
       if (!result.ok && body.failure_class === "hot_path_timeout") {
         const requestedRoot = normalizeProjectRoot(p.project_root || p.cwd || S.sessionCwd || process.cwd());
-        const cachedIdentity = S.lastProjectIdentity && (!requestedRoot || normalizeProjectRoot(S.lastProjectIdentity.project_root) === requestedRoot) ? S.lastProjectIdentity : null;
+        const cachedIdentity = getLastProjectIdentity() && (!requestedRoot || normalizeProjectRoot(getLastProjectIdentity()!.project_root) === requestedRoot) ? getLastProjectIdentity()! : null;
         return { content: [{ type: "text", text: timeoutPreservedText("project identity", cachedIdentity ? "cached identity" : "empty fallback") }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/project/identity", canonical: false, degraded: true, advisory_only: true, project_identity: cachedIdentity || {}, failure_class: "hot_path_timeout", response: compactApiEcho(body), next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view"] } } as any;
       }
       const identity = body.project_identity || {};
@@ -3028,22 +3030,22 @@ export function registerTools(pi: ExtensionAPI) {
         // After model switch, the session may already hold a valid identity. Overwriting it
         // causes cross-session contamination (SPEC96 emergency fix 2 isolation principle).
         const incomingRoot = normalizeProjectRoot(identity.project_root);
-        const existingRoot = normalizeProjectRoot(S.lastProjectIdentity?.project_root);
+        const existingRoot = normalizeProjectRoot(getLastProjectIdentity()?.project_root);
         const requestedRoot = normalizeProjectRoot(p.project_root);
         const explicitProjectSwitch = requestedRoot && incomingRoot === requestedRoot && existingRoot !== requestedRoot;
-        const existingConfidence = S.lastProjectIdentity?.confidence;
+        const existingConfidence = getLastProjectIdentity()?.confidence;
         const isExistingVerified = existingConfidence === "high" || existingConfidence === "medium";
         const isDifferentProject = existingRoot && incomingRoot && existingRoot !== incomingRoot;
         const isDifferentThanUnverified = isDifferentProject && isExistingVerified && !explicitProjectSwitch;
         if (isDifferentThanUnverified) {
           // Preserve existing verified identity; return it instead of the incoming one.
-          const preserved = S.lastProjectIdentity;
+          const preserved = getLastProjectIdentity()!;
           return {
             content: [{ type: "text", text: `project identity → status=verified confidence=${preserved.confidence || "unknown"} root=${preserved.project_root || "unknown"} (preserved from session; incoming result rejected as different project: ${incomingRoot})` }],
             details: { ok: true, status: "preserved", endpoint: "/v1/project/identity", canonical: false, degraded: false, project_identity: preserved, project_summary: null, summary_lines: [], verification: null, tool_result_v1: { ok: true, status: "preserved", canonical: false, degraded: false, failure_class: null, retry: { safe: true, posture: "safe_retry" }, side_effects: [], evidence_refs: [], next_tools: ["focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"] }, failure_class: null, next_tools: ["focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"], response: compactApiEcho(body) },
           } as any;
         }
-        S.lastProjectIdentity = identity;
+        setLastProjectIdentity(identity);
         const verifiedRoot = normalizeProjectRoot(identity.project_root);
         if (verifiedRoot && identity.status === "verified" && isProjectRootAuthoritySafe(verifiedRoot)) {
           confirmPiProjectRoot(verifiedRoot, "focusa_project_identity_verified");
@@ -3287,12 +3289,12 @@ export function registerTools(pi: ExtensionAPI) {
       const body = result.body || {};
       if (!result.ok && body.failure_class === "hot_path_timeout") {
         const requestedRoot = normalizeProjectRoot(p.project_root || p.cwd || S.sessionCwd || process.cwd());
-        const cachedIdentity = S.lastProjectIdentity && (!requestedRoot || normalizeProjectRoot(S.lastProjectIdentity.project_root) === requestedRoot) ? S.lastProjectIdentity : null;
+        const cachedIdentity = getLastProjectIdentity() && (!requestedRoot || normalizeProjectRoot(getLastProjectIdentity()!.project_root) === requestedRoot) ? getLastProjectIdentity()! : null;
         return { content: [{ type: "text", text: timeoutPreservedText("project verify", cachedIdentity ? "cached identity" : "empty fallback") }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/project/verify", canonical: false, degraded: true, advisory_only: true, project_identity: cachedIdentity || {}, verification: { verified: false, reason: "hot_path_timeout" }, failure_class: "hot_path_timeout", response: compactApiEcho(body), next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view"] } } as any;
       }
       const identity = body.project_identity || {};
       const verified = body.verification?.verified === true;
-      if (identity && Object.keys(identity).length) S.lastProjectVerify = body;
+      if (identity && Object.keys(identity).length) setLastProjectVerify(body);
       const verifiedRoot = normalizeProjectRoot(identity.project_root);
       if (verified && verifiedRoot && isProjectRootAuthoritySafe(verifiedRoot)) {
         confirmPiProjectRoot(verifiedRoot, "focusa_project_verify_verified");
@@ -3377,7 +3379,7 @@ export function registerTools(pi: ExtensionAPI) {
       const body = result.body || {};
       if (!result.ok && body.failure_class === "hot_path_timeout") {
         const fallback = {
-          ...(S.lastTrajectoryClarity || {}),
+          ...(getLastTrajectoryClarity() || {}),
           status: "timeout_preserved",
           canonical: false,
           degraded: true,
@@ -3389,7 +3391,7 @@ export function registerTools(pi: ExtensionAPI) {
           preserved_at: new Date().toISOString(),
           next_step_hint: "Retry focusa_trajectory_view after focusa_tool_doctor/resource_mode; use fallback only as advisory orientation.",
         };
-        S.lastTrajectoryClarity = fallback;
+        setLastTrajectoryClarity(fallback);
         try { S.pi?.appendEntry("focusa-trajectory-timeout-fallback", fallback); } catch { /* best effort */ }
         persistState();
         return { content: [{ type: "text", text: timeoutPreservedText("trajectory view", "cached clarity") }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/trajectory/view", canonical: false, degraded: true, advisory_only: true, trajectory: fallback, failure_class: "hot_path_timeout", response: compactApiEcho(body), next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_view", "focusa_workpoint_resume"] } } as any;
@@ -3409,8 +3411,8 @@ export function registerTools(pi: ExtensionAPI) {
       }
       const trajectoryLadder = trajectory.trajectory_ladder || {};
       if (trajectory.long_term_goal || trajectoryLadder.hlt || trajectory.mid_level_goal || trajectoryLadder.mlg || trajectory.short_term_goal || trajectoryLadder.stg || trajectory.current_state || trajectory.active_gap) {
-        S.lastTrajectoryClarity = {
-          ...(S.lastTrajectoryClarity || {}),
+        setLastTrajectoryClarity({
+          ...(getLastTrajectoryClarity() || {}),
           reason: "trajectory_view_tool",
           refreshed_at: Date.now(),
           status: String(body.intelligence_view?.clarity_gate?.status || trajectory.definition_status || body.status || "unknown"),
@@ -3434,7 +3436,7 @@ export function registerTools(pi: ExtensionAPI) {
           project_identity: project,
           project_urls: project.project_urls || null,
           focus_trajectory_sync: body.intelligence_view?.focus_trajectory_sync || null,
-        };
+        });
         persistState();
       }
       const sufficiency = body.intelligence_view?.context_sufficiency || {};
@@ -3587,7 +3589,7 @@ export function registerTools(pi: ExtensionAPI) {
           persisted: false,
           preserved_at: new Date().toISOString(),
         };
-        S.lastTrajectoryClarity = {
+        setLastTrajectoryClarity({
           reason: "define_goal_timeout_preserved",
           refreshed_at: Date.now(),
           project_root: projectRoot,
@@ -3606,7 +3608,7 @@ export function registerTools(pi: ExtensionAPI) {
           current_state: body.current_state || null,
           active_gap: body.short_term_goal || null,
           timeout_preserved: true,
-        };
+        });
         try { S.pi?.appendEntry("focusa-trajectory-timeout-fallback", fallbackCandidate); } catch { /* best effort */ }
         persistState();
         return { content: [{ type: "text", text: timeoutPreservedText("trajectory define_goal", "candidate") }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/trajectory/define-goal", canonical: false, degraded: true, advisory_only: true, trajectory_candidate: fallbackCandidate, failure_class: "hot_path_timeout", response: compactApiEcho(b), next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_define_goal", "focusa_trajectory_view"] } } as any;
@@ -3727,7 +3729,7 @@ export function registerTools(pi: ExtensionAPI) {
       const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "session_switch", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/resume", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
-      if (!result.ok && b.failure_class === "hot_path_timeout") return trajectoryTimeoutFallbackResult("resume", "/v1/trajectory/resume", body, b, ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_resume", "focusa_workpoint_resume"], { resume_packet: S.lastTrajectoryClarity || null });
+      if (!result.ok && b.failure_class === "hot_path_timeout") return trajectoryTimeoutFallbackResult("resume", "/v1/trajectory/resume", body, b, ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_resume", "focusa_workpoint_resume"], { resume_packet: getLastTrajectoryClarity() || null });
       const packet = b.resume_packet || {};
       const text = result.ok ? `trajectory resume → status=${String(b.status || "unknown")} canonical=${b.canonical === true} project=${String(packet.project_identity?.status || "unknown")}` : `trajectory resume blocked → ${explainWorkLoopResult(result, "resume failed")}`;
       const toolResult = b.details?.tool_result_v1 || { ok: result.ok && b.status !== "degraded" && b.status !== "not_found", status: result.ok ? String(b.status || "completed") : String(result.status), canonical: b.canonical === true, degraded: b.degraded === true, failure_class: b.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_side_effects_first" }, side_effects: [], evidence_refs: [], next_tools: b.next_tools || ["focusa_workpoint_resume"] };
@@ -3746,7 +3748,7 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const p = params as any;
       const ctx = resolveActiveWorkpointContext();
-      const packet = S.activeWorkpointPacket || {};
+      const packet = getActiveWorkpointPacket() || {};
       const workpoint = packet?.resume_packet || packet?.workpoint || packet;
       const refs = Array.from(new Set([...(Array.isArray(workpoint?.active_object_refs) ? workpoint.active_object_refs : []), workpoint?.work_item_id, workpoint?.action_intent?.target_ref, p.hint].filter(Boolean).map(String)));
       const text = `active object resolve → count=${refs.length} verified=false refs=${refs.slice(0, 5).join(",") || "none"}`;
@@ -4006,8 +4008,8 @@ export function registerTools(pi: ExtensionAPI) {
           preserved_at: new Date().toISOString(),
           next_step_hint: "Retry focusa_workpoint_checkpoint once after focusa_tool_doctor/resource_mode; do not treat timeout fallback as canonical.",
         });
-        S.activeWorkpointPacket = fallback;
-        S.activeWorkpointSummary = `${payload.mission || "Workpoint checkpoint"} (noncanonical timeout fallback)`;
+        setActiveWorkpointPacket(fallback);
+        setActiveWorkpointSummary(`${payload.mission || "Workpoint checkpoint"} (noncanonical timeout fallback)`);
         S.lastWorkpointUpdate = Date.now();
         try { S.pi?.appendEntry("focusa-workpoint-timeout-fallback", fallback); } catch { /* best effort */ }
         persistState();
@@ -4112,7 +4114,7 @@ export function registerTools(pi: ExtensionAPI) {
       const recovery = scopeRecoveryContext(res.body || {}, projectRoot, payload.continuity_id, "workpoint_resume");
       if (!res.ok && res.body?.failure_class === "hot_path_timeout") {
         const fallback = stampWorkpointPacketForCurrentPiSession({
-          ...(S.activeWorkpointPacket || {}),
+          ...(getActiveWorkpointPacket() || {}),
           status: "timeout_preserved",
           canonical: false,
           degraded: true,
@@ -4120,13 +4122,13 @@ export function registerTools(pi: ExtensionAPI) {
           project_root: projectRoot,
           continuity_id: payload.continuity_id,
           session_id: payload.session_id,
-          mission: S.activeWorkpointPacket?.mission || S.activeWorkpointSummary || "Workpoint resume timed out before a canonical packet was returned",
-          next_slice: S.activeWorkpointPacket?.next_slice || "Retry focusa_workpoint_resume after focusa_tool_doctor/resource_mode, or create a fresh focusa_workpoint_checkpoint from current operator/repo context.",
+          mission: getActiveWorkpointPacket()?.mission || getActiveWorkpointSummary() || "Workpoint resume timed out before a canonical packet was returned",
+          next_slice: getActiveWorkpointPacket()?.next_slice || "Retry focusa_workpoint_resume after focusa_tool_doctor/resource_mode, or create a fresh focusa_workpoint_checkpoint from current operator/repo context.",
           preserved_at: new Date().toISOString(),
           next_step_hint: "Retry focusa_workpoint_resume after focusa_tool_doctor/resource_mode; if no canonical packet exists, checkpoint the current mission before treating state as canonical.",
         });
-        S.activeWorkpointPacket = fallback;
-        S.activeWorkpointSummary = `${String(fallback.mission || "Workpoint resume")} (noncanonical timeout fallback)`;
+        setActiveWorkpointPacket(fallback);
+        setActiveWorkpointSummary(`${String(fallback.mission || "Workpoint resume")} (noncanonical timeout fallback)`);
         S.lastWorkpointUpdate = Date.now();
         try { S.pi?.appendEntry("focusa-workpoint-timeout-fallback", fallback); } catch { /* best effort */ }
         persistState();
@@ -7304,7 +7306,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     async execute(_id, params) {
       const payload = params && typeof params === "object" ? { ...(params as any) } : params;
       if (payload && typeof payload === "object") {
-        const projectRoot = normalizeProjectRoot(payload.project_root || S.lastProjectIdentity?.project_root || S.sessionCwd || process.cwd());
+        const projectRoot = normalizeProjectRoot(payload.project_root || getLastProjectIdentity()?.project_root || S.sessionCwd || process.cwd());
         const continuityId = String(payload.continuity_id || S.continuityId || ensureContinuityId(projectRoot) || "").trim();
         if (projectRoot) payload.project_root = projectRoot;
         if (continuityId) payload.continuity_id = continuityId;

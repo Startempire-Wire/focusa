@@ -80,6 +80,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y jq curl python3 ripgrep
+      - name: Spec104 static surface audit (no daemon needed)
+        run: python3 tests/spec104_deep_focusa_surface_sweep.py --static-only
       - name: API contract probe
         env:
           FOCUSA_BIND: 127.0.0.1:18787

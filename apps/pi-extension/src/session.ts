@@ -5,7 +5,7 @@
 //        §38.3 (health toggle)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState, adoptPiProjectRoot, normalizeProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, buildFocusaSessionIdentity } from "./state.js";
+import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState, adoptPiProjectRoot, normalizeProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, buildFocusaSessionIdentity, syncSFieldsToScopeStore, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary, getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, setLastProjectVerify, setLatestReportSummary, getLatestReportSummary, getLastProjectRootResolution, setLastProjectRootResolution, setLastProjectIdentity } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
@@ -47,8 +47,8 @@ async function ensureLowConfidenceWorkpoint(reason: string, draft?: WorkpointDra
 async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
   if (!S.focusaAvailable) return;
   if (!isProjectRootAuthoritySafe(S.sessionCwd || process.cwd())) {
-    S.activeWorkpointPacket = null;
-    S.activeWorkpointSummary = "";
+    setActiveWorkpointPacket(null);
+    setActiveWorkpointSummary("");
     return;
   }
   try {
@@ -57,19 +57,19 @@ async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
       body: JSON.stringify({ mode: "compact_prompt", continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()), session_id: S.sessionFrameKey, project_root: S.sessionCwd || process.cwd() }),
     });
     if (packet?.status === "rejected_scope_mismatch") {
-      S.activeWorkpointPacket = null;
-      S.activeWorkpointSummary = "";
+      setActiveWorkpointPacket(null);
+      setActiveWorkpointSummary("");
       return;
     }
     if (packet?.status === "completed") {
       const candidate = normalizeWorkpointResumePacketEnvelope(packet);
       if (!isWorkpointPacketScopedToCurrentSession(candidate)) {
-        S.activeWorkpointPacket = null;
-        S.activeWorkpointSummary = "";
+        setActiveWorkpointPacket(null);
+        setActiveWorkpointSummary("");
         return;
       }
-      S.activeWorkpointPacket = stampWorkpointPacketForCurrentPiSession(candidate);
-      S.activeWorkpointSummary = packet.rendered_summary || packet.resume_packet_v2?.rendered_summary || packet.next_step_hint || "";
+      setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(candidate));
+      setActiveWorkpointSummary(packet.rendered_summary || packet.resume_packet_v2?.rendered_summary || packet.next_step_hint || "");
       S.lastWorkpointUpdate = Date.now();
       focusaPost("/telemetry/trace", {
         event_type: "workpoint_resume_packet_loaded",
@@ -138,7 +138,7 @@ function currentAskForProject(projectRoot: string): string {
 }
 
 function trajectoryClarityForProject(projectRoot: string): any | null {
-  const clarity: any = S.lastTrajectoryClarity || null;
+  const clarity: any = getLastTrajectoryClarity() || null;
   if (!clarity) return null;
   if (clarity.project_root && adoptPiProjectRoot(clarity.project_root) !== projectRoot) return null;
   if (clarity.continuity_id && S.continuityId && clarity.continuity_id !== S.continuityId) return null;
@@ -147,7 +147,7 @@ function trajectoryClarityForProject(projectRoot: string): any | null {
 }
 
 function scopedWorkpointSeed(projectRoot: string): string {
-  const packet: any = isWorkpointPacketScopedToCurrentSession(S.activeWorkpointPacket) ? S.activeWorkpointPacket : null;
+  const packet: any = isWorkpointPacketScopedToCurrentSession(getActiveWorkpointPacket()) ? getActiveWorkpointPacket() : null;
   if (!packet) return "";
   if (packet.project_root && adoptPiProjectRoot(packet.project_root) !== projectRoot) return "";
   return cleanTrajectorySeed(packet.mission || packet.next_slice);
@@ -278,7 +278,7 @@ async function promptForProjectVerifyIfNeeded(ctx: any, projectRoot: string, rea
   if (!vitalPromptSurfaceEnabled("project_verify") || mode === "off" || !isProjectRootAuthoritySafe(projectRoot)) return true;
   const payload = { cwd: projectRoot, project_root: projectRoot };
   const res = await focusaFetch("/project/verify", { method: "POST", body: JSON.stringify(payload) }).catch(() => null);
-  S.lastProjectVerify = res || null;
+  setLastProjectVerify(res || null);
   persistState();
   if (res?.verification?.verified === true || res?.canonical === true) {
     focusaPost("/telemetry/trace", { event_type: "pi_vital_project_verify_passed", payload: { reason, project_root: projectRoot, status: res?.project_identity?.status || res?.status || "verified" } });
@@ -303,7 +303,7 @@ async function promptForProjectVerifyIfNeeded(ctx: any, projectRoot: string, rea
 
 async function promptForWorkpointIfNeeded(ctx: any, projectRoot: string, reason: string): Promise<boolean> {
   const mode = S.cfg?.vitalInfoPromptMode || "prompt";
-  if (!vitalPromptSurfaceEnabled("workpoint") || mode !== "prompt" || !isProjectRootAuthoritySafe(projectRoot) || S.activeWorkpointPacket) return false;
+  if (!vitalPromptSurfaceEnabled("workpoint") || mode !== "prompt" || !isProjectRootAuthoritySafe(projectRoot) || getActiveWorkpointPacket()) return false;
   const mission = S.currentAsk?.text || S.activeFrameGoal || S.lastFocusSnapshot.intent || S.lastFocusSnapshot.currentFocus;
   const nextSlice = S.lastFocusSnapshot.currentFocus || S.activeFrameGoal || S.currentAsk?.text;
   if (!mission && !nextSlice) return false;
@@ -341,7 +341,7 @@ async function promptForWorkpointIfNeeded(ctx: any, projectRoot: string, reason:
   if (!draft) return false;
   await ensureLowConfidenceWorkpoint(reason, draft);
   await refreshSessionWorkpointPacket(`${reason}_operator_selected_workpoint`);
-  return Boolean(S.activeWorkpointPacket);
+  return Boolean(getActiveWorkpointPacket());
 }
 
 async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason: string): Promise<void> {
@@ -555,6 +555,7 @@ export function registerSession(pi: ExtensionAPI) {
     S.sessionFrameKey = eventSessionId;
     S.sessionCwd = adoptPiProjectRoot(ctx.cwd);
     resetPiSessionScopedState("session_start");
+    syncSFieldsToScopeStore();
 
     // §37.5: Check CLI flags FIRST
     if (pi.getFlag("--no-focusa")) {
@@ -596,21 +597,21 @@ export function registerSession(pi: ExtensionAPI) {
           intent: e.data.intent || "",
           currentFocus: e.data.currentFocus || "",
         };
-        if (e.data.projectRootResolution) S.lastProjectRootResolution = e.data.projectRootResolution;
+        if (e.data.projectRootResolution) setLastProjectRootResolution(e.data.projectRootResolution);
         if (e.data.lastProjectIdentity) {
           const pi = e.data.lastProjectIdentity;
           const piRoot = pi.project_root ? normalizeProjectRoot(pi.project_root) : "";
           const cwdRoot = normalizeProjectRoot(ctx.cwd);
-          S.lastProjectIdentity = piRoot && piRoot === cwdRoot ? pi : null;
+          setLastProjectIdentity(piRoot && piRoot === cwdRoot ? pi : null);
         }
         if (e.data.lastTrajectoryClarity) {
           const c = e.data.lastTrajectoryClarity;
           const cRoot = c.project_root ? adoptPiProjectRoot(c.project_root) : "";
           const cwdRoot = adoptPiProjectRoot(ctx.cwd);
-          S.lastTrajectoryClarity = (!cRoot || cRoot === cwdRoot) && (!c.session_id || c.session_id === eventSessionId || c.fallback_prior_project_trajectory === true) ? c : null;
+          setLastTrajectoryClarity((!cRoot || cRoot === cwdRoot) && (!c.session_id || c.session_id === eventSessionId || c.fallback_prior_project_trajectory === true) ? c : null);
         }
-        if (e.data.lastProjectVerify) S.lastProjectVerify = e.data.lastProjectVerify;
-        if (e.data.latestReportSummary?.handle) S.latestReportSummary = e.data.latestReportSummary;
+        if (e.data.lastProjectVerify) setLastProjectVerify(e.data.lastProjectVerify);
+        if (e.data.latestReportSummary?.handle) setLatestReportSummary(e.data.latestReportSummary);
         if (e.data.toolOutputPressure?.recapRequired) S.toolOutputPressure = e.data.toolOutputPressure;
         if (Array.isArray(e.data.projectSwitchLedger)) S.projectSwitchLedger = e.data.projectSwitchLedger.slice(0, 12);
         if (e.data.vitalInfoPrompted) S.vitalInfoPrompted = e.data.vitalInfoPrompted;
@@ -625,6 +626,7 @@ export function registerSession(pi: ExtensionAPI) {
     // This prevents Wirebot/TEP frame state from leaking into Pi sessions.
     // WBM mode may override this via --wbm flag above.
     if (!S.wbmEnabled) S.activeFrameId = null;
+    syncSFieldsToScopeStore();
 
     if (!S.focusaAvailable) {
       ctx.ui.setStatus("focusa", "📡 Focusa offline");
@@ -645,7 +647,7 @@ export function registerSession(pi: ExtensionAPI) {
     await refreshSessionWorkpointPacket("session_start");
     await refreshTrajectoryClarityLifecycle("session_start", projectRoot);
     await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_start");
-    if (!S.activeWorkpointPacket) {
+    if (!getActiveWorkpointPacket()) {
       const prompted = await promptForWorkpointIfNeeded(ctx, projectRoot, "session_start");
       if (!prompted) {
         await ensureLowConfidenceWorkpoint("session_start");
@@ -805,6 +807,7 @@ export function registerSession(pi: ExtensionAPI) {
     S.sessionFrameKey = eventSessionId;
     S.sessionCwd = adoptPiProjectRoot(ctx.cwd);
     resetPiSessionScopedState("session_switch");
+    syncSFieldsToScopeStore();
 
     const switchEntries = (event as any).entries || (ctx as any).sessionManager?.getEntries?.() || [];
     S.forkSuggested = false;
@@ -830,21 +833,21 @@ export function registerSession(pi: ExtensionAPI) {
           intent: d.intent || "",
           currentFocus: d.currentFocus || "",
         };
-        if (d.projectRootResolution) S.lastProjectRootResolution = d.projectRootResolution;
+        if (d.projectRootResolution) setLastProjectRootResolution(d.projectRootResolution);
         if (d.lastProjectIdentity) {
           const pi = d.lastProjectIdentity;
           const piRoot = pi.project_root ? normalizeProjectRoot(pi.project_root) : "";
           const cwdRoot = normalizeProjectRoot(ctx.cwd);
-          S.lastProjectIdentity = piRoot && piRoot === cwdRoot ? pi : null;
+          setLastProjectIdentity(piRoot && piRoot === cwdRoot ? pi : null);
         }
         if (d.lastTrajectoryClarity) {
           const c = d.lastTrajectoryClarity;
           const cRoot = c.project_root ? adoptPiProjectRoot(c.project_root) : "";
           const cwdRoot = adoptPiProjectRoot(ctx.cwd);
-          S.lastTrajectoryClarity = (!cRoot || cRoot === cwdRoot) && (!c.session_id || c.session_id === eventSessionId || c.fallback_prior_project_trajectory === true) ? c : null;
+          setLastTrajectoryClarity((!cRoot || cRoot === cwdRoot) && (!c.session_id || c.session_id === eventSessionId || c.fallback_prior_project_trajectory === true) ? c : null);
         }
-        if (d.lastProjectVerify) S.lastProjectVerify = d.lastProjectVerify;
-        if (d.latestReportSummary?.handle) S.latestReportSummary = d.latestReportSummary;
+        if (d.lastProjectVerify) setLastProjectVerify(d.lastProjectVerify);
+        if (d.latestReportSummary?.handle) setLatestReportSummary(d.latestReportSummary);
         if (d.toolOutputPressure?.recapRequired) S.toolOutputPressure = d.toolOutputPressure;
         if (Array.isArray(d.projectSwitchLedger)) S.projectSwitchLedger = d.projectSwitchLedger.slice(0, 12);
         if (d.vitalInfoPrompted) S.vitalInfoPrompted = d.vitalInfoPrompted;
@@ -854,6 +857,7 @@ export function registerSession(pi: ExtensionAPI) {
     }
 
     if (!S.wbmEnabled) S.activeFrameId = null;
+    syncSFieldsToScopeStore();
     if (S.focusaAvailable) {
       const detectedProjectRoot = adoptPiProjectRoot(ctx.cwd);
       const projectRoot = await promptForConfirmedProjectRoot(ctx, detectedProjectRoot, "session_switch");
@@ -868,7 +872,7 @@ export function registerSession(pi: ExtensionAPI) {
       await refreshSessionWorkpointPacket("session_switch");
       await refreshTrajectoryClarityLifecycle("session_resume", projectRoot);
       await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_resume");
-      if (!S.activeWorkpointPacket) {
+      if (!getActiveWorkpointPacket()) {
         const prompted = await promptForWorkpointIfNeeded(ctx, projectRoot, "session_resume");
         if (!prompted) {
           await ensureLowConfidenceWorkpoint("session_resume");

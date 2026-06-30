@@ -3,7 +3,7 @@
 //        §33.10 (customInstructions), §35.6 (files), §38.1 (trim)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, persistAuthoritativeState, sanitizeFocusFailures, ensureContinuityId, getScopedWorkpointPacket, isWorkpointPacketScopedToCurrentSession, isProjectRootAuthoritySafe, projectRootAuthorityFailure, normalizeWorkpointResumePacketEnvelope, normalizeProjectRoot, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, isExplicitContinuationAsk, isNonTaskStatusLikeText, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, formatProjectSwitchLedgerLines, buildCurrentAskScopeVerdict, formatCurrentAskScopeVerdictLines } from "./state.js";
+import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, persistAuthoritativeState, sanitizeFocusFailures, ensureContinuityId, getScopedWorkpointPacket, isWorkpointPacketScopedToCurrentSession, isProjectRootAuthoritySafe, projectRootAuthorityFailure, normalizeWorkpointResumePacketEnvelope, normalizeProjectRoot, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, isExplicitContinuationAsk, isNonTaskStatusLikeText, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, formatProjectSwitchLedgerLines, buildCurrentAskScopeVerdict, formatCurrentAskScopeVerdictLines, getTurnCount, getActiveFrameId, getContinuityId, getSessionFrameKey, getSessionCwd, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary , getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, getLatestReportSummary, setLatestReportSummary } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 function basename(value: string): string {
@@ -84,7 +84,7 @@ function semanticCurrentAsk(): string {
 async function buildCompactionFallbackSummary(fs: any, workpointPacket: any): Promise<string> {
   const candidatePacket = normalizeWorkpointResumePacketEnvelope(workpointPacket) || getScopedWorkpointPacket() || {};
   const packet = isWorkpointPacketScopedToCurrentSession(candidatePacket) ? candidatePacket : {};
-  const rendered = String(Object.keys(packet).length ? (packet?.rendered_summary || S.activeWorkpointSummary || "") : "").trim();
+  const rendered = String(Object.keys(packet).length ? (packet?.rendered_summary || getActiveWorkpointSummary() || "") : "").trim();
   const ask = semanticCurrentAsk();
   const mission = packetField(packet, "mission") || ask || S.activeFrameGoal || S.lastFocusSnapshot.intent || S.lastFocusSnapshot.currentFocus || S.activeFrameTitle;
   const nextSlice = packetField(packet, "next_slice") || S.lastFocusSnapshot.currentFocus || S.lastCompactDecision || ask || S.activeFrameGoal;
@@ -122,11 +122,11 @@ async function buildCompactionFallbackSummary(fs: any, workpointPacket: any): Pr
       currentAskText: ask,
       currentAskKind: S.currentAsk?.kind,
       queryScopeKind: S.queryScope?.scopeKind,
-      projectRoot: S.sessionCwd,
-      continuityId: S.continuityId,
+      projectRoot: getSessionCwd(),
+      continuityId: getContinuityId(),
       visibleRecapReason,
     })),
-    ...formatCurrentAskScopeVerdictLines(buildCurrentAskScopeVerdict({ currentAskText: ask, workpointPacket: packet, projectRoot: S.sessionCwd, continuityId: S.continuityId })),
+    ...formatCurrentAskScopeVerdictLines(buildCurrentAskScopeVerdict({ currentAskText: ask, workpointPacket: packet, projectRoot: getSessionCwd(), continuityId: getContinuityId() })),
     ...formatToolOutputVisibleRecapLines(visibleRecapReason),
     "",
   ].join("\n");
@@ -135,9 +135,9 @@ async function buildCompactionFallbackSummary(fs: any, workpointPacket: any): Pr
     v2Prompt,
     "",
   ].join("\n") : "";
-  const trajectorySection = formatTrajectoryPacketForPrompt(S.lastTrajectoryClarity) ? [
+  const trajectorySection = formatTrajectoryPacketForPrompt(getLastTrajectoryClarity()) ? [
     "# Trajectory Resume Packet",
-    formatTrajectoryPacketForPrompt(S.lastTrajectoryClarity),
+    formatTrajectoryPacketForPrompt(getLastTrajectoryClarity()),
     "",
   ].join("\n") : "";
   const projectLedgerSection = formatProjectSwitchLedgerLines(ask).length ? [
@@ -170,31 +170,31 @@ let compactResumeRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function refreshWorkpointResumePacket(mode = "compact_prompt"): Promise<any | null> {
   if (!S.focusaAvailable) return null;
-  const root = S.sessionCwd || process.cwd();
+  const root = getSessionCwd() || process.cwd();
   if (!isProjectRootAuthoritySafe(root)) {
-    S.activeWorkpointPacket = null;
-    S.activeWorkpointSummary = "";
+    setActiveWorkpointPacket(null);
+    setActiveWorkpointSummary("");
     return null;
   }
   try {
     const packet = await focusaFetch("/workpoint/resume", {
       method: "POST",
-      body: JSON.stringify({ mode, continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()), session_id: S.sessionFrameKey, project_root: S.sessionCwd || process.cwd(), current_ask: S.currentAsk?.text || "" }),
+      body: JSON.stringify({ mode, continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()), session_id: getSessionFrameKey(), project_root: getSessionCwd() || process.cwd(), current_ask: S.currentAsk?.text || "" }),
     });
     if (packet && packet.status === "rejected_scope_mismatch") {
-      S.activeWorkpointPacket = null;
-      S.activeWorkpointSummary = "";
+      setActiveWorkpointPacket(null);
+      setActiveWorkpointSummary("");
       return null;
     }
     if (packet && packet.status === "completed") {
       const candidate = normalizeWorkpointResumePacketEnvelope(packet);
       if (!isWorkpointPacketScopedToCurrentSession(candidate)) {
-        S.activeWorkpointPacket = null;
-        S.activeWorkpointSummary = "";
+        setActiveWorkpointPacket(null);
+        setActiveWorkpointSummary("");
         return null;
       }
-      S.activeWorkpointPacket = stampWorkpointPacketForCurrentPiSession(candidate);
-      S.activeWorkpointSummary = packet.rendered_summary || packet.resume_packet_v2?.rendered_summary || packet.next_step_hint || "";
+      setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(candidate));
+      setActiveWorkpointSummary(packet.rendered_summary || packet.resume_packet_v2?.rendered_summary || packet.next_step_hint || "");
       S.lastWorkpointUpdate = Date.now();
       return packet;
     }
@@ -204,7 +204,7 @@ async function refreshWorkpointResumePacket(mode = "compact_prompt"): Promise<an
 
 async function checkpointTrajectoryBeforeCompaction(reason = "before_compaction"): Promise<any | null> {
   if (!S.focusaAvailable) return null;
-  const root = S.sessionCwd || process.cwd();
+  const root = getSessionCwd() || process.cwd();
   if (!isProjectRootAuthoritySafe(root)) return null;
   try {
     return await focusaFetch("/trajectory/checkpoint", {
@@ -212,9 +212,9 @@ async function checkpointTrajectoryBeforeCompaction(reason = "before_compaction"
       body: JSON.stringify({
         summary: `Pi ${reason}: preserve Trajectory Ladder north-star context across compaction.`,
         continuity_id: ensureContinuityId(root),
-        session_id: S.sessionFrameKey,
+        session_id: getSessionFrameKey(),
         project_root: root,
-        idempotency_key: `pi-trajectory-${reason}-${S.sessionFrameKey || "session"}-${S.turnCount}`,
+        idempotency_key: `pi-trajectory-${reason}-${getSessionFrameKey() || "session"}-${getTurnCount()}`,
       }),
     });
   } catch { return null; }
@@ -222,7 +222,7 @@ async function checkpointTrajectoryBeforeCompaction(reason = "before_compaction"
 
 async function refreshTrajectoryResumePacket(reason = "compaction"): Promise<any | null> {
   if (!S.focusaAvailable) return null;
-  const root = S.sessionCwd || process.cwd();
+  const root = getSessionCwd() || process.cwd();
   if (!isProjectRootAuthoritySafe(root)) return null;
   try {
     const packet = await focusaFetch("/trajectory/resume", {
@@ -230,37 +230,37 @@ async function refreshTrajectoryResumePacket(reason = "compaction"): Promise<any
       body: JSON.stringify({
         mode: "summary",
         continuity_id: ensureContinuityId(root),
-        session_id: S.sessionFrameKey,
+        session_id: getSessionFrameKey(),
         project_root: root,
       }),
     });
     const view = packet?.resume_packet || packet?.trajectory_checkpoint || packet;
     const trajectory = view?.trajectory || {};
-    S.lastTrajectoryClarity = {
-      ...(S.lastTrajectoryClarity || {}),
+    setLastTrajectoryClarity({
+      ...(getLastTrajectoryClarity() || {}),
       reason,
       refreshed_at: Date.now(),
       project_root: root,
-      continuity_id: S.continuityId || ensureContinuityId(root),
-      session_id: S.sessionFrameKey || null,
+      continuity_id: getContinuityId() || ensureContinuityId(root),
+      session_id: getSessionFrameKey() || null,
       status: String(view?.intelligence_view?.clarity_gate?.status || trajectory.definition_status || packet?.status || "unknown"),
       recommended_action: String(view?.intelligence_view?.clarity_gate?.recommended_action || view?.intelligence_view?.context_sufficiency?.recommended_action || "unknown"),
       canonical: packet?.canonical === true || view?.canonical === true,
       degraded: packet?.degraded === true || view?.degraded === true,
-      trajectory_id: trajectory.trajectory_id || S.lastTrajectoryClarity?.trajectory_id || null,
+      trajectory_id: trajectory.trajectory_id || getLastTrajectoryClarity()?.trajectory_id || null,
       fallback_prior_project_trajectory: trajectory.fallback_prior_project_trajectory === true,
       fallback_source_continuity_id: trajectory.fallback_source_continuity_id || null,
-      long_term_goal: trajectory.long_term_goal || trajectory.trajectory_ladder?.hlt || S.lastTrajectoryClarity?.long_term_goal || null,
-      desired_end_state: trajectory.desired_end_state || S.lastTrajectoryClarity?.desired_end_state || null,
-      mid_level_goal: trajectory.mid_level_goal || trajectory.trajectory_ladder?.mlg || S.lastTrajectoryClarity?.mid_level_goal || null,
-      short_term_goal: trajectory.short_term_goal || trajectory.trajectory_ladder?.stg || S.lastTrajectoryClarity?.short_term_goal || null,
-      waypoints: trajectory.waypoints || trajectory.trajectory_ladder?.waypoints || S.lastTrajectoryClarity?.waypoints || [],
-      current_state: trajectory.current_state || S.lastTrajectoryClarity?.current_state || null,
-      active_gap: trajectory.active_gap || S.lastTrajectoryClarity?.active_gap || null,
+      long_term_goal: trajectory.long_term_goal || trajectory.trajectory_ladder?.hlt || getLastTrajectoryClarity()?.long_term_goal || null,
+      desired_end_state: trajectory.desired_end_state || getLastTrajectoryClarity()?.desired_end_state || null,
+      mid_level_goal: trajectory.mid_level_goal || trajectory.trajectory_ladder?.mlg || getLastTrajectoryClarity()?.mid_level_goal || null,
+      short_term_goal: trajectory.short_term_goal || trajectory.trajectory_ladder?.stg || getLastTrajectoryClarity()?.short_term_goal || null,
+      waypoints: trajectory.waypoints || trajectory.trajectory_ladder?.waypoints || getLastTrajectoryClarity()?.waypoints || [],
+      current_state: trajectory.current_state || getLastTrajectoryClarity()?.current_state || null,
+      active_gap: trajectory.active_gap || getLastTrajectoryClarity()?.active_gap || null,
       resume_packet: view || null,
-    };
-    return packet || S.lastTrajectoryClarity;
-  } catch { return S.lastTrajectoryClarity || null; }
+    });
+    return packet || getLastTrajectoryClarity();
+  } catch { return getLastTrajectoryClarity() || null; }
 }
 
 function formatTrajectoryPacketForPrompt(packet: any): string {
@@ -302,11 +302,11 @@ function recordLocalWorkpointFallback(reason: string): void {
     reason,
     mission: semanticCurrentAsk() || S.activeFrameGoal || S.lastFocusSnapshot.intent || "unknown mission",
     next_slice: S.lastFocusSnapshot.currentFocus || S.lastCompactDecision || S.activeFrameGoal || "resume from local degraded fallback",
-    source_turn_id: `pi-turn-${S.turnCount}`,
+    source_turn_id: `pi-turn-${getTurnCount()}`,
     recorded_at: new Date().toISOString(),
   };
-  S.activeWorkpointPacket = fallback;
-  S.activeWorkpointSummary = `NON-CANONICAL WORKPOINT FALLBACK: ${fallback.next_slice}`;
+  setActiveWorkpointPacket(fallback);
+  setActiveWorkpointSummary(`NON-CANONICAL WORKPOINT FALLBACK: ${fallback.next_slice}`);
   S.lastWorkpointUpdate = Date.now();
   try { S.pi?.appendEntry("focusa-workpoint-fallback", fallback); } catch { /* best effort */ }
   persistState();
@@ -314,7 +314,7 @@ function recordLocalWorkpointFallback(reason: string): void {
 
 async function checkpointBeforeCompaction(): Promise<any | null> {
   if (!S.focusaAvailable) return null;
-  const root = S.sessionCwd || process.cwd();
+  const root = getSessionCwd() || process.cwd();
   if (!isProjectRootAuthoritySafe(root)) return null;
   const ask = semanticCurrentAsk();
   const mission = ask || S.activeFrameGoal || S.lastFocusSnapshot.intent || S.lastFocusSnapshot.currentFocus || "Pi work before compaction";
@@ -329,14 +329,14 @@ async function checkpointBeforeCompaction(): Promise<any | null> {
         checkpoint_reason: "before_compact",
         canonical: true,
         promote: true,
-        continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()),
-        session_id: S.sessionFrameKey,
-        project_root: S.sessionCwd || process.cwd(),
-        source_turn_id: `pi-turn-${S.turnCount}`,
-        idempotency_key: `pi-before-compact-${S.sessionFrameKey || "session"}-${S.turnCount}`,
+        continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
+        session_id: getSessionFrameKey(),
+        project_root: getSessionCwd() || process.cwd(),
+        source_turn_id: `pi-turn-${getTurnCount()}`,
+        idempotency_key: `pi-before-compact-${getSessionFrameKey() || "session"}-${getTurnCount()}`,
         action_intent: {
           action_type: "resume_workpoint",
-          target_ref: S.currentAsk?.sourceTurnId || S.activeFrameId || "pi-session",
+          target_ref: S.currentAsk?.sourceTurnId || getActiveFrameId() || "pi-session",
           verification_hooks: ["resume packet appears in compaction instructions", "post-compact steer uses WorkpointResumePacket"],
           status: "ready",
         },
@@ -346,11 +346,11 @@ async function checkpointBeforeCompaction(): Promise<any | null> {
 }
 
 export function isFocusaContextContinuityHealthy(): boolean {
-  const cwd = S.sessionCwd || process.cwd();
-  const continuityId = S.continuityId || ensureContinuityId(cwd);
+  const cwd = getSessionCwd() || process.cwd();
+  const continuityId = getContinuityId() || ensureContinuityId(cwd);
   if (!isProjectRootAuthoritySafe(cwd)) return false;
   const packet = getScopedWorkpointPacket();
-  const rawPacket = S.activeWorkpointPacket;
+  const rawPacket = getActiveWorkpointPacket();
   const noDegradedWorkpoint = !rawPacket || Boolean(packet);
   return Boolean(S.focusaAvailable && String(continuityId || "").trim() && noDegradedWorkpoint);
 }
@@ -402,7 +402,7 @@ function formatResumePacketV2ForPrompt(packet: any): string {
   const packetProjectRoot = normalizeProjectRoot(packet?.project_root || v2?.workpoint?.project_root);
   const packetContinuityId = String(packet?.continuity_id || v2?.workpoint?.continuity_id || "").trim();
   if (!isProjectRootAuthoritySafe(packetProjectRoot)) return "";
-  if (!packetContinuityId || (S.continuityId && packetContinuityId !== S.continuityId)) return "";
+  if (!packetContinuityId || (getContinuityId() && packetContinuityId !== getContinuityId())) return "";
   if (v2.canonical === false) return "";
   const affordances = v2.tool_affordances || {};
   const bestNext = Array.isArray(affordances.best_next) ? affordances.best_next : v2.next_tools || [];
@@ -472,7 +472,7 @@ export function registerCompaction(pi: ExtensionAPI) {
     // §33.1 + N5: Use pushDelta() for ALL writes — enforces validateSlot() on every delta.
     // session_compact bypassed validation before this fix — every compaction refilled
     // recent_results with verbose entries that validateSlot would have rejected.
-    if (S.focusaAvailable && S.activeFrameId) {
+    if (S.focusaAvailable && getActiveFrameId()) {
       await pushDelta({
         decisions: S.localDecisions.slice(-10),
         constraints: S.localConstraints.slice(-10),
@@ -481,7 +481,7 @@ export function registerCompaction(pi: ExtensionAPI) {
     }
     await checkpointBeforeCompaction();
     await checkpointTrajectoryBeforeCompaction("before_compaction");
-    await refreshTrajectoryClarityLifecycle("before_compaction", S.sessionCwd || process.cwd());
+    await refreshTrajectoryClarityLifecycle("before_compaction", getSessionCwd() || process.cwd());
     const trajectoryPacket = await refreshTrajectoryResumePacket("before_compaction");
     void trajectoryPacket;
     const workpointPacket = await refreshWorkpointResumePacket("compact_prompt");
@@ -524,7 +524,7 @@ export function registerCompaction(pi: ExtensionAPI) {
     const lastDecision = S.localDecisions[S.localDecisions.length - 1] ?? "pre-compaction work";
     S.lastCompactDecision = lastDecision;
 
-    if (S.focusaAvailable && S.activeFrameId) {
+    if (S.focusaAvailable && getActiveFrameId()) {
       const data = await getFocusState();
       if (data?.fs?.decisions?.length || data?.fs?.constraints?.length) {
         S.localDecisions = [];
@@ -541,14 +541,14 @@ export function registerCompaction(pi: ExtensionAPI) {
     const compactNotes: string[] = [];
     if (artifacts.length) compactNotes.push(`Session compacted. Modified: ${artifacts.map((a) => a.path_or_id).join(", ")}`);
     if (Array.isArray(readFiles) && readFiles.length) compactNotes.push(`Session compacted. Read: ${readFiles.slice(0, 20).join(", ")}`);
-    if (S.focusaAvailable && S.activeFrameId && (artifacts.length || compactNotes.length)) {
+    if (S.focusaAvailable && getActiveFrameId() && (artifacts.length || compactNotes.length)) {
       await focusaFetch("/focus/update", {
         method: "POST",
         body: JSON.stringify({
-          frame_id: S.activeFrameId,
-          project_root: normalizeProjectRoot(S.sessionCwd || process.cwd()),
-          continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()),
-          turn_id: `pi-turn-${S.turnCount}`,
+          frame_id: getActiveFrameId(),
+          project_root: normalizeProjectRoot(getSessionCwd() || process.cwd()),
+          continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
+          turn_id: `pi-turn-${getTurnCount()}`,
           delta: {
             ...(artifacts.length ? { artifacts } : {}),
             ...(compactNotes.length ? { notes: compactNotes } : {}),
@@ -565,11 +565,11 @@ export function registerCompaction(pi: ExtensionAPI) {
     // Also dedup: only resume once per compaction cycle.
     const compactionEntry = (event as any).compactionEntry || {};
     const compactOrdinal = S.totalCompactions || compactionEntry.details?.totalCompactions || "unknown";
-    const compactResumeKey = String(compactionEntry.id || compactionEntry.uuid || compactionEntry.timestamp || `${S.sessionFrameKey || "session"}:compact:${compactOrdinal}`);
+    const compactResumeKey = String(compactionEntry.id || compactionEntry.uuid || compactionEntry.timestamp || `${getSessionFrameKey() || "session"}:compact:${compactOrdinal}`);
     const recentlySubmitted = S.lastCompactResumeKey === compactResumeKey || (Date.now() - S.lastCompactResumeAt < 30_000 && compactOrdinal !== "unknown");
     if (!S.compactResumePending && !recentlySubmitted) {
       await refreshWorkpointResumePacket("compact_prompt");
-      await refreshTrajectoryClarityLifecycle("after_compaction", S.sessionCwd || process.cwd());
+      await refreshTrajectoryClarityLifecycle("after_compaction", getSessionCwd() || process.cwd());
       const trajectoryPacket = await refreshTrajectoryResumePacket("after_compaction");
       S.lastCompactResumeKey = compactResumeKey;
       S.lastCompactResumeAt = Date.now();
@@ -585,7 +585,7 @@ export function registerCompaction(pi: ExtensionAPI) {
           // lastDecision saved above, before localDecisions was cleared
           const scopedPacket = getScopedWorkpointPacket();
           const v2Prompt = formatResumePacketV2ForPrompt(scopedPacket);
-          const trajectoryPrompt = formatTrajectoryPacketForPrompt(trajectoryPacket || S.lastTrajectoryClarity);
+          const trajectoryPrompt = formatTrajectoryPacketForPrompt(trajectoryPacket || getLastTrajectoryClarity());
           const visibleRecapReason = toolOutputVisibleRecapReason();
           const attentionPrompt = [
             ...formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({
@@ -593,11 +593,11 @@ export function registerCompaction(pi: ExtensionAPI) {
               currentAskText: semanticCurrentAsk(),
               currentAskKind: S.currentAsk?.kind,
               queryScopeKind: S.queryScope?.scopeKind,
-              projectRoot: S.sessionCwd,
-              continuityId: S.continuityId,
+              projectRoot: getSessionCwd(),
+              continuityId: getContinuityId(),
               visibleRecapReason,
             })),
-            ...formatCurrentAskScopeVerdictLines(buildCurrentAskScopeVerdict({ currentAskText: semanticCurrentAsk(), workpointPacket: scopedPacket, projectRoot: S.sessionCwd, continuityId: S.continuityId })),
+            ...formatCurrentAskScopeVerdictLines(buildCurrentAskScopeVerdict({ currentAskText: semanticCurrentAsk(), workpointPacket: scopedPacket, projectRoot: getSessionCwd(), continuityId: getContinuityId() })),
             ...formatToolOutputVisibleRecapLines(visibleRecapReason),
           ].join("\n");
           const directive = v2Prompt
@@ -610,9 +610,9 @@ ${S.lastCompactDecision || "pre-compaction work"}
 ## AttentionRecallVerdict
 ${attentionPrompt}
 ## WorkpointResumePacketV2
-${v2Prompt || `No project-bound WorkpointResumePacketV2 recorded (${projectRootAuthorityFailure(S.sessionCwd || process.cwd()) || "v2 packet unavailable"}); continue from Last Active Focus only after a fresh safe resume/orientation call.`}
+${v2Prompt || `No project-bound WorkpointResumePacketV2 recorded (${projectRootAuthorityFailure(getSessionCwd() || process.cwd()) || "v2 packet unavailable"}); continue from Last Active Focus only after a fresh safe resume/orientation call.`}
 ## TrajectoryResumePacket
-${trajectoryPrompt || `No project-bound TrajectoryResumePacket recorded (${projectRootAuthorityFailure(S.sessionCwd || process.cwd()) || "trajectory packet unavailable"}); call focusa_trajectory_view before treating TL context as current.`}
+${trajectoryPrompt || `No project-bound TrajectoryResumePacket recorded (${projectRootAuthorityFailure(getSessionCwd() || process.cwd()) || "trajectory packet unavailable"}); call focusa_trajectory_view before treating TL context as current.`}
 ## Directive
 ${directive}
 
@@ -704,7 +704,7 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
     if (S.focusaAvailable) {
       await checkpointBeforeCompaction();
       await checkpointTrajectoryBeforeCompaction("hard_context_pressure");
-      await refreshTrajectoryClarityLifecycle("hard_context_pressure", S.sessionCwd || process.cwd());
+      await refreshTrajectoryClarityLifecycle("hard_context_pressure", getSessionCwd() || process.cwd());
     }
     const r = S.focusaAvailable
       ? await focusaFetch("/commands/submit", {
@@ -731,7 +731,7 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
     if (S.focusaAvailable) {
       await checkpointBeforeCompaction();
       await checkpointTrajectoryBeforeCompaction("auto_context_pressure");
-      await refreshTrajectoryClarityLifecycle("auto_context_pressure", S.sessionCwd || process.cwd());
+      await refreshTrajectoryClarityLifecycle("auto_context_pressure", getSessionCwd() || process.cwd());
     }
     const r = S.focusaAvailable
       ? await focusaFetch("/commands/submit", {
@@ -762,14 +762,14 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
 // ── Periodic micro-compact (§21) — called from turn_end ─────────────────────
 export async function checkMicroCompact(): Promise<void> {
   const n = S.cfg?.microCompactEveryNTurns || 5;
-  if (S.turnCount > 0 && S.turnCount % n === 0 && S.focusaAvailable) {
+  if (getTurnCount() > 0 && getTurnCount() % n === 0 && S.focusaAvailable) {
     // §21: Request micro-compact via Focusa API (not extension-owned summarization)
     focusaFetch("/commands/submit", {
       method: "POST",
       body: JSON.stringify({
         command: "micro-compact",
-        args: { turn_count: S.turnCount, surface: "pi" },
-        idempotency_key: `micro-${S.turnCount}-${Date.now()}`,
+        args: { turn_count: getTurnCount(), surface: "pi" },
+        idempotency_key: `micro-${getTurnCount()}-${Date.now()}`,
       }),
     }).catch(() => {});
   }

@@ -22,6 +22,8 @@ jobs:
           components: clippy
       - run: cargo test --workspace
       - run: cargo clippy --workspace -- -D warnings
+      - name: Spec104 static audit
+        run: python3 scripts/audit-schema.py spec104 release-proof/audit/audit.jsonl
 
   # Create the GitHub Release with notes (runs once, before uploads)
   create-release:

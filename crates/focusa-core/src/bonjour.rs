@@ -43,13 +43,11 @@ pub async fn advertise(service_type: &str, port: u16) -> Result<RegisteredServic
     let version = env!("CARGO_PKG_VERSION").to_string();
 
     let daemon = ServiceDaemon::new().context("create mdns daemon")?;
-    let service_fullname = format!(
-        "focusa-daemon.{}",
-        service_type.trim_end_matches('.')
-    );
+    let service_fullname = format!("focusa-daemon.{}", service_type.trim_end_matches('.'));
     let service_type = service_type.trim_end_matches('.').to_string();
 
-    let mut properties: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    let mut properties: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
     properties.insert("url".to_string(), url.clone());
     properties.insert("version".to_string(), version.clone());
     properties.insert("port".to_string(), port.to_string());
@@ -65,7 +63,9 @@ pub async fn advertise(service_type: &str, port: u16) -> Result<RegisteredServic
     .context("build ServiceInfo")?
     .enable_addr_auto();
 
-    daemon.register(service_info).context("register _focusa._tcp.local")?;
+    daemon
+        .register(service_info)
+        .context("register _focusa._tcp.local")?;
 
     tracing::info!(
         service_fullname = %service_fullname,
@@ -114,37 +114,35 @@ pub async fn browse(service_type: &str, timeout_secs: u64) -> Result<Option<Bonj
             tokio::time::timeout(Duration::from_millis(250), receiver.recv_async()).await
         {
             let name = info.get_fullname().to_string();
-                let host = info.get_hostname().to_string();
-                let port = info.get_port();
-                let txt: std::collections::HashMap<String, String> = info
-                    .get_properties()
-                    .iter()
-                    .filter_map(|p| {
-                        let val = p
-                            .val()
-                            .and_then(|b| std::str::from_utf8(b).ok())
-                            .unwrap_or("")
-                            .to_string();
-                        if val.is_empty() {
-                            None
-                        } else {
-                            Some((p.key().to_string(), val))
-                        }
-                    })
-                    .collect();
-                let url = txt
-                    .get("url")
-                    .cloned()
-                    .unwrap_or_else(|| {
-                        format!("http://{}:{}", host.trim_end_matches('.'), port)
-                    });
-                let _ = daemon.shutdown();
-                return Ok(Some(BonjourService {
-                    url,
-                    host,
-                    port,
-                    name,
-                }));
+            let host = info.get_hostname().to_string();
+            let port = info.get_port();
+            let txt: std::collections::HashMap<String, String> = info
+                .get_properties()
+                .iter()
+                .filter_map(|p| {
+                    let val = p
+                        .val()
+                        .and_then(|b| std::str::from_utf8(b).ok())
+                        .unwrap_or("")
+                        .to_string();
+                    if val.is_empty() {
+                        None
+                    } else {
+                        Some((p.key().to_string(), val))
+                    }
+                })
+                .collect();
+            let url = txt
+                .get("url")
+                .cloned()
+                .unwrap_or_else(|| format!("http://{}:{}", host.trim_end_matches('.'), port));
+            let _ = daemon.shutdown();
+            return Ok(Some(BonjourService {
+                url,
+                host,
+                port,
+                name,
+            }));
         }
     }
     let _ = daemon.shutdown();

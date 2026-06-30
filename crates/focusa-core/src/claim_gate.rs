@@ -101,8 +101,15 @@ pub struct EvidenceCitation {
 impl EvidenceCitation {
     /// Valid citation formats per Spec107 §2.
     const VALID_PREFIXES: &'static [&'static str] = &[
-        "tests/", "docs/", "crates/", "apps/", "git:", "/v1/",
-        "cargo test", "uiai:", "api:",
+        "tests/",
+        "docs/",
+        "crates/",
+        "apps/",
+        "git:",
+        "/v1/",
+        "cargo test",
+        "uiai:",
+        "api:",
     ];
 
     /// Classify a citation reference into a runtime/platform/surface hint.
@@ -140,8 +147,7 @@ impl EvidenceCitation {
 // ---------------------------------------------------------------------------
 
 /// Input to the claim gate.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ClaimGateInput {
     /// The bead/work item being claimed as complete.
     pub work_item_id: String,
@@ -160,7 +166,6 @@ pub struct ClaimGateInput {
     #[serde(default)]
     pub operator_deferred: bool,
 }
-
 
 /// Evidence policy declared by a bead.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -243,12 +248,13 @@ impl ClaimGateOutput {
         }
         for citation in &citations {
             if let Some(cls) = citation.class
-                && cls.is_overclaim() {
-                    overclaim_risks.push(format!(
-                        "Citation '{}' is {} evidence",
-                        citation.reference, cls
-                    ));
-                }
+                && cls.is_overclaim()
+            {
+                overclaim_risks.push(format!(
+                    "Citation '{}' is {} evidence",
+                    citation.reference, cls
+                ));
+            }
         }
 
         // Build recovery commands
@@ -260,10 +266,15 @@ impl ClaimGateOutput {
         }
         if is_overclaim {
             if evidence_class == EvidenceClass::Surrogate {
-                recovery_commands.push("Replace surrogate evidence with actual evidence from required surface".to_string());
+                recovery_commands.push(
+                    "Replace surrogate evidence with actual evidence from required surface"
+                        .to_string(),
+                );
             }
             if evidence_class == EvidenceClass::Partial {
-                recovery_commands.push("Collect remaining evidence to satisfy all acceptance criteria".to_string());
+                recovery_commands.push(
+                    "Collect remaining evidence to satisfy all acceptance criteria".to_string(),
+                );
             }
         }
         if evidence_class == EvidenceClass::Missing {
@@ -313,7 +324,10 @@ impl ClaimGateOutput {
             lines.push(format!(
                 "citations: {} parsed ({} valid)",
                 self.citations.len(),
-                self.citations.iter().filter(|c| c.is_format_valid()).count()
+                self.citations
+                    .iter()
+                    .filter(|c| c.is_format_valid())
+                    .count()
             ));
         }
         if !self.missing_evidence.is_empty() {
@@ -421,10 +435,7 @@ fn classify_overall(citations: &[EvidenceCitation], surfaces_required: &[String]
     }
 
     // If any citation has an explicit class annotation, use the worst one
-    let cited_classes: Vec<_> = citations
-        .iter()
-        .filter_map(|c| c.class)
-        .collect();
+    let cited_classes: Vec<_> = citations.iter().filter_map(|c| c.class).collect();
     if !cited_classes.is_empty() {
         // Return the worst cited class
         return *cited_classes
@@ -440,10 +451,7 @@ fn classify_overall(citations: &[EvidenceCitation], surfaces_required: &[String]
     }
 
     // Check cited surfaces
-    let cited_surfaces: HashSet<&str> = citations
-        .iter()
-        .filter_map(|c| c.surface_hint())
-        .collect();
+    let cited_surfaces: HashSet<&str> = citations.iter().filter_map(|c| c.surface_hint()).collect();
 
     // If surfaces are required and no code/test surface is cited, it's surrogate
     let has_code_surface = cited_surfaces.contains("crates")
@@ -498,10 +506,7 @@ fn decide(
     }
 
     // Check per-citation class annotations (inline override)
-    let cited_classes: Vec<_> = citations
-        .iter()
-        .filter_map(|c| c.class)
-        .collect();
+    let cited_classes: Vec<_> = citations.iter().filter_map(|c| c.class).collect();
 
     // If any citation explicitly declares a class, the worst class governs
     if !cited_classes.is_empty() {
@@ -637,7 +642,8 @@ mod tests {
     fn test_gate_allow_blocked_with_deferral() {
         let input = ClaimGateInput {
             work_item_id: "focusa-qasy.25".into(),
-            claim_text: "Evidence citations: apps/menubar/src-tauri/Cargo.toml (class: blocked)".into(),
+            claim_text: "Evidence citations: apps/menubar/src-tauri/Cargo.toml (class: blocked)"
+                .into(),
             operator_deferred: true,
             ..Default::default()
         };

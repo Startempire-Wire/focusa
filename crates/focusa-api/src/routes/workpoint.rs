@@ -1493,47 +1493,53 @@ fn validate_workpoint_checkpoint_request(
 
     // Validate project_root format (must be absolute path if provided)
     if let Some(root) = req.project_root.as_deref()
-        && !root.trim().is_empty() && !root.starts_with('/') {
-            validation_errors.push(json!({
-                "field": "project_root",
-                "error": "must be an absolute path starting with '/'",
-                "value": root,
-                "severity": "error"
-            }));
-        }
+        && !root.trim().is_empty()
+        && !root.starts_with('/')
+    {
+        validation_errors.push(json!({
+            "field": "project_root",
+            "error": "must be an absolute path starting with '/'",
+            "value": root,
+            "severity": "error"
+        }));
+    }
 
     // Validate mission length (max 500 chars)
     if let Some(mission) = req.mission.as_deref()
-        && mission.len() > 500 {
-            validation_errors.push(json!({
-                "field": "mission",
-                "error": "must be <= 500 characters",
-                "value_length": mission.len(),
-                "severity": "error"
-            }));
-        }
+        && mission.len() > 500
+    {
+        validation_errors.push(json!({
+            "field": "mission",
+            "error": "must be <= 500 characters",
+            "value_length": mission.len(),
+            "severity": "error"
+        }));
+    }
 
     // Validate next_slice length (max 2000 chars)
     if let Some(next) = req.next_slice.as_deref()
-        && next.len() > 2000 {
-            validation_errors.push(json!({
-                "field": "next_slice",
-                "error": "must be <= 2000 characters",
-                "value_length": next.len(),
-                "severity": "error"
-            }));
-        }
+        && next.len() > 2000
+    {
+        validation_errors.push(json!({
+            "field": "next_slice",
+            "error": "must be <= 2000 characters",
+            "value_length": next.len(),
+            "severity": "error"
+        }));
+    }
 
     // Validate continuity_id format if provided
     if let Some(cont_id) = req.continuity_id.as_deref()
-        && !cont_id.trim().is_empty() && cont_id.len() > 256 {
-            validation_errors.push(json!({
-                "field": "continuity_id",
-                "error": "must be <= 256 characters",
-                "value_length": cont_id.len(),
-                "severity": "error"
-            }));
-        }
+        && !cont_id.trim().is_empty()
+        && cont_id.len() > 256
+    {
+        validation_errors.push(json!({
+            "field": "continuity_id",
+            "error": "must be <= 256 characters",
+            "value_length": cont_id.len(),
+            "severity": "error"
+        }));
+    }
 
     if validation_errors.is_empty() {
         Ok(())

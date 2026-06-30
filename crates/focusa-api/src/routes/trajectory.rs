@@ -389,9 +389,7 @@ fn active_persisted_trajectory<'a>(
         .trajectory
         .records
         .iter()
-        .filter(|record| {
-            record.project_root.as_deref() == Some(expected_project_root.as_str())
-        })
+        .filter(|record| record.project_root.as_deref() == Some(expected_project_root.as_str()))
         .collect();
 
     if scoped_records.is_empty() {

@@ -369,9 +369,10 @@ pub fn select_mode(input: &AwarenessInput) -> String {
         return MODE_STANDARD.to_string();
     }
     if let Some(ref wp) = input.workpoint_resume
-        && !wp.action_authority {
-            return MODE_STANDARD.to_string();
-        }
+        && !wp.action_authority
+    {
+        return MODE_STANDARD.to_string();
+    }
 
     // Priority 2: post-compaction always gets standard
     if input.surface == SURFACE_POST_COMPACTION {
@@ -385,12 +386,10 @@ pub fn select_mode(input: &AwarenessInput) -> String {
 
     // Priority 4: operator asks for architecture/design
     if let Some(ref steer) = input.operator_steering.explicit_steer
-        && (steer.contains("architecture")
-            || steer.contains("design")
-            || steer.contains("explain"))
-        {
-            return MODE_RICH.to_string();
-        }
+        && (steer.contains("architecture") || steer.contains("design") || steer.contains("explain"))
+    {
+        return MODE_RICH.to_string();
+    }
 
     // Priority 5: first-ever project onboarding
     if input.session_transfer.action == "continue" && !input.session_transfer.resume_found {
@@ -483,7 +482,7 @@ pub fn generate_candidates(input: &AwarenessInput) -> Vec<AwarenessCandidateLine
                 source_ref: Some($src.to_string()),
                 evidence_ref: None,
             });
-                    }};
+        }};
     }
 
     // --- Identity layer ---
@@ -508,7 +507,11 @@ pub fn generate_candidates(input: &AwarenessInput) -> Vec<AwarenessCandidateLine
             format!(
                 "⚠ Unsafe project root: {} ({})",
                 input.project_root_safety.path,
-                input.project_root_safety.reason.as_deref().unwrap_or("unknown")
+                input
+                    .project_root_safety
+                    .reason
+                    .as_deref()
+                    .unwrap_or("unknown")
             ),
             10.0,
             9.0,
@@ -524,7 +527,10 @@ pub fn generate_candidates(input: &AwarenessInput) -> Vec<AwarenessCandidateLine
     push!(
         "identity",
         "continuity",
-        format!("session: {} | continuity: {}", input.project_identity.session_id, input.project_identity.continuity_id),
+        format!(
+            "session: {} | continuity: {}",
+            input.project_identity.session_id, input.project_identity.continuity_id
+        ),
         8.0,
         3.0,
         0.0,
@@ -541,7 +547,15 @@ pub fn generate_candidates(input: &AwarenessInput) -> Vec<AwarenessCandidateLine
         push!(
             "authority",
             "workpoint",
-            format!("Workpoint {} [{}]", wp.workpoint_id, if wp.canonical { "canonical" } else { "advisory" }),
+            format!(
+                "Workpoint {} [{}]",
+                wp.workpoint_id,
+                if wp.canonical {
+                    "canonical"
+                } else {
+                    "advisory"
+                }
+            ),
             auth,
             9.0,
             5.0,
@@ -749,7 +763,10 @@ pub fn generate_candidates(input: &AwarenessInput) -> Vec<AwarenessCandidateLine
         push!(
             "risk",
             "pressure",
-            format!("⛔ context pressure: {}% [{}] - compaction imminent", cp.percentage, cp.tier),
+            format!(
+                "⛔ context pressure: {}% [{}] - compaction imminent",
+                cp.percentage, cp.tier
+            ),
             10.0,
             10.0,
             10.0,
@@ -780,7 +797,10 @@ pub fn generate_candidates(input: &AwarenessInput) -> Vec<AwarenessCandidateLine
         push!(
             "risk",
             "uiai_saturated",
-            format!("⚠ UIAI pressure: {}% [saturated, {} sessions]", uiai.pressure, uiai.session_count),
+            format!(
+                "⚠ UIAI pressure: {}% [saturated, {} sessions]",
+                uiai.pressure, uiai.session_count
+            ),
             7.0,
             7.0,
             6.0,
@@ -812,7 +832,10 @@ pub fn generate_candidates(input: &AwarenessInput) -> Vec<AwarenessCandidateLine
         push!(
             "proof",
             "recent_evidence",
-            format!("recent evidence: {} handle(s)", input.evidence.recent_refs.len()),
+            format!(
+                "recent evidence: {} handle(s)",
+                input.evidence.recent_refs.len()
+            ),
             5.0,
             5.0,
             3.0,
@@ -844,7 +867,17 @@ pub fn generate_candidates(input: &AwarenessInput) -> Vec<AwarenessCandidateLine
         push!(
             "recovery",
             "next_tools",
-            format!("top next tools: {}", input.tool_graph.top_next_tools.iter().take(3).map(|s| s.as_str()).collect::<Vec<_>>().join(", ")),
+            format!(
+                "top next tools: {}",
+                input
+                    .tool_graph
+                    .top_next_tools
+                    .iter()
+                    .take(3)
+                    .map(|s| s.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
             5.0,
             8.0,
             4.0,
@@ -866,7 +899,13 @@ pub fn generate_candidates(input: &AwarenessInput) -> Vec<AwarenessCandidateLine
                 "prediction accuracy: {}% ({}/{} evaluated)",
                 acc_pct, input.prediction.stats.evaluated, input.prediction.stats.total
             ),
-            3.0, 2.0, 2.0, 1.0, 0.0, 0.0, 0.0,
+            3.0,
+            2.0,
+            2.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
             "prediction.stats"
         );
     }
@@ -889,35 +928,28 @@ pub fn generate_candidates(input: &AwarenessInput) -> Vec<AwarenessCandidateLine
 
     // --- DXUX digest ---
     if let Some(ref dx) = input.dxux_digest
-        && (dx.status != "ok" || dx.canonical) {
-            push!(
-                "recovery",
-                "dxux_digest",
-                format!("DXUX: {} - {}", dx.status, dx.exact_next_action),
-                6.0,
-                8.0,
-                5.0,
-                3.0,
-                0.0,
-                0.0,
-                0.0,
-                "dxux_digest"
-            );
-        }
+        && (dx.status != "ok" || dx.canonical)
+    {
+        push!(
+            "recovery",
+            "dxux_digest",
+            format!("DXUX: {} - {}", dx.status, dx.exact_next_action),
+            6.0,
+            8.0,
+            5.0,
+            3.0,
+            0.0,
+            0.0,
+            0.0,
+            "dxux_digest"
+        );
+    }
 
     lines
 }
 
 /// Compute DVS per Spec108 §6 formula.
-fn compute_dvs(
-    av: f64,
-    ac: f64,
-    rr: f64,
-    nv: f64,
-    pv: f64,
-    rp: f64,
-    sp: f64,
-) -> f64 {
+fn compute_dvs(av: f64, ac: f64, rr: f64, nv: f64, pv: f64, rp: f64, sp: f64) -> f64 {
     let score = (av * 3.0) + (ac * 2.5) + (rr * 2.0) + (nv * 1.5) + (pv * 1.5);
     let penalty = (rp * 2.0) + (sp * 1.5);
     (score - penalty).max(0.0)
@@ -949,13 +981,14 @@ pub fn should_show_pressure_warning(
 
     // Never show within 30 seconds
     if let Some(last) = state.last_shown_at_ms
-        && now_ms.saturating_sub(last) < 30_000 {
-            return PressureWarning {
-                show: false,
-                reason: "within_30s_dedupe".to_string(),
-                escalation: "none".to_string(),
-            };
-        }
+        && now_ms.saturating_sub(last) < 30_000
+    {
+        return PressureWarning {
+            show: false,
+            reason: "within_30s_dedupe".to_string(),
+            escalation: "none".to_string(),
+        };
+    }
 
     let tier_order = |t: &str| match t {
         "low" => 0u8,
@@ -1003,13 +1036,15 @@ pub fn should_show_pressure_warning(
 
     // After 5 minutes, re-show if still pressure
     if let Some(last) = state.last_shown_at_ms
-        && now_ms.saturating_sub(last) > 300_000 && pct > 50 {
-            return PressureWarning {
-                show: true,
-                reason: "stale_reminder".to_string(),
-                escalation: "soft".to_string(),
-            };
-        }
+        && now_ms.saturating_sub(last) > 300_000
+        && pct > 50
+    {
+        return PressureWarning {
+            show: true,
+            reason: "stale_reminder".to_string(),
+            escalation: "soft".to_string(),
+        };
+    }
 
     PressureWarning {
         show: false,
@@ -1060,13 +1095,14 @@ pub fn select_top_tools(input: &AwarenessInput, count: usize) -> Vec<ToolGuidanc
             } else {
                 (5.0, 6.0)
             };
-            let risk = if side_effect.contains("write_state") || side_effect.contains("control_state") {
-                "risky"
-            } else if side_effect.contains("write_") {
-                "moderate"
-            } else {
-                "safe"
-            };
+            let risk =
+                if side_effect.contains("write_state") || side_effect.contains("control_state") {
+                    "risky"
+                } else if side_effect.contains("write_") {
+                    "moderate"
+                } else {
+                    "safe"
+                };
 
             ToolGuidance {
                 tool_name: tool.clone(),
@@ -1158,7 +1194,10 @@ pub fn render_packet(input: &AwarenessInput) -> AwarenessPacket {
         // DVS threshold OR authority exception
         let passes = line.dvs >= threshold || line.authority_value >= auth_exception;
         if !passes {
-            line.suppress_reason = Some(format!("dvs_below_threshold:{:.2}<{:.2}", line.dvs, threshold));
+            line.suppress_reason = Some(format!(
+                "dvs_below_threshold:{:.2}<{:.2}",
+                line.dvs, threshold
+            ));
             suppressed.push(SuppressedLine {
                 line: line.clone(),
                 suppress_reason: line.suppress_reason.clone().unwrap(),
@@ -1171,7 +1210,11 @@ pub fn render_packet(input: &AwarenessInput) -> AwarenessPacket {
     }
 
     // Sort visible by DVS descending
-    visible.sort_by(|a, b| b.dvs.partial_cmp(&a.dvs).unwrap_or(std::cmp::Ordering::Equal));
+    visible.sort_by(|a, b| {
+        b.dvs
+            .partial_cmp(&a.dvs)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     // Tool guidance
     let next_tools = select_top_tools(input, 3);
@@ -1202,13 +1245,16 @@ pub fn render_packet(input: &AwarenessInput) -> AwarenessPacket {
 
     let rehydrate_id = format!(
         "awareness:{}{}{}{}",
-        now_ms,
-        input.project_identity.continuity_id,
-        mode,
-        surface
+        now_ms, input.project_identity.continuity_id, mode, surface
     );
 
-    let confidence = if authority_score >= 80 { "high" } else if authority_score >= 50 { "medium" } else { "low" };
+    let confidence = if authority_score >= 80 {
+        "high"
+    } else if authority_score >= 50 {
+        "medium"
+    } else {
+        "low"
+    };
     let mode_reason = mode_selected_reason(input, &mode);
     let surface_reason = surface_selected_reason(&surface);
 
@@ -1218,14 +1264,21 @@ pub fn render_packet(input: &AwarenessInput) -> AwarenessPacket {
         mode,
         surface,
         status: if input.workpoint_resume.as_ref().is_some_and(|w| !w.degraded)
-            && input.trajectory_view.as_ref().map(|t| !t.degraded).unwrap_or(true)
+            && input
+                .trajectory_view
+                .as_ref()
+                .map(|t| !t.degraded)
+                .unwrap_or(true)
         {
             "fresh"
         } else {
             "degraded"
         },
         visible_lines: visible,
-        system_lines: candidates_clone.into_iter().filter(|l| l.suppress_reason.is_none()).collect(),
+        system_lines: candidates_clone
+            .into_iter()
+            .filter(|l| l.suppress_reason.is_none())
+            .collect(),
         next_tools,
         recovery_tools,
         suppressed_lines: suppressed,
@@ -1281,11 +1334,7 @@ fn compute_authority_score(input: &AwarenessInput) -> u8 {
     if input.project_identity.verified {
         score += 20;
     }
-    if input
-        .workpoint_resume
-        .as_ref()
-        .is_some_and(|w| w.canonical)
-    {
+    if input.workpoint_resume.as_ref().is_some_and(|w| w.canonical) {
         score += 30;
     } else if input.workpoint_resume.is_some() {
         score += 10;
@@ -1316,9 +1365,10 @@ fn mode_selected_reason(input: &AwarenessInput, mode: &str) -> String {
         return "high_critical_pressure → minimal".to_string();
     }
     if let Some(ref steer) = input.operator_steering.explicit_steer
-        && (steer.contains("architecture") || steer.contains("design")) {
-            return "explicit_steer=architecture/design → rich".to_string();
-        }
+        && (steer.contains("architecture") || steer.contains("design"))
+    {
+        return "explicit_steer=architecture/design → rich".to_string();
+    }
     format!("surface={} → {}", input.surface, mode)
 }
 
@@ -1364,15 +1414,33 @@ pub fn awareness_as_utility_card(input: &AwarenessInput) -> UtilityCard {
     UtilityCard {
         schema: "focusa.utility_card.v2_awareness".to_string(),
         status: packet.status.to_string(),
-        purpose: format!("awareness_packet surface={} mode={}", packet.surface, packet.mode),
+        purpose: format!(
+            "awareness_packet surface={} mode={}",
+            packet.surface, packet.mode
+        ),
         preferred_layer: packet.mode.to_string(),
         authority_boundary: "project_root + continuity_id".to_string(),
-        usefulness_bar: vec![format!("authority_score:{} freshness:{} visible:{}", packet.metadata.authority_score, packet.metadata.freshness_score, packet.metadata.visible_count)],
+        usefulness_bar: vec![format!(
+            "authority_score:{} freshness:{} visible:{}",
+            packet.metadata.authority_score,
+            packet.metadata.freshness_score,
+            packet.metadata.visible_count
+        )],
         scope_gate: vec![],
         bootstrap_card: vec![],
         post_compaction_card: visible.clone(),
-        exact_next_actions: visible.iter().filter(|l| l.contains("next:") || l.contains("next_action")).take(3).cloned().collect(),
-        do_not_drift: packet.visible_lines.iter().filter(|l| l.layer == "authority" && l.category == "do_not_drift").map(|l| l.text.clone()).collect(),
+        exact_next_actions: visible
+            .iter()
+            .filter(|l| l.contains("next:") || l.contains("next_action"))
+            .take(3)
+            .cloned()
+            .collect(),
+        do_not_drift: packet
+            .visible_lines
+            .iter()
+            .filter(|l| l.layer == "authority" && l.category == "do_not_drift")
+            .map(|l| l.text.clone())
+            .collect(),
         evidence_policy: vec![],
         brevity_rules: vec![],
         recovery_order: recovery,

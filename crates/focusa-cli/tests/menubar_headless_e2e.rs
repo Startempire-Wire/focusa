@@ -93,7 +93,10 @@ fn build_menubar() -> Result<PathBuf, String> {
     let root = workspace_root();
     let menubar = root.join("apps").join("menubar");
     let dist = menubar.join("build");
-    eprintln!("[e2e] building menubar SPA via npm run build (cwd={})", menubar.display());
+    eprintln!(
+        "[e2e] building menubar SPA via npm run build (cwd={})",
+        menubar.display()
+    );
 
     let status = Command::new(NODE)
         .args([NPM_CLI, "run", "-s", "build"])
@@ -162,7 +165,8 @@ fn chromium_dump_dom(url: &str, daemon_url: &str) -> Result<String, String> {
     // Write a tiny bootstrap HTML file that injects our globals and then
     // redirects to the SPA. data: URLs have origin=null which breaks
     // localStorage, so we use a real file.
-    let bootstrap = std::env::temp_dir().join(format!("focusa-e2e-bootstrap-{}.html", std::process::id()));
+    let bootstrap =
+        std::env::temp_dir().join(format!("focusa-e2e-bootstrap-{}.html", std::process::id()));
     let daemon_json = serde_json::to_string(daemon_url).unwrap_or_else(|_| "\"\"".into());
     let url_json = serde_json::to_string(url).unwrap_or_else(|_| "\"\"".into());
     let html = format!(

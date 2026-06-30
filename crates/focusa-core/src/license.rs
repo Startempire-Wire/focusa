@@ -182,8 +182,7 @@ pub enum LicenseError {
 }
 
 /// Doctor report for `focusa license doctor` per spec §5.2.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DoctorReport {
     pub license_file: String,
     pub file_exists: bool,
@@ -195,7 +194,6 @@ pub struct DoctorReport {
     pub warnings: Vec<String>,
     pub failures: Vec<String>,
 }
-
 
 /// Path to the local license file. Resolves to `~/.config/focusa/license.json`.
 pub fn license_file_path() -> PathBuf {

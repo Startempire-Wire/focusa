@@ -339,11 +339,11 @@ export function resetPiSessionScopedState(reason = "session_boundary"): void {
   S.activeFrameTitle = "";
   S.activeFrameGoal = "";
   S.continuityId = "";
-  S.activeWorkpointPacket = null;
-  S.activeWorkpointSummary = "";
-  S.lastTrajectoryClarity = null;
+  setActiveWorkpointPacket(null);
+  setActiveWorkpointSummary("");
+  setLastTrajectoryClarity(null);
   S.lastProjectIdentity = null;
-  S.latestReportSummary = null;
+  setLatestReportSummary(null);
   resetToolOutputPressureWindow(Date.now());
   S.projectSwitchLedger = [];
   S.currentAsk = null;
@@ -636,7 +636,7 @@ function workpointValue(packet: any, key: string): string {
 }
 
 function latestReportSummaryRefFromFocusState(focusState?: any): string {
-  if (S.latestReportSummary?.handle) return S.latestReportSummary.handle;
+  if (getLatestReportSummary()?.handle) return getLatestReportSummary()!.handle;
   const candidates = [
     ...arrayField(focusState?.recent_results),
     ...arrayField(focusState?.notes),
@@ -693,7 +693,7 @@ export function recordToolOutputPressure(toolName: string, bytes: number, tokens
           total_bytes: pressure.totalBytes,
           total_tokens: pressure.totalTokens,
           large_result_count: pressure.largeResultCount,
-          latest_report_summary_ref: S.latestReportSummary?.handle || "none",
+          latest_report_summary_ref: getLatestReportSummary()?.handle || "none",
         },
       });
       focusaPost("/telemetry/trace", {
@@ -729,7 +729,7 @@ export function formatToolOutputVisibleRecapLines(reason = toolOutputVisibleReca
   return [
     "VISIBLE_RECAP_REQUIRED:",
     `  reason=${boundedAttentionText(reason, 180)}`,
-    `  latest_report_summary_ref=${S.latestReportSummary?.handle || "none"}`,
+    `  latest_report_summary_ref=${getLatestReportSummary()?.handle || "none"}`,
     "  required_before_next_action=Recap MEMORY_ANCHOR/latest report in 1-2 lines before any tool/file/API action.",
     "END_VISIBLE_RECAP_REQUIRED",
   ];
@@ -745,7 +745,7 @@ export function markVisibleRecapEmittedIfPresent(assistantOutput: string): boole
     payload: {
       reason,
       assistant_preview: boundedAttentionText(preview, 220),
-      latest_report_summary_ref: S.latestReportSummary?.handle || "none",
+      latest_report_summary_ref: getLatestReportSummary()?.handle || "none",
     },
   });
   if (!recapped) return false;
@@ -892,7 +892,7 @@ function rememberedProjectRootForAlias(alias: string): string {
   const lower = String(alias || "").toLowerCase().trim();
   if (!lower) return "";
   const scored: Array<{ root: string; score: number }> = [];
-  const last = S.lastProjectIdentity || {};
+  const last = getLastProjectIdentity() || {};
   const lastAliases = Array.isArray(last.aliases) ? last.aliases : [];
   const lastText = [last.project_id, last.canonical_name, ...lastAliases].filter(Boolean).join(" ").toLowerCase();
   if (last.project_root && lastText.includes(lower)) {
@@ -1233,7 +1233,7 @@ export function maybeCaptureReportSummaryFromAssistantOutput(text: string, turnI
   const id = storeEcsArtifact("report-summary", summary);
   const handle = `[HANDLE:report-summary:${id}]`;
   const captured: PiReportSummaryHandle = { handle, summary: boundedAttentionText(summary, 240), capturedAt: Date.now(), turnId };
-  S.latestReportSummary = captured;
+  setLatestReportSummary(captured);
   try { S.pi?.appendEntry("focusa-report-summary", captured); } catch { /* best effort */ }
   persistState();
   return captured;
@@ -2150,14 +2150,14 @@ export function resolvePiProjectRoot(cwdInput?: unknown, persistedPacket?: any):
 }
 
 export function projectRootConfirmationRequired(projectRoot?: string): boolean {
-  const resolution = S.lastProjectRootResolution;
+  const resolution = getLastProjectRootResolution();
   if (!resolution) return false;
   if (projectRoot && normalizeProjectRoot(projectRoot) !== normalizeProjectRoot(resolution.projectRoot)) return false;
   return resolution.requiresOperatorConfirmation === true || resolution.safe !== true;
 }
 
 export function projectRootConfirmationSummary(projectRoot?: string): string {
-  const resolution = S.lastProjectRootResolution;
+  const resolution = getLastProjectRootResolution();
   if (!resolution || (projectRoot && normalizeProjectRoot(projectRoot) !== normalizeProjectRoot(resolution.projectRoot))) return "project root is unverified";
   const candidates = (resolution.candidates || [])
     .slice(0, 3)
@@ -2168,7 +2168,7 @@ export function projectRootConfirmationSummary(projectRoot?: string): string {
 
 export function adoptPiProjectRoot(cwdInput?: unknown, persistedPacket?: any): string {
   const resolution = resolvePiProjectRootCandidate(cwdInput, persistedPacket);
-  S.lastProjectRootResolution = resolution;
+  setLastProjectRootResolution(resolution);
   S.sessionCwd = resolution.projectRoot;
   rememberProjectRoot(resolution);
   return resolution.projectRoot;
@@ -2189,7 +2189,7 @@ export function confirmPiProjectRoot(projectRootInput: unknown, source = "operat
     requiresOperatorConfirmation: false,
     candidates: base.candidates?.length ? base.candidates : [{ projectRoot, confidenceScore: 0.95, markers: base.markers || ["operator_confirmed"], source }],
   };
-  S.lastProjectRootResolution = confirmed;
+  setLastProjectRootResolution(confirmed);
   S.sessionCwd = projectRoot;
   rememberProjectRoot(confirmed);
   return projectRoot;
@@ -2223,7 +2223,7 @@ export async function buildFocusaSessionIdentity(
     const query = new URLSearchParams();
     query.set("cwd", cwdForIdentity);
     query.set("project_root", projectRoot);
-    const persisted = S.lastProjectIdentity || {};
+    const persisted = getLastProjectIdentity() || {};
     if (normalizeProjectRoot(persisted.project_root) === projectRoot) {
       if (persisted.project_root) query.set("persisted_project_root", normalizeProjectRoot(persisted.project_root));
       if (persisted.fingerprint) query.set("persisted_project_fingerprint", String(persisted.fingerprint));
@@ -2232,12 +2232,12 @@ export async function buildFocusaSessionIdentity(
     }
     const response = await focusaFetch(`/project/identity?${query.toString()}`).catch(() => null);
     projectIdentity = response?.project_identity || null;
-    if (projectIdentity) S.lastProjectIdentity = projectIdentity;
+    if (projectIdentity) setLastProjectIdentity(projectIdentity);
   }
   const rootParts = projectRoot.split("/").filter(Boolean);
-  const resolution = S.lastProjectRootResolution && normalizeProjectRoot(S.lastProjectRootResolution.projectRoot) === projectRoot
-    ? S.lastProjectRootResolution
-    : resolvePiProjectRootCandidate(projectRootInput || S.sessionCwd || process.cwd());
+  const resolution = (getLastProjectRootResolution() && normalizeProjectRoot(getLastProjectRootResolution()!.projectRoot) === projectRoot
+    ? getLastProjectRootResolution()
+    : resolvePiProjectRootCandidate(projectRootInput || getSessionCwd() || process.cwd()))!;
   return {
     schema: "focusa.session_identity.v1",
     project_identity: projectIdentity,
@@ -2265,14 +2265,14 @@ export async function refreshTrajectoryClarityLifecycle(reason: string, projectR
   if (!S.focusaAvailable) return null;
   const projectRoot = normalizeProjectRoot(projectRootInput || S.sessionCwd || process.cwd());
   if (!isProjectRootAuthoritySafe(projectRoot)) {
-    S.lastTrajectoryClarity = {
+    setLastTrajectoryClarity({
       reason,
       status: "skipped_unsafe_project_root",
       project_root: projectRoot,
       scope_failure: projectRootAuthorityFailure(projectRoot),
       refreshed_at: Date.now(),
-    };
-    return S.lastTrajectoryClarity;
+    });
+    return getLastTrajectoryClarity();
   }
   const query = new URLSearchParams();
   query.set("mode", "summary");
@@ -2309,7 +2309,7 @@ export async function refreshTrajectoryClarityLifecycle(reason: string, projectR
       deployment: view?.project_identity?.deployment || view?.project_identity?.project_summary?.deployment || view?.project?.deployment || null,
       next_tools: view?.next_tools || ["focusa_trajectory_view", "focusa_project_verify", "focusa_workpoint_resume"],
     };
-    S.lastTrajectoryClarity = snapshot;
+    setLastTrajectoryClarity(snapshot);
     if (snapshot.project_identity) S.lastProjectIdentity = snapshot.project_identity;
     focusaPost("/telemetry/activity", {
       surface: "pi",
@@ -2323,20 +2323,20 @@ export async function refreshTrajectoryClarityLifecycle(reason: string, projectR
     });
     return snapshot;
   } catch {
-    S.lastTrajectoryClarity = {
+    setLastTrajectoryClarity({
       reason,
       status: "unavailable",
       project_root: projectRoot,
       refreshed_at: Date.now(),
       next_tools: ["focusa_tool_doctor", "focusa_trajectory_view"],
-    };
-    return S.lastTrajectoryClarity;
+    });
+    return getLastTrajectoryClarity();
   }
 }
 
 export function clearScopedWorkpointForUnsafeCwd(reason = "unsafe_cwd_scope_guard"): void {
-  S.activeWorkpointPacket = null;
-  S.activeWorkpointSummary = "";
+  setActiveWorkpointPacket(null);
+  setActiveWorkpointSummary("");
   S.continuityId = "";
   S.activeFrameId = null;
   S.activeFrameTitle = "";
@@ -2373,15 +2373,15 @@ export function isWorkpointPacketScopedToCurrentSession(packet: any): boolean {
 }
 
 export function getScopedWorkpointPacket(): any | null {
-  return isWorkpointPacketScopedToCurrentSession(S.activeWorkpointPacket) ? S.activeWorkpointPacket : null;
+  return isWorkpointPacketScopedToCurrentSession(getActiveWorkpointPacket()) ? getActiveWorkpointPacket() : null;
 }
 
 export function adoptPersistedContinuityForSession(data: any, eventSessionId: string, cwd: string): void {
   const persistedSessionId = String(data?.sessionId || "").trim();
   const persistedContinuityId = String(data?.continuityId || "").trim();
   if (!persistedSessionId || persistedSessionId !== eventSessionId || !persistedContinuityId) {
-    S.activeWorkpointPacket = null;
-    S.activeWorkpointSummary = "";
+    setActiveWorkpointPacket(null);
+    setActiveWorkpointSummary("");
     return;
   }
   S.continuityId = persistedContinuityId;
@@ -2389,12 +2389,12 @@ export function adoptPersistedContinuityForSession(data: any, eventSessionId: st
   const packetProjectRoot = normalizeProjectRoot(packet?.project_root);
   const packetContinuityId = String(packet?.continuity_id || "").trim();
   if (packet && isProjectRootAuthoritySafe(cwd) && isProjectRootAuthoritySafe(packetProjectRoot) && packetProjectRoot === normalizeProjectRoot(cwd) && packetContinuityId === persistedContinuityId && packet.canonical !== false && packet.status !== "partial" && packet.status !== "rejected_scope_mismatch") {
-    S.activeWorkpointPacket = stampWorkpointPacketForCurrentPiSession(packet);
-    S.activeWorkpointSummary = String(data?.activeWorkpointSummary || "");
+    setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(packet));
+    setActiveWorkpointSummary(String(data?.activeWorkpointSummary || ""));
     S.lastWorkpointUpdate = Date.now();
   } else {
-    S.activeWorkpointPacket = null;
-    S.activeWorkpointSummary = "";
+    setActiveWorkpointPacket(null);
+    setActiveWorkpointSummary("");
   }
 }
 
@@ -2467,13 +2467,13 @@ function adoptWorkpointScopeForFrameRecovery(packet: any, source: string): strin
   if (currentSessionKey && !packetPiSessionKey && packetSessionId && packetSessionId !== currentSessionKey) return null;
   if (currentSessionKey && !packetPiSessionKey && !packetSessionId) return null;
   S.continuityId = packetContinuityId;
-  S.activeWorkpointPacket = stampWorkpointPacketForCurrentPiSession(workpoint);
+  setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(workpoint));
   S.lastWorkpointUpdate = Date.now();
   return packetProjectRoot;
 }
 
 function scopedWorkpointFrameRecoveryCwd(): string | null {
-  return adoptWorkpointScopeForFrameRecovery(S.activeWorkpointPacket, "session_scoped_workpoint");
+  return adoptWorkpointScopeForFrameRecovery(getActiveWorkpointPacket(), "session_scoped_workpoint");
 }
 
 async function adoptExistingSafeFrameForRecovery(): Promise<string | null> {
@@ -2491,8 +2491,8 @@ async function adoptExistingSafeFrameForRecovery(): Promise<string | null> {
 export async function ensurePiFrame(cwd?: string, sessionId?: string, source = "pi-auto"): Promise<string | null> {
   if (!S.focusaAvailable) return S.activeFrameId;
 
-  const requestedResolution = resolvePiProjectRootCandidate(cwd || S.sessionCwd || process.cwd());
-  S.lastProjectRootResolution = requestedResolution;
+  const requestedResolution = resolvePiProjectRootCandidate(cwd || getSessionCwd() || process.cwd());
+  setLastProjectRootResolution(requestedResolution);
   const requestedCwd = requestedResolution.projectRoot;
   if (requestedResolution.requiresOperatorConfirmation || requestedResolution.safe !== true) {
     focusaPost("/telemetry/trace", { event_type: "pi_frame_creation_blocked_unconfirmed_project_root", payload: { project_root: requestedCwd, summary: projectRootConfirmationSummary(requestedCwd), source } });
@@ -2586,7 +2586,7 @@ export function getEffectiveFocusSnapshot(fs?: any): {
     constraints: fs?.constraints || S.lastFocusSnapshot.constraints || S.localConstraints,
     failures: sanitizeFocusFailures(fs?.failures || S.lastFocusSnapshot.failures || S.localFailures),
     intent: fs?.intent || S.lastFocusSnapshot.intent || "",
-    currentFocus: fs?.current_focus || fs?.current_state || S.lastFocusSnapshot.currentFocus || S.lastTrajectoryClarity?.short_term_goal || "",
+    currentFocus: fs?.current_focus || fs?.current_state || S.lastFocusSnapshot.currentFocus || getLastTrajectoryClarity()?.short_term_goal || "",
   };
 }
 
@@ -2670,13 +2670,13 @@ export function persistState(): void {
     authoritativeFailures: tailBounded(sanitizeFocusFailures(S.lastFocusSnapshot.failures), 20),
     intent: trimPersistText(S.lastFocusSnapshot.intent),
     currentFocus: trimPersistText(S.lastFocusSnapshot.currentFocus),
-    projectRootResolution: S.lastProjectRootResolution,
+    projectRootResolution: getLastProjectRootResolution(),
     activeWorkpointPacket: getScopedWorkpointPacket(),
-    activeWorkpointSummary: getScopedWorkpointPacket() ? trimPersistText(S.activeWorkpointSummary) : "",
-    lastTrajectoryClarity: S.lastTrajectoryClarity,
+    activeWorkpointSummary: getScopedWorkpointPacket() ? trimPersistText(getActiveWorkpointSummary()) : "",
+    lastTrajectoryClarity: getLastTrajectoryClarity(),
     lastProjectIdentity: S.lastProjectIdentity,
-    lastProjectVerify: S.lastProjectVerify,
-    latestReportSummary: S.latestReportSummary,
+    lastProjectVerify: getLastProjectVerify(),
+    latestReportSummary: getLatestReportSummary(),
     toolOutputPressure: S.toolOutputPressure?.recapRequired ? S.toolOutputPressure : null,
     projectSwitchLedger: S.projectSwitchLedger.slice(0, PROJECT_SWITCH_LEDGER_MAX_OBSERVATIONS),
     vitalInfoPrompted: S.vitalInfoPrompted,
@@ -2739,4 +2739,480 @@ export function extractHandles(text: string): Array<{ kind: string; id: string }
   let m;
   while ((m = re.exec(text)) !== null) handles.push({ kind: m[1], id: m[2] });
   return handles;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Spec 104 — Typed Scoped Runtime Stores (PI-01 foundation)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// Migration path from `const S` singleton to typed scope-keyed stores.
+// Each scope (project, host, workstream) gets its own TypedScopeStore instance.
+// Consumers eventually read from getScopeStore() instead of S directly.
+//
+// The registry (ScopeStoreRegistry) is an infra-only singleton — it is NOT
+// an authority-bearing global. It simply manages lifecycle of stores.
+
+/**
+ * Canonical scope identity that keys a TypedScopeStore.
+ */
+export interface TypedScopeIdentity {
+  scopeKind: "project" | "host" | "workstream" | "unknown";
+  rootPath: string;
+  continuityId?: string;
+  sessionId?: string;
+}
+
+/**
+ * A typed, scoped runtime store containing all state relevant to one scope.
+ * This replaces ad-hoc S fields with explicit typed accessors.
+ */
+export class TypedScopeStore {
+  readonly identity: TypedScopeIdentity;
+
+  /** Request-local scope authority: last verified identity packet */
+  verifiedIdentity: null | {
+    projectRoot: string;
+    projectId: string;
+    canonicalName: string;
+    confidence: "high" | "medium" | "low";
+    verifiedAt: number;
+  } = null;
+
+  /** Current authoritative scope envelope for tool calls */
+  currentScopeEnvelope: null | {
+    scopeKind: "project" | "host" | "workstream" | "unknown";
+    projectRoot?: string;
+    continuityId?: string;
+    sessionId?: string;
+    authority: "canonical" | "advisory" | "blocked" | "degraded";
+    authorityReason?: string;
+    verifiedAt: number;
+  } = null;
+
+  /** Turn/continuation state bound to this scope */
+  turnCount: number = 0;
+
+  /** Frame state bound to this scope */
+  activeFrameId: string | null = null;
+
+  /** Session identity bound to this scope */
+  sessionCwd: string = "";
+  continuityId: string = "";
+  sessionFrameKey: string = "";
+
+  /** Whether Focusa daemon is available for this scope */
+  focusaAvailable: boolean = false;
+
+  /** Identity shadow: last project root resolution (PI-02) */
+  lastProjectRootResolution: null | {
+    projectRoot: string;
+    confidence: "high" | "medium" | "low";
+    confidenceScore: number;
+    source: string;
+    reason: string;
+    safe: boolean;
+    requiresOperatorConfirmation: boolean;
+    markerScore?: number;
+    markers?: string[];
+    candidates?: Array<{ projectRoot: string; confidenceScore: number; markers: string[]; source: string }>;
+  } = null;
+
+  /** Identity shadow: project identity from trajectory (PI-02) */
+  lastProjectIdentity: null | Record<string, any> = null;
+
+  /** Workpoint shadow: active workpoint packet (PI-03) */
+  activeWorkpointPacket: null | Record<string, any> = null;
+
+  /** Workpoint shadow: active workpoint summary (PI-03) */
+  activeWorkpointSummary: string = "";
+
+  /** Trajectory shadow: last clarity snapshot (PI-04) */
+  lastTrajectoryClarity: null | Record<string, any> = null;
+
+  /** Report shadow: latest report summary (PI-06) */
+  latestReportSummary: null | { handle?: string; mission?: string; nextAction?: string } = null;
+
+  /** Report shadow: last project verify result (PI-05) */
+  lastProjectVerify: null | Record<string, any> = null;
+
+  /** Turn state: task start turn (PI-07) */
+  currentTaskTurnStart: number = 0;
+
+  /** Turn state: tool usage batch (PI-07) */
+  toolUsageBatch: Array<{ name: string; result: string; tookMs: number; at: number }> = [];
+
+  /** Turn state: last stream len (PI-07) */
+  lastStreamLen: number = 0;
+
+  /** Turn state: compilation errors (PI-07) */
+  compilationErrors: Array<{ file: string; line: number; message: string }> = [];
+
+  /** Turn state: file edit counts (PI-07) */
+  fileEditCounts: Record<string, number> = {};
+
+  /** Turn state: long session warning shown (PI-07) */
+  longSessionSignaled: boolean = false;
+
+  /** Turn state: total compactions (PI-07) */
+  totalCompactions: number = 0;
+
+  /** Tool context: in tool execution scope (PI-08) */
+  inToolContext: boolean = false;
+
+  constructor(identity: TypedScopeIdentity) {
+    this.identity = identity;
+  }
+
+  /** Check if this store is authoritative for a given scope identity */
+  matches(scope: { rootPath: string; continuityId?: string }): boolean {
+    return this.identity.rootPath === scope.rootPath;
+  }
+
+  /** Reset ephemeral state (keep identity, clear runtime data) */
+  resetRuntime(): void {
+    this.verifiedIdentity = null;
+    this.currentScopeEnvelope = null;
+    this.turnCount = 0;
+    this.activeFrameId = null;
+    this.sessionCwd = "";
+    this.continuityId = "";
+    this.sessionFrameKey = "";
+    this.focusaAvailable = false;
+  }
+}
+
+/**
+ * ScopeStoreRegistry manages lifecycle of TypedScopeStore instances.
+ *
+ * This is an infra-level singleton — it is NOT authority-bearing:
+ * - It only stores/retrieves stores by identity string
+ * - It never decides which scope is "active"
+ * - It never falls back to a remembered scope
+ * - Consumers must provide an explicit identity to get a store
+ */
+class ScopeStoreRegistry {
+  private stores = new Map<string, TypedScopeStore>();
+
+  /** Get or create a store for the given identity. */
+  getOrCreate(identity: TypedScopeIdentity): TypedScopeStore {
+    const key = this.makeKey(identity);
+    let store = this.stores.get(key);
+    if (!store) {
+      store = new TypedScopeStore(identity);
+      this.stores.set(key, store);
+    }
+    return store;
+  }
+
+  /** Get an existing store, returning null if none. Never falls back. */
+  get(identity: TypedScopeIdentity): TypedScopeStore | null {
+    return this.stores.get(this.makeKey(identity)) ?? null;
+  }
+
+  /** Remove a store (scope change/close). */
+  remove(identity: TypedScopeIdentity): void {
+    this.stores.delete(this.makeKey(identity));
+  }
+
+  /** Clear all stores (daemon restart). */
+  clearAll(): void {
+    this.stores.clear();
+  }
+
+  /** Number of active stores. */
+  get size(): number {
+    return this.stores.size;
+  }
+
+  private makeKey(id: TypedScopeIdentity): string {
+    return `${id.scopeKind}::${id.rootPath}::${id.continuityId || ""}::${id.sessionId || ""}`;
+  }
+}
+
+/** Infra-only singleton registry (NOT authority-bearing — stores only, no fallback) */
+export const scopeStoreRegistry = new ScopeStoreRegistry();
+
+/**
+ * Get a typed scope store for the current session scope.
+ * Convenience helper that reads from the last verified scope identity.
+ * Returns null if no verified scope exists (caller must handle blocked state).
+ */
+export function getCurrentScopeStore(): TypedScopeStore | null {
+  if (!getLastProjectRootResolution() || !getSessionCwd()) return null;
+  const rootPath = getLastProjectRootResolution()?.projectRoot || getSessionCwd();
+  const identity: TypedScopeIdentity = {
+    scopeKind: "project",
+    rootPath,
+    continuityId: S.continuityId || undefined,
+    sessionId: S.sessionFrameKey || undefined,
+  };
+  return scopeStoreRegistry.getOrCreate(identity);
+}
+
+/**
+ * Set the current scope authority envelope.
+ * Call this after verification to record canonical scope state in the typed store.
+ */
+export function setCurrentScopeEnvelope(envelope: {
+  scopeKind: "project" | "host" | "workstream" | "unknown";
+  projectRoot?: string;
+  continuityId?: string;
+  sessionId?: string;
+  authority: "canonical" | "advisory" | "blocked" | "degraded";
+  authorityReason?: string;
+}): void {
+  const store = getCurrentScopeStore();
+  if (!store) return;
+  store.currentScopeEnvelope = { ...envelope, verifiedAt: Date.now() };
+}
+
+/**
+ * Sync current S fields into the active TypedScopeStore.
+ * Call this after S.sessionCwd/S.continuityId/S.sessionFrameKey are set
+ * (e.g., at session start/resume) so scope-keyed consumers are consistent.
+ */
+export function syncSFieldsToScopeStore(): void {
+  const store = getCurrentScopeStore();
+  if (!store) return;
+  store.sessionCwd = S.sessionCwd;
+  store.continuityId = S.continuityId;
+  store.sessionFrameKey = S.sessionFrameKey;
+  store.turnCount = S.turnCount;
+  store.activeFrameId = S.activeFrameId;
+  store.focusaAvailable = S.focusaAvailable;
+}
+
+/**
+ * Sync current TypedScopeStore fields back into S.
+ * Call this after scope-keyed operations update the store.
+ */
+export function syncScopeStoreFieldsToS(): void {
+  const store = getCurrentScopeStore();
+  if (!store) return;
+  S.sessionCwd = store.sessionCwd || S.sessionCwd;
+  S.continuityId = store.continuityId || S.continuityId;
+  S.sessionFrameKey = store.sessionFrameKey || S.sessionFrameKey;
+  if (store.turnCount > 0) S.turnCount = store.turnCount;
+  if (store.activeFrameId !== null) S.activeFrameId = store.activeFrameId;
+  if (store.focusaAvailable !== S.focusaAvailable) S.focusaAvailable = store.focusaAvailable;
+}
+
+/**
+ * Convenience: get turn count from scope store (preferred) or S fallback.
+ */
+export function getTurnCount(): number {
+  const store = getCurrentScopeStore();
+  return store ? store.turnCount : S.turnCount;
+}
+
+/**
+ * Convenience: get active frame id from scope store (preferred) or S fallback.
+ */
+export function getActiveFrameId(): string | null {
+  const store = getCurrentScopeStore();
+  return store ? store.activeFrameId : S.activeFrameId;
+}
+
+/**
+ * Convenience: get continuity id from scope store (preferred) or S fallback.
+ */
+export function getContinuityId(): string {
+  const store = getCurrentScopeStore();
+  return store ? store.continuityId : S.continuityId;
+}
+
+/**
+ * Convenience: get session frame key from scope store (preferred) or S fallback.
+ */
+export function getSessionFrameKey(): string {
+  const store = getCurrentScopeStore();
+  return store ? store.sessionFrameKey : S.sessionFrameKey;
+}
+
+/**
+ * Convenience: get session cwd from scope store (preferred) or S fallback.
+ */
+export function getSessionCwd(): string {
+  const store = getCurrentScopeStore();
+  return store ? store.sessionCwd : S.sessionCwd;
+}
+
+/**
+ * Convenience: get focusa available flag from scope store (preferred) or S fallback.
+ */
+export function getFocusaAvailable(): boolean {
+  const store = getCurrentScopeStore();
+  return store ? store.focusaAvailable : S.focusaAvailable;
+}
+
+/**
+ * PI-02: Get the last project root resolution from scope store (preferred) or S fallback.
+ */
+export function getLastProjectRootResolution(): TypedScopeStore["lastProjectRootResolution"] {
+  const store = getCurrentScopeStore();
+  return store ? store.lastProjectRootResolution : S.lastProjectRootResolution;
+}
+
+/**
+ * PI-02: Set lastProjectRootResolution on both scope store and S singleton.
+ */
+export function setLastProjectRootResolution(
+  resolution: TypedScopeStore["lastProjectRootResolution"]
+): void {
+  S.lastProjectRootResolution = resolution;
+  const store = getCurrentScopeStore();
+  if (store) store.lastProjectRootResolution = resolution;
+}
+
+/**
+ * PI-02: Get lastProjectIdentity from scope store or S fallback.
+ */
+export function getLastProjectIdentity(): Record<string, any> | null {
+  const store = getCurrentScopeStore();
+  return store ? store.lastProjectIdentity : S.lastProjectIdentity;
+}
+
+/**
+ * PI-02: Set lastProjectIdentity on both scope store and S singleton.
+ */
+export function setLastProjectIdentity(identity: Record<string, any> | null): void {
+  S.lastProjectIdentity = identity;
+  const store = getCurrentScopeStore();
+  if (store) store.lastProjectIdentity = identity;
+}
+
+/**
+ * PI-03: Get active workpoint packet from scope store (preferred) or S fallback.
+ */
+export function getActiveWorkpointPacket(): Record<string, any> | null {
+  const store = getCurrentScopeStore();
+  return store ? store.activeWorkpointPacket : getActiveWorkpointPacket();
+}
+
+/**
+ * PI-03: Set activeWorkpointPacket on both scope store and S singleton.
+ */
+export function setActiveWorkpointPacket(packet: Record<string, any> | null): void {
+  setActiveWorkpointPacket(packet);
+  const store = getCurrentScopeStore();
+  if (store) store.activeWorkpointPacket = packet;
+}
+
+/**
+ * PI-03: Get active workpoint summary from scope store (preferred) or S fallback.
+ */
+export function getActiveWorkpointSummary(): string {
+  const store = getCurrentScopeStore();
+  return store ? store.activeWorkpointSummary : getActiveWorkpointSummary();
+}
+
+/**
+ * PI-03: Set activeWorkpointSummary on both scope store and S singleton.
+ */
+export function setActiveWorkpointSummary(summary: string): void {
+  S.activeWorkpointSummary = summary;
+  const store = getCurrentScopeStore();
+  if (store) store.activeWorkpointSummary = summary;
+}
+
+/** PI-04: Get lastTrajectoryClarity from scope store or S fallback. */
+export function getLastTrajectoryClarity(): Record<string, any> | null {
+  const store = getCurrentScopeStore();
+  return store ? store.lastTrajectoryClarity : getLastTrajectoryClarity();
+}
+
+/** PI-04: Set lastTrajectoryClarity on both scope store and S. */
+export function setLastTrajectoryClarity(snapshot: Record<string, any> | null): void {
+  S.lastTrajectoryClarity = snapshot;
+  const store = getCurrentScopeStore();
+  if (store) store.lastTrajectoryClarity = snapshot;
+}
+
+/** PI-05: Get lastProjectVerify from scope store or S fallback. */
+export function getLastProjectVerify(): Record<string, any> | null {
+  const store = getCurrentScopeStore();
+  return store ? store.lastProjectVerify : getLastProjectVerify();
+}
+
+/** PI-05: Set lastProjectVerify on both scope store and S. */
+export function setLastProjectVerify(result: Record<string, any> | null): void {
+  S.lastProjectVerify = result;
+  const store = getCurrentScopeStore();
+  if (store) store.lastProjectVerify = result;
+}
+
+/** PI-06: Get latestReportSummary from scope store or S fallback. */
+export function getLatestReportSummary(): Record<string, any> | null {
+  const store = getCurrentScopeStore();
+  return store ? store.latestReportSummary : (getLatestReportSummary() as any) || null;
+}
+
+/** PI-06: Set latestReportSummary on both scope store and S. */
+export function setLatestReportSummary(summary: Record<string, any> | null): void {
+  S.latestReportSummary = summary as any;
+  const store = getCurrentScopeStore();
+  if (store) store.latestReportSummary = summary;
+}
+
+/** PI-07: Reset turn-scoped runtime state on the active store. */
+export function resetTurnRuntimeState(): void {
+  const store = getCurrentScopeStore();
+  if (!store) return;
+  store.toolUsageBatch = [];
+  store.lastStreamLen = 0;
+  store.compilationErrors = [];
+  store.fileEditCounts = {};
+  store.longSessionSignaled = false;
+}
+
+/** PI-07: Increment totalCompactions counter on both scope store and S. */
+export function incrementTotalCompactions(): void {
+  S.totalCompactions++;
+  const store = getCurrentScopeStore();
+  if (store) store.totalCompactions = S.totalCompactions;
+}
+
+/** PI-07: Get current task turn start from scope store or S fallback. */
+export function getCurrentTaskTurnStart(): number {
+  const store = getCurrentScopeStore();
+  return store ? store.currentTaskTurnStart : S.currentTaskTurnStart;
+}
+
+/** PI-07: Set current task turn start on scope store and S. */
+export function setCurrentTaskTurnStart(v: number): void {
+  S.currentTaskTurnStart = v;
+  const store = getCurrentScopeStore();
+  if (store) store.currentTaskTurnStart = v;
+}
+
+/** PI-07: Get last stream length from scope store or S fallback. */
+export function getLastStreamLen(): number {
+  const store = getCurrentScopeStore();
+  return store ? store.lastStreamLen : S.lastStreamLen;
+}
+
+/** PI-07: Set last stream length on scope store and S. */
+export function setLastStreamLen(v: number): void {
+  S.lastStreamLen = v;
+  const store = getCurrentScopeStore();
+  if (store) store.lastStreamLen = v;
+}
+
+/** PI-08: Get in-tool-context flag from scope store (no S fallback — new field). */
+export function getInToolContext(): boolean {
+  const store = getCurrentScopeStore();
+  return store ? store.inToolContext : false;
+}
+
+/** PI-08: Set in-tool-context flag on scope store only (no S fallback — new field). */
+export function setInToolContext(v: boolean): void {
+  const store = getCurrentScopeStore();
+  if (store) store.inToolContext = v;
+}
+
+/**
+ * Reset all scope stores (e.g., on daemon restart or scope purge).
+ */
+export function resetAllScopeStores(): void {
+  scopeStoreRegistry.clearAll();
 }

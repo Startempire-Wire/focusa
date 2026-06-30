@@ -115,9 +115,19 @@ pub fn put_session(
 }
 
 pub fn get_session(state: &AppState, connect_id: &str) -> Result<Option<PersistedSession>> {
-    let row = state.persistence.get_connect_session_with_meta(connect_id)?;
+    let row = state
+        .persistence
+        .get_connect_session_with_meta(connect_id)?;
     Ok(row.map(
-        |(device_id, server_url, expires_at, mac_callback, status, scopes_json, room_claim_secret)| {
+        |(
+            device_id,
+            server_url,
+            expires_at,
+            mac_callback,
+            status,
+            scopes_json,
+            room_claim_secret,
+        )| {
             let scopes: Vec<String> = serde_json::from_str(&scopes_json).unwrap_or_default();
             PersistedSession {
                 device_id,

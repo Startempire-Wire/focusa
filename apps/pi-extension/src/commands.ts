@@ -5,7 +5,7 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { getSettingsListTheme } from "@mariozechner/pi-coding-agent";
 import { Container, Text, type SettingItem, SettingsList } from "@mariozechner/pi-tui";
-import { S, focusaFetch, getFocusState, getEffectiveFocusSnapshot, persistState, persistAuthoritativeState, createPiFrame, ensurePiFrame } from "./state.js";
+import { S, focusaFetch, getFocusState, getEffectiveFocusSnapshot, persistState, persistAuthoritativeState, createPiFrame, ensurePiFrame, getFocusaAvailable, getActiveFrameId, getTurnCount, getSessionCwd, getCurrentScopeStore } from "./state.js";
 import { saveConfigOverrides } from "./config.js";
 
 function nonEmptyLines(items: any[] | undefined): string[] {
@@ -146,7 +146,7 @@ export function registerCommands(pi: ExtensionAPI) {
   pi.registerCommand("focusa-context", {
     description: "Render current Focusa context inline in the conversation",
     handler: async (_args, ctx) => {
-      if (!S.focusaAvailable) {
+      if (!getFocusaAvailable()) {
         const text = "Focusa offline — no live context available.";
         ctx.ui.notify(text, "warning");
         pi.sendMessage({ customType: "focusa-context", content: text, display: true });
@@ -381,8 +381,8 @@ export function registerCommands(pi: ExtensionAPI) {
   pi.registerCommand("focusa-status", {
     description: "Show Focusa integration status",
     handler: async (_args, ctx) => {
-      const up = S.focusaAvailable ? "✅ Connected" : "❌ Offline";
-      const frame = S.activeFrameId ?? "none";
+      const up = getFocusaAvailable() ? "✅ Connected" : "❌ Offline";
+      const frame = getActiveFrameId() ?? "none";
       const wbm = S.wbmEnabled ? (S.wbmDeep ? "deep" : S.wbmNoCatalogue ? "on (no-catalogue)" : "on") : "off";
       const tier = S.currentTier ? ` | Tier: ${S.currentTier.toUpperCase()}` : "";
       const compactions = S.totalCompactions ? ` | Compactions: ${S.totalCompactions}` : "";
@@ -406,7 +406,7 @@ export function registerCommands(pi: ExtensionAPI) {
       const missionLine = snapshot.intent ? `\nMission: ${snapshot.intent}` : "";
       const focusLine = snapshot.currentFocus ? `\nFocus: ${snapshot.currentFocus}` : "";
       ctx.ui.notify(
-        `Focusa: ${up}\nFrame: ${frame}${titleLine}${goalLine}\nWBM: ${wbm}\nTurns: ${S.turnCount}${tier}${compactions}` + loopLine + whyLine + budgetLine + checkpointLine + supervisionLine + replayLine + objectiveLine + missionLine + focusLine + `\n` +
+        `Focusa: ${up}\nFrame: ${frame}${titleLine}${goalLine}\nWBM: ${wbm}\nTurns: ${getTurnCount()}${tier}${compactions}` + loopLine + whyLine + budgetLine + checkpointLine + supervisionLine + replayLine + objectiveLine + missionLine + focusLine + `\n` +
         `Decisions: ${snapshot.decisions.length} | Constraints: ${snapshot.constraints.length} | Failures: ${snapshot.failures.length}` +
         (S.cfg ? `\nConfig: warn=${S.cfg.warnPct}% compact=${S.cfg.compactPct}% hard=${S.cfg.hardPct}% | work-loop=${S.cfg.workLoopPreset}` : ""),
         "info",
@@ -503,8 +503,9 @@ export function registerCommands(pi: ExtensionAPI) {
         return;
       }
 
-      const alreadyEnabled = S.focusaAvailable;
+      const alreadyEnabled = getFocusaAvailable();
       S.focusaAvailable = true;
+      const store = getCurrentScopeStore(); if (store) store.focusaAvailable = true;
       S.outageStart = null;
       S.healthBackoffMs = 30_000;
 
@@ -512,21 +513,21 @@ export function registerCommands(pi: ExtensionAPI) {
       if (status?.session?.status !== "active") {
         await focusaFetch("/session/start", {
           method: "POST",
-          body: JSON.stringify({ adapter_id: "pi", workspace_id: ctx.cwd || S.sessionCwd || "pi-workspace" }),
+          body: JSON.stringify({ adapter_id: "pi", workspace_id: ctx.cwd || getSessionCwd() || "pi-workspace" }),
         }).catch(() => null);
       }
 
-      if (!S.activeFrameId) {
+      if (!getActiveFrameId()) {
         await ensurePiFrame(ctx.cwd, undefined, "pi-auto");
       }
 
       ctx.ui.setStatus("focusa", S.wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
-      if (S.activeFrameId) await persistAuthoritativeState();
+      if (getActiveFrameId()) await persistAuthoritativeState();
 
-      if (alreadyEnabled && S.activeFrameId) {
-        ctx.ui.notify(`✅ Focusa already enabled — frame ready: ${S.activeFrameId}`, "info");
-      } else if (S.activeFrameId) {
-        ctx.ui.notify(`✅ Focusa enabled — frame ready: ${S.activeFrameId}`, "info");
+      if (alreadyEnabled && getActiveFrameId()) {
+        ctx.ui.notify(`✅ Focusa already enabled — frame ready: ${getActiveFrameId()}`, "info");
+      } else if (getActiveFrameId()) {
+        ctx.ui.notify(`✅ Focusa enabled — frame ready: ${getActiveFrameId()}`, "info");
       } else {
         ctx.ui.notify("⚠️ Focusa enabled but no Pi frame could be created", "warning");
       }
@@ -537,8 +538,9 @@ export function registerCommands(pi: ExtensionAPI) {
   pi.registerCommand("focusa-off", {
     description: "Stop all Focusa writes — Focus State local only",
     handler: async (_args, ctx) => {
-      if (!S.focusaAvailable) { ctx.ui.notify("Focusa already disabled", "info"); return; }
+      if (!getFocusaAvailable()) { ctx.ui.notify("Focusa already disabled", "info"); return; }
       S.focusaAvailable = false;
+      const store = getCurrentScopeStore(); if (store) store.focusaAvailable = false;
       ctx.ui.setStatus("focusa", "⏸️ Focusa disabled");
       ctx.ui.notify("⚠️ Focusa writes disabled — Focus State local only", "warning");
     },
@@ -565,22 +567,23 @@ export function registerCommands(pi: ExtensionAPI) {
       S.compactResumePending = false;
       S.forkSuggested = false;
       S.currentTier = "";
-      const previousFrameId = S.activeFrameId;
+      const previousFrameId = getActiveFrameId();
       S.activeFrameId = null;
+      { const store = getCurrentScopeStore(); if (store) store.activeFrameId = null; }
       persistState();
 
-      if (S.focusaAvailable && previousFrameId) {
+      if (getFocusaAvailable() && previousFrameId) {
         await focusaFetch("/focus/update", {
           method: "POST",
           body: JSON.stringify({
             frame_id: previousFrameId,
-            turn_id: `pi-turn-${S.turnCount || 0}`,
+            turn_id: `pi-turn-${getTurnCount() || 0}`,
             delta: { decisions: [], constraints: [], failures: [], recent_results: [] },
           }),
         }).catch(() => {});
       }
 
-      if (S.focusaAvailable) {
+      if (getFocusaAvailable()) {
         const frameId = await ensurePiFrame(ctx.cwd, undefined, "pi-reset");
         if (frameId) {
           S.activeFrameId = frameId;

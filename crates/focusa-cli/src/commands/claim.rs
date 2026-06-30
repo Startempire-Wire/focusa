@@ -37,7 +37,9 @@ impl ClaimClassifyArgs {
         // Read claim text
         let claim_text = if self.stdin {
             let mut buf = String::new();
-            io::stdin().read_to_string(&mut buf).map_err(|e| anyhow::anyhow!("{}", e))?;
+            io::stdin()
+                .read_to_string(&mut buf)
+                .map_err(|e| anyhow::anyhow!("{}", e))?;
             buf.trim().to_string()
         } else if let Some(ref c) = self.claim {
             c.clone()
@@ -45,9 +47,7 @@ impl ClaimClassifyArgs {
             return Err(anyhow::anyhow!("--claim or --stdin required"));
         };
 
-        let work_item_id = self
-            .work_item_id
-            .unwrap_or_else(|| "unknown".to_string());
+        let work_item_id = self.work_item_id.unwrap_or_else(|| "unknown".to_string());
 
         let input = ClaimGateInput {
             work_item_id,

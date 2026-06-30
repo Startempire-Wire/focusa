@@ -1,7 +1,7 @@
 use axum::{Json, Router, routing::get};
 use focusa_core::awareness::{
-    self, AwarenessInput, SURFACE_POST_COMPACTION,
-    SURFACE_RELOAD, SURFACE_TOOL_GUIDANCE, SURFACE_UIAI_BRIDGE, SURFACE_WARNING,
+    self, AwarenessInput, SURFACE_POST_COMPACTION, SURFACE_RELOAD, SURFACE_TOOL_GUIDANCE,
+    SURFACE_UIAI_BRIDGE, SURFACE_WARNING,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -14,7 +14,10 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/utility/bootstrap", get(bootstrap))
         .route("/v1/utility/post-compaction", get(post_compaction))
         .route("/v1/awareness/packet", get(awareness_packet))
-        .route("/v1/awareness/packet/{surface}", get(awareness_packet_by_surface))
+        .route(
+            "/v1/awareness/packet/{surface}",
+            get(awareness_packet_by_surface),
+        )
 }
 
 async fn card() -> Json<serde_json::Value> {

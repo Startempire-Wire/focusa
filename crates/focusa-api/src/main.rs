@@ -13,6 +13,7 @@
 
 mod middleware;
 mod routes;
+mod scope;
 mod server;
 
 use anyhow::anyhow;

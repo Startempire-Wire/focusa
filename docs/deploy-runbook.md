@@ -175,6 +175,29 @@ The deploy automation is healthy when:
 - All 5 backup files in `/usr/local/lib/focusa/backups/` are within the last 30 days.
 - The runner service is `active` with `MemoryMax=2G Restart=always`.
 
+## Spec 104 phase gate (between implementation phases)
+
+Between P0→P1, P1→P2, and P2→P3, run the phase gate to verify no omissions or deferrals:
+
+```bash
+# Full phase gate (static audit + annex coverage + bead closure)
+bash scripts/spec104-phase-gate.sh <P0|P1|P2|P3>
+
+# Or just the static surface audit
+python3 scripts/audit-schema.py spec104 release-proof/audit/audit.jsonl
+```
+
+The gate fails if:
+
+- Any bead in the completed phase is still **OPEN**.
+- A new `OnceLock`/`LazyLock`/static mutable global exists without an Annex A remediation row.
+- A source file exists in the repo but is absent from the Spec 104 Annex B surface inventory.
+- The static audit itself crashes or times out.
+
+**The gate must pass before any implementation starts on the next phase. No exceptions.**
+
+If a new singleton was introduced during the phase (not covered by a previous Annex A row), it must get a new Annex A row before the gate passes — no deferral to a later phase.
+
 ## Escalation
 
 If the self-heal chain has not resolved the incident within 30 minutes:

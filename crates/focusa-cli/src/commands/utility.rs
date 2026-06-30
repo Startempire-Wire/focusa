@@ -14,7 +14,11 @@ pub enum UtilityCmd {
     PostCompaction,
 }
 
-pub async fn handle(client: &mut ApiClient, cmd: UtilityCmd, json_mode: bool) -> anyhow::Result<()> {
+pub async fn handle(
+    client: &mut ApiClient,
+    cmd: UtilityCmd,
+    json_mode: bool,
+) -> anyhow::Result<()> {
     if json_mode {
         let resp: serde_json::Value = match cmd {
             UtilityCmd::Card => client.get("/v1/utility/card").await?,

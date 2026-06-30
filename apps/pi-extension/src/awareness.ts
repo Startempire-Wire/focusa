@@ -1,4 +1,4 @@
-import { S, getScopedWorkpointPacket, isProjectRootAuthoritySafe, normalizeProjectRoot } from "./state.js";
+import { S, getScopedWorkpointPacket, isProjectRootAuthoritySafe, normalizeProjectRoot, getFocusaAvailable, getSessionCwd, getContinuityId, getActiveWorkpointPacket, getActiveWorkpointSummary, getLastTrajectoryClarity, getLastProjectVerify, getLastProjectIdentity, getLastProjectRootResolution } from "./state.js";
 
 function line(value: unknown): string {
   return String(value || "").trim();
@@ -22,17 +22,19 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
   const scopedPacket = getScopedWorkpointPacket();
   const mission = line(scopedPacket?.mission);
   const next = line(scopedPacket?.next_slice);
-  const projectRoot = normalizeProjectRoot(scopedPacket?.project_root || S.sessionCwd);
-  const continuityId = scopedPacket ? line(scopedPacket?.continuity_id) : line(S.continuityId);
-  const status = S.focusaAvailable ? "available" : "offline/degraded";
+  const projectRoot = normalizeProjectRoot(scopedPacket?.project_root || getSessionCwd());
+  const continuityId = scopedPacket ? line(scopedPacket?.continuity_id) : line(getContinuityId());
+  const status = getFocusaAvailable() ? "available" : "offline/degraded";
   const prefix = mode === "visible" ? "# Focusa Utility Card" : "## Focusa Utility Card";
   const safeScope = !!projectRoot && isProjectRootAuthoritySafe(projectRoot);
-  const resolution = S.lastProjectRootResolution;
+  const resolution = getLastProjectRootResolution();
   const confidence = resolution ? ` confidence=${Math.round(resolution.confidenceScore * 100)}% source=${resolution.source}` : "";
   const needsConfirm = resolution?.requiresOperatorConfirmation === true;
-  const trajectory = S.lastTrajectoryClarity || {};
-  const cachedProjectIdentity = S.lastProjectIdentity && normalizeProjectRoot(S.lastProjectIdentity.project_root) === projectRoot ? S.lastProjectIdentity : null;
-  const verifiedProjectIdentity = S.lastProjectVerify?.project_identity && normalizeProjectRoot(S.lastProjectVerify.project_identity.project_root) === projectRoot ? S.lastProjectVerify.project_identity : null;
+  const trajectory = getLastTrajectoryClarity() || {};
+  const lastIdentity = getLastProjectIdentity();
+  const cachedProjectIdentity = lastIdentity && normalizeProjectRoot(lastIdentity.project_root) === projectRoot ? lastIdentity : null;
+  const lastVerify = getLastProjectVerify();
+  const verifiedProjectIdentity = lastVerify?.project_identity && normalizeProjectRoot(lastVerify.project_identity.project_root) === projectRoot ? lastVerify.project_identity : null;
   const trajectoryProjectIdentity = trajectory.project_identity && normalizeProjectRoot(trajectory.project_identity.project_root) === projectRoot ? trajectory.project_identity : null;
   const projectIdentity = safeScope ? (trajectoryProjectIdentity || cachedProjectIdentity || verifiedProjectIdentity || {}) : {};
   const projectSummary = projectIdentity.project_summary || {};
@@ -42,7 +44,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
   const trajectorySet = !trajectoryFallback && !!(trajectory.long_term_goal || trajectory.desired_end_state || trajectory.active_gap || trajectory.status);
   const workpointStatus = scopedPacket
     ? "verified"
-    : S.activeWorkpointSummary
+    : getActiveWorkpointSummary()
       ? "summary_only"
       : "unavailable/not_verified";
   const envParts = [

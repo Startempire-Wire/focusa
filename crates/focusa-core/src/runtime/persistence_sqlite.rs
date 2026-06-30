@@ -1397,7 +1397,7 @@ impl SqlitePersistence {
     }
 
     /// Fetch a non-expired connect session.
-        /// Fetch a non-expired connect session.
+    /// Fetch a non-expired connect session.
     #[allow(clippy::type_complexity)] // tuple shape is internal; matches PairingStore caller
     pub fn get_connect_session(
         &self,
@@ -1594,13 +1594,28 @@ impl SqlitePersistence {
     }
 
     /// V2: Persist a device token so it survives daemon restart.
-    pub fn put_device_token(&self, token: &str, device_id: &str, scopes_json: Option<&str>, issued_at: &str, expires_at: &str, issued_to: Option<&str>) -> anyhow::Result<()> {
+    pub fn put_device_token(
+        &self,
+        token: &str,
+        device_id: &str,
+        scopes_json: Option<&str>,
+        issued_at: &str,
+        expires_at: &str,
+        issued_to: Option<&str>,
+    ) -> anyhow::Result<()> {
         let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
         conn.execute(
             "INSERT OR REPLACE INTO device_tokens
              (token, device_id, scopes_json, issued_at, expires_at, last_used_at, issued_to)
              VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?6)",
-            params![token, device_id, scopes_json, issued_at, expires_at, issued_to],
+            params![
+                token,
+                device_id,
+                scopes_json,
+                issued_at,
+                expires_at,
+                issued_to
+            ],
         )?;
         Ok(())
     }
@@ -1623,7 +1638,10 @@ impl SqlitePersistence {
     /// V2: Load the FULL DeviceToken-shaped record (with scopes) for auth
     /// rehydration after daemon restart. Uses the storage JSON column to
     /// preserve the granted scopes exactly as minted.
-    pub fn load_device_token_full(&self, token: &str) -> anyhow::Result<Option<PersistedDeviceToken>> {
+    pub fn load_device_token_full(
+        &self,
+        token: &str,
+    ) -> anyhow::Result<Option<PersistedDeviceToken>> {
         let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
         let mut stmt = conn.prepare(
             "SELECT device_id, scopes_json, issued_at, expires_at, issued_to FROM device_tokens
@@ -1783,8 +1801,10 @@ impl SqlitePersistence {
         for d in &device_ids {
             params.push(Box::new(d.clone()));
         }
-        let param_refs: Vec<&dyn rusqlite::ToSql> =
-            params.iter().map(|b| b.as_ref() as &dyn rusqlite::ToSql).collect();
+        let param_refs: Vec<&dyn rusqlite::ToSql> = params
+            .iter()
+            .map(|b| b.as_ref() as &dyn rusqlite::ToSql)
+            .collect();
         let n = conn.execute(&sql, &param_refs[..])?;
         Ok(n)
     }

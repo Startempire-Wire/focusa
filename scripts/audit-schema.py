@@ -61,6 +61,8 @@ import json
 import os
 import sys
 from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Iterable
 
 VALID_CATEGORIES = {
@@ -340,6 +342,56 @@ def stats(path: str) -> int:
     return 0
 
 
+def spec104_audit(path: str) -> int:
+    """Run Spec 104 static surface audit and record results as audit addition rows."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    try:
+        from tests.spec104_deep_focusa_surface_sweep import static_audit, results as sweep_results, warnings
+        static_audit()
+    except Exception as e:
+        print(f"Spec104 static audit execution failed: {e}")
+        return 1
+
+    new_globals = sum(1 for w in warnings if w["kind"].startswith("new_singleton"))
+    missing_routes = sum(1 for w in warnings if w["kind"] == "uncatalogued_route")
+    missing_cmds = sum(1 for w in warnings if w["kind"] == "uncatalogued_cli_command")
+
+    addition_id = f"add-spec104-static-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}"
+    addition_row = {
+        "id": addition_id,
+        "ts": f"{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}",
+        "event": "addition",
+        "category": "missing_ci_gate_passing",
+        "subsystem": "audit",
+        "scope": "docs/104-typed-scoped-runtime-and-singleton-elimination-spec.md",
+        "change": f"Spec104 static audit: new_globals={new_globals} missing_routes={missing_routes} missing_cmds={missing_cmds}",
+        "guard": "tests/spec104_deep_focusa_surface_sweep.py --static-only fails on new singletons",
+        "test": "tests/spec104_deep_focusa_surface_sweep.py --static-only",
+        "linked_run": os.environ.get("GITHUB_RUN_ID", "local"),
+    }
+
+    audit_dir = Path(path).parent
+    audit_dir.mkdir(parents=True, exist_ok=True)
+    existing = []
+    if Path(path).exists():
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    existing.append(json.loads(line))
+    existing.append(addition_row)
+    with open(path, "w") as f:
+        for row in existing:
+            f.write(json.dumps(row, sort_keys=True) + "\n")
+
+    print(f"Spec104 audit recorded: {addition_id}")
+    print(f"  new_globals={new_globals} missing_routes={missing_routes} missing_cmds={missing_cmds}")
+    if new_globals > 0:
+        print(f"WARNING: {new_globals} new authority-bearing singleton(s) detected!")
+        return 1
+    return 0
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -349,6 +401,8 @@ def main(argv: list[str]) -> int:
     p_mig.add_argument("path")
     p_st = sub.add_parser("stats", help="print row counts")
     p_st.add_argument("path")
+    p_s104 = sub.add_parser("spec104", help="run Spec104 static audit and record in audit.jsonl")
+    p_s104.add_argument("path", nargs="?", default="release-proof/audit/audit.jsonl")
     args = parser.parse_args(argv)
     if args.cmd == "validate":
         return validate(args.path)
@@ -356,6 +410,8 @@ def main(argv: list[str]) -> int:
         return migrate(args.path)
     if args.cmd == "stats":
         return stats(args.path)
+    if args.cmd == "spec104":
+        return spec104_audit(args.path)
     return 2
 
 

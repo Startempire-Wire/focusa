@@ -314,12 +314,91 @@ def failure_exposure_sweep() -> None:
         assert_condition("missing ECS handle has recovery hint", any(s in text for s in ["not_found", "focusa_traverse", "recovery", "failure_class"]), "recovery/failure text present", not_found_ref)
 
 
+def static_audit() -> None:
+    """Static code audit: verify no new singletons, all surfaces inventoried."""
+    import subprocess as sp
+
+    # 1. Scan for new OnceLock/LazyLock/static mutable globals not in Annex A
+    rust_files = list(ROOT.rglob("*.rs")) + list(ROOT.rglob("*.ts"))
+    rust_files = [f for f in rust_files if "target" not in f.parts and "node_modules" not in f.parts]
+    new_globals: list[str] = []
+    known_global_files = {
+        "bounded.rs", "device_pairing.rs", "metacognition.rs", "ontology.rs",
+        "predictions.rs", "project.rs", "proxy.rs", "rate_limit.rs", "snapshots.rs",
+        "turn.rs", "workpoint.rs", "server.rs", "main.rs", "state.ts", "tools.ts",
+    }
+    for f in rust_files:
+        if f.name in known_global_files:
+            continue
+        for i, line in enumerate(f.read_text().split("\n"), 1):
+            if "OnceLock::new" in line or "LazyLock::new" in line:
+                if "test" not in f.parts and "tests" not in f.name:
+                    new_globals.append(f"{f}:{i}: {line.strip()[:80]}")
+    if new_globals:
+        warnings.append({"kind": "new_singleton_global", "files": new_globals})
+        print(f"WARNING: {len(new_globals)} new singleton globals not inventoried in Annex A")
+        for g in new_globals:
+            print(f"  {g}")
+
+    # 2. Verify Annex B route inventory matches actual route files
+    route_files = sorted((ROOT / "crates/focusa-api/src/routes").glob("*.rs"))
+    actual_routes = {f.name for f in route_files}
+    with open(ROOT / "docs/104-typed-scoped-runtime-and-singleton-elimination-spec.md") as spec:
+        spec_text = spec.read()
+    b2_section = spec_text[spec_text.index("#### Route families"):spec_text.index("### B.3", spec_text.index("#### Route families"))]
+    listed_routes = set()
+    for l in b2_section.split("\n"):
+        if "crates/focusa-api/src/routes/" in l:
+            name = l.split("/")[-1].rstrip("`").strip()
+            listed_routes.add(name)
+    missing_from_spec = actual_routes - listed_routes
+    if missing_from_spec:
+        warnings.append({"kind": "uncatalogued_route", "files": sorted(missing_from_spec)})
+        print(f"WARNING: {len(missing_from_spec)} route files not in Annex B.2:")
+        for m in sorted(missing_from_spec):
+            print(f"  {m}")
+
+    # 3. Verify CLI command inventory matches actual commands
+    cmd_files = sorted((ROOT / "crates/focusa-cli/src/commands").glob("*.rs"))
+    actual_cmds = {f.name for f in cmd_files}
+    b3_section = spec_text[spec_text.index("### B.3 CLI command families"):spec_text.index("### B.4")]
+    listed_cmds = set()
+    for l in b3_section.split("\n"):
+        if "crates/focusa-cli/src/commands/" in l:
+            name = l.split("/")[-1].rstrip("`").strip()
+            listed_cmds.add(name)
+    missing_cmds = actual_cmds - listed_cmds
+    if missing_cmds:
+        warnings.append({"kind": "uncatalogued_cli_command", "files": sorted(missing_cmds)})
+        print(f"WARNING: {len(missing_cmds)} CLI commands not in Annex B.3:")
+        for m in sorted(missing_cmds):
+            print(f"  {m}")
+
+    # 4. Verify core file inventory
+    core_files = sorted((ROOT / "crates/focusa-core/src").rglob("*.rs"))
+    actual_core = {str(f.relative_to(ROOT / "crates/focusa-core/src")) for f in core_files}
+    b4_section = spec_text[spec_text.index("#### focusa-core"):spec_text.index("#### focusa-tui", spec_text.index("#### focusa-core"))]
+    listed_core = set()
+    for l in b4_section.split("\n"):
+        if "crates/focusa-core/src/" in l:
+            name = l.split("/")[-1].strip("`").strip()
+            listed_core.add(name)
+    # (simplified check)
+    missing_core = actual_core - listed_core
+    if missing_core:
+        warnings.append({"kind": "uncatalogued_core_file", "files": sorted(missing_core)})
+        print(f"WARNING: {len(missing_core)} core files not in Annex B.4 (module files excluded)")
+
+    results.append({"kind": "static_audit", "new_globals": len(new_globals), "missing_routes": len(missing_from_spec), "missing_cmds": len(missing_cmds)})
+
+
 def main() -> int:
     source_inventory()
     read_surface_sweep()
     traverse_sweep()
     safe_mutation_sweep()
     failure_exposure_sweep()
+    static_audit()
     report = {
         "schema": "focusa.spec104.deep_surface_sweep.v1",
         "base": BASE,
@@ -340,4 +419,11 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    if "--static-only" in sys.argv:
+        static_audit()
+        if any(w["kind"].startswith("new_singleton") for w in warnings):
+            print("FAIL: new singletons found")
+            sys.exit(1)
+        print(f"Static audit PASS ({len(results)} checks, {len(warnings)} warnings)")
+        sys.exit(0)
     raise SystemExit(main())

@@ -232,13 +232,14 @@ async fn sign(
     //   developer_id.starts_with("Developer ID Application:")
     //      + apple_id provided                          → full Developer ID (paid)
     let is_ad_hoc = developer_id == "-";
-    let is_personal_team = developer_id.starts_with("Apple Development:")
-        && team_id.len() == 10;
+    let is_personal_team = developer_id.starts_with("Apple Development:") && team_id.len() == 10;
 
     if is_ad_hoc {
         tracing::info!("signing mode: ad-hoc (no Apple ID; Gatekeeper will require manual Open)");
     } else if is_personal_team {
-        tracing::info!("signing mode: Apple Developer Program free tier (Personal Team; Gatekeeper will require manual Open)");
+        tracing::info!(
+            "signing mode: Apple Developer Program free tier (Personal Team; Gatekeeper will require manual Open)"
+        );
     } else {
         tracing::info!("signing mode: full Developer ID + notarization");
     }
@@ -276,9 +277,7 @@ async fn sign(
     if is_ad_hoc || is_personal_team {
         // Skip notarization + spctl. The operator can still install the
         // .app after right-click → Open (one-time per machine).
-        tracing::info!(
-            "skipping notarize + staple + spctl_assess (ad-hoc / Personal Team mode)"
-        );
+        tracing::info!("skipping notarize + staple + spctl_assess (ad-hoc / Personal Team mode)");
         // Re-run codesign after the zip step (stapling may modify the bundle
         // in the full path; skip that here since we didn't staple).
         let cmd_re = format!(

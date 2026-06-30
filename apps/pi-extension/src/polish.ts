@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaPost } from "./state.js";
+import { S, focusaPost, getFocusaAvailable, getTurnCount } from "./state.js";
 
 const MAX_RECORDS = 80;
 const MAX_TEXT = 500;
@@ -43,7 +43,7 @@ function recordTokenTelemetry(record: Record<string, unknown>): void {
 }
 
 function bestEffortTelemetry(kind: string, payload: Record<string, unknown>): void {
-  if (!S.focusaAvailable) return;
+  if (!getFocusaAvailable()) return;
   focusaPost("/telemetry/event", {
     event_type: kind,
     source: "pi-extension-spec92",
@@ -128,14 +128,14 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     const summary = payloadSummary(event?.payload || event?.request || event);
     const record: any = {
       hook: "before_provider_request",
-      turn_id: `pi-turn-${S.turnCount}`,
+      turn_id: `pi-turn-${getTurnCount()}`,
       provider: event?.provider || event?.model?.provider || "unknown",
       model: event?.model?.id || event?.model || "unknown",
       ...summary,
     };
     recordTokenTelemetry(record);
     recordHookTelemetry(record);
-    if (S.focusaAvailable) {
+    if (getFocusaAvailable()) {
       focusaPost("/telemetry/token-budget", record);
       focusaPost("/telemetry/cache-metadata", {
         hook: record.hook,

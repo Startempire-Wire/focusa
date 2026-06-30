@@ -107,7 +107,12 @@ async fn revoke_repair_cycle_three_rounds() {
             .expect("status send");
         let body: serde_json::Value = s.json().await.unwrap();
         assert_eq!(body["status"], "completed", "status != completed");
-        assert!(body["token"].as_str().map(|s| !s.is_empty()).unwrap_or(false));
+        assert!(
+            body["token"]
+                .as_str()
+                .map(|s| !s.is_empty())
+                .unwrap_or(false)
+        );
         eprintln!("  ✓ status=completed, token present");
 
         // 5. Revoke
