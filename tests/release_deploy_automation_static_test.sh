@@ -70,6 +70,8 @@ assert_grep 'RSS_LIMIT_MB' scripts/install-daemon.sh 'RSS memory guard missing'
 assert_grep 'deploy_oom_killed' scripts/install-daemon.sh 'OOM audit event missing'
 assert_grep 'deploy_health' scripts/install-daemon.sh 'health-timeout audit event missing'
 assert_grep 'watchdog_check' scripts/install-daemon.sh 'watchdog wiring missing'
+assert_grep 'watchdog_loop' scripts/install-daemon.sh 'background watchdog loop missing'
+assert_grep 'timeout 3' scripts/install-daemon.sh 'binary_version must use timeout fallback'
 assert_grep 'workflow_run' .github/workflows/auto-retry-deploy.yml 'auto-retry must be self-triggered via workflow_run'
 assert_grep 'Auto Retry Deploy' .github/workflows/auto-retry-deploy.yml 'auto-retry workflow name missing'
 

@@ -205,24 +205,50 @@ watchdog_check() {
 
 # Background watchdog: poll every 5s. The trap below makes sure it is
 # cleaned up on exit.
-(
+watchdog_loop() {
   while :; do
     sleep 5
-    # Write to FD 8 to signal parent; parent reaps on each iteration.
-    # Keep this lightweight so the watchdog itself doesn't bloat RSS.
-    printf '.'
+    watchdog_check || {
+      audit_event "deploy_oom_killed" "watchdog_exit" "watchdog_check died at $(date -u +%s); exit=$?"
+      kill -TERM "$$" 2>/dev/null || true
+      exit 1
+    }
   done
-) >/dev/null 2>&1 &
+}
+watchdog_loop >/dev/null 2>&1 &
 WATCHDOG_PID=$!
 trap 'kill "$WATCHDOG_PID" 2>/dev/null || true' EXIT
 # ---- end self-healing safety net -------------------------------------
 
 have_cmd() { command -v "$1" >/dev/null 2>&1; }
 
+# Extract version from a binary without actually executing it.
+#
+# Invoking the daemon with `--version` is dangerous: when the binary is
+# dynamically linked and incompatible (AlmaLinux 8 + Ubuntu-built gnu),
+# --version segfaults inside libc and leaves zombie processes that
+# pin port 8787, breaking the systemd service and the next install.
+#
+# Preferred: parse the canonical release-asset filename
+# (`focusa-daemon-v0.9.42-dev-x86_64-unknown-linux-musl`). Fallback:
+# run the binary under `timeout 3` and parse the first vX.Y.Z token.
 binary_version() {
   local path="$1"
+  local base=""
+  base="$(basename "$path")"
+  local from_name=""
+  from_name="$(printf '%s' "$base" | sed -n 's/.*-\(v\?[0-9][0-9A-Za-z._+-]*\).*/\1/p' | head -1 || true)"
+  if [[ -n "$from_name" && "$from_name" =~ ^[0-9] ]]; then
+    from_name="v${from_name}"
+  fi
+  if [[ "$from_name" =~ ^v[0-9]+\.[0-9]+ ]]; then
+    printf '%s\n' "$from_name"
+    return 0
+  fi
+  # Fallback: actually run --version, but with a hard 3s timeout so
+  # we never wedge here even if the binary is broken.
   local out=""
-  out="$($path --version 2>/dev/null || true)"
+  out="$(timeout 3 "$path" --version 2>/dev/null || true)"
   if [[ -z "$out" ]]; then
     printf '\n'
     return 0
