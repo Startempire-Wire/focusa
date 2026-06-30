@@ -1708,7 +1708,7 @@ async fn checkpoint(
     }
 
     let materialized_state =
-        materialize_workpoint_events(&state, events, "workpoint_checkpoint").await?;
+        materialize_workpoint_events(_scope.clone(), &state, events, "workpoint_checkpoint").await?;
     let promoted_record = if promote && canonical {
         materialized_state
             .workpoint
@@ -2758,7 +2758,7 @@ async fn link_evidence(
         };
         match visible {
             Some(record) => Some(record),
-            None => wait_for_workpoint_record(&state, workpoint_id).await,
+            None => wait_for_workpoint_record(_scope.clone(), &state, workpoint_id).await,
         }
     } else {
         let expected_project_root = session_identity_project_root(req.session_identity.as_ref());
@@ -2857,6 +2857,7 @@ async fn link_evidence(
         })));
     }
     let materialized_state = materialize_workpoint_events(
+        _scope.clone(),
         &state,
         vec![FocusaEvent::WorkpointEvidenceLinked {
             workpoint_id,
