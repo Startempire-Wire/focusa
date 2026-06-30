@@ -79,6 +79,7 @@ VALID_CATEGORIES = {
     "artifact_already_exists",
     "strict_mode_kill",
     "self_test",
+    "ci_workflow_failure",
     "self_heal",
 }
 

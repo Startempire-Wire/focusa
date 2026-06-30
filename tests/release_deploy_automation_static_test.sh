@@ -97,6 +97,7 @@ assert_grep 'REQUIRED_ADDITION' scripts/audit-schema.py 'audit schema missing re
 assert_grep 'REQUIRED_SELF_HEAL' scripts/audit-schema.py 'audit schema missing required self_heal fields'
 assert_grep 'VALID_CATEGORIES' scripts/audit-schema.py 'audit schema missing category enum'
 assert_grep 'VALID_SUBSYSTEMS' scripts/audit-schema.py 'audit schema missing subsystem enum'
+assert_grep 'ci_workflow_failure' scripts/audit-schema.py 'audit schema must include ci_workflow_failure category used by audit-recorder.yml'
 if ! python3 scripts/audit-schema.py validate release-proof/audit/audit.jsonl >/dev/null; then
   echo "✗ audit schema validation failed"
   python3 scripts/audit-schema.py validate release-proof/audit/audit.jsonl
