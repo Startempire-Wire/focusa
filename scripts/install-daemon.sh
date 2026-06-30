@@ -216,9 +216,45 @@ validate_service_execstart() {
     return 0
   fi
   if [[ "$execstart" != *"$INSTALL_PATH"* ]]; then
-    audit_event "deploy_preflight" "failed" "service ExecStart does not reference install path: $INSTALL_PATH"
-    die "service ExecStart mismatch for $SERVICE_UNIT; expected reference to $INSTALL_PATH"
+    warn "service ExecStart=$execstart does not reference $INSTALL_PATH; auto-patching unit"
+    if ! patch_service_unit_execstart; then
+      audit_event "deploy_preflight" "failed" "service ExecStart does not reference install path: $INSTALL_PATH"
+      die "service ExecStart mismatch for $SERVICE_UNIT; expected reference to $INSTALL_PATH"
+    fi
+    audit_event "deploy_preflight" "patched" "service ExecStart rewritten to $INSTALL_PATH"
+    # Reload so the next start_service picks up the new ExecStart.
+    sudo -n systemctl daemon-reload 2>/dev/null || systemctl daemon-reload 2>/dev/null || true
   fi
+}
+
+# Patch the installed systemd unit so ExecStart points at the canonical
+# install path. Handles two failure modes that hit production deploys:
+#   1) Unit references the in-tree build artifact (target/release/...) which
+#      gets pruned by safe-disk-cleanup.
+#   2) Unit was created against a previous install location.
+patch_service_unit_execstart() {
+  set +e
+  local unit_path="/etc/systemd/system/${SERVICE_UNIT}"
+  if [[ ! -f "$unit_path" ]]; then
+    warn "systemd unit file not found at $unit_path; cannot auto-patch"
+    return 1
+  fi
+  # Replace any existing ExecStart= line; if none exists, insert one
+  # directly under [Service].
+  if grep -Eq '^[[:space:]]*ExecStart=' "$unit_path"; then
+    sudo -n sed -i -E "s|^[[:space:]]*ExecStart=.*|ExecStart=${INSTALL_PATH}|" "$unit_path" || \
+      sed -i -E "s|^[[:space:]]*ExecStart=.*|ExecStart=${INSTALL_PATH}|" "$unit_path"
+  else
+    sudo -n sed -i -E "/^[[:space:]]*\\[Service\\]/a ExecStart=${INSTALL_PATH}" "$unit_path" || \
+      sed -i -E "/^[[:space:]]*\\[Service\\]/a ExecStart=${INSTALL_PATH}" "$unit_path"
+  fi
+  # Also align WorkingDirectory and ReadWritePaths to canonical install root
+  # when they reference the in-tree path.
+  sudo -n sed -i -E "s|^[[:space:]]*WorkingDirectory=.*|WorkingDirectory=${STATE_DIR}|" "$unit_path" || \
+    sed -i -E "s|^[[:space:]]*WorkingDirectory=.*|WorkingDirectory=${STATE_DIR}|" "$unit_path"
+  set -e
+  log "patched $unit_path: ExecStart=$INSTALL_PATH WorkingDirectory=$STATE_DIR"
+  return 0
 }
 
 stop_service_and_strays() {

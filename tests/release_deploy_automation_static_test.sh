@@ -58,6 +58,12 @@ assert_grep 'MIN_FREE_GB' scripts/safe-disk-cleanup.sh 'disk threshold guard mis
 assert_grep 'BACKUP_KEEP' scripts/safe-disk-cleanup.sh 'backup keep bound missing'
 assert_grep 'backup_keep=${{ steps.cfg.outputs.backup_keep }}' .github/workflows/deploy-live-daemon.yml 'workflow backup_keep wiring missing'
 
+# install-daemon.sh unit-patch branch guards (auto-heal stale ExecStart)
+assert_grep 'patch_service_unit_execstart' scripts/install-daemon.sh 'unit auto-patch branch missing'
+assert_grep 'ExecStart=${INSTALL_PATH}' scripts/install-daemon.sh 'unit ExecStart rewrite pattern missing'
+assert_grep 'x86_64-unknown-linux-musl' .github/workflows/deploy-live-daemon.yml 'musl default suffix missing (AlmaLinux 8 glibc)'
+assert_grep '/usr/bin/sed' scripts/install-self-hosted-runner.sh 'runner sudoers sed allowlist missing'
+
 # install-self-hosted-runner.sh assertions
 assert_grep 'actions.runner' scripts/install-self-hosted-runner.sh 'runner service setup missing'
 assert_grep 'focusa-deploy,production' scripts/install-self-hosted-runner.sh 'runner labels missing'
