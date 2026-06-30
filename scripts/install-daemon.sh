@@ -236,12 +236,12 @@ binary_version() {
   local path="$1"
   local base=""
   base="$(basename "$path")"
+  # Canonical asset name is `focusa-daemon-v0.9.42-dev-x86_64-unknown-linux-musl`.
+  # The version segment is everything between the second-to-last and the
+  # last `-dev` style anchor. We extract the first `vX.Y.Z-dev` token.
   local from_name=""
-  from_name="$(printf '%s' "$base" | sed -n 's/.*-\(v\?[0-9][0-9A-Za-z._+-]*\).*/\1/p' | head -1 || true)"
-  if [[ -n "$from_name" && "$from_name" =~ ^[0-9] ]]; then
-    from_name="v${from_name}"
-  fi
-  if [[ "$from_name" =~ ^v[0-9]+\.[0-9]+ ]]; then
+  from_name="$(printf '%s' "$base" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+)?' | head -1 || true)"
+  if [[ -n "$from_name" ]]; then
     printf '%s\n' "$from_name"
     return 0
   fi
