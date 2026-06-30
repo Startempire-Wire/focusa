@@ -1836,7 +1836,7 @@ fn project_identity_payload_for_scope_with_remote(
     scope: Option<&crate::scope::ScopeContext>,
 ) -> Value {
     let key = project_identity_cache_key(cwd, project_root, &remote_hint, scope);
-    let cache = PROJECT_IDENTITY_PAYLOAD_CACHE.get_or_init(|| Mutex::new(HashMap::new(, None)));
+    let cache = PROJECT_IDENTITY_PAYLOAD_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
     if let Ok(guard) = cache.lock()
         && let Some((cached_at, payload)) = guard.get(&key)
         && cached_at.elapsed() <= PROJECT_IDENTITY_PAYLOAD_CACHE_TTL
