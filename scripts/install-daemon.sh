@@ -224,7 +224,7 @@ validate_service_execstart() {
 stop_service_and_strays() {
   if service_exists; then
     log "stopping service $SERVICE_UNIT"
-    systemctl stop "$SERVICE_UNIT" || true
+    sudo -n systemctl stop "$SERVICE_UNIT" 2>/dev/null || systemctl stop "$SERVICE_UNIT" || true
     sleep 2
   fi
 
@@ -232,14 +232,16 @@ stop_service_and_strays() {
   pids="$(pgrep -x "$BIN_NAME" || true)"
   if [[ -n "$pids" ]]; then
     warn "found stray ${BIN_NAME} pid(s): $(tr '\n' ' ' <<<"$pids")"
-    kill -TERM $pids || true
+    # V2 deploy: use sudo to stop processes owned by root so the
+    # unprivileged runner can fully take over the daemon slot.
+    sudo -n kill -TERM $pids 2>/dev/null || kill -TERM $pids || true
     sleep 2
   fi
 
   pids="$(pgrep -x "$BIN_NAME" || true)"
   if [[ -n "$pids" ]]; then
     warn "forcing remaining ${BIN_NAME} pid(s) down: $(tr '\n' ' ' <<<"$pids")"
-    kill -KILL $pids || true
+    sudo -n kill -KILL $pids 2>/dev/null || kill -KILL $pids || true
     sleep 1
   fi
 }
@@ -252,8 +254,8 @@ start_service() {
     warn "service $SERVICE_UNIT not found; install complete but no restart performed"
     return 0
   fi
-  systemctl daemon-reload
-  systemctl start "$SERVICE_UNIT"
+  sudo -n systemctl daemon-reload 2>/dev/null || systemctl daemon-reload
+  sudo -n systemctl start "$SERVICE_UNIT" 2>/dev/null || systemctl start "$SERVICE_UNIT"
 }
 
 assert_single_process() {
@@ -347,8 +349,8 @@ rollback() {
 }
 
 stop_service_and_strays
-install -m 0755 "$BINARY" "$INSTALL_PATH.new"
-mv "$INSTALL_PATH.new" "$INSTALL_PATH"
+sudo -n install -m 0755 "$BINARY" "$INSTALL_PATH.new" 2>/dev/null || install -m 0755 "$BINARY" "$INSTALL_PATH.new"
+sudo -n mv -f "$INSTALL_PATH.new" "$INSTALL_PATH" 2>/dev/null || mv -f "$INSTALL_PATH.new" "$INSTALL_PATH"
 echo "${EXPECTED_VERSION:-unknown}" > "$STATE_DIR/live-version"
 
 if [[ "$NO_RESTART" -eq 1 ]]; then
