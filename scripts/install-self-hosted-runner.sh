@@ -116,5 +116,21 @@ cd "$RUNNER_ROOT"
 ./svc.sh install "$RUNNER_USER"
 ./svc.sh start
 
-systemctl is-active --quiet "actions.runner.${REPO//\//-}.${RUNNER_NAME}.service" || true
-log "runner install complete"
+# Patch the runner unit so the runner daemon itself can't be OOM-killed
+# silently (which is what happened in run 28433719501). We add a
+# MemoryMax + Restart=always so systemd kills cleanly and restarts the
+# runner instead of letting the kernel OOM-kill it and lose communication
+# with GitHub. RestartSec=15 gives the runner time to settle.
+RUNNER_SVC="actions.runner.${REPO//\//-}.${RUNNER_NAME}.service"
+mkdir -p /etc/systemd/system/${RUNNER_SVC}.d
+cat > /etc/systemd/system/${RUNNER_SVC}.d/override.conf <<OVERRIDE
+[Service]
+MemoryMax=${FOCUSA_RUNNER_MEMORY_MAX:-2G}
+Restart=always
+RestartSec=15
+OVERRIDE
+systemctl daemon-reload
+systemctl restart "$RUNNER_SVC"
+
+systemctl is-active --quiet "$RUNNER_SVC" || true
+log "runner install complete (MemoryMax=${FOCUSA_RUNNER_MEMORY_MAX:-2G} Restart=always)"

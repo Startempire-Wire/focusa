@@ -73,6 +73,10 @@ assert_grep 'watchdog_check' scripts/install-daemon.sh 'watchdog wiring missing'
 assert_grep 'workflow_run' .github/workflows/auto-retry-deploy.yml 'auto-retry must be self-triggered via workflow_run'
 assert_grep 'Auto Retry Deploy' .github/workflows/auto-retry-deploy.yml 'auto-retry workflow name missing'
 
+# Self-hosted runner must self-heal from kernel OOM kills
+assert_grep 'MemoryMax=' scripts/install-self-hosted-runner.sh 'runner MemoryMax override missing'
+assert_grep 'Restart=always' scripts/install-self-hosted-runner.sh 'runner Restart=always override missing'
+
 # install-self-hosted-runner.sh assertions
 assert_grep 'actions.runner' scripts/install-self-hosted-runner.sh 'runner service setup missing'
 assert_grep 'focusa-deploy,production' scripts/install-self-hosted-runner.sh 'runner labels missing'
