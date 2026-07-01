@@ -429,6 +429,9 @@ for i in range('"$attempts"'):
         req = urllib.request.Request(health_url, method="GET")
         with urllib.request.urlopen(req, timeout=5) as resp:
             body = resp.read().decode()
+            import os
+            with open(os.environ.get('FOCUSA_DEPLOY_AUDIT_LOG','/dev/null').replace('/deploy-audit.jsonl','/health-trace.txt'), 'a') as f:
+                f.write(f'health_check i={i} version_field={json.loads(body).get("version","MISSING")} body={body.encode()}\n')
             if expected_version:
                 data = json.loads(body)
                 if data.get("version") != expected_version:
@@ -436,7 +439,10 @@ for i in range('"$attempts"'):
                     continue
             print(body)
             sys.exit(0)
-    except Exception:
+    except Exception as e:
+        import os
+        with open(os.environ.get('FOCUSA_DEPLOY_AUDIT_LOG','/dev/null').replace('/deploy-audit.jsonl','/health-trace.txt'), 'a') as f:
+            f.write(f'health_check i={i} exception={e}\n')
         time.sleep(1)
         continue
 
@@ -573,6 +579,7 @@ if [[ "$NO_VERIFY" -eq 0 ]]; then
   fi
   if [[ -n "$payload" ]]; then
     version="$(printf '%s' "$payload" | json_field version || true)"
+    log "health payload received: len=${#payload} fields=$(printf '%s' "$payload" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d.keys()))' 2>/dev/null || echo 'parse_error')"
     if [[ -n "$EXPECTED_VERSION" && "$version" != "$EXPECTED_VERSION" ]]; then
       rollback "health version mismatch: expected $EXPECTED_VERSION, got ${version:-<empty>}"
     fi
