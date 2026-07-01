@@ -3,7 +3,7 @@
   import { runtimeStore } from '$lib/stores/runtime.svelte';
   import { workpointActions, type WorkpointScope, type WorkpointSnapshot } from '$lib/actions/workpointActions.svelte';
   import { toastStore } from '$lib/stores/toast.svelte';
-  import { getProjectContext } from '$lib/projectContext.svelte';
+  import { getProjectContext, formatScopeForDisplay, type ScopeContext } from '$lib/projectContext.svelte';
 
   let s = $derived(runtimeStore.snapshot);
   let workpoint = $derived(s.workpointResume ?? s.workpoint ?? {});

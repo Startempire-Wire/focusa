@@ -3,6 +3,13 @@
 //! Left-click tray → toggle popover (positioned below tray icon).
 //! Right-click tray → Quit menu.
 //! Click outside → auto-hide (blur event).
+//!
+//! # Spec104 MBN-01: typed scope-bearing bridge messages
+//!
+//! All bridge messages between Mac, VPS, and Phone preserve the typed
+//! ScopeContext (`project_root`, `continuity_id`, `session_id`) end-to-end.
+//! The bridge does NOT mutate canonical scope state — it only forwards
+//! scope metadata alongside token/nonce payloads.
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -15,6 +22,15 @@ use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream, UdpSocket};
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
+
+/// Spec104 MBN-01 typed scope envelope for bridge messages.
+#[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize)]
+struct BridgeScope {
+    project_root: String,
+    continuity_id: String,
+    session_id: Option<String>,
+    scope_status: Option<String>,
+}
 
 static BRIDGE_COMPLETIONS: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
 static BRIDGE_LISTENERS: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();

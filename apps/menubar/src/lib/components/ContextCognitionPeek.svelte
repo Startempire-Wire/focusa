@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fetchJson } from '$lib/api';
+  import { deriveTypedScopeStatus, type ScopeContext } from '$lib/projectContext.svelte';
 
   interface Packet {
     schema_version?: string;

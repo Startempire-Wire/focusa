@@ -226,6 +226,32 @@ fn metric(label: &str, value: impl Into<String>, style: Style) -> Line<'static> 
     ])
 }
 
+/// Spec104 WL-02: format typed scope + advisory/blocked status for TUI display.
+fn typed_scope_line(scope: Option<&crate::api::TypedScope>) -> Line<'static> {
+    let Some(s) = scope else {
+        return Line::from(vec![
+            Span::styled("Scope: ", theme::label()),
+            Span::styled("[BLOCKED] unknown", theme::status_err()),
+        ]);
+    };
+    let status = s.scope_status.as_deref().unwrap_or("unknown");
+    let (badge, badge_style) = match status {
+        "blocked" => ("[BLOCKED]", theme::status_err()),
+        "advisory" => ("[advisory]", theme::status_warn()),
+        "ok" => ("[ok]", theme::status_ok()),
+        _ => ("[?]", theme::label()),
+    };
+    let display = if s.canonical_scope == Some(false) {
+        format!("{} {} ({})", badge, s.project_root, s.continuity_id)
+    } else {
+        format!("{} {} ({})", badge, s.project_root, s.continuity_id)
+    };
+    Line::from(vec![
+        Span::styled("Scope: ", theme::label()),
+        Span::styled(display, badge_style),
+    ])
+}
+
 fn replay_status_style(status: &str) -> Style {
     match status {
         "ok" => theme::status_ok(),

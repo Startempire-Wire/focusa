@@ -3,6 +3,25 @@
 //! Global bearer auth proves caller identity; this layer limits what an
 //! authenticated token may do when `FOCUSA_AUTH_TOKEN` is configured.
 //! Local-first no-token mode remains unrestricted on loopback deployments.
+//!
+//! # Spec104 MW-04: Route-family scope enforcement
+//!
+//! Every API route is classified into a route-family scope:
+//! - `public:health` — health probe, no auth needed
+//! - `public:pairing` — pre-auth pairing flows
+//! - `state:read`/`state:write` — focus/state mutations
+//! - `workpoint:read`/`workpoint:write` — workpoint lifecycle
+//! - `trajectory:read`/`trajectory:write` — trajectory operations
+//! - `metacog:read`/`metacog:write` — metacognition store
+//! - `prediction:read`/`prediction:write` — predictions
+//! - `work_loop:read`/`work_loop:control` — continuous work loop
+//! - `telemetry:write` — telemetry traces
+//! - `project:read` — project identity
+//!
+//! Host/project scope context (`ScopeContext`) is preserved end-to-end via
+//! the `FromRequestParts` extractor in `crate::scope::ScopeContext`. The
+//! typed scope flows through headers/query params and is captured into
+//! the workpoint packet envelope.
 
 use crate::routes::permissions::permission_context;
 use axum::extract::Request;

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { normalizeToolResult } from '$lib/api';
   import { runtimeStore } from '$lib/stores/runtime.svelte';
+  import { formatScopeForDisplay, type ScopeContext } from '$lib/projectContext.svelte';
 
   let s = $derived(runtimeStore.snapshot);
   let daemonOk = $derived(s.health?.ok === true);

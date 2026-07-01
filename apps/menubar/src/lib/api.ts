@@ -1,5 +1,6 @@
 import { diagnosticsStore } from '$lib/stores/diagnostics.svelte';
 import { getCurrentAuthToken } from '$lib/stores/pairing.svelte';
+import type { ScopeContext } from '$lib/projectContext.svelte';
 
 export const DEFAULT_API_URL = 'http://127.0.0.1:8787';
 export const SAVED_CONNECTIONS_KEY = 'focusa_saved_connections_v1';

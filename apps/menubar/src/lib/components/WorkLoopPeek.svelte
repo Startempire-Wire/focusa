@@ -1,5 +1,6 @@
 <script lang="ts">
   import { runtimeStore } from '$lib/stores/runtime.svelte';
+  import { formatScopeForDisplay, type ScopeContext } from '$lib/projectContext.svelte';
 
   let s = $derived(runtimeStore.snapshot);
   let health = $derived(s.workLoopHealth ?? {});

@@ -1,9 +1,64 @@
 //! API client for TUI — fetches Focusa state via REST.
+//!
+//! Spec104 TUI-01: typed scope display. All requests flow through the
+//! typed `TypedScope` envelope which preserves project_root + continuity_id
+//! + session_id. The TUI does not mutate canonical scope state.
 
 use crate::app::*;
 use anyhow::Result;
 use reqwest::Client;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+/// Typed scope envelope (Spec104 TUI-01 / WL-02).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TypedScope {
+    pub project_root: String,
+    pub continuity_id: String,
+    pub session_id: Option<String>,
+    pub scope_status: Option<String>,
+    pub scope_source: Option<String>,
+    pub canonical_scope: Option<bool>,
+}
+
+impl TypedScope {
+    /// Render for TUI display: `[status] project_root (continuity_id)`.
+    pub fn display(&self) -> String {
+        let status = self.scope_status.as_deref().unwrap_or("unknown");
+        if self.canonical_scope == Some(false) {
+            return format!("[advisory] {} ({}) [{}]", self.project_root, self.continuity_id, status);
+        }
+        format!("{} ({}) [{}]", self.project_root, self.continuity_id, status)
+    }
+
+    /// Encode as query-string suffix for HTTP requests.
+    pub fn as_query_suffix(&self) -> String {
+        let mut params = url_query_stringify::UrlQueryParams::new();
+        if !self.project_root.is_empty() {
+            params.push("project_root", &self.project_root);
+        }
+        if !self.continuity_id.is_empty() {
+            params.push("continuity_id", &self.continuity_id);
+        }
+        params.finish()
+    }
+}
+
+mod url_query_stringify {
+    pub struct UrlQueryParams(String);
+    impl UrlQueryParams {
+        pub fn new() -> Self { Self(String::new()) }
+        pub fn push(&mut self, k: &str, v: &str) {
+            if !self.0.is_empty() { self.0.push('&'); }
+            self.0.push_str(&format!("{}={}", k, urlencoded(k, v)));
+        }
+        pub fn finish(self) -> String { if self.0.is_empty() { String::new() } else { format!("?{}", self.0) } }
+    }
+    fn urlencoded(_k: &str, v: &str) -> String {
+        // Minimal URL-encoding for scope params: only handle & = ? in values.
+        v.replace('&', "%26").replace('=', "%3D").replace('?', "%3F").replace(' ', "%20")
+    }
+}
 
 pub struct ApiClient {
     base_url: String,
@@ -23,6 +78,28 @@ impl ApiClient {
         let url = format!("{}{}", self.base_url, path);
         let resp = self.client.get(&url).send().await?.json().await?;
         Ok(resp)
+    }
+
+    /// Spec104 TUI-01: Fetch with typed ScopeContext. The scope query
+    /// suffix preserves project_root + continuity_id + session_id end-to-end.
+    pub async fn fetch_with_scope(&self, path: &str, scope: &TypedScope) -> Result<serde_json::Value> {
+        let suffix = scope.as_query_suffix();
+        let url = format!("{}{}{}", self.base_url, path, suffix);
+        let resp = self.client
+            .get(&url)
+            .header("x-scope-project-root", &scope.project_root)
+            .header("x-scope-continuity-id", &scope.continuity_id)
+            .send()
+            .await?
+            .json()
+            .await?;
+        Ok(resp)
+    }
+
+    /// Spec104 TUI-01: Fetch raw state with typed scope.
+    pub async fn fetch_state_with_scope(&self, scope: &TypedScope) -> Result<StateSnapshot> {
+        let resp = self.fetch_with_scope("/v1/state/dump", scope).await?;
+        Ok(serde_json::from_value(resp)?)
     }
 
     /// Fetch full state snapshot from the daemon.
