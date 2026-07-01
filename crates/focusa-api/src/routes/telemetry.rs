@@ -414,7 +414,7 @@ async fn cache_metadata_status(
         .min(100);
     let s = state.focusa.read().await;
     // Spec95 H1: per-cache-entry metadata for the ontology read index.
-    let read_index_meta = ontology_read_index_cache_metadata(&s);
+    let read_index_meta = ontology_read_index_cache_metadata(&s, None);
     let mut records: Vec<Value> = s
         .telemetry
         .trace_events

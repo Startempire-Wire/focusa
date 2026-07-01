@@ -9,6 +9,7 @@ use crate::routes::bounded::{
     pressure_status, record_json_response_size,
 };
 use crate::routes::predictions::{read_predictions, write_predictions};
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
@@ -20,11 +21,12 @@ use chrono::Utc;
 use focusa_core::types::{Action, FocusaEvent, FocusaState, FrameRecord, HandleKind, HandleRef};
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::{Arc, LazyLock, Mutex, OnceLock};
+use std::time::Instant;
 use uuid::Uuid;
 
 const OBJECT_TYPES: &[&str] = &[
@@ -1709,8 +1711,24 @@ struct OntologyReadIndex {
     ttl_seconds: usize,
 }
 
-static ONTOLOGY_READ_INDEX: LazyLock<Mutex<Option<Arc<OntologyReadIndex>>>> =
-    LazyLock::new(|| Mutex::new(None));
+type OntologyReadIndexCache = Mutex<HashMap<String, (Instant, Arc<OntologyReadIndex>)>>;
+static ONTOLOGY_READ_INDEX_CACHE: OnceLock<OntologyReadIndexCache> = OnceLock::new();
+
+fn ontology_read_index_cache_key(
+    focusa: &FocusaState,
+    frame_id: Option<&str>,
+    scope: Option<&ScopeContext>,
+) -> String {
+    let scope_root = scope.and_then(|s| s.project_root.as_deref()).unwrap_or_default();
+    let scope_cont = scope.and_then(|s| s.continuity_id.as_deref()).unwrap_or_default();
+    format!(
+        "scope_root={}\nscope_cont={}\nversion={}\nframe_id={}",
+        scope_root,
+        scope_cont,
+        focusa.version,
+        frame_id.unwrap_or_default(),
+    )
+}
 
 fn read_text(path: &Path) -> Option<String> {
     const MAX_ONTOLOGY_PARSE_BYTES: u64 = 256 * 1024;
@@ -5773,21 +5791,23 @@ fn build_ontology_read_index(
     }
 }
 
-fn ontology_read_index(focusa: &FocusaState, frame_id: Option<&str>) -> Arc<OntologyReadIndex> {
-    let cache_key = frame_id.map(ToString::to_string);
-    if let Ok(cache) = ONTOLOGY_READ_INDEX.lock()
-        && let Some(index) = cache.as_ref()
-        && index.frame_id == cache_key
-        && index.source_state_version == focusa.version
-        && index.last_reducer_event_id == ontology_reducer_event_id(focusa)
-        && (Utc::now() - index.generated_at).num_seconds() < index.ttl_seconds as i64
+fn ontology_read_index(
+    focusa: &FocusaState,
+    frame_id: Option<&str>,
+    scope: Option<&ScopeContext>,
+) -> Arc<OntologyReadIndex> {
+    let key = ontology_read_index_cache_key(focusa, frame_id, scope);
+    let cache = ONTOLOGY_READ_INDEX_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    if let Ok(guard) = cache.lock()
+        && let Some((stored_at, index)) = guard.get(&key)
+        && stored_at.elapsed().as_secs() < index.ttl_seconds as u64
     {
         return Arc::clone(index);
     }
     let projection = combined_projection(focusa, frame_id);
     let index = Arc::new(build_ontology_read_index(focusa, frame_id, projection));
-    if let Ok(mut cache) = ONTOLOGY_READ_INDEX.lock() {
-        *cache = Some(Arc::clone(&index));
+    if let Ok(mut guard) = cache.lock() {
+        guard.insert(key, (Instant::now(), Arc::clone(&index)));
     }
     index
 }
@@ -5795,25 +5815,11 @@ fn ontology_read_index(focusa: &FocusaState, frame_id: Option<&str>) -> Arc<Onto
 /// Expose read-index cache metadata for telemetry/cache-metadata endpoints (Spec95 H1).
 /// Returns per-cache-entry metadata: source reducer version, generated_at, TTL/invalidation
 /// rule, canonical/degraded/stale status, and object/link/action counts.
-pub fn ontology_read_index_cache_metadata(focusa: &FocusaState) -> Value {
-    let index = {
-        let cache_key: Option<String> = None;
-        if let Ok(cache) = ONTOLOGY_READ_INDEX.lock()
-            && let Some(cached) = cache.as_ref()
-            && cached.frame_id == cache_key
-            && cached.source_state_version == focusa.version
-            && cached.last_reducer_event_id == ontology_reducer_event_id(focusa)
-            && (Utc::now() - cached.generated_at).num_seconds() < cached.ttl_seconds as i64
-        {
-            Arc::clone(cached)
-        } else {
-            Arc::new(build_ontology_read_index(
-                focusa,
-                None,
-                combined_projection(focusa, None),
-            ))
-        }
-    };
+pub fn ontology_read_index_cache_metadata(
+    focusa: &FocusaState,
+    scope: Option<&ScopeContext>,
+) -> Value {
+    let index = ontology_read_index(focusa, None, scope);
     let age_seconds = (Utc::now() - index.generated_at).num_seconds();
     let stale = age_seconds >= index.ttl_seconds as i64;
     json!({
@@ -5857,8 +5863,9 @@ fn adjacency_index_payload(
     frame_id: Option<&str>,
     target_ref: Option<&str>,
     limit: usize,
+    scope: Option<&ScopeContext>,
 ) -> Value {
-    let index = ontology_read_index(focusa, frame_id);
+    let index = ontology_read_index(focusa, frame_id, scope);
     let capped_limit = limit.clamp(1, 25);
     let link_limit = capped_limit.min(3);
     let mut nodes = Vec::new();
@@ -6021,6 +6028,7 @@ struct WorkingSetPayloadParams<'a> {
     limit: usize,
     include_reasons: bool,
     cursor: usize,
+    scope: Option<&'a ScopeContext>,
 }
 
 fn working_set_payload(focusa: &FocusaState, params: WorkingSetPayloadParams<'_>) -> Value {
@@ -6032,8 +6040,9 @@ fn working_set_payload(focusa: &FocusaState, params: WorkingSetPayloadParams<'_>
         limit,
         include_reasons,
         cursor,
+        scope,
     } = params;
-    let index = ontology_read_index(focusa, frame_id);
+    let index = ontology_read_index(focusa, frame_id, scope);
     let resolved_slice_type = infer_slice_type_from_operator_context(focusa, slice_type);
     let capped_limit = limit.clamp(1, 50);
     let mut scored = Vec::new();
@@ -6367,6 +6376,7 @@ fn ontology_context_payload(focusa: &FocusaState, body: &OntologyContextRequest)
             limit: member_limit,
             include_reasons: true,
             cursor: 0,
+            scope: None,
         },
     );
     let members = working_set
@@ -8506,6 +8516,7 @@ async fn slices(
 async fn adjacency(
     Query(query): Query<AdjacencyQuery>,
     State(state): State<Arc<AppState>>,
+    scope: ScopeContext,
 ) -> Json<Value> {
     let focusa = state.focusa.read().await;
     Json(adjacency_index_payload(
@@ -8513,12 +8524,14 @@ async fn adjacency(
         query.frame_id.as_deref(),
         query.target_ref.as_deref(),
         query.limit.unwrap_or(1),
+        Some(&scope),
     ))
 }
 
 async fn working_set(
     Query(query): Query<WorkingSetQuery>,
     State(state): State<Arc<AppState>>,
+    scope: ScopeContext,
 ) -> Json<Value> {
     let focusa = state.focusa.read().await;
     Json(working_set_payload(
@@ -8531,6 +8544,7 @@ async fn working_set(
             limit: query.limit.unwrap_or(6),
             include_reasons: query.include_reasons,
             cursor: query.cursor.unwrap_or(0),
+            scope: Some(&scope),
         },
     ))
 }
@@ -9503,7 +9517,7 @@ mod tests {
             }),
         });
 
-        let payload = adjacency_index_payload(&focusa, None, Some("file:a"), 10);
+        let payload = adjacency_index_payload(&focusa, None, Some("file:a"), 10, None);
         assert_eq!(payload["source_state_version"].as_u64(), Some(42));
         assert_eq!(payload["canonical_truth_mutation"].as_bool(), Some(false));
         let node = payload["nodes"].as_array().unwrap().first().unwrap();
@@ -9555,6 +9569,7 @@ mod tests {
                 slice_type: "debugging",
                 limit: 10,
                 include_reasons: true,
+                scope: None,
                 cursor: 0,
             },
         );
