@@ -1,5 +1,6 @@
 <script lang="ts">
   import { fetchJson, focusaPost, hasEverConnected } from '$lib/api';
+  import { getProjectContext } from '$lib/projectContext.svelte';
   import { focusStore } from '$lib/stores/focus.svelte';
   import { gateStore } from '$lib/stores/gate.svelte';
   import { runtimeStore } from '$lib/stores/runtime.svelte';
@@ -40,8 +41,10 @@
       const activeWorkpointId = state?.workpoint?.active_workpoint_id;
       const activeWorkpointRecord = state?.workpoint?.active ?? state?.workpoint?.records?.find?.((record: any) => record?.workpoint_id === activeWorkpointId) ?? null;
       const projectIdentityRecord = projectIdentityRaw?.project_identity ?? projectIdentityRaw ?? {};
-      const projectRoot = projectIdentityRecord?.project_root || projectIdentityRaw?.project_root || activeWorkpointRecord?.project_root || state?.session?.project_root || null;
-      const continuityId = projectIdentityRecord?.continuity_id || projectIdentityRaw?.continuity_id || activeWorkpointRecord?.continuity_id || state?.session?.continuity_id || null;
+      // Spec104 MEN-02: derive typed scope from one source of truth (projectContext.svelte.ts).
+      const typedScope = getProjectContext({ projectIdentity: projectIdentityRecord, workpointResume: state?.workpointResume, workpoint: state?.workpoint });
+      const projectRoot = typedScope.projectRoot || null;
+      const continuityId = typedScope.continuityId || null;
       const projectIdentity = {
         ...projectIdentityRecord,
         project_root: projectRoot,

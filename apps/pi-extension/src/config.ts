@@ -12,6 +12,19 @@ function isPlainObject(value: unknown): value is Record<string, any> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
+/**
+ * Typed ScopeContext identifier surface (Spec104 PI-C07).
+ * All config/prompt/packet identifiers flow through these typed identifiers
+ * rather than ad-hoc string keys.
+ */
+export type FocusaConfigScope = "project" | "user";
+export type FocusaConfigSurface = "settings.json" | "agent/settings.json";
+export interface FocusaConfigScopeRef {
+  cwd: string | undefined;
+  scope: FocusaConfigScope;
+  surface: FocusaConfigSurface;
+}
+
 export interface FocusaConfig {
   enabled: boolean;
   warnPct: number;

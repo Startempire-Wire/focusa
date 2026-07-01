@@ -3,6 +3,14 @@
 //! These helpers make truncation explicit without changing canonical state.
 //! Route handlers own domain-specific selection/rehydration; this module owns
 //! consistent limit resolution and metadata envelopes.
+//!
+//! # Runtime classification (Spec104 BND-01)
+//!
+//! Resource mode / pressure globals are RUNTIME INFRASTRUCTURE statics,
+//! scope-keyed to the daemon process (one daemon per host). They are NOT
+//! project-scoped because they govern the process's read pressure, memory
+//! budget, and bounded read behavior — properties of the daemon, not
+//! the project. Per-project state lives in FocusaState, not here.
 
 use chrono::Utc;
 use serde::Serialize;

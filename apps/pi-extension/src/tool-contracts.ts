@@ -15,6 +15,18 @@ export type FocusaToolFamily =
 
 export type FocusaToolParityStatus = "full" | "domain" | "pi_only" | "local_only" | "degraded_known" | "api_only";
 
+export type FocusaScopeRequirement =
+  | { kind: "none" }
+  | { kind: "read"; route_family: string }
+  | { kind: "write"; route_family: string }
+  | { kind: "control"; route_family: string }
+  | { kind: "public:health" }
+  | { kind: "public:pairing" };
+
+export type FocusaAuthorityRequirement =
+  | { kind: "advisory_only" }
+  | { kind: "canonical"; path: string };
+
 export interface FocusaToolContract {
   name: string;
   family: FocusaToolFamily;
@@ -32,6 +44,10 @@ export interface FocusaToolContract {
   parity_status: FocusaToolParityStatus;
   exemptions: string[];
   live_check: string;
+  /** Required daemon route scope to invoke this tool (Spec104 TOOL-07). */
+  scope_requirement: FocusaScopeRequirement;
+  /** Whether the tool is canonical authority or advisory (Spec104 TOOL-07). */
+  authority_requirement: FocusaAuthorityRequirement;
 }
 
 export interface FocusaToolAffordance {
@@ -73,7 +89,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "domain",
     "exemptions": ["domain_cli_only"],
-    "live_check": "contract_static plus /v1/project/identity safe probe and quorum status"
+    "live_check": "contract_static plus /v1/project/identity safe probe and quorum status",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_project_card",
@@ -90,7 +108,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "domain",
     "exemptions": ["domain_cli_only"],
-    "live_check": "contract_static plus /v1/project/card safe probe and bootstrap/re-bootstrap guidance"
+    "live_check": "contract_static plus /v1/project/card safe probe and bootstrap/re-bootstrap guidance",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_project_card_outcome",
@@ -107,7 +127,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_project_card_outcome",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/project/card/outcome safe fixture using a fresh project-card algorithm_run_id"
+    "live_check": "contract_static plus /v1/project/card/outcome safe fixture using a fresh project-card algorithm_run_id",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_session_transfer",
@@ -124,7 +146,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "save_may_checkpoint_workpoint",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus Pi tool typecheck; compose project-card/resume/checkpoint safe fixture when run interactively"
+    "live_check": "contract_static plus Pi tool typecheck; compose project-card/resume/checkpoint safe fixture when run interactively",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_project_verify",
@@ -141,7 +165,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "domain",
     "exemptions": ["domain_cli_only"],
-    "live_check": "contract_static plus /v1/project/verify safe probe and mismatch diagnostics"
+    "live_check": "contract_static plus /v1/project/verify safe probe and mismatch diagnostics",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_trajectory_view",
@@ -158,7 +184,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "domain",
     "exemptions": ["domain_cli_only"],
-    "live_check": "contract_static plus /v1/trajectory/view safe probe, ProjectIdentity status, and prediction/metacog closure cross-reference"
+    "live_check": "contract_static plus /v1/trajectory/view safe probe, ProjectIdentity status, and prediction/metacog closure cross-reference",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -176,7 +204,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "advisory_projection",
     "parity_status": "domain",
     "exemptions": ["domain_cli_only"],
-    "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
+    "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -194,7 +224,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "domain",
     "exemptions": ["domain_cli_only"],
-    "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
+    "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -212,7 +244,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "advisory_projection",
     "parity_status": "domain",
     "exemptions": ["domain_cli_only"],
-    "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
+    "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -230,7 +264,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "advisory_checkpoint",
     "parity_status": "domain",
     "exemptions": ["domain_cli_only"],
-    "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
+    "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -248,7 +284,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "domain",
     "exemptions": ["domain_cli_only"],
-    "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
+    "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
 
@@ -267,7 +305,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "domain",
     "exemptions": ["api_domain_only"],
-    "live_check": "contract_static plus /v1/traverse lineage smoke test"
+    "live_check": "contract_static plus /v1/traverse lineage smoke test",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_reflex_primitives",
@@ -284,7 +324,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "domain",
     "exemptions": ["api_domain_only"],
-    "live_check": "contract_static plus /v1/reflex/primitives recovery-family smoke test"
+    "live_check": "contract_static plus /v1/reflex/primitives recovery-family smoke test",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -302,7 +344,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_prediction",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats"
+    "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_predict_recent",
@@ -319,7 +363,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats"
+    "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_predict_evaluate",
@@ -336,7 +382,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_prediction_evaluation",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats"
+    "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_predict_stats",
@@ -353,7 +401,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats"
+    "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -375,7 +425,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "local_scratchpad_only"
     ],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_decide",
@@ -396,7 +448,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_constraint",
@@ -417,7 +471,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_failure",
@@ -438,7 +494,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_intent",
@@ -459,7 +517,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_current_focus",
@@ -480,7 +540,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_next_step",
@@ -501,7 +563,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_open_question",
@@ -522,7 +586,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_recent_result",
@@ -543,7 +609,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_agent_prompt",
@@ -567,7 +635,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "pi_only",
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus /v1/agent/prompt with Pi headers"
+    "live_check": "contract_static plus /v1/agent/prompt with Pi headers",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_note",
@@ -588,7 +658,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_work_loop_writer_status",
@@ -611,7 +683,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_work_loop_status",
@@ -634,7 +708,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_work_loop_control",
@@ -660,7 +736,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_work_loop_context",
@@ -683,7 +761,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_work_loop_checkpoint",
@@ -706,7 +786,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_work_loop_select_next",
@@ -729,7 +811,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_state_hygiene_doctor",
@@ -751,7 +835,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "pi_only",
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_state_hygiene_plan",
@@ -773,7 +859,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "pi_only",
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_state_hygiene_apply",
@@ -796,7 +884,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus bounded hot-path live checks; approved apply writes an auditable Focus State note"
+    "live_check": "contract_static plus bounded hot-path live checks; approved apply writes an auditable Focus State note",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -830,7 +920,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "pi_only"
     ],
-    "live_check": "contract_static plus optional tmux list-sessions probe; kill/send/start require explicit approval flags"
+    "live_check": "contract_static plus optional tmux list-sessions probe; kill/send/start require explicit approval flags",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_tool_doctor",
@@ -855,7 +947,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -884,7 +978,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus /v1/resource/mode safe probe and activation/deactivation smoke test"
+    "live_check": "contract_static plus /v1/resource/mode safe probe and activation/deactivation smoke test",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_active_object_resolve",
@@ -906,7 +1002,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_evidence_capture",
@@ -928,7 +1026,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "evidence_link",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_browser_diagnostics_intake",
@@ -954,7 +1054,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "composite_evidence_prediction_optional_metacog",
     "parity_status": "pi_only",
     "exemptions": ["pi_only"],
-    "live_check": "contract_static plus Pi typecheck; live use requires UIAI/browser diagnostics artifact"
+    "live_check": "contract_static plus Pi typecheck; live use requires UIAI/browser diagnostics artifact",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_workpoint_checkpoint",
@@ -976,7 +1078,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "checkpoint",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_workpoint_link_evidence",
@@ -998,7 +1102,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "evidence_link",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_workpoint_resume",
@@ -1020,7 +1126,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_hlt_history",
@@ -1040,7 +1148,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "domain",
     "exemptions": ["domain_cli_only"],
-    "live_check": "contract_static plus /v1/hlt/history safe probe and scope gate"
+    "live_check": "contract_static plus /v1/hlt/history safe probe and scope gate",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1063,7 +1173,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/context-cognition safe probe and scope gate"
+    "live_check": "contract_static plus /v1/context-cognition safe probe and scope gate",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1085,7 +1197,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_device_pair",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/device/pair/start safe probe and pair_url field assertion"
+    "live_check": "contract_static plus /v1/device/pair/start safe probe and pair_url field assertion",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1107,7 +1221,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_device_pair",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/device/pair/start safe probe and pair_url_qr_payload assertion"
+    "live_check": "contract_static plus /v1/device/pair/start safe probe and pair_url_qr_payload assertion",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1129,7 +1245,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_device_pair_complete",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/device/pair/complete safe probe"
+    "live_check": "contract_static plus /v1/device/pair/complete safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1150,7 +1268,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/device/pair/status safe probe"
+    "live_check": "contract_static plus /v1/device/pair/status safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1170,7 +1290,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/device/pair/list safe probe"
+    "live_check": "contract_static plus /v1/device/pair/list safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1190,7 +1312,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_device_pair_revoke",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/device/pair/revoke safe probe"
+    "live_check": "contract_static plus /v1/device/pair/revoke safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1212,7 +1336,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_call_stack_design",
     "parity_status": "domain",
     "exemptions": ["domain_cli_only"],
-    "live_check": "contract_static plus /v1/call-stack/design safe probe and scope gate"
+    "live_check": "contract_static plus /v1/call-stack/design safe probe and scope gate",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1234,7 +1360,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_call_stack_design_verify_drift",
     "parity_status": "domain",
     "exemptions": ["domain_cli_only"],
-    "live_check": "contract_static plus /v1/call-stack/verify safe probe and drift case"
+    "live_check": "contract_static plus /v1/call-stack/verify safe probe and drift case",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1256,7 +1384,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/context-cognition/render safe probe and scope gate"
+    "live_check": "contract_static plus /v1/context-cognition/render safe probe and scope gate",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1278,7 +1408,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/context-cognition/proof safe probe and scope gate"
+    "live_check": "contract_static plus /v1/context-cognition/proof safe probe and scope gate",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1301,7 +1433,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/context-cognition/curate safe probe and scope gate"
+    "live_check": "contract_static plus /v1/context-cognition/curate safe probe and scope gate",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1324,7 +1458,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_curator_eval",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/context-cognition/curate/eval safe probe and scope gate"
+    "live_check": "contract_static plus /v1/context-cognition/curate/eval safe probe and scope gate",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1347,7 +1483,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_cognition_optimizer_artifact",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/context-cognition/curate/optimize safe probe and scope gate"
+    "live_check": "contract_static plus /v1/context-cognition/curate/optimize safe probe and scope gate",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1369,7 +1507,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/context-cognition/optimizer/artifacts safe probe and scope gate"
+    "live_check": "contract_static plus /v1/context-cognition/optimizer/artifacts safe probe and scope gate",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1391,7 +1531,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/bloatgaurd/report safe probe"
+    "live_check": "contract_static plus /v1/bloatgaurd/report safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1412,7 +1554,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/bloatgaurd/domain/output-firewall safe probe"
+    "live_check": "contract_static plus /v1/bloatgaurd/domain/output-firewall safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1433,7 +1577,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/bloatgaurd/tokenbloat/report safe probe"
+    "live_check": "contract_static plus /v1/bloatgaurd/tokenbloat/report safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1453,7 +1599,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/bloatgaurd/tokenbloat/domain/tokenbloat-control safe probe"
+    "live_check": "contract_static plus /v1/bloatgaurd/tokenbloat/domain/tokenbloat-control safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1475,7 +1623,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/bloatgaurd/gate-modes/report safe probe"
+    "live_check": "contract_static plus /v1/bloatgaurd/gate-modes/report safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1496,7 +1646,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/bloatgaurd/gate-modes/mode/A safe probe"
+    "live_check": "contract_static plus /v1/bloatgaurd/gate-modes/mode/A safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1514,7 +1666,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/bloatgaurd/profiles/report safe probe"
+    "live_check": "contract_static plus /v1/bloatgaurd/profiles/report safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_bloatgaurd_profile",
@@ -1531,7 +1685,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/bloatgaurd/profiles/profile/daily_driver safe probe"
+    "live_check": "contract_static plus /v1/bloatgaurd/profiles/profile/daily_driver safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_bloatgaurd_routines",
@@ -1548,7 +1704,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/bloatgaurd/routines/report safe probe"
+    "live_check": "contract_static plus /v1/bloatgaurd/routines/report safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_bloatgaurd_routine",
@@ -1565,7 +1723,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/bloatgaurd/routines/routine/patrol safe probe"
+    "live_check": "contract_static plus /v1/bloatgaurd/routines/routine/patrol safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_bloatgaurd_rollout",
@@ -1582,7 +1742,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/bloatgaurd/rollout/report safe probe"
+    "live_check": "contract_static plus /v1/bloatgaurd/rollout/report safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1600,7 +1762,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/utility/card safe probe"
+    "live_check": "contract_static plus /v1/utility/card safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1618,7 +1782,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/dxux/report safe probe"
+    "live_check": "contract_static plus /v1/dxux/report safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_dxux_requirement",
@@ -1635,7 +1801,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/dxux/requirement/DXUX-004 safe probe"
+    "live_check": "contract_static plus /v1/dxux/requirement/DXUX-004 safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_dxux_explain",
@@ -1652,7 +1820,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/dxux/explain/ci-failed safe probe"
+    "live_check": "contract_static plus /v1/dxux/explain/ci-failed safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_dxux_digest",
@@ -1669,7 +1839,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/dxux/digest safe probe"
+    "live_check": "contract_static plus /v1/dxux/digest safe probe",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
 
   {
@@ -1692,7 +1864,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_tree_path",
@@ -1714,7 +1888,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_tree_snapshot_state",
@@ -1734,7 +1910,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_tree_restore_state",
@@ -1754,7 +1932,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_tree_diff_context",
@@ -1774,7 +1954,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_metacog_capture",
@@ -1795,7 +1977,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_metacog_retrieve",
@@ -1816,7 +2000,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_metacog_reflect",
@@ -1837,7 +2023,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_metacog_plan_adjust",
@@ -1858,7 +2046,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_metacog_evaluate_outcome",
@@ -1879,7 +2069,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_tree_recent_snapshots",
@@ -1899,7 +2091,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_tree_snapshot_compare_latest",
@@ -1919,7 +2113,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_metacog_recent_reflections",
@@ -1940,7 +2136,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_metacog_recent_adjustments",
@@ -1961,7 +2159,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_metacog_loop_run",
@@ -1986,7 +2186,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_metacog_doctor",
@@ -2008,7 +2210,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_lineage_tree",
@@ -2030,7 +2234,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_li_tree_extract",
@@ -2052,7 +2258,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    "scope_requirement": { "kind": "read", "route_family": "auto" },
+    "authority_requirement": { "kind": "advisory_only" },
   },
   {
     "name": "focusa_awareness_packet",
@@ -2079,7 +2287,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "api_domain_only"
     ],
-    "live_check": "contract_static plus GET /v1/awareness/packet returns schema focusa.awareness_packet.v1"
+    "live_check": "contract_static plus GET /v1/awareness/packet returns schema focusa.awareness_packet.v1",
+    "scope_requirement": { "kind": "read", "route_family": "awareness:read" },
+    "authority_requirement": { "kind": "advisory_only" }
   }
 ];
 

@@ -1,5 +1,14 @@
 //! Mac menubar OAuth-like device pairing (focusa-ui0y).
 //!
+//! # Runtime classification (Spec104 API-08)
+//!
+//! Pairing state is RUNTIME INFRASTRUCTURE, NOT project authority:
+//! - Pairing tokens authenticate the device for HTTP routes (auth.rs).
+//! - Pairing does NOT affect project/identity/workpoint authority.
+//! - No code in this module mutates FocusaState.project_root, workpoint,
+//!   trajectory, or any project-scoped state.
+//! - All pairing data lives in its own `device_pairing` SQLite table.
+//!
 //! # Canonical V2 self-host pairing flow (focusa-ui0y Phase-1 / Phase-2)
 //!
 //! Phase-1 (canonical, status-poll based):
