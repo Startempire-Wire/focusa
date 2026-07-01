@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaPost, getFocusaAvailable, getTurnCount } from "./state.js";
+import { S, focusaPost, getFocusaAvailable, getTurnCount, getActiveWorkpointPacket } from "./state.js";
 
 const MAX_RECORDS = 80;
 const MAX_TEXT = 500;
@@ -107,7 +107,7 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     const record = {
       hook: "agent_start",
       event_keys: Object.keys(event || {}).slice(0, 20),
-      workpoint_id: S.activeWorkpointPacket?.workpoint_id || S.activeWorkpointPacket?.id || null,
+      workpoint_id: (() => { const wp = getActiveWorkpointPacket(); return wp?.workpoint_id || wp?.id || null; })(),
       current_ask: boundText(S.currentAsk?.text || ""),
     };
     recordHookTelemetry(record);

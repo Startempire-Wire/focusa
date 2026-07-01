@@ -222,7 +222,6 @@ export function buildFocusaSessionIdentity(ctx: MenubarSessionContext): Record<s
     session_incarnation_id: incId,
     project_root: ctx.projectRoot || '',
     cwd: ctx.projectRoot || '',          // menubar has no cwd concept; use project_root as proxy
-    workspace_id: ctx.continuityId || ctx.projectRoot || 'menubar',
     started_at: now,
     resume_source: 'menubar',
     continuity_id: ctx.continuityId || null,
