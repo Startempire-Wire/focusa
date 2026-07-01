@@ -271,16 +271,8 @@ binary_checksum() {
 
 json_field() {
   local field="$1"
-  python3 - "$field" <<'PY'
-import json, sys
-field = sys.argv[1]
-try:
-    payload = json.load(sys.stdin)
-except Exception:
-    sys.exit(1)
-value = payload.get(field, "")
-print(value if value is not None else "")
-PY
+  local code='import json,sys; d=json.load(sys.stdin); print(d.get(sys.argv[1],"") if d.get(sys.argv[1]) is not None else "")'
+  python3 -c "$code" "$field" 2>/dev/null || true
 }
 
 service_exists() {
@@ -429,12 +421,6 @@ for i in range('"$attempts"'):
         req = urllib.request.Request(health_url, method="GET")
         with urllib.request.urlopen(req, timeout=5) as resp:
             body = resp.read().decode()
-            import os
-            trace_log = os.environ.get("FOCUSA_DEPLOY_AUDIT_LOG","/dev/null").replace("/deploy-audit.jsonl","/health-trace.txt")
-            with open(trace_log, "a") as t:
-                import json as _j
-                _v = _j.loads(body).get("version","MISSING")
-                t.write("health_check i=" + str(i) + " version_field=" + str(_v) + " body=" + repr(body) + "\n")
             if expected_version:
                 data = json.loads(body)
                 if data.get("version") != expected_version:
@@ -442,11 +428,7 @@ for i in range('"$attempts"'):
                     continue
             print(body)
             sys.exit(0)
-    except Exception as e:
-        import os
-        trace_log = os.environ.get("FOCUSA_DEPLOY_AUDIT_LOG","/dev/null").replace("/deploy-audit.jsonl","/health-trace.txt")
-        with open(trace_log, "a") as t:
-            t.write("health_check i=" + str(i) + " exception=" + str(e) + "\n")
+    except Exception:
         time.sleep(1)
         continue
 
@@ -583,7 +565,7 @@ if [[ "$NO_VERIFY" -eq 0 ]]; then
   fi
   if [[ -n "$payload" ]]; then
     version="$(printf '%s' "$payload" | json_field version || true)"
-    log "health payload received: len=${#payload} repr=$(printf '%s' "$payload" | python3 -c 'import sys; print(repr(sys.stdin.read()))' 2>/dev/null || echo 'no_repr')"
+    log "health payload received: len=${#payload}"
     if [[ -n "$EXPECTED_VERSION" && "$version" != "$EXPECTED_VERSION" ]]; then
       rollback "health version mismatch: expected $EXPECTED_VERSION, got ${version:-<empty>}"
     fi
