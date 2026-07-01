@@ -87,9 +87,8 @@ jobs:
           echo "max_usage_pct=$MAX_USAGE_PCT" >> "$GITHUB_OUTPUT"
           echo "backup_keep=$BACKUP_KEEP" >> "$GITHUB_OUTPUT"
 
-      - name: Check CI status (advisory)
+      - name: Require successful GitHub CI for target commit
         uses: actions/github-script@v7
-        continue-on-error: true
         with:
           script: |
             const targetSha = `${{ steps.cfg.outputs.tag_sha }}`;
@@ -107,7 +106,7 @@ jobs:
               run.head_branch === 'main'
             );
             if (!successRun) {
-              core.warning(`No successful CI run found for ${targetSha} — deploying anyway (advisory check)`);
+              core.setFailed(`No successful CI run found for ${targetSha} — deploy blocked until CI passes`);
               return;
             }
             core.info(`Using CI run ${successRun.id}: ${successRun.html_url}`);
