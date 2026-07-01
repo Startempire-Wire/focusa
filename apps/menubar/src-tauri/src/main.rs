@@ -256,83 +256,6 @@ fn focusa_take_bridge_completion(nonce: String) -> Result<Option<String>, String
         .map_err(|_| "bridge completion store poisoned".to_string())
 }
 
-/// focusa-ui0y Phase-2 callback fallback: macOS hands us a
-/// `focusa://connect?payload=<base64>` URL when TCP bridge is unreachable.
-/// Decode the base64 mac_completion_payload and stash it under the
-/// associated nonce so the JS side can drain it via
-/// `focusa_take_bridge_completion`.
-#[tauri::command]
-fn focusa_handle_deep_link(url: String) -> Result<(), String> {
-    // Only handle focusa://connect?payload=...
-    let prefix = "focusa://connect?payload=";
-    if !url.starts_with(prefix) {
-        return Err(format!("unsupported deep link scheme: {url}"));
-    }
-    let encoded = &url[prefix.len()..];
-    // Strip any trailing query/fragment after the base64.
-    let encoded = encoded
-        .split(|c| c == '&' || c == '#')
-        .next()
-        .unwrap_or(encoded);
-    let decoded = base64_decode(encoded).ok_or_else(|| "invalid base64 payload".to_string())?;
-    let json: serde_json::Value = serde_json::from_slice(&decoded)
-        .map_err(|e| format!("payload not valid JSON: {e}"))?;
-    let nonce = json
-        .get("nonce")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| "payload missing nonce field".to_string())?;
-    let token = json
-        .get("token")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| "payload missing token field".to_string())?;
-    let key = format!("{nonce}|{token}");
-    if let Ok(mut completions) = bridge_completions().lock() {
-        completions.insert(key, json.to_string());
-    }
-    Ok(())
-}
-
-fn base64_decode(s: &str) -> Option<Vec<u8>> {
-    // Tolerant base64 decoder: accept URL-safe alphabet and stripped padding.
-    let normalized = s.replace('-', "+").replace('_', "/");
-    let padded = match normalized.len() % 4 {
-        0 => normalized,
-        2 => format!("{normalized}=="),
-        3 => format!("{normalized}="),
-        _ => return None,
-    };
-    base64_decode_strict(&padded)
-}
-
-fn base64_decode_strict(s: &str) -> Option<Vec<u8>> {
-    use base64 as _unused;
-    // Use the base64 crate via plugin macro requires; if missing, fall back to manual.
-    let bytes = s.as_bytes();
-    let mut out = Vec::with_capacity(bytes.len() * 3 / 4);
-    let mut buf: u32 = 0;
-    let mut bits: u32 = 0;
-    for &b in bytes {
-        let v: u32 = match b {
-            b'A'..=b'Z' => (b - b'A') as u32,
-            b'a'..=b'z' => (b - b'a' + 26) as u32,
-            b'0'..=b'9' => (b - b'0' + 52) as u32,
-            b'+' | b'/' => match b {
-                b'+' => 62,
-                _ => 63,
-            },
-            b'=' => continue,
-            _ => return None,
-        };
-        buf = (buf << 6) | v;
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            out.push(((buf >> bits) & 0xff) as u8);
-        }
-    }
-    Some(out)
-}
-
 
 #[cfg(target_os = "macos")]
 fn run_security(args: &[&str]) -> Result<String, String> {
@@ -508,14 +431,12 @@ async fn focusa_discover_via_bonjour(
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_positioner::init())
-        .plugin(tauri_plugin_deep_link::init())
         .invoke_handler(tauri::generate_handler![
             focusa_save_pairing_token,
             focusa_load_pairing_token,
             focusa_clear_pairing_token,
             focusa_start_bridge_callback,
             focusa_take_bridge_completion,
-            focusa_handle_deep_link,
             focusa_discover_via_bonjour,
         ])
         .setup(|app| {

@@ -47,11 +47,7 @@ if (!jsonMatch) {
 
 let contracts = [];
 if (jsonMatch) {
-  // Tolerant parse: TypeScript object literals allow trailing commas which
-  // are invalid in strict JSON. Strip trailing commas before } or ] before
-  // parsing so we can read FOCUSA_TOOL_CONTRACTS without rejecting legal TS.
-  const tolerantSrc = `${jsonMatch[1]}\n]`.replace(/,(\s*[}\]])/g, '$1');
-  contracts = JSON.parse(tolerantSrc);
+  contracts = JSON.parse(`${jsonMatch[1]}\n]`);
 }
 
 let registryJson = null;

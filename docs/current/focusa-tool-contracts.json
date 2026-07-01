@@ -26,14 +26,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus /v1/project/identity safe probe and quorum status",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/project/identity safe probe and quorum status"
     },
     {
       "name": "focusa_project_card",
@@ -63,14 +56,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus /v1/project/card safe probe and bootstrap/re-bootstrap guidance",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/project/card safe probe and bootstrap/re-bootstrap guidance"
     },
     {
       "name": "focusa_project_card_outcome",
@@ -96,14 +82,7 @@
       "side_effect_profile": "write_project_card_outcome",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/project/card/outcome safe fixture using a fresh project-card algorithm_run_id",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/project/card/outcome safe fixture using a fresh project-card algorithm_run_id"
     },
     {
       "name": "focusa_session_transfer",
@@ -134,14 +113,7 @@
       "side_effect_profile": "save_may_checkpoint_workpoint",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus Pi tool typecheck; compose project-card/resume/checkpoint safe fixture when run interactively",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus Pi tool typecheck; compose project-card/resume/checkpoint safe fixture when run interactively"
     },
     {
       "name": "focusa_project_verify",
@@ -166,14 +138,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus /v1/project/verify safe probe and mismatch diagnostics",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/project/verify safe probe and mismatch diagnostics"
     },
     {
       "name": "focusa_trajectory_view",
@@ -201,14 +166,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus /v1/trajectory/view safe probe, ProjectIdentity status, and prediction/metacog closure cross-reference",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/trajectory/view safe probe, ProjectIdentity status, and prediction/metacog closure cross-reference"
     },
     {
       "name": "focusa_trajectory_define_goal",
@@ -236,14 +194,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
     },
     {
       "name": "focusa_trajectory_assess",
@@ -271,14 +222,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
     },
     {
       "name": "focusa_trajectory_propose_workpoint",
@@ -306,14 +250,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
     },
     {
       "name": "focusa_trajectory_checkpoint",
@@ -341,14 +278,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
     },
     {
       "name": "focusa_trajectory_resume",
@@ -376,14 +306,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
     },
     {
       "name": "focusa_traverse",
@@ -411,14 +334,7 @@
       "exemptions": [
         "api_domain_only"
       ],
-      "live_check": "contract_static plus /v1/traverse lineage smoke test",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/traverse lineage smoke test"
     },
     {
       "name": "focusa_reflex_primitives",
@@ -443,14 +359,7 @@
       "exemptions": [
         "api_domain_only"
       ],
-      "live_check": "contract_static plus /v1/reflex/primitives recovery-family smoke test",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/reflex/primitives recovery-family smoke test"
     },
     {
       "name": "focusa_predict_record",
@@ -474,14 +383,7 @@
       "side_effect_profile": "write_prediction",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats"
     },
     {
       "name": "focusa_predict_recent",
@@ -505,14 +407,7 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats"
     },
     {
       "name": "focusa_predict_evaluate",
@@ -536,14 +431,7 @@
       "side_effect_profile": "write_prediction_evaluation",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats"
     },
     {
       "name": "focusa_predict_stats",
@@ -567,19 +455,12 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats"
     },
     {
       "name": "focusa_scratch",
       "label": "Scratchpad",
-      "purpose": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "purpose": "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
       "family": "focus_state",
       "ontology_action": "focus_state.scratch",
       "ontology_objects": [
@@ -595,19 +476,12 @@
       "exemptions": [
         "local_scratchpad_only"
       ],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_decide",
       "label": "Record Decision",
-      "purpose": "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=280 chars) — architectural choices only, not task lists.",
+      "purpose": "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=280 chars) \u2014 architectural choices only, not task lists.",
       "family": "focus_state",
       "ontology_action": "focus_state.decide",
       "ontology_objects": [
@@ -625,19 +499,12 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_constraint",
       "label": "Record Constraint",
-      "purpose": "Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture — NOT self-imposed tasks. Max 200 chars.",
+      "purpose": "Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture \u2014 NOT self-imposed tasks. Max 200 chars.",
       "family": "focus_state",
       "ontology_action": "focus_state.constraint",
       "ontology_objects": [
@@ -655,14 +522,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_failure",
@@ -685,19 +545,12 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_intent",
       "label": "Set Intent",
-      "purpose": "Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars).",
+      "purpose": "Set the frame intent \u2014 what this session is trying to achieve (1-3 sentences, max 500 chars).",
       "family": "focus_state",
       "ontology_action": "focus_state.intent",
       "ontology_objects": [
@@ -715,19 +568,12 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_current_focus",
       "label": "Set Current Focus",
-      "purpose": "Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars).",
+      "purpose": "Update current focus \u2014 what you are actively working on right now (1-3 sentences, max 300 chars).",
       "family": "focus_state",
       "ontology_action": "focus_state.current.focus",
       "ontology_objects": [
@@ -745,14 +591,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_next_step",
@@ -775,14 +614,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_open_question",
@@ -805,14 +637,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_recent_result",
@@ -835,14 +660,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_agent_prompt",
@@ -866,14 +684,7 @@
         "pi_only",
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus /v1/agent/prompt with Pi headers",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/agent/prompt with Pi headers"
     },
     {
       "name": "focusa_note",
@@ -896,14 +707,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_work_loop_writer_status",
@@ -926,14 +730,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_work_loop_status",
@@ -956,14 +753,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_work_loop_control",
@@ -989,14 +779,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_work_loop_context",
@@ -1019,14 +802,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_work_loop_checkpoint",
@@ -1049,14 +825,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_work_loop_select_next",
@@ -1079,14 +848,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_state_hygiene_doctor",
@@ -1108,14 +870,7 @@
         "pi_only",
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_state_hygiene_plan",
@@ -1137,14 +892,7 @@
         "pi_only",
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_state_hygiene_apply",
@@ -1167,14 +915,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus bounded hot-path live checks; approved apply writes an auditable Focus State note",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; approved apply writes an auditable Focus State note"
     },
     {
       "name": "focusa_silent_sessions",
@@ -1207,14 +948,7 @@
       "exemptions": [
         "pi_only"
       ],
-      "live_check": "contract_static plus optional tmux list-sessions probe; kill/send/start require explicit approval flags",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus optional tmux list-sessions probe; kill/send/start require explicit approval flags"
     },
     {
       "name": "focusa_tool_doctor",
@@ -1239,14 +973,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_resource_mode",
@@ -1274,14 +1001,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus /v1/resource/mode safe probe and activation/deactivation smoke test",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/resource/mode safe probe and activation/deactivation smoke test"
     },
     {
       "name": "focusa_active_object_resolve",
@@ -1305,14 +1025,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_evidence_capture",
@@ -1336,14 +1049,7 @@
       "side_effect_profile": "evidence_link",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_browser_diagnostics_intake",
@@ -1375,14 +1081,7 @@
       "exemptions": [
         "pi_only"
       ],
-      "live_check": "contract_static plus Pi typecheck; live use requires UIAI/browser diagnostics artifact",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus Pi typecheck; live use requires UIAI/browser diagnostics artifact"
     },
     {
       "name": "focusa_workpoint_checkpoint",
@@ -1406,14 +1105,7 @@
       "side_effect_profile": "checkpoint",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_workpoint_link_evidence",
@@ -1437,14 +1129,7 @@
       "side_effect_profile": "evidence_link",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_workpoint_resume",
@@ -1468,14 +1153,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_hlt_history",
@@ -1499,14 +1177,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus /v1/hlt/history safe probe and scope gate",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/hlt/history safe probe and scope gate"
     },
     {
       "name": "focusa_context_cognition",
@@ -1532,14 +1203,7 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/context-cognition safe probe and scope gate",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/context-cognition safe probe and scope gate"
     },
     {
       "name": "focusa_device_pair_start",
@@ -1565,14 +1229,7 @@
       "side_effect_profile": "write_device_pair",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/device/pair/start safe probe and pair_url field assertion",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/device/pair/start safe probe and pair_url field assertion"
     },
     {
       "name": "focusa_device_pair_qr",
@@ -1597,14 +1254,7 @@
       "side_effect_profile": "write_device_pair",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/device/pair/start safe probe and pair_url_qr_payload assertion",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/device/pair/start safe probe and pair_url_qr_payload assertion"
     },
     {
       "name": "focusa_device_pair_complete",
@@ -1629,14 +1279,7 @@
       "side_effect_profile": "write_device_pair_complete",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/device/pair/complete safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/device/pair/complete safe probe"
     },
     {
       "name": "focusa_device_pair_status",
@@ -1660,14 +1303,7 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/device/pair/status safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/device/pair/status safe probe"
     },
     {
       "name": "focusa_device_pair_list",
@@ -1690,14 +1326,7 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/device/pair/list safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/device/pair/list safe probe"
     },
     {
       "name": "focusa_device_pair_revoke",
@@ -1720,14 +1349,7 @@
       "side_effect_profile": "write_device_pair_revoke",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/device/pair/revoke safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/device/pair/revoke safe probe"
     },
     {
       "name": "focusa_call_stack_design",
@@ -1754,14 +1376,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus /v1/call-stack/design safe probe and scope gate",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/call-stack/design safe probe and scope gate"
     },
     {
       "name": "focusa_call_stack_verify",
@@ -1792,14 +1407,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus /v1/call-stack/verify safe probe and drift case",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/call-stack/verify safe probe and drift case"
     },
     {
       "name": "focusa_context_cognition_render",
@@ -1818,20 +1426,13 @@
       "cli_commands": [
         "focusa context-cognition render"
       ],
-      "core_surface": "Spec100 §11 CLI contract + §13 tool wrapper",
+      "core_surface": "Spec100 \u00a711 CLI contract + \u00a713 tool wrapper",
       "doc_path": "docs/focusa-tools/tools/focusa_context_cognition_render.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/context-cognition/render safe probe and scope gate",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/context-cognition/render safe probe and scope gate"
     },
     {
       "name": "focusa_context_cognition_proof",
@@ -1850,25 +1451,18 @@
       "cli_commands": [
         "focusa context-cognition proof"
       ],
-      "core_surface": "Spec100 §10 API contract + §13 tool wrapper",
+      "core_surface": "Spec100 \u00a710 API contract + \u00a713 tool wrapper",
       "doc_path": "docs/focusa-tools/tools/focusa_context_cognition_proof.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/context-cognition/proof safe probe and scope gate",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/context-cognition/proof safe probe and scope gate"
     },
     {
       "name": "focusa_context_cognition_curate",
       "label": "Context Cognition Curate",
-      "purpose": "Spec 100 Phase 3 — token-budgeted context selection. Ranks candidates by workpoint target + evidence overlap and selects the highest-scoring subset under a token budget.",
+      "purpose": "Spec 100 Phase 3 \u2014 token-budgeted context selection. Ranks candidates by workpoint target + evidence overlap and selects the highest-scoring subset under a token budget.",
       "family": "trajectory",
       "ontology_action": "trajectory.context_cognition_curate",
       "ontology_objects": [
@@ -1883,25 +1477,18 @@
       "cli_commands": [
         "focusa context-cognition curate"
       ],
-      "core_surface": "Spec100 §14 Context Curator with token-budgeted selection",
+      "core_surface": "Spec100 \u00a714 Context Curator with token-budgeted selection",
       "doc_path": "docs/focusa-tools/tools/focusa_context_cognition_curate.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/context-cognition/curate safe probe and scope gate",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/context-cognition/curate safe probe and scope gate"
     },
     {
       "name": "focusa_context_cognition_curate_eval",
       "label": "Context Cognition Curate Eval",
-      "purpose": "Spec 100 Phase 4 — run a curator eval case, compute precision/recall/F1, append to curator-eval-ledger JSONL.",
+      "purpose": "Spec 100 Phase 4 \u2014 run a curator eval case, compute precision/recall/F1, append to curator-eval-ledger JSONL.",
       "family": "trajectory",
       "ontology_action": "trajectory.context_cognition_curate_eval",
       "ontology_objects": [
@@ -1918,25 +1505,18 @@
         "focusa context-cognition curate-eval",
         "focusa context-cognition curate-eval-runs"
       ],
-      "core_surface": "Spec100 §15.1 CQRS write side (eval-ledger append-only JSONL)",
+      "core_surface": "Spec100 \u00a715.1 CQRS write side (eval-ledger append-only JSONL)",
       "doc_path": "docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "write_curator_eval",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/context-cognition/curate/eval safe probe and scope gate",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/context-cognition/curate/eval safe probe and scope gate"
     },
     {
       "name": "focusa_context_cognition_curate_optimize",
       "label": "Context Cognition Curate Optimize",
-      "purpose": "Spec 100 Phase 5 — submit a Cognition Optimizer artifact and get the promote/rollback decision per §15 promotion rule.",
+      "purpose": "Spec 100 Phase 5 \u2014 submit a Cognition Optimizer artifact and get the promote/rollback decision per \u00a715 promotion rule.",
       "family": "trajectory",
       "ontology_action": "trajectory.context_cognition_curate_optimize",
       "ontology_objects": [
@@ -1951,25 +1531,18 @@
       "cli_commands": [
         "focusa context-cognition curate-optimize"
       ],
-      "core_surface": "Spec100 §15.1 CQRS write side (artifact ledger append + promotion gate)",
+      "core_surface": "Spec100 \u00a715.1 CQRS write side (artifact ledger append + promotion gate)",
       "doc_path": "docs/focusa-tools/tools/focusa_context_cognition_curate_optimize.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "write_cognition_optimizer_artifact",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/context-cognition/curate/optimize safe probe and scope gate",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/context-cognition/curate/optimize safe probe and scope gate"
     },
     {
       "name": "focusa_context_cognition_optimizer_artifacts",
       "label": "Context Cognition Optimizer Artifacts",
-      "purpose": "Spec 100 Phase 5 — list Cognition Optimizer artifacts (versioned JSONL) for a project+module.",
+      "purpose": "Spec 100 Phase 5 \u2014 list Cognition Optimizer artifacts (versioned JSONL) for a project+module.",
       "family": "trajectory",
       "ontology_action": "trajectory.context_cognition_optimizer_artifacts",
       "ontology_objects": [
@@ -1983,25 +1556,18 @@
       "cli_commands": [
         "focusa context-cognition optimizer artifacts"
       ],
-      "core_surface": "Spec100 §15.1 CQRS read side (artifact ledger)",
+      "core_surface": "Spec100 \u00a715.1 CQRS read side (artifact ledger)",
       "doc_path": "docs/focusa-tools/tools/focusa_context_cognition_optimizer_artifacts.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/context-cognition/optimizer/artifacts safe probe and scope gate",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/context-cognition/optimizer/artifacts safe probe and scope gate"
     },
     {
       "name": "focusa_bloatgaurd_report",
       "label": "Bloatgaurd Report",
-      "purpose": "Spec 101 — read the compact Bloatgaurd budget report for domains 5.1-5.8.",
+      "purpose": "Spec 101 \u2014 read the compact Bloatgaurd budget report for domains 5.1-5.8.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.report",
       "ontology_objects": [
@@ -2021,19 +1587,12 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/bloatgaurd/report safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/bloatgaurd/report safe probe"
     },
     {
       "name": "focusa_bloatgaurd_domain",
       "label": "Bloatgaurd Domain",
-      "purpose": "Spec 101 — read one Bloatgaurd budget domain and its checks/findings.",
+      "purpose": "Spec 101 \u2014 read one Bloatgaurd budget domain and its checks/findings.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.domain",
       "ontology_objects": [
@@ -2052,19 +1611,12 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/bloatgaurd/domain/output-firewall safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/bloatgaurd/domain/output-firewall safe probe"
     },
     {
       "name": "focusa_bloatgaurd_tokenbloat_report",
       "label": "Bloatgaurd Tokenbloat Report",
-      "purpose": "Spec 101 — read Tokenbloat Control report for domains 5.9-5.10.",
+      "purpose": "Spec 101 \u2014 read Tokenbloat Control report for domains 5.9-5.10.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.tokenbloat_report",
       "ontology_objects": [
@@ -2083,19 +1635,12 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/bloatgaurd/tokenbloat/report safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/bloatgaurd/tokenbloat/report safe probe"
     },
     {
       "name": "focusa_bloatgaurd_tokenbloat_domain",
       "label": "Bloatgaurd Tokenbloat Domain",
-      "purpose": "Spec 101 — read one Tokenbloat Control domain and its prompt-visible fields/boundaries.",
+      "purpose": "Spec 101 \u2014 read one Tokenbloat Control domain and its prompt-visible fields/boundaries.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.tokenbloat_domain",
       "ontology_objects": [
@@ -2113,19 +1658,12 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/bloatgaurd/tokenbloat/domain/tokenbloat-control safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/bloatgaurd/tokenbloat/domain/tokenbloat-control safe probe"
     },
     {
       "name": "focusa_bloatgaurd_gate_modes",
       "label": "Bloatgaurd Gate Modes",
-      "purpose": "Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema.",
+      "purpose": "Spec 101 \u2014 read gate modes A/B/C thresholds, allowlist, and report schema.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.gate_modes",
       "ontology_objects": [
@@ -2145,19 +1683,12 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/bloatgaurd/gate-modes/report safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/bloatgaurd/gate-modes/report safe probe"
     },
     {
       "name": "focusa_bloatgaurd_gate_mode",
       "label": "Bloatgaurd Gate Mode",
-      "purpose": "Spec 101 — read one Bloatgaurd gate mode by code/name.",
+      "purpose": "Spec 101 \u2014 read one Bloatgaurd gate mode by code/name.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.gate_mode",
       "ontology_objects": [
@@ -2176,19 +1707,12 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/bloatgaurd/gate-modes/mode/A safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/bloatgaurd/gate-modes/mode/A safe probe"
     },
     {
       "name": "focusa_bloatgaurd_profiles",
       "label": "Bloatgaurd Profiles",
-      "purpose": "Spec 101 — read profile presets and operator switches.",
+      "purpose": "Spec 101 \u2014 read profile presets and operator switches.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.profiles",
       "ontology_objects": [
@@ -2207,19 +1731,12 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/bloatgaurd/profiles/report safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/bloatgaurd/profiles/report safe probe"
     },
     {
       "name": "focusa_bloatgaurd_profile",
       "label": "Bloatgaurd Profile",
-      "purpose": "Spec 101 — read one profile preset by name.",
+      "purpose": "Spec 101 \u2014 read one profile preset by name.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.profile",
       "ontology_objects": [
@@ -2237,19 +1754,12 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/bloatgaurd/profiles/profile/daily_driver safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/bloatgaurd/profiles/profile/daily_driver safe probe"
     },
     {
       "name": "focusa_bloatgaurd_routines",
       "label": "Bloatgaurd Routines",
-      "purpose": "Spec 101 — read named routines and automation matrix.",
+      "purpose": "Spec 101 \u2014 read named routines and automation matrix.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.routines",
       "ontology_objects": [
@@ -2268,19 +1778,12 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/bloatgaurd/routines/report safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/bloatgaurd/routines/report safe probe"
     },
     {
       "name": "focusa_bloatgaurd_routine",
       "label": "Bloatgaurd Routine",
-      "purpose": "Spec 101 — read one named routine by name.",
+      "purpose": "Spec 101 \u2014 read one named routine by name.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.routine",
       "ontology_objects": [
@@ -2298,19 +1801,12 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/bloatgaurd/routines/routine/patrol safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/bloatgaurd/routines/routine/patrol safe probe"
     },
     {
       "name": "focusa_bloatgaurd_rollout",
       "label": "Bloatgaurd Rollout",
-      "purpose": "Spec 101 — read rollout phases, acceptance checks, and proof commands.",
+      "purpose": "Spec 101 \u2014 read rollout phases, acceptance checks, and proof commands.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.rollout",
       "ontology_objects": [
@@ -2328,14 +1824,7 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/bloatgaurd/rollout/report safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/bloatgaurd/rollout/report safe probe"
     },
     {
       "name": "focusa_utility_card",
@@ -2363,19 +1852,12 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/utility/card safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/utility/card safe probe"
     },
     {
       "name": "focusa_dxux_report",
       "label": "DX/UX Report",
-      "purpose": "Spec105 — read implementation report for DXUX-001..012.",
+      "purpose": "Spec105 \u2014 read implementation report for DXUX-001..012.",
       "family": "diagnostics_hygiene",
       "ontology_action": "dxux.report",
       "ontology_objects": [
@@ -2394,19 +1876,12 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/dxux/report safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/dxux/report safe probe"
     },
     {
       "name": "focusa_dxux_requirement",
       "label": "DX/UX Requirement",
-      "purpose": "Spec105 — read one DXUX requirement by id.",
+      "purpose": "Spec105 \u2014 read one DXUX requirement by id.",
       "family": "diagnostics_hygiene",
       "ontology_action": "dxux.requirement",
       "ontology_objects": [
@@ -2424,19 +1899,12 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/dxux/requirement/DXUX-004 safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/dxux/requirement/DXUX-004 safe probe"
     },
     {
       "name": "focusa_dxux_explain",
       "label": "DX/UX Explain",
-      "purpose": "Spec105 — explain a failure and return recovery commands.",
+      "purpose": "Spec105 \u2014 explain a failure and return recovery commands.",
       "family": "diagnostics_hygiene",
       "ontology_action": "dxux.explain",
       "ontology_objects": [
@@ -2454,19 +1922,12 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/dxux/explain/ci-failed safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/dxux/explain/ci-failed safe probe"
     },
     {
       "name": "focusa_dxux_digest",
       "label": "DX/UX Digest",
-      "purpose": "Spec105 — read compact continuation/doability digest.",
+      "purpose": "Spec105 \u2014 read compact continuation/doability digest.",
       "family": "diagnostics_hygiene",
       "ontology_action": "dxux.digest",
       "ontology_objects": [
@@ -2485,14 +1946,7 @@
       "side_effect_profile": "read_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/dxux/digest safe probe",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus /v1/dxux/digest safe probe"
     },
     {
       "name": "focusa_tree_head",
@@ -2516,14 +1970,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_tree_path",
@@ -2547,14 +1994,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_tree_snapshot_state",
@@ -2578,14 +2018,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_tree_restore_state",
@@ -2609,14 +2042,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_tree_diff_context",
@@ -2640,14 +2066,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_metacog_capture",
@@ -2670,14 +2089,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_metacog_retrieve",
@@ -2700,14 +2112,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_metacog_reflect",
@@ -2730,14 +2135,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_metacog_plan_adjust",
@@ -2760,14 +2158,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_metacog_evaluate_outcome",
@@ -2790,14 +2181,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_tree_recent_snapshots",
@@ -2821,14 +2205,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_tree_snapshot_compare_latest",
@@ -2854,14 +2231,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_metacog_recent_reflections",
@@ -2884,14 +2254,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_metacog_recent_adjustments",
@@ -2914,14 +2277,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_metacog_loop_run",
@@ -2948,14 +2304,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_metacog_doctor",
@@ -2979,14 +2328,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_lineage_tree",
@@ -3010,14 +2352,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_li_tree_extract",
@@ -3041,14 +2376,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "auto"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_awareness_packet",
@@ -3067,7 +2395,7 @@
         "GET /v1/awareness/packet/{surface}"
       ],
       "cli_commands": [],
-      "core_surface": "Spec108 awareness rendering substrate — DVS scoring, mode/surface selection, visible/suppressed line triage",
+      "core_surface": "Spec108 awareness rendering substrate \u2014 DVS scoring, mode/surface selection, visible/suppressed line triage",
       "doc_path": "docs/focusa-tools/tools/focusa_awareness_packet.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "read_state",
@@ -3075,14 +2403,7 @@
       "exemptions": [
         "api_domain_only"
       ],
-      "live_check": "contract_static plus GET /v1/awareness/packet returns schema focusa.awareness_packet.v1",
-      "scope_requirement": {
-        "kind": "read",
-        "route_family": "awareness:read"
-      },
-      "authority_requirement": {
-        "kind": "advisory_only"
-      }
+      "live_check": "contract_static plus GET /v1/awareness/packet returns schema focusa.awareness_packet.v1"
     }
   ]
 }

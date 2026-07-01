@@ -41,12 +41,5 @@
     "macOS": {
       "minimumSystemVersion": "10.15"
     }
-  },
-  "plugins": {
-    "deep-link": {
-      "desktop": {
-        "schemes": ["focusa"]
-      }
-    }
   }
 }

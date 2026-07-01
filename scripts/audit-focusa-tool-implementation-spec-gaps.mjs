@@ -31,9 +31,7 @@ const tsJsonMatch = contractsSrc.match(/export const FOCUSA_TOOL_CONTRACTS: Focu
 if (!tsJsonMatch) {
   addFailure('could not parse TypeScript contract registry');
 } else {
-  // Tolerant parse: strip trailing commas (valid in TS, invalid in JSON).
-  const tolerantSrc = `${tsJsonMatch[1]}\n]`.replace(/,(\s*[}\]])/g, '$1');
-  const tsContracts = JSON.parse(tolerantSrc);
+  const tsContracts = JSON.parse(`${tsJsonMatch[1]}\n]`);
   if (JSON.stringify(tsContracts) !== JSON.stringify(registry.contracts)) {
     addFailure('TypeScript contract registry differs from JSON projection');
   }
