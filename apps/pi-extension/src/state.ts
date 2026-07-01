@@ -243,7 +243,7 @@ export const S = {
   lastTrajectoryClarity: null as any | null,
   lastProjectIdentity: null as any | null,
   lastProjectVerify: null as any | null,
-  latestReportSummary: null as PiReportSummaryHandle | null,
+  // latestReportSummary migrated to scope store (PI-06, removed from singleton)
   toolOutputPressure: {
     windowStartedAt: 0,
     resultCount: 0,
@@ -3141,15 +3141,14 @@ export function setLastProjectVerify(result: Record<string, any> | null): void {
   if (store) store.lastProjectVerify = result;
 }
 
-/** PI-06: Get latestReportSummary from scope store or S fallback. */
+/** PI-06: Get latestReportSummary from scope store only. */
 export function getLatestReportSummary(): Record<string, any> | null {
   const store = getCurrentScopeStore();
-  return store ? store.latestReportSummary : (getLatestReportSummary() as any) || null;
+  return store ? store.latestReportSummary : null;
 }
 
-/** PI-06: Set latestReportSummary on both scope store and S. */
+/** PI-06: Set latestReportSummary on scope store only. */
 export function setLatestReportSummary(summary: Record<string, any> | null): void {
-  S.latestReportSummary = summary as any;
   const store = getCurrentScopeStore();
   if (store) store.latestReportSummary = summary;
 }
