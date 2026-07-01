@@ -9,7 +9,7 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
 import type { PiGoverningPriorKind } from "./state.js";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, persistState, projectRootConfirmationRequired, projectRootConfirmationSummary, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, maybeCaptureReportSummaryFromAssistantOutput, recordToolOutputPressure, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, markVisibleRecapEmittedIfPresent, observeProjectThreadHintsFromText, formatProjectSwitchLedgerLines, buildCurrentAskScopeVerdict, formatCurrentAskScopeVerdictLines, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary, getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, getLatestReportSummary , setLastStreamLen, resetToolUsageBatch, getToolUsageBatch, pushToToolUsageBatch, setLongSessionSignaled, getLongSessionSignaled, getCurrentTaskTurnStart, setCurrentTaskTurnStart, incrementTotalCompactions, getLastStreamLen, pushCompilationError, getCompilationErrors, incrementFileEditCount, getFileEditCounts, getTurnCount, setTurnCount, incrementTurnCount } from "./state.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, persistState, projectRootConfirmationRequired, projectRootConfirmationSummary, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, maybeCaptureReportSummaryFromAssistantOutput, recordToolOutputPressure, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, markVisibleRecapEmittedIfPresent, observeProjectThreadHintsFromText, formatProjectSwitchLedgerLines, buildCurrentAskScopeVerdict, formatCurrentAskScopeVerdictLines, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary, getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, getLatestReportSummary , setLastStreamLen, resetToolUsageBatch, getToolUsageBatch, pushToToolUsageBatch, setLongSessionSignaled, getLongSessionSignaled, getCurrentTaskTurnStart, setCurrentTaskTurnStart, incrementTotalCompactions, getLastStreamLen, pushCompilationError, getCompilationErrors, incrementFileEditCount, getFileEditCounts, getTurnCount, setTurnCount, incrementTurnCount, getSessionCwd, getContinuityId } from "./state.js";
 import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
@@ -25,7 +25,7 @@ function vitalPromptSurfaceEnabled(surface: string): boolean {
 
 async function hardGateVitalProjectRoot(ctx: any): Promise<string | null> {
   if (!S.focusaAvailable || !vitalPromptSurfaceEnabled("project_root")) return null;
-  const detected = adoptPiProjectRoot(ctx.cwd || S.sessionCwd || process.cwd());
+  const detected = adoptPiProjectRoot(ctx.cwd || getSessionCwd() || process.cwd());
   if (!projectRootConfirmationRequired(detected)) {
     ctx.ui.setWidget("focusa-vital", undefined);
     return detected;
@@ -59,7 +59,7 @@ function flushTraceTelemetryBatch(reason = "turn_end"): void {
 
 async function checkpointDiscontinuity(reason: string, extra: Record<string, any> = {}): Promise<void> {
   if (!S.focusaAvailable) return;
-  const root = S.sessionCwd || process.cwd();
+  const root = getSessionCwd() || process.cwd();
   if (!isProjectRootAuthoritySafe(root)) return;
   try {
     await focusaFetch("/workpoint/checkpoint", {
@@ -221,7 +221,7 @@ function buildProjectArchitectureDigestLine(root: string): string {
 function formatTrajectoryFallbackFocusSlice(root: string, reason: string): string[] {
   const safe = isProjectRootAuthoritySafe(root);
   const displayRoot = boundedTrajectoryText(root || "(unknown)", 160);
-  const continuityId = boundedTrajectoryText(S.continuityId, 120);
+  const continuityId = boundedTrajectoryText(getContinuityId(), 120);
   return [
     `PROJECT_IDENTITY: status=${safe ? "local_fallback" : "unsafe_scope"} project_root=${displayRoot} ${continuityId ? `continuity_id=${continuityId}` : "continuity_id=(unavailable)"}`,
     safe ? "PROJECT_INFRA: architecture_boundary=use project docs/ontology/evidence; do not infer from folder name alone" : "PROJECT_INFRA: withheld_until_safe_project_root; call focusa_project_identity with explicit project_root",
@@ -246,8 +246,8 @@ function formatTrajectoryFocusSlice(view: any): string[] {
   const sufficiency = intelligence.context_sufficiency || {};
   const candidate = intelligence.next_workpoint_candidate || {};
   const projectApi = project.project_identity_api || {};
-  const continuityId = boundedTrajectoryText(S.continuityId, 120);
-  const projectRoot = boundedTrajectoryText(project.project_root || projectApi.project_root || S.sessionCwd || process.cwd(), 160);
+  const continuityId = boundedTrajectoryText(getContinuityId(), 120);
+  const projectRoot = boundedTrajectoryText(project.project_root || projectApi.project_root || getSessionCwd() || process.cwd(), 160);
   const canonicalName = boundedTrajectoryText(project.canonical_name || projectApi.canonical_name, 80);
   const projectId = boundedTrajectoryText(project.project_id || projectApi.project_id, 80);
   const workspaceKind = boundedTrajectoryText(project.workspace_kind || projectApi.workspace_kind, 80);
@@ -413,7 +413,7 @@ function getToolAffordanceFocusSliceLines(options: {
 }
 
 async function getTrajectoryFocusSliceLines(): Promise<string[]> {
-  const root = S.sessionCwd || process.cwd();
+  const root = getSessionCwd() || process.cwd();
   if (!isProjectRootAuthoritySafe(root)) return [];
   if (!S.focusaAvailable) return formatTrajectoryFallbackFocusSlice(root, "focusa_unavailable");
   try {
@@ -422,7 +422,7 @@ async function getTrajectoryFocusSliceLines(): Promise<string[]> {
     params.set("project_root", root);
     params.set("allow_prior_project_trajectory", "true");
     if (S.sessionFrameKey) params.set("session_id", S.sessionFrameKey);
-    if (S.continuityId) params.set("continuity_id", S.continuityId);
+    if (getContinuityId()) params.set("continuity_id", getContinuityId());
     const view = await focusaFetch(`/trajectory/view?${params.toString()}`);
     const lines = formatTrajectoryFocusSlice(view);
     return lines.length ? lines : formatTrajectoryFallbackFocusSlice(root, "empty_trajectory_view");
@@ -533,11 +533,11 @@ export function registerTurns(pi: ExtensionAPI) {
       const scopeKind = S.queryScope?.scopeKind || "mission_carryover";
       const askText = S.currentAsk?.text || "";
       const visibleRecapReason = toolOutputVisibleRecapReason();
-      const attentionLines = formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({ currentAskText: askText, currentAskKind: S.currentAsk?.kind, queryScopeKind: scopeKind, projectRoot: S.sessionCwd, workpointPacket: getScopedWorkpointPacket(), visibleRecapReason }));
+      const attentionLines = formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({ currentAskText: askText, currentAskKind: S.currentAsk?.kind, queryScopeKind: scopeKind, projectRoot: getSessionCwd(), workpointPacket: getScopedWorkpointPacket(), visibleRecapReason }));
       const lines = [
         "[Focusa Focus Slice — minimal applicable context]",
         ...attentionLines,
-        ...formatCurrentAskScopeVerdictLines(buildCurrentAskScopeVerdict({ currentAskText: askText, workpointPacket: getScopedWorkpointPacket(), projectRoot: S.sessionCwd, continuityId: S.continuityId })),
+        ...formatCurrentAskScopeVerdictLines(buildCurrentAskScopeVerdict({ currentAskText: askText, workpointPacket: getScopedWorkpointPacket(), projectRoot: getSessionCwd(), continuityId: getContinuityId() })),
         ...formatToolOutputVisibleRecapLines(visibleRecapReason),
         "PROJECTION_KIND: operator_view",
         "VIEW_PROFILE: pi_operator_view",
@@ -556,11 +556,11 @@ export function registerTurns(pi: ExtensionAPI) {
       const trajectoryLines = await getTrajectoryFocusSliceLines();
       const toolAffordanceLines = getToolAffordanceFocusSliceLines({ resourceModeActive: false, hasTrajectory: trajectoryLines.length > 0, hasWorkpoint: Boolean(getActiveWorkpointPacket()), hasOntologyAmbiguity: false });
       const visibleRecapReason = toolOutputVisibleRecapReason();
-      const attentionLines = formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({ currentAskText: S.currentAsk?.text, currentAskKind: S.currentAsk?.kind, queryScopeKind: S.queryScope?.scopeKind, projectRoot: S.sessionCwd, workpointPacket: getScopedWorkpointPacket(), visibleRecapReason }));
+      const attentionLines = formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({ currentAskText: S.currentAsk?.text, currentAskKind: S.currentAsk?.kind, queryScopeKind: S.queryScope?.scopeKind, projectRoot: getSessionCwd(), workpointPacket: getScopedWorkpointPacket(), visibleRecapReason }));
       const lines = [
         "[Focusa Focus Slice — minimal applicable context]",
         ...attentionLines,
-        ...formatCurrentAskScopeVerdictLines(buildCurrentAskScopeVerdict({ currentAskText: S.currentAsk?.text, workpointPacket: getScopedWorkpointPacket(), projectRoot: S.sessionCwd, continuityId: S.continuityId })),
+        ...formatCurrentAskScopeVerdictLines(buildCurrentAskScopeVerdict({ currentAskText: S.currentAsk?.text, workpointPacket: getScopedWorkpointPacket(), projectRoot: getSessionCwd(), continuityId: getContinuityId() })),
         ...formatToolOutputVisibleRecapLines(visibleRecapReason),
         "PROJECTION_KIND: operator_view",
         "VIEW_PROFILE: pi_operator_view",
@@ -701,8 +701,8 @@ export function registerTurns(pi: ExtensionAPI) {
       currentAskText: S.currentAsk?.text || askText,
       currentAskKind: S.currentAsk?.kind,
       queryScopeKind: scopeKind,
-      projectRoot: S.sessionCwd,
-      continuityId: S.continuityId,
+      projectRoot: getSessionCwd(),
+      continuityId: getContinuityId(),
       visibleRecapReason,
     }));
 
@@ -711,7 +711,7 @@ export function registerTurns(pi: ExtensionAPI) {
       { key: "view_profile", text: `VIEW_PROFILE: ${viewProfile}`, include: true, selectedCount: 1, excludedCount: 0, priority: 1, relevanceScore: 100 },
       { key: "current_ask", text: `CURRENT_ASK: ${S.currentAsk?.text || askText || "(none)"}`, include: Boolean(S.currentAsk?.text || askText), selectedCount: 1, excludedCount: 0, priority: 2, relevanceScore: 100 },
       { key: "query_scope", text: `QUERY_SCOPE: ${scopeKind} · ${S.queryScope?.carryoverPolicy || "allow_if_relevant"}`, include: true, selectedCount: 1, excludedCount: 0, priority: 3, relevanceScore: 100 },
-      buildSliceSection("current_ask_scope_verdict", "CURRENT_ASK_SCOPE_VERDICT", formatCurrentAskScopeVerdictLines(buildCurrentAskScopeVerdict({ currentAskText: askText, workpointPacket: getScopedWorkpointPacket(), projectRoot: S.sessionCwd, continuityId: S.continuityId })), true, (values) => values.join("\n"), 0, 4, 100),
+      buildSliceSection("current_ask_scope_verdict", "CURRENT_ASK_SCOPE_VERDICT", formatCurrentAskScopeVerdictLines(buildCurrentAskScopeVerdict({ currentAskText: askText, workpointPacket: getScopedWorkpointPacket(), projectRoot: getSessionCwd(), continuityId: getContinuityId() })), true, (values) => values.join("\n"), 0, 4, 100),
       buildSliceSection("project_switch_ledger", "PROJECT_SWITCH_LEDGER", formatProjectSwitchLedgerLines(askText), S.projectSwitchLedger.length > 0, (values) => `PROJECT_SWITCH_LEDGER:\n${values.map((value) => `  - ${value}`).join("\n")}`, 0, 5, 96),
       buildSliceSection("resource_mode", "RESOURCE_MODE", resourceModeLines, resourceModeLines.length > 0, (values) => values.join("\n"), 0, 4, 100),
       buildSliceSection("trajectory", "PROJECT_TRAJECTORY", trajectoryLines, trajectoryLines.length > 0, (values) => `PROJECT_TRAJECTORY:\n${values.map((value) => `  - ${value}`).join("\n")}`, 0, 5, 100),
@@ -986,8 +986,8 @@ export function registerTurns(pi: ExtensionAPI) {
       sourceTurnId,
       updatedAt: Date.now(),
       sessionId: S.sessionFrameKey,
-      projectRoot: S.sessionCwd,
-      continuityId: S.continuityId,
+      projectRoot: getSessionCwd(),
+      continuityId: getContinuityId(),
     };
     observeProjectThreadHintsFromText(newTaskText, sourceTurnId, "current_ask", "current_ask_project_hints");
     const queryScope = deriveQueryScope(askKind);
@@ -1170,7 +1170,7 @@ export function registerTurns(pi: ExtensionAPI) {
         carryover_policy: S.queryScope?.carryoverPolicy || "allow_if_relevant",
       };
       if (scopeFailures.length || detectedLeakClasses.length) {
-        refreshTrajectoryClarityLifecycle("failure_or_degradation", S.sessionCwd || process.cwd()).catch(() => null);
+        refreshTrajectoryClarityLifecycle("failure_or_degradation", getSessionCwd() || process.cwd()).catch(() => null);
       }
       if (scopeFailures.length === 0) {
         queueTraceTelemetry({

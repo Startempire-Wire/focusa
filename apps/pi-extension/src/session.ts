@@ -5,7 +5,7 @@
 //        §38.3 (health toggle)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState, adoptPiProjectRoot, normalizeProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, buildFocusaSessionIdentity, syncSFieldsToScopeStore, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary, getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, setLastProjectVerify, setLatestReportSummary, getLatestReportSummary, getLastProjectRootResolution, setLastProjectRootResolution, setLastProjectIdentity, setTotalCompactions, getTurnCount, setTurnCount } from "./state.js";
+import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState, adoptPiProjectRoot, normalizeProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, buildFocusaSessionIdentity, syncSFieldsToScopeStore, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary, getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, setLastProjectVerify, setLatestReportSummary, getLatestReportSummary, getLastProjectRootResolution, setLastProjectRootResolution, setLastProjectIdentity, setTotalCompactions, getTurnCount, setTurnCount, getSessionCwd, getContinuityId } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
@@ -22,7 +22,7 @@ type WorkpointDraft = { label?: string; mission: string; next_slice: string; act
 
 async function ensureLowConfidenceWorkpoint(reason: string, draft?: WorkpointDraft): Promise<void> {
   if (!S.focusaAvailable) return;
-  if (!isProjectRootAuthoritySafe(S.sessionCwd || process.cwd())) return;
+  if (!isProjectRootAuthoritySafe(getSessionCwd() || process.cwd())) return;
   const mission = draft?.mission || S.currentAsk?.text || S.activeFrameGoal || S.lastFocusSnapshot.intent || S.lastFocusSnapshot.currentFocus;
   const nextSlice = draft?.next_slice || S.lastFocusSnapshot.currentFocus || S.activeFrameGoal || S.currentAsk?.text;
   if (!mission && !nextSlice) return;
@@ -35,9 +35,9 @@ async function ensureLowConfidenceWorkpoint(reason: string, draft?: WorkpointDra
       confidence: draft?.confidence || "low",
       canonical: true,
       promote: true,
-      continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()),
+      continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
       session_id: S.sessionFrameKey,
-      project_root: S.sessionCwd || process.cwd(),
+      project_root: getSessionCwd() || process.cwd(),
       source_turn_id: `pi-turn-${getTurnCount()}`,
       action_intent: { action_type: draft?.action_type || "resume_workpoint", target_ref: draft?.target_ref || S.activeFrameId || S.sessionFrameKey || "pi-session", verification_hooks: ["low-confidence checkpoint created because no active workpoint existed"], status: "needs_refinement" },
     }),
@@ -46,7 +46,7 @@ async function ensureLowConfidenceWorkpoint(reason: string, draft?: WorkpointDra
 
 async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
   if (!S.focusaAvailable) return;
-  if (!isProjectRootAuthoritySafe(S.sessionCwd || process.cwd())) {
+  if (!isProjectRootAuthoritySafe(getSessionCwd() || process.cwd())) {
     setActiveWorkpointPacket(null);
     setActiveWorkpointSummary("");
     return;
@@ -54,7 +54,7 @@ async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
   try {
     const packet = await focusaFetch("/workpoint/resume", {
       method: "POST",
-      body: JSON.stringify({ mode: "compact_prompt", continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()), session_id: S.sessionFrameKey, project_root: S.sessionCwd || process.cwd() }),
+      body: JSON.stringify({ mode: "compact_prompt", continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()), session_id: S.sessionFrameKey, project_root: getSessionCwd() || process.cwd() }),
     });
     if (packet?.status === "rejected_scope_mismatch") {
       setActiveWorkpointPacket(null);
@@ -133,7 +133,7 @@ function currentAskForProject(projectRoot: string): string {
   if (!ask?.text) return "";
   if (ask.sessionId && ask.sessionId !== S.sessionFrameKey) return "";
   if (ask.projectRoot && adoptPiProjectRoot(ask.projectRoot) !== projectRoot) return "";
-  if (ask.continuityId && S.continuityId && ask.continuityId !== S.continuityId) return "";
+  if (ask.continuityId && getContinuityId() && ask.continuityId !== getContinuityId()) return "";
   return cleanTrajectorySeed(ask.text);
 }
 
@@ -141,7 +141,7 @@ function trajectoryClarityForProject(projectRoot: string): any | null {
   const clarity: any = getLastTrajectoryClarity() || null;
   if (!clarity) return null;
   if (clarity.project_root && adoptPiProjectRoot(clarity.project_root) !== projectRoot) return null;
-  if (clarity.continuity_id && S.continuityId && clarity.continuity_id !== S.continuityId) return null;
+  if (clarity.continuity_id && getContinuityId() && clarity.continuity_id !== getContinuityId()) return null;
   if (clarity.session_id && S.sessionFrameKey && clarity.session_id !== S.sessionFrameKey && clarity.fallback_prior_project_trajectory !== true) return null;
   return clarity;
 }
@@ -352,14 +352,14 @@ async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason
   if (priorProjectFallbackLoaded) {
     focusaPost("/telemetry/trace", {
       event_type: "pi_trajectory_prompt_suppressed_prior_project_fallback",
-      payload: { reason, project_root: projectRoot, continuity_id: S.continuityId || null, session_id: S.sessionFrameKey || null, trajectory_id: clarity.trajectory_id || null, fallback_source_continuity_id: clarity.fallback_source_continuity_id || null },
+      payload: { reason, project_root: projectRoot, continuity_id: getContinuityId() || null, session_id: S.sessionFrameKey || null, trajectory_id: clarity.trajectory_id || null, fallback_source_continuity_id: clarity.fallback_source_continuity_id || null },
     });
     return;
   }
   const status = String(clarity.status || "unknown");
   const action = String(clarity.recommended_action || "unknown");
   const unclear = ["unknown", "unclear", "not_found", "not_set", "missing"].includes(status) || /define_goal|operator_required/.test(action);
-  const key = `trajectory:${projectRoot}:${S.continuityId || "no-continuity"}:${S.sessionFrameKey || "no-session"}:${status}:${action}`;
+  const key = `trajectory:${projectRoot}:${getContinuityId() || "no-continuity"}:${S.sessionFrameKey || "no-session"}:${status}:${action}`;
   if (!unclear || S.vitalInfoPrompted[key]) return;
   S.vitalInfoPrompted[key] = Date.now();
   persistState();
@@ -408,7 +408,7 @@ async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason
 function seedCurrentAskFromPersistedState(ctx: any, data: any) {
   const restoredAsk = data?.currentAsk;
   const cleanedRestoredAsk = stripQuotedFocusaContext(restoredAsk?.text || "");
-  const cwd = adoptPiProjectRoot(ctx?.cwd || S.sessionCwd || process.cwd());
+  const cwd = adoptPiProjectRoot(ctx?.cwd || getSessionCwd() || process.cwd());
   if (cleanedRestoredAsk && !isNonTaskStatusLikeText(cleanedRestoredAsk)) {
     if (restoredAsk.sessionId && restoredAsk.sessionId !== S.sessionFrameKey) return;
     if (restoredAsk.projectRoot && adoptPiProjectRoot(restoredAsk.projectRoot) !== cwd) return;
@@ -419,7 +419,7 @@ function seedCurrentAskFromPersistedState(ctx: any, data: any) {
       updatedAt: restoredAsk.updatedAt || Date.now(),
       sessionId: restoredAsk.sessionId || S.sessionFrameKey,
       projectRoot: restoredAsk.projectRoot || cwd,
-      continuityId: restoredAsk.continuityId || S.continuityId,
+      continuityId: restoredAsk.continuityId || getContinuityId(),
     };
     if (data?.queryScope) S.queryScope = data.queryScope;
     return;
@@ -437,7 +437,7 @@ function seedCurrentAskFromPersistedState(ctx: any, data: any) {
     updatedAt: Date.now(),
     sessionId: S.sessionFrameKey,
     projectRoot: cwd,
-    continuityId: S.continuityId,
+    continuityId: getContinuityId(),
   };
 }
 
@@ -448,7 +448,7 @@ async function ensureActiveFrame(ctx: any, sessionId?: string) {
 async function ensureFocusaSession(ctx: any) {
   const status = await focusaFetch("/status").catch(() => null);
   if (status?.session?.status === "active") return status.session;
-  const cwd = adoptPiProjectRoot(ctx.cwd || S.sessionCwd || "pi-workspace");
+  const cwd = adoptPiProjectRoot(ctx.cwd || getSessionCwd() || "pi-workspace");
   return focusaFetch("/session/start", {
     method: "POST",
     body: JSON.stringify({
@@ -895,22 +895,22 @@ export function registerSession(pi: ExtensionAPI) {
           checkpoint_reason: "fork",
           canonical: true,
           promote: true,
-          continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()),
+          continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
           session_id: S.sessionFrameKey,
-          project_root: S.sessionCwd || process.cwd(),
+          project_root: getSessionCwd() || process.cwd(),
           source_turn_id: `pi-turn-${getTurnCount()}`,
           action_intent: { action_type: "resume_workpoint", target_ref: S.activeFrameId || "pi-fork", verification_hooks: ["fork refreshes workpoint"], status: "ready" },
         }),
       }).catch(() => null);
       await refreshSessionWorkpointPacket("fork");
-      await refreshTrajectoryClarityLifecycle("handoff_fork", S.sessionCwd || process.cwd());
+      await refreshTrajectoryClarityLifecycle("handoff_fork", getSessionCwd() || process.cwd());
     }
     await persistAuthoritativeState();
     if (S.focusaAvailable && S.activeFrameId) {
       focusaPost("/focus/update", {
         frame_id: S.activeFrameId,
-        project_root: normalizeProjectRoot(S.sessionCwd || process.cwd()),
-        continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()),
+        project_root: normalizeProjectRoot(getSessionCwd() || process.cwd()),
+        continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
         turn_id: `pi-turn-${getTurnCount()}`,
         delta: { meta: { event: "fork", timestamp: Date.now() } },
       });
@@ -923,8 +923,8 @@ export function registerSession(pi: ExtensionAPI) {
     if (S.focusaAvailable && S.activeFrameId) {
       focusaPost("/focus/update", {
         frame_id: S.activeFrameId,
-        project_root: normalizeProjectRoot(S.sessionCwd || process.cwd()),
-        continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()),
+        project_root: normalizeProjectRoot(getSessionCwd() || process.cwd()),
+        continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
         turn_id: `pi-turn-${getTurnCount()}`,
         delta: { meta: { event: "fork", turn_count: getTurnCount(), decisions_count: S.localDecisions.length } },
       });

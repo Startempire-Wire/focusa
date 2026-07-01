@@ -459,7 +459,7 @@ function toolTrajectoryProjectRoot(details: Record<string, unknown>): string {
     objectValue(getActiveWorkpointPacket()).project_root,
     objectValue(getLastProjectIdentity()).project_root,
     cached.project_root,
-    resolvePiProjectRoot(S.sessionCwd || process.cwd()),
+    resolvePiProjectRoot(getSessionCwd() || process.cwd()),
   ];
   for (const candidateRoot of candidates) {
     if (typeof candidateRoot !== "string") continue;
@@ -826,7 +826,7 @@ function paramsWithAutoIdempotency(toolName: string, params: unknown, id: string
   if (toolName !== "focusa_workpoint_checkpoint" || !params || typeof params !== "object" || Array.isArray(params)) return params;
   const record = params as Record<string, any>;
   if (record.idempotency_key) return params;
-  const continuity = String(record.continuity_id || S.continuityId || "session").replace(/[^A-Za-z0-9._:-]/g, "_").slice(0, 80);
+  const continuity = String(record.continuity_id || getContinuityId() || "session").replace(/[^A-Za-z0-9._:-]/g, "_").slice(0, 80);
   return { ...record, idempotency_key: `pi-tool-${toolName}-${continuity}-${id}`.slice(0, 160) };
 }
 
@@ -1043,12 +1043,12 @@ function focusaToolWorkpointScope(packet: any): { projectRoot: string; continuit
 async function resolveFocusaToolProjectRoot(explicitProjectRoot?: unknown): Promise<string> {
   const explicit = normalizeProjectRoot(explicitProjectRoot);
   if (explicit) return explicit;
-  const sessionRoot = resolvePiProjectRoot(S.sessionCwd || process.cwd());
+  const sessionRoot = resolvePiProjectRoot(getSessionCwd() || process.cwd());
   if (isProjectRootAuthoritySafe(sessionRoot)) return sessionRoot;
 
   const localScope = focusaToolWorkpointScope(getActiveWorkpointPacket());
   if (localScope) {
-    if (!S.continuityId) S.continuityId = localScope.continuityId;
+    if (!getContinuityId()) S.continuityId = localScope.continuityId;
     return localScope.projectRoot;
   }
 
@@ -1814,7 +1814,7 @@ export function registerTools(pi: ExtensionAPI) {
     const query = new URLSearchParams();
     query.set("project_root", projectRoot);
     const sessionId = String(opts.sessionId || S.sessionFrameKey || "").trim();
-    const continuityId = String(opts.continuityId || S.continuityId || ensureContinuityId(projectRoot) || "").trim();
+    const continuityId = String(opts.continuityId || getContinuityId() || ensureContinuityId(projectRoot) || "").trim();
     if (sessionId) query.set("session_id", sessionId);
     if (continuityId) query.set("continuity_id", continuityId);
     query.set("mode", "summary");
@@ -2558,7 +2558,7 @@ export function registerTools(pi: ExtensionAPI) {
   }
 
   function defaultSilentSessionCommand(p: any, sessionName: string): string {
-    const rootDir = String(p.root_dir || S.sessionCwd || process.cwd()).replace(/'/g, `'\\''`);
+    const rootDir = String(p.root_dir || getSessionCwd() || process.cwd()).replace(/'/g, `'\\''`);
     const mission = String(p.mission || "Continue Focusa-governed ready beads using trajectory/workpoint context; stop on destructive risk.").replace(/'/g, `'\\''`);
     const bead = String(p.work_item_id || "").replace(/'/g, `'\\''`);
     const lowmem = p.lowmem === false ? "" : "curl -fsS --max-time 5 -X POST http://127.0.0.1:8787/v1/resource/mode -H 'Content-Type: application/json' --data '{\"action\":\"activate_lowmem\",\"reason\":\"SilentSession start\"}' >/tmp/focusa-silent-lowmem.json 2>/tmp/focusa-silent-lowmem.err || true; ";
@@ -2670,7 +2670,7 @@ export function registerTools(pi: ExtensionAPI) {
           if (!killed.ok) return silentSessionBlocked(action, sessionName, "process_control_failed", `tmux restart kill phase failed: ${killed.stderr || "unknown error"}`, sessionsBefore, { error: killed.stderr });
         }
         const priorMeta = action === "restart" ? (silentSessionReadMeta(sessionName) || {}) : {};
-        const rootDir = String(p.root_dir || priorMeta.root_dir || S.sessionCwd || process.cwd());
+        const rootDir = String(p.root_dir || priorMeta.root_dir || getSessionCwd() || process.cwd());
         const cmd = String(p.command || priorMeta.command || defaultSilentSessionCommand({ ...priorMeta, ...p, root_dir: rootDir }, sessionName));
         const owner = silentSessionRootOwner(rootDir);
         const current = currentUserName();
@@ -2754,7 +2754,7 @@ export function registerTools(pi: ExtensionAPI) {
         const live = liveContractList.find((item: any) => item?.name === contract.name);
         return live && stableJson(live) !== stableJson(contract);
       }).map((contract) => contract.name);
-      const repairProjectRoot = getLastProjectRootResolution()?.projectRoot || resolvePiProjectRoot(S.sessionCwd || process.cwd());
+      const repairProjectRoot = getLastProjectRootResolution()?.projectRoot || resolvePiProjectRoot(getSessionCwd() || process.cwd());
       const portableDaemonRestart =
         "if command -v focusa-daemon >/dev/null 2>&1; then nohup focusa-daemon >/tmp/focusa-daemon.log 2>&1 & elif command -v systemctl >/dev/null 2>&1; then systemctl restart focusa-daemon; else echo 'start focusa-daemon manually from this checkout' >&2; fi";
       const contractDrift = {
@@ -2789,7 +2789,7 @@ export function registerTools(pi: ExtensionAPI) {
       const latestTransition = resourceMode.latest_transition || (Array.isArray(resource.body?.transition_history) ? resource.body.transition_history[0] : null);
       const transitionLabel = latestTransition ? `${String(latestTransition.from_mode || "?")}→${String(latestTransition.to_mode || "?")}` : "none";
       const sessionResolution = getLastProjectRootResolution();
-      const sessionRoot = sessionResolution?.projectRoot || resolvePiProjectRoot(S.sessionCwd || process.cwd());
+      const sessionRoot = sessionResolution?.projectRoot || resolvePiProjectRoot(getSessionCwd() || process.cwd());
       const sessionScopeSafe = isProjectRootAuthoritySafe(sessionRoot);
       const projectRootNeedsConfirmation = sessionResolution?.requiresOperatorConfirmation === true;
       const workpointStatus = String(workpoint.body?.status || (workpoint.ok ? "ok" : "blocked"));
@@ -2981,7 +2981,7 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const p = params as { cwd?: string; project_root?: string; remote_host?: string; remote_user?: string; remote_port?: number; remote_repo_remote?: string; remote_workspace_kind?: string; remote_deploy_root?: string };
       const query = new URLSearchParams();
-      query.set("cwd", p.cwd || S.sessionCwd || process.cwd());
+      query.set("cwd", p.cwd || getSessionCwd() || process.cwd());
       if (p.project_root) query.set("project_root", p.project_root);
       if (p.remote_host) query.set("remote_host", p.remote_host);
       if (p.remote_user) query.set("remote_user", p.remote_user);
@@ -2992,7 +2992,7 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await focusaFetchDetailed(`/project/identity?${query.toString()}`, { method: "GET" });
       const body = result.body || {};
       if (!result.ok && body.failure_class === "hot_path_timeout") {
-        const requestedRoot = normalizeProjectRoot(p.project_root || p.cwd || S.sessionCwd || process.cwd());
+        const requestedRoot = normalizeProjectRoot(p.project_root || p.cwd || getSessionCwd() || process.cwd());
         const cachedIdentity = getLastProjectIdentity() && (!requestedRoot || normalizeProjectRoot(getLastProjectIdentity()!.project_root) === requestedRoot) ? getLastProjectIdentity()! : null;
         return { content: [{ type: "text", text: timeoutPreservedText("project identity", cachedIdentity ? "cached identity" : "empty fallback") }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/project/identity", canonical: false, degraded: true, advisory_only: true, project_identity: cachedIdentity || {}, failure_class: "hot_path_timeout", response: compactApiEcho(body), next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view"] } } as any;
       }
@@ -3079,7 +3079,7 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const p = params as { cwd?: string; project_root?: string; current_ask?: string; remote_host?: string; remote_user?: string; remote_port?: number; remote_repo_remote?: string; remote_workspace_kind?: string; remote_deploy_root?: string };
       const query = new URLSearchParams();
-      query.set("cwd", p.cwd || S.sessionCwd || process.cwd());
+      query.set("cwd", p.cwd || getSessionCwd() || process.cwd());
       if (p.project_root) query.set("project_root", p.project_root);
       if (p.current_ask) query.set("current_ask", p.current_ask);
       if (p.remote_host) query.set("remote_host", p.remote_host);
@@ -3141,7 +3141,7 @@ export function registerTools(pi: ExtensionAPI) {
         actual_outcome: p.actual_outcome,
         score: typeof p.score === "number" ? p.score : undefined,
         evidence_refs: Array.isArray(p.evidence_refs) ? p.evidence_refs : [],
-        project_root: p.project_root || S.sessionCwd || process.cwd(),
+        project_root: p.project_root || getSessionCwd() || process.cwd(),
         notes: p.notes,
         task_timing: p.task_timing || autoAccounting.task_timing,
         token_usage: p.token_usage || autoAccounting.token_usage,
@@ -3173,7 +3173,7 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const p = params as { action: string; project_root?: string; current_ask?: string; mission?: string; next_action?: string; continuity_id?: string };
       const action = String(p.action || "status").toLowerCase();
-      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root || S.sessionCwd || process.cwd());
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root || getSessionCwd() || process.cwd());
       const continuityId = p.continuity_id || ensureContinuityId(projectRoot);
       const currentAsk = p.current_ask || S.currentAsk?.text || (action === "continue" ? "Continue latest saved Focusa work like a game save" : "Save current Focusa work for transfer");
       const cardQuery = new URLSearchParams();
@@ -3248,11 +3248,11 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const p = params as { cwd?: string; project_root?: string; project_id?: string; canonical_name?: string; repo_remote?: string; remote_host?: string; remote_user?: string; remote_port?: number; remote_repo_remote?: string; remote_workspace_kind?: string; remote_deploy_root?: string };
-      const payload = { ...p, cwd: p.cwd || S.sessionCwd || process.cwd() };
+      const payload = { ...p, cwd: p.cwd || getSessionCwd() || process.cwd() };
       const result = await focusaFetchDetailed("/project/verify", { method: "POST", body: JSON.stringify(payload) });
       const body = result.body || {};
       if (!result.ok && body.failure_class === "hot_path_timeout") {
-        const requestedRoot = normalizeProjectRoot(p.project_root || p.cwd || S.sessionCwd || process.cwd());
+        const requestedRoot = normalizeProjectRoot(p.project_root || p.cwd || getSessionCwd() || process.cwd());
         const cachedIdentity = getLastProjectIdentity() && (!requestedRoot || normalizeProjectRoot(getLastProjectIdentity()!.project_root) === requestedRoot) ? getLastProjectIdentity()! : null;
         return { content: [{ type: "text", text: timeoutPreservedText("project verify", cachedIdentity ? "cached identity" : "empty fallback") }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/project/verify", canonical: false, degraded: true, advisory_only: true, project_identity: cachedIdentity || {}, verification: { verified: false, reason: "hot_path_timeout" }, failure_class: "hot_path_timeout", response: compactApiEcho(body), next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view"] } } as any;
       }
@@ -3335,7 +3335,7 @@ export function registerTools(pi: ExtensionAPI) {
       const query = new URLSearchParams();
       query.set("project_root", projectRoot);
       if (p.session_id || S.sessionFrameKey) query.set("session_id", String(p.session_id || S.sessionFrameKey));
-      if (p.continuity_id || S.continuityId) query.set("continuity_id", String(p.continuity_id || S.continuityId));
+      if (p.continuity_id || getContinuityId()) query.set("continuity_id", String(p.continuity_id || getContinuityId()));
       const viewMode = String(p.mode || "summary");
       query.set("mode", viewMode);
       if (p.allow_prior_project_trajectory === true) query.set("allow_prior_project_trajectory", "true");
@@ -3350,7 +3350,7 @@ export function registerTools(pi: ExtensionAPI) {
           advisory_only: true,
           failure_class: "hot_path_timeout",
           project_root: projectRoot,
-          continuity_id: String(p.continuity_id || S.continuityId || "") || null,
+          continuity_id: String(p.continuity_id || getContinuityId() || "") || null,
           session_id: String(p.session_id || S.sessionFrameKey || "") || null,
           preserved_at: new Date().toISOString(),
           next_step_hint: "Retry focusa_trajectory_view after focusa_tool_doctor/resource_mode; use fallback only as advisory orientation.",
@@ -3384,7 +3384,7 @@ export function registerTools(pi: ExtensionAPI) {
           canonical: body.canonical === true,
           degraded: body.degraded === true,
           project_root: String(project.project_root || projectRoot),
-          continuity_id: String(p.continuity_id || S.continuityId || body.continuity_id || "") || null,
+          continuity_id: String(p.continuity_id || getContinuityId() || body.continuity_id || "") || null,
           session_id: String(p.session_id || S.sessionFrameKey || body.session_id || "") || null,
           project_identity_status: String(project.status || "unknown"),
           trajectory_id: trajectory.trajectory_id || null,
@@ -3408,7 +3408,7 @@ export function registerTools(pi: ExtensionAPI) {
       const projectMismatches = Array.isArray(project.mismatches) ? project.mismatches : [];
       const trajectoryUnset = body.status === "not_found" && String(project.status || "") === "verified" && projectMismatches.length === 0;
       const trajectoryBootstrapDefault = trajectory.bootstrap_default === true || trajectory.needs_definition === true;
-      const recovery = trajectoryUnset || trajectoryBootstrapDefault ? null : scopeRecoveryContext(body, projectRoot, String(p.continuity_id || S.continuityId || ""), "trajectory_view");
+      const recovery = trajectoryUnset || trajectoryBootstrapDefault ? null : scopeRecoveryContext(body, projectRoot, String(p.continuity_id || getContinuityId() || ""), "trajectory_view");
       const trajectoryText = trajectoryBootstrapDefault
         ? `trajectory view → BOOTSTRAP DEFAULT project=${String(project.project_root || projectRoot)} long_term=${String(trajectory.long_term_goal || "missing")} desired=${String(trajectory.desired_end_state || "missing")} posture=${posture}; needs=focusa_trajectory_define_goal`
         : trajectoryUnset
@@ -3540,7 +3540,7 @@ export function registerTools(pi: ExtensionAPI) {
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
       if (projectRootGate) return projectRootGate;
-      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, current_ask: p.current_ask || S.currentAsk?.text || "", session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
+      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || getContinuityId(), current_ask: p.current_ask || S.currentAsk?.text || "", session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/define-goal", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
       if (!result.ok && b.failure_class === "hot_path_timeout") {
@@ -3607,7 +3607,7 @@ export function registerTools(pi: ExtensionAPI) {
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
       if (projectRootGate) return projectRootGate;
-      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
+      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || getContinuityId(), session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/assess", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
       if (!result.ok && b.failure_class === "hot_path_timeout") return trajectoryTimeoutFallbackResult("assess", "/v1/trajectory/assess", body, b, ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_assess", "focusa_trajectory_propose_workpoint"], { observed_state: body.observed_state || null, evidence_refs: body.evidence_refs || [] });
@@ -3635,7 +3635,7 @@ export function registerTools(pi: ExtensionAPI) {
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
       if (projectRootGate) return projectRootGate;
-      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
+      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || getContinuityId(), session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/propose-workpoint", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
       if (!result.ok && b.failure_class === "hot_path_timeout") return trajectoryTimeoutFallbackResult("propose_workpoint", "/v1/trajectory/propose-workpoint", body, b, ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_propose_workpoint", "focusa_workpoint_checkpoint"], { workpoint_candidate: { action_intent: { action_type: body.action_type || "unknown", target_ref: body.target_ref || body.trajectory_id || "trajectory" }, checkpoint_required: true, blockers: [{ reason: "trajectory proposal timed out before canonical candidate was returned", severity: "medium", status: "open" }] } });
@@ -3664,7 +3664,7 @@ export function registerTools(pi: ExtensionAPI) {
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
       if (projectRootGate) return projectRootGate;
-      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "compaction", { continuityId: p.continuity_id, sessionId: p.session_id }) };
+      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || getContinuityId(), session_identity: await buildFocusaSessionIdentity(projectRoot, "compaction", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/checkpoint", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
       if (!result.ok && b.failure_class === "hot_path_timeout") return trajectoryTimeoutFallbackResult("checkpoint", "/v1/trajectory/checkpoint", body, b, ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_checkpoint", "focusa_workpoint_checkpoint"], { trajectory_checkpoint: { summary: body.summary || "trajectory checkpoint timeout fallback", persisted: false } });
@@ -3690,7 +3690,7 @@ export function registerTools(pi: ExtensionAPI) {
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
       if (projectRootGate) return projectRootGate;
-      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "session_switch", { continuityId: p.continuity_id, sessionId: p.session_id }) };
+      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || getContinuityId(), session_identity: await buildFocusaSessionIdentity(projectRoot, "session_switch", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/resume", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
       if (!result.ok && b.failure_class === "hot_path_timeout") return trajectoryTimeoutFallbackResult("resume", "/v1/trajectory/resume", body, b, ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_resume", "focusa_workpoint_resume"], { resume_packet: getLastTrajectoryClarity() || null });
@@ -3756,7 +3756,7 @@ export function registerTools(pi: ExtensionAPI) {
         headers: { "x-focusa-writer-id": await preferredWriterId() },
         body: JSON.stringify({ workpoint_id: p.workpoint_id, target_ref: p.target_ref, result: p.result, evidence_ref: p.evidence_ref, session_identity: sessionIdentity, trajectory_clarity_precondition: clarity.details }),
       });
-      const recovery = res.ok ? null : scopeRecoveryContext(res.body || {}, projectRoot, p.continuity_id || S.continuityId || "", "evidence_capture");
+      const recovery = res.ok ? null : scopeRecoveryContext(res.body || {}, projectRoot, p.continuity_id || getContinuityId() || "", "evidence_capture");
       const text = res.ok
         ? `evidence capture → linked ${p.evidence_ref}`
         : [`evidence capture blocked → ${explainWorkLoopResult(res, "link failed")}`, recovery?.text].filter(Boolean).join("\n");
@@ -7270,8 +7270,8 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     async execute(_id, params) {
       const payload = params && typeof params === "object" ? { ...(params as any) } : params;
       if (payload && typeof payload === "object") {
-        const projectRoot = normalizeProjectRoot(payload.project_root || getLastProjectIdentity()?.project_root || S.sessionCwd || process.cwd());
-        const continuityId = String(payload.continuity_id || S.continuityId || ensureContinuityId(projectRoot) || "").trim();
+        const projectRoot = normalizeProjectRoot(payload.project_root || getLastProjectIdentity()?.project_root || getSessionCwd() || process.cwd());
+        const continuityId = String(payload.continuity_id || getContinuityId() || ensureContinuityId(projectRoot) || "").trim();
         if (projectRoot) payload.project_root = projectRoot;
         if (continuityId) payload.continuity_id = continuityId;
         if (!payload.session_identity && projectRoot) {
