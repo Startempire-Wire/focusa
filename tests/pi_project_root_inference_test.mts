@@ -12,8 +12,9 @@ Object.assign(S, {
   continuityId: "",
 });
 
-const repoRoot = resolvePiProjectRoot("/home/wirebot/focusa/apps/pi-extension/src");
-assert(repoRoot === "/home/wirebot/focusa", `expected repo root, got ${repoRoot}`);
+const expectedRepoRoot = process.cwd();
+const repoRoot = resolvePiProjectRoot(join(expectedRepoRoot, "apps/pi-extension/src"));
+assert(repoRoot === expectedRepoRoot, `expected repo root ${expectedRepoRoot}, got ${repoRoot}`);
 assert(isProjectRootAuthoritySafe(repoRoot), "repo root should be safe");
 
 const portableRoot = `/tmp/focusa-portable-root-${process.pid}`;
