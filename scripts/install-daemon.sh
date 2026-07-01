@@ -344,17 +344,18 @@ stop_service_and_strays() {
   if service_exists; then
     log "stopping service $SERVICE_UNIT"
     sudo -n systemctl stop "$SERVICE_UNIT" 2>/dev/null || systemctl stop "$SERVICE_UNIT"
-    sleep 2
   fi
 
   local pids=""
   pids="$(pgrep -x "$BIN_NAME" || true)"
   if [[ -n "$pids" ]]; then
     warn "found stray ${BIN_NAME} pid(s): $(tr '\n' ' ' <<<"$pids")"
-    # V2 deploy: use sudo to stop processes owned by root so the
-    # unprivileged runner can fully take over the daemon slot.
-    sudo -n kill -TERM $pids 2>/dev/null
-    kill -TERM $pids 2>/dev/null
+    # V3 deploy: use systemctl kill to signal stray processes without
+    # triggering Restart=always. Raw kill would cause systemd to see
+    # an unexpected exit and restart the daemon, creating a race with
+    # binary installation.
+    sudo -n systemctl kill -s SIGTERM "$SERVICE_UNIT" 2>/dev/null
+    systemctl kill -s SIGTERM "$SERVICE_UNIT" 2>/dev/null
     true
     sleep 2
   fi
@@ -362,8 +363,8 @@ stop_service_and_strays() {
   pids="$(pgrep -x "$BIN_NAME" || true)"
   if [[ -n "$pids" ]]; then
     warn "forcing remaining ${BIN_NAME} pid(s) down: $(tr '\n' ' ' <<<"$pids")"
-    sudo -n kill -KILL $pids 2>/dev/null
-    kill -KILL $pids 2>/dev/null
+    sudo -n systemctl kill -s SIGKILL "$SERVICE_UNIT" 2>/dev/null
+    systemctl kill -s SIGKILL "$SERVICE_UNIT" 2>/dev/null
     true
     sleep 1
   fi
@@ -463,10 +464,11 @@ rollback() {
   fi
   warn "rolling back to $BACKUP_PATH"
   stop_service_and_strays
-  install -m 0755 "$BACKUP_PATH" "$INSTALL_PATH"
+  sudo -n install -m 0755 "$BACKUP_PATH" "$INSTALL_PATH" 2>/dev/null || install -m 0755 "$BACKUP_PATH" "$INSTALL_PATH"
   if [[ "$NO_RESTART" -eq 0 ]]; then
     start_service
     if [[ "$NO_VERIFY" -eq 0 ]]; then
+      sleep 1
       wait_for_health 20 "" >/dev/null || { audit_event "deploy_rollback" "failed" "rollback restart failed; daemon still unhealthy"; die "rollback restart failed; daemon still unhealthy"; }
     fi
     assert_single_process
@@ -492,6 +494,8 @@ fi
 assert_single_process
 
 if [[ "$NO_VERIFY" -eq 0 ]]; then
+  # Brief wait for daemon to bind socket after start_service
+  sleep 2
   payload="$(wait_for_health 60 "$EXPECTED_VERSION" || true)"
   if [[ -z "$payload" ]]; then
     rollback "health verification failed for $HEALTH_URL"
