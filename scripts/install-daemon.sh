@@ -430,8 +430,11 @@ for i in range('"$attempts"'):
         with urllib.request.urlopen(req, timeout=5) as resp:
             body = resp.read().decode()
             import os
-            with open(os.environ.get('FOCUSA_DEPLOY_AUDIT_LOG','/dev/null').replace('/deploy-audit.jsonl','/health-trace.txt'), 'a') as f:
-                f.write(f'health_check i={i} version_field={json.loads(body).get("version","MISSING")} body={body.encode()}\n')
+            trace_log = os.environ.get("FOCUSA_DEPLOY_AUDIT_LOG","/dev/null").replace("/deploy-audit.jsonl","/health-trace.txt")
+            with open(trace_log, "a") as t:
+                import json as _j
+                _v = _j.loads(body).get("version","MISSING")
+                t.write("health_check i=" + str(i) + " version_field=" + str(_v) + " body=" + repr(body) + "\n")
             if expected_version:
                 data = json.loads(body)
                 if data.get("version") != expected_version:
@@ -441,8 +444,9 @@ for i in range('"$attempts"'):
             sys.exit(0)
     except Exception as e:
         import os
-        with open(os.environ.get('FOCUSA_DEPLOY_AUDIT_LOG','/dev/null').replace('/deploy-audit.jsonl','/health-trace.txt'), 'a') as f:
-            f.write(f'health_check i={i} exception={e}\n')
+        trace_log = os.environ.get("FOCUSA_DEPLOY_AUDIT_LOG","/dev/null").replace("/deploy-audit.jsonl","/health-trace.txt")
+        with open(trace_log, "a") as t:
+            t.write("health_check i=" + str(i) + " exception=" + str(e) + "\n")
         time.sleep(1)
         continue
 
