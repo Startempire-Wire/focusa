@@ -463,12 +463,12 @@ rollback() {
     die "rollback unavailable; no prior binary backup exists"
   fi
   warn "rolling back to $BACKUP_PATH"
-  stop_service_and_strays
   sudo -n install -m 0755 "$BACKUP_PATH" "$INSTALL_PATH" 2>/dev/null || install -m 0755 "$BACKUP_PATH" "$INSTALL_PATH"
   if [[ "$NO_RESTART" -eq 0 ]]; then
-    start_service
+    log "restarting service for rollback"
+    sudo -n systemctl restart "$SERVICE_UNIT" 2>/dev/null || systemctl restart "$SERVICE_UNIT"
+    sleep 2
     if [[ "$NO_VERIFY" -eq 0 ]]; then
-      sleep 1
       wait_for_health 20 "" >/dev/null || { audit_event "deploy_rollback" "failed" "rollback restart failed; daemon still unhealthy"; die "rollback restart failed; daemon still unhealthy"; }
     fi
     assert_single_process
@@ -477,7 +477,7 @@ rollback() {
   die "deploy failed and rollback was applied"
 }
 
-stop_service_and_strays
+# Install new binary atomically
 sudo -n install -m 0755 "$BINARY" "$INSTALL_PATH.new" 2>/dev/null || install -m 0755 "$BINARY" "$INSTALL_PATH.new"
 sudo -n mv -f "$INSTALL_PATH.new" "$INSTALL_PATH" 2>/dev/null || mv -f "$INSTALL_PATH.new" "$INSTALL_PATH"
 echo "${EXPECTED_VERSION:-unknown}" > "$STATE_DIR/live-version"
@@ -488,14 +488,20 @@ if [[ "$NO_RESTART" -eq 1 ]]; then
   exit 0
 fi
 
-if ! start_service; then
-  rollback "service start failed"
+# Restart the daemon to pick up the new binary.
+# Using restart instead of stop+start avoids the Restart=always race
+# where systemd auto-restarts the old binary between stop and install.
+if service_exists; then
+  log "restarting service $SERVICE_UNIT"
+  sudo -n systemctl restart "$SERVICE_UNIT" 2>/dev/null || systemctl restart "$SERVICE_UNIT"
+  sleep 2
 fi
-assert_single_process
+
+if ! systemctl is-active "$SERVICE_UNIT" >/dev/null 2>&1; then
+  rollback "service restart failed"
+fi
 
 if [[ "$NO_VERIFY" -eq 0 ]]; then
-  # Brief wait for daemon to bind socket after start_service
-  sleep 2
   payload="$(wait_for_health 60 "$EXPECTED_VERSION" || true)"
   if [[ -z "$payload" ]]; then
     rollback "health verification failed for $HEALTH_URL"
