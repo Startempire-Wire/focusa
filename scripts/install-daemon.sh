@@ -533,22 +533,27 @@ if [[ "$NO_VERIFY" -eq 0 ]]; then
   if [[ -z "$payload" ]]; then
     log "health check curl returned empty — checking service state..."
     if systemctl is-active "$SERVICE_UNIT" >/dev/null 2>&1; then
-      log "service is active; proceeding despite health check failure"
-      audit_event "deploy_health" "degraded" "health check failed but service active"
-      payload="{\"ok\":true,\"status\":\"ok\",\"version\":\"${EXPECTED_VERSION:-unknown}\"}"
+      log "service is active; proceeding despite health check failure (version check skipped)"
+      audit_event "deploy_health" "degraded" "health check failed but service active (version check skipped)"
     else
       rollback "health verification failed for $HEALTH_URL (service not active)"
     fi
   fi
-  version="$(printf '%s' "$payload" | json_field version || true)"
-  if [[ -n "$EXPECTED_VERSION" && "$version" != "$EXPECTED_VERSION" ]]; then
-    rollback "health version mismatch: expected $EXPECTED_VERSION, got ${version:-<empty>}"
+  if [[ -n "$payload" ]]; then
+    version="$(printf '%s' "$payload" | json_field version || true)"
+    if [[ -n "$EXPECTED_VERSION" && "$version" != "$EXPECTED_VERSION" ]]; then
+      rollback "health version mismatch: expected $EXPECTED_VERSION, got ${version:-<empty>}"
+    fi
+    log "daemon healthy at $HEALTH_URL"
+    if [[ -n "$version" ]]; then
+      log "live version=$version"
+    fi
+  else
+    log "no health payload available; continuing without version verification"
   fi
-  log "daemon healthy at $HEALTH_URL"
-  if [[ -n "$version" ]]; then
-    log "live version=$version"
-  fi
-fi
 
-audit_event "deploy_complete" "success" "deploy complete current_version=${CURRENT_VERSION:-unknown} current_checksum=${CURRENT_CHECKSUM:-unknown} new_checksum=${NEW_CHECKSUM:-unknown}" "${version:-}"
-log "deploy complete"
+  log "daemon is running with expected binary"
+  audit_event "deploy_complete" "success" "deploy complete current_version=${CURRENT_VERSION:-unknown} current_checksum=${CURRENT_CHECKSUM:-unknown} new_checksum=${NEW_CHECKSUM:-unknown}" "${version:-}"
+  log "deploy complete"
+  exit 0
+fi
