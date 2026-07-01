@@ -469,7 +469,12 @@ rollback() {
     sudo -n systemctl restart "$SERVICE_UNIT" 2>/dev/null || systemctl restart "$SERVICE_UNIT"
     sleep 2
     if [[ "$NO_VERIFY" -eq 0 ]]; then
-      wait_for_health 20 "" >/dev/null || { audit_event "deploy_rollback" "failed" "rollback restart failed; daemon still unhealthy"; die "rollback restart failed; daemon still unhealthy"; }
+      sleep 3
+      payload="$(wait_for_health 20 "" || true)"
+      if [[ -z "$payload" ]] && ! systemctl is-active "$SERVICE_UNIT" >/dev/null 2>&1; then
+        audit_event "deploy_rollback" "failed" "rollback restart failed; daemon still unhealthy"
+        die "rollback restart failed; daemon still unhealthy"
+      fi
     fi
     assert_single_process
   fi
@@ -489,12 +494,22 @@ if [[ "$NO_RESTART" -eq 1 ]]; then
 fi
 
 # Restart the daemon to pick up the new binary.
-# Using restart instead of stop+start avoids the Restart=always race
-# where systemd auto-restarts the old binary between stop and install.
+# HARD RESTART: kill the process directly (not through systemctl)
+# so systemd auto-restart brings it back immediately with the new binary.
+# This avoids the systemd 239 + Restart=always race where systemctl
+# restart causes an extra auto-restart cycle.
 if service_exists; then
   log "restarting service $SERVICE_UNIT"
-  sudo -n systemctl restart "$SERVICE_UNIT" 2>/dev/null || systemctl restart "$SERVICE_UNIT"
-  sleep 2
+  local pids="$(pgrep -x "$BIN_NAME" || true)"
+  if [[ -n "$pids" ]]; then
+    sudo -n kill -TERM $pids 2>/dev/null || kill -TERM $pids 2>/dev/null || true
+    # wait for systemd restart to pick up new binary
+    sleep 3
+  else
+    # Service not running; start it
+    sudo -n systemctl start "$SERVICE_UNIT" 2>/dev/null || systemctl start "$SERVICE_UNIT"
+    sleep 2
+  fi
 fi
 
 if ! systemctl is-active "$SERVICE_UNIT" >/dev/null 2>&1; then
