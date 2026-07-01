@@ -880,8 +880,8 @@ function currentTaskTimingAndTokens() {
       elapsed_seconds: Math.floor(elapsedMs / 1000),
       elapsed_hms: formatElapsedHms(elapsedMs),
       turn_start: getCurrentTaskTurnStart(),
-      turn_end: S.turnCount,
-      turn_count: Math.max(0, S.turnCount - (getCurrentTaskTurnStart() || S.turnCount) + 1),
+      turn_end: getTurnCount(),
+      turn_count: Math.max(0, getTurnCount() - (getCurrentTaskTurnStart() || getTurnCount()) + 1),
       task_label: S.currentTaskLabel || S.currentAsk?.text || "",
     },
     token_usage: {
@@ -1291,7 +1291,7 @@ export function registerTools(pi: ExtensionAPI) {
           details: { valid: false, reason: v.reason, decision, rationale: rationale?.slice(0, 200) },
         };
       }
-      const turn = S.turnCount;
+      const turn = getTurnCount();
       const result = await pushDelta({ decisions: [decision] });
       if (!result.ok) {
         const fallback = mirrorFailedFocusWrite("decision", result.reason, decision, { rationale: rationale?.slice(0, 200) });
@@ -1351,7 +1351,7 @@ export function registerTools(pi: ExtensionAPI) {
           details: { valid: false, reason: v.reason, constraint, source },
         };
       }
-      const turn = S.turnCount;
+      const turn = getTurnCount();
       const result = await pushDelta({ constraints: [constraint] });
       if (!result.ok) {
         const fallback = mirrorFailedFocusWrite("constraint", result.reason, constraint, { source });
@@ -1397,7 +1397,7 @@ export function registerTools(pi: ExtensionAPI) {
           details: { valid: false, reason: v.reason, failure, recovery },
         };
       }
-      const turn = S.turnCount;
+      const turn = getTurnCount();
       const result = await pushDelta({ failures: [failure] });
       if (!result.ok) {
         const fallback = mirrorFailedFocusWrite("failure", result.reason, failure, { recovery });
@@ -2100,7 +2100,7 @@ export function registerTools(pi: ExtensionAPI) {
           excluded_context_reason: p.excluded_context_reason,
           excluded_context_labels: p.excluded_context_labels,
           operator_steering_detected: p.operator_steering_detected,
-          source_turn_id: p.source_turn_id || `pi-turn-${S.turnCount}`,
+          source_turn_id: p.source_turn_id || `pi-turn-${getTurnCount()}`,
         }),
       });
       return {
@@ -2781,7 +2781,7 @@ export function registerTools(pi: ExtensionAPI) {
       }, {});
       const latestToken = S.spec92TokenTelemetry.at(-1) || null;
       const latestTokenTurn = String((latestToken as any)?.turn_id || "");
-      const currentTurnId = `pi-turn-${S.turnCount}`;
+      const currentTurnId = `pi-turn-${getTurnCount()}`;
       const latestTokenIsCurrent = latestTokenTurn === currentTurnId || !latestTokenTurn;
       const latestTokenBudgetClass = String((latestToken as any)?.budget_class || "unknown");
       const tokenBudgetStatus = latestTokenIsCurrent ? latestTokenBudgetClass : `historical:${latestTokenBudgetClass}`;
@@ -3205,7 +3205,7 @@ export function registerTools(pi: ExtensionAPI) {
             project_root: projectRoot,
             continuity_id: continuityId,
             session_id: S.sessionFrameKey,
-            source_turn_id: `pi-turn-${S.turnCount}`,
+            source_turn_id: `pi-turn-${getTurnCount()}`,
             canonical: true,
             checkpoint_reason: "session_transfer_save",
             idempotency_key: `session-transfer:${projectRoot}:${continuityId}:${Date.now()}`,

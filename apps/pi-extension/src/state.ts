@@ -193,7 +193,7 @@ export const S = {
   wbmEnabled: false,
   wbmDeep: false,
   wbmNoCatalogue: false,       // §29 --no-catalogue flag
-  turnCount: 0,
+  // turnCount migrated to scope store (PI-07, removed from singleton)
   // Local shadow (§35.4)
   localDecisions: [] as string[],
   localConstraints: [] as string[],
@@ -228,8 +228,7 @@ export const S = {
     suppressionCount: number;
   },
   lastWorkpointUpdate: 0, // timestamp ms of last Workpoint update
-  // Streaming delta (§36.1)
-  lastStreamLen: 0,
+  // lastStreamLen migrated to scope store (PI-07, removed from singleton)
   // Auto-resume dedup: set when compaction fires, cleared after continuation sent
   compactResumePending: false,
   // Persisted compaction auto-resume idempotency guard; prevents repeated post-compact resume spam across extension reloads.
@@ -263,26 +262,23 @@ export const S = {
   seenFirstBeforeAgentStart: false,
   // ECS handle registry: kind -> id -> { content, stored_at }
   ecsRegistry: {} as Record<string, Record<string, { content: string; storedAt: number }>>,
-  // Tool usage batching (§33.4)
-  toolUsageBatch: [] as string[],
+  // toolUsageBatch migrated to scope store (PI-07, removed from singleton)
   // Spec92 bounded hook/token telemetry (in-memory Pi extension ring buffers)
   spec92HookTelemetry: [] as Array<Record<string, unknown>>,
   spec92TokenTelemetry: [] as Array<Record<string, unknown>>,
   spec92ToolStartTimes: {} as Record<string, number>,
-  // Intuition signals (§36.2, §34.2D)
-  compilationErrors: [] as number[],
-  fileEditCounts: {} as Record<string, number>,
+  // compilationErrors/fileEditCounts migrated to scope store (PI-07, removed from singleton)
   // Session/task timing + token accounting
   sessionStartTime: Date.now(),
   currentTaskStartTime: Date.now(),
   currentTaskLabel: "",
-  currentTaskTurnStart: 0,
+  // currentTaskTurnStart migrated to scope store (PI-07, removed from singleton)
   currentTaskInputTokenEstimate: 0,
   currentTaskOutputTokenEstimate: 0,
   currentTaskProviderInputTokens: 0,
   currentTaskProviderOutputTokens: 0,
   currentTaskToolCalls: 0,
-  longSessionSignaled: false,
+  // longSessionSignaled migrated to scope store (PI-07, removed from singleton)
   // WBM cataloguing (§29)
   cataloguedDecisions: [] as string[],
   cataloguedFacts: [] as string[],
@@ -299,8 +295,7 @@ export const S = {
   outageStart: null as number | null,
   // §30 metacognitive indicators
   lastMetacogEvent: "",
-  // Total compactions for handoff suggestion (§18 autoSuggestHandoffAfterNCompactions)
-  totalCompactions: 0,
+  // totalCompactions migrated to scope store (PI-07, removed from singleton)
   // Fork suggestion dedup (§18 autoSuggestForkPct)
   forkSuggested: false,
   // Persistence dedup/throttle for appendEntry pressure
@@ -332,7 +327,7 @@ const CONTEXT_ECS_HANDLES_LIMIT = 128;
 const HEALTHCHECK_STATUS_FALLBACK_PATH = "/status?summary_only=true";
 
 export function resetPiSessionScopedState(reason = "session_boundary"): void {
-  S.turnCount = 0;
+  S.seenFirstBeforeAgentStart = false;
   S.seenFirstBeforeAgentStart = false;
   S.activeFrameId = null;
   S.activeFramePromise = null;
@@ -359,21 +354,17 @@ export function resetPiSessionScopedState(reason = "session_boundary"): void {
   S.compactHourStart = Date.now();
   S.currentTier = "";
   S.currentContextPct = null;
-  S.lastStreamLen = 0;
   S.compactResumePending = false;
   S.lastCompactResumeKey = "";
   S.lastCompactResumeAt = 0;
   S.lastCompactDecision = "";
-  S.toolUsageBatch = [];
   S.spec92HookTelemetry = [];
   S.spec92TokenTelemetry = [];
   S.spec92ToolStartTimes = {};
-  S.compilationErrors = [];
-  S.fileEditCounts = {};
-  S.longSessionSignaled = false;
+  // compilationErrors/fileEditCounts/longSessionSignaled migrated to scope store (PI-07)
   S.cataloguedDecisions = [];
   S.cataloguedFacts = [];
-  S.totalCompactions = 0;
+  // totalCompactions migrated to scope store (PI-07, removed from singleton)
   S.forkSuggested = false;
   S.focusStateCache = { key: "", at: 0, data: null, inflight: null };
   S.semanticMemoryCache = { at: 0, data: null, inflight: null };
@@ -1637,7 +1628,7 @@ export async function checkFocusa(): Promise<boolean> {
         event: "outage_recovered",
         surface: "pi",
         duration_ms: durationMs,
-        missed_turns: S.turnCount,
+        missed_turns: getTurnCount(),
       });
       S.outageStart = null;
     }
@@ -1652,7 +1643,7 @@ export async function checkFocusa(): Promise<boolean> {
       // Fire-and-forget — may fail since Focusa is down
       focusaFetch("/telemetry/ops", {
         method: "POST",
-        body: JSON.stringify({ event: "outage_started", surface: "pi", turn_count: S.turnCount }),
+        body: JSON.stringify({ event: "outage_started", surface: "pi", turn_count: getTurnCount() }),
       }).catch(() => {});
     }
   }
@@ -2682,12 +2673,12 @@ export function persistState(): void {
     vitalInfoPrompted: S.vitalInfoPrompted,
     lastCompactResumeKey: S.lastCompactResumeKey,
     lastCompactResumeAt: S.lastCompactResumeAt,
-    turnCount: S.turnCount,
+    turnCount: getTurnCount(),
     wbmEnabled: S.wbmEnabled,
     wbmNoCatalogue: S.wbmNoCatalogue,
     cataloguedDecisions: tailBounded(S.cataloguedDecisions),
     cataloguedFacts: tailBounded(S.cataloguedFacts),
-    totalCompactions: S.totalCompactions,
+    totalCompactions: getTotalCompactions(),
     timestamp: Date.now(),
   };
 
@@ -2977,7 +2968,7 @@ export function syncSFieldsToScopeStore(): void {
   store.sessionCwd = S.sessionCwd;
   store.continuityId = S.continuityId;
   store.sessionFrameKey = S.sessionFrameKey;
-  store.turnCount = S.turnCount;
+  // turnCount migrated to scope store (PI-07, no longer synced from S)
   store.activeFrameId = S.activeFrameId;
   store.focusaAvailable = S.focusaAvailable;
 }
@@ -2992,17 +2983,33 @@ export function syncScopeStoreFieldsToS(): void {
   S.sessionCwd = store.sessionCwd || S.sessionCwd;
   S.continuityId = store.continuityId || S.continuityId;
   S.sessionFrameKey = store.sessionFrameKey || S.sessionFrameKey;
-  if (store.turnCount > 0) S.turnCount = store.turnCount;
+  // turnCount synced via scope store only (PI-07, removed from singleton)
   if (store.activeFrameId !== null) S.activeFrameId = store.activeFrameId;
   if (store.focusaAvailable !== S.focusaAvailable) S.focusaAvailable = store.focusaAvailable;
 }
 
 /**
- * Convenience: get turn count from scope store (preferred) or S fallback.
+ * PI-07: Get turn count from scope store only.
  */
 export function getTurnCount(): number {
   const store = getCurrentScopeStore();
-  return store ? store.turnCount : S.turnCount;
+  return store ? store.turnCount : 0;
+}
+
+/**
+ * PI-07: Set turn count on scope store only.
+ */
+export function setTurnCount(v: number): void {
+  const store = getCurrentScopeStore();
+  if (store) store.turnCount = v;
+}
+
+/**
+ * PI-07: Increment turn count on scope store only.
+ */
+export function incrementTurnCount(): void {
+  const store = getCurrentScopeStore();
+  if (store) store.turnCount++;
 }
 
 /**
@@ -3164,127 +3171,117 @@ export function resetTurnRuntimeState(): void {
   store.longSessionSignaled = false;
 }
 
-/** PI-07: Increment totalCompactions counter on both scope store and S. */
+/** PI-07: Increment totalCompactions counter on scope store only. */
 export function incrementTotalCompactions(): void {
-  S.totalCompactions++;
   const store = getCurrentScopeStore();
-  if (store) store.totalCompactions = S.totalCompactions;
+  if (store) store.totalCompactions++;
 }
 
-/** PI-07: Get current task turn start from scope store or S fallback. */
+/** PI-07: Get current task turn start from scope store only. */
 export function getCurrentTaskTurnStart(): number {
   const store = getCurrentScopeStore();
-  return store ? store.currentTaskTurnStart : S.currentTaskTurnStart;
+  return store ? store.currentTaskTurnStart : 0;
 }
 
-/** PI-07: Set current task turn start on scope store and S. */
+/** PI-07: Set current task turn start on scope store only. */
 export function setCurrentTaskTurnStart(v: number): void {
-  S.currentTaskTurnStart = v;
   const store = getCurrentScopeStore();
   if (store) store.currentTaskTurnStart = v;
 }
 
-/** PI-07: Get last stream length from scope store or S fallback. */
+/** PI-07: Get last stream length from scope store only. */
 export function getLastStreamLen(): number {
   const store = getCurrentScopeStore();
-  return store ? store.lastStreamLen : S.lastStreamLen;
+  return store ? store.lastStreamLen : 0;
 }
 
-/** PI-07: Set last stream length on scope store and S. */
+/** PI-07: Set last stream length on scope store only. */
 export function setLastStreamLen(v: number): void {
-  S.lastStreamLen = v;
   const store = getCurrentScopeStore();
   if (store) store.lastStreamLen = v;
 }
-/** PI-07: Get tool usage batch from scope store or S fallback. */
+/** PI-07: Get tool usage batch from scope store only. */
 export function getToolUsageBatch(): Array<string> {
   const store = getCurrentScopeStore();
-  return store ? store.toolUsageBatch : S.toolUsageBatch;
+  return store ? store.toolUsageBatch : [];
 }
 
-/** PI-07: Push a tool name to tool usage batch on both scope store and S. */
+/** PI-07: Push a tool name to tool usage batch on scope store only. */
 export function pushToToolUsageBatch(name: string): void {
-  S.toolUsageBatch.push(name);
   const store = getCurrentScopeStore();
   if (store) store.toolUsageBatch.push(name);
 }
 
-/** PI-07: Reset tool usage batch on both scope store and S. */
+/** PI-07: Reset tool usage batch on scope store only. */
 export function resetToolUsageBatch(): void {
-  S.toolUsageBatch = [];
   const store = getCurrentScopeStore();
   if (store) store.toolUsageBatch = [];
 }
 
-/** PI-07: Get total compactions from scope store or S. */
+/** PI-07: Get total compactions from scope store only. */
 export function getTotalCompactions(): number {
   const store = getCurrentScopeStore();
-  return store ? store.totalCompactions : S.totalCompactions;
+  return store ? store.totalCompactions : 0;
 }
 
-/** PI-07: Get long session signaled flag from scope store or S. */
+/** PI-07: Get long session signaled flag from scope store only. */
 export function getLongSessionSignaled(): boolean {
   const store = getCurrentScopeStore();
-  return store ? store.longSessionSignaled : S.longSessionSignaled;
+  return store ? store.longSessionSignaled : false;
 }
 
-/** PI-07: Set long session signaled flag on both scope store and S. */
+/** PI-07: Set long session signaled flag on scope store only. */
 export function setLongSessionSignaled(v: boolean): void {
-  S.longSessionSignaled = v;
   const store = getCurrentScopeStore();
   if (store) store.longSessionSignaled = v;
 }
 
-/** PI-07: Get compilation errors array from scope store or S. */
+/** PI-07: Get compilation errors array from scope store only. */
 export function getCompilationErrors(): Array<number> {
   const store = getCurrentScopeStore();
-  return store ? store.compilationErrors : S.compilationErrors;
+  return store ? store.compilationErrors : [];
 }
 
-/** PI-07: Push a compilation error on both scope store and S. */
+/** PI-07: Push a compilation error on scope store only. */
 export function pushCompilationError(err: number): void {
-  S.compilationErrors.push(err);
   const store = getCurrentScopeStore();
   if (store) store.compilationErrors.push(err);
 }
 
-/** PI-07: Get file edit counts record from scope store or S. */
+/** PI-07: Get file edit counts record from scope store only. */
 export function getFileEditCounts(): Record<string, number> {
   const store = getCurrentScopeStore();
-  return store ? store.fileEditCounts : S.fileEditCounts;
+  return store ? store.fileEditCounts : {};
 }
 
-/** PI-07: Increment file edit count for a path on both scope store and S. */
+/** PI-07: Increment file edit count for a path on scope store only. */
 export function incrementFileEditCount(fpath: string): void {
-  const orig = S.fileEditCounts[fpath] ?? 0;
-  S.fileEditCounts[fpath] = orig + 1;
   const store = getCurrentScopeStore();
-  if (store) store.fileEditCounts[fpath] = orig + 1;
+  if (store) {
+    const orig = store.fileEditCounts[fpath] ?? 0;
+    store.fileEditCounts[fpath] = orig + 1;
+  }
 }
-/** PI-07: Set total compactions on both scope store and S. */
+/** PI-07: Set total compactions on scope store only. */
 export function setTotalCompactions(v: number): void {
-  S.totalCompactions = v;
   const store = getCurrentScopeStore();
   if (store) store.totalCompactions = v;
 }
 
-/** PI-07: Set compilation errors array on both scope store and S. */
+/** PI-07: Set compilation errors array on scope store only. */
 export function setCompilationErrors(arr: Array<number>): void {
-  S.compilationErrors = arr;
   const store = getCurrentScopeStore();
   if (store) store.compilationErrors = arr;
 }
 
 /** PI-07: Reset file edit counts on both scope store and S. */
 export function resetFileEditCounts(): void {
-  S.fileEditCounts = {};
   const store = getCurrentScopeStore();
   if (store) store.fileEditCounts = {};
 }
 
-/** PI-07: Set file edit counts record on both scope store and S. */
+/** PI-07: Set file edit counts record on scope store only. */
 export function setFileEditCounts(rec: Record<string, number>): void {
-  S.fileEditCounts = rec;
   const store = getCurrentScopeStore();
   if (store) store.fileEditCounts = rec;
 }

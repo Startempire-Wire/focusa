@@ -9,7 +9,7 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
 import type { PiGoverningPriorKind } from "./state.js";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, persistState, projectRootConfirmationRequired, projectRootConfirmationSummary, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, maybeCaptureReportSummaryFromAssistantOutput, recordToolOutputPressure, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, markVisibleRecapEmittedIfPresent, observeProjectThreadHintsFromText, formatProjectSwitchLedgerLines, buildCurrentAskScopeVerdict, formatCurrentAskScopeVerdictLines, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary, getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, getLatestReportSummary , setLastStreamLen, resetToolUsageBatch, getToolUsageBatch, pushToToolUsageBatch, setLongSessionSignaled, getLongSessionSignaled, getCurrentTaskTurnStart, setCurrentTaskTurnStart, incrementTotalCompactions, getLastStreamLen, pushCompilationError, getCompilationErrors, incrementFileEditCount, getFileEditCounts } from "./state.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, persistState, projectRootConfirmationRequired, projectRootConfirmationSummary, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, maybeCaptureReportSummaryFromAssistantOutput, recordToolOutputPressure, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, markVisibleRecapEmittedIfPresent, observeProjectThreadHintsFromText, formatProjectSwitchLedgerLines, buildCurrentAskScopeVerdict, formatCurrentAskScopeVerdictLines, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary, getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, getLatestReportSummary , setLastStreamLen, resetToolUsageBatch, getToolUsageBatch, pushToToolUsageBatch, setLongSessionSignaled, getLongSessionSignaled, getCurrentTaskTurnStart, setCurrentTaskTurnStart, incrementTotalCompactions, getLastStreamLen, pushCompilationError, getCompilationErrors, incrementFileEditCount, getFileEditCounts, getTurnCount, setTurnCount, incrementTurnCount } from "./state.js";
 import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
@@ -45,7 +45,7 @@ function flushTraceTelemetryBatch(reason = "turn_end"): void {
   const events = traceBatch.splice(0, 100);
   if (!events.length) return;
   focusaPost("/telemetry/trace/batch", {
-    batch_id: `pi-trace-batch-${S.turnCount}-${Date.now()}`,
+    batch_id: `pi-trace-batch-${getTurnCount()}-${Date.now()}`,
     surface: "pi",
     event_count: events.length,
     total_queued: totalQueued,
@@ -73,7 +73,7 @@ async function checkpointDiscontinuity(reason: string, extra: Record<string, any
         continuity_id: ensureContinuityId(root),
         session_id: S.sessionFrameKey,
         project_root: root,
-        source_turn_id: `pi-turn-${S.turnCount}`,
+        source_turn_id: `pi-turn-${getTurnCount()}`,
         action_intent: { action_type: "resume_workpoint", target_ref: S.activeFrameId || "pi-session", verification_hooks: [reason], status: "ready" },
         ...extra,
       }),
@@ -501,7 +501,7 @@ export function registerTurns(pi: ExtensionAPI) {
       S.seenFirstBeforeAgentStart = true;
       const visibleCard = buildFocusaUtilityCard("visible");
       pi.sendMessage({ customType: "focusa-utility-card", content: visibleCard, display: true });
-      queueTraceTelemetry({ event_type: "focusa_utility_card_visible", turn_id: `pi-turn-${S.turnCount}`, surface: "pi", bytes: visibleCard.length });
+      queueTraceTelemetry({ event_type: "focusa_utility_card_visible", turn_id: `pi-turn-${getTurnCount()}`, surface: "pi", bytes: visibleCard.length });
     }
 
     // §29: WBM inbound context injection
@@ -803,7 +803,7 @@ export function registerTurns(pi: ExtensionAPI) {
       ? scopedEntries.reduce((sum, entry) => sum + (entry.relevanceScore || 0), 0) / scopedEntries.length
       : 0;
     const excludedContext = Array.from(new Set([...scopeExcludedLabels, ...irrelevantExcludedLabels, ...budgetExcludedLabels]));
-    const contextTurnId = `pi-turn-${S.turnCount}`;
+    const contextTurnId = `pi-turn-${getTurnCount()}`;
     const scopeSourceTurnId = S.queryScope?.sourceTurnId || S.currentAsk?.sourceTurnId || contextTurnId;
     const workingSetPriorHits = relevantWorkingSet.scores
       .filter(({ value, priorBoost }) => relevantWorkingSet.items.includes(value) && (priorBoost || 0) > 0)
@@ -967,14 +967,14 @@ export function registerTurns(pi: ExtensionAPI) {
     const cleanedText = stripQuotedFocusaContext(String(text));
     // Input is the pre-turn boundary for the upcoming model call.
     // Use the next turn id so CurrentAsk/QueryScope survive unchanged into context injection.
-    const sourceTurnId = `pi-turn-${S.turnCount + 1}`;
+    const sourceTurnId = `pi-turn-${getTurnCount() + 1}`;
     const packageUpdateCommand = /^\s*(update|pi\s+update|\/update)\s*$/i.test(String(text));
     const askKind = packageUpdateCommand ? "meta" : classifyCurrentAsk(String(text));
     const storedAskText = cleanedText || (askKind === "meta" ? "" : String(text));
     const newTaskText = storedAskText.slice(0, 500);
     S.currentTaskStartTime = Date.now();
     S.currentTaskLabel = newTaskText;
-    setCurrentTaskTurnStart(S.turnCount + 1);
+    setCurrentTaskTurnStart(getTurnCount() + 1);
     S.currentTaskInputTokenEstimate = estimateTokens(newTaskText);
     S.currentTaskOutputTokenEstimate = 0;
     S.currentTaskProviderInputTokens = 0;
@@ -1082,7 +1082,7 @@ export function registerTurns(pi: ExtensionAPI) {
       if (S.focusaAvailable) {
         queueTraceTelemetry({
           event_type: "operator_correction_detected",
-          turn_id: `pi-turn-${S.turnCount}`,
+          turn_id: `pi-turn-${getTurnCount()}`,
           frame_id: S.activeFrameId,
           surface: "pi",
           correction_preview: String(text).slice(0, 160),
@@ -1097,13 +1097,13 @@ export function registerTurns(pi: ExtensionAPI) {
 
   // ── turn_start (§34.2B) ───────────────────────────────────────────────────
   pi.on("turn_start", async (_event, _ctx) => {
-    S.turnCount++;
+    incrementTurnCount();
     setLastStreamLen(0);
     resetToolUsageBatch();
     // Reset dedup flag so next compaction can re-trigger auto-resume
     S.compactResumePending = false;
     if (S.focusaAvailable) {
-      focusaPost("/turn/start", { turn_id: `pi-turn-${S.turnCount}`, frame_id: S.activeFrameId });
+      focusaPost("/turn/start", { turn_id: `pi-turn-${getTurnCount()}`, frame_id: S.activeFrameId });
     }
   });
 
@@ -1115,11 +1115,11 @@ export function registerTurns(pi: ExtensionAPI) {
     // §35.5: Token counts + assistant output
     if (S.focusaAvailable) {
       const assistantOutput = extractText(ev.message?.content || ev.message || "");
-      const reportSummary = maybeCaptureReportSummaryFromAssistantOutput(assistantOutput, `pi-turn-${S.turnCount}`);
+      const reportSummary = maybeCaptureReportSummaryFromAssistantOutput(assistantOutput, `pi-turn-${getTurnCount()}`);
       if (reportSummary) {
         queueTraceTelemetry({
           event_type: "report_summary_captured",
-          turn_id: `pi-turn-${S.turnCount}`,
+          turn_id: `pi-turn-${getTurnCount()}`,
           frame_id: S.activeFrameId,
           surface: "pi",
           latest_report_summary_ref: reportSummary.handle,
@@ -1128,7 +1128,7 @@ export function registerTurns(pi: ExtensionAPI) {
       if (markVisibleRecapEmittedIfPresent(assistantOutput)) {
         queueTraceTelemetry({
           event_type: "visible_recap_emitted",
-          turn_id: `pi-turn-${S.turnCount}`,
+          turn_id: `pi-turn-${getTurnCount()}`,
           frame_id: S.activeFrameId,
           surface: "pi",
           reason: "tool_output_flood",
@@ -1147,7 +1147,7 @@ export function registerTurns(pi: ExtensionAPI) {
         });
         queueTraceTelemetry({
           event_type: "visible_output_leak_detected",
-          turn_id: `pi-turn-${S.turnCount}`,
+          turn_id: `pi-turn-${getTurnCount()}`,
           frame_id: S.activeFrameId,
           surface: "pi",
           leak_classes: detectedLeakClasses,
@@ -1162,7 +1162,7 @@ export function registerTurns(pi: ExtensionAPI) {
         leakClasses: detectedLeakClasses,
       });
       const scopeTraceBase = {
-        turn_id: `pi-turn-${S.turnCount}`,
+        turn_id: `pi-turn-${getTurnCount()}`,
         frame_id: S.activeFrameId,
         surface: "pi",
         ask_kind: S.currentAsk?.kind || "unknown",
@@ -1233,7 +1233,7 @@ export function registerTurns(pi: ExtensionAPI) {
         }).then((drift: any) => {
           queueTraceTelemetry({
             event_type: drift?.drift_detected ? "workpoint_drift_detected" : "workpoint_drift_checked",
-            turn_id: `pi-turn-${S.turnCount}`,
+            turn_id: `pi-turn-${getTurnCount()}`,
             frame_id: S.activeFrameId,
             surface: "pi",
             workpoint_id: drift?.workpoint_id || getActiveWorkpointPacket()?.workpoint_id,
@@ -1244,7 +1244,7 @@ export function registerTurns(pi: ExtensionAPI) {
         }).catch(() => {
           queueTraceTelemetry({
             event_type: "workpoint_drift_check_unavailable",
-            turn_id: `pi-turn-${S.turnCount}`,
+            turn_id: `pi-turn-${getTurnCount()}`,
             frame_id: S.activeFrameId,
             surface: "pi",
             expected_action_type: expectedActionType,
@@ -1259,7 +1259,7 @@ export function registerTurns(pi: ExtensionAPI) {
       S.currentTaskOutputTokenEstimate += estimateTokens(assistantOutput);
 
       focusaPost("/turn/complete", {
-        turn_id: `pi-turn-${S.turnCount}`,
+        turn_id: `pi-turn-${getTurnCount()}`,
         frame_id: S.activeFrameId,
         assistant_output: assistantOutput,
         artifacts: [],
@@ -1278,10 +1278,10 @@ export function registerTurns(pi: ExtensionAPI) {
     // §33.4: Flush batched tool usage
     if (S.focusaAvailable && getToolUsageBatch().length) {
       S.currentTaskToolCalls += getToolUsageBatch().length;
-      focusaPost("/telemetry/tool-usage", { turn_id: `pi-turn-${S.turnCount}`, tools: getToolUsageBatch() });
+      focusaPost("/telemetry/tool-usage", { turn_id: `pi-turn-${getTurnCount()}`, tools: getToolUsageBatch() });
       queueTraceTelemetry({
         event_type: "tools_invoked",
-        turn_id: `pi-turn-${S.turnCount}`,
+        turn_id: `pi-turn-${getTurnCount()}`,
         frame_id: S.activeFrameId,
         surface: "pi",
         tools: getToolUsageBatch(),
@@ -1334,11 +1334,11 @@ export function registerTurns(pi: ExtensionAPI) {
   pi.on("message_update", async (event, _ctx) => {
     if (!S.focusaAvailable) return;
     const fullText = extractText((event as any).message?.content);
-    if (S.turnCount % 10 !== 0 && fullText.length - getLastStreamLen() < 500) return;
+    if (getTurnCount() % 10 !== 0 && fullText.length - getLastStreamLen() < 500) return;
     const delta = fullText.slice(getLastStreamLen());
     if (!delta) return;
     setLastStreamLen(fullText.length);
-    focusaPost("/turn/append", { turn_id: `pi-turn-${S.turnCount}`, delta: delta.slice(-500) });
+    focusaPost("/turn/append", { turn_id: `pi-turn-${getTurnCount()}`, delta: delta.slice(-500) });
   });
 
   // ── model_select (§37.8) ──────────────────────────────────────────────────
@@ -1380,7 +1380,7 @@ export function registerTurns(pi: ExtensionAPI) {
       if (S.focusaAvailable) {
         focusaPost("/focus-gate/ingest-signal", {
           signal_type: "long_session", surface: "pi",
-          payload: { minutes: Math.round(elapsed), turns: S.turnCount },
+          payload: { minutes: Math.round(elapsed), turns: getTurnCount() },
         });
       }
     }
@@ -1426,7 +1426,7 @@ export function registerTurns(pi: ExtensionAPI) {
       .map((value: any) => String(value || "").trim())
       .filter(Boolean)
       .join(" ");
-    observeProjectThreadHintsFromText(projectHintText, `pi-turn-${S.turnCount}`, "tool_evidence", `tool=${toolName || "unknown_tool"}`);
+    observeProjectThreadHintsFromText(projectHintText, `pi-turn-${getTurnCount()}`, "tool_evidence", `tool=${toolName || "unknown_tool"}`);
 
     if (S.focusaAvailable) {
       focusaPost("/ontology/tool-result-proposals", {
@@ -1451,7 +1451,7 @@ export function registerTurns(pi: ExtensionAPI) {
     if (pressure.recapRequired) {
       queueTraceTelemetry({
         event_type: "visible_recap_required",
-        turn_id: `pi-turn-${S.turnCount}`,
+        turn_id: `pi-turn-${getTurnCount()}`,
         frame_id: S.activeFrameId,
         surface: "pi",
         reason: pressure.recapReason,
@@ -1466,7 +1466,7 @@ export function registerTurns(pi: ExtensionAPI) {
         method: "POST",
         body: JSON.stringify({
           kind: "text", label: `${toolName}-output-${Date.now()}`,
-          content: content.slice(0, 32_000), surface: "pi", turn_id: `pi-turn-${S.turnCount}`,
+          content: content.slice(0, 32_000), surface: "pi", turn_id: `pi-turn-${getTurnCount()}`,
         }),
       });
       if (handle?.id) {

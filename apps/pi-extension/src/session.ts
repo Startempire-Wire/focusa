@@ -5,7 +5,7 @@
 //        §38.3 (health toggle)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState, adoptPiProjectRoot, normalizeProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, buildFocusaSessionIdentity, syncSFieldsToScopeStore, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary, getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, setLastProjectVerify, setLatestReportSummary, getLatestReportSummary, getLastProjectRootResolution, setLastProjectRootResolution, setLastProjectIdentity, setTotalCompactions } from "./state.js";
+import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState, adoptPiProjectRoot, normalizeProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, buildFocusaSessionIdentity, syncSFieldsToScopeStore, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary, getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, setLastProjectVerify, setLatestReportSummary, getLatestReportSummary, getLastProjectRootResolution, setLastProjectRootResolution, setLastProjectIdentity, setTotalCompactions, getTurnCount, setTurnCount } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
@@ -38,7 +38,7 @@ async function ensureLowConfidenceWorkpoint(reason: string, draft?: WorkpointDra
       continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()),
       session_id: S.sessionFrameKey,
       project_root: S.sessionCwd || process.cwd(),
-      source_turn_id: `pi-turn-${S.turnCount}`,
+      source_turn_id: `pi-turn-${getTurnCount()}`,
       action_intent: { action_type: draft?.action_type || "resume_workpoint", target_ref: draft?.target_ref || S.activeFrameId || S.sessionFrameKey || "pi-session", verification_hooks: ["low-confidence checkpoint created because no active workpoint existed"], status: "needs_refinement" },
     }),
   }).catch(() => null);
@@ -579,7 +579,7 @@ export function registerSession(pi: ExtensionAPI) {
         // §33.5 + §33.7: restore resumable session metadata and safe local shadow,
         // but do not blindly reuse stale frame identity outside WBM mode.
         S.localDecisions = e.data.decisions || [];
-        S.turnCount = e.data.turnCount || 0;
+        setTurnCount(e.data.turnCount || 0);
         S.wbmEnabled = e.data.wbmEnabled || S.wbmEnabled;
         S.wbmNoCatalogue = e.data.wbmNoCatalogue || false;
         S.cataloguedDecisions = e.data.cataloguedDecisions || [];
@@ -817,7 +817,7 @@ export function registerSession(pi: ExtensionAPI) {
         S.localDecisions = d.decisions || [];
         S.localConstraints = d.constraints || [];
         S.localFailures = d.failures || [];
-        S.turnCount = d.turnCount || 0;
+        setTurnCount(d.turnCount || 0);
         S.wbmEnabled = d.wbmEnabled || false;
         S.wbmNoCatalogue = d.wbmNoCatalogue || false;
         setTotalCompactions(d.totalCompactions || 0);
@@ -898,7 +898,7 @@ export function registerSession(pi: ExtensionAPI) {
           continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()),
           session_id: S.sessionFrameKey,
           project_root: S.sessionCwd || process.cwd(),
-          source_turn_id: `pi-turn-${S.turnCount}`,
+          source_turn_id: `pi-turn-${getTurnCount()}`,
           action_intent: { action_type: "resume_workpoint", target_ref: S.activeFrameId || "pi-fork", verification_hooks: ["fork refreshes workpoint"], status: "ready" },
         }),
       }).catch(() => null);
@@ -911,7 +911,7 @@ export function registerSession(pi: ExtensionAPI) {
         frame_id: S.activeFrameId,
         project_root: normalizeProjectRoot(S.sessionCwd || process.cwd()),
         continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()),
-        turn_id: `pi-turn-${S.turnCount}`,
+        turn_id: `pi-turn-${getTurnCount()}`,
         delta: { meta: { event: "fork", timestamp: Date.now() } },
       });
     }
@@ -925,8 +925,8 @@ export function registerSession(pi: ExtensionAPI) {
         frame_id: S.activeFrameId,
         project_root: normalizeProjectRoot(S.sessionCwd || process.cwd()),
         continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()),
-        turn_id: `pi-turn-${S.turnCount}`,
-        delta: { meta: { event: "fork", turn_count: S.turnCount, decisions_count: S.localDecisions.length } },
+        turn_id: `pi-turn-${getTurnCount()}`,
+        delta: { meta: { event: "fork", turn_count: getTurnCount(), decisions_count: S.localDecisions.length } },
       });
     }
   });
