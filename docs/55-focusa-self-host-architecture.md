@@ -252,6 +252,8 @@ From v0.9.34-dev:
 ```bash
 # On the VPS:
 curl install.focusa.dev/focusa | bash
+# (bash script is a thin bootstrapper; it downloads `focusa` and execs `focusa install --target=linux`
+#  which performs all real install work in Rust per docs/112-install-binary-architecture-spec.md §15A)
 focusa pairing wizard
 # → prints terminal QR
 # → operator scans with phone

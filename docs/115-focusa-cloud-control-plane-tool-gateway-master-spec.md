@@ -158,7 +158,7 @@ Spec 111 defines Focusa Agent Context Bootstrap & Delivery as a first-class laye
 
 ### 5.7 Spec 112 adds install/license authority
 
-Spec 112 defines a smart installer that detects OS, architecture, libc, init system, dependencies, selects correct binaries, verifies artifacts, rolls back failures, integrates license validation, and provides AX-correct recovery hints.  It defines the license authority at `install.focusa.dev` with `/wp-json/wpuiai-ai-cloud/v1/license/validate`, plus license persistence and daemon revalidation behavior.
+Spec 112 defines a smart installer that detects OS, architecture, libc, init system, dependencies, selects correct binaries, verifies artifacts, rolls back failures, integrates license validation, and provides AX-correct recovery hints.  It defines the license authority at `install.focusa.dev` with `/wp-json/wpuiai-ai-cloud/v1/license/validate`, plus license persistence and daemon revalidation behavior. **Canonical architecture (§15A)**: installer orchestration lives in the Rust `focusa install` subcommand; bash + PowerShell scripts are thin bootstrappers that delegate to Rust for all real install work.
 
 ### 5.8 Spec 113 adds measured benchmark evidence
 
@@ -281,7 +281,7 @@ npx focusa proof publish
 npx focusa bench smoke
 ```
 
-`npx focusa` delegates binary installation to `install.focusa.dev` and local daemon execution to the installed Focusa binaries.
+`npx focusa` delegates binary installation to `install.focusa.dev` (which serves the thin bash bootstrapper) and local daemon execution to the installed Focusa binaries; the bash bootstrapper then `exec`s the Rust `focusa install` subcommand per Spec 112 §15A.
 
 ### 8.2 `ssh cloud.focusa.dev`
 

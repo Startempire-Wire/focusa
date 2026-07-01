@@ -117,15 +117,19 @@ The installer MUST use `command -v` not `which` for portability.
 
 ## 3. Binary Selection Specification
 
+**Implementation note:** Binary selection and download are executed by the Rust `focusa install` subcommand per §15A. The bash / PowerShell installers do NOT perform these steps directly — they delegate after detecting platform. See §15A for the canonical architecture.
+
 ### 3.1 Asset Types to Install
 
 For each release, GitHub publishes these assets (verified in v0.9.25-dev):
 
 | Binary | Source asset | Install location | Purpose |
 |--------|--------------|------------------|---------|
-| `focusa` | `focusa-{VERSION}-{target}` | `~/.focusa/bin/focusa` | CLI |
+| `focusa` | `focusa-{VERSION}-{target}` | `~/.focusa/bin/focusa` | CLI (also serves as `focusa install` orchestrator) |
 | `focusa-daemon` | `focusa-daemon-{VERSION}-{target}` | `~/.focusa/bin/focusa-daemon` | Daemon |
 | `focusa-tui` | `focusa-tui-{VERSION}-{target}` | `~/.focusa/bin/focusa-tui` | TUI dashboard |
+
+The Rust `focusa install` orchestrator (§15A) selects, downloads, SHA256-verifies, and places all three. The shell bootstrapper only downloads the `focusa` CLI itself (which then does the rest).
 
 ### 3.2 Optional Components
 
@@ -517,15 +521,20 @@ For TRUE Mac/Windows support, the spec needs:
 ## 11. Implementation Roadmap
 
 ### Phase 1.5 — Real Binary Install (P0)
+
+Canonical implementation architecture is **Rust-orchestrated**; see §15.
+
 - Replace Python stub with real Rust binary download
-- Add SHA256SUMS verification
-- Add daemon systemd unit deployment
+- **Add `focusa install` Rust subcommand** at `crates/focusa-cli/src/commands/install.rs` — the single canonical install orchestrator
+- **Slim `scripts/install-focusa.sh` and `scripts/install-focusa.ps1`** to thin bootstrappers: detect → download → SHA256SUMS verify → place on PATH → `exec focusa install --target=<detected>`
+- Add SHA256SUMS verification (in Rust)
+- Add daemon systemd unit deployment via existing `crates/focusa-cli/src/commands/service.rs`
 - Add post-install `focusa doctor` smoke test
-- **macOS:** Implement LaunchAgent plist deployment (Phase 1.5 (NOT deferred))
+- **macOS:** LaunchAgent plist deployment via existing `service::run_launchd_user` (NOT deferred, real in Phase 1.5)
 - **macOS:** Add `codesign` requirement to release.yml (Apple requires signed binaries)
-- **Windows:** Create `install.ps1` PowerShell installer (currently 404 at install.focusa.dev/install.ps1)
-- **Windows:** Add Windows SCM `sc.exe` service deployment
-- **Windows:** Detect if running under WSL/git-bash and fall back to bash installer
+- **Windows:** Deploy `install.focusa.dev/install.ps1` (currently 404) — boot to `focusa install --target=windows-<arch>`
+- **Windows:** Windows SCM `sc.exe` service deployment via same Rust `service` module
+- **Windows:** Detect if running under WSL/git-bash and fall back to bash bootstrapper
 
 ### Phase 2.0 — Update + Rollback (POST-MVP — not blocking)
 - Implement `focusa update` command (Linux + Mac + Windows)
@@ -559,10 +568,11 @@ For TRUE Mac/Windows support, the spec needs:
 
 ## 13. Bead Reference
 
-- `focusa-iqqi` — PORTABILITY: Real architecture needed beyond shell scripts
+- `focusa-iqqi` — PORTABILITY: Real architecture needed beyond shell scripts. **NOW ACTIVE Phase 1.5 work** — see §15 for the canonical implementation architecture (Rust `install` subcommand orchestrating thin shell bootstrapper)
 - `focusa-7wgk` — Tier2-2: Fresh-operator dry-run on a clean VPS
 - `focusa-cme3` — Tier2-4: Tauri release artifacts in release.yml
-- All three blocked by this spec needing implementation
+- `focusa-foyr` — closes when shell installer delegates to Rust `service` module (work is half-done; daemon systemd unit rendered in Rust, shell still duplicates)
+- The shell-installer codepaths (`scripts/install-focusa.sh`, `scripts/install-focusa.ps1`) are now bootstrappers, not orchestrators — see §15
 ---
 
 ## 14. Complete Cross-Platform Compatibility Specification
@@ -1016,6 +1026,77 @@ The installer is ready for MVP Cohort when ALL of these are ✅:
 - [ ] All failure modes have `recovery_hint`
 - [ ] `--dry-run` works on all platforms
 - [ ] Progress output uses platform-appropriate terminal
+
+---
+
+## 15A. Implementation Architecture (Canonical Phase 1.5)
+
+**Status:** Authoritative. Supersedes any prior §3 / §5A / §7 / §14 implementation examples that show shell logic. The user-facing install surface (`curl | bash`, `irm | iex`) is preserved per §1 and §14.1; this section specifies the **internal** architecture.
+
+### 15A.1 Canonical entry: `focusa install`
+
+The installer is implemented as a **Rust subcommand** at `crates/focusa-cli/src/commands/install.rs`. All install logic — license validation, asset download, SHA256SUMS verification, symlink placement, service rendering, atomicity, rollback, dry-run, recovery hints — lives in Rust and is unit-testable.
+
+The bash and PowerShell installers (`install.focusa.dev/focusa`, `install.focusa.dev/focusa.ps1`) are **thin bootstrappers** whose sole job is:
+
+1. Detect OS / arch / libc
+2. Download the `focusa` binary from GitHub releases
+3. Verify SHA256SUMS
+4. Place `focusa` on `PATH`
+5. `exec focusa install --target=<detected>` and exit
+
+After step 5, the shell's job is done. All install work flows through Rust.
+
+### 15A.2 License authority coupling
+
+`focusa install` validates the license via the existing
+`crates/focusa-cli/src/commands/license.rs::registry_validate()`, which already POSTs to
+`https://install.focusa.dev/wp-json/wpuiai-ai-cloud/v1/license/validate`.
+License JSON is written to `~/.config/focusa/license.json` with the exact
+shape `crates/focusa-core/src/license.rs::load_license_status()` reads
+(must be audited for field parity before Rust goes canonical).
+
+`focusa install` always re-validates (even if shell pre-validated) so a
+revoked license cannot slip through.
+
+### 15A.3 Service rendering delegation
+
+`focusa install` delegates service unit / LaunchAgent rendering to the
+existing `crates/focusa-cli/src/commands/service.rs`:
+
+- Linux → `service::run_systemd_user` (renders `~/.config/systemd/user/focusa-daemon.service`)
+- macOS → `service::run_launchd_user` (renders `~/Library/LaunchAgents/com.startempire.focusa-daemon.plist` + `launchctl load -w`)
+- Windows → `service::run_scm` (renders `sc.exe` registration; future work, Phase 2.0)
+
+The shell installer MUST NOT duplicate service rendering. This is the
+bead `focusa-foyr` closure condition.
+
+### 15A.4 PowerShell parity
+
+`install.focusa.dev/focusa.ps1` follows the same pattern:
+
+1. Detect Windows native vs WSL/git-bash
+2. Download + SHA256SUMS verify
+3. `& focusa install --target=windows-<arch>` and exit
+
+WSL/git-bash fall back to the bash bootstrapper, which uses the same
+final `exec focusa install` flow.
+
+### 15A.5 Acceptance (architectural)
+
+- [ ] `focusa install --target=<linux|darwin|windows-x64|windows-arm64>` exists and is the only place install orchestration lives
+- [ ] `scripts/install-focusa.sh` and `scripts/install-focusa.ps1` are each ≤ 100 lines, with no logic beyond detect / download / verify / exec
+- [ ] Unit tests cover `focusa install` end-to-end for each target
+- [ ] `focusa-foyr` and `focusa-3cok` closed (shell installer no longer renders service units directly)
+- [ ] License JSON shape parity audit passes (`focusa-cli::commands::license::RegistryValidateResponse` ↔ `focusa-core::license::LicenseStatus`)
+
+### 15A.6 Why this architecture
+
+- Single source of truth — no logic drift between bash, PowerShell, and Rust
+- Unit-testable installer logic (today's bash is untested)
+- Atomicity (§6) and update mechanism (§8) compose naturally with the Rust Cargo build/test/release pipeline
+- Windows / Linux / macOS all share the typed `RegistryValidateResponse`, `LicenseStatus`, `ServiceManager` Rust types
+- Bead `focusa-iqqi` (PORTABILITY) is the canonical name for this work; `focusa-foyr` (systemd installer) closes when the shell installer stops duplicating systemd rendering
 
 ---
 
