@@ -206,23 +206,22 @@ jobs:
           fi
           chmod 755 scripts/install-daemon.sh "/tmp/focusa-release/${{ steps.cfg.outputs.asset_name }}"
           if [[ -n "$SUDO" ]]; then
-            $SUDO env \
-              FOCUSA_INSTALL_ROOT='${{ steps.cfg.outputs.install_root }}' \
-              FOCUSA_DAEMON_URL='${{ steps.cfg.outputs.health_url }}' \
-              FOCUSA_DEPLOY_AUDIT_LOG='${{ steps.cfg.outputs.audit_log }}' \
-              FOCUSA_GITHUB_RUN_ID='${{ github.run_id }}' \
-              FOCUSA_GITHUB_RUN_ATTEMPT='${{ github.run_attempt }}' \
-              FOCUSA_GITHUB_ACTOR='${{ github.actor }}' \
-              FOCUSA_GITHUB_SHA='${{ steps.cfg.outputs.tag_sha }}' \
-              FOCUSA_GITHUB_TAG='${{ steps.cfg.outputs.tag }}' \
-              FOCUSA_GITHUB_WORKFLOW='${{ github.workflow }}' \
-              FOCUSA_GITHUB_REPOSITORY='${{ github.repository }}' \
-              /bin/bash "$GITHUB_WORKSPACE/scripts/install-daemon.sh" \
-                --binary "/tmp/focusa-release/${{ steps.cfg.outputs.asset_name }}" \
-                --expected-version '${{ steps.cfg.outputs.version }}' \
-                --service-name '${{ steps.cfg.outputs.service_name }}' \
-                --health-url '${{ steps.cfg.outputs.health_url }}' \
-                $REQUIRE_FLAG
+            export FOCUSA_INSTALL_ROOT='${{ steps.cfg.outputs.install_root }}'
+            export FOCUSA_DAEMON_URL='${{ steps.cfg.outputs.health_url }}'
+            export FOCUSA_DEPLOY_AUDIT_LOG='${{ steps.cfg.outputs.audit_log }}'
+            export FOCUSA_GITHUB_RUN_ID='${{ github.run_id }}'
+            export FOCUSA_GITHUB_RUN_ATTEMPT='${{ github.run_attempt }}'
+            export FOCUSA_GITHUB_ACTOR='${{ github.actor }}'
+            export FOCUSA_GITHUB_SHA='${{ steps.cfg.outputs.tag_sha }}'
+            export FOCUSA_GITHUB_TAG='${{ steps.cfg.outputs.tag }}'
+            export FOCUSA_GITHUB_WORKFLOW='${{ github.workflow }}'
+            export FOCUSA_GITHUB_REPOSITORY='${{ github.repository }}'
+            $SUDO /bin/bash "$GITHUB_WORKSPACE/scripts/install-daemon.sh" \
+              --binary "/tmp/focusa-release/${{ steps.cfg.outputs.asset_name }}" \
+              --expected-version '${{ steps.cfg.outputs.version }}' \
+              --service-name '${{ steps.cfg.outputs.service_name }}' \
+              --health-url '${{ steps.cfg.outputs.health_url }}' \
+              $REQUIRE_FLAG
           else
             env \
               FOCUSA_INSTALL_ROOT='${{ steps.cfg.outputs.install_root }}' \
