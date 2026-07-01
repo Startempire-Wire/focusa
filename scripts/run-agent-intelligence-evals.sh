@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
+# Spec104 BEN-01/BEN-02: typed run scope + arm scope.
+# ON/OFF arms produce isolated results (no shared mutable state across runs).
+# Each arm runs with its own typed run scope (project_root, continuity_id, arm).
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CASES="${1:-$ROOT_DIR/tests/evals/agent_intelligence_cases.json}"
+ARM="${ARM:-on}"
 
 node --input-type=module - "$ROOT_DIR" "$CASES" <<'NODE'
 import fs from 'node:fs';

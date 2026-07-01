@@ -3,6 +3,18 @@
 //! POST /proxy/v1/chat/completions — OpenAI-compatible
 //! POST /proxy/v1/messages — Anthropic (Claude)
 //!
+//! # Spec104 API-10: proxy client infra-only singleton classification
+//!
+//! The HTTP proxy is INFRASTRUCTURE: it forwards AI provider requests and
+//! records turn telemetry. It does NOT affect canonical scope decisions:
+//! - Proxy does not mutate FocusaState.project_root, workpoint, or trajectory
+//! - Proxy telemetry writes to the append-only audit log, not canonical state
+//! - Per-turn tokens/scores live in the work_loop turn record, not scope store
+//! - The proxy preserves any typed ScopeContext from request headers/query
+//!   so the upstream Focus State observer sees a typed run scope.
+//!
+//! # Per spec G1-detail-04-proxy-adapter.md:
+//!
 //! Per spec G1-detail-04-proxy-adapter.md:
 //! 1. TurnStart — record turn beginning
 //! 2. PromptAssemble — enhance with Focusa context

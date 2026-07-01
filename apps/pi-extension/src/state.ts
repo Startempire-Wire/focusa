@@ -3017,7 +3017,7 @@ export function incrementTurnCount(): void {
  */
 export function getActiveFrameId(): string | null {
   const store = getCurrentScopeStore();
-  return store ? store.activeFrameId : S.activeFrameId;
+  return store ? store.activeFrameId : null;
 }
 
 /**
@@ -3025,7 +3025,7 @@ export function getActiveFrameId(): string | null {
  */
 export function getContinuityId(): string {
   const store = getCurrentScopeStore();
-  return store ? store.continuityId : S.continuityId;
+  return store ? store.continuityId : "";
 }
 
 /**
@@ -3033,7 +3033,7 @@ export function getContinuityId(): string {
  */
 export function getSessionFrameKey(): string {
   const store = getCurrentScopeStore();
-  return store ? store.sessionFrameKey : S.sessionFrameKey;
+  return store ? store.sessionFrameKey : "";
 }
 
 /**
@@ -3041,7 +3041,7 @@ export function getSessionFrameKey(): string {
  */
 export function getSessionCwd(): string {
   const store = getCurrentScopeStore();
-  return store ? store.sessionCwd : S.sessionCwd;
+  return store ? store.sessionCwd : "";
 }
 
 /**
@@ -3049,7 +3049,7 @@ export function getSessionCwd(): string {
  */
 export function getFocusaAvailable(): boolean {
   const store = getCurrentScopeStore();
-  return store ? store.focusaAvailable : S.focusaAvailable;
+  return store ? store.focusaAvailable : false;
 }
 
 /**
@@ -3057,7 +3057,7 @@ export function getFocusaAvailable(): boolean {
  */
 export function getLastProjectRootResolution(): TypedScopeStore["lastProjectRootResolution"] {
   const store = getCurrentScopeStore();
-  return store ? store.lastProjectRootResolution : S.lastProjectRootResolution;
+  return store ? store.lastProjectRootResolution : null;
 }
 
 /**
@@ -3076,7 +3076,7 @@ export function setLastProjectRootResolution(
  */
 export function getLastProjectIdentity(): Record<string, any> | null {
   const store = getCurrentScopeStore();
-  return store ? store.lastProjectIdentity : S.lastProjectIdentity;
+  return store ? store.lastProjectIdentity : null;
 }
 
 /**
