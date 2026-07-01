@@ -583,7 +583,7 @@ if [[ "$NO_VERIFY" -eq 0 ]]; then
   fi
   if [[ -n "$payload" ]]; then
     version="$(printf '%s' "$payload" | json_field version || true)"
-    log "health payload received: len=${#payload} fields=$(printf '%s' "$payload" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d.keys()))' 2>/dev/null || echo 'parse_error')"
+    log "health payload received: len=${#payload} repr=$(printf '%s' "$payload" | python3 -c 'import sys; print(repr(sys.stdin.read()))' 2>/dev/null || echo 'no_repr')"
     if [[ -n "$EXPECTED_VERSION" && "$version" != "$EXPECTED_VERSION" ]]; then
       rollback "health version mismatch: expected $EXPECTED_VERSION, got ${version:-<empty>}"
     fi
