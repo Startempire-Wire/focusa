@@ -241,11 +241,7 @@ fn typed_scope_line(scope: Option<&crate::api::TypedScope>) -> Line<'static> {
         "ok" => ("[ok]", theme::status_ok()),
         _ => ("[?]", theme::label()),
     };
-    let display = if s.canonical_scope == Some(false) {
-        format!("{} {} ({})", badge, s.project_root, s.continuity_id)
-    } else {
-        format!("{} {} ({})", badge, s.project_root, s.continuity_id)
-    };
+    let display = format!("{} {} ({})", badge, s.project_root, s.continuity_id);
     Line::from(vec![
         Span::styled("Scope: ", theme::label()),
         Span::styled(display, badge_style),

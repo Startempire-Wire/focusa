@@ -29,23 +29,33 @@ export function getProjectContext(s: any): ProjectContext {
   const project = s?.projectIdentity ?? {};
   const workpoint = s?.workpointResume ?? s?.workpoint ?? {};
   const packet = workpoint?.resume_packet ?? workpoint?.packet ?? workpoint;
+  const projectRoot = String(
+    project.project_root ||
+    project.root ||
+    project.workspace_root ||
+    project.project?.root ||
+    packet?.scope?.project_root ||
+    '',
+  );
+  const continuityId = String(
+    project.continuity_id ||
+    packet?.scope?.continuity_id ||
+    workpoint.continuity_id ||
+    '',
+  );
+  const sessionId = String(packet?.scope?.session_id || workpoint.session_id || '') || undefined;
+  const workItemId = String(packet?.work_item_id || workpoint.work_item_id || '') || undefined;
   return {
-    projectRoot: String(
-      project.project_root ||
-      project.root ||
-      project.workspace_root ||
-      project.project?.root ||
-      packet?.scope?.project_root ||
-      '',
-    ),
-    continuityId: String(
-      project.continuity_id ||
-      packet?.scope?.continuity_id ||
-      workpoint.continuity_id ||
-      '',
-    ),
-    sessionId: String(packet?.scope?.session_id || workpoint.session_id || '') || undefined,
-    workItemId: String(packet?.work_item_id || workpoint.work_item_id || '') || undefined,
+    // Snake_case fields satisfy ScopeContext (Spec104 MEN-01 typed interface).
+    project_root: projectRoot,
+    continuity_id: continuityId,
+    session_id: sessionId,
+    work_item_id: workItemId,
+    // CamelCase aliases satisfy legacy ProjectContext callers.
+    projectRoot,
+    continuityId,
+    sessionId,
+    workItemId,
   };
 }
 
