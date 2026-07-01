@@ -380,10 +380,11 @@ def static_audit() -> None:
     b4_section = spec_text[spec_text.index("#### focusa-core"):spec_text.index("#### focusa-tui", spec_text.index("#### focusa-core"))]
     listed_core = set()
     for l in b4_section.split("\n"):
-        if "crates/focusa-core/src/" in l:
-            name = l.split("/")[-1].strip("`").strip()
-            listed_core.add(name)
-    # (simplified check)
+        marker = "crates/focusa-core/src/"
+        if marker in l:
+            listed = l.split(marker, 1)[1].split("`", 1)[0].strip()
+            if listed:
+                listed_core.add(listed)
     missing_core = actual_core - listed_core
     if missing_core:
         warnings.append({"kind": "uncatalogued_core_file", "files": sorted(missing_core)})
