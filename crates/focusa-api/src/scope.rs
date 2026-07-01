@@ -46,7 +46,7 @@ impl ScopeContext {
     /// Short identifier for logging.
     pub fn short(&self) -> String {
         match (&self.project_root, &self.continuity_id) {
-            (Some(r), _) => r.split('/').last().unwrap_or(r).to_string(),
+            (Some(r), _) => r.split('/').next_back().unwrap_or(r).to_string(),
             (_, Some(c)) => c.chars().take(12).collect(),
             (None, None) => "default".to_string(),
         }
@@ -127,9 +127,7 @@ pub enum ScopeRejection {
 
 impl IntoResponse for ScopeRejection {
     fn into_response(self) -> Response {
-        let body = match self {
-            ScopeRejection::Internal(s) => s,
-        };
+        let ScopeRejection::Internal(body) = self;
         (StatusCode::BAD_REQUEST, body).into_response()
     }
 }
