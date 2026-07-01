@@ -403,26 +403,58 @@ wait_for_health() {
   if [[ -z "$port" ]]; then
     port=80
   fi
-  for i in $(seq 1 "$attempts"); do
-    # TCP probe first (faster than full HTTP request)
-    if timeout 3 bash -c "echo >/dev/tcp/$host/$port" 2>/dev/null; then
-      # TCP socket is open; now get health response via HTTP
-      if payload="$(curl -fsS --max-time 5 "$HEALTH_URL" 2>/dev/null)"; then
-        if [[ -n "$expected_version" ]]; then
-          version="$(printf '%s' "$payload" | json_field version || true)"
-          if [[ "$version" != "$expected_version" ]]; then
-            watchdog_check
-            sleep 1
-            continue
-          fi
-        fi
-        printf '%s\n' "$payload"
-        return 0
-      fi
-    fi
-    watchdog_check
-    sleep 1
-  done
+  # Use python3 for health check (avoids bash /dev/tcp and curl issues in sudo env)
+  local py_script='
+import json, sys, urllib.request, socket, time
+
+health_url = sys.argv[1]
+expected_version = sys.argv[2] if len(sys.argv) > 2 else ""
+host_port = health_url.replace("http://", "").split("/")[0]
+host = host_port.split(":")[0]
+port = int(host_port.split(":")[1]) if ":" in host_port else 80
+
+for i in range('"$attempts"'):
+    # TCP connect probe
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(3)
+        s.connect((host, port))
+        s.close()
+    except Exception:
+        time.sleep(1)
+        continue
+
+    # Port is open, try HTTP health check
+    try:
+        req = urllib.request.Request(health_url, method="GET")
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            body = resp.read().decode()
+            if expected_version:
+                data = json.loads(body)
+                if data.get("version") != expected_version:
+                    time.sleep(1)
+                    continue
+            print(body)
+            sys.exit(0)
+    except Exception:
+        time.sleep(1)
+        continue
+
+sys.exit(1)
+'
+  local py_stdout py_stderr py_exit
+  py_stderr="$(mktemp)"
+  py_stdout="$(python3 -c "$py_script" "$HEALTH_URL" "$expected_version" 2>"$py_stderr")"
+  py_exit=$?
+  if [[ "$py_exit" -eq 0 && -n "$py_stdout" ]]; then
+    rm -f "$py_stderr"
+    printf '%s\n' "$py_stdout"
+    return 0
+  fi
+  if [[ -s "$py_stderr" ]]; then
+    log "health check python stderr: $(head -3 "$py_stderr" | tr '\n' ' ')"
+  fi
+  rm -f "$py_stderr"
   audit_event "deploy_health" "timeout" "wait_for_health exhausted ${attempts} attempts for ${HEALTH_URL}"
   return 1
 }
