@@ -395,6 +395,8 @@ wait_for_health() {
   local attempts="${1:-30}"
   local expected_version="${2:-}"
   local payload version i
+  # Debug: log what we're checking
+  log "wait_for_health: checking $HEALTH_URL (attempts=$attempts, expected_version=${expected_version:-none})"
   for i in $(seq 1 "$attempts"); do
     if payload="$(curl -fsS --max-time 5 "$HEALTH_URL" 2>/dev/null)"; then
       if [[ -n "$expected_version" ]]; then
