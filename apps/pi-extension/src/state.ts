@@ -2929,15 +2929,20 @@ export const scopeStoreRegistry = new ScopeStoreRegistry();
  * Returns null if no verified scope exists (caller must handle blocked state).
  */
 export function getCurrentScopeStore(): TypedScopeStore | null {
-  if (!getLastProjectRootResolution() || !getSessionCwd()) return null;
-  const rootPath = getLastProjectRootResolution()?.projectRoot || getSessionCwd();
+  const resolution = S.lastProjectRootResolution;
+  if (!resolution?.projectRoot || !S.sessionCwd) return null;
   const identity: TypedScopeIdentity = {
     scopeKind: "project",
-    rootPath,
+    rootPath: resolution.projectRoot,
     continuityId: S.continuityId || undefined,
     sessionId: S.sessionFrameKey || undefined,
   };
-  return scopeStoreRegistry.getOrCreate(identity);
+  const store = scopeStoreRegistry.getOrCreate(identity);
+  if (!store.lastProjectRootResolution) store.lastProjectRootResolution = resolution;
+  if (!store.sessionCwd) store.sessionCwd = S.sessionCwd;
+  if (!store.continuityId) store.continuityId = S.continuityId;
+  if (!store.sessionFrameKey) store.sessionFrameKey = S.sessionFrameKey;
+  return store;
 }
 
 /**
@@ -3017,7 +3022,7 @@ export function incrementTurnCount(): void {
  */
 export function getActiveFrameId(): string | null {
   const store = getCurrentScopeStore();
-  return store ? store.activeFrameId : null;
+  return store?.activeFrameId ?? S.activeFrameId;
 }
 
 /**
@@ -3025,7 +3030,7 @@ export function getActiveFrameId(): string | null {
  */
 export function getContinuityId(): string {
   const store = getCurrentScopeStore();
-  return store ? store.continuityId : "";
+  return store?.continuityId || S.continuityId || "";
 }
 
 /**
@@ -3033,7 +3038,7 @@ export function getContinuityId(): string {
  */
 export function getSessionFrameKey(): string {
   const store = getCurrentScopeStore();
-  return store ? store.sessionFrameKey : "";
+  return store?.sessionFrameKey || S.sessionFrameKey || "";
 }
 
 /**
@@ -3041,7 +3046,7 @@ export function getSessionFrameKey(): string {
  */
 export function getSessionCwd(): string {
   const store = getCurrentScopeStore();
-  return store ? store.sessionCwd : "";
+  return store?.sessionCwd || S.sessionCwd || "";
 }
 
 /**
@@ -3049,7 +3054,7 @@ export function getSessionCwd(): string {
  */
 export function getFocusaAvailable(): boolean {
   const store = getCurrentScopeStore();
-  return store ? store.focusaAvailable : false;
+  return store?.focusaAvailable ?? S.focusaAvailable;
 }
 
 /**
@@ -3057,7 +3062,7 @@ export function getFocusaAvailable(): boolean {
  */
 export function getLastProjectRootResolution(): TypedScopeStore["lastProjectRootResolution"] {
   const store = getCurrentScopeStore();
-  return store ? store.lastProjectRootResolution : null;
+  return store?.lastProjectRootResolution ?? S.lastProjectRootResolution;
 }
 
 /**
@@ -3076,7 +3081,7 @@ export function setLastProjectRootResolution(
  */
 export function getLastProjectIdentity(): Record<string, any> | null {
   const store = getCurrentScopeStore();
-  return store ? store.lastProjectIdentity : null;
+  return store?.lastProjectIdentity ?? S.lastProjectIdentity;
 }
 
 /**
@@ -3093,14 +3098,14 @@ export function setLastProjectIdentity(identity: Record<string, any> | null): vo
  */
 export function getActiveWorkpointPacket(): Record<string, any> | null {
   const store = getCurrentScopeStore();
-  return store ? store.activeWorkpointPacket : getActiveWorkpointPacket();
+  return store?.activeWorkpointPacket ?? S.activeWorkpointPacket;
 }
 
 /**
  * PI-03: Set activeWorkpointPacket on both scope store and S singleton.
  */
 export function setActiveWorkpointPacket(packet: Record<string, any> | null): void {
-  setActiveWorkpointPacket(packet);
+  S.activeWorkpointPacket = packet;
   const store = getCurrentScopeStore();
   if (store) store.activeWorkpointPacket = packet;
 }
@@ -3110,7 +3115,7 @@ export function setActiveWorkpointPacket(packet: Record<string, any> | null): vo
  */
 export function getActiveWorkpointSummary(): string {
   const store = getCurrentScopeStore();
-  return store ? store.activeWorkpointSummary : getActiveWorkpointSummary();
+  return store?.activeWorkpointSummary || S.activeWorkpointSummary || "";
 }
 
 /**
@@ -3125,7 +3130,7 @@ export function setActiveWorkpointSummary(summary: string): void {
 /** PI-04: Get lastTrajectoryClarity from scope store or S fallback. */
 export function getLastTrajectoryClarity(): Record<string, any> | null {
   const store = getCurrentScopeStore();
-  return store ? store.lastTrajectoryClarity : getLastTrajectoryClarity();
+  return store?.lastTrajectoryClarity ?? S.lastTrajectoryClarity;
 }
 
 /** PI-04: Set lastTrajectoryClarity on both scope store and S. */
@@ -3138,7 +3143,7 @@ export function setLastTrajectoryClarity(snapshot: Record<string, any> | null): 
 /** PI-05: Get lastProjectVerify from scope store or S fallback. */
 export function getLastProjectVerify(): Record<string, any> | null {
   const store = getCurrentScopeStore();
-  return store ? store.lastProjectVerify : getLastProjectVerify();
+  return store?.lastProjectVerify ?? S.lastProjectVerify;
 }
 
 /** PI-05: Set lastProjectVerify on both scope store and S. */
