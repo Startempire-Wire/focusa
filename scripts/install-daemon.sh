@@ -500,7 +500,7 @@ fi
 # restart causes an extra auto-restart cycle.
 if service_exists; then
   log "restarting service $SERVICE_UNIT"
-  local pids="$(pgrep -x "$BIN_NAME" || true)"
+  pids="$(pgrep -x "$BIN_NAME" || true)"
   if [[ -n "$pids" ]]; then
     sudo -n kill -TERM $pids 2>/dev/null || kill -TERM $pids 2>/dev/null || true
     # wait for systemd restart to pick up new binary
