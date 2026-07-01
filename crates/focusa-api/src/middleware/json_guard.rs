@@ -46,6 +46,78 @@ fn validate_json_shape(value: &Value) -> Result<(), &'static str> {
     validate_json_shape_inner(value, 0)
 }
 
+fn is_scope_key(key: &str) -> bool {
+    let key = key.to_ascii_lowercase();
+    matches!(
+        key.as_str(),
+        "project_root"
+            | "continuity_id"
+            | "session_id"
+            | "scope_kind"
+            | "query_scope_kind"
+            | "action_type"
+            | "checkpoint_reason"
+            | "work_item_id"
+            | "workpoint_id"
+    )
+}
+
+fn validate_scope_field_value(key: &str, value: &str) -> Result<(), &'static str> {
+    if value.len() > 512 {
+        return Err("scope_field_too_long");
+    }
+    if key == "scope_kind" || key == "query_scope_kind" {
+        let valid = matches!(
+            value,
+            "fresh_question"
+                | "mission_carryover"
+                | "correction"
+                | "meta"
+                | "suppress_by_default"
+                | "allow_if_relevant"
+                | "prefer_reset"
+        );
+        if !valid {
+            return Err("invalid_scope_kind");
+        }
+    }
+    if key == "continuity_id" {
+        let valid = value.len() <= 256
+            && value
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.' || c == ':');
+        if !valid {
+            return Err("invalid_continuity_id");
+        }
+    }
+    if key == "checkpoint_reason" && !matches!(value, "manual" | "operator_checkpoint" | "before_compact" | "after_compact" | "context_overflow" | "session_resume" | "model_switch" | "fork") {
+        return Err("invalid_checkpoint_reason");
+    }
+    Ok(())
+}
+
+fn validate_scope_fields(value: &Value) -> Result<(), &'static str> {
+    match value {
+        Value::Object(map) => {
+            for (key, val) in map {
+                if is_scope_key(key) {
+                    if let Value::String(s) = val {
+                        validate_scope_field_value(key, s)?;
+                    }
+                }
+                validate_scope_fields(val)?;
+            }
+        }
+        Value::Array(items) => {
+            for item in items {
+                validate_scope_fields(item)?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
 fn is_path_like_key(key: &str) -> bool {
     let key = key.to_ascii_lowercase();
     matches!(
@@ -151,6 +223,7 @@ pub async fn mutation_json_guard_layer(req: Request, next: Next) -> Result<Respo
     let value: Value = serde_json::from_slice(&bytes).map_err(|_| StatusCode::BAD_REQUEST)?;
     validate_json_shape(&value).map_err(|_| StatusCode::BAD_REQUEST)?;
     validate_json_path_safety(&value).map_err(|_| StatusCode::BAD_REQUEST)?;
+    validate_scope_fields(&value).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     Ok(next.run(rebuild_request(parts, bytes)).await)
 }
