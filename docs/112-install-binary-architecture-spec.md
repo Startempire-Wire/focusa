@@ -1419,37 +1419,58 @@ Resolves gap B6 (open questions had no owners/deadlines):
 
 ## 22. Bead Cross-Reference (Authoritative — Replaces §13 and §17)
 
-### 22.1 Phase 1.5 P0 Beads (Blocking MVP Cohort)
+### 22.1 Phase 1.5 Beads Implementing §15A
 
-| Bead ID | Gap | Description |
-|---------|-----|-------------|
-| focusa-xxx1 | A1 | Real installer drops Python stub |
-| focusa-xxx2 | A5 | macOS LaunchAgent deferred (violates rule) |
-| focusa-xxx3 | A9 | No Windows PowerShell installer (404) |
-| focusa-xxx4 | A7-A8 | No SHA256SUMS / signing |
-| focusa-xxx5 | A2 | Linux musl asset missing |
-| focusa-xxx6 | A3 | Windows ARM64 asset missing |
-| focusa-xxx7 | A6 | No macOS code signing |
-| focusa-xxx8 | A10 | No daemon systemd unit installed |
+EPIC `focusa-112-arch` tracks all §15A work. Children decomposed into discrete, close-with-evidence items:
+
+| Bead ID | §15A coverage | Status |
+|---------|---------------|--------|
+| `focusa-112-license-parity-audit` | §15A.2 license JSON shape | Open |
+| `focusa-112-wp-error-envelope` | §15A.2 WP error handling | Open |
+| `focusa-112-install-cmd` | §15A.1 \`focusa install\` subcommand skeleton | Open |
+| `focusa-112-license-revalidate` | §15A.2 always re-validate | Open |
+| `focusa-112-asset-download` | §3.1 + §15A.1 GH release API | Open |
+| `focusa-112-checksum` | §5.1 + §15A.1 SHA256SUMS verify | Open |
+| `focusa-112-symlinks` | §3.3 + §15A.1 ~/.local/bin priority | Open |
+| `focusa-112-atomicity` | §6 + §15A.1 stash + rollback | Open |
+| `focusa-112-target-detect` | §15A.1 --target=auto via uname | Open |
+| `focusa-112-service-delegate` | §15A.3 delegate to service.rs | Open |
+| `focusa-112-shell-slim` | §15A.1 + §15A.4 install-focusa.sh <=100 lines | Open |
+| `focusa-112-ps1-slim` | §15A.1 + §15A.4 install-focusa.ps1 <=100 lines | Open |
+| `focusa-112-codesign-subcmd` | §15A macOS codesign sign + notarize | Open |
+| `focusa-112-codesign-verify` | §15A macOS install verifies signed binaries | Open |
+| `focusa-112-windows-arm64-asset` | §15A + focusa-pydn CI matrix | Open |
+| `focusa-112-musl-asset` | §15A + focusa-xvhd CI matrix | Open |
+| `focusa-112-uninstall-cmd` | §15A.1 uninstall mirror | Open |
+| `focusa-112-install-static-test` | §15A.5 static guard | Open |
+| `focusa-112-install-smoke-test` | §15A.5 integration smoke | Open |
+| `focusa-112-foyr-close` | §15A.5 closes `focusa-foyr` | Open |
+| `focusa-112-3cok-close` | §15A.5 closes `focusa-3cok` | Open |
+| `focusa-112-epic-close` | §15A.5 iqqi-arc closure | Open |
+
+EPIC close requires every child P0 closed. Pre-existing P0 installer beads (`focusa-foyr`, `focusa-3cok`, `focusa-covz`, `focusa-iwft`, `focusa-pydn`, `focusa-xvhd`, `focusa-nwhx`) get closed transitively via the new graph.
 
 ### 22.2 Related Beads (Existing)
 
-| Bead ID | Title | Status |
-|---------|-------|--------|
-| `focusa-iqqi` | PORTABILITY: install binary architecture (this spec) | Open |
-| `focusa-cqhi` | Menubar Tauri local artifact | Open |
-| `focusa-cme3` | Tauri release artifacts in release.yml | Open |
-| `focusa-7wgk` | Fresh-operator dry-run on clean VPS | Open |
+| Bead ID | Title | Closed by |
+|---------|-------|-----------|
+| `focusa-iqqi` | PORTABILITY: install binary architecture | `focusa-112-epic-close` |
+| `focusa-foyr` | No daemon systemd unit installed | `focusa-112-foyr-close` |
+| `focusa-3cok` | macOS LaunchAgent deferral | `focusa-112-3cok-close` |
+| `focusa-covz` | No macOS code signing in installer | `focusa-112-codesign-verify` |
+| `focusa-iwft` | install.focusa.dev/install.ps1 404 | `focusa-112-ps1-slim` |
+| `focusa-pydn` | Windows ARM64 asset missing | `focusa-112-windows-arm64-asset` |
+| `focusa-xvhd` | Linux musl asset missing | `focusa-112-musl-asset` |
+| `focusa-b40j` | Real macOS codesign on Mac (MVP release gate) | Operator Mac required; tracked under `focusa-112-codesign-subcmd` |
+| `focusa-nwhx` | codesign sign + notarize subcommand | `focusa-112-codesign-subcmd` |
+| `focusa-cme3` | Tauri release artifacts in release.yml | `focusa-112-codesign-subcmd` |
+| `focusa-cqhi` | Menubar Tauri local artifact | (separate workstream) |
+| `focusa-7wgk` | Fresh-operator dry-run on clean VPS | (separate workstream) |
+| `focusa-9im1` | GATE Wave 0 (parent gate) | `focusa-112-epic-close` |
 
-### 22.3 Beads to Create (Not Yet Tracked)
+### 22.3 Beads Closed by Phase 1.5 Completion
 
-- Real installer fix (A1)
-- macOS LaunchAgent (A5)
-- Windows PowerShell installer (A9)
-- SHA256SUMS signing (A7-A8)
-- macOS code signing (A6)
-- Daemon systemd unit (A10)
-- 9 total P0 beads must close before MVP Cohort
+Closing `focusa-112-epic-close` AND `focusa-9im1` and all sub-beads of the §15A graph satisfies the Phase 1.5 P0 catalog.
 
 ---
 
