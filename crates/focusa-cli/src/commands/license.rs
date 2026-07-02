@@ -105,39 +105,208 @@ fn local_license_path() -> PathBuf {
     home.join(".config").join("focusa").join(LICENSE_FILE_NAME)
 }
 
-/// POST a license key to the registry for validation, return parsed response.
-async fn registry_validate(registry: &str, key: &str) -> anyhow::Result<RegistryValidateResponse> {
+/// Structured errors returned by the license registry per Spec 112 §15A.2.
+/// Mirrors WordPress REST error envelopes emitted by install.focusa.dev.
+#[derive(Debug, thiserror::Error)]
+pub enum RegistryError {
+    #[error("license key not found")]
+    NotFound,
+    #[error("license key invalid")]
+    Invalid,
+    #[error("license revoked")]
+    Revoked,
+    #[error("license expired at {0}")]
+    Expired(String),
+    #[error("license payload malformed: {0}")]
+    Malformed(String),
+    #[error("registry rate limited; retry after {retry_after_secs}s")]
+    RateLimited { retry_after_secs: u64 },
+    #[error("registry unavailable: HTTP {status}")]
+    Unavailable { status: u16, detail: String },
+    #[error("registry response malformed: {0}")]
+    MalformedResponse(String),
+    #[error("transport error: {0}")]
+    Transport(String),
+}
+
+impl RegistryError {
+    pub fn code(&self) -> &'static str {
+        match self {
+            Self::NotFound => "focusa_license_not_found",
+            Self::Invalid => "focusa_license_invalid",
+            Self::Revoked => "focusa_license_revoked",
+            Self::Expired(_) => "focusa_license_expired",
+            Self::Malformed(_) => "focusa_license_malformed",
+            Self::RateLimited { .. } => "focusa_registry_rate_limited",
+            Self::Unavailable { .. } => "focusa_registry_unavailable",
+            Self::MalformedResponse(_) => "focusa_registry_response_malformed",
+            Self::Transport(_) => "focusa_registry_transport_error",
+        }
+    }
+
+    pub fn recovery_hint(&self) -> &'static str {
+        match self {
+            Self::NotFound | Self::Invalid => {
+                "Purchase or check key at https://install.focusa.dev/buy"
+            }
+            Self::Revoked => "Contact https://install.focusa.dev/license for reissue",
+            Self::Expired(_) => "Renew at https://install.focusa.dev/renew",
+            Self::Malformed(_) => {
+                "Verify the key was copied correctly (no spaces or line wraps)"
+            }
+            Self::RateLimited { .. } => {
+                "Wait 60s and retry; --eval mode avoids registry calls"
+            }
+            Self::Unavailable { .. } => {
+                "Check https://install.focusa.dev/status; retry in 5 min"
+            }
+            Self::MalformedResponse(_) => {
+                "File a bug at https://install.focusa.dev/help — registry schema drift"
+            }
+            Self::Transport(_) => "Verify network connectivity to the registry host",
+        }
+    }
+}
+
+/// Outcome of `registry_validate`: either a parsed response or a structured error.
+/// Spec 112 §15A.2 mandates we never conflate distinct failure modes.
+pub struct RegistryValidateOutcome {
+    pub response: Option<RegistryValidateResponse>,
+    pub error: Option<RegistryError>,
+}
+
+/// POST a license key to the registry for validation. Maps every WP REST
+/// envelope shape to a typed `RegistryError` so callers can emit structured
+/// output with `code` + `recovery_hint` per Spec92.
+async fn registry_validate(registry: &str, key: &str) -> RegistryValidateOutcome {
     let url = format!(
         "{}{}",
         registry.trim_end_matches('/'),
         REGISTRY_VALIDATE_PATH
     );
-    let client = reqwest::Client::builder()
+    let client = match reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(5))
         .build()
-        .map_err(|e| anyhow::anyhow!("registry client build failed: {e}"))?;
-    let resp = client
+    {
+        Ok(c) => c,
+        Err(e) => {
+            return RegistryValidateOutcome {
+                response: None,
+                error: Some(RegistryError::Transport(format!(
+                    "client build failed: {e}"
+                ))),
+            };
+        }
+    };
+    let resp = match client
         .post(&url)
         .header("Content-Type", "application/json")
         .header("X-License-Key", key)
         .json(&json!({ "license_key": key }))
         .send()
         .await
-        .map_err(|e| anyhow::anyhow!("registry POST failed: {e}"))?;
+    {
+        Ok(r) => r,
+        Err(e) => {
+            return RegistryValidateOutcome {
+                response: None,
+                error: Some(RegistryError::Transport(format!("POST failed: {e}"))),
+            };
+        }
+    };
     let status = resp.status();
-    let body: Value = resp
-        .json()
-        .await
-        .map_err(|e| anyhow::anyhow!("registry response not JSON: {e}"))?;
-    if !status.is_success() && !body.get("valid").and_then(Value::as_bool).unwrap_or(false) {
-        // Registry returned an error envelope (e.g. 404 / license_not_found).
-        let err = body
-            .get("error")
-            .and_then(Value::as_str)
-            .unwrap_or("license_validation_failed");
-        anyhow::bail!("license validation failed: {err} (HTTP {status})");
+    let body: Value = match resp.json().await {
+        Ok(v) => v,
+        Err(e) => {
+            return RegistryValidateOutcome {
+                response: None,
+                error: Some(RegistryError::MalformedResponse(format!("not JSON: {e}"))),
+            };
+        }
+    };
+
+    if !status.is_success() {
+        return RegistryValidateOutcome {
+            response: None,
+            error: Some(map_wp_error_status(status.as_u16(), &body)),
+        };
     }
-    Ok(serde_json::from_value(body)?)
+
+    match serde_json::from_value::<RegistryValidateResponse>(body.clone()) {
+        Ok(parsed) if parsed.valid || !body.is_null() => RegistryValidateOutcome {
+            response: Some(parsed),
+            error: None,
+        },
+        Ok(parsed) => RegistryValidateOutcome {
+            response: Some(parsed),
+            error: None,
+        },
+        Err(e) => RegistryValidateOutcome {
+            response: None,
+            error: Some(RegistryError::MalformedResponse(format!("schema mismatch: {e}"))),
+        },
+    }
+}
+
+/// Map a non-success HTTP status to a typed `RegistryError`, reading the
+/// `code` / `message` / `errors` fields of the WP REST envelope.
+fn map_wp_error_status(status: u16, body: &Value) -> RegistryError {
+    let code = body
+        .get("code")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    let message = body
+        .get("message")
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    let fields = body.get("errors").cloned().unwrap_or(Value::Null);
+
+    let by_code = match code {
+        "focusa_license_not_found" => Some(RegistryError::NotFound),
+        "focusa_license_invalid" => Some(RegistryError::Invalid),
+        "focusa_license_revoked" => Some(RegistryError::Revoked),
+        "focusa_license_expired" => Some(RegistryError::Expired(
+            body.get("expires_at")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown")
+                .to_string(),
+        )),
+        "focusa_license_malformed" | "focusa_license_payload_invalid" => {
+            let msg = message.clone().unwrap_or_default();
+            Some(RegistryError::Malformed(msg))
+        }
+        _ => None,
+    };
+    if let Some(e) = by_code {
+        return e;
+    }
+    match status {
+        404 => RegistryError::NotFound,
+        401 => RegistryError::Invalid,
+        403 => RegistryError::Revoked,
+        410 => RegistryError::Expired(
+            body.get("expires_at")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown")
+                .to_string(),
+        ),
+        422 => RegistryError::Malformed(format!("{:?}", fields)),
+        429 => {
+            let retry_after_secs = body
+                .get("retry_after")
+                .and_then(Value::as_u64)
+                .unwrap_or(60);
+            RegistryError::RateLimited { retry_after_secs }
+        }
+        s if s >= 500 => {
+            let detail = message.clone().unwrap_or_default();
+            RegistryError::Unavailable { status: s, detail }
+        }
+        _ => RegistryError::Transport(format!(
+            "unexpected status {status}: {}",
+            message.unwrap_or_default()
+        )),
+    }
 }
 
 fn print_human_activate(status: &LicenseStatus, key_prefix: &str) {
@@ -274,15 +443,43 @@ async fn run_activate(json_output: bool, args: ActivateArgs) -> anyhow::Result<(
     let prefix: String = key.chars().take(16).collect();
 
     // Spec §5.2: POST key to license validation endpoint, then save local file.
-    let resp = registry_validate(&registry, &key).await?;
+    let outcome = registry_validate(&registry, &key).await;
+    let resp = match outcome {
+        RegistryValidateOutcome {
+            response: Some(r),
+            error: None,
+        } => r,
+        RegistryValidateOutcome {
+            response: None,
+            error: Some(err),
+        } => {
+            let code = err.code();
+            let message = err.to_string();
+            let recovery = err.recovery_hint();
+            let out = json!({
+                "ok": false,
+                "code": code,
+                "error": code,
+                "message": message,
+                "recovery_hint": recovery,
+            });
+            if json_output {
+                println!("{}", serde_json::to_string_pretty(&out)?);
+            } else {
+                eprintln!("{message}\nrecovery_hint: {recovery}");
+            }
+            std::process::exit(2);
+        }
+        _ => unreachable!("RegistryValidateOutcome must set exactly one branch"),
+    };
     if !resp.valid {
         let purchase = format!("{}/buy", DEFAULT_REGISTRY.trim_end_matches('/'));
         let license_url = format!("{}/license", DEFAULT_REGISTRY.trim_end_matches('/'));
         let out = json!({
             "ok": false,
+            "code": "focusa_license_not_valid",
             "error": "license_not_valid",
-            "purchase_url": purchase,
-            "license_url": license_url,
+            "recovery_hint": format!("Purchase at {} or check {}.", purchase, license_url),
         });
         if json_output {
             println!("{}", serde_json::to_string_pretty(&out)?);
@@ -400,3 +597,119 @@ async fn run_check_feature(json_output: bool, args: CheckFeatureArgs) -> anyhow:
 // Avoid unused import warnings when ApiClient is not used in this module directly.
 #[allow(dead_code)]
 fn _suppress_unused(_: &ApiClient) {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn registry_error_codes_are_stable() {
+        // WP code values are part of the wire contract; lock them down.
+        assert_eq!(RegistryError::NotFound.code(), "focusa_license_not_found");
+        assert_eq!(RegistryError::Invalid.code(), "focusa_license_invalid");
+        assert_eq!(RegistryError::Revoked.code(), "focusa_license_revoked");
+        let _ = RegistryError::Expired("2026-01-01T00:00:00Z".to_string());
+        assert_eq!(
+            RegistryError::Malformed("bad".to_string()).code(),
+            "focusa_license_malformed"
+        );
+        assert_eq!(
+            RegistryError::RateLimited {
+                retry_after_secs: 60
+            }
+            .code(),
+            "focusa_registry_rate_limited"
+        );
+        assert_eq!(
+            RegistryError::Unavailable {
+                status: 503,
+                detail: "down".to_string()
+            }
+            .code(),
+            "focusa_registry_unavailable"
+        );
+    }
+
+    #[test]
+    fn registry_error_recovery_hints_are_actionable() {
+        // Every variant must produce a non-empty hint that mentions a URL,
+        // a retry, or a remediation — never blank.
+        let variants: Vec<RegistryError> = vec![
+            RegistryError::NotFound,
+            RegistryError::Invalid,
+            RegistryError::Revoked,
+            RegistryError::Expired("2026-01-01T00:00:00Z".to_string()),
+            RegistryError::Malformed("bad".to_string()),
+            RegistryError::RateLimited {
+                retry_after_secs: 60,
+            },
+            RegistryError::Unavailable {
+                status: 503,
+                detail: "down".to_string(),
+            },
+            RegistryError::MalformedResponse("not json".to_string()),
+            RegistryError::Transport("connect refused".to_string()),
+        ];
+        for v in &variants {
+            let hint = v.recovery_hint();
+            assert!(!hint.is_empty(), "empty hint for {:?}", v.code());
+            assert!(
+                hint.contains("https://install.focusa.dev")
+                    || hint.contains("60s")
+                    || hint.contains("verify")
+                    || hint.contains("Wait")
+                    || hint.contains("Verify"),
+                "hint {:?} not actionable: {hint}",
+                v.code()
+            );
+        }
+    }
+
+    #[test]
+    fn wp_envelope_status_to_error() {
+        // 404 → NotFound
+        let body = serde_json::json!({"code": "focusa_license_not_found", "message": "missing"});
+        assert!(matches!(map_wp_error_status(404, &body), RegistryError::NotFound));
+
+        // 410 with expires_at → Expired
+        let body = serde_json::json!({
+            "code": "focusa_license_expired",
+            "expires_at": "2026-01-01T00:00:00Z"
+        });
+        match map_wp_error_status(410, &body) {
+            RegistryError::Expired(d) => assert_eq!(d, "2026-01-01T00:00:00Z"),
+            other => panic!("expected Expired, got {other:?}"),
+        }
+
+        // 429 with retry_after
+        let body = serde_json::json!({"retry_after": 120});
+        match map_wp_error_status(429, &body) {
+            RegistryError::RateLimited { retry_after_secs } => {
+                assert_eq!(retry_after_secs, 120)
+            }
+            other => panic!("expected RateLimited, got {other:?}"),
+        }
+
+        // 503 → Unavailable with detail
+        let body = serde_json::json!({"message": "registry offline"});
+        match map_wp_error_status(503, &body) {
+            RegistryError::Unavailable { status, detail } => {
+                assert_eq!(status, 503);
+                assert_eq!(detail, "registry offline");
+            }
+            other => panic!("expected Unavailable, got {other:?}"),
+        }
+
+        // 401 → Invalid (no code match, falls through to status)
+        let body = serde_json::json!({"code": "", "message": "auth required"});
+        assert!(matches!(map_wp_error_status(401, &body), RegistryError::Invalid));
+
+        // 403 → Revoked (no code match, falls through to status)
+        let body = serde_json::json!({"code": "", "message": "revoked"});
+        assert!(matches!(map_wp_error_status(403, &body), RegistryError::Revoked));
+
+        // 422 → Malformed
+        let body = serde_json::json!({"errors": {"license_key": ["bad"]}});
+        assert!(matches!(map_wp_error_status(422, &body), RegistryError::Malformed(_)));
+    }
+}

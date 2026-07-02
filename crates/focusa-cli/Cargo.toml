@@ -20,6 +20,7 @@ serde_json = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 anyhow = { workspace = true }
+thiserror = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
 which = "7"
