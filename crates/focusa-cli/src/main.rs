@@ -86,6 +86,14 @@ enum Commands {
     /// Install and enable the Focusa daemon service (Linux systemd user / macOS LaunchAgent).
     InstallService(commands::service::InstallServiceArgs),
 
+    /// Canonical Focusa install orchestrator (Spec 112 §15A). Downloads `focusa`,
+    /// `focusa-daemon`, `focusa-tui`, verifies SHA256SUMS, places symlinks, renders the
+    /// service unit via `install-service`, validates license, automates PATH, and emits a
+    /// first-install walkthrough card inline to this terminal. The shell installers
+    /// (`install.focusa.dev/focusa`, `install.focusa.dev/focusa.ps1`) are thin
+    /// bootstrappers that `exec focusa install --target=auto` after detecting platform.
+    Install(commands::install::InstallArgs),
+
     /// macOS code signing + notarization inspection helper (focusa-covz).
     Codesign(commands::codesign::CodesignArgs),
 
@@ -430,6 +438,7 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
         Commands::InstallService(args) => commands::service::run(args, false).await,
+        Commands::Install(args) => commands::install::run(args).await,
         Commands::Codesign(args) => commands::codesign::run(args).await,
         Commands::Status { agent, operator } => {
             let api = api_client::ApiClient::new();

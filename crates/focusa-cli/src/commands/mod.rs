@@ -24,6 +24,7 @@ pub mod export;
 pub mod focus;
 pub mod gate;
 pub mod hlt;
+pub mod install;
 pub mod license;
 pub mod lineage;
 pub mod memory;

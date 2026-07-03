@@ -1090,7 +1090,119 @@ final `exec focusa install` flow.
 - [ ] `focusa-foyr` and `focusa-3cok` closed (shell installer no longer renders service units directly)
 - [ ] License JSON shape parity audit passes (`focusa-cli::commands::license::RegistryValidateResponse` ↔ `focusa-core::license::LicenseStatus`)
 
-### 15A.6 Why this architecture
+### 15A.6 PATH automation + first install walkthrough
+
+After `focusa install` finishes, the operator must be able to run `focusa --version`
+in a fresh shell without surprises. Two gaps caused evaluators to feel lost
+post-install: (a) the binary lived at `~/.focusa/bin/focusa` but PATH
+did not include it, and (b) no human or agent first-install guide was emitted.
+
+**PATH automation (mandatory):**
+
+- [ ] After symlink placement, `focusa install` MUST verify that `focusa` is reachable
+      via the user's current shell PATH on the target shell family (`bash`, `zsh`, `fish`, `sh`,
+      `pwsh`).
+- [ ] If not reachable: print a structured recovery_hint containing the EXACT
+      `export PATH=...` line for the target shell family (POSIX variants use
+      `export PATH="$HOME/.local/bin:$PATH"`; Windows Pwsh uses
+      `$env:PATH = "$env:USERPROFILE\.local\bin;$env:PATH"`).
+- [ ] Persist the PATH addition to the user's shell rc file when interactive
+      (`~/.bashrc`, `~/.zshrc`, `~/.config/fish/config.fish`) and skip silently
+      for non-interactive CI / agent contexts. Detection via `$SHELL` +
+      `[ -t 1 ]` or `--persist-path` / `--no-persist-path` flags.
+- [ ] Idempotent: never duplicate the PATH line on re-run.
+
+**First-install walkthrough (mandatory for MVP Cohort):**
+
+- [ ] `focusa install --on-shell <bash|zsh|fish|pwsh>` MUST emit a structured
+      next-steps card on success. Both forms print **inline to the same
+      terminal session** where `focusa install` was invoked — no separate
+      wizard TUI, no browser redirect, no detached process. The operator
+      sees one CLI log out of which they can copy commands directly.
+      Two forms:
+      - **Human form**: ASCII card with 6 actionable steps: (1) PATH now on,
+        (2) verify with `focusa --version`, (3) start daemon with
+        `focusa start`, (4) verify daemon with `focusa doctor`, (5) approve
+        a test pairing flow with `focusa pair --dry-run`,
+        (6) read docs at https://focusa.dev/start. Each step has expected
+        outcome and recovery_hint.
+      - **Agent form**: `--json` flag emits a `first_install_walkthrough.v1`
+        envelope with `next_steps[]`, each containing `command`, `intent`,
+        `expected_outcome`, `recovery_hint`, plus an `environment_summary`
+        block listing PATH, version, daemon status, license status,
+        scope_key, and a `recovery_hint_root` array. Output goes to stdout
+        in JSON; nothing else is emitted.
+- [ ] The agent envelope is the bridge into Spec 111 preload artifacts so an
+      agent bootstrapped after install has what it needs without re-running
+      the install.
+
+**Acceptance: launch a fresh shell, run `focusa install`, then run `focusa doctor`,
+and the operator must NOT need to manually edit PATH or guess the next command.**
+
+### 15A.7 Multi-agent integration (real deployed for ALL coding agents)
+
+After `focusa install` succeeds, the operator must be in a **working state
+inside whichever coding agent they use**, not just inside their shell.
+The 1st-install contract must cover Pi (already supported), Cursor,
+Continue, Cline, OpenCode, Aider, Claude Code, and any future MCP-compatible
+agent. An evaluator using Cursor must be able to install focusa and have
+their agent immediately able to call focusa tools — no further setup.
+
+**Agent detection (mandatory):**
+
+- [ ] `focusa install` MUST detect which coding agents are installed on the
+      host (Pi, Cursor, Continue, Cline, OpenCode, Aider, Claude Code,
+      Antigravity, Zed, Windsurf, others).
+      Zed, Windsurf, others). Detection is **read-only** — never auto-install
+      a new agent.
+- [ ] Detection heuristics live in `crates/focusa-cli/src/agents/detect.rs`
+      and check for known config paths under `~/.config/<agent>/`,
+      `~/.<agent>/`, `~/Library/Application Support/<agent>/`, and the host's
+      `$PATH` for agent CLI binaries.
+
+**MCP integration (universal):**
+
+- [ ] `focusa install` MUST emit a **machine-readable MCP config block**
+      (`focusa.mcp.v1`) listing the daemon URL (`http://127.0.0.1:8787/mcp`)
+      plus the `tool_manifest` URL and supported capability scopes. Any
+      MCP-compatible agent (Cursor, Continue, Cline, Claude Code, OpenCode)
+      can drop this block into its `mcp.json` / `claude_desktop_config.json`
+      / `.cursor/mcp.json` and immediately call focusa tools.
+- [ ] `focusa install --agent <pi|cursor|continue|cline|opencode|aider|claude-code>`
+      emits the MCP config block formatted for that specific agent's config
+      file path (with comment-anchored placement so re-runs are idempotent).
+
+**VS Code/Cursor extension (dedicated):**
+
+- [ ] `apps/vscode-extension/` — VS Code/Cursor extension package that:
+      - Reads focusa daemon URL + license state on startup
+      - Registers as an MCP server so Cursor's @-mention tool surface uses focusa
+      - Provides a sidebar status bar item (green/yellow/red)
+      - Offers commands `Focusa: Doctor`, `Focusa: Pair`, `Focusa: Show Workpoint`
+- [ ] Extension bundles `focusa-daemon-mcp` shim that proxies the daemon's
+      `/mcp` endpoint as a stdio MCP server for clients that prefer stdio.
+
+**Pi extension parity (already shipped):**
+
+- [ ] Existing `apps/pi-extension/` integration is preserved and remains the
+      canonical Pi integration. Verify still works post-slim.
+
+**Agent-aware walkthrough (extends §15A.6):**
+
+- [ ] First-install walkthrough MUST include agent-specific steps when agents
+      are detected. For Cursor: "Open Cursor, then Ctrl+Shift+P → 'Developer:
+      Reload Window' to activate the focusa MCP server." For Pi: "Pi auto-loads
+      apps/pi-extension on next session; nothing to do."
+- [ ] The agent envelope (`first_install_walkthrough.v1`) gains an
+      `agent_integrations[]` array listing each detected agent, its
+      integration status, the next-step command for that agent, and the
+      expected outcome.
+
+**Acceptance: install focusa on a host with Cursor and Pi. Launch Cursor,
+type `@focusa doctor` (or equivalent), and the agent must successfully call
+`focusa_daemon_doctor` without operator setup. Same for Pi in a fresh shell.**
+
+### 15A.8 Why this architecture
 
 - Single source of truth — no logic drift between bash, PowerShell, and Rust
 - Unit-testable installer logic (today's bash is untested)
