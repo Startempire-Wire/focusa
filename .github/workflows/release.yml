@@ -76,6 +76,9 @@ jobs:
           | Linux x64 musl/static | \`focusa-${TAG}-x86_64-unknown-linux-musl\` | CLI compatible with older glibc hosts |
           | Linux x64 musl/static | \`focusa-daemon-${TAG}-x86_64-unknown-linux-musl\` | API daemon compatible with older glibc hosts |
           | Linux x64 musl/static | \`focusa-tui-${TAG}-x86_64-unknown-linux-musl\` | TUI dashboard compatible with older glibc hosts |
+          | Windows ARM64 | \`focusa-${TAG}-aarch64-pc-windows-msvc.exe\` | CLI |
+          | Windows ARM64 | \`focusa-daemon-${TAG}-aarch64-pc-windows-msvc.exe\` | API daemon |
+          | Windows ARM64 | \`focusa-tui-${TAG}-aarch64-pc-windows-msvc.exe\` | TUI dashboard |
 
           ### Quick Start (macOS/Linux)
           \`\`\`bash
@@ -252,6 +255,9 @@ jobs:
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
             musl: true
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            exe: .exe
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -281,9 +287,12 @@ jobs:
         run: |
           TAG="${{ github.ref_name }}"
           mkdir -p dist
+          EXE="${{ matrix.exe || '' }}"
           for bin in focusa-daemon focusa focusa-tui; do
-            if [ -f "target/${{ matrix.target }}/release/$bin" ]; then
-              cp "target/${{ matrix.target }}/release/$bin" "dist/${bin}-${TAG}-${{ matrix.target }}"
+            src="target/${{ matrix.target }}/release/${bin}${EXE}"
+            dst="dist/${bin}-${TAG}-${{ matrix.target }}${EXE}"
+            if [ -f "$src" ]; then
+              cp "$src" "$dst"
             fi
           done
           ls -la dist/
