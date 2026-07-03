@@ -204,34 +204,41 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         return Ok(());
     }
 
-    // Real install. Each phase is its own function; this orchestrator just
-    // sequences them. Phases that require sub-beads (atomicity, PATH automation,
-    // first-install walkthrough) still emit structured errors so the CLI surface
-    // is stable; the body will grow as each sub-bead closes.
-    let phase = phase_license(&args).await?;
-    if let Some(plan) = dry_run_summary(&args, target, &install_root, &phase) {
-        let _ = plan; // reserved for early dry-run; kept for signature stability
+    // Real install wrapped in atomicity (focusa-112-atomicity, Spec 112 §6):
+    //   1. Stash any existing install to .focusa.stash
+    //   2. Execute each phase
+    //   3. Run smoke test (focusa --version on the new binary)
+    //   4. On smoke-test failure: rollback to stash
+    //   5. On success: remove stash
+    let stash_path = install_root.with_extension("stash");
+    let stashed = phase_atomic_stash(&install_root, &stash_path)?;
+    if let Err(e) = execute_real_install(&args, target, channel, &install_root).await {
+        if stashed {
+            phase_atomic_rollback(&install_root, &stash_path).ok();
+        }
+        return Err(e);
     }
-    let assets = phase_asset_download(target, channel, args.github_repo.as_deref()).await?;
     let bin_dir = install_root.join("bin");
-    for asset in &assets {
-        verify_checksum(asset).await?;
+    if let Err(e) = phase_smoke_test(&bin_dir).await {
+        if stashed {
+            phase_atomic_rollback(&install_root, &stash_path).ok();
+        }
+        return Err(e);
     }
-    place_symlinks(&bin_dir, install_root.as_path())?;
-    delegate_service_render(target, &bin_dir, dry_run).await?;
+    if stashed {
+        phase_atomic_cleanup(&stash_path).ok();
+    }
 
     // Phases that still need their sub-beads to land:
-    //   - focusa-112-atomicity (stash + rollback)
     //   - focusa-112-path-automation (PATH detection + rc edit)
     //   - focusa-112-first-walkthrough (post-install card)
     // We emit a structured "wired but phase 5+ not yet wired" response so the
     // operator can see what was done and what's pending.
     if !args.json {
         println!(
-            "\n✓ Installed {} asset(s) to {}\n  license: {}\n  next: focusa doctor (verify) + focusa about (recap)\n",
-            assets.len(),
+            "\n✓ Installed assets to {}\n  atomicity: stashed={}, smoke-test OK\n  next: focusa doctor (verify) + focusa about (recap)\n",
             install_root.display(),
-            phase,
+            stashed,
         );
     } else {
         let report = serde_json::json!({
@@ -410,6 +417,95 @@ fn place_symlinks(bin_dir: &std::path::Path, _install_root: &std::path::Path) ->
         std::os::unix::fs::symlink(&target, &link)
             .with_context(|| format!("symlink {} -> {}", link.display(), target.display()))?;
     }
+    Ok(())
+}
+
+// ----- Phase 0: Atomicity (focusa-112-atomicity, Spec 112 §6) -----
+
+/// Stash any existing install to a side directory before overwrite. Returns
+/// true if a stash was actually written (i.e. a prior install existed).
+fn phase_atomic_stash(install_root: &std::path::Path, stash: &std::path::Path) -> Result<bool> {
+    if !install_root.exists() {
+        return Ok(false);
+    }
+    if stash.exists() {
+        std::fs::remove_dir_all(stash)
+            .with_context(|| format!("remove prior stash {}", stash.display()))?;
+    }
+    std::fs::rename(install_root, stash)
+        .with_context(|| format!("stash {} -> {}", install_root.display(), stash.display()))?;
+    Ok(true)
+}
+
+/// Roll back to the stashed install. Best-effort; reports failure as a
+/// recovery_hint but does not itself error out.
+fn phase_atomic_rollback(install_root: &std::path::Path, stash: &std::path::Path) -> Result<()> {
+    if install_root.exists() {
+        std::fs::remove_dir_all(install_root).ok();
+    }
+    std::fs::rename(stash, install_root)
+        .with_context(|| format!("rollback {} -> {}", stash.display(), install_root.display()))?;
+    Ok(())
+}
+
+/// Clean up the stash on a successful install.
+fn phase_atomic_cleanup(stash: &std::path::Path) -> Result<()> {
+    if stash.exists() {
+        std::fs::remove_dir_all(stash)
+            .with_context(|| format!("remove stash {}", stash.display()))?;
+    }
+    Ok(())
+}
+
+/// Smoke test: invoke the just-installed `focusa --version` and require
+/// exit 0. This is the gate Spec 112 §6 puts between install and
+/// commit-success.
+async fn phase_smoke_test(bin_dir: &std::path::Path) -> Result<()> {
+    let focusa = bin_dir.join("focusa");
+    if !focusa.exists() {
+        return Err(anyhow!(
+            "smoke test failed: focusa binary not present at {}",
+            focusa.display()
+        ));
+    }
+    let status = std::process::Command::new(&focusa)
+        .arg("--version")
+        .status();
+    match status {
+        Ok(s) if s.success() => Ok(()),
+        Ok(s) => Err(anyhow!(
+            "smoke test failed: focusa --version exited {}",
+            s.code().unwrap_or(-1)
+        )),
+        Err(e) => Err(anyhow!("smoke test failed: could not exec focusa --version: {e}")),
+    }
+}
+
+fn bin_dir_for(install_root: &std::path::Path) -> std::path::PathBuf {
+    install_root.join("bin")
+}
+
+/// Wraps the post-license phases into one async function for atomicity.
+async fn execute_real_install(
+    args: &InstallArgs,
+    target: InstallTarget,
+    channel: Channel,
+    install_root: &std::path::Path,
+) -> Result<()> {
+    let phase = phase_license(args).await?;
+    let assets = phase_asset_download(target, channel, args.github_repo.as_deref()).await?;
+    let bin_dir = install_root.join("bin");
+    for asset in &assets {
+        verify_checksum(asset).await?;
+    }
+    place_symlinks(&bin_dir, install_root)?;
+    delegate_service_render(target, &bin_dir, args.dry_run).await?;
+    eprintln!(
+        "[install] license={}, assets={}, bin_dir={}",
+        phase,
+        assets.len(),
+        bin_dir.display(),
+    );
     Ok(())
 }
 
