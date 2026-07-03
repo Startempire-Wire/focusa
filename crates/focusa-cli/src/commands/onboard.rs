@@ -13,6 +13,11 @@ pub struct OnboardArgs {
     #[arg(long, default_value = "manual")]
     pub agent: String,
 
+    /// Onboarding scope. Default project preserves existing behavior. Use
+    /// --scope host for instance-level setup on a non-Focusa/non-project host.
+    #[arg(long, value_name = "SCOPE", default_value = "project")]
+    pub scope: OnboardScope,
+
     /// Explicit project root. Defaults to git root, then current directory.
     #[arg(long)]
     pub project_root: Option<String>,
@@ -24,6 +29,23 @@ pub struct OnboardArgs {
     /// Skip creating the demo Workpoint.
     #[arg(long)]
     pub no_demo_workpoint: bool,
+}
+
+#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum OnboardScope {
+    /// Instance-level setup: start daemon and show host readiness only. Does
+    /// not create a project Workpoint and does not require git/license files.
+    Host,
+    /// Project-level setup: existing behavior. Requires safe project root;
+    /// may create a demo Workpoint when daemon is healthy.
+    Project,
+}
+
+impl Default for OnboardScope {
+    fn default() -> Self {
+        Self::Project
+    }
 }
 
 fn shell_output(args: &[&str], cwd: Option<&Path>) -> Option<String> {
@@ -47,6 +69,19 @@ fn detect_project_root(explicit: Option<String>) -> anyhow::Result<PathBuf> {
         return Ok(PathBuf::from(root));
     }
     Ok(std::env::current_dir()?)
+}
+
+fn safe_project_root(project_root: &Path) -> bool {
+    let root = project_root.to_string_lossy();
+    let trimmed = root.trim().trim_end_matches('/');
+    !trimmed.is_empty()
+        && trimmed != "/"
+        && trimmed != "/root"
+        && trimmed != "/home"
+        && trimmed != "/tmp"
+        && trimmed != "/var"
+        && trimmed != "/usr"
+        && trimmed != "/opt"
 }
 
 fn has_git_repo(project_root: &Path) -> bool {
@@ -152,31 +187,40 @@ fn print_human(response: &Value) {
 pub async fn run(args: OnboardArgs, json_mode: bool) -> anyhow::Result<()> {
     let project_root = detect_project_root(args.project_root)?;
     let project_root_str = project_root.display().to_string();
+    let project_scope = matches!(args.scope, OnboardScope::Project);
+    if project_scope && !safe_project_root(&project_root) {
+        anyhow::bail!(
+            "unsafe project root for project onboarding: {project_root_str}. Use --scope host for instance-level setup or pass --project-root to a focused project directory."
+        );
+    }
     let continuity_id = args
         .continuity_id
         .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(|| format!("focusa-onboard-{}", chrono::Utc::now().timestamp()));
 
-    let git_repo = has_git_repo(&project_root);
-    let license = license_visible(&project_root);
-    let pi_extension = pi_extension_visible(&project_root);
+    let git_repo = project_scope && has_git_repo(&project_root);
+    let license = project_scope && license_visible(&project_root);
+    let pi_extension = project_scope && pi_extension_visible(&project_root);
 
     let started = daemon::start().await.unwrap_or(false);
     let api = ApiClient::with_timeout_secs(8);
     let health = api.get("/v1/health").await;
     let health_ok = health.is_ok();
 
-    let project_identity = api
-        .get(&format!(
+    let project_identity = if project_scope {
+        api.get(&format!(
             "/v1/project/identity?project_root={}",
             encode_query(&project_root_str)
         ))
         .await
-        .unwrap_or_else(|err| json!({"status":"blocked","error":err.to_string()}));
+        .unwrap_or_else(|err| json!({"status":"blocked","error":err.to_string()}))
+    } else {
+        json!({"status":"skipped","reason":"host-scope onboarding does not bind project identity"})
+    };
 
     let mut workpoint = Value::Null;
     let mut resume = Value::Null;
-    if !args.no_demo_workpoint && health_ok {
+    if project_scope && !args.no_demo_workpoint && health_ok {
         workpoint = api
             .post(
                 "/v1/workpoint/checkpoint",
@@ -214,7 +258,7 @@ pub async fn run(args: OnboardArgs, json_mode: bool) -> anyhow::Result<()> {
             .unwrap_or_else(|err| json!({"status":"blocked","error":err.to_string()}));
     }
 
-    let status = if health_ok && git_repo && license {
+    let status = if health_ok && (!project_scope || (git_repo && license)) {
         "ready"
     } else {
         "needs_attention"
@@ -222,19 +266,20 @@ pub async fn run(args: OnboardArgs, json_mode: bool) -> anyhow::Result<()> {
     let response = json!({
         "status": status,
         "agent": args.agent,
-        "project_root": project_root.display().to_string(),
+        "scope": args.scope,
+        "project_root": if project_scope { project_root.display().to_string() } else { "".to_string() },
         "continuity_id": continuity_id,
         "checks": {
             "daemon": if started { "started" } else if health_ok { "already_running" } else { "blocked" },
             "api_health": ok_status(health_ok),
-            "git_repo": ok_status(git_repo),
-            "license": ok_status(license),
-            "pi_extension": if pi_extension { "available" } else { "manual_mode_available" }
+            "git_repo": if project_scope { ok_status(git_repo) } else { "skipped" },
+            "license": if project_scope { ok_status(license) } else { "skipped" },
+            "pi_extension": if project_scope { if pi_extension { "available" } else { "manual_mode_available" } } else { "skipped" }
         },
         "project_identity": project_identity,
         "workpoint": workpoint,
         "resume": resume,
-        "next_command": "focusa workpoint resume --mode compact_prompt",
+        "next_command": if project_scope { "focusa workpoint resume --mode compact_prompt" } else { "focusa doctor --scope host" },
         "manual_mode_command": "focusa awareness card --adapter-id manual --workspace-id local --agent-id cli",
         "proof_doc": "docs/current/FOCUSA_OPERATOR_PREVIEW_PROOF.md",
         "known_limits": [
