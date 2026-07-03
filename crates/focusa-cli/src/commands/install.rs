@@ -645,6 +645,36 @@ fn bin_dir_for(install_root: &std::path::Path) -> std::path::PathBuf {
     install_root.join("bin")
 }
 
+// ----- Phase 3b: macOS codesign verify (focusa-112-codesign-verify) -----
+fn verify_macos_codesign(target: InstallTarget, asset: &InstalledAsset) -> Result<()> {
+    if target != InstallTarget::Darwin {
+        return Ok(());
+    }
+    if !cfg!(target_os = "macos") {
+        eprintln!(
+            "warning: skipping macOS codesign verify for {} because this installer is not running on macOS",
+            asset.name
+        );
+        return Ok(());
+    }
+    let status = std::process::Command::new("codesign")
+        .arg("-dv")
+        .arg("--verify")
+        .arg("--strict")
+        .arg(&asset.path)
+        .status()
+        .map_err(|e| anyhow!("macOS codesign verify failed to execute for {}: {e}", asset.name))?;
+    if !status.success() {
+        bail!(
+            "macOS codesign verify failed for {}: codesign exited {}",
+            asset.name,
+            status.code().unwrap_or(-1)
+        );
+    }
+    eprintln!("✓ macOS codesign verified for {}", asset.name);
+    Ok(())
+}
+
 /// Wraps the post-license phases into one async function for atomicity.
 async fn execute_real_install(
     args: &InstallArgs,
@@ -657,6 +687,7 @@ async fn execute_real_install(
     let bin_dir = install_root.join("bin");
     for asset in &assets {
         verify_checksum(asset).await?;
+        verify_macos_codesign(target, asset)?;
     }
     place_symlinks(&bin_dir, install_root)?;
     delegate_service_render(target, &bin_dir, args.dry_run).await?;
