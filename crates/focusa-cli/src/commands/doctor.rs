@@ -7,8 +7,41 @@ use std::path::{Path, PathBuf};
 
 #[derive(clap::Args, Debug, Default)]
 pub struct DoctorArgs {
+    /// What level of checks to run. Default = host. Per transcript gap:
+    /// the previous single-mode doctor was too rigid for non-focusa hosts;
+    /// it tried to run repo-specific checks on a Next.js project and
+    /// generated dummy files. Scope modes let the operator pick the
+    /// right level.
+    #[arg(long, value_name = "MODE", default_value = "host")]
+    pub scope: DoctorScope,
+
+    /// Show all checks regardless of pass/fail (default hides passed).
+    #[arg(long)]
+    pub verbose: bool,
+
     #[command(subcommand)]
     pub command: Option<DoctorCommand>,
+}
+
+#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DoctorScope {
+    /// Daemon + lifecycle + scope safety (works on any host that has
+    /// focusa-daemon running; does NOT require focusa repo presence).
+    Host,
+    /// Adds project-shape checks (scripts/validate-focusa-tool-contracts.mjs,
+    /// apps/pi-extension/skills, focusa-project.json marker). Requires
+    /// running inside a focusa repo.
+    Project,
+    /// Adds repo-only checks (target/release/focusa-daemon binary, build
+    /// artifacts, etc.). Requires a built focusa repo.
+    Repo,
+}
+
+impl Default for DoctorScope {
+    fn default() -> Self {
+        Self::Host
+    }
 }
 
 #[derive(Subcommand, Debug)]
@@ -270,24 +303,34 @@ pub async fn run(json_mode: bool, args: DoctorArgs) -> anyhow::Result<()> {
     );
 
     checks.push(fs_check("daemon exe path", &path_string(daemon_exe_path())));
-    checks.push(fs_check(
-        "Spec91 live proof harness",
-        "scripts/prove-focusa-tool-contracts-live.mjs",
-    ));
-    checks.push(fs_check(
-        "Spec90 contract validator",
-        "scripts/validate-focusa-tool-contracts.mjs",
-    ));
-    checks.push(fs_check("Pi extension skills", "apps/pi-extension/skills"));
-    if let Some(path) = pi_skills_path() {
-        checks.push(fs_check("Pi user skills", &path_string(path)));
+
+    // Transcript gap fix: only run project-shape + repo-shape checks when
+    // --scope=project or --scope=repo is requested. Default --scope=host
+    // runs only the daemon + lifecycle + scope-safety checks above so
+    // focusa doctor works on a Next.js / non-focusa host without
+    // generating dummy files.
+    if matches!(args.scope, DoctorScope::Project | DoctorScope::Repo) {
+        checks.push(fs_check(
+            "Spec91 live proof harness",
+            "scripts/prove-focusa-tool-contracts-live.mjs",
+        ));
+        checks.push(fs_check(
+            "Spec90 contract validator",
+            "scripts/validate-focusa-tool-contracts.mjs",
+        ));
+        checks.push(fs_check("Pi extension skills", "apps/pi-extension/skills"));
+        if let Some(path) = pi_skills_path() {
+            checks.push(fs_check("Pi user skills", &path_string(path)));
+        }
+        checks.push(fs_check("Mac app package", "apps/menubar/package.json"));
+        checks.push(fs_check(
+            "release command docs",
+            "docs/current/PRODUCTION_RELEASE_COMMANDS.md",
+        ));
     }
-    checks.push(fs_check("Mac app package", "apps/menubar/package.json"));
-    checks.push(fs_check(
-        "release command docs",
-        "docs/current/PRODUCTION_RELEASE_COMMANDS.md",
-    ));
-    checks.push(bin_check("Guardian scanner", "guardian"));
+    if matches!(args.scope, DoctorScope::Repo) {
+        checks.push(bin_check("Guardian scanner", "guardian"));
+    }
 
     let worst = checks
         .iter()
@@ -339,6 +382,7 @@ pub async fn run(json_mode: bool, args: DoctorArgs) -> anyhow::Result<()> {
     });
     let response = json!({
         "status": status,
+        "scope": args.scope,
         "summary": if blocked > 0 { format!("{blocked} doctor check(s) blocked; readiness categories split runtime/source/release planes") } else { "All required doctor checks completed".to_string() },
         "readiness_categories": readiness_categories,
         "next_action": if blocked > 0 { "Run the recovery command for the first blocked check, then re-run focusa doctor" } else { "Continue with focusa continue or focusa release prove --tag <tag> when ready" },
