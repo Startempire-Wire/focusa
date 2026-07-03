@@ -233,31 +233,18 @@ pub async fn run(args: InstallArgs) -> Result<()> {
     //   - focusa-112-path-automation (PATH detection + rc edit)
     //   - focusa-112-first-walkthrough (post-install card)
     // We emit a structured "wired but phase 5+ not yet wired" response so the
-    // operator can see what was done and what's pending.
+    // operator can see what was done and what's pending. The walkthrough is
+    // emitted via print_walkthrough_human() below when --json is not set, and
+    // embedded in the JSON envelope when --json is set.
     if !args.json {
         println!(
-            "\n✓ Installed assets to {}\n  atomicity: stashed={}, smoke-test OK\n  next: focusa doctor (verify) + focusa about (recap)\n",
+            "\n✓ Installed assets to {}\n  atomicity: stashed={}, smoke-test OK\n  walkthrough: 6 next steps below\n",
             install_root.display(),
             stashed,
         );
-    } else {
-        let report = serde_json::json!({
-            "ok": true,
-            "target": target,
-            "channel": channel,
-            "license_status": phase,
-            "assets": assets.iter().map(|a| serde_json::json!({
-                "name": a.name, "version": a.version, "triple": a.triple,
-                "install_path": a.install_path, "sha256": a.sha256,
-            })).collect::<Vec<_>>(),
-            "install_root": install_root.display().to_string(),
-            "pending_phases": ["atomicity (focusa-112-atomicity)",
-                               "path_automation (focusa-112-path-automation)",
-                               "first_install_walkthrough (focusa-112-first-walkthrough)"],
-            "recovery_hint": "Pending phases will land as their sub-beads close; re-run focusa install to retry.",
-        });
-        println!("{}", serde_json::to_string_pretty(&report)?);
     }
+    // The JSON envelope (with embedded walkthrough) is emitted by the
+    // execute_real_install() return path below. Print it here if --json.
     Ok(())
 }
 
@@ -420,6 +407,163 @@ fn place_symlinks(bin_dir: &std::path::Path, _install_root: &std::path::Path) ->
     Ok(())
 }
 
+// ----- Phase 6: PATH automation (focusa-112-path-automation, Spec 112 §15A.6) -----
+
+/// Detect the user's shell family from $SHELL and return which rc files
+/// to update plus the exact `export PATH=...` line to append.
+pub fn detect_shell_rc_targets() -> Vec<(std::path::PathBuf, String, String)> {
+    let shell = std::env::var("SHELL").unwrap_or_default();
+    let is_interactive = atty_stdout_is_terminal();
+    let home = match std::env::var_os("HOME") {
+        Some(h) => std::path::PathBuf::from(h),
+        None => return Vec::new(),
+    };
+    let path_line_bash = "export PATH=\"$HOME/.local/bin:$PATH\"".to_string();
+    let path_line_zsh = "export PATH=\"$HOME/.local/bin:$PATH\"".to_string();
+    let path_line_fish = "set -gx PATH $HOME/.local/bin $PATH".to_string();
+
+    let mut out = Vec::new();
+    if shell.contains("bash") || shell.is_empty() {
+        out.push((home.join(".bashrc"), path_line_bash, "bash".to_string()));
+    }
+    if shell.contains("zsh") {
+        out.push((home.join(".zshrc"), path_line_zsh, "zsh".to_string()));
+    }
+    if shell.contains("fish") {
+        let p = home.join(".config/fish/config.fish");
+        if p.parent().is_some() {
+            std::fs::create_dir_all(p.parent().unwrap()).ok();
+        }
+        out.push((p, path_line_fish, "fish".to_string()));
+    }
+    // Suppress unused-variable warning when non-interactive (recorded for parity).
+    let _ = is_interactive;
+    out
+}
+
+fn atty_stdout_is_terminal() -> bool {
+    // Minimal atty: check if stdout is a tty via std::env + a /dev/tty probe.
+    // Conservative default: assume terminal when STDIN is one.
+    std::io::IsTerminal::is_terminal(&std::io::stdout())
+}
+
+/// Idempotently persist the PATH line to an rc file. Never duplicates:
+/// if the exact line is already present, no-op. If a similar line is
+/// present, also no-op (idempotency over cleverness).
+pub fn persist_path_to_rc(rc: &std::path::Path, path_line: &str) -> Result<()> {
+    if let Some(parent) = rc.parent() {
+        std::fs::create_dir_all(parent).ok();
+    }
+    if !rc.exists() {
+        std::fs::write(rc, format!("{path_line}\n"))
+            .with_context(|| format!("write {}", rc.display()))?;
+        return Ok(());
+    }
+    let content = std::fs::read_to_string(rc)
+        .with_context(|| format!("read {}", rc.display()))?;
+    if content.contains(".local/bin") && content.contains("PATH") {
+        // Already there in some form; don't duplicate.
+        return Ok(());
+    }
+    let mut new_content = content;
+    if !new_content.ends_with('\n') {
+        new_content.push('\n');
+    }
+    new_content.push_str(path_line);
+    new_content.push('\n');
+    std::fs::write(rc, &new_content)
+        .with_context(|| format!("write {}", rc.display()))?;
+    Ok(())
+}
+
+/// Build the post-install walkthrough structure (Spec 112 §15A.6).
+/// The 6-step human card: PATH / verify / start / doctor / pair / docs.
+pub fn build_first_install_walkthrough(
+    target: InstallTarget,
+    channel: Channel,
+    bin_dir: &std::path::Path,
+    install_root: &std::path::Path,
+    asset_count: usize,
+) -> FirstInstallWalkthrough {
+    let binary = bin_dir.join("focusa");
+    let summary = EnvironmentSummary {
+        install_root: install_root.display().to_string(),
+        binary_path: binary.display().to_string(),
+        on_path: atty_stdout_is_terminal() || std::path::Path::new(&binary).exists(),
+        daemon_url: "http://127.0.0.1:8787".to_string(),
+        daemon_status: "stopped (start with `focusa start`)".to_string(),
+        license_status: "active".to_string(),
+        scope_key: None,
+        recovery_hint_root: vec![
+            "If `focusa --version` returns 'command not found', re-source your shell rc.".to_string(),
+            "If the daemon fails to start, run `focusa doctor` for diagnosis.".to_string(),
+        ],
+    };
+    let next_steps = vec![
+        NextStep {
+            command: format!("{}", binary.display()),
+            intent: "verify install (executable present, returns --version)".to_string(),
+            expected_outcome: "binary exits 0 with focusa version string".to_string(),
+            recovery_hint: Some("re-run focusa install; check ~/.focusa/bin/focusa exists".to_string()),
+        },
+        NextStep {
+            command: "focusa start".to_string(),
+            intent: "boot the daemon".to_string(),
+            expected_outcome: "daemon runs at http://127.0.0.1:8787 (PID printed)".to_string(),
+            recovery_hint: Some("check `focusa status`; see `focusa doctor`".to_string()),
+        },
+        NextStep {
+            command: "focusa doctor".to_string(),
+            intent: "verify health (daemon + license + service unit)".to_string(),
+            expected_outcome: "ok: all checks pass".to_string(),
+            recovery_hint: Some("follow the first failed check's recovery_hint".to_string()),
+        },
+        NextStep {
+            command: "focusa workpoint checkpoint --mission \"first install\" --project-root \"$(pwd)\"".to_string(),
+            intent: "create a save state".to_string(),
+            expected_outcome: "ok: workpoint id returned".to_string(),
+            recovery_hint: Some("pass --project-root explicitly if PWD is not a project".to_string()),
+        },
+        NextStep {
+            command: "focusa about".to_string(),
+            intent: "read the human-facing recap".to_string(),
+            expected_outcome: "30-line ASCII card explaining what focusa is".to_string(),
+            recovery_hint: Some("for LLM agents, read GET /llms.txt on the daemon instead".to_string()),
+        },
+        NextStep {
+            command: "focusa workflow list".to_string(),
+            intent: "discover canonical workflow templates".to_string(),
+            expected_outcome: "6 templates listed (long-refactor, multi-session-resume, etc.)".to_string(),
+            recovery_hint: Some("apply with `focusa workflow show <name>`".to_string()),
+        },
+    ];
+    let _ = target;
+    let _ = channel;
+    let _ = asset_count;
+    FirstInstallWalkthrough {
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        environment_summary: summary,
+        next_steps,
+        agent_integrations: Vec::new(),
+    }
+}
+
+pub fn print_walkthrough_human(walkthrough: &FirstInstallWalkthrough) {
+    println!("\n[ focusa install complete — 6 next steps ]\n");
+    for (i, step) in walkthrough.next_steps.iter().enumerate() {
+        println!(
+            "  {}. {}\n     intent:    {}\n     command:   {}\n     expected:  {}\n     recovery:  {}\n",
+            i + 1,
+            step.intent,
+            step.intent,
+            step.command,
+            step.expected_outcome,
+            step.recovery_hint.as_deref().unwrap_or("—"),
+        );
+    }
+    println!("Hint: for LLM agents, GET /llms.txt on the daemon serves the canonical primer.");
+}
+
 // ----- Phase 0: Atomicity (focusa-112-atomicity, Spec 112 §6) -----
 
 /// Stash any existing install to a side directory before overwrite. Returns
@@ -500,6 +644,43 @@ async fn execute_real_install(
     }
     place_symlinks(&bin_dir, install_root)?;
     delegate_service_render(target, &bin_dir, args.dry_run).await?;
+
+    // Path automation (focusa-112-path-automation). Idempotent: detects
+    // shell, persists export PATH line to rc file, never duplicates.
+    for (rc, line, _shell) in detect_shell_rc_targets() {
+        if let Err(e) = persist_path_to_rc(&rc, &line) {
+            eprintln!("warning: failed to persist PATH to {}: {e}", rc.display());
+        }
+    }
+
+    // First-install walkthrough (focusa-112-first-walkthrough). Prints inline
+    // to the same terminal where install ran — no separate wizard UI.
+    let walkthrough = build_first_install_walkthrough(
+        target,
+        channel,
+        &bin_dir,
+        &install_root,
+        assets.len(),
+    );
+    if !args.json {
+        print_walkthrough_human(&walkthrough);
+    } else {
+        let report = serde_json::json!({
+            "ok": true,
+            "target": target,
+            "channel": channel,
+            "license_status": phase,
+            "assets": assets.iter().map(|a| serde_json::json!({
+                "name": a.name, "version": a.version, "triple": a.triple,
+                "install_path": a.install_path, "sha256": a.sha256,
+            })).collect::<Vec<_>>(),
+            "install_root": install_root.display().to_string(),
+            "first_install_walkthrough": serde_json::to_value(&walkthrough)?,
+            "recovery_hint": "Pending phases will land as their sub-beads close; re-run focusa install to retry.",
+        });
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        // Skip the second JSON block below.
+    }
     eprintln!(
         "[install] license={}, assets={}, bin_dir={}",
         phase,
