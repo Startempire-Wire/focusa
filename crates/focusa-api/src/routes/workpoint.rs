@@ -1786,21 +1786,88 @@ async fn current(
     if !permissions.allows("work-loop:read") {
         return Err(forbid("work-loop:read"));
     }
+    // Auto-detect project_root from PWD when not provided (Spec 109 AX +
+    // transcript gap 6: `focusa workpoint current` (no args) should
+    // discover scope from .focusa-project.json walking up from CWD).
+    let detected_project_root = detect_project_root_from_cwd();
+    let effective_project_root = query
+        .project_root
+        .as_deref()
+        .and_then(clean_resume_scope_value)
+        .or(detected_project_root);
+    let effective_continuity_id = query
+        .continuity_id
+        .as_deref()
+        .and_then(clean_resume_scope_value);
+    // If project_root was auto-detected but no continuity_id was passed,
+    // look up the continuity_id from the .focusa-project.json marker.
+    let effective_continuity_id = if effective_continuity_id.is_none() && effective_project_root.is_some() {
+        read_continuity_id_from_marker(&effective_project_root.clone().unwrap())
+    } else {
+        effective_continuity_id
+    };
     let focusa = state.focusa.read().await;
     let Some(record) = active_workpoint_for_scope(
         &focusa,
-        query.project_root.as_deref(),
-        query.continuity_id.as_deref(),
+        effective_project_root.as_deref(),
+        effective_continuity_id.as_deref(),
     ) else {
-        return Ok(Json(json!({
+        let mut payload = json!({
             "status": "not_found",
             "canonical": false,
             "workpoint_id": null,
-            "warnings": ["no active workpoint"],
-            "next_step_hint": "POST /v1/workpoint/checkpoint before compacting or resuming"
-        })));
+            "warnings": ["no active workpoint matches this scope"],
+            "next_step_hint": "POST /v1/workpoint/checkpoint with --project-root=<abs> and --continuity-id=<id> before compacting or resuming"
+        });
+        if let Some(p) = &effective_project_root {
+            payload.as_object_mut().unwrap().insert(
+                "detected_project_root".to_string(),
+                serde_json::Value::String(p.clone()),
+            );
+        }
+        if let Some(c) = &effective_continuity_id {
+            payload.as_object_mut().unwrap().insert(
+                "detected_continuity_id".to_string(),
+                serde_json::Value::String(c.clone()),
+            );
+        }
+        payload.as_object_mut().unwrap().insert(
+            "recovery_hint".to_string(),
+            serde_json::Value::String(
+                "pass --project-root explicitly if PWD is not the project; if the workpoint was created in a different cwd, run focusa workpoint current --project-root <that-path>".to_string()
+            ),
+        );
+        return Ok(Json(payload));
     };
     Ok(Json(current_workpoint_payload(record)))
+}
+
+/// Walk up from PWD looking for `.focusa-project.json`; return the directory
+/// containing it. This is the universal scope-detection heuristic for
+/// workpoint current/resume. Mirrors the daemon's project_identity
+/// detection at startup.
+fn detect_project_root_from_cwd() -> Option<String> {
+    let mut cur = std::env::current_dir().ok()?;
+    loop {
+        let marker = cur.join(".focusa-project.json");
+        if marker.is_file() {
+            return cur.to_str().map(|s| s.to_string());
+        }
+        match cur.parent() {
+            Some(parent) if parent != cur => cur = parent.to_path_buf(),
+            _ => return None,
+        }
+    }
+}
+
+/// Read the continuity_id from `.focusa-project.json` if present.
+fn read_continuity_id_from_marker(project_root: &str) -> Option<String> {
+    let path = std::path::Path::new(project_root).join(".focusa-project.json");
+    let body = std::fs::read_to_string(&path).ok()?;
+    let json: serde_json::Value = serde_json::from_str(&body).ok()?;
+    json.get("continuity_id")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
 }
 
 fn resource_mode_resume_payload() -> Value {
