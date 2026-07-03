@@ -81,6 +81,25 @@ pub struct ActionPreflightEnvelope {
     pub conflicts: Vec<PreflightConflict>,
     pub safe_alternative: Option<String>,
     pub evidence_refs: Vec<String>,
+    /// Spec 109 / transcript gap 2026-07-03: per-check audit trail. Each
+    /// check the preflight ran is listed with name / passed / observed
+    /// value / threshold / recovery_hint so the agent knows WHY the verdict
+    /// came out the way it did.
+    pub checks: Vec<PreflightCheck>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PreflightCheck {
+    /// Stable name like "scope_resolution", "task_substitution", or
+    /// "environment_role_known".
+    pub name: &'static str,
+    pub passed: bool,
+    /// What the check observed (raw value, normalized form, etc).
+    pub value_observed: String,
+    /// Threshold / rule that value_observed was compared against.
+    pub threshold: String,
+    /// Hint if this check failed. Absent when passed.
+    pub recovery_hint: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -237,6 +256,7 @@ pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope 
     let mut conflicts = Vec::new();
     let mut safe_alternative = None;
     let mut verdict = PreflightVerdict::Allow;
+    let mut checks: Vec<PreflightCheck> = Vec::new();
 
     let is_release_binary_replace = kind == "binary_replace"
         && (source == "github_release_asset" || source == "release_asset")
@@ -245,6 +265,69 @@ pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope 
             .as_deref()
             .map(|target| target.ends_with("/focusa") || target.ends_with("/focusa-daemon"))
             .unwrap_or(false);
+
+    // Check 1: scope_resolution — project_root is safe (not /, /root, /home, etc.)
+    let scope_safe = args
+        .project_root
+        .as_deref()
+        .map(|p| {
+            let r = p.trim().trim_end_matches('/');
+            !r.is_empty()
+                && r != "/"
+                && r != "/root"
+                && r != "/home"
+                && r != "/tmp"
+                && r != "/var"
+                && r != "/usr"
+                && r != "/opt"
+        })
+        .unwrap_or(false);
+    checks.push(PreflightCheck {
+        name: "scope_resolution",
+        passed: scope_safe || !is_release_binary_replace,
+        value_observed: args.project_root.clone().unwrap_or_default(),
+        threshold: "project_root must be a non-trivial focused directory".to_string(),
+        recovery_hint: if !scope_safe && is_release_binary_replace {
+            Some("Pass --project-root to focusa install or set FOCUSA_PROJECT_ROOT env to a focused dir.".to_string())
+        } else { None },
+    });
+
+    // Check 2: task_substitution — current_ask is not inconsistent with action
+    let ask_consistent = !(current_ask.contains("pair") && is_release_binary_replace);
+    checks.push(PreflightCheck {
+        name: "task_substitution",
+        passed: ask_consistent,
+        value_observed: format!("current_ask={:?} action={:?}", args.current_ask, args.kind),
+        threshold: "current_ask and proposed action should target the same task type".to_string(),
+        recovery_hint: if !ask_consistent {
+            Some("Inspect existing runtime, repair from local repo if needed, then run focusa pair.".to_string())
+        } else { None },
+    });
+
+    // Check 3: environment_role_known — install_role is not "unknown" for risky mutations
+    let role_known = install_role != "unknown" || !is_release_binary_replace;
+    checks.push(PreflightCheck {
+        name: "environment_role_known",
+        passed: role_known,
+        value_observed: format!("install_role={:?}", args.install_role),
+        threshold: "environment_role must be a verified focusa role (live_build_host, consumer, dev, etc.) for risky mutations".to_string(),
+        recovery_hint: if !role_known {
+            Some("Verify environment contract before replacing Focusa binaries.".to_string())
+        } else { None },
+    });
+
+    // Check 4: live_build_host_safety — release-binary on a live_build_host is blocked
+    let live_host_safe = !(install_role == "live_build_host" && is_release_binary_replace);
+    checks.push(PreflightCheck {
+        name: "live_build_host_safety",
+        passed: live_host_safe,
+        value_observed: format!("install_role={:?} is_release_binary_replace={}",
+            args.install_role, is_release_binary_replace),
+        threshold: "release_binary_replace must NOT run on a live_build_host role".to_string(),
+        recovery_hint: if !live_host_safe {
+            Some("Build from the verified local Focusa repo and restart the daemon as the project owner.".to_string())
+        } else { None },
+    });
 
     if install_role == "live_build_host" && is_release_binary_replace {
         verdict = PreflightVerdict::Block;
@@ -255,7 +338,7 @@ pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope 
         safe_alternative = Some("Build from the verified local Focusa repo and restart the daemon as the project owner.".to_string());
     }
 
-    if current_ask.contains("pair") && is_release_binary_replace {
+    if !ask_consistent {
         verdict = PreflightVerdict::Block;
         conflicts.push(PreflightConflict {
             class: "task_substitution_detected",
@@ -297,6 +380,7 @@ pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope 
         conflicts,
         safe_alternative,
         evidence_refs: Vec::new(),
+        checks,
     }
 }
 
