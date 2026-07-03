@@ -197,6 +197,79 @@ fn run_launchd_user(
     }
 }
 
+/// Uninstall the Focusa daemon service from the user's session.
+/// Mirror of `run_systemd_user` and `run_launchd_user` for the install path.
+/// Idempotent: re-running on an already-removed service is a no-op success.
+pub fn uninstall_service(
+    manager: ServiceManager,
+    dry_run: bool,
+) -> Result<(bool, Vec<String>)> {
+    let mut notes = Vec::new();
+    match manager {
+        ServiceManager::SystemdUser => {
+            // Best-effort: stop the unit, then remove the file.
+            if !dry_run {
+                let _ = std::process::Command::new("systemctl")
+                    .args(["--user", "disable", "--now", SERVICE_NAME])
+                    .status();
+            }
+            let unit_path = PathBuf::from(format!(
+                "{}/.config/systemd/user/{}.service",
+                std::env::var("HOME").unwrap_or_default(),
+                SERVICE_NAME
+            ));
+            if unit_path.exists() {
+                if !dry_run {
+                    std::fs::remove_file(&unit_path)
+                        .with_context(|| format!("remove {}", unit_path.display()))?;
+                }
+                notes.push(format!("removed {}", unit_path.display()));
+            } else {
+                notes.push(format!(
+                    "{} not present (idempotent skip)",
+                    unit_path.display()
+                ));
+            }
+            if !dry_run {
+                let _ = std::process::Command::new("systemctl")
+                    .args(["--user", "daemon-reload"])
+                    .status();
+            }
+            Ok((true, notes))
+        }
+        ServiceManager::LaunchdUser => {
+            let plist_path = PathBuf::from(format!(
+                "{}/Library/LaunchAgents/{}.plist",
+                std::env::var("HOME").unwrap_or_default(),
+                LAUNCHD_LABEL
+            ));
+            if !dry_run {
+                // launchctl bootout before removing file (matches Apple docs).
+                let _ = std::process::Command::new("launchctl")
+                    .args(["bootout", &plist_path.to_string_lossy()])
+                    .status();
+            }
+            if plist_path.exists() {
+                if !dry_run {
+                    std::fs::remove_file(&plist_path)
+                        .with_context(|| format!("remove {}", plist_path.display()))?;
+                }
+                notes.push(format!("removed {}", plist_path.display()));
+            } else {
+                notes.push(format!(
+                    "{} not present (idempotent skip)",
+                    plist_path.display()
+                ));
+            }
+            Ok((true, notes))
+        }
+        ServiceManager::None => {
+            notes.push("no service manager detected; nothing to remove".to_string());
+            Ok((true, notes))
+        }
+    }
+}
+
 pub async fn run(args: InstallServiceArgs, dry_run: bool) -> Result<()> {
     let manager = detect_manager();
     let binary = find_daemon_binary()?;
