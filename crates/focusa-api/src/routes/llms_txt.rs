@@ -18,8 +18,11 @@ use axum::Router;
 use axum::http::header;
 use axum::response::IntoResponse;
 use axum::routing::get;
+use std::sync::Arc;
 
-pub fn router() -> Router {
+use crate::server::AppState;
+
+pub fn router() -> Router<Arc<AppState>> {
     Router::new().route("/llms.txt", get(llms_txt))
 }
 
