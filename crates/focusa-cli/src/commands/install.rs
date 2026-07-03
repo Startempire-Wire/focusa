@@ -16,9 +16,10 @@
 //! The shell installers become thin bootstrappers that download `focusa` and
 //! `exec focusa install --target=<detected>`. See docs §15A.
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result, anyhow, bail};
 use clap::Args;
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 
 #[derive(Args, Debug)]
 pub struct InstallArgs {
@@ -377,9 +378,24 @@ async fn verify_checksum(asset: &InstalledAsset) -> Result<()> {
     let expected_line = body
         .lines()
         .find(|l| l.ends_with(&asset.name) || l.contains(&asset.name));
-    if expected_line.is_none() {
+    let Some(expected_line) = expected_line else {
         eprintln!("warning: no SHA256SUMS entry for {}", asset.name);
         return Ok(());
+    };
+    let expected = expected_line
+        .split_whitespace()
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .to_ascii_lowercase();
+    if expected.len() != 64 || !expected.chars().all(|c| c.is_ascii_hexdigit()) {
+        bail!("invalid SHA256SUMS entry for {}", asset.name);
+    }
+    let bytes = std::fs::read(&asset.path)
+        .with_context(|| format!("read downloaded asset for checksum: {}", asset.path.display()))?;
+    let actual = hex::encode(Sha256::digest(&bytes));
+    if actual != expected {
+        bail!("checksum mismatch for {}: expected {expected}, got {actual}", asset.name);
     }
     eprintln!("✓ SHA256 verified for {}", asset.name);
     Ok(())

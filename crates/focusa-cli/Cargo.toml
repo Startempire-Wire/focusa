@@ -30,6 +30,8 @@ rand = "0.8"
 parquet = "58"
 urlencoding = "2.1.3"
 qrcode = "0.14"
+sha2 = { workspace = true }
+hex = { workspace = true }
 
 [lints]
 workspace = true
