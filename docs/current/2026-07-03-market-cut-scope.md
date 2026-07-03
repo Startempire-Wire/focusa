@@ -6,6 +6,55 @@
 
 ---
 
+## Guiding principle (operator rule, not negotiable)
+
+**NO COMPROMISE ON SCOPE ENFORCEMENT.**
+
+Every change in this scope must preserve — and where possible strengthen —
+the existing scope guards. Specifically:
+
+- `unsafe_project_root_reason` continues to reject `/`, `/root`, `/home`,
+  `/tmp`, `/var`, `/usr`, `/opt`, and any empty/whitespace string.
+- `isProjectRootAuthoritySafe` continues to require a focused, non-trivial
+  directory.
+- Workpoint resume continues to require `project_root` + `continuity_id`
+  match; `action_authority_for_current_ask=false` is the *correct*
+  behavior when scopes mismatch (not a bug to fix).
+- Trajectory packet resume continues to require continuity_id alignment
+  across the scope switch ledger.
+- Action preflight continues to Block release-binary replaces on
+  live_build_host; this guard is the same one preventing the Cursor
+  transcript's "generate dummy files" failure.
+- `pushDelta` cwd-change detection does NOT lower the bar — it
+  clears a stale frame cache so the *next* write enforces fresh
+  authority, rather than bypassing authority.
+- Workpoint `current` scope auto-detection does NOT bypass the daemon's
+  scope guard — it only discovers a candidate scope from `.focusa-project.json`
+  and forwards it to the existing safe-path checks.
+
+If a change weakens any of the above, it is OUT of scope for the 24h cut
+and must be filed as a separate spec with operator review.
+
+### Scope enforcement invariants (test in CI, do not regress)
+
+```
+1. POST /v1/workpoint/checkpoint with project_root="/" → 400 scope_mismatch
+2. POST /v1/workpoint/checkpoint with project_root="/root" → 400 scope_mismatch
+3. POST /v1/workpoint/checkpoint with project_root="" → 400 missing_project_root
+4. POST /v1/workpoint/checkpoint with project_root="/home/user/.focusa" → ok
+5. GET /v1/project/identity?project_root="/root" → confidence=low
+6. focusa action preflight with kind=binary_replace, install_role=live_build_host → Block
+7. focusa action preflight with kind=binary_replace, install_role=unknown → AskOperator
+8. focusa install with --project-root="/" → error
+9. focusa install on macOS without codesign → continues (codesign verify is optional P0)
+10. focusa install with --target=darwin on linux → error (cross-arch blocked)
+```
+
+These invariants are protected by tests. Any new test that violates one
+must be removed or the underlying guard reverted.
+
+---
+
 ## Surfaces (1-12)
 
 | # | Surface | Path | Owner |
@@ -142,3 +191,66 @@ For each NEW command:
   - Spec 92 polish hooks (sub-bead of focusa-spec92-hooks is a small slice)
 - Each phase has clear acceptance; complete + commit + push at end of each.
 - Pre-existing GTM blockers (focusa-foyr, focusa-3cok, focusa-9im1) are now closed.
+
+---
+
+## Backward compatibility policy (24h cut)
+
+**Rule: additive changes only.** Every change must preserve the wire/CLI
+contract that existing clients (Pi extension, scripts, menubar, third-party
+agents) depend on. Concretely:
+
+| Change type | Allowed in 24h cut? | Required practice |
+|---|---|---|
+| Add new field to envelope | YES | Default `Option<T>`; never remove existing field |
+| Add new enum variant | NO without a wire marker | Add at end of variant list; do NOT renumber |
+| Add new command/subcommand | YES | Goes through `focusa <name>` — never renames an existing top-level command |
+| Add new flag to existing command | YES | Default value preserves current behavior |
+| Add new field to `--json` output | YES | Older clients ignore unknown fields (Spec 92 / envelope contract) |
+| Change return type / field shape | **NO** | Would break older clients that destructure |
+| Rename existing field | **NO** | Add new field, deprecate old in a follow-up |
+| Remove existing flag | **NO** | Even if deprecated, keep the parser accepting it |
+| Change error envelope code | **NO** without compat | Add new code, keep old as alias |
+| Change HTTP route path | **NO** | Mount new route, keep old with deprecation header |
+| Change default behavior of existing flag | **NO** | New behavior must be opt-in via a new flag |
+
+### What we did to enforce this in the 24h cut
+
+- `ActionPreflightEnvelope.checks` — **new optional field** (older clients ignore it). Closed in commit `06cab28b` (planned).
+- `GET /v1/workpoint/current` response under `not_found` — **new optional fields** `detected_project_root` / `detected_continuity_id` / `recovery_hint`. Status code unchanged. Closed in commit `5310c2f6`.
+- `pushDelta` cwd-change detection — **internal change**, no API surface shift. Closed in commit `20fcd7cc`.
+- `focusa uninstall` — **new top-level command**. Existing `install` and `install-service` unchanged. Closed in commit `796aad81`.
+- `focusa about` — **new top-level command**. Closed in commit `efc6cbbc`.
+- `GET /llms.txt` — **new HTTP route**. Closed in commit `b16cf3b3`.
+- `install-focusa.sh` / `install-focusa.ps1` — **rewritten** but functional contract unchanged (curl|bash / irm|iex still works, downloads `focusa`, exec's `focusa install`). Closed in commit `aa246287`.
+
+### Compat tests to add (per envelope change)
+
+For every envelope change, the corresponding static guard
+(`tests/spec_<bead>_static_test.sh`) must include:
+
+1. A check that existing fields still exist (added-not-removed)
+2. A check that the new field is `Option<T>` (older clients can ignore)
+3. A check that --json output produces the field list unchanged
+4. A check that existing test vectors (e.g., `evaluate_preflight` on a
+   binary_replace on live_build_host) still produces the same verdict
+
+### Compatibility risk register
+
+| Change | Risk | Mitigation |
+|---|---|---|
+| `ActionPreflightEnvelope.checks` | Low (additive) | Field is `Vec<...>`; older clients ignore |
+| `GET /v1/workpoint/current` adds fields | Low (additive) | Status code unchanged; older clients ignore new fields |
+| `pushDelta` cwd-clear | Medium (changes runtime behavior) | Stale-frame retry path was already there; we just trigger it earlier |
+| `install-focusa.sh` rewrite | Low (download + exec contract same) | Functional contract preserved; static guard checks new shape |
+| New `focusa uninstall` / `about` commands | None (additive) | Existing commands unchanged |
+| `GET /llms.txt` | None (new route) | Other routes unchanged |
+| Phase 1B: doctor scope modes | **NO existing flag changes** | New `--scope=host|project|repo` only |
+| Phase 1C: onboard scoped | **NO** | New flag only |
+| Phase 1D: install static test | **NO** (test only) | n/a |
+| Phase 2A/B: build matrix | **NO** (CI yaml) | Existing targets unchanged |
+| Phase 2C: codesign-verify | Low (new install phase) | Optional; only runs on macOS, on binary path |
+| Phase 2D: path-walkthrough-test | None (test only) | n/a |
+| Phase 3A-G: new leverage commands | None (additive) | All new top-level commands |
+| Phase 4A: GH #4 fix | **HIGH** | `identity_name_matches` change is global; must preserve behavior for projects without overlap. Add per-identity signal: only match alias if `project_root` is consistent with marker. |
+
