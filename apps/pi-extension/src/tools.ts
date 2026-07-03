@@ -1158,7 +1158,17 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
     // Refresh frame identity before writes; stale paused Pi frames are a common
     // source of reducer rejections and scratchpad fallbacks after rescope/compact.
     await getFocusState().catch(() => null);
-    const projectRoot = normalizeProjectRoot(getSessionCwd() || resolvePiProjectRoot(process.cwd()));
+    // Spec 110 / GH #8 fix: detect CWD change since last session save.
+    // If process.cwd() differs from the cached getSessionCwd(), the agent has
+    // switched projects via shell `cd`. Force a fresh scope resolution and
+    // clear any cached active frame so the write uses the new project root.
+    const liveCwd = process.cwd();
+    const cachedCwd = getSessionCwd();
+    if (cachedCwd && normalizeProjectRoot(liveCwd) !== normalizeProjectRoot(cachedCwd)) {
+      emitWriteTelemetry("focusa_cwd_changed", { old: cachedCwd, new: liveCwd, targets });
+      S.activeFrameId = null;
+    }
+    const projectRoot = normalizeProjectRoot(resolvePiProjectRoot(process.cwd()) || cachedCwd || liveCwd);
     const continuityId = getContinuityId() || ensureContinuityId(projectRoot);
     if (!isProjectRootAuthoritySafe(projectRoot) || !continuityId) {
       emitWriteTelemetry("focusa_write_failed", { targets, reason: "scope_mismatch", project_root: projectRoot || null, continuity_id: continuityId || null });
