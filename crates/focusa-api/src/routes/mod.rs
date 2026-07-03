@@ -30,6 +30,7 @@ pub mod info;
 pub mod llms_txt;
 pub mod instances;
 pub mod memory;
+pub mod mcp;
 pub mod metacognition;
 pub mod ontology;
 pub mod permissions;
