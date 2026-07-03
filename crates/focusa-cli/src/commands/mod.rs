@@ -1,5 +1,6 @@
 pub mod action;
 pub mod about;
+pub mod audit;
 pub mod autonomy;
 pub mod awareness;
 pub mod binary;

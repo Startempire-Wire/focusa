@@ -88,6 +88,9 @@ enum Commands {
     /// agents should read GET /llms.txt on the daemon instead.
     About,
 
+    /// Durable audit timeline for workpoints, focus frames, decision events, and related daemon events.
+    Audit(commands::audit::AuditArgs),
+
     /// Install and enable the Focusa daemon service (Linux systemd user / macOS LaunchAgent).
     InstallService(commands::service::InstallServiceArgs),
 
@@ -453,6 +456,7 @@ async fn main() -> anyhow::Result<()> {
             commands::about::run(cli.json)?;
             Ok(())
         }
+        Commands::Audit(args) => commands::audit::run(args, cli.json).await,
         Commands::InstallService(args) => commands::service::run(args, false).await,
         Commands::Install(args) => commands::install::run(args).await,
         Commands::Uninstall(args) => commands::uninstall::run(args).await,
