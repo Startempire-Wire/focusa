@@ -469,6 +469,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     Router::new()
         .merge(routes::health::router())
         .merge(routes::info::router())
+        .merge(routes::llms_txt::router())
         .merge(routes::env::router())
         .merge(routes::commands::router())
         .merge(routes::capabilities::router())

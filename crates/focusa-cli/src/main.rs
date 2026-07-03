@@ -83,6 +83,11 @@ enum Commands {
     /// Stop the Focusa daemon.
     Stop,
 
+    /// Human-facing first-impressions card explaining what focusa is FOR,
+    /// the core concepts, the next 3 commands, and how to recover. LLM
+    /// agents should read GET /llms.txt on the daemon instead.
+    About,
+
     /// Install and enable the Focusa daemon service (Linux systemd user / macOS LaunchAgent).
     InstallService(commands::service::InstallServiceArgs),
 
@@ -435,6 +440,10 @@ async fn main() -> anyhow::Result<()> {
             if !cli.json {
                 println!("Focusa daemon stopped");
             }
+            Ok(())
+        }
+        Commands::About => {
+            commands::about::run(cli.json)?;
             Ok(())
         }
         Commands::InstallService(args) => commands::service::run(args, false).await,

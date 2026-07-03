@@ -27,6 +27,7 @@ pub mod focus;
 pub mod gate;
 pub mod health;
 pub mod info;
+pub mod llms_txt;
 pub mod instances;
 pub mod memory;
 pub mod metacognition;

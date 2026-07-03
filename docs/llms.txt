@@ -1,0 +1,105 @@
+# focusa
+
+> Cognitive governance CLI/daemon that gives AI agents durable state
+> continuity across sessions, focus framing for risky work, and a
+> gated action surface. Built for Pi and any MCP-compatible agent.
+> This document is the canonical primer for LLM agents encountering
+> focusa for the first time.
+
+## When to use focusa
+
+Use focusa when **state must survive across agent sessions or handoffs**:
+
+- **Long refactors** that span many tool calls and sub-tasks
+- **Multi-session work** that resumes after context loss
+- **Risky changes** that need a preflight gate before mutation
+- **Agent handoffs** where a different agent picks up another agent's work
+- **Structured accountability** — who did what, what was decided, why
+- **Stuck-again detection** — bounded retries, tool diversity, escalation
+
+Don't use focusa for: small one-shot edits, reading/explaining code, or
+tasks where normal git history is sufficient. focusa is **not** a code
+intelligence tool — it manages state, not the repo.
+
+## Core concepts
+
+**Workpoint** — A canonical save state for in-progress work. Holds the
+operator mission, current action, evidence links, and projector view
+of trajectory/workpoint/prediction/metacog. Created via
+`focusa workpoint checkpoint`; read via `focusa workpoint current` /
+`focusa workpoint resume`.
+
+**Trajectory** — The hierarchical goal stack: long-term → mid-level →
+short-term goals, with current state, gap, recommended next action.
+Read via `focusa trajectory view`.
+
+**Focus Stack** — A bounded task frame stack (`focusa focus push` /
+`focusa focus stack`). Frames carry intent, constraints, goals, and
+beads issue IDs. Used to mark what the agent is currently doing.
+
+**Memory** — Semantic and procedural facts. Stored via
+`focusa memory set <key>=<value>`, retrieved via `focusa memory list`.
+
+**Constitution** — Operator-pinned rules the agent must follow. Read via
+`focusa constitution view`; updates go through governance gates.
+
+**Work Loop** — Continuous-execution governance (`focusa continue`).
+Bounded by max turns, max consecutive failures, wall-clock, and
+scope/governance/safety hooks. Requires operator for destructive actions.
+
+**Action Preflight** — `focusa action preflight` checks authority,
+context, scope, and side-effect risk before a proposed mutation.
+Returns a verdict plus per-check evidence.
+
+## How to start (the 3 commands you should run first)
+
+After install, an agent that knows nothing about focusa should run:
+
+1. `focusa doctor` — verifies daemon, scope, and platform
+2. `focusa about` — human-facing one-screen overview
+3. `focusa workpoint current --project-root "$(pwd)"` — read prior state,
+   or `focusa workpoint checkpoint --mission "<this work>"` to start one
+
+For LLM agents specifically: GET `/llms.txt` (this document) is the
+canonical primer. The daemon also serves `/v1/agent/capabilities`
+(AX-001) and `/v1/agent/tools` (AX-002) as machine-readable
+discoverability surfaces.
+
+## Tool surface (high-level)
+
+Focusa exposes ~97 tools across 11 families. The 8 most useful for
+agents are:
+
+- **Workpoint**: `focusa_workpoint_checkpoint`, `focusa_workpoint_resume`,
+  `focusa_workpoint_current`, `focusa_workpoint_link_evidence`
+- **Trajectory**: `focusa_trajectory_view`, `focusa_trajectory_define_goal`,
+  `focusa_trajectory_assess`
+- **Predict / Metacog**: `focusa_predict_record`, `focusa_metacog_capture`
+- **Agent surface**: `focusa_about`, `focusa_doctor`, `focusa_tool_doctor`
+- **Focus**: `focusa_focus_push`, `focusa_focus_pop`,
+  `focusa_focus_stack`, `focusa_focus_update`
+- **Memory**: `focusa_memory_set`, `focusa_memory_list`,
+  `focusa_memory_reinforce`
+- **Action**: `focusa_action_preflight`, `focusa_action_record`
+- **Constitution**: `focusa_constitution_view`,
+  `focusa_constitution_evaluate`
+
+Use `focusa_tool_doctor` to verify any tool is implemented and live.
+
+## Recovery
+
+When something fails:
+
+1. `focusa doctor` — top-level health
+2. `focusa tool_doctor <tool-name>` — per-tool implementation status
+3. `focusa state dump` — full cognitive state as JSON
+4. `focusa workpoint resume --project-root "$(pwd)"` — recover prior state
+
+## Anti-patterns
+
+- Don't treat focusa as a coding agent. It manages state.
+- Don't push focus frames without `beads_issue_id` — they won't persist
+  (the daemon rejects silently; the CLI now exits 2 with the rejection).
+- Don't run `focusa continue` without first checking governance policy.
+- Don't bypass `action preflight` for file mutations — it's the only
+  gate that catches scope-mismatched mutations before they happen.
