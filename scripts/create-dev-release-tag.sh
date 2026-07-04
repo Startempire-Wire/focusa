@@ -75,6 +75,31 @@ if ! [[ "$CI_TIMEOUT_SECS" =~ ^[0-9]+$ ]]; then
   exit 2
 fi
 
+push_main_and_tag_with_auto_rebase() {
+  local tag="$1"
+  local max_attempts=3
+  local attempt=1
+
+  while [[ "$attempt" -le "$max_attempts" ]]; do
+    echo "Pushing main and ${tag} (attempt ${attempt}/${max_attempts})..."
+    if git push origin HEAD:main && git push origin "${tag}"; then
+      return 0
+    fi
+
+    echo "push_failed_non_fast_forward_or_remote_race: auto-healing with git pull --rebase and tag retarget" >&2
+    # Audit Recorder/Watchdog commits can move origin/main while this helper is
+    # stamping a release. Rebase, retarget the still-local tag to the rebased
+    # HEAD, and retry. This keeps the canonical full pipeline intact without
+    # manual rebase/retag intervention.
+    git pull --rebase origin main
+    git tag -f "${tag}" HEAD
+    attempt=$((attempt + 1))
+  done
+
+  echo "release_tag_push_failed_after_auto_rebase: tag=${tag}; inspect gh/audit logs and fix the pipeline system" >&2
+  return 1
+}
+
 wait_for_workflow() {
   local workflow="$1"
   local head_sha="$2"
@@ -154,9 +179,8 @@ git tag "${TAG}" HEAD
 echo "Created tag ${TAG} at $(git rev-parse --short HEAD)"
 
 if [[ "$PUSH" -eq 1 ]]; then
+  push_main_and_tag_with_auto_rebase "${TAG}"
   HEAD_SHA=$(git rev-parse HEAD)
-  git push origin HEAD:main
-  git push origin "${TAG}"
   echo "Pushed main and ${TAG}."
   if [[ "$WAIT_CI" -eq 1 ]]; then
     wait_for_workflow "CI" "$HEAD_SHA"

@@ -23,12 +23,12 @@ grep -q 'pub checks: Vec<PreflightCheck>' "$ACTION" \
   || fail "ActionPreflightEnvelope missing checks field"
 pass "ActionPreflightEnvelope includes checks: Vec<PreflightCheck>"
 
-# Must populate all 4 standard checks
-for check in "scope_resolution" "task_substitution" "environment_role_known" "live_build_host_safety"; do
+# Must populate standard checks, including the full-pipeline release/deploy blocker.
+for check in "scope_resolution" "task_substitution" "full_live_pipeline_required" "environment_role_known" "live_build_host_safety"; do
   grep -q "name: \"$check\"" "$ACTION" \
     || fail "Missing PreflightCheck name: $check"
 done
-pass "All 4 standard checks present (scope_resolution/task_substitution/environment_role_known/live_build_host_safety)"
+pass "All standard checks present, including full_live_pipeline_required"
 
 # Each check must have value_observed + threshold + recovery_hint
 grep -q "pub value_observed:" "$ACTION" \
@@ -39,11 +39,21 @@ grep -q "pub recovery_hint:" "$ACTION" \
   || fail "PreflightCheck missing recovery_hint"
 pass "Each PreflightCheck has value_observed + threshold + recovery_hint"
 
-# Closes transcript gap: --json output must include checks array
+# Closes transcript gap: --json output must include checks array and plain-language blocker.
 # (envelope serialization includes checks field; --json flag in ActionCmd emits envelope)
 grep -q "PreFlightEnvelope\|ActionPreflightEnvelope" "$ACTION" \
   || fail "ActionPreflightEnvelope referenced in action.rs"
-pass "ActionPreflightEnvelope referenced in action.rs (--json emits it)"
+grep -q 'pub plain_language_error: Option<String>' "$ACTION" \
+  || fail "ActionPreflightEnvelope missing plain_language_error"
+grep -q 'full_live_release_pipeline_required' "$ACTION" \
+  || fail "action.rs missing full pipeline blocker class"
+grep -q 'Blocked: this would bypass the full live GitHub release pipeline' "$ACTION" \
+  || fail "action.rs missing plain-language full pipeline error"
+grep -q 'scripts/create-dev-release-tag.sh --base 0.9 --push' "$ACTION" \
+  || fail "action.rs missing canonical full pipeline recovery command"
+grep -q 'gh run list' "$ACTION" \
+  || fail "action.rs missing gh toolchain recovery hint"
+pass "ActionPreflightEnvelope emits checks + plain-language full pipeline blocker"
 
 # Verified by evidence citations
 grep -q "transcript" "$ACTION" \

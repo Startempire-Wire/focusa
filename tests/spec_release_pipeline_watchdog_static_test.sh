@@ -32,6 +32,12 @@ grep -q 'process_error=watchdog_gh_run_rerun_failed' "$WATCH" || fail "watchdog 
 grep -q 'process_error=watchdog_deploy_redispatch_failed' "$WATCH" || fail "watchdog must surface deploy process errors"
 pass "watchdog is bounded and captures process errors"
 
+for class in ci_clippy_failure ci_test_failure release_static_proof_failure auto_heal_process_error deploy_health_failure runner_resource_failure; do
+  grep -q "$class" "$WATCH" || fail "watchdog missing recent failure class: $class"
+done
+grep -q 'failure_class=${failure_class}' "$WATCH" || fail "watchdog must emit failure_class to summary"
+pass "watchdog classifies recent CI/Release/Deploy/Auto-Heal failure classes"
+
 if grep -qE 'continue-on-error: true|cargo clippy.*\|\| true|cargo test.*\|\| true' "$WATCH"; then
   fail "watchdog appears to bypass gates"
 fi

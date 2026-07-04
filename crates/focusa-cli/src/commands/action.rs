@@ -79,6 +79,10 @@ pub struct ActionPreflightEnvelope {
     pub environment_role: String,
     pub proposed_action: ProposedAction,
     pub conflicts: Vec<PreflightConflict>,
+    /// Plain-language error for agents/humans. This must be present when
+    /// verdict=Block so agents don't see only opaque failure codes.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plain_language_error: Option<String>,
     pub safe_alternative: Option<String>,
     pub evidence_refs: Vec<String>,
     /// Spec 109 / transcript gap 2026-07-03: per-check audit trail. Each
@@ -223,6 +227,9 @@ pub async fn run(cmd: ActionCmd, json_mode: bool) -> anyhow::Result<()> {
                 for conflict in &envelope.conflicts {
                     println!("conflict: {} — {}", conflict.class, conflict.why);
                 }
+                if let Some(error) = &envelope.plain_language_error {
+                    println!("error: {error}");
+                }
                 if let Some(safe_alternative) = &envelope.safe_alternative {
                     println!("safe_alternative: {safe_alternative}");
                 }
@@ -255,9 +262,16 @@ pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope 
 
     let mut conflicts = Vec::new();
     let mut safe_alternative = None;
+    let mut plain_language_error: Option<String> = None;
     let mut verdict = PreflightVerdict::Allow;
     let mut checks: Vec<PreflightCheck> = Vec::new();
 
+    let target_lc = args
+        .target
+        .as_deref()
+        .unwrap_or("")
+        .trim()
+        .to_ascii_lowercase();
     let is_release_binary_replace = kind == "binary_replace"
         && (source == "github_release_asset" || source == "release_asset")
         && args
@@ -265,6 +279,23 @@ pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope 
             .as_deref()
             .map(|target| target.ends_with("/focusa") || target.ends_with("/focusa-daemon"))
             .unwrap_or(false);
+    let is_full_live_pipeline = kind == "full_live_release_pipeline"
+        || (source == "github_actions_release_pipeline"
+            && target_lc.contains("scripts/create-dev-release-tag.sh --base 0.9 --push"));
+    let bypasses_full_live_pipeline = !is_full_live_pipeline
+        && (kind == "local_release_build"
+            || kind == "partial_deploy"
+            || kind == "deploy_live_daemon"
+            || kind == "daemon_deploy"
+            || kind == "release_build"
+            || source == "local_toolchain"
+            || source == "local_repo_build"
+            || source == "target_release"
+            || target_lc.contains("target/release")
+            || target_lc.contains("cargo build --release")
+            || target_lc.contains("install-daemon.sh --binary")
+            || target_lc.contains("gh workflow run 'deploy live daemon'")
+            || target_lc.contains("gh workflow run deploy live daemon"));
 
     // Check 1: scope_resolution — project_root is safe (not /, /root, /home, etc.)
     let scope_safe = args
@@ -304,7 +335,18 @@ pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope 
         } else { None },
     });
 
-    // Check 3: environment_role_known — install_role is not "unknown" for risky mutations
+    // Check 3: full_live_pipeline_required — release/deploy must use full GH pipeline, never local toolchains or partial workflow shortcuts.
+    checks.push(PreflightCheck {
+        name: "full_live_pipeline_required",
+        passed: !bypasses_full_live_pipeline,
+        value_observed: format!("kind={:?} source={:?} target={:?}", args.kind, args.source, args.target),
+        threshold: "release/deploy actions must use scripts/create-dev-release-tag.sh --base 0.9 --push, then GitHub CI -> Release -> Deploy Live Daemon".to_string(),
+        recovery_hint: if bypasses_full_live_pipeline {
+            Some("Blocked: use gh as the toolchain. Run scripts/create-dev-release-tag.sh --base 0.9 --push, then inspect with gh run list/view. Do not build locally or run only Deploy Live Daemon.".to_string())
+        } else { None },
+    });
+
+    // Check 4: environment_role_known — install_role is not "unknown" for risky mutations
     let role_known = install_role != "unknown" || !is_release_binary_replace;
     checks.push(PreflightCheck {
         name: "environment_role_known",
@@ -316,7 +358,7 @@ pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope 
         } else { None },
     });
 
-    // Check 4: live_build_host_safety — release-binary on a live_build_host is blocked
+    // Check 5: live_build_host_safety — release-binary on a live_build_host is blocked
     let live_host_safe = !(install_role == "live_build_host" && is_release_binary_replace);
     checks.push(PreflightCheck {
         name: "live_build_host_safety",
@@ -329,13 +371,24 @@ pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope 
         } else { None },
     });
 
+    if bypasses_full_live_pipeline {
+        verdict = PreflightVerdict::Block;
+        conflicts.push(PreflightConflict {
+            class: "full_live_release_pipeline_required",
+            why: "Release/deploy attempted to bypass the full GitHub CI -> Release -> Deploy Live Daemon pipeline.",
+        });
+        plain_language_error = Some("Blocked: this would bypass the full live GitHub release pipeline. Focusa releases must be built and deployed by GitHub Actions, not local toolchains or partial deploy workflows.".to_string());
+        safe_alternative = Some("Use gh as the release toolchain: run `scripts/create-dev-release-tag.sh --base 0.9 --push`, then inspect with `gh run list`, `gh run view`, and `gh release view`.".to_string());
+    }
+
     if install_role == "live_build_host" && is_release_binary_replace {
         verdict = PreflightVerdict::Block;
         conflicts.push(PreflightConflict {
             class: "consumer_install_path_conflicts_with_live_build_host",
             why: "This host is the live Focusa build host; release assets are not the repair source.",
         });
-        safe_alternative = Some("Build from the verified local Focusa repo and restart the daemon as the project owner.".to_string());
+        plain_language_error.get_or_insert_with(|| "Blocked: release assets are not the repair source for the live Focusa build host.".to_string());
+        safe_alternative = Some("Use the full live GitHub release pipeline; do not replace live binaries by hand.".to_string());
     }
 
     if !ask_consistent {
@@ -344,8 +397,9 @@ pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope 
             class: "task_substitution_detected",
             why: "The current ask is pairing initiation, but the proposed action is binary installation/replacement.",
         });
+        plain_language_error.get_or_insert_with(|| "Blocked: this action does not match the current user ask.".to_string());
         safe_alternative.get_or_insert_with(|| {
-            "Inspect existing runtime, repair from local repo if needed, then run focusa pair."
+            "Inspect existing runtime, then run the requested pairing action; do not substitute a binary install."
                 .to_string()
         });
     }
@@ -357,6 +411,7 @@ pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope 
             class: "environment_role_unknown_for_risky_mutation",
             why: "Binary replacement requires a verified install role before mutation.",
         });
+        plain_language_error.get_or_insert_with(|| "Blocked until the environment role is verified for this risky mutation.".to_string());
         safe_alternative =
             Some("Verify environment contract before replacing Focusa binaries.".to_string());
     }
@@ -378,6 +433,7 @@ pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope 
             source: args.source,
         },
         conflicts,
+        plain_language_error,
         safe_alternative,
         evidence_refs: Vec::new(),
         checks,
