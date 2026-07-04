@@ -322,8 +322,10 @@ jobs:
 
   checksums:
     name: Publish SHA256SUMS
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: [tauri-build, rust-release]
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
       - name: Install GitHub CLI
         run: gh --version
@@ -359,7 +361,7 @@ jobs:
   dispatch-deploy-live-daemon:
     name: Dispatch Deploy Live Daemon
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
-    needs: publish-sha256sums
+    needs: checksums
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

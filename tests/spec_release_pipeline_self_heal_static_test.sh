@@ -41,7 +41,7 @@ grep -q 'fail-fast: true' "$RELEASE" || fail "Release matrices must fail fast"
 grep -q 'timeout-minutes:' "$RELEASE" || fail "Release jobs must have timeouts"
 grep -q 'dispatch-deploy-live-daemon' "$RELEASE" || fail "Release must explicitly dispatch deploy after assets/checksums"
 grep -q "gh workflow run 'Deploy Live Daemon'" "$RELEASE" || fail "Release dispatch must use gh workflow run Deploy Live Daemon"
-grep -q 'needs: publish-sha256sums' "$RELEASE" || fail "Deploy dispatch must wait for SHA256SUMS"
+grep -q 'needs: checksums' "$RELEASE" || fail "Deploy dispatch must wait for the actual checksums job id"
 pass "Release is bounded and dispatches deploy after green artifacts"
 
 # Deploy self-heal remains deploy-specific redispatch with release tag and asset suffix.

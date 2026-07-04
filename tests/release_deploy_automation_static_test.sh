@@ -5,9 +5,15 @@ cd "$ROOT_DIR"
 
 echo "=== release deploy automation static test ==="
 
+python3 scripts/validate-github-workflows.py .github/workflows/release.yml .github/workflows/auto-retry-deploy.yml .github/workflows/release-pipeline-watchdog.yml >/tmp/focusa-workflow-graph-validation.out || {
+  cat /tmp/focusa-workflow-graph-validation.out >&2
+  exit 1
+}
+
 [[ -f .github/workflows/deploy-live-daemon.yml ]] || { echo "✗ missing deploy-live-daemon workflow"; exit 1; }
 [[ -f scripts/install-daemon.sh ]] || { echo "✗ missing install-daemon.sh"; exit 1; }
 [[ -f scripts/verify-version-surfaces.py ]] || { echo "✗ missing verify-version-surfaces.py"; exit 1; }
+[[ -f scripts/validate-github-workflows.py ]] || { echo "✗ missing validate-github-workflows.py"; exit 1; }
 [[ -f scripts/safe-disk-cleanup.sh ]] || { echo "✗ missing safe-disk-cleanup.sh"; exit 1; }
 [[ -f scripts/install-self-hosted-runner.sh ]] || { echo "✗ missing install-self-hosted-runner.sh"; exit 1; }
 [[ -f scripts/deploy-smoke-check.sh ]] || { echo "✗ missing deploy-smoke-check.sh"; exit 1; }
@@ -91,6 +97,7 @@ assert_grep 'verify-version-surfaces.py' .github/workflows/release.yml 'release 
 assert_grep 'Release workflow validation' .github/workflows/release.yml 'release workflow needs unconditional validation step to avoid No jobs were run'
 assert_grep 'on: [push]' .github/workflows/release.yml 'release workflow must use canonical unfiltered push trigger to avoid no-job validation failures'
 assert_grep 'release_branch_validation=ok' .github/workflows/release.yml 'release branch validation step missing'
+assert_grep 'needs: checksums' .github/workflows/release.yml 'deploy dispatch must depend on the actual checksums job id'
 if grep -A3 '^  rust-check:' .github/workflows/release.yml | grep -q 'if:'; then
   echo '✗ rust-check job must be unconditional to avoid No jobs were run' >&2
   exit 1
