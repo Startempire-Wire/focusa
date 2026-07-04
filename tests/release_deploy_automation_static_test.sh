@@ -89,8 +89,11 @@ assert_grep 'audit_event "smoke_check"' scripts/deploy-smoke-check.sh 'smoke che
 # release workflow version verification
 assert_grep 'verify-version-surfaces.py' .github/workflows/release.yml 'release workflow does not verify stamped versions'
 assert_grep 'release-workflow-validate' .github/workflows/release.yml 'release workflow needs branch validation job to avoid No jobs were run'
-assert_grep 'release_branch_validation=ok' .github/workflows/release.yml 'release branch validation gate missing'
-assert_grep "startsWith(github.ref, 'refs/heads/')" .github/workflows/release.yml 'release branch validation gate missing'
+assert_grep 'release_branch_validation=ok' .github/workflows/release.yml 'release branch validation job missing'
+if grep -A3 'release-workflow-validate:' .github/workflows/release.yml | grep -q 'if:'; then
+  echo '✗ release workflow validation job must be unconditional to avoid No jobs were run' >&2
+  exit 1
+fi
 assert_grep "startsWith(github.ref, 'refs/tags/')" .github/workflows/release.yml 'release expensive jobs must be tag-gated'
 assert_grep 'Deploy Live Daemon' scripts/create-dev-release-tag.sh 'create-dev-release-tag does not wait for deploy workflow'
 

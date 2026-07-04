@@ -15,7 +15,6 @@ permissions:
 jobs:
   release-workflow-validate:
     name: Release Workflow Validate
-    if: ${{ startsWith(github.ref, 'refs/heads/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
