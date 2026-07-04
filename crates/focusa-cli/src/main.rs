@@ -175,6 +175,10 @@ enum Commands {
     /// Resume governed continuous work and refresh state.
     Continue(commands::continue_work::ContinueArgs),
 
+    /// Canonical workflow templates for LLM/operator execution.
+    #[command(subcommand)]
+    Workflow(commands::workflow::WorkflowCmd),
+
     /// Focus stack and Focus State operations.
     #[command(subcommand)]
     Focus(commands::focus::FocusCmd),
@@ -715,6 +719,7 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::Cleanup(args) => commands::cleanup::run(args, cli.json).await,
         Commands::Continue(args) => commands::continue_work::run(args, cli.json).await,
+        Commands::Workflow(cmd) => commands::workflow::run(cmd, cli.json).await,
         Commands::Stack => {
             let api = api_client::ApiClient::new();
             let resp = api.get("/v1/focus/stack").await?;

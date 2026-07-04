@@ -61,5 +61,6 @@ pub mod trajectory;
 pub mod traverse;
 pub mod turns;
 pub mod utility;
+pub mod workflow;
 pub mod workpoint;
 pub mod wrap;
