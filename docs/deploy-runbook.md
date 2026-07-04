@@ -1,5 +1,7 @@
 # Deploy operator runbook
 
+> **Canonical rule:** live build/deploy uses the full GitHub release pipeline only. See [`docs/canonical-live-release-pipeline.md`](canonical-live-release-pipeline.md). This runbook is for fixing the pipeline/system when automation is unhealthy, not for manual release builds or hand-installs.
+
 This runbook is the canonical reference when the self-heal chain does not resolve an incident. Reach for it when:
 
 - GitHub Actions is unreachable / returning 5xx
@@ -38,25 +40,17 @@ See [`docs/self-heal-chain.md`](self-heal-chain.md) for the layered diagram.
 
 ### GitHub Actions is down / 502 / 5xx
 
-The deploy workflow depends on GitHub. If GitHub is unreachable for an extended period, you have two options:
+The deploy workflow depends on GitHub. If GitHub is unreachable for an extended period, **do not manually build or install a daemon**. Recovery is:
 
-**Option A — Manual deploy from VPS as the runner user:**
+1. Keep the current production daemon running.
+2. Fix GitHub access, runner registration, repository permissions, or workflow syntax.
+3. Let `Release Pipeline Watchdog` and `Auto Heal Release Pipeline` resume the full chain.
+4. If a workflow bug caused the outage, patch the workflow on `main`, then create a fresh tag through:
+   ```bash
+   scripts/create-dev-release-tag.sh --base 0.9 --push
+   ```
 
-```bash
-# As the github-runner user on the VPS
-sudo -u github-runner bash
-cd /opt/actions-runner-focusa/_work/focusa/focusa
-git fetch --tags --force --quiet origin
-git checkout v0.9.42-dev
-bash scripts/install-daemon.sh \
-  --binary target/release/focusa-daemon \
-  --service-name focusa-daemon \
-  --health-url http://127.0.0.1:8787/v1/health \
-  --expected-version 0.9.42-dev
-curl -fsS http://127.0.0.1:8787/v1/health
-```
-
-**Option B — Wait for GitHub to recover.** The audit recorder and self-heal chain are designed to be safe to retry once GitHub is back. The auto-retry workflow re-dispatches one retry per upstream failure; if that also failed, you will need to re-dispatch manually.
+Manual `target/release` deploys are forbidden because they bypass CI, Release asset generation, checksum/codesign validation, Deploy health proof, and audit/self-heal records.
 
 ### Self-hosted runner is offline (systemctl inactive)
 

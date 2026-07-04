@@ -1,0 +1,103 @@
+name: Release Pipeline Watchdog
+
+# Continuous auto-detect + auto-heal for the live release path.
+#
+# This is the safety net when workflow_run delivery, a GitHub process error,
+# or the Auto Heal workflow itself fails. It scans recent CI/Release/Deploy/
+# Auto-Heal failures and re-applies the correct healing action without human
+# intervention. It never bypasses gates: it reruns failed jobs or re-dispatches
+# deploy; tests/clippy/release/deploy health still decide success.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      scan_limit:
+        description: Recent runs to inspect
+        required: false
+        default: "25"
+      max_heals:
+        description: Max healing actions this invocation
+        required: false
+        default: "5"
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: release-pipeline-watchdog
+  cancel-in-progress: false
+
+jobs:
+  scan-and-heal:
+    name: Scan recent release path failures and heal
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      SCAN_LIMIT: ${{ inputs.scan_limit || '25' }}
+      MAX_HEALS: ${{ inputs.max_heals || '5' }}
+    steps:
+      - name: Auto-detect and heal failed release path runs
+        shell: bash
+        run: |
+          set -euo pipefail
+          healed=0
+          echo "Scanning last ${SCAN_LIMIT} runs in ${REPO}"
+          gh run list --repo "$REPO" --limit "$SCAN_LIMIT" \
+            --json databaseId,workflowName,status,conclusion,event,displayTitle,headSha,url \
+            > runs.json
+          cat runs.json
+          while read -r run; do
+            if [[ "$healed" -ge "$MAX_HEALS" ]]; then
+              echo "max heals reached: $MAX_HEALS"
+              break
+            fi
+            id=$(jq -r '.databaseId' <<<"$run")
+            wf=$(jq -r '.workflowName' <<<"$run")
+            event=$(jq -r '.event' <<<"$run")
+            title=$(jq -r '.displayTitle // ""' <<<"$run")
+            url=$(jq -r '.url' <<<"$run")
+            attempt=$(gh run view "$id" --repo "$REPO" --json attempt --jq '.attempt // 1' 2>/dev/null || echo 1)
+            echo "candidate id=$id workflow=$wf event=$event attempt=$attempt title=$title url=$url"
+
+            # Never heal the same failed run more than once; a fresh run will be created.
+            if [[ "$attempt" -ge 2 ]]; then
+              echo "skip id=$id: already attempt $attempt"
+              continue
+            fi
+
+            case "$wf" in
+              CI|Release|"Auto Heal Release Pipeline")
+                echo "healing by rerunning failed jobs: $wf run=$id"
+                if gh run rerun "$id" --failed --repo "$REPO"; then
+                  healed=$((healed + 1))
+                else
+                  echo "process_error=watchdog_gh_run_rerun_failed run=$id workflow=$wf" >&2
+                fi
+                ;;
+              "Deploy Live Daemon")
+                tag=$(printf '%s' "$title" | sed -n 's/.*-\s*v\([0-9][0-9A-Za-z._+-]*\).*/v\1/p' | head -1 || true)
+                if [[ -z "$tag" ]]; then
+                  echo "skip deploy id=$id: could not infer tag from title=$title"
+                  continue
+                fi
+                echo "healing deploy by redispatch: tag=$tag asset=x86_64-unknown-linux-musl"
+                if gh workflow run 'Deploy Live Daemon' \
+                  --repo "$REPO" \
+                  --ref main \
+                  -f release_tag="$tag" \
+                  -f asset_suffix="x86_64-unknown-linux-musl"; then
+                  healed=$((healed + 1))
+                else
+                  echo "process_error=watchdog_deploy_redispatch_failed run=$id tag=$tag" >&2
+                fi
+                ;;
+              *)
+                echo "skip workflow=$wf: not in release path"
+                ;;
+            esac
+          done < <(jq -c '.[] | select(.status == "completed" and .conclusion == "failure")' runs.json)
+          echo "healed=${healed}" >> "$GITHUB_STEP_SUMMARY"

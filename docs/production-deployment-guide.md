@@ -83,12 +83,16 @@ Expected fields include:
 
 ## 4) Live release automation
 
-Preferred path:
+Only supported path:
 
-- release from `scripts/create-dev-release-tag.sh --push`
+- release from `scripts/create-dev-release-tag.sh --base 0.9 --push`
+- GitHub `CI` proves tests/clippy/static gates
 - GitHub `Release` workflow builds/tag-stamps artifacts
 - GitHub `Deploy Live Daemon` workflow installs the new daemon on the VPS
 - installer restarts systemd, verifies `/v1/health`, and auto-rolls back on failure
+- Auto Heal + Watchdog detect and retry failures without manual deploy intervention
+
+Local release builds and partial deploy workflow shortcuts are forbidden. See [`docs/canonical-live-release-pipeline.md`](canonical-live-release-pipeline.md).
 
 ### Re-tagging a published tag
 
@@ -166,8 +170,8 @@ sudo bash scripts/install-self-hosted-runner.sh
 #    FOCUSA_DEPLOY_ASSET_SUFFIX=x86_64-unknown-linux-musl
 #    FOCUSA_DEPLOY_HEALTH_URL=http://127.0.0.1:8787/v1/health
 
-# 5. Trigger the first deploy via GitHub Actions
-gh workflow run 'Deploy Live Daemon' --ref main -f release_tag=v0.9.42-dev
+# 5. Trigger the first full release/deploy through the canonical pipeline
+scripts/create-dev-release-tag.sh --base 0.9 --push
 ```
 
 ## 7) Menubar releases

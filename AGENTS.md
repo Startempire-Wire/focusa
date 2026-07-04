@@ -1,5 +1,18 @@
 # Agent Instructions
 
+## Canonical build/deploy rule (mandatory)
+
+**Build and deploy ONLY through the full live GitHub release pipeline.**
+
+- Canonical command: `scripts/create-dev-release-tag.sh --base 0.9 --push`
+- Required chain: `CI` → `Release` → `Deploy Live Daemon` → audit/self-heal/watchdog.
+- Do **not** build release artifacts locally with `cargo build --release`.
+- Do **not** deploy from `target/release` or call `install-daemon.sh --binary target/release/...`.
+- Do **not** run only a partial deploy workflow as a shortcut.
+- If the pipeline fails, fix the pipeline/system and push; Auto Heal + Watchdog must recover future failures.
+
+See `docs/canonical-live-release-pipeline.md` before any build/deploy work.
+
 This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
 
 ## Quick Reference

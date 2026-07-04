@@ -9,10 +9,10 @@ fail(){ echo "✗ FAIL: $*" >&2; exit 1; }
 pass(){ echo "✓ PASS: $*"; }
 
 # Auto-heal must listen to all release-path stages.
-for wf in '"CI"' '"Release"' '"Deploy Live Daemon"'; do
+for wf in '"CI"' '"Release"' '"Deploy Live Daemon"' '"Release Pipeline Watchdog"'; do
   grep -q "$wf" "$HEAL" || fail "auto-heal workflow missing trigger/workflow: $wf"
 done
-pass "auto-heal listens to CI, Release, and Deploy Live Daemon"
+pass "auto-heal listens to CI, Release, Deploy Live Daemon, and Watchdog"
 
 # CI/Release self-heal reruns failed jobs only, once; does not skip gates.
 grep -q 'maybe-rerun-ci-release' "$HEAL" || fail "missing CI/Release rerun job"
@@ -30,8 +30,8 @@ grep -q 'asset_suffix="$ASSET_SUFFIX"' "$HEAL" || fail "deploy retry must preser
 pass "deploy self-heal redispatches deploy with tag + asset suffix"
 
 # Durable audit recorder must cover release stages and Auto Heal's own process errors.
-grep -q 'workflows: \["CI", "Release", "Deploy Live Daemon", "Auto Heal Release Pipeline"\]' "$AUDIT" \
-  || fail "audit recorder must record CI, Release, Deploy, and Auto Heal failures"
+grep -q 'workflows: \["CI", "Release", "Deploy Live Daemon", "Auto Heal Release Pipeline", "Release Pipeline Watchdog"\]' "$AUDIT" \
+  || fail "audit recorder must record CI, Release, Deploy, Auto Heal, and Watchdog failures"
 grep -q 'scripts/record-workflow-failure.py' "$AUDIT" \
   || fail "audit recorder missing failure recorder"
 grep -q 'scripts/auto-heal-audit.py' "$AUDIT" \

@@ -12,13 +12,17 @@ The live deploy hook now assumes a **self-hosted GitHub Actions runner on the VP
 - `focusa-deploy`
 - `production`
 
+## Mandatory single path
+
+All build/deploy work uses the **full live release pipeline only**. Do not build artifacts locally, do not deploy from `target/release`, and do not run only `Deploy Live Daemon` as a shortcut. See [`docs/canonical-live-release-pipeline.md`](canonical-live-release-pipeline.md).
+
 ## Release model
 
 Focusa now uses a tag-driven release/deploy model:
 
 1. Core edits land on `main`.
 2. CI proves build/tests/clippy/static deploy automation.
-3. `scripts/create-dev-release-tag.sh --push` creates the next tag, stamps version surfaces, and pushes `main` + tag.
+3. `scripts/create-dev-release-tag.sh --base 0.9 --push` creates the next tag, stamps version surfaces, and pushes `main` + tag.
 4. `Release` workflow builds artifacts from the tag and verifies stamped version surfaces.
 5. `Deploy Live Daemon` workflow runs only on a self-hosted VPS runner after a successful GitHub `CI` run for the exact target commit, performs a safe disk-cleanup preflight, installs the daemon, restarts the service, verifies `/v1/health`, and rolls back automatically on failure.
 
@@ -27,15 +31,12 @@ Focusa now uses a tag-driven release/deploy model:
 Create/push a new release tag and wait for CI + release + live deploy:
 
 ```bash
-scripts/create-dev-release-tag.sh --push
+scripts/create-dev-release-tag.sh --base 0.9 --push
 ```
 
-Redeploy or roll back to an older tag from GitHub Actions:
+Do not manually run only `Deploy Live Daemon` for normal releases. Redeploy/retry is owned by Auto Heal + Watchdog. If rollback is required, file/fix the underlying pipeline state and drive it through the same audited release/deploy automation; do not install local binaries by hand.
 
-- open **Actions → Deploy Live Daemon → Run workflow**
-- set `release_tag` to the target tag, e.g. `v0.9.40-dev`
-
-Rollback is just a redeploy of an earlier release tag.
+Rollback is a pipeline-managed redeploy of an earlier release tag.
 
 ## Required GitHub configuration
 
