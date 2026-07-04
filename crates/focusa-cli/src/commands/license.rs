@@ -417,8 +417,28 @@ fn print_human_doctor(doctor: &focusa_core::license::DoctorReport) {
         for f in &doctor.failures {
             println!("  - {}", f);
         }
-        std::process::exit(1);
     }
+}
+
+fn print_license_gate_matrix(matrix: &[Value], missing_gates: &[Value], recovery_hint: &str) {
+    println!("\nLicense gate matrix:");
+    for row in matrix {
+        println!(
+            "  - {} -> {} ({})",
+            row["command"].as_str().unwrap_or("unknown"),
+            row["required_gate"].as_str().unwrap_or("unknown"),
+            row["gate_status"].as_str().unwrap_or("unknown")
+        );
+    }
+    if missing_gates.is_empty() {
+        println!("\nMissing gates: none");
+    } else {
+        println!("\nMissing gates:");
+        for row in missing_gates {
+            println!("  - {}", row["command"].as_str().unwrap_or("unknown"));
+        }
+    }
+    println!("Recovery hint: {recovery_hint}");
 }
 
 pub async fn run(json_output: bool, args: LicenseArgs) -> anyhow::Result<()> {
@@ -545,12 +565,42 @@ async fn run_deactivate(json_output: bool) -> anyhow::Result<()> {
 async fn run_doctor(json_output: bool) -> anyhow::Result<()> {
     let license_file = local_license_path();
     let report = core_doctor(&license_file).await?;
+    let license_gate_matrix = license_gate_matrix();
+    let missing_gates = missing_license_gates(&license_gate_matrix);
+    let recovery_hint = "Missing gates block MVP/commercial release: wire side-effect commands through focusa_core::license::require_feature or the install registry validation path, then rerun focusa license doctor.";
     if json_output {
-        println!("{}", serde_json::to_string_pretty(&report)?);
+        let out = json!({
+            "license_doctor": report,
+            "license_gate_matrix": license_gate_matrix,
+            "missing_gates": missing_gates,
+            "recovery_hint": recovery_hint,
+        });
+        println!("{}", serde_json::to_string_pretty(&out)?);
     } else {
         print_human_doctor(&report);
+        print_license_gate_matrix(&license_gate_matrix, &missing_gates, recovery_hint);
     }
     Ok(())
+}
+
+fn license_gate_matrix() -> Vec<Value> {
+    vec![
+        json!({"command":"focusa install", "side_effect":"install_or_replace_binaries_and_service", "required_gate":"registry_validate_or_eval_mode", "gate_status":"gated", "evidence":"crates/focusa-cli/src/commands/install.rs:phase_license"}),
+        json!({"command":"focusa upgrade", "side_effect":"atomic_binary_swap", "required_gate":"delegates_to_focusa_install_license_gate", "gate_status":"gated", "evidence":"crates/focusa-cli/src/commands/upgrade.rs"}),
+        json!({"command":"focusa release prove", "side_effect":"official_release_bundle_proof", "required_gate":"official_release_bundle", "gate_status":"gated", "evidence":"crates/focusa-cli/src/commands/release.rs:require_feature"}),
+        json!({"command":"focusa export", "side_effect":"commercial_export_artifact", "required_gate":"commercial_export", "gate_status":"gated", "evidence":"crates/focusa-cli/src/commands/export.rs:require_feature"}),
+        json!({"command":"focusa binary", "side_effect":"packaged_installer_generation", "required_gate":"packaged_installer", "gate_status":"gated", "evidence":"crates/focusa-cli/src/commands/binary.rs:require_feature"}),
+        json!({"command":"focusa device pair-qr", "side_effect":"qr_pwa_device_handoff", "required_gate":"qr_pwa_handoff", "gate_status":"gated", "evidence":"crates/focusa-cli/src/commands/device_pairing.rs:require_feature"}),
+        json!({"command":"focusa license activate/deactivate", "side_effect":"local_license_state_admin", "required_gate":"not_required_license_administration", "gate_status":"not_required", "evidence":"crates/focusa-cli/src/commands/license.rs"}),
+    ]
+}
+
+fn missing_license_gates(matrix: &[Value]) -> Vec<Value> {
+    matrix
+        .iter()
+        .filter(|row| row.get("gate_status").and_then(Value::as_str) == Some("missing"))
+        .cloned()
+        .collect()
 }
 
 async fn run_check_feature(json_output: bool, args: CheckFeatureArgs) -> anyhow::Result<()> {
