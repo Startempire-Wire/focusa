@@ -45,6 +45,7 @@ pub mod predict;
 pub mod project;
 pub mod proposals;
 pub mod reflection;
+pub mod recover;
 pub mod release;
 pub mod resource;
 pub mod rfm;

@@ -152,6 +152,9 @@ enum Commands {
     /// Run Spec105 local CI/spec/evidence preflight.
     Preflight,
 
+    /// Recover from crashed daemon / lost Workpoint context and surface recovery_hint.
+    Recover(commands::recover::RecoverArgs),
+
     /// Explain a failure and print recovery commands.
     Explain { failure: String },
 
@@ -696,6 +699,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Doctor(args) => commands::doctor::run(cli.json, args).await,
         Commands::License(args) => commands::license::run(cli.json, args).await,
         Commands::Preflight => commands::dxux::preflight().await,
+        Commands::Recover(args) => commands::recover::run(cli.json, args).await,
         Commands::Explain { failure } => commands::dxux::explain(failure).await,
         Commands::Dxux(cmd) => {
             let mut client = crate::api_client::ApiClient::new();
