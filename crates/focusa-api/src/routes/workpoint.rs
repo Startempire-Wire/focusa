@@ -1793,12 +1793,12 @@ async fn current(
     let effective_project_root = query
         .project_root
         .as_deref()
-        .and_then(clean_resume_scope_value)
+        .and_then(|value| clean_resume_scope_value(Some(value)))
         .or(detected_project_root);
     let effective_continuity_id = query
         .continuity_id
         .as_deref()
-        .and_then(clean_resume_scope_value);
+        .and_then(|value| clean_resume_scope_value(Some(value)));
     // If project_root was auto-detected but no continuity_id was passed,
     // look up the continuity_id from the .focusa-project.json marker.
     let effective_continuity_id = if effective_continuity_id.is_none() && effective_project_root.is_some() {

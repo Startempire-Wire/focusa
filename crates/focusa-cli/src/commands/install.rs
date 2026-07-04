@@ -391,8 +391,8 @@ async fn verify_checksum(asset: &InstalledAsset) -> Result<()> {
     if expected.len() != 64 || !expected.chars().all(|c| c.is_ascii_hexdigit()) {
         bail!("invalid SHA256SUMS entry for {}", asset.name);
     }
-    let bytes = std::fs::read(&asset.path)
-        .with_context(|| format!("read downloaded asset for checksum: {}", asset.path.display()))?;
+    let bytes = std::fs::read(&asset.install_path)
+        .with_context(|| format!("read downloaded asset for checksum: {}", asset.install_path))?;
     let actual = hex::encode(Sha256::digest(&bytes));
     if actual != expected {
         bail!("checksum mismatch for {}: expected {expected}, got {actual}", asset.name);
@@ -661,7 +661,7 @@ fn verify_macos_codesign(target: InstallTarget, asset: &InstalledAsset) -> Resul
         .arg("-dv")
         .arg("--verify")
         .arg("--strict")
-        .arg(&asset.path)
+        .arg(&asset.install_path)
         .status()
         .map_err(|e| anyhow!("macOS codesign verify failed to execute for {}: {e}", asset.name))?;
     if !status.success() {
@@ -770,7 +770,7 @@ async fn delegate_service_render(
     Ok(())
 }
 
-fn resolve_target(target: InstallTarget) -> Result<InstallTarget> {
+pub(crate) fn resolve_target(target: InstallTarget) -> Result<InstallTarget> {
     match target {
         InstallTarget::Auto => detect_platform_target(),
         t => Ok(t),

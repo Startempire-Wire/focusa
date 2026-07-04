@@ -64,21 +64,21 @@ pub struct CheckFeatureArgs {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct RegistryValidateResponse {
+pub(crate) struct RegistryValidateResponse {
     #[serde(default)]
-    valid: bool,
+    pub valid: bool,
     #[serde(default)]
-    product: String,
+    pub product: String,
     #[serde(default)]
-    tier: String,
+    pub tier: String,
     #[serde(default)]
-    status: String,
+    pub status: String,
     #[serde(default)]
-    commercial_use: bool,
+    pub commercial_use: bool,
     #[serde(default)]
-    team_use: bool,
+    pub team_use: bool,
     #[serde(default)]
-    client_delivery: bool,
+    pub client_delivery: bool,
     #[serde(default)]
     hosted_use: bool,
     #[serde(default)]
@@ -170,7 +170,7 @@ impl RegistryError {
 
 /// Outcome of `registry_validate`: either a parsed response or a structured error.
 /// Spec 112 §15A.2 mandates we never conflate distinct failure modes.
-pub struct RegistryValidateOutcome {
+pub(crate) struct RegistryValidateOutcome {
     pub response: Option<RegistryValidateResponse>,
     pub error: Option<RegistryError>,
 }
@@ -178,7 +178,7 @@ pub struct RegistryValidateOutcome {
 /// POST a license key to the registry for validation. Maps every WP REST
 /// envelope shape to a typed `RegistryError` so callers can emit structured
 /// output with `code` + `recovery_hint` per Spec92.
-async fn registry_validate(registry: &str, key: &str) -> RegistryValidateOutcome {
+pub(crate) async fn registry_validate(registry: &str, key: &str) -> RegistryValidateOutcome {
     let url = format!(
         "{}{}",
         registry.trim_end_matches('/'),

@@ -30,7 +30,7 @@ const LICENSE_FILE: &str = "license.json";
 pub struct UninstallArgs {
     /// Platform target (auto-detected by default).
     #[arg(long, value_name = "TARGET", default_value = "auto")]
-    pub target: super::install::InstallTarget,
+    pub target: crate::commands::install::InstallTarget,
 
     /// Print the uninstall plan without writing anything.
     #[arg(long)]
@@ -65,7 +65,7 @@ pub struct UninstallArgs {
 #[derive(Debug, Serialize)]
 pub struct UninstallReport {
     pub ok: bool,
-    pub target: super::install::InstallTarget,
+    pub target: crate::commands::install::InstallTarget,
     pub dry_run: bool,
     pub steps_planned: Vec<UninstallStep>,
     pub steps_executed: Vec<UninstallStep>,
@@ -105,7 +105,7 @@ pub enum UninstallStepStatus {
 }
 
 pub async fn run(args: UninstallArgs) -> Result<()> {
-    let target = super::install::resolve_target(args.target)
+    let target = crate::commands::install::resolve_target(args.target)
         .map_err(|e| anyhow!("target resolve failed: {e}"))?;
 
     let home = std::env::var_os("HOME")
@@ -181,7 +181,7 @@ enum StepOutcome {
 }
 
 fn plan_steps(
-    target: super::install::InstallTarget,
+    target: crate::commands::install::InstallTarget,
     install_root: &Path,
     local_bin: &Path,
     license_path: &Path,
@@ -386,18 +386,18 @@ fn execute_step(step: &mut UninstallStep, _home: &Path, _args: &UninstallArgs) -
     }
 }
 
-fn service_target_for(target: super::install::InstallTarget) -> String {
+fn service_target_for(target: crate::commands::install::InstallTarget) -> String {
     let home = std::env::var("HOME").unwrap_or_default();
     match target {
-        super::install::InstallTarget::Linux
-        | super::install::InstallTarget::Auto => {
+        crate::commands::install::InstallTarget::Linux
+        | crate::commands::install::InstallTarget::Auto => {
             format!("{home}/.config/systemd/user/{SERVICE_NAME}.service")
         }
-        super::install::InstallTarget::Darwin => {
+        crate::commands::install::InstallTarget::Darwin => {
             format!("{home}/Library/LaunchAgents/{LAUNCHD_LABEL}.plist")
         }
-        super::install::InstallTarget::WindowsX64
-        | super::install::InstallTarget::WindowsArm64 => {
+        crate::commands::install::InstallTarget::WindowsX64
+        | crate::commands::install::InstallTarget::WindowsArm64 => {
             "sc.exe focusa-daemon".to_string()
         }
     }
@@ -458,7 +458,7 @@ mod tests {
 
     #[test]
     fn plan_includes_all_default_steps() {
-        let target = super::install::InstallTarget::Linux;
+        let target = crate::commands::install::InstallTarget::Linux;
         let args = UninstallArgs {
             target: target.clone(),
             dry_run: true,
@@ -488,7 +488,7 @@ mod tests {
 
     #[test]
     fn keep_license_marks_license_step_skipped() {
-        let target = super::install::InstallTarget::Linux;
+        let target = crate::commands::install::InstallTarget::Linux;
         let args = UninstallArgs {
             target: target.clone(),
             dry_run: true,
@@ -512,7 +512,7 @@ mod tests {
 
     #[test]
     fn keep_data_marks_install_root_skipped() {
-        let target = super::install::InstallTarget::Linux;
+        let target = crate::commands::install::InstallTarget::Linux;
         let args = UninstallArgs {
             target: target.clone(),
             dry_run: true,
@@ -536,7 +536,7 @@ mod tests {
 
     #[test]
     fn keep_path_modifications_skips_rc_steps() {
-        let target = super::install::InstallTarget::Linux;
+        let target = crate::commands::install::InstallTarget::Linux;
         let args = UninstallArgs {
             target: target.clone(),
             dry_run: true,
@@ -560,7 +560,7 @@ mod tests {
 
     #[test]
     fn purge_adds_purge_step() {
-        let target = super::install::InstallTarget::Linux;
+        let target = crate::commands::install::InstallTarget::Linux;
         let args = UninstallArgs {
             target: target.clone(),
             dry_run: true,
@@ -583,10 +583,10 @@ mod tests {
 
     #[test]
     fn service_target_paths_match_target() {
-        let linux = service_target_for(super::install::InstallTarget::Linux);
+        let linux = service_target_for(crate::commands::install::InstallTarget::Linux);
         assert!(linux.contains("systemd/user"));
         assert!(linux.contains(SERVICE_NAME));
-        let mac = service_target_for(super::install::InstallTarget::Darwin);
+        let mac = service_target_for(crate::commands::install::InstallTarget::Darwin);
         assert!(mac.contains("LaunchAgents"));
         assert!(mac.contains(LAUNCHD_LABEL));
     }
