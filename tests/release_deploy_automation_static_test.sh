@@ -94,7 +94,7 @@ if grep -A3 'release-workflow-validate:' .github/workflows/release.yml | grep -q
   echo '✗ release workflow validation job must be unconditional to avoid No jobs were run' >&2
   exit 1
 fi
-assert_grep "startsWith(github.ref, 'refs/tags/')" .github/workflows/release.yml 'release expensive jobs must be tag-gated'
+assert_grep "if: startsWith(github.ref, 'refs/tags/')" .github/workflows/release.yml 'release expensive jobs must be tag-gated without ambiguous expression wrapper'
 assert_grep 'Deploy Live Daemon' scripts/create-dev-release-tag.sh 'create-dev-release-tag does not wait for deploy workflow'
 
 # audit schema validation (single canonical shape)
