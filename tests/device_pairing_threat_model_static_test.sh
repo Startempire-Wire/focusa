@@ -19,7 +19,7 @@ for needle in \
   'pairing_url_invalid' \
   'bounded_label' \
   'pair_code_already_used' \
-  '/home/wirebot/.cargo'; do
+  '$HOME/.cargo'; do
   rg -n -F "$needle" "$ROUTE" >/dev/null || fail "device_pairing.rs missing hardening marker: $needle"
 done
 pass "device pairing route has token/scope/url/label/single-use hardening markers"

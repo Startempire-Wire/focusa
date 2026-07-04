@@ -177,6 +177,7 @@ async fn store_visual_evidence(
         .any(|h| h.id == handle.id)
     {
         focusa.reference_index.handles.push(handle.clone());
+        state.mark_external_mutation();
     }
     drop(focusa);
 

@@ -108,11 +108,11 @@ Spec108 impact:
 
 ### Project identity
 
-`focusa_project_identity(project_root=/home/wirebot/focusa)` returns verified/high confidence:
+`focusa_project_identity(project_root=<project-root>)` returns verified/high confidence:
 
 - project: Focusa
 - project_id: `focusa`
-- root: `/home/wirebot/focusa`
+- root: `<project-root>`
 - repo: `https://github.com/Startempire-Wire/focusa.git`
 - workspace: Rust monorepo
 - local URL: `http://127.0.0.1:8787`

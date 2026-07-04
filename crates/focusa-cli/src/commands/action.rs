@@ -460,7 +460,7 @@ mod tests {
             target: Some("/usr/local/bin/focusa".to_string()),
             source: Some("github_release_asset".to_string()),
             install_role: "live_build_host".to_string(),
-            project_root: Some("/home/wirebot/focusa".to_string()),
+            project_root: Some("/workspace/focusa-project".to_string()),
             repo_version: Some("0.9.25-dev".to_string()),
             cli_version: Some("0.9.22-dev".to_string()),
             daemon_version: Some("0.9.23-dev".to_string()),

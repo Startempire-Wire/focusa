@@ -543,7 +543,7 @@ mod tests {
     #[test]
     fn urlencoding_escapes_paths() {
         assert_eq!(
-            urlencoding_minimal("/home/wirebot/focusa"),
+            urlencoding_minimal("/workspace/focusa-project"),
             "%2Fhome%2Fwirebot%2Ffocusa"
         );
         assert_eq!(urlencoding_minimal("a-b_c.d~e"), "a-b_c.d~e");

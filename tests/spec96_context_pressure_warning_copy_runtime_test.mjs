@@ -10,8 +10,7 @@ const match = source.match(/export function contextPressureWarningCopy[\s\S]*?\n
 if (!match) throw new Error('contextPressureWarningCopy export not found');
 const fnSource = match[0]
   .replace(/\n\nexport function contextTierLabel[\s\S]*$/, '')
-  .replace(/export function contextPressureWarningCopy\([^)]*\)/, 'function contextPressureWarningCopy(kind, pct, totalCompactions = 48)')
-  .replace(/\): string/g, ')');
+  .replace(/export function contextPressureWarningCopy\(kind: ContextPressureWarningKind, pct: number, totalCompactions = getTotalCompactions\(\)\): string/, 'function contextPressureWarningCopy(kind, pct, totalCompactions = 48)');
 const sandbox = { Number, result: null };
 vm.createContext(sandbox);
 vm.runInContext(`${fnSource}\nresult = {\n  auto: contextPressureWarningCopy('auto_suggest', 93),\n  hard: contextPressureWarningCopy('hard_unconfirmed', 93),\n  handoff: contextPressureWarningCopy('handoff_unconfirmed', 93, 48),\n};`, sandbox);

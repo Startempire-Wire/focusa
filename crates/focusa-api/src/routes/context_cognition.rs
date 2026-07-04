@@ -327,7 +327,7 @@ fn is_unsafe_agent_runtime_path_inline(path: &str) -> bool {
         "/root/.claude",
         "/root/.opencode",
         "/root/.letta",
-        "/home/wirebot/.cargo",
+        "$HOME/.cargo",
     ];
     BLOCKED
         .iter()

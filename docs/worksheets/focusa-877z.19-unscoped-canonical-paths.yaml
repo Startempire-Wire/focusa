@@ -1608,6 +1608,36 @@ entries:
   - failure_class
   - next_tools
   proof_status: inventory_covered_static
+- path: apps/pi-extension/src/awareness-substrate.ts
+  surface: pi_extension
+  risk: medium
+  status: awareness_projection_review
+  matched_patterns:
+  - pattern: singleton_active_pointer
+    count: 1
+  required_scope_fields:
+  - project_root
+  - continuity_id
+  required_classification:
+  - advisory_projection
+  - runtime_cache
+  implementation_beads:
+  - focusa-877z.19
+  notes: Awareness substrate reads cached Workpoint freshness only to rank visible guidance; it must remain advisory and project-scope aware.
+  mutation_class: read_only_advisory_projection
+  hard_fail_strategy: Awareness lines must remain advisory and defer canonical authority to scoped Workpoint/Trajectory packets.
+  scope_status: pending_review
+  agent_handicap_risk: Stale cached workpoint freshness may overstate readiness if rendered without scope warnings.
+  required_envelope_fields:
+  - status
+  - canonical
+  - advisory
+  - degraded
+  - stale
+  - scope_status
+  - failure_class
+  - next_tools
+  proof_status: inventory_covered_static
 next_hard_fail_policy:
   phase_1: 'inventory coverage lint: every static candidate file must have an inventory
     entry'

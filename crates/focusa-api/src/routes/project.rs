@@ -203,15 +203,33 @@ fn identity_name_matches(
     canonical_name: &str,
     project_id: &str,
     aliases: &[String],
+    candidate_project_root: Option<&str>,
+    expected_project_root: Option<&str>,
 ) -> bool {
     let expected = normalize_identity_name(expected);
     if expected.is_empty() {
         return false;
     }
-    std::iter::once(canonical_name)
+    if std::iter::once(canonical_name)
         .chain(std::iter::once(project_id))
-        .chain(aliases.iter().map(String::as_str))
         .any(|candidate| normalize_identity_name(candidate) == expected)
+    {
+        return true;
+    }
+
+    let alias_scope_matches = match (
+        candidate_project_root.and_then(|value| clean(Some(value))),
+        expected_project_root.and_then(|value| clean(Some(value))),
+    ) {
+        (Some(candidate_root), Some(expected_root)) => candidate_root == expected_root,
+        (None, None) => true,
+        _ => false,
+    };
+    alias_scope_matches
+        && aliases
+            .iter()
+            .map(String::as_str)
+            .any(|candidate| normalize_identity_name(candidate) == expected)
 }
 
 fn unsafe_project_root_reason(value: &str) -> Option<&'static str> {
@@ -1448,7 +1466,14 @@ fn discover_identity(
         }));
     }
     if let Some(persisted_name) = clean(remote_hint.persisted_canonical_name.as_deref())
-        && !identity_name_matches(&persisted_name, &canonical_name, &project_id, &aliases)
+        && !identity_name_matches(
+            &persisted_name,
+            &canonical_name,
+            &project_id,
+            &aliases,
+            project_root.as_deref(),
+            remote_hint.persisted_project_root.as_deref(),
+        )
     {
         mismatches.push(json!({
             "source": "persisted_session_identity_canonical_name",
@@ -1648,6 +1673,8 @@ fn candidate_payload(
                 &candidate.canonical_name,
                 &candidate.project_id,
                 &candidate.aliases,
+                Some(candidate.project_root.as_str()),
+                expected.project_root.as_deref(),
             )
         {
             mismatches.push(json!({"source":"operator_expected_canonical_name", "expected": name, "actual": candidate.canonical_name, "severity":"medium"}));
@@ -3231,7 +3258,7 @@ mod tests {
     fn identity_name_match_accepts_safe_case_and_aliases() {
         let aliases = vec!["focusa-daemon".to_string(), "focusa-cli".to_string()];
         assert!(identity_name_matches(
-            "focusa", "Focusa", "focusa", &aliases
+            "focusa", "Focusa", "focusa", &aliases, Some("/workspace/focusa"), Some("/workspace/focusa")
         ));
         assert!(identity_name_matches(
             "FOCUSA DAEMON",

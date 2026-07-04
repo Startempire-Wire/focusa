@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { parseJsonLikeTsLiteral } from './lib/json-like-ts.mjs';
 
 const root = process.cwd();
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
@@ -31,7 +32,7 @@ const tsJsonMatch = contractsSrc.match(/export const FOCUSA_TOOL_CONTRACTS: Focu
 if (!tsJsonMatch) {
   addFailure('could not parse TypeScript contract registry');
 } else {
-  const tsContracts = JSON.parse(`${tsJsonMatch[1]}\n]`);
+  const tsContracts = parseJsonLikeTsLiteral(`${tsJsonMatch[1]}\n]`);
   if (JSON.stringify(tsContracts) !== JSON.stringify(registry.contracts)) {
     addFailure('TypeScript contract registry differs from JSON projection');
   }
@@ -65,12 +66,20 @@ function cliSourceFor(rootCommand) {
     'context-cognition': 'crates/focusa-cli/src/commands/context_cognition.rs',
     'call-stack': 'crates/focusa-cli/src/commands/call_stack.rs',
     device: 'crates/focusa-cli/src/commands/device_pairing.rs',
+    bloatgaurd: 'crates/focusa-cli/src/commands/bloatgaurd.rs',
+    utility: 'crates/focusa-cli/src/commands/utility.rs',
+    dxux: 'crates/focusa-cli/src/commands/dxux.rs',
+    explain: 'crates/focusa-cli/src/commands/dxux.rs',
+    awareness: 'crates/focusa-cli/src/commands/awareness.rs',
   };
   return map[rootCommand];
 }
 
 function checkCliCommand(toolName, command) {
-  const tokens = String(command).split(/\s+/).filter(Boolean).filter((token) => !token.startsWith('--'));
+  const tokens = String(command)
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((token) => !token.startsWith('--') && !(token.startsWith('<') && token.endsWith('>')));
   if (!tokens.length) return;
   if (tokens[0] === 'tmux') return;
   if (tokens[0] !== 'focusa') {
@@ -116,7 +125,7 @@ for (const contract of registry.contracts) {
     const block = toolsSrc.slice(first, next === -1 ? toolsSrc.length : next);
     if (!block.includes('description:')) addFailure('tool implementation missing description', name);
     if (!block.includes('parameters:')) addFailure('tool implementation missing parameters schema', name);
-    if (!block.includes('async execute')) addFailure('tool implementation missing async execute', name);
+    if (!/async\s+execute|execute:\s*async/.test(block)) addFailure('tool implementation missing async execute', name);
   }
 
   if (!contract.doc_path || !exists(contract.doc_path)) addFailure('contract doc missing', { tool: name, doc_path: contract.doc_path });

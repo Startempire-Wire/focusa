@@ -19,7 +19,7 @@ use std::fmt;
 /// Canonical request scope parameters.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ScopeContext {
-    /// The resolved project root path (e.g., `/home/wirebot/focusa`).
+    /// The resolved project root path (e.g., `/workspace/focusa-project`).
     pub project_root: Option<String>,
     /// The continuity/workstream identifier (e.g., `focusa-cont-root-...`).
     pub continuity_id: Option<String>,

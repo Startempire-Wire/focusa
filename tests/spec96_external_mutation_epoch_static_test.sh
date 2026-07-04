@@ -21,10 +21,16 @@ else
   exit 1
 fi
 
+count_matches() {
+  local pattern="$1"
+  local file="$2"
+  (rg -o "$pattern" "$file" || true) | wc -l | tr -d ' '
+}
+
 fail=0
 while IFS= read -r file; do
-  writes=$(rg -o 'state\.focusa\.write\(\)|focusa\.write\(\)' "$file" | wc -l | tr -d ' ')
-  marks=$(rg -o 'mark_external_mutation\(\)' "$file" | wc -l | tr -d ' ')
+  writes=$(count_matches 'state\.focusa\.write\(\)|focusa\.write\(\)' "$file")
+  marks=$(count_matches 'mark_external_mutation\(\)' "$file")
   if [[ "$writes" -gt "$marks" ]]; then
     echo "✗ FAIL: $file has $writes direct focusa writes but only $marks external mutation marks" >&2
     fail=1

@@ -8,3 +8,5 @@ Spec 101 read-only tool for Bloatgaurd gate modes A/B/C.
 - Side effects: none (`read_state`)
 
 Use before enabling Bloatgaurd enforcement to inspect deterministic modes, thresholds, allowlist entries, and report schema fields.
+
+- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.

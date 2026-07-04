@@ -8,3 +8,5 @@ Spec 101 read-only tool for one Tokenbloat Control domain.
 - Side effects: none (`read_state`)
 
 Use when a gap maps to `tokenbloat-control` or `tool-call-history-elision`.
+
+- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.

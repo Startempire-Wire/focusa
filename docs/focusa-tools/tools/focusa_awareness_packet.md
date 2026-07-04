@@ -54,3 +54,7 @@ Returns `tool_result_v1` with:
 - TypeScript port: `apps/pi-extension/src/awareness-substrate.ts`
 - API routes: `GET /v1/awareness/packet`, `GET /v1/awareness/packet/{surface}`
 - Static test: `tests/spec108_awareness_substrate_static_test.py`
+
+- API: `GET /v1/awareness/packet`
+- API: `GET /v1/awareness/packet/{surface}`
+- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.

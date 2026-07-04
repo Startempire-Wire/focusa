@@ -381,41 +381,22 @@ fn active_persisted_trajectory<'a>(
     project_root: Option<&str>,
     continuity_id: Option<&str>,
 ) -> Option<&'a TrajectoryProjectionRecord> {
-    // Per Spec102 §4.1: HLT is scoped per project_root, NOT per continuity_id.
-    // continuity_id change MUST NOT regenerate HLT — agent context stability.
+    // Spec98/99 active selectors are executable route context and therefore
+    // require explicit project_root + continuity_id. Historical/fallback views
+    // may still cluster by project_root separately, but active lookup fails closed.
     let expected_project_root = clean(project_root)?;
+    let expected_continuity_id = clean(continuity_id)?;
 
-    // PRIMARY SCOPE: project_root only (continuity_id is informational for this lookup)
-    let scoped_records: Vec<&TrajectoryProjectionRecord> = state
+    state
         .trajectory
         .records
         .iter()
-        .filter(|record| record.project_root.as_deref() == Some(expected_project_root.as_str()))
-        .collect();
-
-    if scoped_records.is_empty() {
-        return None;
-    }
-
-    // Prefer records matching the requested continuity_id if any.
-    // If an explicit continuity_id was requested, absence is not canonical:
-    // callers may opt into prior-project fallback separately.
-    if let Some(expected_continuity_id) = clean(continuity_id) {
-        return scoped_records
-            .iter()
-            .rev()
-            .find(|r| {
-                r.continuity_id.as_deref() == Some(expected_continuity_id.as_str()) && r.canonical
-            })
-            .copied();
-    }
-
-    // Fall back to latest canonical record only when no continuity_id was requested.
-    scoped_records
-        .iter()
         .rev()
-        .find(|record| record.canonical)
-        .copied()
+        .find(|record| {
+            record.project_root.as_deref() == Some(expected_project_root.as_str())
+                && record.continuity_id.as_deref() == Some(expected_continuity_id.as_str())
+                && record.canonical
+        })
 }
 
 fn is_generic_bootstrap_hlt(value: &str) -> bool {
@@ -1270,7 +1251,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
                 "focusa_project_verify",
                 "focusa_trajectory_define_goal (with explicit project_root)"
             ],
-            "next_step_hint": "project_root is an agent/runtime directory (not a project). Use an actual project folder like /home/wirebot/focusa instead of /root/pi-mono or similar agent paths."
+            "next_step_hint": "project_root is an agent/runtime directory (not a project). Use an actual project folder like /workspace/focusa-project instead of /root/pi-mono or similar agent paths."
         });
     }
 
@@ -2610,12 +2591,12 @@ mod tests {
     #[test]
     fn trajectory_resume_rejects_current_ask_project_path_conflict() {
         let query = TrajectoryViewQuery {
-            project_root: Some("/home/wirebot/focusa".to_string()),
+            project_root: Some("/workspace/focusa-project".to_string()),
             continuity_id: Some("focusa-cont".to_string()),
             ..TrajectoryViewQuery::default()
         };
         let body = TrajectoryResumeRequest {
-            project_root: Some("/home/wirebot/focusa".to_string()),
+            project_root: Some("/workspace/focusa-project".to_string()),
             continuity_id: Some("focusa-cont".to_string()),
             current_ask: Some("continue implementation in /home/wpuiai/uiai-engine".to_string()),
             ..TrajectoryResumeRequest::default()
@@ -2754,7 +2735,7 @@ mod tests {
             work_item_id: Some("stale-root-workpoint".to_string()),
             session_id: Some("session-root".to_string()),
             continuity_id: Some("focusa-cont-root-stale".to_string()),
-            project_root: Some("/home/wirebot/focusa".to_string()),
+            project_root: Some("/workspace/focusa-project".to_string()),
             status: WorkpointStatus::Active,
             checkpoint_reason: WorkpointCheckpointReason::Manual,
             confidence: WorkpointConfidence::Verified,
@@ -2769,7 +2750,7 @@ mod tests {
             continuity_id: Some(
                 "focusa-cont-focusa-841f88e0-79fc-4bc8-81ba-28a211a97818".to_string(),
             ),
-            project_root: Some("/home/wirebot/focusa".to_string()),
+            project_root: Some("/workspace/focusa-project".to_string()),
             status: WorkpointStatus::Active,
             checkpoint_reason: WorkpointCheckpointReason::Manual,
             confidence: WorkpointConfidence::Verified,
@@ -2781,7 +2762,7 @@ mod tests {
         let payload = trajectory_view_payload(
             &state,
             &TrajectoryViewQuery {
-                project_root: Some("/home/wirebot/focusa".to_string()),
+                project_root: Some("/workspace/focusa-project".to_string()),
                 continuity_id: Some(
                     "focusa-cont-focusa-841f88e0-79fc-4bc8-81ba-28a211a97818".to_string(),
                 ),

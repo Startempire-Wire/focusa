@@ -779,7 +779,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
             }
 
             let writer = {
-                let key = "project:/home/wirebot/focusa|workstream:daemon-supervisor|work_item:supervisor".to_string();
+                let key = "project:/workspace/focusa-project|workstream:daemon-supervisor|work_item:supervisor".to_string();
                 let mut claims = state.writer_claims.write().await;
                 claims
                     .entry(key)

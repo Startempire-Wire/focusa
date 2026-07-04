@@ -56,13 +56,11 @@ fn common_command_paths(command: &str) -> &'static [&'static str] {
         "rustc" => &["/root/.cargo/bin/rustc", "/usr/local/cargo/bin/rustc"],
         "node" => &[
             "/opt/node-v22.22.3-linux-x64/bin/node",
-            "/opt/cpanel/ea-nodejs20/bin/node",
             "/usr/local/bin/node",
             "/usr/bin/node",
         ],
         "npm" => &[
             "/opt/node-v22.22.3-linux-x64/bin/npm",
-            "/opt/cpanel/ea-nodejs20/bin/npm",
             "/usr/local/bin/npm",
             "/usr/bin/npm",
         ],

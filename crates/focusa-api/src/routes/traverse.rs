@@ -322,10 +322,10 @@ fn change_feed_payload(items: &[Value], query: Option<&str>) -> Value {
 
 fn command_palette_catalog() -> Vec<Value> {
     vec![
-        json!({"id":"resume_work","label":"Resume work","tool":"focusa_workpoint_resume","args_preview":{"project_root":"/home/wirebot/focusa","mode":"compact_prompt"},"when":"after compaction/resume or before choosing next action"}),
+        json!({"id":"resume_work","label":"Resume work","tool":"focusa_workpoint_resume","args_preview":{"project_root":"/workspace/focusa-project","mode":"compact_prompt"},"when":"after compaction/resume or before choosing next action"}),
         json!({"id":"link_proof","label":"Link proof","tool":"focusa_evidence_capture","args_preview":{"target_ref":"file/test/api","result":"PASS summary","evidence_ref":"evidence:handle"},"when":"after test/API/file proof changes confidence"}),
         json!({"id":"start_next_bead","label":"Start next bead","tool":"focusa_workpoint_checkpoint","args_preview":{"work_item_id":"focusa-pm2b.N","mission":"next bead"},"when":"before durable implementation work"}),
-        json!({"id":"explain_conflict","label":"Explain conflict","tool":"focusa_project_verify","args_preview":{"project_root":"/home/wirebot/focusa"},"when":"scope or authority signals conflict"}),
+        json!({"id":"explain_conflict","label":"Explain conflict","tool":"focusa_project_verify","args_preview":{"project_root":"/workspace/focusa-project"},"when":"scope or authority signals conflict"}),
         json!({"id":"make_repair_report","label":"Make repair report","tool":"scripts/spec102-repair-report","args_preview":{"epic":"focusa-pm2b"},"when":"after closing a repair bead"}),
         json!({"id":"run_clean_repair_check","label":"Run clean-repair check","tool":"tests/spec102_proof_matrix_enforcement_test.sh","args_preview":{},"when":"before closing Spec102 repair work"}),
     ]

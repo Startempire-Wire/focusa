@@ -6,7 +6,7 @@ fail(){ echo "✗ FAIL: $*" >&2; exit 1; }
 pass(){ echo "✓ PASS: $*"; }
 
 PAIR_RS="$ROOT_DIR/crates/focusa-cli/src/commands/pair.rs"
-FIRST_RUN="$ROOT_DIR/apps/menubar/src/lib/components/FirstRunConnect.svelte"
+FIRST_RUN="$ROOT_DIR/apps/menubar/src/lib/components/FirstRunWizard.svelte"
 
 rg -n 'Localhost-only pairing room selected|NOT phone-scannable|focusa pair --url https://YOUR-FOCUSA-HOST|FOCUSA_PAIRING_URL|manual completion payload fallback|localhost_not_phone_scannable|just_works_recovery' "$PAIR_RS" >/dev/null \
   || fail "focusa pair missing localhost cross-device recovery guidance"

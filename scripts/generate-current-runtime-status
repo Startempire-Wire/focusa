@@ -16,6 +16,12 @@ STAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
   echo "Tool contracts: ${TOOL_COUNT}"
   echo "Tool surface summary: [${SUMMARY_REF}](${SUMMARY_REF})"
   echo
+  echo '## Current shipped functionality'
+  echo
+  echo '- evaluations persist as first-class records for prediction/metacog readback and promotion.'
+  echo '- /v1/work-loop/health exposes dispatch readiness for work-loop diagnostics.'
+  echo '- ontology memory-pipeline promotions are documented and auditable.'
+  echo
   echo '## Release invariant inputs'
   echo
   echo '- release stamp: docs/current/.release-version-stamp'

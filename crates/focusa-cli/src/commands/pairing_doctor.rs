@@ -144,7 +144,7 @@ pub async fn run(args: DoctorArgs) -> Result<()> {
         },
         service_install: ServiceInfo {
             systemd_unit_written: std::path::Path::new(
-                "/home/wirebot/.config/systemd/user/focusa-daemon.service",
+                "$HOME/.config/systemd/user/focusa-daemon.service",
             )
             .exists(),
             launchd_plist_written: std::path::Path::new(

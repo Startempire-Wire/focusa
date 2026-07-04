@@ -908,10 +908,10 @@ function rememberedProjectRootForAlias(alias: string): string {
 // When a project alias is mentioned but no project_root is in the ledger,
 // look in known project directories for a matching .focusa-project.json
 function searchProjectMarkerForAlias(alias: string): string {
-  // Known candidate directories where sub-projects live
+  // Candidate directories where sub-projects live. Keep portable: callers may
+  // provide FOCUSA_PROJECT_SEARCH_DIRS as ':'-separated roots; HOME is fallback.
   const candidateDirs = [
-    "/home/focusadev",
-    "/home/wirebot",
+    ...(process.env.FOCUSA_PROJECT_SEARCH_DIRS || "").split(":").filter(Boolean),
     process.env.HOME || "",
   ].filter(Boolean);
 
@@ -1714,11 +1714,12 @@ async function loadFocusState(): Promise<{ frame: any; fs: any; stack: any } | n
 
   const liveAscc = asccState?.frame_id === frame.id ? (asccState?.ascc || asccState?.focus_state || null) : null;
   const frameState = frame?.focus_state || {};
+  const trajectoryShortTermGoal = S.lastTrajectoryClarity?.short_term_goal || "";
   const fs = {
     ...frameState,
     ...(liveAscc || {}),
-    current_focus: liveAscc?.current_focus || frameState.current_focus || frameState.current_state || "",
-    current_state: liveAscc?.current_state || frameState.current_state || frameState.current_focus || "",
+    current_focus: liveAscc?.current_focus || frameState.current_focus || frameState.current_state || trajectoryShortTermGoal || "",
+    current_state: liveAscc?.current_state || frameState.current_state || frameState.current_focus || trajectoryShortTermGoal || "",
   };
 
   S.activeFrameId = frame.id || S.activeFrameId;
@@ -1729,7 +1730,7 @@ async function loadFocusState(): Promise<{ frame: any; fs: any; stack: any } | n
     constraints: Array.isArray(fs?.constraints) ? fs.constraints : [],
     failures: sanitizeFocusFailures(Array.isArray(fs?.failures) ? fs.failures : []),
     intent: fs?.intent || "",
-    currentFocus: fs?.current_focus || fs?.current_state || "",
+    currentFocus: fs?.current_focus || fs?.current_state || S.lastTrajectoryClarity?.short_term_goal || "",
   };
 
   return { frame, fs, stack };

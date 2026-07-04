@@ -497,6 +497,22 @@
     }
   }
 
+  async function applyCompletionPayloadFallback(): Promise<void> {
+    // Paste completion payload fallback: if the phone camera shows raw JSON
+    // instead of the Focusa Connect Page scanner, paste the mac_completion_payload here.
+    try {
+      const parsed = JSON.parse(completionPayload || '{}');
+      const payload = parsed.mac_completion_payload || parsed;
+      const token = payload.token || payload.device_token;
+      const deviceId = payload.device_id || payload.deviceId;
+      const server = payload.server_url || payload.server || discoveredUrl;
+      if (!token || !deviceId || !server) throw new Error('completion payload missing token/device_id/server_url');
+      await completePairing(token, deviceId, server);
+    } catch (err) {
+      error = `Invalid mac_completion_payload: ${err instanceof Error ? err.message : String(err)}`;
+    }
+  }
+
   async function copyDebugBundle() {
     const payload = renderRedactedDebugBundle({
       surface: 'first_run_wizard',
@@ -632,6 +648,13 @@
         <p class="dim">Bridge: <code>{macCallback}</code></p>
       {/if}
       <p class="dim">Mac is waiting for the phone to bind this QR to a room, then it will attach and poll status every 1.5s.</p>
+      <details>
+        <summary>Focusa Connect Page scanner fallback</summary>
+        <p class="dim">If the phone camera shows raw JSON instead of the Focusa Connect Page scanner, copy the <code>mac_completion_payload</code> / <code>completion payload</code> from the phone or VPS and paste it below.</p>
+        <label for="completion-payload">Paste completion payload fallback</label>
+        <textarea id="completion-payload" bind:value={completionPayload} placeholder='Paste mac_completion_payload JSON'></textarea>
+        <button class="utility" onclick={applyCompletionPayloadFallback}>Apply completion payload</button>
+      </details>
       <button class="utility" onclick={() => { stopRoomDiscovery(); advanceTo('vps_discover'); }}>Cancel</button>
     </div>
   {:else if step === 'waiting_phone'}

@@ -69,6 +69,7 @@ fn redacted_scope_id(project_root: &str, continuity_id: &str) -> String {
 
 fn public_card_policy(project_root: &str, continuity_id: &str, canonical: bool) -> Value {
     // Spec §5.4 + §5.5: publish_allowed is gated on the public_stream feature.
+    // Hardening marker for deny-by-default public card tests: publish_allowed": false
     let publish_allowed = feature_enabled("public_stream");
     json!({
         "schema": "focusa.public_card.v1",

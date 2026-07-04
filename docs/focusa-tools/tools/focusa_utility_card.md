@@ -36,3 +36,9 @@ A `tool_result_v1` envelope with `focusa.utility_card.v1` raw payload containing
 - CLI: `focusa utility card`, `focusa utility bootstrap`, `focusa utility post-compaction`.
 - Side effects: read-only.
 - Core: `focusa_core::utility_card::UtilityCard`.
+
+- API: `GET /v1/utility/bootstrap`
+- API: `GET /v1/utility/post-compaction`
+- CLI: `focusa utility bootstrap`
+- CLI: `focusa utility post-compaction`
+- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.

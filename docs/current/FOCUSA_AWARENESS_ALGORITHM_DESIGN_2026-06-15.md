@@ -32,7 +32,7 @@ Each surface gets a typed `AwarenessPacket` with the same algorithm. Mode and su
 interface AwarenessInput {
   // Authority layer
   projectIdentity: {
-    projectRoot: string;          // e.g. "/home/wirebot/focusa"
+    projectRoot: string;          // e.g. "<project-root>"
     canonicalName: string;         // e.g. "focusa"
     continuityId: string;          // e.g. "focusa-cont-focusa-..."
     sessionId: string;             // e.g. "pi-967593-..."

@@ -18,11 +18,11 @@ This demo explains Focusa through one safe story: an agent resumes a project, ve
 
 ```bash
 focusa project identity --json
-focusa trajectory view --project-root /home/wirebot/focusa --json
-focusa workpoint resume --project-root /home/wirebot/focusa --continuity-id <continuity> --json
+focusa trajectory view --project-root <project-root> --json
+focusa workpoint resume --project-root <project-root> --continuity-id <continuity> --json
 focusa action preflight --action deploy --target focusa-daemon --json
-focusa context-cognition render --project-root /home/wirebot/focusa --continuity-id <continuity>
-focusa call-stack verify --project-root /home/wirebot/focusa --continuity-id <continuity> --entry-name /v1/call-stack/verify
+focusa context-cognition render --project-root <project-root> --continuity-id <continuity>
+focusa call-stack verify --project-root <project-root> --continuity-id <continuity> --entry-name /v1/call-stack/verify
 ```
 
 ## Public-safe story beats

@@ -4,7 +4,7 @@ The Focusa menubar first-run flow is Mac-like, phone-mediated, and recovery-orie
 
 ## Primary path
 
-1. Menubar opens `FirstRunConnect.svelte` when no saved connection exists.
+1. Menubar opens `FirstRunWizard.svelte` when no saved connection exists.
 2. Mac generates a local nonce and QR handoff offer.
 3. Operator opens Focusa Connect on phone and scans the Mac offer.
 4. VPS daemon approves the room and mints a device token.
@@ -32,6 +32,6 @@ The Focusa menubar first-run flow is Mac-like, phone-mediated, and recovery-orie
 
 ## Proof
 
-- Component: `apps/menubar/src/lib/components/FirstRunConnect.svelte`
+- Component: `apps/menubar/src/lib/components/FirstRunWizard.svelte`
 - Static guard: `tests/first_run_flow_static_test.sh`
 - Menubar check: `cd apps/menubar && bun run check`

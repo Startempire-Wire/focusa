@@ -479,7 +479,7 @@ fn is_unsafe_agent_runtime_path_inline(path: &str) -> bool {
         "/root/.claude",
         "/root/.opencode",
         "/root/.letta",
-        "/home/wirebot/.cargo",
+        "$HOME/.cargo",
     ];
     BLOCKED
         .iter()
@@ -2661,7 +2661,7 @@ mod tests {
     fn unsafe_paths_blocked() {
         assert!(is_unsafe_agent_runtime_path_inline("/root/pi-mono"));
         assert!(is_unsafe_agent_runtime_path_inline("/root/pi-mono/sub"));
-        assert!(!is_unsafe_agent_runtime_path_inline("/home/wirebot/focusa"));
+        assert!(!is_unsafe_agent_runtime_path_inline("/workspace/focusa-project"));
         assert!(!is_unsafe_agent_runtime_path_inline("/home/operator-vps"));
     }
 }

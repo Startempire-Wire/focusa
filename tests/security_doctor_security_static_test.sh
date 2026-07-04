@@ -16,7 +16,7 @@ for marker in \
   "path_traversal" \
   "FOCUSA_AUTH_TOKEN" \
   "Reverse-proxy rate-limit guidance" \
-  "/home/wirebot/focusa"; do
+  "security_posture"; do
   if ! grep -Fq "$marker" "$DOCTOR"; then
     echo "doctor security implementation missing marker: $marker" >&2
     exit 1

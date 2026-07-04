@@ -5,7 +5,7 @@
 **Source registry:** `docs/current/focusa-tool-contracts.json`
 **Generated:** `2026-06-15T21:08:06.778Z`
 **Source commit:** `cae911c`
-**Current version:** `0.9.25-dev`
+**Current version:** `0.9.64-dev`
 
 ## Counts
 
@@ -15,13 +15,14 @@
 | Tool families | 11 |
 | API parity | 93 |
 | CLI parity | 81 |
-| Pi tools | 96 |
+| Pi tools | 97 |
 | Docs coverage | 97 |
 
 ## Families
 
 | Family | Tools |
 | --- | ---: |
+| awareness | 1 |
 | diagnostics_hygiene | 21 |
 | focus_state | 11 |
 | metacognition | 13 |

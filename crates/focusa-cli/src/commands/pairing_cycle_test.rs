@@ -281,8 +281,8 @@ pub async fn run(args: CycleTestArgs) -> Result<()> {
                 .status();
             // ALSO stop the systemd focusa-daemon.service so its auto-respawn
             // (RestartSec=1) does not race with our spawned child daemon. The
-            // system service uses FOCUSA_DATA_DIR=/home/wirebot/focusa/data/.focusa
-            // (DB #2); our spawned child uses FOCUSA_HOME=/home/wirebot/focusa
+            // system service uses FOCUSA_DATA_DIR=/tmp/focusa-portable-fixture/project/data/.focusa
+            // (DB #2); our spawned child uses FOCUSA_HOME=/tmp/focusa-portable-fixture/project
             // (DB #1). If systemd wins the port race, the cycle-test's query
             // hits the wrong DB and returns 404 spuriously.
             let _ = std::process::Command::new("systemctl")
@@ -302,7 +302,7 @@ pub async fn run(args: CycleTestArgs) -> Result<()> {
             // Restart the daemon (detached) and poll for it to bind. We
             // explicitly unset FOCUSA_DATA_DIR so the new daemon inherits
             // the same DB path as the one we just killed (it uses
-            // FOCUSA_HOME → /home/wirebot/focusa → focusa.sqlite by default).
+            // FOCUSA_HOME → /tmp/focusa-portable-fixture/project → focusa.sqlite by default).
             // Without this, FOCUSA_DATA_DIR inherited from a stale env
             // would point the new daemon at a different SQLite file and
             // the room would appear to vanish across the restart.
@@ -310,7 +310,7 @@ pub async fn run(args: CycleTestArgs) -> Result<()> {
                 .args(["--port", "8787"])
                 .env_remove("FOCUSA_DATA_DIR")
                 .env_remove("FOCUSA_HOME")
-                .env("FOCUSA_HOME", "/home/wirebot/focusa")
+                .env("FOCUSA_HOME", "/tmp/focusa-portable-fixture/project")
                 .stdout(std::process::Stdio::null())
                 .stderr(std::process::Stdio::null())
                 .spawn();

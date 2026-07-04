@@ -963,7 +963,7 @@ function pushDeltaFailureRecovery(reason: PushDeltaFailureReason, apiReason?: st
       return { failure_class: "daemon_unavailable", retry_posture: "safe_retry", recovery_hint: "Run focusa_tool_doctor; if resource mode is emergency, use focusa_resource_mode before retrying.", next_tools: ["focusa_tool_doctor", "focusa_resource_mode"], api_reason: apiReason };
     case "no_active_frame":
     case "frame_unavailable":
-      return { failure_class: "frame_unavailable", retry_posture: "safe_retry", recovery_hint: "Verify the project folder, checkpoint/resume a Workpoint, then retry the Focus State write from a reloaded Pi session.", next_tools: ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume", "focusa_tool_doctor"], api_reason: apiReason };
+      return { failure_class: "frame_unavailable", retry_posture: "safe_retry", recovery_hint: "Project-bound frame/continuity is stale; use latest operator instruction, checkpoint a fresh Workpoint, then retry the Focus State write from a reloaded Pi session.", next_tools: ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume", "focusa_tool_doctor"], api_reason: apiReason };
     case "scope_mismatch":
       return { failure_class: "scope_mismatch", retry_posture: "do_not_retry_unchanged", recovery_hint: "Refresh project_root+continuity_id via focusa_project_verify and focusa_workpoint_resume; do not retry with stale project context.", next_tools: ["focusa_project_verify", "focusa_workpoint_resume", "focusa_workpoint_checkpoint", "focusa_tool_doctor"], api_reason: apiReason };
     case "read_model_lag":

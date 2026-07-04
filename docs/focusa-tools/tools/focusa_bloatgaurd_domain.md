@@ -8,3 +8,5 @@ Spec 101 read-only tool for one Bloatgaurd budget domain.
 - Side effects: none (`read_state`)
 
 Use when a gap maps to one budget domain such as `output-firewall`, `docs-diet`, or `dead-code-safety`.
+
+- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.

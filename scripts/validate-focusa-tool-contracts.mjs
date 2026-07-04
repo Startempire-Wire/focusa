@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { parseJsonLikeTsLiteral } from './lib/json-like-ts.mjs';
 
 const root = process.cwd();
 const toolsPath = path.join(root, 'apps/pi-extension/src/tools.ts');
@@ -9,6 +10,7 @@ const contractsPath = path.join(root, 'apps/pi-extension/src/tool-contracts.ts')
 const readmePath = path.join(root, 'README.md');
 const registryJsonPath = path.join(root, 'docs/current/focusa-tool-contracts.json');
 const choreographyJsonPath = path.join(root, 'docs/current/focusa-tool-choreography.json');
+const writeJsonProjection = process.argv.includes('--write-json');
 
 function read(file) {
   return fs.readFileSync(file, 'utf8');
@@ -47,13 +49,22 @@ if (!jsonMatch) {
 
 let contracts = [];
 if (jsonMatch) {
-  contracts = JSON.parse(`${jsonMatch[1]}\n]`);
+  contracts = parseJsonLikeTsLiteral(`${jsonMatch[1]}\n]`);
 }
 
+const registryProjection = {
+  schema: 'focusa.tool_contracts.v1',
+  version: 'spec90.tool_contracts.v1',
+  tool_count: contracts.length,
+  contracts,
+};
 let registryJson = null;
-if (fs.existsSync(registryJsonPath)) {
+if (writeJsonProjection) {
+  fs.writeFileSync(registryJsonPath, `${JSON.stringify(registryProjection, null, 2)}\n`);
+  registryJson = registryProjection;
+} else if (fs.existsSync(registryJsonPath)) {
   registryJson = JSON.parse(read(registryJsonPath));
-  if (JSON.stringify(registryJson.contracts) !== JSON.stringify(contracts)) {
+  if (JSON.stringify(registryJson.contracts) !== JSON.stringify(contracts) || registryJson.tool_count !== contracts.length) {
     fail('JSON registry drifted from TypeScript registry', registryJsonPath);
   }
 } else {
@@ -63,8 +74,7 @@ if (fs.existsSync(registryJsonPath)) {
 const nextToolsMatch = contractsSrc.match(new RegExp('const TOOL_NEXT_TOOLS: Record<string, string\\[]> = ([\\s\\S]*?)\\n\\};'));
 let nextTools = {};
 if (nextToolsMatch) {
-  nextTools = JSON.parse(`${nextToolsMatch[1]}
-}`);
+  nextTools = parseJsonLikeTsLiteral(`${nextToolsMatch[1]}\n}`);
 } else {
   fail('could not parse TOOL_NEXT_TOOLS map');
 }
@@ -144,6 +154,23 @@ if (Object.keys(nextTools).length) {
       if (!contractSet.has(target)) fail(`${source}: next tool target missing contract`, target);
     }
   }
+}
+
+if (writeJsonProjection && choreographyJson) {
+  const edges = [];
+  for (const [from, targets] of Object.entries(nextTools)) {
+    for (const target of targets || []) edges.push({ from, to: target, weight: 1 });
+  }
+  choreographyJson = {
+    ...choreographyJson,
+    schema: 'focusa.tool_choreography.v1',
+    contract_version: 'spec90.tool_contracts.v1',
+    tool_count: contracts.length,
+    edge_count: edges.length,
+    per_tool_next_tools: nextTools,
+    edges,
+  };
+  fs.writeFileSync(choreographyJsonPath, `${JSON.stringify(choreographyJson, null, 2)}\n`);
 }
 
 if (choreographyJson) {

@@ -273,6 +273,7 @@ async fn store_artifact(
         .any(|h| h.id == handle.id)
     {
         focusa.reference_index.handles.push(handle.clone());
+        state.mark_external_mutation();
     }
     let trajectory = focusa.trajectory_ladder_context();
     drop(focusa);

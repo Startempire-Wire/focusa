@@ -3204,7 +3204,7 @@ mod tests {
         );
         // Actual project paths remain valid
         assert_eq!(
-            unsafe_project_root_reason(Some("/home/wirebot/focusa")),
+            unsafe_project_root_reason(Some("/workspace/focusa-project")),
             None
         );
         assert_eq!(unsafe_project_root_reason(Some("/tmp/my-project")), None);
@@ -3292,13 +3292,13 @@ mod tests {
     fn current_ask_scope_conflict_rejects_executable_workpoint_resume() {
         let record = WorkpointRecord {
             workpoint_id: Uuid::now_v7(),
-            project_root: Some("/home/wirebot/focusa".to_string()),
+            project_root: Some("/workspace/focusa-project".to_string()),
             continuity_id: Some("focusa-cont".to_string()),
             canonical: true,
             ..WorkpointRecord::default()
         };
         let req = WorkpointResumeRequest {
-            project_root: Some("/home/wirebot/focusa".to_string()),
+            project_root: Some("/workspace/focusa-project".to_string()),
             continuity_id: Some("focusa-cont".to_string()),
             current_ask: Some("continue work in /home/wpuiai/uiai-engine".to_string()),
             ..WorkpointResumeRequest::default()

@@ -2701,7 +2701,9 @@ async fn set_decision_context(
         operator_steering_detected: payload.operator_steering_detected,
     };
 
-    let _guard = state.write_serial_lock.lock().await;
+    let _guard = tokio::time::timeout(Duration::from_millis(1500), state.write_serial_lock.lock())
+        .await
+        .map_err(|_| work_loop_dispatch_timeout("work_loop_write_serial_lock"))?;
     let current = { state.focusa.read().await.clone() };
     let machine_id = state.persistence.machine_id().ok();
     let result = focusa_core::reducer::reduce_with_meta(
@@ -3082,7 +3084,9 @@ async fn attach_session(
         adapter: payload.adapter,
         session_id: payload.session_id,
     };
-    let _guard = state.write_serial_lock.lock().await;
+    let _guard = tokio::time::timeout(Duration::from_millis(1500), state.write_serial_lock.lock())
+        .await
+        .map_err(|_| work_loop_dispatch_timeout("work_loop_write_serial_lock"))?;
     let current = { state.focusa.read().await.clone() };
     let machine_id = state.persistence.machine_id().ok();
     let result = focusa_core::reducer::reduce_with_meta(
@@ -3141,7 +3145,9 @@ async fn abort_session(
             .reason
             .unwrap_or_else(|| "abort requested".to_string()),
     };
-    let _guard = state.write_serial_lock.lock().await;
+    let _guard = tokio::time::timeout(Duration::from_millis(1500), state.write_serial_lock.lock())
+        .await
+        .map_err(|_| work_loop_dispatch_timeout("work_loop_write_serial_lock"))?;
     let current = { state.focusa.read().await.clone() };
     let machine_id = state.persistence.machine_id().ok();
     let result = focusa_core::reducer::reduce_with_meta(
@@ -3232,7 +3238,9 @@ async fn set_pause_flags(
         operator_override_active: payload.operator_override_active,
         reason: payload.reason,
     };
-    let _guard = state.write_serial_lock.lock().await;
+    let _guard = tokio::time::timeout(Duration::from_millis(1500), state.write_serial_lock.lock())
+        .await
+        .map_err(|_| work_loop_dispatch_timeout("work_loop_write_serial_lock"))?;
     let current = { state.focusa.read().await.clone() };
     let machine_id = state.persistence.machine_id().ok();
     let result = focusa_core::reducer::reduce_with_meta(

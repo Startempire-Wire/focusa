@@ -41,13 +41,10 @@ grep -q "marker_string_array" "$PROJ_ROUTES" \
   || fail "project.rs missing marker_string_array helper"
 pass "project.rs exposes marker_string_array helper (reads aliases from .focusa-project.json)"
 
-# Verify project_switch_ledger / project_id resolution pathway
-grep -n "project_switch_ledger\|switch_ledger" "$ROOT_DIR/crates" 2>/dev/null | head -3
-echo
-echo "Issue #4 requires a daemon-side fix to identity_name_matches to also"
-echo "consider project_root when multiple projects share an alias. Tracked"
-echo "as focusa-gh-4-perpetua-scope. Deferring for post-24h cut because"
-echo "the fix is non-trivial (changes project identity resolution semantics)."
+# Verify root-aware alias disambiguation is present.
+grep -q "candidate_project_root" "$PROJ_ROUTES"   || fail "identity_name_matches must accept candidate_project_root"
+grep -q "expected_project_root" "$PROJ_ROUTES"   || fail "identity_name_matches must accept expected_project_root"
+grep -q "alias_scope_matches" "$PROJ_ROUTES"   || fail "identity_name_matches must scope alias matches by project_root"
+pass "project.rs scopes alias matches by project_root"
 
-echo
 echo "✓ All focusa-gh-4-perpetua-scope static structural checks passed"

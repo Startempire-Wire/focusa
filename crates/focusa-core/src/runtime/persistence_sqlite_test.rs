@@ -161,20 +161,20 @@ fn sqlite_crdt_import_is_scoped_and_idempotent() {
 
     let mut log = CrdtLog::new();
     let mut in_scope = test_event("crdt-in-scope");
-    in_scope.correlation_id = Some("project_root=/home/wirebot/focusa|continuity_id=main".into());
+    in_scope.correlation_id = Some("project_root=/tmp/focusa-portable-fixture/project|continuity_id=main".into());
     in_scope.machine_id = Some("machine-a".into());
     let event = log.add_local_event(in_scope, "machine-a");
 
     let imported = p
-        .import_crdt_events_same_root("peer-a", "/home/wirebot/focusa", "main", &[event.clone()])
+        .import_crdt_events_same_root("peer-a", "/tmp/focusa-portable-fixture/project", "main", &[event.clone()])
         .unwrap();
     assert_eq!(imported, 1);
     let imported_again = p
-        .import_crdt_events_same_root("peer-a", "/home/wirebot/focusa", "main", &[event.clone()])
+        .import_crdt_events_same_root("peer-a", "/tmp/focusa-portable-fixture/project", "main", &[event.clone()])
         .unwrap();
     assert_eq!(imported_again, 0);
     let scoped = p
-        .crdt_events_for_scope("/home/wirebot/focusa", "main", 10)
+        .crdt_events_for_scope("/tmp/focusa-portable-fixture/project", "main", 10)
         .unwrap();
     assert_eq!(scoped.len(), 1);
     assert_eq!(scoped[0].entry.id, event.entry.id);
@@ -239,10 +239,10 @@ fn sqlite_crdt_same_root_two_daemon_reconciliation_converges() {
     let mut log_a = CrdtLog::new();
     let mut log_b = CrdtLog::new();
     let mut event_a = test_event("daemon-a-turn");
-    event_a.correlation_id = Some("project_root=/home/wirebot/focusa|continuity_id=main".into());
+    event_a.correlation_id = Some("project_root=/tmp/focusa-portable-fixture/project|continuity_id=main".into());
     event_a.machine_id = Some("daemon-a".into());
     let mut event_b = test_event("daemon-b-turn");
-    event_b.correlation_id = Some("project_root=/home/wirebot/focusa|continuity_id=main".into());
+    event_b.correlation_id = Some("project_root=/tmp/focusa-portable-fixture/project|continuity_id=main".into());
     event_b.machine_id = Some("daemon-b".into());
 
     let crdt_a = log_a.add_local_event(event_a, "daemon-a");
@@ -251,27 +251,27 @@ fn sqlite_crdt_same_root_two_daemon_reconciliation_converges() {
     b.append_crdt_event(&crdt_b, None).unwrap();
 
     let a_events = a
-        .crdt_events_for_scope("/home/wirebot/focusa", "main", 100)
+        .crdt_events_for_scope("/tmp/focusa-portable-fixture/project", "main", 100)
         .unwrap();
     let b_events = b
-        .crdt_events_for_scope("/home/wirebot/focusa", "main", 100)
+        .crdt_events_for_scope("/tmp/focusa-portable-fixture/project", "main", 100)
         .unwrap();
     assert_eq!(
-        a.import_crdt_events_same_root("daemon-b", "/home/wirebot/focusa", "main", &b_events)
+        a.import_crdt_events_same_root("daemon-b", "/tmp/focusa-portable-fixture/project", "main", &b_events)
             .unwrap(),
         1
     );
     assert_eq!(
-        b.import_crdt_events_same_root("daemon-a", "/home/wirebot/focusa", "main", &a_events)
+        b.import_crdt_events_same_root("daemon-a", "/tmp/focusa-portable-fixture/project", "main", &a_events)
             .unwrap(),
         1
     );
 
     let final_a = a
-        .crdt_events_for_scope("/home/wirebot/focusa", "main", 100)
+        .crdt_events_for_scope("/tmp/focusa-portable-fixture/project", "main", 100)
         .unwrap();
     let final_b = b
-        .crdt_events_for_scope("/home/wirebot/focusa", "main", 100)
+        .crdt_events_for_scope("/tmp/focusa-portable-fixture/project", "main", 100)
         .unwrap();
     let ids_a: std::collections::BTreeSet<_> = final_a.iter().map(|e| e.entry.id).collect();
     let ids_b: std::collections::BTreeSet<_> = final_b.iter().map(|e| e.entry.id).collect();
