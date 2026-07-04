@@ -73,6 +73,17 @@ grep -q "Spec 112 §15A" "$MOD" \
   || fail "install.rs must cite Spec 112 §15A in module header"
 pass "install.rs cites Spec 112 §15A in module header"
 
+# Symlink placement must be platform-gated so Windows release targets compile.
+grep -q '#\[cfg(unix)\]' "$MOD" \
+  || fail "install.rs missing cfg(unix) symlink helper"
+grep -q '#\[cfg(windows)\]' "$MOD" \
+  || fail "install.rs missing cfg(windows) symlink helper"
+grep -q 'std::os::windows::fs::symlink_file' "$MOD" \
+  || fail "install.rs missing Windows symlink_file path"
+grep -q 'fn create_symlink' "$MOD" \
+  || fail "install.rs missing create_symlink helper"
+pass "install.rs symlink placement is platform-gated for release matrix builds"
+
 # Unit tests present (per §15A.5 acceptance: 'Unit tests cover focusa install')
 grep -q '#\[cfg(test)\]' "$MOD" \
   || fail "install.rs missing #\\[cfg(test)\\] test module"

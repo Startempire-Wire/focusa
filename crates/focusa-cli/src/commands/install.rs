@@ -417,10 +417,26 @@ fn place_symlinks(bin_dir: &std::path::Path, _install_root: &std::path::Path) ->
         }
         // Idempotent: remove existing symlink or file first.
         let _ = std::fs::remove_file(&link);
-        std::os::unix::fs::symlink(&target, &link)
-            .with_context(|| format!("symlink {} -> {}", link.display(), target.display()))?;
+        create_symlink(&target, &link)?;
     }
     Ok(())
+}
+
+#[cfg(unix)]
+fn create_symlink(target: &std::path::Path, link: &std::path::Path) -> Result<()> {
+    std::os::unix::fs::symlink(target, link)
+        .with_context(|| format!("symlink {} -> {}", link.display(), target.display()))
+}
+
+#[cfg(windows)]
+fn create_symlink(target: &std::path::Path, link: &std::path::Path) -> Result<()> {
+    std::os::windows::fs::symlink_file(target, link)
+        .with_context(|| format!("symlink {} -> {}", link.display(), target.display()))
+}
+
+#[cfg(not(any(unix, windows)))]
+fn create_symlink(_target: &std::path::Path, _link: &std::path::Path) -> Result<()> {
+    bail!("symlink install is unsupported on this platform")
 }
 
 // ----- Phase 6: PATH automation (focusa-112-path-automation, Spec 112 §15A.6) -----
