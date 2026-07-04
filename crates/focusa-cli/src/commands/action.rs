@@ -472,10 +472,17 @@ mod tests {
         }));
         assert!(
             envelope
+                .plain_language_error
+                .as_deref()
+                .unwrap_or_default()
+                .contains("Blocked")
+        );
+        assert!(
+            envelope
                 .safe_alternative
                 .as_deref()
                 .unwrap_or_default()
-                .contains("local Focusa repo")
+                .contains("full live GitHub release pipeline")
         );
     }
 }
