@@ -706,7 +706,7 @@ async fn execute_real_install(
         target,
         channel,
         &bin_dir,
-        &install_root,
+        install_root,
         assets.len(),
     );
     if !args.json {

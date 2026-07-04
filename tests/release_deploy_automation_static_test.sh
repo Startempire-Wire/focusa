@@ -73,7 +73,7 @@ assert_grep 'watchdog_check' scripts/install-daemon.sh 'watchdog wiring missing'
 assert_grep 'watchdog_loop' scripts/install-daemon.sh 'background watchdog loop missing'
 assert_grep 'timeout 3' scripts/install-daemon.sh 'binary_version must use timeout fallback'
 assert_grep 'workflow_run' .github/workflows/auto-retry-deploy.yml 'auto-retry must be self-triggered via workflow_run'
-assert_grep 'Auto Retry Deploy' .github/workflows/auto-retry-deploy.yml 'auto-retry workflow name missing'
+assert_grep 'Auto Heal Release Pipeline' .github/workflows/auto-retry-deploy.yml 'auto-heal workflow name missing'
 
 # Self-hosted runner must self-heal from kernel OOM kills
 assert_grep 'MemoryMax=' scripts/install-self-hosted-runner.sh 'runner MemoryMax override missing'

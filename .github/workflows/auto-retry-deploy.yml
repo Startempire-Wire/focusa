@@ -21,6 +21,9 @@ permissions:
   contents: read
   actions: write
 
+env:
+  GH_REPO: ${{ github.repository }}
+
 jobs:
   maybe-rerun-ci-release:
     name: Rerun failed CI/Release jobs once
@@ -38,6 +41,7 @@ jobs:
           RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
           WORKFLOW: ${{ github.event.workflow_run.name }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          REPO: ${{ github.repository }}
         shell: bash
         run: |
           set -euo pipefail
@@ -45,8 +49,12 @@ jobs:
             echo "skipping self-heal: $WORKFLOW run $RUN_ID already attempted ${RUN_ATTEMPT} time(s)"
             exit 0
           fi
-          echo "self-heal: rerunning failed jobs for $WORKFLOW run=$RUN_ID sha=$HEAD_SHA attempt=$RUN_ATTEMPT"
-          gh run rerun "$RUN_ID" --failed
+          echo "self-heal: rerunning failed jobs for $WORKFLOW run=$RUN_ID sha=$HEAD_SHA attempt=$RUN_ATTEMPT repo=$REPO"
+          if ! gh run rerun "$RUN_ID" --failed --repo "$REPO" 2>auto-heal.err; then
+            echo "process_error=gh_run_rerun_failed" | tee -a "$GITHUB_STEP_SUMMARY"
+            cat auto-heal.err | tee -a "$GITHUB_STEP_SUMMARY" >&2
+            exit 1
+          fi
 
       - name: Emit CI/Release retry audit summary
         shell: bash
@@ -110,6 +118,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ steps.target.outputs.release_tag }}
           ASSET_SUFFIX: ${{ steps.target.outputs.asset_suffix }}
+          REPO: ${{ github.repository }}
         shell: bash
         run: |
           set -euo pipefail
@@ -118,10 +127,15 @@ jobs:
           # should refuse attempt >=3 via a workflow-level guard, but
           # we additionally gate via attempts var.
           echo "dispatching retry for release_tag=$RELEASE_TAG asset_suffix=$ASSET_SUFFIX"
-          gh workflow run 'Deploy Live Daemon' \
+          if ! gh workflow run 'Deploy Live Daemon' \
+            --repo "$REPO" \
             --ref main \
             -f release_tag="$RELEASE_TAG" \
-            -f asset_suffix="$ASSET_SUFFIX"
+            -f asset_suffix="$ASSET_SUFFIX" 2>auto-heal-deploy.err; then
+            echo "process_error=gh_workflow_run_failed" | tee -a "$GITHUB_STEP_SUMMARY"
+            cat auto-heal-deploy.err | tee -a "$GITHUB_STEP_SUMMARY" >&2
+            exit 1
+          fi
           echo "retry_dispatched=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
       - name: Emit retry audit event
