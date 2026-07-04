@@ -2,6 +2,8 @@ name: Release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
 
@@ -11,9 +13,21 @@ permissions:
   actions: write
 
 jobs:
+  release-workflow-validate:
+    name: Release Workflow Validate
+    if: ${{ github.ref_type == 'branch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Explain branch validation
+        run: |
+          echo "release_branch_validation=ok"
+          echo "Release build jobs run only for v* tags; main pushes run this lightweight job so GitHub never reports 'No jobs were run'."
+
   # Gate: tests + clippy must pass
   rust-check:
     name: Rust Check
+    if: ${{ github.ref_type == 'tag' }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
