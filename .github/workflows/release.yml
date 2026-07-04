@@ -14,8 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - name: Release workflow branch validation
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      - name: Release workflow validation
         run: |
           echo "release_branch_validation=ok"
           echo "Release build steps run only for v* tags; branch pushes run this lightweight job so GitHub never reports 'No jobs were run'."
