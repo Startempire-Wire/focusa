@@ -38,8 +38,10 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       REPO: ${{ github.repository }}
       SCAN_LIMIT: ${{ inputs.scan_limit || '25' }}
-      MAX_HEALS: ${{ inputs.max_heals || '5' }}
+      MAX_HEALS: ${{ inputs.max_heals || '2' }}
     steps:
+      - uses: actions/checkout@v6
+
       - name: Auto-detect and heal failed release path runs
         shell: bash
         run: |
@@ -66,22 +68,21 @@ jobs:
             log_file="failed-${id}.log"
             gh run view "$id" --repo "$REPO" --log-failed > "$log_file" 2>/dev/null || true
             failure_class="unknown_process_failure"
-            if grep -qE 'cargo clippy|clippy::|needless_borrow|derivable_impls|private_interfaces' "$log_file"; then
-              failure_class="ci_clippy_failure"
-            elif grep -qE 'cargo test|test result: FAILED|panicked at|assertion `left == right` failed' "$log_file"; then
-              failure_class="ci_test_failure"
-            elif grep -qE 'Rust Binaries|error\[E[0-9]+\]|could not compile|could not find `unix` in `os`|failed to resolve' "$log_file"; then
-              failure_class="release_cross_target_compile_failure"
-            elif grep -qE 'release deploy automation static test|static proof|workflow name missing|static guard' "$log_file"; then
-              failure_class="release_static_proof_failure"
-            elif grep -qE 'failed to determine base repo|not a git repository|gh run rerun|gh workflow run' "$log_file"; then
-              failure_class="auto_heal_process_error"
-            elif grep -qE 'deploy_health timeout|/v1/health|health check failed' "$log_file"; then
-              failure_class="deploy_health_failure"
-            elif grep -qE 'Killed|oom|out of memory|No space left on device' "$log_file"; then
-              failure_class="runner_resource_failure"
+            retry_policy="rerun_once"
+            plain_language_error="Unknown release-path failure; one bounded rerun is allowed."
+            while IFS='=' read -r key value; do
+              case "$key" in
+                failure_class) failure_class="$value" ;;
+                retry_policy) retry_policy="$value" ;;
+                plain_language_error) plain_language_error="$value" ;;
+              esac
+            done < <(bash .github/scripts/classify-release-failure.sh "$log_file")
+            echo "failure_class=${failure_class} retry_policy=${retry_policy} run=${id} workflow=${wf}" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "plain_language_error=${plain_language_error}" | tee -a "$GITHUB_STEP_SUMMARY"
+            if [[ "$retry_policy" == "hard_failure_no_rerun" ]]; then
+              echo "skip id=$id: deterministic failure requires patch, not another full-matrix rerun"
+              continue
             fi
-            echo "failure_class=${failure_class} run=${id} workflow=${wf}" | tee -a "$GITHUB_STEP_SUMMARY"
 
             # Never heal the same failed run more than once; a fresh run will be created.
             if [[ "$attempt" -ge 2 ]]; then

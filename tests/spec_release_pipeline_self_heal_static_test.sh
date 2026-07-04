@@ -4,6 +4,8 @@
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HEAL="$ROOT_DIR/.github/workflows/auto-retry-deploy.yml"
+CLASSIFIER="$ROOT_DIR/.github/scripts/classify-release-failure.sh"
+RELEASE="$ROOT_DIR/.github/workflows/release.yml"
 AUDIT="$ROOT_DIR/.github/workflows/audit-recorder.yml"
 fail(){ echo "✗ FAIL: $*" >&2; exit 1; }
 pass(){ echo "✓ PASS: $*"; }
@@ -18,8 +20,29 @@ pass "auto-heal listens to CI, Release, Deploy Live Daemon, and Watchdog"
 grep -q 'maybe-rerun-ci-release' "$HEAL" || fail "missing CI/Release rerun job"
 grep -q 'gh run rerun "$RUN_ID" --failed --repo "$REPO"' "$HEAL" || fail "CI/Release self-heal must rerun failed jobs with explicit repo"
 grep -q 'RUN_ATTEMPT' "$HEAL" || fail "self-heal must cap attempts via run_attempt"
+grep -q 'classify-release-failure.sh' "$HEAL" || fail "self-heal must use shared DRY failure classifier"
+grep -q 'hard_failure_no_rerun' "$HEAL" || fail "self-heal must avoid rerun loops for deterministic failures"
+grep -q 'self-heal_stop: deterministic failure' "$HEAL" || fail "self-heal must emit clear deterministic stop reason"
 grep -q 'already attempted' "$HEAL" || fail "self-heal missing attempt cap message"
 pass "CI/Release self-heal reruns failed jobs once"
+
+
+# Shared classifier must encode learned hard/transient release failure classes.
+[ -f "$CLASSIFIER" ] || fail "missing shared release failure classifier"
+for class in ci_clippy_failure ci_test_failure release_cross_target_compile_failure release_static_proof_failure deploy_health_failure runner_resource_failure auto_heal_process_error transient_github_or_network_failure; do
+  grep -q "$class" "$CLASSIFIER" || fail "classifier missing failure class: $class"
+done
+grep -q 'hard_failure_no_rerun' "$CLASSIFIER" || fail "classifier must distinguish deterministic hard failures"
+grep -q 'plain_language_error' "$CLASSIFIER" || fail "classifier must emit plain_language_error"
+pass "shared classifier distinguishes learned hard/transient release failures"
+
+# Release workflow must avoid two-hour loops and dispatch deploy after one green Release.
+grep -q 'fail-fast: true' "$RELEASE" || fail "Release matrices must fail fast"
+grep -q 'timeout-minutes:' "$RELEASE" || fail "Release jobs must have timeouts"
+grep -q 'dispatch-deploy-live-daemon' "$RELEASE" || fail "Release must explicitly dispatch deploy after assets/checksums"
+grep -q "gh workflow run 'Deploy Live Daemon'" "$RELEASE" || fail "Release dispatch must use gh workflow run Deploy Live Daemon"
+grep -q 'needs: publish-sha256sums' "$RELEASE" || fail "Deploy dispatch must wait for SHA256SUMS"
+pass "Release is bounded and dispatches deploy after green artifacts"
 
 # Deploy self-heal remains deploy-specific redispatch with release tag and asset suffix.
 grep -q 'maybe-retry-deploy' "$HEAL" || fail "missing deploy retry job"

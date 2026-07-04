@@ -34,6 +34,8 @@ jobs:
       }}
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v6
+
       - name: Re-run failed CI/Release jobs once
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -45,6 +47,27 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          gh run view "$RUN_ID" --repo "$REPO" --log-failed > failed.log 2>/dev/null || true
+          failure_class="unknown_process_failure"
+          retry_policy="rerun_once"
+          plain_language_error="Unknown release-path failure; one bounded rerun is allowed."
+          while IFS='=' read -r key value; do
+            case "$key" in
+              failure_class) failure_class="$value" ;;
+              retry_policy) retry_policy="$value" ;;
+              plain_language_error) plain_language_error="$value" ;;
+            esac
+          done < <(bash .github/scripts/classify-release-failure.sh failed.log)
+          {
+            echo "failure_class=${failure_class}"
+            echo "retry_policy=${retry_policy}"
+            echo "plain_language_error=${plain_language_error}"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$retry_policy" == "hard_failure_no_rerun" ]]; then
+            echo "self-heal_stop: deterministic failure; patch required before another Release/CI run" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           if [[ "${RUN_ATTEMPT}" -ge 2 ]]; then
             echo "skipping self-heal: $WORKFLOW run $RUN_ID already attempted ${RUN_ATTEMPT} time(s)"
             exit 0
@@ -64,7 +87,7 @@ jobs:
             echo "workflow=${{ github.event.workflow_run.name }}"
             echo "upstream_run=${{ github.event.workflow_run.id }}"
             echo "head_sha=${{ github.event.workflow_run.head_sha }}"
-            echo "action=gh run rerun --failed"
+            echo "action=classify_then_rerun_transient_only"
           } >> "$GITHUB_STEP_SUMMARY"
 
   maybe-retry-deploy:

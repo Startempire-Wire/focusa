@@ -4,6 +4,7 @@
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WATCH="$ROOT_DIR/.github/workflows/release-pipeline-watchdog.yml"
+CLASSIFIER="$ROOT_DIR/.github/scripts/classify-release-failure.sh"
 fail(){ echo "✗ FAIL: $*" >&2; exit 1; }
 pass(){ echo "✓ PASS: $*"; }
 
@@ -32,11 +33,14 @@ grep -q 'process_error=watchdog_gh_run_rerun_failed' "$WATCH" || fail "watchdog 
 grep -q 'process_error=watchdog_deploy_redispatch_failed' "$WATCH" || fail "watchdog must surface deploy process errors"
 pass "watchdog is bounded and captures process errors"
 
+grep -q 'classify-release-failure.sh' "$WATCH" || fail "watchdog must use shared DRY failure classifier"
+grep -q 'hard_failure_no_rerun' "$WATCH" || fail "watchdog must not rerun deterministic hard failures"
+grep -q "inputs.max_heals || '2'" "$WATCH" || fail "watchdog default heal budget must be 2, not an unbounded loop"
 for class in ci_clippy_failure ci_test_failure release_cross_target_compile_failure release_static_proof_failure auto_heal_process_error deploy_health_failure runner_resource_failure; do
-  grep -q "$class" "$WATCH" || fail "watchdog missing recent failure class: $class"
+  grep -q "$class" "$CLASSIFIER" || fail "classifier missing recent failure class: $class"
 done
 grep -q 'failure_class=${failure_class}' "$WATCH" || fail "watchdog must emit failure_class to summary"
-pass "watchdog classifies recent CI/Release/Deploy/Auto-Heal failure classes"
+pass "watchdog uses shared classifier and avoids deterministic rerun loops"
 
 if grep -qE 'continue-on-error: true|cargo clippy.*\|\| true|cargo test.*\|\| true' "$WATCH"; then
   fail "watchdog appears to bypass gates"
