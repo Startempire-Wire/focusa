@@ -34,10 +34,8 @@ pass "DoctorScope enum has Host/Project/Repo (3 modes)"
 # Default = host (most permissive for non-focusa hosts)
 grep -q 'default_value = "host"' "$DOCTOR" \
   || fail "DoctorArgs.scope must default to 'host' (permissive for non-focusa hosts)"
-grep -q 'impl Default for DoctorScope' "$DOCTOR" \
-  || fail "DoctorScope must implement Default for DoctorArgs::default()"
-grep -q 'Self::Host' "$DOCTOR" \
-  || fail "DoctorScope::default() must be Host"
+grep -q '#\[default\]' "$DOCTOR" \
+  || fail "DoctorScope must mark Host as #[default] for DoctorArgs::default()"
 pass "DoctorArgs.scope default is 'host'/Host (backward-compatible default)"
 
 # DoctorScope has serde rename_all = lowercase (for --json output)

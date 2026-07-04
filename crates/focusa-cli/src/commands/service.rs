@@ -38,7 +38,7 @@ pub struct InstallServiceReport {
 }
 
 #[derive(Debug, PartialEq)]
-enum ServiceManager {
+pub(crate) enum ServiceManager {
     SystemdUser,
     LaunchdUser,
     None,

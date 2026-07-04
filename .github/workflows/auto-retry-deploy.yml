@@ -1,19 +1,20 @@
-name: Auto Retry Deploy
+name: Auto Heal Release Pipeline
 
-# Self-healing companion for Deploy Live Daemon.
+# Self-healing companion for the full live release path.
 #
-# Triggers on `workflow_run` completion of the Deploy Live Daemon
-# workflow. Inspects the conclusion + the install-daemon.sh audit log
-# (`deploy_oom_killed` or `deploy_health timeout`) and re-dispatches the
-# deploy workflow exactly once with the same release tag and asset
-# suffix. Cap of 1 retry per upstream run is enforced via `attempt` to
-# prevent infinite re-dispatch loops.
+# Coverage:
+#   1. CI — rerun failed jobs once for transient runner/cache/network failures.
+#   2. Release — rerun failed jobs once for transient GitHub/release/upload failures.
+#   3. Deploy Live Daemon — re-dispatch deploy once with the same release tag
+#      and canonical production asset suffix.
 #
-# Triggered, never manual.
+# Audit Recorder remains the durable ledger for all failures. This workflow
+# only retries; it never bypasses tests, clippy, release asset generation, or
+# deploy health gates.
 
 on:
   workflow_run:
-    workflows: ["Deploy Live Daemon"]
+    workflows: ["CI", "Release", "Deploy Live Daemon"]
     types: [completed]
 
 permissions:
@@ -21,19 +22,66 @@ permissions:
   actions: write
 
 jobs:
-  maybe-retry:
-    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+  maybe-rerun-ci-release:
+    name: Rerun failed CI/Release jobs once
+    if: >-
+      ${{
+        github.event.workflow_run.conclusion == 'failure' &&
+        (github.event.workflow_run.name == 'CI' || github.event.workflow_run.name == 'Release')
+      }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Re-run failed CI/Release jobs once
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          WORKFLOW: ${{ github.event.workflow_run.name }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${RUN_ATTEMPT}" -ge 2 ]]; then
+            echo "skipping self-heal: $WORKFLOW run $RUN_ID already attempted ${RUN_ATTEMPT} time(s)"
+            exit 0
+          fi
+          echo "self-heal: rerunning failed jobs for $WORKFLOW run=$RUN_ID sha=$HEAD_SHA attempt=$RUN_ATTEMPT"
+          gh run rerun "$RUN_ID" --failed
+
+      - name: Emit CI/Release retry audit summary
+        shell: bash
+        run: |
+          {
+            echo "### Auto Heal Release Pipeline"
+            echo "workflow=${{ github.event.workflow_run.name }}"
+            echo "upstream_run=${{ github.event.workflow_run.id }}"
+            echo "head_sha=${{ github.event.workflow_run.head_sha }}"
+            echo "action=gh run rerun --failed"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  maybe-retry-deploy:
+    name: Re-dispatch failed deploy once
+    if: >-
+      ${{
+        github.event.workflow_run.conclusion == 'failure' &&
+        github.event.workflow_run.name == 'Deploy Live Daemon'
+      }}
     runs-on: [self-hosted, linux, x64, focusa-deploy, production]
     steps:
       - name: Resolve retry target
         id: target
         env:
           RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
           EVENT_NAME: ${{ github.event.workflow_run.event }}
           DISPLAY_TITLE: ${{ github.event.workflow_run.display_title }}
         shell: bash
         run: |
           set -euo pipefail
+          if [[ "${RUN_ATTEMPT}" -ge 2 ]]; then
+            echo "skipping deploy retry: upstream run $RUN_ID already attempted ${RUN_ATTEMPT} time(s)"
+            exit 0
+          fi
           # Only retry deploys that were triggered by a release event
           # or by an explicit workflow_dispatch. We never retry
           # workflow_run-triggered deploys (that would loop).

@@ -23,11 +23,12 @@ pub struct DoctorArgs {
     pub command: Option<DoctorCommand>,
 }
 
-#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(clap::ValueEnum, Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum DoctorScope {
     /// Daemon + lifecycle + scope safety (works on any host that has
     /// focusa-daemon running; does NOT require focusa repo presence).
+    #[default]
     Host,
     /// Adds project-shape checks (scripts/validate-focusa-tool-contracts.mjs,
     /// apps/pi-extension/skills, focusa-project.json marker). Requires
@@ -36,12 +37,6 @@ pub enum DoctorScope {
     /// Adds repo-only checks (target/release/focusa-daemon binary, build
     /// artifacts, etc.). Requires a built focusa repo.
     Repo,
-}
-
-impl Default for DoctorScope {
-    fn default() -> Self {
-        Self::Host
-    }
 }
 
 #[derive(Subcommand, Debug)]

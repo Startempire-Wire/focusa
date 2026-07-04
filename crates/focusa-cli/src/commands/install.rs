@@ -212,7 +212,7 @@ pub async fn run(args: InstallArgs) -> Result<()> {
     //   4. On smoke-test failure: rollback to stash
     //   5. On success: remove stash
     let stash_path = install_root.with_extension("stash");
-    let stashed = phase_atomic_stash(&install_root, &stash_path)?;
+    let stashed = phase_atomic_stash(install_root.as_path(), &stash_path)?;
     if let Err(e) = execute_real_install(&args, target, channel, &install_root).await {
         if stashed {
             phase_atomic_rollback(&install_root, &stash_path).ok();

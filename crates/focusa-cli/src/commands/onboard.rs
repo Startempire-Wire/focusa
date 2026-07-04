@@ -31,7 +31,7 @@ pub struct OnboardArgs {
     pub no_demo_workpoint: bool,
 }
 
-#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(clap::ValueEnum, Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum OnboardScope {
     /// Instance-level setup: start daemon and show host readiness only. Does
@@ -39,13 +39,8 @@ pub enum OnboardScope {
     Host,
     /// Project-level setup: existing behavior. Requires safe project root;
     /// may create a demo Workpoint when daemon is healthy.
+    #[default]
     Project,
-}
-
-impl Default for OnboardScope {
-    fn default() -> Self {
-        Self::Project
-    }
 }
 
 fn shell_output(args: &[&str], cwd: Option<&Path>) -> Option<String> {

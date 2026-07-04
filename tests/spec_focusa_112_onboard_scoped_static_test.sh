@@ -20,10 +20,8 @@ grep -q 'pub scope: OnboardScope' "$ONBOARD" \
   || fail "OnboardArgs missing scope field"
 grep -q 'default_value = "project"' "$ONBOARD" \
   || fail "onboard --scope default must remain project for backward compatibility"
-grep -q 'impl Default for OnboardScope' "$ONBOARD" \
-  || fail "OnboardScope missing Default impl"
-grep -q 'Self::Project' "$ONBOARD" \
-  || fail "OnboardScope::default() must be Project"
+grep -q '#\[default\]' "$ONBOARD" \
+  || fail "OnboardScope must mark Project as #[default]"
 pass "onboard scope is additive; default remains project (backward compatible)"
 
 # Scope enum must have only host/project for now
