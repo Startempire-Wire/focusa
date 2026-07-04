@@ -15,7 +15,7 @@ permissions:
 jobs:
   release-workflow-validate:
     name: Release Workflow Validate
-    if: ${{ github.ref_type == 'branch' }}
+    if: ${{ startsWith(github.ref, 'refs/heads/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
@@ -27,7 +27,7 @@ jobs:
   # Gate: tests + clippy must pass
   rust-check:
     name: Rust Check
-    if: ${{ github.ref_type == 'tag' }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
