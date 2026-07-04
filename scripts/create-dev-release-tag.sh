@@ -18,7 +18,7 @@ PUSH=0
 DRY_RUN=0
 WAIT_CI=1
 WAIT_DEPLOY=1
-CI_TIMEOUT_SECS=1800
+CI_TIMEOUT_SECS=1200
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -43,7 +43,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --ci-timeout)
-      CI_TIMEOUT_SECS="${2:?--ci-timeout requires seconds}"
+      CI_TIMEOUT_SECS="${2:?--ci-timeout requires seconds (default 1200; keep release path within 15-20 minutes unless GitHub is degraded)}"
       shift 2
       ;;
     --wait-deploy)
@@ -111,7 +111,7 @@ wait_for_workflow() {
     exit 1
   fi
 
-  echo "Waiting for GitHub ${workflow} run for ${head_sha:0:7}..."
+  echo "Waiting up to ${CI_TIMEOUT_SECS}s for GitHub ${workflow} run for ${head_sha:0:7}..."
   while [[ $SECONDS -lt $deadline ]]; do
     run_id=$(gh run list --commit "$head_sha" --workflow "$workflow" --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true)
     if [[ -n "$run_id" ]]; then

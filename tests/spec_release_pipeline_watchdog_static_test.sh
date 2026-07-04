@@ -35,7 +35,8 @@ pass "watchdog is bounded and captures process errors"
 
 grep -q 'classify-release-failure.sh' "$WATCH" || fail "watchdog must use shared DRY failure classifier"
 grep -q 'hard_failure_no_rerun' "$WATCH" || fail "watchdog must not rerun deterministic hard failures"
-grep -q "inputs.max_heals || '2'" "$WATCH" || fail "watchdog default heal budget must be 2, not an unbounded loop"
+grep -q "inputs.scan_limit || '12'" "$WATCH" || fail "watchdog default scan limit must stay small"
+grep -q "inputs.max_heals || '1'" "$WATCH" || fail "watchdog default heal budget must be 1, not a loop"
 for class in ci_clippy_failure ci_test_failure release_cross_target_compile_failure release_static_proof_failure auto_heal_process_error deploy_health_failure runner_resource_failure; do
   grep -q "$class" "$CLASSIFIER" || fail "classifier missing recent failure class: $class"
 done

@@ -37,8 +37,8 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       REPO: ${{ github.repository }}
-      SCAN_LIMIT: ${{ inputs.scan_limit || '25' }}
-      MAX_HEALS: ${{ inputs.max_heals || '2' }}
+      SCAN_LIMIT: ${{ inputs.scan_limit || '12' }}
+      MAX_HEALS: ${{ inputs.max_heals || '1' }}
     steps:
       - uses: actions/checkout@v6
 

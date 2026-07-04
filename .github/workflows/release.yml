@@ -12,7 +12,7 @@ jobs:
   rust-check:
     name: Rust Check
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 10
     steps:
       - name: Release workflow validation
         run: |
@@ -140,7 +140,7 @@ jobs:
             rust_target: x86_64-apple-darwin
 
     runs-on: ${{ matrix.platform }}
-    timeout-minutes: 20
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v6
 
@@ -275,7 +275,7 @@ jobs:
             exe: .exe
 
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@nightly
@@ -325,7 +325,7 @@ jobs:
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: [tauri-build, rust-release]
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 5
     steps:
       - name: Install GitHub CLI
         run: gh --version
