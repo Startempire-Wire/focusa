@@ -7,6 +7,8 @@
 #   scripts/create-dev-release-tag.sh --push
 # Push without waiting for GitHub workflows:
 #   scripts/create-dev-release-tag.sh --push --no-wait-ci --no-wait-deploy
+# Force a release gate override (requires plain-language reason):
+#   scripts/create-dev-release-tag.sh --push --force-release --release-reason "critical deploy fix"
 # Pin a major/minor lane:
 #   scripts/create-dev-release-tag.sh --base 0.9 --push
 
@@ -19,6 +21,8 @@ DRY_RUN=0
 WAIT_CI=1
 WAIT_DEPLOY=1
 CI_TIMEOUT_SECS=1200
+FORCE_RELEASE=0
+RELEASE_REASON=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -33,6 +37,14 @@ while [[ $# -gt 0 ]]; do
     --dry-run)
       DRY_RUN=1
       shift
+      ;;
+    --force-release)
+      FORCE_RELEASE=1
+      shift
+      ;;
+    --release-reason)
+      RELEASE_REASON="${2:?--release-reason requires a plain-language reason}"
+      shift 2
       ;;
     --wait-ci)
       WAIT_CI=1
@@ -159,6 +171,24 @@ if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
 fi
 
 echo "Next dev release tag: ${TAG}"
+
+if [[ "$FORCE_RELEASE" -eq 1 && -z "$RELEASE_REASON" && "$DRY_RUN" -eq 0 ]]; then
+  echo "Blocked: --force-release requires --release-reason with a plain-language reason." >&2
+  exit 2
+fi
+
+if ! python3 scripts/release-gate.py; then
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "Dry run continuing: ReleaseGate would block an actual release." >&2
+  elif [[ "$FORCE_RELEASE" -eq 1 ]]; then
+    echo "ReleaseGate override accepted: ${RELEASE_REASON}" >&2
+  else
+    exit 1
+  fi
+else
+  echo "ReleaseGate passed."
+fi
+
 echo "Stamping release surfaces: ${VERSION}"
 scripts/stamp-menubar-version.py "${TAG}"
 python3 scripts/verify-version-surfaces.py "${TAG}"

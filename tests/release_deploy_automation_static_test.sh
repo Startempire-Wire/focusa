@@ -13,6 +13,7 @@ python3 scripts/validate-github-workflows.py .github/workflows/release.yml .gith
 [[ -f .github/workflows/deploy-live-daemon.yml ]] || { echo "✗ missing deploy-live-daemon workflow"; exit 1; }
 [[ -f scripts/install-daemon.sh ]] || { echo "✗ missing install-daemon.sh"; exit 1; }
 [[ -f scripts/verify-version-surfaces.py ]] || { echo "✗ missing verify-version-surfaces.py"; exit 1; }
+[[ -f scripts/release-gate.py ]] || { echo "✗ missing release-gate.py"; exit 1; }
 [[ -f scripts/validate-github-workflows.py ]] || { echo "✗ missing validate-github-workflows.py"; exit 1; }
 [[ -f scripts/safe-disk-cleanup.sh ]] || { echo "✗ missing safe-disk-cleanup.sh"; exit 1; }
 [[ -f scripts/install-self-hosted-runner.sh ]] || { echo "✗ missing install-self-hosted-runner.sh"; exit 1; }
@@ -94,6 +95,7 @@ assert_grep 'audit_event "smoke_check"' scripts/deploy-smoke-check.sh 'smoke che
 
 # release workflow version verification
 assert_grep 'verify-version-surfaces.py' .github/workflows/release.yml 'release workflow does not verify stamped versions'
+assert_grep 'python3 scripts/release-gate.py' scripts/create-dev-release-tag.sh 'release helper must enforce significant-delta ReleaseGate'
 assert_grep 'CI_TIMEOUT_SECS=1200' scripts/create-dev-release-tag.sh 'release helper wait cap must be 20 minutes, not 1 hour+'
 assert_grep 'headBranch' scripts/create-dev-release-tag.sh 'release helper must track tag Release run, not main branch validation run'
 assert_grep 'wait_for_workflow "Release" "$HEAD_SHA" "${TAG}"' scripts/create-dev-release-tag.sh 'release helper must wait for tag-specific Release run'
