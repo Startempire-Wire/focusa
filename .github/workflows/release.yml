@@ -20,24 +20,24 @@ jobs:
           echo "Release build steps run only for v* tags; branch pushes run this lightweight job so GitHub never reports 'No jobs were run'."
 
       - uses: actions/checkout@v6
-        if: startsWith(github.ref, 'refs/tags/')
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
       - uses: dtolnay/rust-toolchain@nightly
-        if: startsWith(github.ref, 'refs/tags/')
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
         with:
           toolchain: nightly-2026-01-08
           components: clippy
       - run: cargo test --workspace
-        if: startsWith(github.ref, 'refs/tags/')
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
       - run: cargo clippy --workspace -- -D warnings
-        if: startsWith(github.ref, 'refs/tags/')
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
       - name: Spec104 static audit
-        if: startsWith(github.ref, 'refs/tags/')
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
         run: python3 scripts/audit-schema.py spec104 release-proof/audit/audit.jsonl
 
   # Create the GitHub Release with notes (runs once, before uploads)
   create-release:
     name: Create Release
-    if: startsWith(github.ref, 'refs/tags/')
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: rust-check
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -126,7 +126,7 @@ jobs:
   # Build Tauri desktop app for macOS only (testing)
   tauri-build:
     name: Build Menubar (${{ matrix.platform }})
-    if: startsWith(github.ref, 'refs/tags/')
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: create-release
     strategy:
       fail-fast: true
@@ -173,7 +173,7 @@ jobs:
         run: bun install
 
       - name: Generate macOS icons
-        if: contains(matrix.platform, 'macos')
+        if: ${{ contains(matrix.platform, 'macos') }}
         working-directory: apps/menubar/src-tauri
         run: |
           # Generate .icns from PNG source using iconutil (macOS only)
@@ -205,7 +205,7 @@ jobs:
           uploadArtifact: true
 
       - name: Codesign + notarize + staple (.app + .dmg)
-        if: contains(matrix.platform, 'macos')
+        if: ${{ contains(matrix.platform, 'macos') }}
         env:
           TARGET: ${{ matrix.rust_target }}
           # Three modes (any of which produce a working .app + .dmg):
@@ -255,7 +255,7 @@ jobs:
   # Publish Rust binaries for tester platforms.
   rust-release:
     name: Rust Binaries (${{ matrix.target }})
-    if: startsWith(github.ref, 'refs/tags/')
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: create-release
     strategy:
       fail-fast: true
@@ -358,7 +358,7 @@ jobs:
 
   dispatch-deploy-live-daemon:
     name: Dispatch Deploy Live Daemon
-    if: startsWith(github.ref, 'refs/tags/')
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: publish-sha256sums
     runs-on: ubuntu-latest
     timeout-minutes: 5
