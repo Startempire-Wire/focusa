@@ -89,8 +89,7 @@ assert_grep 'audit_event "smoke_check"' scripts/deploy-smoke-check.sh 'smoke che
 # release workflow version verification
 assert_grep 'verify-version-surfaces.py' .github/workflows/release.yml 'release workflow does not verify stamped versions'
 assert_grep 'Release workflow branch validation' .github/workflows/release.yml 'release workflow needs branch validation step to avoid No jobs were run'
-assert_grep 'on:' .github/workflows/release.yml 'release workflow trigger missing'
-assert_grep 'push:' .github/workflows/release.yml 'release workflow must use unfiltered push trigger to avoid no-job validation failures'
+assert_grep 'on: [push]' .github/workflows/release.yml 'release workflow must use canonical unfiltered push trigger to avoid no-job validation failures'
 assert_grep 'release_branch_validation=ok' .github/workflows/release.yml 'release branch validation step missing'
 if grep -A3 '^  rust-check:' .github/workflows/release.yml | grep -q 'if:'; then
   echo '✗ rust-check job must be unconditional to avoid No jobs were run' >&2
