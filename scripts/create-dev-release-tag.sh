@@ -103,6 +103,7 @@ push_main_and_tag_with_auto_rebase() {
 wait_for_workflow() {
   local workflow="$1"
   local head_sha="$2"
+  local head_branch="${3:-}"
   local deadline=$((SECONDS + CI_TIMEOUT_SECS))
   local run_id=""
 
@@ -111,9 +112,15 @@ wait_for_workflow() {
     exit 1
   fi
 
-  echo "Waiting up to ${CI_TIMEOUT_SECS}s for GitHub ${workflow} run for ${head_sha:0:7}..."
+  echo "Waiting up to ${CI_TIMEOUT_SECS}s for GitHub ${workflow} run for ${head_sha:0:7}${head_branch:+ headBranch=$head_branch}..."
   while [[ $SECONDS -lt $deadline ]]; do
-    run_id=$(gh run list --commit "$head_sha" --workflow "$workflow" --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true)
+    if [[ -n "$head_branch" ]]; then
+      run_id=$(gh run list --commit "$head_sha" --workflow "$workflow" --limit 10 --json databaseId,headBranch 2>/dev/null \
+        | jq -r --arg branch "$head_branch" '.[] | select(.headBranch == $branch) | .databaseId' \
+        | head -1 || true)
+    else
+      run_id=$(gh run list --commit "$head_sha" --workflow "$workflow" --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true)
+    fi
     if [[ -n "$run_id" ]]; then
       echo "Tracking ${workflow}: https://github.com/Startempire-Wire/focusa/actions/runs/${run_id}"
       gh run watch "$run_id" --exit-status
@@ -184,7 +191,7 @@ if [[ "$PUSH" -eq 1 ]]; then
   echo "Pushed main and ${TAG}."
   if [[ "$WAIT_CI" -eq 1 ]]; then
     wait_for_workflow "CI" "$HEAD_SHA"
-    wait_for_workflow "Release" "$HEAD_SHA"
+    wait_for_workflow "Release" "$HEAD_SHA" "${TAG}"
     if [[ "$WAIT_DEPLOY" -eq 1 ]]; then
       wait_for_workflow "Deploy Live Daemon" "$HEAD_SHA"
       echo "GitHub CI, Release, and Deploy workflows passed for ${TAG}."
