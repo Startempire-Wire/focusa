@@ -768,9 +768,15 @@ function projectAliasesForText(text: string, root = ""): string[] {
   const aliases = new Set<string>();
   if (/\b(ptm|planmarr|plan-the-marriage|plan the marriage)\b/i.test(lower) || /planmarr|plan-the-marriage/i.test(root)) aliases.add("PTM");
   if (/\bfocusa\b/i.test(lower) || /\/focusa$/i.test(root)) aliases.add("Focusa");
+  for (const match of lower.matchAll(/(?:https?:\/\/)?([a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)+)/gi)) {
+    const host = match[1].replace(/^www\./, "");
+    aliases.add(host);
+    const firstLabel = host.split(".")[0];
+    if (firstLabel && !["www", "app", "api"].includes(firstLabel)) aliases.add(firstLabel);
+  }
   const base = root.split("/").filter(Boolean).at(-1);
   if (base) aliases.add(base);
-  return [...aliases].filter(Boolean).slice(0, 4);
+  return [...aliases].filter(Boolean).slice(0, 8);
 }
 
 function boundedProjectAction(source: string, action?: string): string {
@@ -898,51 +904,72 @@ function rememberedProjectRootForAlias(alias: string): string {
   scored.sort((a, b) => b.score - a.score);
   if (scored[0]?.root) return scored[0].root;
 
-  // GitHub #4 fix: When no project_root is stored for this alias,
-  // search known project directories for a .focusa-project.json marker
-  // matching the alias name (e.g., 'perpetua' should resolve to /home/focusadev/perpetua)
+  // Core directory detector: when no project_root is stored for this alias/domain,
+  // search configured/project host roots for a matching .focusa-project.json marker.
   return searchProjectMarkerForAlias(lower);
 }
 
-// FOCUSA_FIX-GitHub#4: Search filesystem for a project's canonical root
-// When a project alias is mentioned but no project_root is in the ledger,
-// look in known project directories for a matching .focusa-project.json
+// Search filesystem for a project's canonical root from alias/domain marker data.
+function normalizeProjectHint(value: string): string {
+  return String(value || "")
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .replace(/\/$/, "")
+    .toLowerCase();
+}
+
+function markerHintValues(marker: any): string[] {
+  const values = [marker?.project_id, marker?.canonical_name, marker?.live_url, marker?.root_url, marker?.local_url];
+  if (Array.isArray(marker?.aliases)) values.push(...marker.aliases);
+  if (marker?.project_urls && typeof marker.project_urls === "object") values.push(...Object.values(marker.project_urls));
+  return values.map((v) => normalizeProjectHint(String(v || ""))).filter(Boolean);
+}
+
+function markerMatchesProjectHint(marker: any, alias: string): boolean {
+  const hint = normalizeProjectHint(alias);
+  if (!hint) return false;
+  return markerHintValues(marker).some((value) => value === hint || value.startsWith(`${hint}.`) || value.startsWith(`${hint}-`));
+}
+
 function searchProjectMarkerForAlias(alias: string): string {
-  // Candidate directories where sub-projects live. Keep portable: callers may
-  // provide FOCUSA_PROJECT_SEARCH_DIRS as ':'-separated roots; HOME is fallback.
+  // Core directory detection: recursive bounded marker search. This is not
+  // Perpetua-specific; it resolves parent/child/subdomain folders from markers.
+  const fs = require("fs");
   const candidateDirs = [
     ...(process.env.FOCUSA_PROJECT_SEARCH_DIRS || "").split(":").filter(Boolean),
     process.env.HOME || "",
+    "/home",
   ].filter(Boolean);
+  const queue = candidateDirs.map((dir) => ({ dir, depth: 0 }));
+  const seen = new Set<string>();
+  let visited = 0;
 
-  for (const dir of candidateDirs) {
+  while (queue.length && visited < 300) {
+    const item = queue.shift()!;
+    const dir = normalizeProjectRoot(item.dir);
+    if (!dir || seen.has(dir) || item.depth > 4) continue;
+    seen.add(dir);
+    visited++;
+    const markerPath = `${dir}/.focusa-project.json`;
     try {
-      // Read directory entries - synchronous fs would be better but use execSync
-      const entries = require("child_process").execSync(
-        `ls -1 ${dir} 2>/dev/null`,
-        { stdio: ["pipe", "pipe", "pipe"] }
-      ).toString().trim().split("\n");
-
-      for (const entry of entries) {
-        if (!entry) continue;
-        const markerPath = `${dir}/${entry}/.focusa-project.json`;
+      const marker = JSON.parse(fs.readFileSync(markerPath, "utf-8"));
+      if (markerMatchesProjectHint(marker, alias)) {
+        const root = normalizeProjectRoot(String(marker.project_root || dir));
         try {
-          const markerContent = require("fs").readFileSync(markerPath, "utf-8");
-          const marker = JSON.parse(markerContent);
-          const markerId = String(marker.project_id || "").toLowerCase();
-          const markerName = String(marker.canonical_name || "").toLowerCase();
-          const markerAliases = Array.isArray(marker.aliases) ? marker.aliases.map((a: string) => a.toLowerCase()) : [];
-          if (markerId === alias || markerName === alias || markerAliases.includes(alias)) {
-            const root = String(marker.project_root || `${dir}/${entry}`);
-            try {
-              require("child_process").execSync(
-                `mkdir -p /tmp/pi-scratch && echo '[alias-resolution] searchProjectMarkerForAlias: resolved alias ${alias} to ${root} via marker at ${markerPath}' >> /tmp/pi-scratch/alias-resolution.log`,
-                { stdio: "pipe" }
-              );
-            } catch { /* best effort */ }
-            return normalizeProjectRoot(root);
-          }
-        } catch { /* not a marker file or unreadable */ }
+          fs.mkdirSync("/tmp/pi-scratch", { recursive: true });
+          fs.appendFileSync("/tmp/pi-scratch/alias-resolution.log", `[alias-resolution] directory_detector: resolved ${alias} to ${root} via ${markerPath}\n`);
+        } catch { /* best effort */ }
+        return root;
+      }
+      // Marker roots are project boundaries; do not let a parent project swallow children.
+      continue;
+    } catch { /* not a marker file or unreadable */ }
+    try {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (entry.isDirectory() && ![".git", "node_modules", "target"].includes(entry.name)) {
+          queue.push({ dir: `${dir}/${entry.name}`, depth: item.depth + 1 });
+        }
       }
     } catch { /* directory unreadable */ }
   }

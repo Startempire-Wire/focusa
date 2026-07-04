@@ -1,50 +1,69 @@
 #!/usr/bin/env bash
-# spec_focusa_g4_perpetua_scope_static_test.sh
-#
-# Static guard for focusa-gh-4-perpetua-scope + GH #4:
-# Focusa scope resolver conflates Perpetua sub-project with Focusa root.
-#
-# Acceptance: when project_root is /home/focusadev/perpetua, the daemon's
-# project identity returns "Perpetua" not "Focusa"; when project_root is
-# /home/wirebot/focusa, identity is "Focusa". Sub-projects (focusa.dev
-# subdomains) do not inherit parent alias 'focusa'.
-#
-# This test verifies the static structural pieces; the live behavioral
-# test is the same-shape `curl /v1/project/identity?project_root=...` check
-# which currently returns the right identity but renders a scope conflict
-# in Workpoint resume when persisted vs current mismatch.
+# Root-cause guard for GH #4 / focusa-gh-4-perpetua-scope.
+# This is NOT a Perpetua-only guard. It verifies core project directory detection
+# for parent projects, child folders, and subdomain/alias hints before authority.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJ_ROUTES="$ROOT_DIR/crates/focusa-api/src/routes/project.rs"
+PI_STATE="$ROOT_DIR/apps/pi-extension/src/state.ts"
+DOC="$ROOT_DIR/docs/current/PROJECT_DIRECTORY_DETECTION.md"
 
 fail() { echo "✗ FAIL: $*" >&2; exit 1; }
 pass() { echo "✓ PASS: $*"; }
 
-# project.rs must have identity_name_matches and persist/restore
-grep -q 'fn identity_name_matches' "$PROJ_ROUTES" \
-  || fail "project.rs missing fn identity_name_matches"
-pass "project.rs has fn identity_name_matches (alias resolution)"
+for needle in \
+  'normalize_project_hint' \
+  'marker_hint_values' \
+  'marker_matches_project_hint' \
+  'project_hint_candidates' \
+  'project_directory_search_roots' \
+  'find_project_marker_for_hint' \
+  'project_directory_detector' \
+  'current_ask_or_alias_domain' \
+  'select_canonical_project_root' \
+  'directory_detection_priority' \
+  'core directory detection resolves parent/child/subdomain project roots before Workpoint/Trajectory authority'; do
+  rg -n -F "$needle" "$PROJ_ROUTES" >/dev/null || fail "project.rs missing core detector marker: $needle"
+done
+pass "API ProjectIdentity has reusable directory detector and priority selector"
 
-# Per the issue: aliases must NOT match across sub-projects.
-# The fix surface: identity_name_matches should reject a match when the
-# canonical_name and the candidate's project_id disagree at the project_root
-# level. (Static verification: the function must consult the candidate's
-# project_root, not just the alias list.)
-grep -n "fn identity_name_matches" "$PROJ_ROUTES" | head -1
-# Note: the current implementation only matches on canonical_name / project_id /
-# aliases, NOT on project_root. A fix may need to extend the function signature.
+for needle in \
+  'candidate_project_root' \
+  'expected_project_root' \
+  'alias_scope_matches'; do
+  rg -n -F "$needle" "$PROJ_ROUTES" >/dev/null || fail "identity_name_matches missing root-aware alias marker: $needle"
+done
+pass "identity alias matching remains project-root scoped"
 
-# Verify marker parsing exposes aliases field (so we can use it for
-# sub-project disambiguation)
-grep -q "marker_string_array" "$PROJ_ROUTES" \
-  || fail "project.rs missing marker_string_array helper"
-pass "project.rs exposes marker_string_array helper (reads aliases from .focusa-project.json)"
+for needle in \
+  'projectAliasesForText' \
+  'firstLabel' \
+  'normalizeProjectHint' \
+  'markerHintValues' \
+  'markerMatchesProjectHint' \
+  'Core directory detection: recursive bounded marker search' \
+  'FOCUSA_PROJECT_SEARCH_DIRS' \
+  'directory_detector'; do
+  rg -n -F "$needle" "$PI_STATE" >/dev/null || fail "Pi state missing directory detector marker: $needle"
+done
+pass "Pi extension has recursive marker/domain detector, not one-project special-case logic"
 
-# Verify root-aware alias disambiguation is present.
-grep -q "candidate_project_root" "$PROJ_ROUTES"   || fail "identity_name_matches must accept candidate_project_root"
-grep -q "expected_project_root" "$PROJ_ROUTES"   || fail "identity_name_matches must accept expected_project_root"
-grep -q "alias_scope_matches" "$PROJ_ROUTES"   || fail "identity_name_matches must scope alias matches by project_root"
-pass "project.rs scopes alias matches by project_root"
+if rg -n 'perpetua.*hardcode|/home/focusadev/perpetua|/home/wirebot/focusa' "$PROJ_ROUTES" "$PI_STATE" >/dev/null; then
+  fail "core detector contains project-specific hardcoded root"
+fi
+pass "core detector avoids Perpetua/Focusa hardcoded root workaround"
 
-echo "✓ All focusa-gh-4-perpetua-scope static structural checks passed"
+for needle in \
+  'Project Directory Detection' \
+  'parent projects, child repositories, subdomain apps, and folder-based projects' \
+  'focusa_workpoint_resume' \
+  'focusa_workpoint_checkpoint' \
+  'focusa_trajectory_view' \
+  'Pi Focus Slice' \
+  'No project-specific hardcoded root workaround'; do
+  rg -n -F "$needle" "$DOC" >/dev/null || fail "directory detection doc missing marker: $needle"
+done
+pass "directory detection authority contract documents all Focusa surfaces"
+
+echo "GH4/core directory detection static test: PASS"

@@ -343,6 +343,46 @@ fn parent_scope_shadowed_by_trusted_root(candidate_root: &Path, trusted_root: &s
     candidate != trusted_root && Path::new(trusted_root).starts_with(Path::new(&candidate))
 }
 
+fn directory_detection_priority(signal: &ProjectSignal) -> i32 {
+    let unsafe_penalty = signal
+        .root
+        .as_deref()
+        .and_then(unsafe_project_root_reason)
+        .map(|_| 100)
+        .unwrap_or(0);
+    let base = match signal.source {
+        "operator_supplied_scope" => 100,
+        "project_directory_detector" => 95,
+        "root_marker" => 90,
+        "git_root" => 80,
+        "remote_project_scope" => 75,
+        "beads_root" => 60,
+        "workspace_root" => 50,
+        "persisted_session_identity" => 30,
+        "daemon_working_directory" => 10,
+        "cwd" => 5,
+        _ => 1,
+    };
+    base - unsafe_penalty
+}
+
+fn select_canonical_project_root(signals: &[ProjectSignal], fallback: &str) -> String {
+    let mut counts: BTreeMap<String, usize> = BTreeMap::new();
+    for signal in signals.iter().filter(|signal| signal.independent) {
+        if let Some(root) = &signal.root {
+            *counts.entry(root.clone()).or_default() += 1;
+        }
+    }
+    signals
+        .iter()
+        .filter(|signal| signal.independent)
+        .filter_map(|signal| signal.root.as_ref().map(|root| (signal, root)))
+        .max_by_key(|(signal, root)| (directory_detection_priority(signal), *counts.get(*root).unwrap_or(&0)))
+        .map(|(_, root)| root.clone())
+        .or_else(|| signals.iter().find_map(|signal| signal.root.clone()))
+        .unwrap_or_else(|| fallback.to_string())
+}
+
 fn read_marker(marker_root: &Path) -> Option<Value> {
     let path = marker_root.join(".focusa-project.json");
     fs::read_to_string(path)
@@ -357,6 +397,136 @@ fn marker_project_root(marker_root: &Path, marker: &Value) -> String {
         .map(expand_home)
         .map(|path| normalize_path(&path))
         .unwrap_or_else(|| normalize_path(marker_root))
+}
+
+fn normalize_project_hint(value: &str) -> String {
+    value
+        .trim()
+        .trim_start_matches("https://")
+        .trim_start_matches("http://")
+        .trim_start_matches("www.")
+        .trim_end_matches('/')
+        .chars()
+        .filter(|ch| ch.is_ascii_alphanumeric() || *ch == '.' || *ch == '-' || *ch == '_')
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+fn marker_hint_values(marker: &Value) -> Vec<String> {
+    let mut values = Vec::new();
+    for key in ["project_id", "canonical_name", "live_url", "root_url", "local_url"] {
+        if let Some(value) = marker.get(key).and_then(Value::as_str) {
+            values.push(normalize_project_hint(value));
+        }
+    }
+    if let Some(aliases) = marker.get("aliases").and_then(Value::as_array) {
+        for alias in aliases.iter().filter_map(Value::as_str) {
+            values.push(normalize_project_hint(alias));
+        }
+    }
+    if let Some(project_urls) = marker.get("project_urls").and_then(Value::as_object) {
+        for value in project_urls.values().filter_map(Value::as_str) {
+            values.push(normalize_project_hint(value));
+        }
+    }
+    values.into_iter().filter(|value| !value.is_empty()).collect()
+}
+
+fn project_hint_candidates(value: &str) -> Vec<String> {
+    let mut hints = BTreeSet::new();
+    let normalized = normalize_project_hint(value);
+    if !normalized.is_empty() && normalized.len() <= 120 {
+        hints.insert(normalized.clone());
+    }
+    for token in value
+        .split(|ch: char| !(ch.is_ascii_alphanumeric() || ch == '.' || ch == '-' || ch == '_'))
+        .map(normalize_project_hint)
+        .filter(|token| token.len() > 2)
+    {
+        if token.contains('.') {
+            if let Some(first_label) = token.split('.').next().filter(|label| label.len() > 2) {
+                hints.insert(first_label.to_string());
+            }
+        }
+        hints.insert(token);
+    }
+    hints.into_iter().collect()
+}
+
+fn marker_matches_project_hint(marker: &Value, hint: &str) -> Option<String> {
+    let normalized_hint = normalize_project_hint(hint);
+    if normalized_hint.is_empty() {
+        return None;
+    }
+    marker_hint_values(marker)
+        .into_iter()
+        .find(|value| {
+            value == &normalized_hint
+                || value.starts_with(&format!("{}.", normalized_hint))
+                || value.starts_with(&format!("{}-", normalized_hint))
+        })
+}
+
+fn project_directory_search_roots(start: &Path) -> Vec<PathBuf> {
+    let mut roots = Vec::new();
+    if let Ok(configured) = std::env::var("FOCUSA_PROJECT_SEARCH_DIRS") {
+        roots.extend(configured.split(':').filter(|part| !part.trim().is_empty()).map(PathBuf::from));
+    }
+    if start.exists() {
+        roots.push(start.to_path_buf());
+        if let Some(parent) = start.parent() {
+            roots.push(parent.to_path_buf());
+        }
+    }
+    let home = Path::new("/home");
+    if home.exists() {
+        roots.push(home.to_path_buf());
+    }
+    let mut seen = BTreeSet::new();
+    roots
+        .into_iter()
+        .filter(|root| seen.insert(normalize_path(root)))
+        .collect()
+}
+
+fn find_project_marker_for_hint(start: &Path, hint: Option<&str>) -> Option<(PathBuf, Value, String)> {
+    let hint = clean(hint)?;
+    let hint_candidates = project_hint_candidates(&hint);
+    if hint_candidates.is_empty() {
+        return None;
+    }
+    let mut queue: Vec<(PathBuf, usize)> = project_directory_search_roots(start)
+        .into_iter()
+        .map(|root| (root, 0usize))
+        .collect();
+    let mut seen = BTreeSet::new();
+    let mut visited = 0usize;
+    while let Some((dir, depth)) = queue.pop() {
+        if visited > 300 || depth > 4 || !seen.insert(normalize_path(&dir)) {
+            continue;
+        }
+        visited += 1;
+        let marker_path = dir.join(".focusa-project.json");
+        if let Some(marker) = read_marker(&dir)
+            && let Some(matched_hint) = hint_candidates
+                .iter()
+                .find_map(|candidate| marker_matches_project_hint(&marker, candidate))
+        {
+            return Some((PathBuf::from(marker_project_root(&dir, &marker)), marker, matched_hint));
+        }
+        if marker_path.exists() {
+            continue;
+        }
+        if let Ok(entries) = fs::read_dir(&dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    queue.push((path, depth + 1));
+                }
+            }
+        }
+    }
+    None
 }
 
 fn read_git_remote(git_root: &Path) -> Option<String> {
@@ -1138,6 +1308,7 @@ fn signal_json(signal: &ProjectSignal) -> Value {
 fn discover_identity(
     cwd: Option<&str>,
     project_root: Option<&str>,
+    current_ask: Option<&str>,
     remote_hint: RemoteProjectHint,
 ) -> IdentityCandidate {
     let start = resolve_start(cwd, project_root);
@@ -1220,6 +1391,22 @@ fn discover_identity(
         find_upwards(&start, ".focusa-project.json")
     };
     let marker = marker_root.as_ref().and_then(|root| read_marker(root));
+    if let Some((detected_root, detected_marker, matched_hint)) = find_project_marker_for_hint(&start, current_ask) {
+        signals.push(ProjectSignal {
+            source: "project_directory_detector",
+            root: Some(normalize_path(&detected_root)),
+            confidence: "high",
+            independent: true,
+            details: json!({
+                "matched_hint": matched_hint,
+                "input_source": "current_ask_or_alias_domain",
+                "project_id": detected_marker.get("project_id"),
+                "canonical_name": detected_marker.get("canonical_name"),
+                "project_urls": detected_marker.get("project_urls"),
+                "authority_note": "core directory detection resolves parent/child/subdomain project roots before Workpoint/Trajectory authority"
+            }),
+        });
+    }
     if let (Some(root), Some(marker_value)) = (&marker_root, &marker) {
         let root_value = marker_project_root(root, marker_value);
         signals.push(ProjectSignal {
@@ -1326,18 +1513,7 @@ fn discover_identity(
         });
     }
 
-    let mut counts: BTreeMap<String, usize> = BTreeMap::new();
-    for signal in signals.iter().filter(|signal| signal.independent) {
-        if let Some(root) = &signal.root {
-            *counts.entry(root.clone()).or_default() += 1;
-        }
-    }
-    let canonical_root = counts
-        .iter()
-        .max_by_key(|(_, count)| **count)
-        .map(|(root, _)| root.clone())
-        .or_else(|| signals.iter().find_map(|signal| signal.root.clone()))
-        .unwrap_or_else(|| start_root.clone());
+    let canonical_root = select_canonical_project_root(&signals, &start_root);
 
     let mut mismatches = Vec::new();
     for signal in &signals {
@@ -1812,18 +1988,19 @@ const PROJECT_IDENTITY_PAYLOAD_CACHE_TTL: Duration = Duration::from_secs(2);
 fn project_identity_cache_key(
     cwd: Option<&str>,
     project_root: Option<&str>,
+    current_ask: Option<&str>,
     remote_hint: &RemoteProjectHint,
     scope: Option<&crate::scope::ScopeContext>,
 ) -> String {
     let scope_root = scope.and_then(|s| s.project_root.as_deref()).unwrap_or_default();
     let scope_cont = scope.and_then(|s| s.continuity_id.as_deref()).unwrap_or_default();
     format!(
-        "cwd={}\nproject_root={}\nscope_root={}\nscope_cont={}\nremote_host={}\nremote_repo_remote={}\nremote_workspace_kind={}\nremote_deploy_root={}\npersisted_project_root={}\npersisted_project_fingerprint={}\npersisted_project_id={}\npersisted_canonical_name={}\ndeprecated_persisted_fallback={}",
+        "cwd={}\nproject_root={}\ncurrent_ask={}\nscope_root={}\nscope_cont={}\nremote_host={}\nremote_repo_remote={}\nremote_workspace_kind={}\nremote_deploy_root={}\npersisted_project_root={}\npersisted_project_fingerprint={}\npersisted_project_id={}\npersisted_canonical_name={}\ndeprecated_persisted_fallback={}",
         cwd.unwrap_or_default(),
         project_root.unwrap_or_default(),
+        current_ask.unwrap_or_default(),
         scope_root,
         scope_cont,
-        project_root.unwrap_or_default(),
         remote_hint.remote_host.as_deref().unwrap_or_default(),
         remote_hint
             .remote_repo_remote
@@ -1862,10 +2039,11 @@ fn project_identity_cache_key(
 fn project_identity_payload_for_scope_with_remote(
     cwd: Option<&str>,
     project_root: Option<&str>,
+    current_ask: Option<&str>,
     remote_hint: RemoteProjectHint,
     scope: Option<&crate::scope::ScopeContext>,
 ) -> Value {
-    let key = project_identity_cache_key(cwd, project_root, &remote_hint, scope);
+    let key = project_identity_cache_key(cwd, project_root, current_ask, &remote_hint, scope);
     let cache = PROJECT_IDENTITY_PAYLOAD_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
     if let Ok(guard) = cache.lock()
         && let Some((cached_at, payload)) = guard.get(&key)
@@ -1874,7 +2052,7 @@ fn project_identity_payload_for_scope_with_remote(
         return payload.clone();
     }
 
-    let payload = candidate_payload(discover_identity(cwd, project_root, remote_hint), None);
+    let payload = candidate_payload(discover_identity(cwd, project_root, current_ask, remote_hint), None);
     if let Ok(mut guard) = cache.lock() {
         if guard.len() > 64 {
             guard.retain(|_, (cached_at, _)| {
@@ -1891,7 +2069,7 @@ pub(crate) fn project_identity_payload_for_scope(
     project_root: Option<&str>,
     scope: Option<&crate::scope::ScopeContext>,
 ) -> Value {
-    project_identity_payload_for_scope_with_remote(cwd, project_root, RemoteProjectHint::default(), scope)
+    project_identity_payload_for_scope_with_remote(cwd, project_root, None, RemoteProjectHint::default(), scope)
 }
 
 async fn identity(Query(query): Query<ProjectIdentityQuery>) -> Json<Value> {
@@ -1899,6 +2077,7 @@ async fn identity(Query(query): Query<ProjectIdentityQuery>) -> Json<Value> {
     Json(project_identity_payload_for_scope_with_remote(
         query.cwd.as_deref(),
         query.project_root.as_deref(),
+        query.current_ask.as_deref(),
         remote_hint,
         None,
     ))
@@ -1913,6 +2092,7 @@ async fn verify(
         discover_identity(
             body.cwd.as_deref(),
             body.project_root.as_deref(),
+            body.canonical_name.as_deref(),
             RemoteProjectHint::from_verify(&body),
         ),
         Some(&body),
@@ -2760,6 +2940,7 @@ async fn card(
     let identity_payload = project_identity_payload_for_scope_with_remote(
         query.cwd.as_deref(),
         query.project_root.as_deref(),
+        query.current_ask.as_deref(),
         remote_hint,
         None,
     );
@@ -3334,7 +3515,7 @@ mod tests {
             r#"{"schema":"focusa.project.v1","project_id":"quorum","canonical_name":"Quorum"}"#,
         )
         .unwrap();
-        let candidate = discover_identity(root.to_str(), None, RemoteProjectHint::default());
+        let candidate = discover_identity(root.to_str(), None, None, RemoteProjectHint::default());
         assert_eq!(candidate.status, "verified");
         assert_eq!(candidate.confidence, "high");
         assert!(candidate.mismatches.is_empty());
@@ -3350,6 +3531,7 @@ mod tests {
 
         let payload = project_identity_payload_for_scope_with_remote(
             root.to_str(),
+            None,
             None,
             RemoteProjectHint {
                 remote_host: Some("host.7svnstrms.com".to_string()),
@@ -3569,7 +3751,7 @@ mod tests {
         .unwrap();
 
         let candidate =
-            discover_identity(root.to_str(), root.to_str(), RemoteProjectHint::default());
+            discover_identity(root.to_str(), root.to_str(), None, RemoteProjectHint::default());
         assert_eq!(candidate.status, "verified");
         assert_eq!(candidate.confidence, "high");
         assert!(candidate.mismatches.is_empty());
@@ -3592,7 +3774,7 @@ mod tests {
         fs::create_dir_all(root.join(".git")).unwrap();
         fs::write(root.join(".git/config"), "").unwrap();
         fs::write(root.join(".focusa-project.json"), r#"{"schema":"focusa.project.v1","project_id":"other","project_root":"/definitely/not/this/project"}"#).unwrap();
-        let candidate = discover_identity(root.to_str(), None, RemoteProjectHint::default());
+        let candidate = discover_identity(root.to_str(), None, None, RemoteProjectHint::default());
         assert_eq!(candidate.status, "mismatch");
         assert!(!candidate.mismatches.is_empty());
         let _ = fs::remove_dir_all(root);
@@ -3607,6 +3789,7 @@ mod tests {
         fs::write(root.join("Cargo.toml"), "[workspace]\n").unwrap();
         let payload = project_identity_payload_for_scope_with_remote(
             root.to_str(),
+            None,
             None,
             RemoteProjectHint {
                 persisted_project_root: Some("/other/project".to_string()),
@@ -3697,7 +3880,7 @@ mod tests {
     #[test]
     fn broad_root_never_verifies_as_project_identity() {
         let candidate =
-            discover_identity(Some("/root"), Some("/root"), RemoteProjectHint::default());
+            discover_identity(Some("/root"), Some("/root"), None, RemoteProjectHint::default());
         assert_eq!(candidate.status, "unsafe_project_root");
         assert_eq!(candidate.confidence, "low");
         assert!(candidate.mismatches.iter().any(
