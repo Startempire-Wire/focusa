@@ -70,6 +70,8 @@ jobs:
               failure_class="ci_clippy_failure"
             elif grep -qE 'cargo test|test result: FAILED|panicked at|assertion `left == right` failed' "$log_file"; then
               failure_class="ci_test_failure"
+            elif grep -qE 'Rust Binaries|error\[E[0-9]+\]|could not compile|could not find `unix` in `os`|failed to resolve' "$log_file"; then
+              failure_class="release_cross_target_compile_failure"
             elif grep -qE 'release deploy automation static test|static proof|workflow name missing|static guard' "$log_file"; then
               failure_class="release_static_proof_failure"
             elif grep -qE 'failed to determine base repo|not a git repository|gh run rerun|gh workflow run' "$log_file"; then
