@@ -477,8 +477,8 @@ mod tests {
             &args,
         );
         // stop_daemon + remove_service + 3 symlinks + remove_install_root +
-        // remove_license + 3 rc reverts = 9 steps
-        assert_eq!(steps.len(), 9);
+        // remove_license + 3 rc reverts = 10 steps
+        assert_eq!(steps.len(), 10);
         assert_eq!(steps[0].name, "stop_daemon");
         assert_eq!(steps[1].name, "remove_service");
         assert!(steps.iter().any(|s| s.name == "remove_symlink_focusa"));
