@@ -112,6 +112,11 @@ fi
 assert_grep "startsWith(github.ref, 'refs/tags/')" .github/workflows/release.yml 'release expensive jobs must use canonical tag gate expression'
 assert_grep 'Deploy Live Daemon' scripts/create-dev-release-tag.sh 'create-dev-release-tag does not wait for deploy workflow'
 
+
+# Beads ownership guard: bd sync/daemon must not rewrite project JSONL as root.
+[[ -f tests/bd_sync_ownership_policy_test.sh ]] || { echo "✗ missing bd sync ownership policy test"; exit 1; }
+tests/bd_sync_ownership_policy_test.sh
+
 # audit schema validation (single canonical shape)
 assert_grep 'audit-schema.py' scripts/audit-schema.py 'audit schema script must self-reference'
 assert_grep 'REQUIRED_FAILURE' scripts/audit-schema.py 'audit schema missing required failure fields'

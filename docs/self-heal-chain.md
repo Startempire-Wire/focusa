@@ -22,6 +22,15 @@ rerun loop and require a patch plus a fresh GitHub CI run. Local Rust output is
 advisory only; GitHub CI/Release/Deploy remains the canonical proof path.
 
 
+
+## Beads ownership hygiene
+
+Self-heal proof depends on normal `bd sync`, evidence policy, and pre-push gates.
+A Beads daemon for this repo must run as the project owner (`wirebot` here), not
+root; otherwise `.beads/issues.jsonl` can be rewritten as root and block
+operator recovery. `tests/bd_sync_ownership_policy_test.sh` checks the JSONL
+owners and any running `.beads/daemon.pid` process owner.
+
 ## Classifier fixture suite
 
 Classifier behavior is locked by `tests/self_heal_classifier_fixture_test.py` and
