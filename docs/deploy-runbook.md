@@ -126,6 +126,23 @@ systemctl restart actions.runner.Startempire-Wire-focusa.host-focusa-deploy.serv
    systemctl restart focusa-daemon.service
    ```
 
+### Triage recent self-heal audit failures
+
+Use the read-only operator summary before opening raw JSONL:
+
+```bash
+# Recent failures with retry policy, remediation, source refs, run URL
+python3 scripts/audit-failure-summary.py --limit 10
+
+# Filter a deterministic class
+python3 scripts/audit-failure-summary.py --class ci_clippy_failure --limit 5
+
+# Machine-readable handoff for agents or incident notes
+python3 scripts/audit-failure-summary.py --class ci_clippy_failure --limit 5 --json
+```
+
+The output includes `failure_class`, `retry_policy`, remediation (`remediation_template`/`fix`), `source_refs`, `linked_run`, and `log_url` when present.
+
 ### Audit trail fails to validate
 
 ```bash

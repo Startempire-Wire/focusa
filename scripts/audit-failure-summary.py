@@ -37,6 +37,16 @@ def recent_failures(rows: Iterable[dict], failure_class: str | None, limit: int)
     return failures[:limit]
 
 
+def normalize_source_refs(value: object) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [part.strip() for part in value.split(",") if part.strip()]
+    if isinstance(value, list):
+        return [str(part) for part in value if str(part).strip()]
+    return [str(value)]
+
+
 def summarize(rows: list[dict]) -> dict:
     counts: dict[str, int] = {}
     retry_counts: dict[str, int] = {}
@@ -72,7 +82,7 @@ def render_human(payload: dict) -> str:
         remediation = row.get("remediation_template") or row.get("fix") or ""
         if remediation:
             out.append(f"  remediation: {remediation}")
-        refs = row.get("source_refs") or []
+        refs = normalize_source_refs(row.get("source_refs"))
         if refs:
             out.append("  source_refs: " + ", ".join(refs[:5]))
         url = row.get("log_url") or ""

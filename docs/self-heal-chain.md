@@ -42,6 +42,20 @@ open repair-needed deterministic failures, stale unhealed failures, and the late
 self-heal timestamp. Use it when deciding whether the release path is looping,
 stuck, or healthy.
 
+## Audit failure triage CLI
+
+`scripts/audit-failure-summary.py` is the first-line read-only operator CLI for
+recent release-path failures:
+
+```bash
+python3 scripts/audit-failure-summary.py --limit 10
+python3 scripts/audit-failure-summary.py --class ci_clippy_failure --limit 5
+python3 scripts/audit-failure-summary.py --class ci_clippy_failure --limit 5 --json
+```
+
+Human output shows retry policy, remediation, source refs, run id, and log URL;
+JSON output preserves the selected failure rows for handoff or automation.
+
 ## Deploy self-heal proof drill
 
 `scripts/deploy-self-heal-proof-drill.py` focuses on the live deploy path without
