@@ -1995,7 +1995,7 @@ fn project_identity_cache_key(
     let scope_root = scope.and_then(|s| s.project_root.as_deref()).unwrap_or_default();
     let scope_cont = scope.and_then(|s| s.continuity_id.as_deref()).unwrap_or_default();
     format!(
-        "cwd={}\nproject_root={}\ncurrent_ask={}\nscope_root={}\nscope_cont={}\nremote_host={}\nremote_repo_remote={}\nremote_workspace_kind={}\nremote_deploy_root={}\npersisted_project_root={}\npersisted_project_fingerprint={}\npersisted_project_id={}\npersisted_canonical_name={}\ndeprecated_persisted_fallback={}",
+        "cwd={}\nproject_root={}\ncurrent_ask={}\nscope_root={}\nscope_cont={}\nremote_host={}\nremote_repo_remote={}\nremote_workspace_kind={}\nremote_deploy_root={}\npersisted_project_root={}\npersisted_project_fingerprint={}\npersisted_project_id={}\npersisted_canonical_name={}",
         cwd.unwrap_or_default(),
         project_root.unwrap_or_default(),
         current_ask.unwrap_or_default(),
@@ -3445,13 +3445,17 @@ mod tests {
             "FOCUSA DAEMON",
             "Focusa",
             "focusa",
-            &aliases
+            &aliases,
+            Some("/workspace/focusa"),
+            Some("/workspace/focusa")
         ));
         assert!(!identity_name_matches(
             "uiai-engine",
             "Focusa",
             "focusa",
-            &aliases
+            &aliases,
+            Some("/workspace/focusa"),
+            Some("/workspace/focusa")
         ));
     }
 

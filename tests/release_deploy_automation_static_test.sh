@@ -146,4 +146,31 @@ assert_grep 'Audit trail fails to validate' docs/deploy-runbook.md 'runbook must
 assert_grep 'self-heal-chain.md' docs/production-deployment-guide.md 'prod guide missing self-heal link'
 assert_grep 'deploy-runbook.md' docs/production-deployment-guide.md 'prod guide missing runbook link'
 
+# DRY release-path failure classifier
+[[ -f scripts/classify-ci-failure.py ]] || { echo "✗ missing DRY classifier"; exit 1; }
+assert_grep 'focusa.release_failure_classification.v1' scripts/classify-ci-failure.py 'classifier schema missing'
+assert_grep 'rust_compile_api_drift' scripts/classify-ci-failure.py 'classifier missing API drift class'
+assert_grep 'source_refs' scripts/classify-ci-failure.py 'classifier must emit source refs'
+assert_grep 'scripts/classify-ci-failure.py' .github/scripts/classify-release-failure.sh 'release classifier wrapper must delegate to DRY classifier'
+assert_grep 'classify-release-failure.sh' .github/workflows/auto-retry-deploy.yml 'auto retry must call shared classifier wrapper'
+assert_grep 'classify-release-failure.sh' .github/workflows/release-pipeline-watchdog.yml 'watchdog must call shared classifier wrapper'
+classifier_sample="$(mktemp)"
+cat > "$classifier_sample" <<'LOG'
+Rust	UNKNOWN STEP	2026-07-04T21:27:55Z error: 14 positional arguments in format string, but there are 13 arguments
+Rust	UNKNOWN STEP	2026-07-04T21:27:55Z     --> crates/focusa-api/src/routes/project.rs:1998:14
+Rust	UNKNOWN STEP	2026-07-04T21:27:28Z error[E0061]: this function takes 6 arguments but 4 arguments were supplied
+Rust	UNKNOWN STEP	2026-07-04T21:27:28Z     --> crates/focusa-api/src/routes/project.rs:3444:17
+LOG
+classifier_json="$(python3 scripts/classify-ci-failure.py "$classifier_sample")"
+python3 - "$classifier_json" <<'PY'
+import json, sys
+payload = json.loads(sys.argv[1])
+assert payload["schema"] == "focusa.release_failure_classification.v1", payload
+assert payload["failure_class"] == "rust_compile_api_drift", payload
+assert payload["retry_policy"] == "hard_failure_no_rerun", payload
+assert payload["deterministic"] is True, payload
+assert "crates/focusa-api/src/routes/project.rs:1998:14" in payload["source_refs"], payload
+PY
+rm -f "$classifier_sample"
+
 echo "Release deploy automation static test: PASS"

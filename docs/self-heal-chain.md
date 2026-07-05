@@ -2,6 +2,25 @@
 
 This document describes how the Focusa deploy pipeline self-heals at every layer. Read this before debugging a deploy failure or adding a new self-heal branch.
 
+
+## DRY failure classification
+
+All release-path self-heal decisions share one classifier:
+
+```text
+GitHub failed logs
+  └─ scripts/classify-ci-failure.py
+       ├─ JSON for agents/audit/debugging
+       └─ KEY=value env output via .github/scripts/classify-release-failure.sh
+```
+
+`Auto Heal Release Pipeline` and `Release Pipeline Watchdog` consume the same
+`failure_class`, `retry_policy`, `source_refs`, and `remediation_template`.
+Transient classes may rerun once. Deterministic classes such as
+`rust_compile_api_drift`, `ci_clippy_failure`, and `ci_test_failure` stop the
+rerun loop and require a patch plus a fresh GitHub CI run. Local Rust output is
+advisory only; GitHub CI/Release/Deploy remains the canonical proof path.
+
 ## Layered defenses
 
 The pipeline has four self-heal layers, each absorbing a different failure class:
