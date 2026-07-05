@@ -30,6 +30,7 @@ jobs:
       - name: Record CI failure (self-triggered)
         if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure'
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_ID: ${{ github.event.workflow_run.id }}
           WORKFLOW: ${{ github.event.workflow_run.name }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
@@ -39,8 +40,12 @@ jobs:
           LOG_URL: ${{ github.event.workflow_run.html_url }}
           TS: ${{ github.event.workflow_run.updated_at }}
           AUDIT_PATH: release-proof/audit/audit.jsonl
+          FAILED_LOG_PATH: failed-workflow.log
         shell: bash
-        run: python3 scripts/record-workflow-failure.py
+        run: |
+          set -euo pipefail
+          gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" --log-failed > "$FAILED_LOG_PATH" 2>/dev/null || true
+          python3 scripts/record-workflow-failure.py
 
       - name: Spec104 static surface audit
         run: python3 scripts/audit-schema.py spec104 release-proof/audit/audit.jsonl || echo "(audit result recorded; non-fatal warning)"

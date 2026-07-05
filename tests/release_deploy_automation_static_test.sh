@@ -126,6 +126,15 @@ if ! python3 scripts/audit-schema.py validate release-proof/audit/audit.jsonl >/
   exit 1
 fi
 
+
+# Audit Recorder must persist DRY classifier output, not only raw workflow metadata.
+assert_grep 'FAILED_LOG_PATH' .github/workflows/audit-recorder.yml 'audit-recorder must capture failed logs for classification'
+assert_grep 'gh run view "$RUN_ID"' .github/workflows/audit-recorder.yml 'audit-recorder must download failed workflow logs'
+assert_grep 'load_failure_classification' scripts/record-workflow-failure.py 'workflow failure recorder must load classifier output'
+assert_grep 'failure_class' scripts/record-workflow-failure.py 'workflow failure recorder must persist failure_class'
+assert_grep 'source_refs' scripts/record-workflow-failure.py 'workflow failure recorder must persist source refs'
+assert_grep 'remediation_template' scripts/record-workflow-failure.py 'workflow failure recorder must persist remediation template'
+
 # changelog generator
 assert_grep 'changelog-gen.py' scripts/changelog-gen.py 'changelog gen must self-reference'
 assert_grep 'CATEGORIES_BY_LAYER' scripts/changelog-gen.py 'changelog gen missing layer grouping'
