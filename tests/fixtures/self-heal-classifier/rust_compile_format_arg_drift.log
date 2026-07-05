@@ -1,0 +1,2 @@
+Release	Rust Check	2026-07-04T21:27:55Z error: 14 positional arguments in format string, but there are 13 arguments
+Release	Rust Check	2026-07-04T21:27:55Z     --> crates/focusa-api/src/routes/project.rs:1998:14

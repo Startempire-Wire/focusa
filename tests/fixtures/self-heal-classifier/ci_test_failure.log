@@ -1,0 +1,4 @@
+Rust	Run unit/integration tests	2026-07-05T13:12:30Z test commands::recover::tests::recover_args_default_to_safe_operator_summary ... FAILED
+Rust	Run unit/integration tests	2026-07-05T13:12:30Z thread 'commands::recover::tests::recover_args_default_to_safe_operator_summary' panicked at crates/focusa-cli/src/commands/recover.rs:167:9:
+Rust	Run unit/integration tests	2026-07-05T13:12:30Z assertion `left == right` failed
+Rust	Run unit/integration tests	2026-07-05T13:12:30Z test result: FAILED. 41 passed; 2 failed

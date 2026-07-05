@@ -1,0 +1,10 @@
+{
+  "failure_class": "release_static_proof_failure",
+  "retry_policy": "hard_failure_no_rerun",
+  "deterministic": true,
+  "safe_to_rerun_unchanged": false,
+  "likely_root_cause": "release static guard failure",
+  "remediation_template": "Patch workflow/static guard drift before retry.",
+  "source_refs": [],
+  "signals": ["static_proof"]
+}

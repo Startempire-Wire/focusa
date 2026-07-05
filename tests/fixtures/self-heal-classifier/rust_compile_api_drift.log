@@ -1,0 +1,6 @@
+Rust	Run unit/integration tests	2026-07-04T21:27:55Z error: 14 positional arguments in format string, but there are 13 arguments
+Rust	Run unit/integration tests	2026-07-04T21:27:55Z     --> crates/focusa-api/src/routes/project.rs:1998:14
+Rust	Run unit/integration tests	2026-07-04T21:27:28Z error[E0061]: this function takes 6 arguments but 4 arguments were supplied
+Rust	Run unit/integration tests	2026-07-04T21:27:28Z     --> crates/focusa-api/src/routes/project.rs:3444:17
+Rust	Run unit/integration tests	2026-07-04T21:27:28Z note: function defined here
+Rust	Run unit/integration tests	2026-07-04T21:27:28Z     --> crates/focusa-api/src/routes/project.rs:201:4

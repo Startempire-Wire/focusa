@@ -1,0 +1,10 @@
+{
+  "failure_class": "rust_compile_format_arg_drift",
+  "retry_policy": "hard_failure_no_rerun",
+  "deterministic": true,
+  "safe_to_rerun_unchanged": false,
+  "likely_root_cause": "rust_format_arg_mismatch",
+  "remediation_template": "Sync format! placeholders with argument list at the reported source refs.",
+  "source_refs": ["crates/focusa-api/src/routes/project.rs:1998:14"],
+  "signals": ["rust_format_arg_mismatch"]
+}

@@ -1,0 +1,4 @@
+Rust	Clippy	2026-07-05T13:20:36Z cargo clippy --workspace -- -D warnings
+Rust	Clippy	2026-07-05T13:20:36Z error: this expression creates a reference which is immediately dereferenced by the compiler
+Rust	Clippy	2026-07-05T13:20:36Z     --> crates/focusa-api/src/routes/project.rs:1650:13
+Rust	Clippy	2026-07-05T13:20:36Z = note: `-D clippy::needless-option-as-deref` implied by `-D warnings`

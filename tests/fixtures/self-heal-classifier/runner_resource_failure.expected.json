@@ -1,0 +1,10 @@
+{
+  "failure_class": "runner_resource_failure",
+  "retry_policy": "rerun_once",
+  "deterministic": false,
+  "safe_to_rerun_unchanged": true,
+  "likely_root_cause": "runner resource exhaustion or cancellation",
+  "remediation_template": "Rerun once; if repeated, clean disk/cache or move job capacity.",
+  "source_refs": [],
+  "signals": ["runner_resource"]
+}

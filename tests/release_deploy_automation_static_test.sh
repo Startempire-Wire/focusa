@@ -157,6 +157,12 @@ assert_grep 'ci_clippy_failure: 1' "$changelog_out" 'changelog output missing fa
 rm -f "$changelog_ledger" "$changelog_out"
 
 
+
+# Fixture suite locks classifier behavior across core self-heal failure classes.
+[[ -f tests/self_heal_classifier_fixture_test.py ]] || { echo "✗ missing classifier fixture test"; exit 1; }
+[[ -d tests/fixtures/self-heal-classifier ]] || { echo "✗ missing classifier fixtures"; exit 1; }
+python3 tests/self_heal_classifier_fixture_test.py
+
 # Audit failure-class triage summary
 [[ -f scripts/audit-failure-summary.py ]] || { echo "✗ missing audit failure summary script"; exit 1; }
 assert_grep 'failure_classes' scripts/audit-failure-summary.py 'audit summary must count failure classes'

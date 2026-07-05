@@ -1,0 +1,10 @@
+{
+  "failure_class": "auto_heal_process_error",
+  "retry_policy": "hard_failure_no_rerun",
+  "deterministic": true,
+  "safe_to_rerun_unchanged": false,
+  "likely_root_cause": "self-heal workflow process error",
+  "remediation_template": "Patch Auto Heal/Watchdog process before retrying the release path.",
+  "source_refs": [],
+  "signals": ["self_heal_process"]
+}

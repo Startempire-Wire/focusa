@@ -1,0 +1,10 @@
+{
+  "failure_class": "deploy_health_failure",
+  "retry_policy": "rerun_once",
+  "deterministic": false,
+  "safe_to_rerun_unchanged": true,
+  "likely_root_cause": "deploy health endpoint failed",
+  "remediation_template": "Retry once; if repeated, inspect service logs, version, port, and rollback evidence.",
+  "source_refs": [],
+  "signals": ["deploy_health"]
+}

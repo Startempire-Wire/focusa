@@ -1,0 +1,10 @@
+{
+  "failure_class": "transient_github_or_network_failure",
+  "retry_policy": "rerun_once",
+  "deterministic": false,
+  "safe_to_rerun_unchanged": true,
+  "likely_root_cause": "transient GitHub/network/upload failure",
+  "remediation_template": "Rerun once; if repeated, inspect provider status, auth, rate limit, and artifact logs.",
+  "source_refs": [],
+  "signals": ["transient_network"]
+}

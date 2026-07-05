@@ -21,6 +21,15 @@ Transient classes may rerun once. Deterministic classes such as
 rerun loop and require a patch plus a fresh GitHub CI run. Local Rust output is
 advisory only; GitHub CI/Release/Deploy remains the canonical proof path.
 
+
+## Classifier fixture suite
+
+Classifier behavior is locked by `tests/self_heal_classifier_fixture_test.py` and
+fixtures in `tests/fixtures/self-heal-classifier/`. Every core self-heal class
+needs a `.log` sample plus `.expected.json` so changes to retry policy,
+source refs, signals, or remediation are intentional. The release automation
+static gate runs this suite before CI can pass.
+
 ## Layered defenses
 
 The pipeline has four self-heal layers, each absorbing a different failure class:

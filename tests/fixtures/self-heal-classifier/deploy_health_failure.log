@@ -1,0 +1,2 @@
+Deploy Live Daemon	Verify deployed version locally	2026-07-05T13:10:36Z /v1/health check failed
+Deploy Live Daemon	Verify deployed version locally	2026-07-05T13:10:36Z deploy_health timeout while waiting for http://127.0.0.1:8787/v1/health

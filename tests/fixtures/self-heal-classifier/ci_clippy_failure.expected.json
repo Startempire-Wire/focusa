@@ -1,0 +1,10 @@
+{
+  "failure_class": "ci_clippy_failure",
+  "retry_policy": "hard_failure_no_rerun",
+  "deterministic": true,
+  "safe_to_rerun_unchanged": false,
+  "likely_root_cause": "clippy lint failure",
+  "remediation_template": "Patch lint violations or narrow code changes; do not rerun unchanged CI.",
+  "source_refs": ["crates/focusa-api/src/routes/project.rs:1650:13"],
+  "signals": ["clippy"]
+}

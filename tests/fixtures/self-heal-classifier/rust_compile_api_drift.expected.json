@@ -1,0 +1,18 @@
+{
+  "failure_class": "rust_compile_api_drift",
+  "retry_policy": "hard_failure_no_rerun",
+  "deterministic": true,
+  "safe_to_rerun_unchanged": false,
+  "likely_root_cause": "rust_format_arg_mismatch; rust_api_signature_mismatch; rust_error_e0061",
+  "remediation_template": "Sync changed API surfaces: fix format! placeholders/arguments and update stale callsites or tests.",
+  "source_refs": [
+    "crates/focusa-api/src/routes/project.rs:1998:14",
+    "crates/focusa-api/src/routes/project.rs:3444:17",
+    "crates/focusa-api/src/routes/project.rs:201:4"
+  ],
+  "signals": [
+    "rust_format_arg_mismatch",
+    "rust_api_signature_mismatch",
+    "rust_error_e0061"
+  ]
+}
