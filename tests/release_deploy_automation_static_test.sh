@@ -168,6 +168,29 @@ rm -f "$changelog_ledger" "$changelog_out"
 [[ -d tests/fixtures/self-heal-classifier ]] || { echo "✗ missing classifier fixtures"; exit 1; }
 python3 tests/self_heal_classifier_fixture_test.py
 
+
+# Safe self-heal failure-injection drill: proves stop-vs-rerun decisions without production mutation.
+[[ -f scripts/self-heal-decision-drill.py ]] || { echo "✗ missing self-heal decision drill"; exit 1; }
+[[ -f .github/workflows/self-heal-failure-injection.yml ]] || { echo "✗ missing self-heal failure injection workflow"; exit 1; }
+assert_grep 'workflow_dispatch:' .github/workflows/self-heal-failure-injection.yml 'failure injection drill must be manual only'
+assert_grep 'scripts/self-heal-decision-drill.py' .github/workflows/self-heal-failure-injection.yml 'failure injection workflow must call dry-run drill'
+assert_grep 'repair_required_no_rerun' scripts/self-heal-decision-drill.py 'drill must prove deterministic no-rerun decision'
+assert_grep 'rerun_once_allowed' scripts/self-heal-decision-drill.py 'drill must prove transient rerun-once decision'
+drill_json="$(mktemp)"
+python3 scripts/self-heal-decision-drill.py --fixture all --json > "$drill_json"
+python3 - "$drill_json" <<'PY'
+import json, sys
+payload = json.load(open(sys.argv[1]))
+assert payload["schema"] == "focusa.self_heal_failure_injection_drill.v1", payload
+assert payload["case_count"] >= 9, payload
+assert payload["failure_rows"] == payload["case_count"], payload
+assert payload["self_heal_rows"] == payload["case_count"], payload
+decisions = {case["decision"]["decision"] for case in payload["cases"]}
+assert "repair_required_no_rerun" in decisions, payload
+assert "rerun_once_allowed" in decisions, payload
+PY
+rm -f "$drill_json"
+
 # Audit failure-class triage summary
 [[ -f scripts/audit-failure-summary.py ]] || { echo "✗ missing audit failure summary script"; exit 1; }
 assert_grep 'failure_classes' scripts/audit-failure-summary.py 'audit summary must count failure classes'

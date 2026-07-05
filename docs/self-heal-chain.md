@@ -31,6 +31,17 @@ root; otherwise `.beads/issues.jsonl` can be rewritten as root and block
 operator recovery. `tests/bd_sync_ownership_policy_test.sh` checks the JSONL
 owners and any running `.beads/daemon.pid` process owner.
 
+
+## Failure injection drill
+
+`scripts/self-heal-decision-drill.py` is a safe dry-run harness that feeds the
+classifier fixtures through classification, audit recording, self-heal synthesis,
+and audit summary rendering. It proves deterministic classes choose
+`repair_required_no_rerun` and transient classes choose `rerun_once_allowed`
+without dispatching production deploy or mutating `release-proof/audit/audit.jsonl`.
+The manual workflow `.github/workflows/self-heal-failure-injection.yml` runs the
+same drill via `workflow_dispatch` for GitHub-hosted proof.
+
 ## Classifier fixture suite
 
 Classifier behavior is locked by `tests/self_heal_classifier_fixture_test.py` and

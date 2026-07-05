@@ -1,0 +1,42 @@
+name: Self-heal Failure Injection Drill
+
+on:
+  workflow_dispatch:
+    inputs:
+      fixture:
+        description: Classifier fixture to drill, or all
+        required: false
+        default: all
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  drill:
+    name: Dry-run self-heal decision drill
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Classifier fixture suite
+        run: python3 tests/self_heal_classifier_fixture_test.py
+      - name: Failure injection dry-run
+        env:
+          FIXTURE: ${{ inputs.fixture || 'all' }}
+        run: |
+          set -euo pipefail
+          python3 scripts/self-heal-decision-drill.py --fixture "$FIXTURE" --json | tee self-heal-drill.json
+      - name: Render drill summary
+        run: |
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          payload = json.load(open('self-heal-drill.json'))
+          print('## Self-heal failure injection drill')
+          print(f"cases: {payload['case_count']}")
+          print(f"failure_rows: {payload['failure_rows']}")
+          print(f"self_heal_rows: {payload['self_heal_rows']}")
+          for case in payload['cases']:
+              cls = case['classification']['failure_class']
+              decision = case['decision']['decision']
+              print(f"- `{case['fixture']}` → `{cls}` → `{decision}`")
+          PY
