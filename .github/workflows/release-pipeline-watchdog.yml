@@ -69,16 +69,27 @@ jobs:
             gh run view "$id" --repo "$REPO" --log-failed > "$log_file" 2>/dev/null || true
             failure_class="unknown_process_failure"
             retry_policy="rerun_once"
+            deterministic="false"
+            safe_to_rerun_unchanged="true"
             plain_language_error="Unknown release-path failure; one bounded rerun is allowed."
+            likely_root_cause="unknown release-path failure"
+            remediation_template="Rerun once; if repeated, classify with source logs and add a taxonomy case."
+            source_refs=""
+            signals="unknown"
             while IFS='=' read -r key value; do
               case "$key" in
                 failure_class) failure_class="$value" ;;
                 retry_policy) retry_policy="$value" ;;
+                deterministic) deterministic="$value" ;;
+                safe_to_rerun_unchanged) safe_to_rerun_unchanged="$value" ;;
                 plain_language_error) plain_language_error="$value" ;;
+                likely_root_cause) likely_root_cause="$value" ;;
+                remediation_template) remediation_template="$value" ;;
+                source_refs) source_refs="$value" ;;
+                signals) signals="$value" ;;
               esac
             done < <(bash .github/scripts/classify-release-failure.sh "$log_file")
-            echo "failure_class=${failure_class} retry_policy=${retry_policy} run=${id} workflow=${wf}" | tee -a "$GITHUB_STEP_SUMMARY"
-            echo "plain_language_error=${plain_language_error}" | tee -a "$GITHUB_STEP_SUMMARY"
+            SELF_HEAL_SURFACE="Release Pipeline Watchdog"             SELF_HEAL_WORKFLOW="$wf"             SELF_HEAL_RUN_ID="$id"             SELF_HEAL_HEAD_SHA="$(jq -r '.headSha // "unknown"' <<<"$run")"             failure_class="$failure_class"             retry_policy="$retry_policy"             deterministic="$deterministic"             safe_to_rerun_unchanged="$safe_to_rerun_unchanged"             plain_language_error="$plain_language_error"             likely_root_cause="$likely_root_cause"             remediation_template="$remediation_template"             source_refs="$source_refs"             signals="$signals"             bash scripts/render-self-heal-decision-summary.sh
             if [[ "$retry_policy" == "hard_failure_no_rerun" ]]; then
               echo "skip id=$id: deterministic failure requires patch, not another full-matrix rerun"
               continue

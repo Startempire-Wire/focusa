@@ -170,6 +170,21 @@ python3 tests/self_heal_classifier_fixture_test.py
 
 
 
+
+# Uniform self-heal decision summary blocks for workflow operator visibility.
+[[ -f scripts/render-self-heal-decision-summary.sh ]] || { echo "✗ missing self-heal decision summary renderer"; exit 1; }
+assert_grep 'Self-heal decision' scripts/render-self-heal-decision-summary.sh 'summary renderer must emit decision heading'
+assert_grep 'repair_required_no_rerun' scripts/render-self-heal-decision-summary.sh 'summary renderer must emit deterministic no-rerun decision'
+assert_grep 'rerun_once_allowed' scripts/render-self-heal-decision-summary.sh 'summary renderer must emit transient rerun decision'
+assert_grep 'render-self-heal-decision-summary.sh' .github/workflows/auto-retry-deploy.yml 'auto heal must call summary renderer'
+assert_grep 'render-self-heal-decision-summary.sh' .github/workflows/release-pipeline-watchdog.yml 'watchdog must call summary renderer'
+summary_tmp="$(mktemp)"
+GITHUB_STEP_SUMMARY="$summary_tmp" SELF_HEAL_SURFACE="test" SELF_HEAL_WORKFLOW="CI" SELF_HEAL_RUN_ID="123" SELF_HEAL_HEAD_SHA="abc" failure_class="ci_clippy_failure" retry_policy="hard_failure_no_rerun" deterministic="true" safe_to_rerun_unchanged="false" plain_language_error="blocked" likely_root_cause="lint" remediation_template="patch it" source_refs="crates/example.rs:1:1" signals="clippy" bash scripts/render-self-heal-decision-summary.sh
+assert_grep 'decision | `repair_required_no_rerun`' "$summary_tmp" 'summary renderer output missing deterministic decision'
+GITHUB_STEP_SUMMARY="$summary_tmp" retry_policy="rerun_once" bash scripts/render-self-heal-decision-summary.sh
+assert_grep 'decision | `rerun_once_allowed`' "$summary_tmp" 'summary renderer output missing transient decision'
+rm -f "$summary_tmp"
+
 # Deploy self-heal proof drill: non-mutating deploy-health retry vs deterministic stop proof.
 [[ -f scripts/deploy-self-heal-proof-drill.py ]] || { echo "✗ missing deploy self-heal proof drill"; exit 1; }
 [[ -f .github/workflows/deploy-self-heal-proof-drill.yml ]] || { echo "✗ missing deploy self-heal proof workflow"; exit 1; }
