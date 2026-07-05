@@ -239,6 +239,8 @@ cat > "$telemetry_ledger" <<JSONL
 {"id":"fail-a","ts":"$old_ts","event":"failure","subsystem":"ci","scope":"CI","category":"ci_workflow_failure","symptom":"clippy deterministic","root_cause":"clippy","fix":"patch","guard":"scripts/classify-ci-failure.py","test":"scripts/classify-ci-failure.py","linked_run":"1","failure_class":"ci_clippy_failure","retry_policy":"hard_failure_no_rerun","deterministic":true}
 {"id":"fail-b","ts":"$old_ts","event":"failure","subsystem":"ci","scope":"CI","category":"ci_workflow_failure","symptom":"clippy deterministic","root_cause":"clippy","fix":"patch","guard":"scripts/classify-ci-failure.py","test":"scripts/classify-ci-failure.py","linked_run":"2","failure_class":"ci_clippy_failure","retry_policy":"hard_failure_no_rerun","deterministic":true}
 {"id":"fail-c","ts":"$old_ts","event":"failure","subsystem":"release","scope":"Release","category":"ci_workflow_failure","symptom":"network","root_cause":"network","fix":"rerun","guard":"scripts/classify-ci-failure.py","test":"scripts/classify-ci-failure.py","linked_run":"3","failure_class":"transient_github_or_network_failure","retry_policy":"rerun_once","deterministic":false}
+{"id":"fail-d","ts":"$old_ts","event":"failure","subsystem":"release","scope":"Release","category":"ci_workflow_failure","symptom":"historical unknown","root_cause":"see logs","fix":"rerun","guard":"scripts/classify-ci-failure.py","test":"scripts/classify-ci-failure.py","linked_run":"4"}
+{"id":"add-backfill-classifier-fail-d","ts":"2026-07-05T00:00:00Z","event":"addition","subsystem":"audit","scope":"release-proof/audit/audit.jsonl","category":"self_heal","change":"Backfilled classifier fields for historical failure fail-d","derived_from":"fail-d","classifier_schema":"focusa.release_failure_classifier.v1","failure_class":"unknown_process_failure","retry_policy":"rerun_once","deterministic":false,"safe_to_rerun_unchanged":true,"source_refs":[],"remediation_template":"Retry once.","classifier_signals":["historical_failure_row"]}
 {"ts":"2026-07-05T00:00:00Z","event":"self_heal","subsystem":"ops","scope":"CI","category":"ci_workflow_failure","derived_from":"fail-a","symptom":"clippy deterministic","root_cause":"clippy","fix":"patch","guard":"scripts/classify-ci-failure.py","test":"scripts/classify-ci-failure.py","linked_run":"1","auto_generated":true}
 JSONL
 telemetry_json="$(mktemp)"
@@ -249,9 +251,10 @@ payload = json.load(open(sys.argv[1]))
 assert payload["schema"] == "focusa.self_heal_telemetry.v1", payload
 assert payload["class_counts"]["ci_clippy_failure"] == 2, payload
 assert payload["retry_policy_counts"]["hard_failure_no_rerun"] == 2, payload
+assert payload["class_counts"]["unknown_process_failure"] == 1, payload
 assert payload["repeated_classes"]["ci_clippy_failure"] == 2, payload
 assert set(payload["open_repair_needed"]) == {"fail-a", "fail-b"}, payload
-assert set(payload["stale_unhealed_failures"]) == {"fail-b", "fail-c"}, payload
+assert set(payload["stale_unhealed_failures"]) == {"fail-b", "fail-c", "fail-d"}, payload
 assert payload["latest_heal_ts"] == "2026-07-05T00:00:00Z", payload
 PY
 rm -f "$telemetry_ledger" "$telemetry_json"

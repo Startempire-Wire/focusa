@@ -10,6 +10,17 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 DEFAULT_AUDIT = "release-proof/audit/audit.jsonl"
+CLASSIFIER_BACKFILL_SCHEMA = "focusa.release_failure_classifier.v1"
+CLASSIFIER_FIELDS = (
+    "classifier_schema",
+    "failure_class",
+    "retry_policy",
+    "deterministic",
+    "safe_to_rerun_unchanged",
+    "source_refs",
+    "remediation_template",
+    "classifier_signals",
+)
 
 
 def parse_ts(value: str) -> datetime | None:
@@ -32,8 +43,30 @@ def load_rows(path: Path) -> list[dict]:
     return rows
 
 
+def overlay_classifier_backfills(rows: list[dict]) -> list[dict]:
+    backfills = {
+        row.get("derived_from"): row
+        for row in rows
+        if row.get("event") == "addition"
+        and row.get("classifier_schema") == CLASSIFIER_BACKFILL_SCHEMA
+        and row.get("derived_from")
+    }
+    failures: list[dict] = []
+    for row in rows:
+        if row.get("event") != "failure":
+            continue
+        merged = dict(row)
+        backfill = backfills.get(row.get("id"))
+        if backfill:
+            for field in CLASSIFIER_FIELDS:
+                if not merged.get(field) and field in backfill:
+                    merged[field] = backfill[field]
+        failures.append(merged)
+    return failures
+
+
 def build_payload(rows: list[dict], stale_hours: float) -> dict:
-    failures = [row for row in rows if row.get("event") == "failure"]
+    failures = overlay_classifier_backfills(rows)
     heals = [row for row in rows if row.get("event") == "self_heal"]
     healed_ids = {row.get("derived_from") for row in heals if row.get("derived_from")}
     class_counts = Counter(row.get("failure_class") or "unclassified" for row in failures)
