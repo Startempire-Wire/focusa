@@ -5,6 +5,8 @@
 //        §38.3 (health toggle)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { existsSync } from "fs";
+import { join } from "path";
 import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState, adoptPiProjectRoot, normalizeProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, buildFocusaSessionIdentity, syncSFieldsToScopeStore, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary, getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, setLastProjectVerify, setLatestReportSummary, getLatestReportSummary, getLastProjectRootResolution, setLastProjectRootResolution, setLastProjectIdentity, setTotalCompactions, getTurnCount, setTurnCount, getSessionCwd, getContinuityId } from "./state.js";
 import { pushDelta } from "./tools.js";
 
@@ -12,6 +14,45 @@ import { pushDelta } from "./tools.js";
 let sseAbort: AbortController | null = null;
 let sseReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
+
+
+function markerExistsAtCwd(cwd: string): boolean {
+  try {
+    return existsSync(join(normalizeProjectRoot(cwd || process.cwd()), ".focusa-project.json"));
+  } catch {
+    return false;
+  }
+}
+
+function queueUnboundProjectNag(pi: ExtensionAPI, ctx: any, reason: string): void {
+  if (pi.getFlag("--nag-suppress")) return;
+  const cwd = normalizeProjectRoot(ctx?.cwd || process.cwd());
+  if (markerExistsAtCwd(cwd)) return;
+  const key = `pi_unbound_project_nag:${S.sessionFrameKey || "no-session"}:${cwd}`;
+  if (S.vitalInfoPrompted[key]) return;
+  S.vitalInfoPrompted[key] = Date.now();
+  persistState();
+  const prompt = [
+    "Focusa project not bound: no .focusa-project.json marker found at this Pi session cwd.",
+    `cwd: ${cwd}`,
+    "Next steps:",
+    "- focusa about        # inspect current Focusa/project binding",
+    "- focusa init         # create a local project marker when this is the right project root",
+    "- focusa onboard --remote <git-url> --project-root <path>  # bind a remote/VPS checkout marker",
+    "Suppress for this session with --nag-suppress when intentionally working unbound.",
+  ].join("\n");
+  focusaPost("/telemetry/trace", { event_type: "pi_unbound_project_nag", payload: { reason, cwd, session_id: S.sessionFrameKey, suppressed: false } });
+  if (!ctx?.hasUI) {
+    focusaPost("/telemetry/trace", { event_type: "pi_unbound_project_nag_skipped_headless", payload: { reason, cwd, session_id: S.sessionFrameKey } });
+    return;
+  }
+  try {
+    const sender = (ctx && typeof ctx.sendUserMessage === "function") ? ctx : pi;
+    void sender.sendUserMessage(prompt, { deliverAs: "followUp" } as any);
+  } catch {
+    /* best effort */
+  }
+}
 
 function vitalPromptSurfaceEnabled(surface: string): boolean {
   const raw = String(S.cfg?.vitalInfoPromptSurfaces || "project_root,workpoint,trajectory");
@@ -564,6 +605,7 @@ export function registerSession(pi: ExtensionAPI) {
       return;
     }
     if (pi.getFlag("--wbm")) S.wbmEnabled = true;
+    queueUnboundProjectNag(pi, ctx, "session_start");
 
     // Health check
     await checkFocusa();
