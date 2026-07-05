@@ -42,6 +42,25 @@ open repair-needed deterministic failures, stale unhealed failures, and the late
 self-heal timestamp. Use it when deciding whether the release path is looping,
 stuck, or healthy.
 
+
+## Historical classifier backfill
+
+`scripts/backfill-audit-classifier-fields.py` enriches historical failure rows
+without rewriting them. `--dry-run` reports candidate `addition` rows; `--apply`
+appends explicit `add-backfill-classifier-*` rows containing
+`classifier_schema`, `failure_class`, `retry_policy`, `deterministic`,
+`safe_to_rerun_unchanged`, `source_refs`, `remediation_template`, and
+`classifier_signals`. `scripts/audit-failure-summary.py` overlays those rows by
+`derived_from` so triage output shows enriched classes while the original
+failure rows remain immutable.
+
+```bash
+python3 scripts/backfill-audit-classifier-fields.py --audit release-proof/audit/audit.jsonl --dry-run
+python3 scripts/backfill-audit-classifier-fields.py --audit release-proof/audit/audit.jsonl --apply
+python3 scripts/audit-schema.py validate release-proof/audit/audit.jsonl
+python3 scripts/audit-failure-summary.py --class unknown_process_failure --limit 5
+```
+
 ## Audit failure triage CLI
 
 `scripts/audit-failure-summary.py` is the first-line read-only operator CLI for

@@ -14,6 +14,17 @@ from pathlib import Path
 from typing import Iterable
 
 DEFAULT_AUDIT = "release-proof/audit/audit.jsonl"
+CLASSIFIER_BACKFILL_SCHEMA = "focusa.release_failure_classifier.v1"
+CLASSIFIER_FIELDS = (
+    "classifier_schema",
+    "failure_class",
+    "retry_policy",
+    "deterministic",
+    "safe_to_rerun_unchanged",
+    "source_refs",
+    "remediation_template",
+    "classifier_signals",
+)
 
 
 def load_rows(path: Path) -> list[dict]:
@@ -29,8 +40,31 @@ def load_rows(path: Path) -> list[dict]:
     return rows
 
 
+def overlay_classifier_backfills(rows: Iterable[dict]) -> list[dict]:
+    all_rows = list(rows)
+    backfills = {
+        row.get("derived_from"): row
+        for row in all_rows
+        if row.get("event") == "addition"
+        and row.get("classifier_schema") == CLASSIFIER_BACKFILL_SCHEMA
+        and row.get("derived_from")
+    }
+    failures: list[dict] = []
+    for row in all_rows:
+        if row.get("event") != "failure":
+            continue
+        merged = dict(row)
+        backfill = backfills.get(row.get("id"))
+        if backfill:
+            for field in CLASSIFIER_FIELDS:
+                if not merged.get(field) and field in backfill:
+                    merged[field] = backfill[field]
+        failures.append(merged)
+    return failures
+
+
 def recent_failures(rows: Iterable[dict], failure_class: str | None, limit: int) -> list[dict]:
-    failures = [row for row in rows if row.get("event") == "failure"]
+    failures = overlay_classifier_backfills(rows)
     if failure_class:
         failures = [row for row in failures if row.get("failure_class") == failure_class]
     failures.sort(key=lambda row: row.get("ts", ""), reverse=True)
@@ -41,10 +75,12 @@ def normalize_source_refs(value: object) -> list[str]:
     if value is None:
         return []
     if isinstance(value, str):
-        return [part.strip() for part in value.split(",") if part.strip()]
-    if isinstance(value, list):
-        return [str(part) for part in value if str(part).strip()]
-    return [str(value)]
+        refs = [part.strip() for part in value.split(",") if part.strip()]
+    elif isinstance(value, list):
+        refs = [str(part) for part in value if str(part).strip()]
+    else:
+        refs = [str(value)]
+    return list(dict.fromkeys(refs))
 
 
 def summarize(rows: list[dict]) -> dict:

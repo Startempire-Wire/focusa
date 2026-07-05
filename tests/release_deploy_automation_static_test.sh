@@ -289,6 +289,50 @@ assert payload["retry_policies"]["hard_failure_no_rerun"] == 1, payload
 PY
 rm -f "$summary_ledger" /tmp/focusa-audit-summary.json
 
+
+# Append-only classifier backfill for historical audit failures.
+[[ -f scripts/backfill-audit-classifier-fields.py ]] || { echo "✗ missing classifier backfill script"; exit 1; }
+assert_grep 'add-backfill-classifier' scripts/backfill-audit-classifier-fields.py 'backfill must append explicit addition rows'
+assert_grep '--dry-run' scripts/backfill-audit-classifier-fields.py 'backfill must support dry-run'
+assert_grep '--apply' scripts/backfill-audit-classifier-fields.py 'backfill must support apply'
+assert_grep 'Historical classifier backfill' docs/self-heal-chain.md 'self-heal docs must document backfill'
+backfill_ledger="$(mktemp)"
+cat > "$backfill_ledger" <<'JSONL'
+{"id":"fail-hist-a","ts":"2026-07-05T13:20:36Z","event":"failure","subsystem":"ci","scope":"CI","category":"ci_workflow_failure","symptom":"clippy deterministic","root_cause":"clippy lint failure","fix":"Patch lint","guard":"scripts/classify-ci-failure.py","test":"scripts/classify-ci-failure.py","linked_run":"123"}
+{"id":"fail-hist-b","ts":"2026-07-05T13:21:36Z","event":"failure","subsystem":"ci","scope":"CI","category":"ci_workflow_failure","symptom":"CI run concluded failure","root_cause":"see workflow logs","fix":"open","guard":"scripts/classify-ci-failure.py","test":"scripts/classify-ci-failure.py","linked_run":"124"}
+JSONL
+before_hash="$(sha256sum "$backfill_ledger" | awk '{print $1}')"
+python3 scripts/backfill-audit-classifier-fields.py --audit "$backfill_ledger" --dry-run --json >/tmp/focusa-backfill-dry.json
+after_hash="$(sha256sum "$backfill_ledger" | awk '{print $1}')"
+[[ "$before_hash" == "$after_hash" ]] || { echo "✗ backfill dry-run mutated ledger" >&2; exit 1; }
+python3 - /tmp/focusa-backfill-dry.json <<'PY'
+import json, sys
+payload = json.load(open(sys.argv[1]))
+assert payload["schema"] == "focusa.audit_classifier_backfill.v1", payload
+assert payload["candidate_count"] == 2, payload
+assert payload["append_count"] == 0, payload
+assert payload["failure_classes"]["ci_clippy_failure"] == 1, payload
+PY
+python3 scripts/backfill-audit-classifier-fields.py --audit "$backfill_ledger" --apply --json >/tmp/focusa-backfill-apply.json
+python3 scripts/audit-schema.py validate "$backfill_ledger" >/tmp/focusa-backfill-schema.out
+python3 scripts/audit-failure-summary.py --audit "$backfill_ledger" --class ci_clippy_failure --limit 5 --json >/tmp/focusa-backfill-summary.json
+python3 - /tmp/focusa-backfill-apply.json /tmp/focusa-backfill-summary.json <<'PY'
+import json, sys
+applied = json.load(open(sys.argv[1]))
+summary = json.load(open(sys.argv[2]))
+assert applied["append_count"] == 2, applied
+assert summary["count"] == 1, summary
+row = summary["failures"][0]
+assert row["classifier_schema"] == "focusa.release_failure_classifier.v1", row
+assert row["failure_class"] == "ci_clippy_failure", row
+assert row["retry_policy"] == "hard_failure_no_rerun", row
+assert row["deterministic"] is True, row
+assert row["safe_to_rerun_unchanged"] is False, row
+assert row["remediation_template"], row
+PY
+rm -f "$backfill_ledger" /tmp/focusa-backfill-dry.json /tmp/focusa-backfill-apply.json /tmp/focusa-backfill-summary.json /tmp/focusa-backfill-schema.out
+
+
 # install-daemon contract spec
 assert_grep 'binary_version' docs/install-daemon-contract.md 'contract missing binary_version'
 assert_grep 'patch_service_unit_execstart' docs/install-daemon-contract.md 'contract missing execstart patch'
