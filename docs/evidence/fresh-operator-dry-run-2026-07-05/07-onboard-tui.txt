@@ -1,0 +1,201 @@
+freshop-shell-ready                               
+/tmp/focusa-fresh-op                              
+root@host [/tmp/focusa-fresh-op]# cd /tmp/focusa-fresh-op && pwd && ls -la                          
+/tmp/focusa-fresh-op                              
+total 1552                                        
+drwxr-xr-x  2 root root    4096 Jul  5 16:45 ./   
+drwxrwxrwt 88 root root 1581056 Jul  5 16:45 ../  
+root@host [/tmp/focusa-fresh-op]# cd /tmp/focusa-fresh-op && pwd && ls -la                          
+/tmp/focusa-fresh-op                              
+total 1552                                        
+drwxr-xr-x  2 root root    4096 Jul  5 16:45 ./   
+drwxrwxrwt 88 root root 1581056 Jul  5 16:46 ../  
+root@host [/tmp/focusa-fresh-op]# curl -fsS --max-time 5 http://127.0.0.1:8787/v1/health || echo OFFLINE                                                                                                
+{"ok":true,"status":"ok","uptime_ms":13264761,"version":"0.9.64-dev"}root@host [/tmp/focusa-fresh-op]# curl -fsS --max-time 5 http://127.0.0.1:8787/v1/health || echo OFFLINE                           
+{"ok":true,"status":"ok","uptime_ms":13292763,"version":"0.9.64-dev"}root@host [/tmp/focusa-fresh-op]# echo "=== FRESH-OP STEP 1: WHAT IS FOCUSA? ==="                                                  
+=== FRESH-OP STEP 1: WHAT IS FOCUSA? ===          
+root@host [/tmp/focusa-fresh-op]# curl -fsS http://127.0.0.1:8787/v1/health | head -c 200; echo     
+{"ok":true,"status":"ok","uptime_ms":13316066,"version":"0.9.64-dev"}                               
+root@host [/tmp/focusa-fresh-op]# curl -fsS http://127.0.0.1:8787/v1/version 2>/dev/null | head -c 200; echo                                                                                            
+
+root@host [/tmp/focusa-fresh-op]# curl -fsS http://127.0.0.1:8787/v1/about 2>/dev/null | head -c 200 || echo NO_ABOUT                                                                                   
+root@host [/tmp/focusa-fresh-op]# echo "freshop-note: /v1/about unknown; evidence suggests no orientation endpoint yet"                                                                                 
+freshop-note: /v1/about unknown; evidence suggests no orientation endpoint yet                      
+root@host [/tmp/focusa-fresh-op]# echo "=== FRESH-OP STEP 2: WHAT CAN I DO? ==="                    
+=== FRESH-OP STEP 2: WHAT CAN I DO? ===           
+root@host [/tmp/focusa-fresh-op]# which focusa || echo "no focusa in PATH; yum-installed focusa not present on this AlmaLinux image"                                                                    
+/usr/local/bin/focusa                             
+root@host [/tmp/focusa-fresh-op]# ls /usr/local/bin/focusa 2>/dev/null || echo "no /usr/local/bin/focusa; install path absent"                                                                          
+/usr/local/bin/focusa*                            
+root@host [/tmp/focusa-fresh-op]# echo "freshop-note: this fresh-operator hit a clear gap — no command available despite daemon running"                                                                
+freshop-note: this fresh-operator hit a clear gap — no command available despite daemon running     
+root@host [/tmp/focusa-fresh-op]# echo "=== FRESH-OP STEP 3: READ README FOR GETTING STARTED ==="   
+=== FRESH-OP STEP 3: READ README FOR GETTING STARTED ===                                            
+root@host [/tmp/focusa-fresh-op]# grep -nE "quickstart|getting started|install" /home/wirebot/focusa/README.md 2>/dev/null | head -10 || cat /home/wirebot/focusa/README.md 2>/dev/null | head -40      
+53:**Context Authority update:** Focusa now includes mutation-time context gates for the Phone Bridge incident class. See [`docs/current/AUTHORITY_MODEL.md`](docs/current/AUTHORITY_MODEL.md) for the canonical authority table and [`docs/current/CONTEXT_AUTHORITY_CURRENT.md`](docs/current/CONTEXT_AUTHORITY_CURRENT.md) for `focusa action preflight`, `focusa action classify-intent`, `focusa env contract`, `focusa runtime inventory`, `focusa binary preflight-install`, Phone Bridge preflight JSON, and HLT/TL degraded-placeholder behavior.                                                              
+78:- **Stop off-context mutation.** `focusa action preflight` blocks task substitution such as installing a release asset during Phone Bridge pairing on a live build host; `focusa env contract`, `focusa runtime inventory`, and `focusa binary preflight-install` expose the facts behind that verdict.  
+103:- **Mac menubar OAuth-like device pairing with QR + PWA (focusa-ui0y)**: pair a Mac to a Focusa VPS via three handoff modes — CLI (SSH), QR + phone (Telegram/Discord-style), or QR + VPS browser. Set `FOCUSA_PAIRING_URL` on the daemon to your public VPS hostname; the Mac menubar renders a QR encoding the PWA helper page at `/pair/{device_id}`. Architecture: [`docs/53-focusa-device-pairing-spec.md`](docs/53-focusa-device-pairing-spec.md). Each Focusa install is its own trust root — multi-tenant safe, no shared registry.                                                                         
+387:A deployed local service typically runs the built daemon from the checkout or from an install directory on `PATH`:                                                                                  
+391:# or, after installing/copying binaries:      
+461:- installed global copy: `~/.pi/skills/focusa/SKILL.md`                                         
+472:Validate skill loading with Pi's actual loader, resolving the global npm install instead of assuming a host-specific Node path:                                                                     
+root@host [/tmp/focusa-fresh-op]# cd /home/wirebot/focusa && pwd                                    
+/home/wirebot/focusa                              
+root@host [/home/wirebot/focusa]# echo "=== STEP 4: TRY FOCUSA INIT QUICKSTART ==="                 
+=== STEP 4: TRY FOCUSA INIT QUICKSTART ===        
+root@host [/home/wirebot/focusa]# ls -la /usr/local/bin/focusa 2>/dev/null; PATH=/home/wirebot/focusa/target/release:$PATH which focusa 2>/dev/null || echo "no built focusa binary yet"                
+-rwxr-xr-x 1 root root 87696912 Jun 28 16:55 /usr/local/bin/focusa*                                 
+/usr/local/bin/focusa                             
+root@host [/home/wirebot/focusa]# echo "freshop-note: a fresh operator would clone+build; capturing what scripts/install-daemon.sh says"                                                                
+freshop-note: a fresh operator would clone+build; capturing what scripts/install-daemon.sh says     
+root@host [/home/wirebot/focusa]# head -60 scripts/install-daemon.sh                                
+#!/usr/bin/env bash                               
+# Focusa daemon installer / deployer.             
+#                                                 
+# Supports local installs from a checkout build or from a release artifact,                         
+# enforces a deploy lock, kills stray duplicate daemons, backs up the current                       
+# binary, verifies health/version, and rolls back automatically on failure.                         
+set -euo pipefail                                 
+
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"      
+INSTALL_ROOT="${FOCUSA_INSTALL_ROOT:-/usr/local}" 
+BIN_NAME="${FOCUSA_BIN_NAME:-focusa-daemon}"      
+SERVICE_NAME="${FOCUSA_SERVICE_NAME:-focusa-daemon}"                                                
+HEALTH_URL_DEFAULT="${FOCUSA_DAEMON_URL:-http://127.0.0.1:8787}"                                    
+EXPECTED_VERSION="${FOCUSA_EXPECTED_VERSION:-}"   
+BINARY=""                                         
+CURRENT_VERSION=""                                
+CURRENT_CHECKSUM=""                               
+NEW_CHECKSUM=""                                   
+NO_RESTART=0                                      
+NO_VERIFY=0                                       
+REQUIRE_SERVICE=0                                 
+LOCK_FILE="${FOCUSA_DEPLOY_LOCK_FILE:-/tmp/focusa-daemon-deploy.lock}"                              
+STATE_DIR="${FOCUSA_STATE_DIR:-${INSTALL_ROOT}/lib/focusa}"                                         
+BACKUP_DIR="${FOCUSA_BACKUP_DIR:-${STATE_DIR}/backups}"                                             
+AUDIT_LOG="${FOCUSA_DEPLOY_AUDIT_LOG:-/var/log/focusa/deploy-audit.jsonl}"                          
+GITHUB_RUN_ID="${FOCUSA_GITHUB_RUN_ID:-}"         
+GITHUB_RUN_ATTEMPT="${FOCUSA_GITHUB_RUN_ATTEMPT:-}"                                                 
+GITHUB_ACTOR="${FOCUSA_GITHUB_ACTOR:-}"           
+GITHUB_SHA="${FOCUSA_GITHUB_SHA:-}"               
+GITHUB_TAG="${FOCUSA_GITHUB_TAG:-}"               
+GITHUB_WORKFLOW="${FOCUSA_GITHUB_WORKFLOW:-}"     
+GITHUB_REPOSITORY="${FOCUSA_GITHUB_REPOSITORY:-}" 
+HEALTH_URL=""                                     
+
+log() { printf '[focusa-deploy] %s\n' "$*"; }     
+warn() { printf '[focusa-deploy][warn] %s\n' "$*" >&2; }                                            
+die() { printf '[focusa-deploy][error] %s\n' "$*" >&2; exit 1; }                                    
+
+audit_event() {                                   
+  local event="$1"                                
+  local outcome="$2"                              
+  local note="${3:-}"                             
+  local live_version="${4:-}"                     
+  mkdir -p "$(dirname "$AUDIT_LOG")"              
+  python3 - "$AUDIT_LOG" "$event" "$outcome" "$note" "$live_version" <<'PY'                         
+import json, os, sys, time                        
+path, event, outcome, note, live_version = sys.argv[1:6]                                            
+entry = {                                         
+    "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),                                       
+    "event": event,                               
+    "outcome": outcome,                           
+    "note": note,                                 
+    "expected_version": os.environ.get("EXPECTED_VERSION", ""),                                     
+    "live_version": live_version,                 
+    "install_root": os.environ.get("INSTALL_ROOT", ""),                                             
+    "install_path": os.environ.get("INSTALL_PATH", ""),                                             
+    "service_name": os.environ.get("SERVICE_NAME", ""),                                             
+    "health_url": os.environ.get("HEALTH_URL", ""),                                                 
+    "backup_path": os.environ.get("BACKUP_PATH", ""),                                               
+    "github": {                                   
+root@host [/home/wirebot/focusa]# echo "=== STEP 5: TRY ONBOARD PROJECT SCOPE ==="                  
+=== STEP 5: TRY ONBOARD PROJECT SCOPE ===         
+root@host [/home/wirebot/focusa]# FOCUSA_API_URL=http://127.0.0.1:8787 curl -fsS "http://127.0.0.1:8787/v1/project/identity?project_root=/home/wirebot/focusa" | head -c 400; echo                      
+{"canonical":true,"degraded":false,"degraded_reasons":[],"details":{"tool_result_v1":{"canonical":true,"degraded":false,"evidence_refs":[],"failure_class":null,"next_tools":["focusa_project_identity","focusa_project_verify","focusa_trajectory_view","focusa_workpoint_resume"],"ok":true,"retry":{"posture":"safe_retry","safe":true},"side_effects":[],"status":"completed"}},"mismatch_reason":null,"mism
+root@host [/home/wirebot/focusa]# echo "=== STEP 6: FOCUSA --HELP ==="                              
+=== STEP 6: FOCUSA --HELP ===                     
+root@host [/home/wirebot/focusa]# focusa --help 2>&1 | head -40                                     
+Focusa cognitive governance CLI                   
+
+Usage: focusa [OPTIONS] <COMMAND>                 
+
+Commands:                                         
+  start              Start the Focusa daemon      
+  stop               Stop the Focusa daemon       
+  install-service    Install and enable the Focusa daemon service (Linux systemd user / macOS LaunchAgent)                                                                                              
+  codesign           macOS code signing + notarization inspection helper (focusa-covz)              
+  status             Show daemon status           
+  onboard            Run first-run Operator Preview onboarding                                      
+  pair               Open a Mac Pairing Room and print a phone-scannable QR                         
+  pairing            Pairing umbrella (focusa-ui0y v0.9.35-dev): wizard, transport, doctor          
+  pairing-transport  Discover and write the best phone-reachable Focusa transport (multi-transport bundle, focusa-ifc3)                                                                                 
+  pairing-doctor     Single-command pairing root-cause report (focusa-gkrj)                         
+  pairing-wizard     Interactive pairing wizard + non-interactive room creation (focusa-ui0y v0.9.35-dev)                                                                                               
+  doctor             Run full agent-first doctor checks                                             
+  license            License activation and entitlement operations (Spec92 §5.2)                    
+  preflight          Run Spec105 local CI/spec/evidence preflight                                   
+  explain            Explain a failure and print recovery commands                                  
+  dxux               Spec105 DX/UX report, requirement, and digest surfaces                         
+  utility            Utility, bootstrap, and post-compaction cards                                  
+  cleanup            Recoverable cleanup of generated residue                                       
+  continue           Resume governed continuous work and refresh state                              
+  focus              Focus stack and Focus State operations                                         
+  stack              Show focus stack overview    
+  gate               Focus Gate (candidate management)                                              
+  action             Action authority / mutation preflight operations                               
+  binary             Binary provenance and compatibility operations                                 
+  claim              Classify a completion claim against acceptance criteria (Spec107)              
+  runtime            Runtime inventory and daemon hygiene operations                                
+  memory             Memory operations            
+  ecs                ECS (reference store) operations                                               
+  env                Export env vars for proxy routing                                              
+  events             Event log inspection         
+  turns              Turn-level observability     
+  state              Dump full state (debug)      
+  clt                Context Lineage Tree         
+  lineage            Lineage API parity domain    
+  autonomy           Autonomy calibration         
+root@host [/home/wirebot/focusa]# echo "=== STEP 7: FOCUSA ABOUT ==="                               
+=== STEP 7: FOCUSA ABOUT ===                      
+root@host [/home/wirebot/focusa]# focusa about 2>&1 | head -40                                      
+error: unrecognized subcommand 'about'            
+
+  tip: a similar subcommand exists: 'bloatgaurd'  
+
+Usage: focusa [OPTIONS] <COMMAND>                 
+
+For more information, try '--help'.               
+root@host [/home/wirebot/focusa]# echo "=== STEP 8: FOCUSA DOCTOR ==="                              
+=== STEP 8: FOCUSA DOCTOR ===                     
+root@host [/home/wirebot/focusa]# focusa doctor 2>&1 | head -40                                     
+Status: blocked                                   
+Summary: 1 doctor check(s) blocked; readiness categories split runtime/source/release planes        
+Next action: Run the recovery command for the first blocked check, then re-run focusa doctor        
+Why: Spec92 requires one agent-first command center covering health, contracts, workpoint/work-loop, telemetry, cache, Pi skills, Mac app, release proof, Guardian, and cleanup readiness.              
+Command: focusa doctor                            
+Recovery: focusa start || focusa-daemon           
+Evidence: docs/current/EFFICIENCY_GUIDE.md, docs/current/HOOK_COVERAGE.md                           
+Docs: docs/92-agent-first-polish-hooks-efficiency-spec.md                                           
+root@host [/home/wirebot/focusa]# echo "=== STEP 9: FOCUSA ONBOARD --SCOPE PROJECT ==="             
+=== STEP 9: FOCUSA ONBOARD --SCOPE PROJECT ===    
+root@host [/home/wirebot/focusa]# cd /home/wirebot/focusa && focusa onboard --scope project --no-demo-workpoint 2>&1 | head -60                                                                         
+error: unexpected argument '--scope' found        
+
+Usage: focusa onboard [OPTIONS]                   
+
+For more information, try '--help'.               
+root@host [/home/wirebot/focusa]# echo "=== STEP 10: FOCUSA TUI --HEADLESS-SELF-TEST ==="           
+=== STEP 10: FOCUSA TUI --HEADLESS-SELF-TEST ===  
+root@host [/home/wirebot/focusa]# FOCUSA_TUI_BIN=/usr/local/bin/focusa-tui focusa tui --headless-self-test 2>&1 | head -60                                                                              
+error: unrecognized subcommand 'tui'              
+
+Usage: focusa [OPTIONS] <COMMAND>                 
+
+For more information, try '--help'.               
+root@host [/home/wirebot/focusa]# echo "=== STEP 11: FOCUSA ONBOARD --REMOTE QUICKSTART ==="        
+=== STEP 11: FOCUSA ONBOARD --REMOTE QUICKSTART ===                                                 
+root@host [/home/wirebot/focusa]# cd /tmp/freshop-proj && mkdir -p /tmp/freshop-proj && focusa onboard --scope project --remote https://github.com/Startempire-Wire/focusa.git --project-root /tmp/freshop-proj --no-demo-workpoint 2>&1 | head -40       
+bash: cd: /tmp/freshop-proj: No such file or directory                                              
+root@host [/home/wirebot/focusa]# cat /tmp/freshop-proj/.focusa-project.json 2>/dev/null | head -20 || echo "no marker"                                                                                 
+root@host [/home/wirebot/focusa]#                 
