@@ -10,6 +10,9 @@ python3 scripts/validate-github-workflows.py .github/workflows/release.yml .gith
   exit 1
 }
 
+# GH5 remote marker onboarding guard.
+tests/spec_focusa_gh5_remote_marker_static_test.sh
+
 [[ -f .github/workflows/deploy-live-daemon.yml ]] || { echo "✗ missing deploy-live-daemon workflow"; exit 1; }
 [[ -f scripts/install-daemon.sh ]] || { echo "✗ missing install-daemon.sh"; exit 1; }
 [[ -f scripts/verify-version-surfaces.py ]] || { echo "✗ missing verify-version-surfaces.py"; exit 1; }

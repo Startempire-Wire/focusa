@@ -2,8 +2,10 @@
 
 use crate::api_client::ApiClient;
 use crate::commands::daemon;
+use chrono::Utc;
 use clap::Args;
 use serde_json::{Value, json};
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -21,6 +23,13 @@ pub struct OnboardArgs {
     /// Explicit project root. Defaults to git root, then current directory.
     #[arg(long)]
     pub project_root: Option<String>,
+
+    /// Remote git URL to record in a local `.focusa-project.json` marker.
+    /// This is the low-risk remote/VPS onboarding path: run it from the
+    /// remote checkout (or pass --project-root) to bind the project before
+    /// Workpoint/Trajectory authority is accepted.
+    #[arg(long, value_name = "GIT_URL")]
+    pub remote: Option<String>,
 
     /// Stable continuity id for the demo Workpoint.
     #[arg(long)]
@@ -77,6 +86,84 @@ fn safe_project_root(project_root: &Path) -> bool {
         && trimmed != "/var"
         && trimmed != "/usr"
         && trimmed != "/opt"
+}
+
+
+fn slug_from_remote(remote: &str) -> String {
+    let trimmed = remote.trim().trim_end_matches('/').trim_end_matches(".git");
+    let tail = trimmed.rsplit('/').next().unwrap_or(trimmed);
+    let tail = tail.rsplit(':').next().unwrap_or(tail);
+    tail.chars()
+        .map(|ch| if ch.is_ascii_alphanumeric() { ch.to_ascii_lowercase() } else { '-' })
+        .collect::<String>()
+        .split('-')
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join("-")
+}
+
+fn title_from_slug(slug: &str) -> String {
+    slug.split('-')
+        .filter(|part| !part.is_empty())
+        .map(|part| {
+            let mut chars = part.chars();
+            match chars.next() {
+                Some(first) => format!("{}{}", first.to_ascii_uppercase(), chars.as_str()),
+                None => String::new(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn detect_workspace_kind(project_root: &Path) -> &'static str {
+    if project_root.join("Cargo.toml").exists() {
+        "rust-monorepo"
+    } else if project_root.join("go.mod").exists() || project_root.join("go.work").exists() {
+        "go-workspace"
+    } else if project_root.join("package.json").exists() {
+        "node-workspace"
+    } else {
+        "unknown"
+    }
+}
+
+fn ensure_project_marker(project_root: &Path, remote: &str) -> anyhow::Result<Value> {
+    let marker_path = project_root.join(".focusa-project.json");
+    if marker_path.exists() {
+        let existing: Value = serde_json::from_slice(&fs::read(&marker_path)?)
+            .unwrap_or_else(|_| json!({"status":"unreadable"}));
+        if existing
+            .get("repo_remote")
+            .and_then(Value::as_str)
+            .map(|value| value == remote.trim())
+            .unwrap_or(false)
+        {
+            return Ok(json!({"status":"exists","path":marker_path,"repo_remote":remote.trim()}));
+        }
+        anyhow::bail!(
+            "project marker already exists at {} with a different repo_remote; refusing to overwrite",
+            marker_path.display()
+        );
+    }
+    fs::create_dir_all(project_root)?;
+    let slug = slug_from_remote(remote);
+    if slug.is_empty() {
+        anyhow::bail!("--remote requires a git URL with a repository name");
+    }
+    let marker = json!({
+        "schema": "focusa.project.v1",
+        "project_id": slug.clone(),
+        "canonical_name": title_from_slug(&slug),
+        "project_root": project_root.display().to_string(),
+        "repo_remote": remote.trim(),
+        "beads_prefix": slug.clone(),
+        "workspace_kind": detect_workspace_kind(project_root),
+        "aliases": [],
+        "created_at": Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+    });
+    fs::write(&marker_path, serde_json::to_vec_pretty(&marker)?)?;
+    Ok(json!({"status":"created","path":marker_path,"repo_remote":remote.trim(),"marker":marker}))
 }
 
 fn has_git_repo(project_root: &Path) -> bool {
@@ -137,6 +224,12 @@ fn print_human(response: &Value) {
         "Agent mode: {}",
         response["agent"].as_str().unwrap_or("manual")
     );
+    if let Some(marker_status) = response
+        .pointer("/marker/status")
+        .and_then(Value::as_str)
+    {
+        println!("Project marker: {marker_status}");
+    }
     println!(
         "Daemon: {}",
         response["checks"]["daemon"].as_str().unwrap_or("unknown")
