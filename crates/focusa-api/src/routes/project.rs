@@ -1647,7 +1647,7 @@ fn discover_identity(
             &canonical_name,
             &project_id,
             &aliases,
-            project_root.as_deref(),
+            project_root,
             remote_hint.persisted_project_root.as_deref(),
         )
     {
