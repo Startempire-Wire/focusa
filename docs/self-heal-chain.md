@@ -33,6 +33,15 @@ owners and any running `.beads/daemon.pid` process owner.
 
 
 
+
+## Self-heal telemetry
+
+`scripts/self-heal-telemetry.py` summarizes audit health for operators and future
+automation: class counts, retry-policy counts, repeated failure classes,
+open repair-needed deterministic failures, stale unhealed failures, and the latest
+self-heal timestamp. Use it when deciding whether the release path is looping,
+stuck, or healthy.
+
 ## Deploy self-heal proof drill
 
 `scripts/deploy-self-heal-proof-drill.py` focuses on the live deploy path without

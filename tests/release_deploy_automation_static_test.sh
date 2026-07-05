@@ -227,6 +227,35 @@ assert "rerun_once_allowed" in decisions, payload
 PY
 rm -f "$drill_json"
 
+
+# Self-heal telemetry: repeated classes, repair-needed, stale unhealed failures.
+[[ -f scripts/self-heal-telemetry.py ]] || { echo "✗ missing self-heal telemetry script"; exit 1; }
+assert_grep 'repeated_classes' scripts/self-heal-telemetry.py 'telemetry must report repeated classes'
+assert_grep 'open_repair_needed' scripts/self-heal-telemetry.py 'telemetry must report repair-needed failures'
+assert_grep 'stale_unhealed_failures' scripts/self-heal-telemetry.py 'telemetry must report stale unhealed failures'
+telemetry_ledger="$(mktemp)"
+old_ts="2000-01-01T00:00:00Z"
+cat > "$telemetry_ledger" <<JSONL
+{"id":"fail-a","ts":"$old_ts","event":"failure","subsystem":"ci","scope":"CI","category":"ci_workflow_failure","symptom":"clippy deterministic","root_cause":"clippy","fix":"patch","guard":"scripts/classify-ci-failure.py","test":"scripts/classify-ci-failure.py","linked_run":"1","failure_class":"ci_clippy_failure","retry_policy":"hard_failure_no_rerun","deterministic":true}
+{"id":"fail-b","ts":"$old_ts","event":"failure","subsystem":"ci","scope":"CI","category":"ci_workflow_failure","symptom":"clippy deterministic","root_cause":"clippy","fix":"patch","guard":"scripts/classify-ci-failure.py","test":"scripts/classify-ci-failure.py","linked_run":"2","failure_class":"ci_clippy_failure","retry_policy":"hard_failure_no_rerun","deterministic":true}
+{"id":"fail-c","ts":"$old_ts","event":"failure","subsystem":"release","scope":"Release","category":"ci_workflow_failure","symptom":"network","root_cause":"network","fix":"rerun","guard":"scripts/classify-ci-failure.py","test":"scripts/classify-ci-failure.py","linked_run":"3","failure_class":"transient_github_or_network_failure","retry_policy":"rerun_once","deterministic":false}
+{"ts":"2026-07-05T00:00:00Z","event":"self_heal","subsystem":"ops","scope":"CI","category":"ci_workflow_failure","derived_from":"fail-a","symptom":"clippy deterministic","root_cause":"clippy","fix":"patch","guard":"scripts/classify-ci-failure.py","test":"scripts/classify-ci-failure.py","linked_run":"1","auto_generated":true}
+JSONL
+telemetry_json="$(mktemp)"
+python3 scripts/self-heal-telemetry.py --audit "$telemetry_ledger" --stale-hours 1 --json > "$telemetry_json"
+python3 - "$telemetry_json" <<'PY'
+import json, sys
+payload = json.load(open(sys.argv[1]))
+assert payload["schema"] == "focusa.self_heal_telemetry.v1", payload
+assert payload["class_counts"]["ci_clippy_failure"] == 2, payload
+assert payload["retry_policy_counts"]["hard_failure_no_rerun"] == 2, payload
+assert payload["repeated_classes"]["ci_clippy_failure"] == 2, payload
+assert set(payload["open_repair_needed"]) == {"fail-a", "fail-b"}, payload
+assert set(payload["stale_unhealed_failures"]) == {"fail-b", "fail-c"}, payload
+assert payload["latest_heal_ts"] == "2026-07-05T00:00:00Z", payload
+PY
+rm -f "$telemetry_ledger" "$telemetry_json"
+
 # Audit failure-class triage summary
 [[ -f scripts/audit-failure-summary.py ]] || { echo "✗ missing audit failure summary script"; exit 1; }
 assert_grep 'failure_classes' scripts/audit-failure-summary.py 'audit summary must count failure classes'
