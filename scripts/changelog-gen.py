@@ -44,7 +44,19 @@ def _format_row(row: dict, ledger_relpath: str) -> str:
     guard = row.get("guard", "")
     test = row.get("test", "")
     linked = row.get("linked_run", "")
+    failure_class = row.get("failure_class", "")
+    retry_policy = row.get("retry_policy", "")
+    remediation = row.get("remediation_template", "")
+    source_refs = row.get("source_refs") or []
     pieces = [f"- **{rid}** (`{cat}`, `{severity}`): {summary}"]
+    if failure_class:
+        retry_suffix = f"; retry: `{retry_policy}`" if retry_policy else ""
+        pieces.append(f"  - classifier: `{failure_class}`{retry_suffix}")
+    if source_refs:
+        rendered_refs = ", ".join(f"`{ref}`" for ref in source_refs[:5])
+        pieces.append(f"  - source refs: {rendered_refs}")
+    if remediation and remediation != fix:
+        pieces.append(f"  - remediation: {remediation}")
     if fix and fix != "open":
         pieces.append(f"  - fix: {fix}")
     if guard and guard != "open":
@@ -124,6 +136,17 @@ def generate(ledger_path: str, out_path: str, tag: str = "v0.9.42-dev") -> int:
         counts[kind] = counts.get(kind, 0) + 1
     for kind, n in sorted(counts.items()):
         out.append(f"- {kind}: {n}")
+    class_counts: dict[str, int] = {}
+    for row in rows:
+        failure_class = row.get("failure_class")
+        if failure_class:
+            class_counts[failure_class] = class_counts.get(failure_class, 0) + 1
+    if class_counts:
+        out.append("")
+        out.append("### Failure classes")
+        out.append("")
+        for failure_class, n in sorted(class_counts.items()):
+            out.append(f"- {failure_class}: {n}")
     out.append("")
     with open(out_path, "w", encoding="utf-8") as fh:
         fh.write("\n".join(out))

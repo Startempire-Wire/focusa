@@ -140,6 +140,22 @@ assert_grep 'changelog-gen.py' scripts/changelog-gen.py 'changelog gen must self
 assert_grep 'CATEGORIES_BY_LAYER' scripts/changelog-gen.py 'changelog gen missing layer grouping'
 assert_grep 'Layer 1 — Runner' scripts/changelog-gen.py 'changelog gen missing runner layer'
 
+
+# Changelog/report views must expose classifier summaries from audit rows.
+assert_grep 'failure_class = row.get("failure_class"' scripts/changelog-gen.py 'changelog must read classifier failure class'
+assert_grep 'source refs:' scripts/changelog-gen.py 'changelog must render classifier source refs'
+assert_grep 'Failure classes' scripts/changelog-gen.py 'changelog must render failure-class counts'
+changelog_ledger="$(mktemp)"
+changelog_out="$(mktemp)"
+cat > "$changelog_ledger" <<'JSONL'
+{"id":"fail-sample","ts":"2026-07-05T13:20:36Z","event":"failure","subsystem":"ci","scope":"CI","category":"ci_workflow_failure","symptom":"Blocked: clippy found a deterministic code issue.","root_cause":"clippy lint failure","fix":"Patch lint violations or narrow code changes.","guard":"scripts/classify-ci-failure.py","test":"scripts/classify-ci-failure.py","linked_run":"123","failure_class":"ci_clippy_failure","retry_policy":"hard_failure_no_rerun","source_refs":["crates/focusa-api/src/routes/project.rs:1650:13"],"remediation_template":"Patch lint violations or narrow code changes; do not rerun unchanged CI."}
+JSONL
+python3 scripts/changelog-gen.py --ledger "$changelog_ledger" --out "$changelog_out" --tag test >/dev/null
+assert_grep 'classifier: `ci_clippy_failure`; retry: `hard_failure_no_rerun`' "$changelog_out" 'changelog output missing classifier summary'
+assert_grep 'source refs: `crates/focusa-api/src/routes/project.rs:1650:13`' "$changelog_out" 'changelog output missing classifier source refs'
+assert_grep 'ci_clippy_failure: 1' "$changelog_out" 'changelog output missing failure-class count'
+rm -f "$changelog_ledger" "$changelog_out"
+
 # install-daemon contract spec
 assert_grep 'binary_version' docs/install-daemon-contract.md 'contract missing binary_version'
 assert_grep 'patch_service_unit_execstart' docs/install-daemon-contract.md 'contract missing execstart patch'
