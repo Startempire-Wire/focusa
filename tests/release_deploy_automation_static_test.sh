@@ -13,6 +13,9 @@ python3 scripts/validate-github-workflows.py .github/workflows/release.yml .gith
 # GH5 remote marker onboarding guard.
 tests/spec_focusa_gh5_remote_marker_static_test.sh
 
+# L5 TUI usage evidence guard.
+tests/spec_focusa_yixp_tui_usage_static_test.sh
+
 # GH7 Pi unbound project nag guard.
 tests/spec_focusa_gh7_pi_unbound_nag_static_test.sh
 

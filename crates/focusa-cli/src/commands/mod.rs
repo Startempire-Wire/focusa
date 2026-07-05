@@ -64,3 +64,4 @@ pub mod utility;
 pub mod workflow;
 pub mod workpoint;
 pub mod wrap;
+pub mod tui;

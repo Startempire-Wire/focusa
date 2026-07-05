@@ -20,8 +20,32 @@ use std::time::Duration;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let mut args_iter = std::env::args().skip(1);
+    let mut headless = false;
+    for arg in args_iter.by_ref() {
+        match arg.as_str() {
+            "--headless-self-test" => headless = true,
+            "--help" | "-h" => {
+                println!("focusa-tui — terminal dashboard for Focusa");
+                println!("Usage: focusa-tui [--headless-self-test]");
+                println!("Env: FOCUSA_API_URL (default http://127.0.0.1:8787)");
+                return Ok(());
+            }
+            other => {
+                eprintln!("focusa-tui: unknown argument {other:?}; pass --headless-self-test or no args");
+                std::process::exit(2);
+            }
+        }
+        if headless {
+            break;
+        }
+    }
     let api_url =
         std::env::var("FOCUSA_API_URL").unwrap_or_else(|_| "http://127.0.0.1:8787".into());
+
+    if headless {
+        return run_headless_self_test(&api_url).await;
+    }
 
     let mut app = app::App::new(api_url);
 
@@ -85,5 +109,47 @@ async fn main() -> Result<()> {
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     terminal.show_cursor()?;
 
+    Ok(())
+}
+
+async fn run_headless_self_test(api_url: &str) -> Result<()> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()?;
+    async fn fetch(client: &reqwest::Client, api: &str, path: &str) -> serde_json::Value {
+        let url = format!("{}{}", api.trim_end_matches('/'), path);
+        match client.get(&url).send().await {
+            Ok(resp) if resp.status().is_success() => resp
+                .json::<serde_json::Value>()
+                .await
+                .unwrap_or_else(|_| serde_json::json!({"raw_error": "decode_failed"})),
+            Ok(resp) => serde_json::json!({"status": resp.status().as_u16(), "url": url}),
+            Err(err) => serde_json::json!({"error": err.to_string(), "url": url}),
+        }
+    }
+    let health = fetch(&client, api_url, "/v1/health").await;
+    let focus_stack = fetch(&client, api_url, "/v1/focus/stack").await;
+    let workpoint = fetch(&client, api_url, "/v1/workpoint/resume").await;
+    let payload = serde_json::json!({
+        "schema": "focusa.tui_headless_self_test.v1",
+        "api_url": api_url,
+        "health": health,
+        "focus_stack": focus_stack,
+        "workpoint": workpoint,
+        "tabs": [
+            "1:FocusState", "2:FocusStack", "3:Gate", "4:Events", "5:Metrics",
+            "6:Lineage", "w:WorkLoop", "7:Autonomy", "8:Constitution",
+            "9:Telemetry", "0:Rfm", "p:Proposals", "s:Skills", "u:Uxp", "x:Training",
+        ],
+        "keybindings": {
+            "quit": ["q", "Esc"],
+            "refresh": ["r"],
+            "next_tab": ["Tab"],
+            "prev_tab": ["BackTab"],
+            "scroll_down": ["Down", "j"],
+            "scroll_up": ["Up", "k"],
+        },
+    });
+    println!("{}", serde_json::to_string_pretty(&payload)?);
     Ok(())
 }

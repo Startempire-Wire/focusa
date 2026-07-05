@@ -175,6 +175,9 @@ enum Commands {
     /// Resume governed continuous work and refresh state.
     Continue(commands::continue_work::ContinueArgs),
 
+    /// Launch the focusa-tui dashboard or run a headless self-test snapshot.
+    Tui(commands::tui::TuiArgs),
+
     /// Canonical workflow templates for LLM/operator execution.
     #[command(subcommand)]
     Workflow(commands::workflow::WorkflowCmd),
@@ -719,6 +722,7 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::Cleanup(args) => commands::cleanup::run(args, cli.json).await,
         Commands::Continue(args) => commands::continue_work::run(args, cli.json).await,
+        Commands::Tui(args) => commands::tui::run(args, cli.json).await,
         Commands::Workflow(cmd) => commands::workflow::run(cmd, cli.json).await,
         Commands::Stack => {
             let api = api_client::ApiClient::new();
