@@ -32,6 +32,17 @@ operator recovery. `tests/bd_sync_ownership_policy_test.sh` checks the JSONL
 owners and any running `.beads/daemon.pid` process owner.
 
 
+
+## Deploy self-heal proof drill
+
+`scripts/deploy-self-heal-proof-drill.py` focuses on the live deploy path without
+mutating production. It proves `deploy_health_failure` permits exactly one
+bounded redeploy, a deterministic self-heal/process class stops for repair,
+audit failure/self_heal rows are synthesized, summaries render remediation, and
+(optional) the live `/v1/health` endpoint remains OK. The manual workflow
+`.github/workflows/deploy-self-heal-proof-drill.yml` runs the same proof with
+`health_url=skip` by default for GitHub-hosted safety.
+
 ## Failure injection drill
 
 `scripts/self-heal-decision-drill.py` is a safe dry-run harness that feeds the

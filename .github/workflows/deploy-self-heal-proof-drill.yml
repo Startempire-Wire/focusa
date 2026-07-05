@@ -1,0 +1,38 @@
+name: Deploy Self-heal Proof Drill
+
+on:
+  workflow_dispatch:
+    inputs:
+      health_url:
+        description: Health URL to check, or skip
+        required: false
+        default: skip
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  drill:
+    name: Non-mutating deploy self-heal proof
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Deploy self-heal proof drill
+        env:
+          HEALTH_URL: ${{ inputs.health_url || 'skip' }}
+        run: |
+          set -euo pipefail
+          python3 scripts/deploy-self-heal-proof-drill.py --health-url "$HEALTH_URL" --json | tee deploy-self-heal-proof.json
+      - name: Render drill summary
+        run: |
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          payload = json.load(open('deploy-self-heal-proof.json'))
+          print('## Deploy self-heal proof drill')
+          print(f"failure_rows: {payload['failure_rows']}")
+          print(f"self_heal_rows: {payload['self_heal_rows']}")
+          print(f"deploy_health: {payload['deploy_health_decision']['decision']}")
+          print(f"deterministic: {payload['deterministic_decision']['decision']}")
+          print(f"health: {payload['health']}")
+          PY

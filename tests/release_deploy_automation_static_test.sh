@@ -169,6 +169,27 @@ rm -f "$changelog_ledger" "$changelog_out"
 python3 tests/self_heal_classifier_fixture_test.py
 
 
+
+# Deploy self-heal proof drill: non-mutating deploy-health retry vs deterministic stop proof.
+[[ -f scripts/deploy-self-heal-proof-drill.py ]] || { echo "✗ missing deploy self-heal proof drill"; exit 1; }
+[[ -f .github/workflows/deploy-self-heal-proof-drill.yml ]] || { echo "✗ missing deploy self-heal proof workflow"; exit 1; }
+assert_grep 'workflow_dispatch:' .github/workflows/deploy-self-heal-proof-drill.yml 'deploy self-heal proof must be manual only'
+assert_grep 'deploy_health_failure' scripts/deploy-self-heal-proof-drill.py 'deploy drill must exercise deploy health failure'
+assert_grep 'auto_heal_process_error' scripts/deploy-self-heal-proof-drill.py 'deploy drill must exercise deterministic stop class'
+deploy_drill_json="$(mktemp)"
+python3 scripts/deploy-self-heal-proof-drill.py --health-url skip --json > "$deploy_drill_json"
+python3 - "$deploy_drill_json" <<'PY'
+import json, sys
+payload = json.load(open(sys.argv[1]))
+assert payload["schema"] == "focusa.deploy_self_heal_proof_drill.v1", payload
+assert payload["failure_rows"] == 2, payload
+assert payload["self_heal_rows"] == 2, payload
+assert payload["deploy_health_decision"]["decision"] == "rerun_once_allowed", payload
+assert payload["deterministic_decision"]["decision"] == "repair_required_no_rerun", payload
+assert payload["health"]["checked"] is False, payload
+PY
+rm -f "$deploy_drill_json"
+
 # Safe self-heal failure-injection drill: proves stop-vs-rerun decisions without production mutation.
 [[ -f scripts/self-heal-decision-drill.py ]] || { echo "✗ missing self-heal decision drill"; exit 1; }
 [[ -f .github/workflows/self-heal-failure-injection.yml ]] || { echo "✗ missing self-heal failure injection workflow"; exit 1; }
