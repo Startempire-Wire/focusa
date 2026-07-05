@@ -15,10 +15,10 @@ for needle in \
   'refusing to overwrite' \
   'repo_remote' \
   'Project marker:'; do
-  rg -n -F "$needle" "$ONBOARD" >/dev/null || fail "onboard remote marker missing: $needle"
+  grep -nF "$needle" "$ONBOARD" >/dev/null || fail "onboard remote marker missing: $needle"
 done
 pass "onboard exposes low-risk --remote marker creation path"
-if rg -n '/home/focusadev/perpetua|/home/wirebot/focusa' "$ONBOARD" >/dev/null; then
+if grep -nE '/home/focusadev/perpetua|/home/wirebot/focusa' "$ONBOARD" >/dev/null; then
   fail "remote marker onboarding contains project-specific hardcoded root"
 fi
 pass "remote marker onboarding avoids hardcoded project roots"
