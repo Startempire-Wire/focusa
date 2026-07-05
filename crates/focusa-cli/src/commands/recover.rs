@@ -8,7 +8,7 @@ use crate::commands::scope::ensure_project_root_scope_safe;
 use clap::Args;
 use serde_json::{Value, json};
 
-#[derive(Args, Debug, Default)]
+#[derive(Args, Debug)]
 pub struct RecoverArgs {
     /// Inspect crashed state and proposed recovery without mutating daemon/workpoint state.
     #[arg(long)]
@@ -29,6 +29,18 @@ pub struct RecoverArgs {
     /// Do not attempt to start the daemon when health probe fails.
     #[arg(long)]
     pub no_start_daemon: bool,
+}
+
+impl Default for RecoverArgs {
+    fn default() -> Self {
+        Self {
+            dry_run: false,
+            project_root: None,
+            continuity_id: None,
+            mode: "operator_summary".to_string(),
+            no_start_daemon: false,
+        }
+    }
 }
 
 pub async fn run(json_output: bool, args: RecoverArgs) -> anyhow::Result<()> {
