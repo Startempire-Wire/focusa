@@ -156,6 +156,34 @@ assert_grep 'source refs: `crates/focusa-api/src/routes/project.rs:1650:13`' "$c
 assert_grep 'ci_clippy_failure: 1' "$changelog_out" 'changelog output missing failure-class count'
 rm -f "$changelog_ledger" "$changelog_out"
 
+
+# Audit failure-class triage summary
+[[ -f scripts/audit-failure-summary.py ]] || { echo "✗ missing audit failure summary script"; exit 1; }
+assert_grep 'failure_classes' scripts/audit-failure-summary.py 'audit summary must count failure classes'
+assert_grep 'retry_policies' scripts/audit-failure-summary.py 'audit summary must count retry policies'
+assert_grep 'source_refs' scripts/audit-failure-summary.py 'audit summary must display source refs'
+summary_ledger="$(mktemp)"
+cat > "$summary_ledger" <<'JSONL'
+{"id":"fail-a","ts":"2026-07-05T13:20:36Z","event":"failure","subsystem":"ci","scope":"CI","category":"ci_workflow_failure","symptom":"clippy deterministic","root_cause":"clippy lint failure","fix":"Patch lint","guard":"scripts/classify-ci-failure.py","test":"scripts/classify-ci-failure.py","linked_run":"123","failure_class":"ci_clippy_failure","retry_policy":"hard_failure_no_rerun","source_refs":["crates/focusa-api/src/routes/project.rs:1650:13"],"remediation_template":"Patch lint violations; do not rerun unchanged CI.","log_url":"https://github.com/example/actions/runs/123"}
+{"id":"fail-b","ts":"2026-07-05T13:10:36Z","event":"failure","subsystem":"ci","scope":"CI","category":"ci_workflow_failure","symptom":"transient upload","root_cause":"network","fix":"rerun once","guard":"scripts/classify-ci-failure.py","test":"scripts/classify-ci-failure.py","linked_run":"122","failure_class":"transient_github_or_network_failure","retry_policy":"rerun_once","source_refs":[],"remediation_template":"Rerun once."}
+JSONL
+summary_out="$(python3 scripts/audit-failure-summary.py --audit "$summary_ledger" --class ci_clippy_failure --limit 5)"
+printf '%s
+' "$summary_out" | grep -q 'ci_clippy_failure: 1' || { echo "✗ audit summary missing class count" >&2; exit 1; }
+printf '%s
+' "$summary_out" | grep -q 'hard_failure_no_rerun: 1' || { echo "✗ audit summary missing retry count" >&2; exit 1; }
+printf '%s
+' "$summary_out" | grep -q 'crates/focusa-api/src/routes/project.rs:1650:13' || { echo "✗ audit summary missing source ref" >&2; exit 1; }
+python3 scripts/audit-failure-summary.py --audit "$summary_ledger" --json >/tmp/focusa-audit-summary.json
+python3 - /tmp/focusa-audit-summary.json <<'PY'
+import json, sys
+payload = json.load(open(sys.argv[1]))
+assert payload["failure_classes"]["ci_clippy_failure"] == 1, payload
+assert payload["failure_classes"]["transient_github_or_network_failure"] == 1, payload
+assert payload["retry_policies"]["hard_failure_no_rerun"] == 1, payload
+PY
+rm -f "$summary_ledger" /tmp/focusa-audit-summary.json
+
 # install-daemon contract spec
 assert_grep 'binary_version' docs/install-daemon-contract.md 'contract missing binary_version'
 assert_grep 'patch_service_unit_execstart' docs/install-daemon-contract.md 'contract missing execstart patch'
