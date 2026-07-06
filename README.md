@@ -43,6 +43,30 @@ It helps your agent keep the mission.
 
 ---
 
+## Quickstart (60 seconds)
+
+Three commands to a green Focusa install on this VPS:
+
+```bash
+# 1. Pull + build the Focusa daemon + CLI + TUI.
+git clone https://github.com/Startempire-Wire/focusa.git
+cd focusa
+bash scripts/install-daemon.sh /usr/local
+
+# 2. Start the daemon (systemd user service on Linux, LaunchAgent on macOS).
+focusa start && sleep 2
+
+# 3. Confirm the local daemon is healthy and bind this project.
+curl -fsS http://127.0.0.1:8787/v1/health
+focusa init --quickstart        # writes .focusa-project.json, returns project_id
+```
+
+That's it. The daemon is bound, your project is on disk, and `focusa doctor` will surface the next safe action.
+
+For more first-run choices (interactive prompts, ASCII intros), run `focusa onboard` instead of `focusa init`.
+
+---
+
 ## Current Snapshot
 
 **Version:** `v0.9.25-dev`

@@ -129,6 +129,10 @@ fn detect_workspace_kind(project_root: &Path) -> &'static str {
 }
 
 fn ensure_project_marker(project_root: &Path, remote: &str) -> anyhow::Result<Value> {
+    if !project_root.exists() {
+        std::fs::create_dir_all(project_root)
+            .map_err(|e| anyhow::anyhow!("create_dir_all failed for {}: {}", project_root.display(), e))?;
+    }
     let marker_path = project_root.join(".focusa-project.json");
     if marker_path.exists() {
         let existing: Value = serde_json::from_slice(&fs::read(&marker_path)?)
@@ -273,6 +277,22 @@ fn print_human(response: &Value) {
 }
 
 pub async fn run(args: OnboardArgs, json_mode: bool) -> anyhow::Result<()> {
+    print!("{}", crate::commands::intro::render_onboard_banner(&args.project_root.clone().unwrap_or_else(|| std::env::current_dir().map(|d| d.display().to_string()).unwrap_or_else(|_| ".".into())), "project (interactive)"));
+    let intent = crate::commands::intro::detect_prompt_intent();
+    let scope_idx = crate::commands::intro::pick_scope_intent(intent, |choices| {
+        // Tiny interactive picker: print arrows + read number (1-2) from stdin.
+        use std::io::{Write, BufRead};
+        for (idx, choice) in choices.iter().enumerate() {
+            println!("  {}. {}", idx + 1, choice);
+        }
+        print!("Choose [1-{}]: ", choices.len());
+        let _ = std::io::stdout().flush();
+        let mut input = String::new();
+        std::io::stdin().lock().read_line(&mut input).unwrap_or(0);
+        let n = input.trim().parse::<usize>().unwrap_or(1);
+        if n == 0 || n > choices.len() { 0 } else { n - 1 }
+    });
+    let _ = scope_idx; // current arg-based dispatch is the source of truth.
     let project_root = detect_project_root(args.project_root)?;
     let project_root_str = project_root.display().to_string();
     let project_scope = matches!(args.scope, OnboardScope::Project);

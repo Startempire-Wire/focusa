@@ -18,6 +18,37 @@ async fn health(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     }))
 }
 
+async fn about(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+    Json(json!({
+        "ok": true,
+        "schema": "focusa.about.v1",
+        "project": "Focusa",
+        "version": env!("CARGO_PKG_VERSION"),
+        "one_line": "Focusa turns long AI chat into long-running AI project work.",
+        "quickstart": {
+            "summary": "Three commands to a green Focusa install on this host.",
+            "commands": [
+                "bash scripts/install-daemon.sh /usr/local",
+                "focusa start && sleep 2",
+                "focusa init --quickstart"
+            ],
+        },
+        "interactive_first_run": [
+            "focusa onboard",
+            "focusa init --quickstart",
+        ],
+        "uptime_ms": state.started_at.elapsed().as_millis() as u64,
+        "next_commands": {
+            "init": "focusa init [--quickstart] [--project-root PATH]",
+            "onboard": "focusa onboard [--scope project|host] [--remote <git-url>]",
+            "tui": "focusa tui [--headless-self-test]",
+            "doctor": "focusa doctor",
+            "audit": "focusa audit-failure-summary",
+            "pi_install": "bash scripts/install-pi-skill.sh",
+        },
+    }))
+}
+
 fn bundled_tool_contract_count() -> usize {
     serde_json::from_str::<Value>(include_str!(
         "../../../../docs/current/focusa-tool-contracts.json"
@@ -357,6 +388,7 @@ async fn doctor(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/health", get(health))
+        .route("/v1/about", get(about))
         .route("/v1/doctor", get(doctor))
 }
 

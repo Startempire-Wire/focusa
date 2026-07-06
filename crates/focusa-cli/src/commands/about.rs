@@ -12,6 +12,10 @@
 //! machine-friendly form.
 
 pub fn run(json_mode: bool) -> anyhow::Result<()> {
+    let version = env!("CARGO_PKG_VERSION");
+    if !json_mode {
+        print!("{}", crate::commands::intro::render_about_banner(version, None, None));
+    }
     if json_mode {
         let out = serde_json::json!({
             "name": "focusa",

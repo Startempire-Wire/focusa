@@ -178,6 +178,9 @@ enum Commands {
     /// Launch the focusa-tui dashboard or run a headless self-test snapshot.
     Tui(commands::tui::TuiArgs),
 
+    /// Minimal low-risk project bootstrap (writes .focusa-project.json).
+    Init(commands::init::InitArgs),
+
     /// Canonical workflow templates for LLM/operator execution.
     #[command(subcommand)]
     Workflow(commands::workflow::WorkflowCmd),
@@ -425,6 +428,11 @@ fn classify_cli_error(message: &str) -> (&'static str, &'static str, &'static st
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Render the Focusa wordmark before clap parses --help. eprintln so it
+    // never pollutes JSON output.
+    if std::env::args().any(|a| a == "--help" || a == "-h") {
+        eprintln!("{}", commands::intro::render_help_banner());
+    }
     let cli = Cli::parse();
 
     // Initialize tracing with basic formatting
@@ -723,6 +731,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Cleanup(args) => commands::cleanup::run(args, cli.json).await,
         Commands::Continue(args) => commands::continue_work::run(args, cli.json).await,
         Commands::Tui(args) => commands::tui::run(args, cli.json).await,
+        Commands::Init(args) => commands::init::run(args, cli.json).await,
         Commands::Workflow(cmd) => commands::workflow::run(cmd, cli.json).await,
         Commands::Stack => {
             let api = api_client::ApiClient::new();
