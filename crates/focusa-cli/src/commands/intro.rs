@@ -56,7 +56,9 @@ pub fn render_about_banner(version: &str, owner: Option<&str>, repo: Option<&str
     let mut out = String::new();
     out.push_str(&render_wordmark());
     out.push_str(&format!(
-        "{accent}one-line:{reset} Focusa turns long AI chat into long-running AI project work.\n"
+        "{accent}one-line:{reset} Focusa turns long AI chat into long-running AI project work.\n",
+        accent = FOCUSA_ACCENT,
+        reset = FOCUSA_RESET,
     ));
     out.push_str(&format!(
         "{dim}version{reset} {ver}  {dot}  {dim}repo{reset} {repo}\n",
@@ -80,7 +82,10 @@ pub fn render_onboard_banner(project_root_label: &str, scope_label: &str) -> Str
         scope = scope_label,
     ));
     out.push_str(&format!(
-        "{dim}step:{reset} {accent}bind{reset}  →  {accent}check{reset}  →  {accent}orient{reset}\n"
+        "{dim}step:{reset} {accent}bind{reset}  →  {accent}check{reset}  →  {accent}orient{reset}\n",
+        dim = FOCUSA_DIM,
+        accent = FOCUSA_ACCENT,
+        reset = FOCUSA_RESET,
     ));
     out
 }
