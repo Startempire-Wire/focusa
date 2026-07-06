@@ -16,6 +16,7 @@ mod metrics;
 pub mod mission_ladder;
 pub mod proof_status;
 mod proposals;
+pub mod recall;
 mod references;
 mod rfm;
 mod skills;
@@ -106,6 +107,7 @@ fn render_body(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         Tab::Metrics => metrics::render(app, frame, area),
         Tab::Lineage => lineage::render(app, frame, area),
         Tab::WorkLoop => work_loop::render(app, frame, area),
+        Tab::Recall => recall::render(app, frame, area),
         Tab::Autonomy => autonomy::render(app, frame, area),
         Tab::Constitution => constitution::render(app, frame, area),
         Tab::Telemetry => telemetry::render(app, frame, area),
