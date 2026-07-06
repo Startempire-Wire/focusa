@@ -17,6 +17,18 @@ When an agent is running inside Pi and uses a shell-like tool, Focusa should vis
 
 The feature is advisory, configurable, Pi-conditional, and non-blocking. It should improve agent behavior without breaking shell workflows.
 
+## 1.1 Launch Architecture Adjacency
+
+Spec 110 is a launch-critical guardrail for the surrounding pre-launch architecture specs:
+
+- [Spec 111](111-agent-context-bootstrap-and-delivery-spec.md) depends on Spec 110 reminders so bootstrap/preload work uses the canonical `focusa_*` surfaces.
+- [Spec 112](112-install-binary-architecture-audit.md) depends on Spec 110 reminders so installer/platform validation does not drift into uncited shell-only checks.
+- [Spec 116](116-provider-neutral-work-item-closure-authority-spec.md) depends on Spec 110 reminders so provider-neutral closure uses governed Focusa authority tools.
+- [Spec 117](117-mission-deck-onboarding-recall-pwa-spec.md) depends on Spec 110 reminders so Mission Deck, Recall, and onboarding surfaces preserve Focusa tool authority.
+- [Spec 119](119-verifiable-agent-work-receipts-and-governed-execution-ledger-spec.md) depends on Spec 110 reminders so receipts and governed execution cite canonical tool/evidence surfaces.
+
+The Spec 118 number is not present in the current docs tree; launch readiness must either assign it or explicitly reserve it so the 116–119 architecture chain has no silent gap.
+
 ## 2. Source Evidence From Current Repo
 
 This spec is grounded in these current Focusa repo surfaces:
