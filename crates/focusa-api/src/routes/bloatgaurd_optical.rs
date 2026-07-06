@@ -153,6 +153,96 @@ pub fn decide(action: &str, status: &str) -> &'static str {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ProbeCheckStatus {
+    Pass,
+    Fail,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProbeCheck {
+    pub id: &'static str,
+    pub status: ProbeCheckStatus,
+}
+
+pub const COMPATIBILITY_PROBE_IDS: &[&str] = &[
+    "provider_supports_image_input",
+    "provider_counts_image_input_as_tokens",
+    "model_accepts_image_input",
+    "model_is_focusa_verified_for_dense_text_reading",
+    "pricing_did_not_flip_profitability_math",
+    "request_limits_still_allow_payload",
+    "canary_read_passes",
+];
+
+/// Run the compatibility probe given a provider-policy status and per-probe
+/// pass/fail map. Returns the per-probe results + the overall fallback
+/// decision per §5.11.6: any failure => text_passthrough with a reason.
+pub fn run_compatibility_probe(
+    provider_policy_status: &str,
+    per_probe: &[(String, ProbeCheckStatus)],
+) -> (Vec<ProbeCheck>, &'static str) {
+    let mut results: Vec<ProbeCheck> = per_probe
+        .iter()
+        .map(|(id, status)| ProbeCheck {
+            id: Box::leak(id.clone().into_boxed_str()),
+            status: status.clone(),
+        })
+        .collect();
+    for id in COMPATIBILITY_PROBE_IDS {
+        if !results.iter().any(|c| c.id == *id) {
+            results.push(ProbeCheck {
+                id,
+                status: ProbeCheckStatus::Pass,
+            });
+        }
+    }
+    let decision = if provider_policy_status != POLICY_STATUS_ALLOWED {
+        FALLBACK_TEXT_PASSTHROUGH
+    } else if results.iter().any(|c| c.status == ProbeCheckStatus::Fail) {
+        FALLBACK_TEXT_PASSTHROUGH
+    } else {
+        "noop_until_safe_auto"
+    };
+    (results, decision)
+}
+
+#[cfg(test)]
+mod probe_tests {
+    use super::*;
+
+    #[test]
+    fn any_probe_failure_falls_back_to_text_passthrough() {
+        let mut per = Vec::new();
+        for id in COMPATIBILITY_PROBE_IDS {
+            per.push((id.to_string(), ProbeCheckStatus::Pass));
+        }
+        per[3].1 = ProbeCheckStatus::Fail;
+        let (_results, decision) = run_compatibility_probe(POLICY_STATUS_ALLOWED, &per);
+        assert_eq!(decision, FALLBACK_TEXT_PASSTHROUGH);
+    }
+
+    #[test]
+    fn blocked_provider_status_falls_back_regardless_of_probe() {
+        let mut per = Vec::new();
+        for id in COMPATIBILITY_PROBE_IDS {
+            per.push((id.to_string(), ProbeCheckStatus::Pass));
+        }
+        let (_results, decision) = run_compatibility_probe(POLICY_STATUS_BLOCKED, &per);
+        assert_eq!(decision, FALLBACK_TEXT_PASSTHROUGH);
+    }
+
+    #[test]
+    fn all_pass_allowed_policy_returns_noop_until_safe_auto() {
+        let mut per = Vec::new();
+        for id in COMPATIBILITY_PROBE_IDS {
+            per.push((id.to_string(), ProbeCheckStatus::Pass));
+        }
+        let (_results, decision) = run_compatibility_probe(POLICY_STATUS_ALLOWED, &per);
+        assert_eq!(decision, "noop_until_safe_auto");
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
