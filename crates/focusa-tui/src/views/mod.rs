@@ -78,7 +78,7 @@ pub fn render(app: &App, frame: &mut ratatui::Frame) {
 
 fn render_footer_keys(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     let hint = if app.connected {
-        "n=deck  /=recall  l=learn  ?=help  q=quit"
+        "n=deck  /=recall  l=learn  ?=help  a=about  :=cmd  q=quit"
     } else {
         "waiting…  r=retry  q=quit"
     };

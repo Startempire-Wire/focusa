@@ -27,27 +27,22 @@ pub fn is_mobile(area: Rect) -> bool {
 }
 
 pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
-    let mut chunks: Vec<Rect> = Vec::new();
-
+    // Layout: header + body only (global views footer handles key hints).
     let header = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(3),
             Constraint::Min(3),
-            Constraint::Length(1),
         ])
         .split(area);
 
-    chunks.push(render_header(app, frame, header[0]));
+    render_header(app, frame, header[0]);
 
     if is_mobile(area) {
-        chunks.extend(render_stack(app, frame, header[1]));
+        render_stack(app, frame, header[1]);
     } else {
-        chunks.extend(render_grid(app, frame, header[1]));
+        render_grid(app, frame, header[1]);
     }
-
-    let footer = render_footer(app, frame, header[2]);
-    chunks.push(footer);
 
     // Active modal overlays: replace canvas, not stack.
     if let Some(modal) = app.modal {
