@@ -6,6 +6,7 @@
 mod api;
 mod app;
 mod beginner_mode;
+mod next_safe_action;
 mod theme;
 mod views;
 
@@ -76,7 +77,7 @@ async fn main() -> Result<()> {
         {
             match key.code {
                 KeyCode::Char('q') | KeyCode::Esc => break,
-                KeyCode::Char('d') => app.tab = app::Tab::DeckHome,
+                KeyCode::Char('d') | KeyCode::Char('n') => app.tab = app::Tab::DeckHome,
                 KeyCode::Char('1') => app.tab = app::Tab::FocusState,
                 KeyCode::Char('2') => app.tab = app::Tab::FocusStack,
                 KeyCode::Char('3') => app.tab = app::Tab::Gate,
@@ -144,6 +145,7 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
             "toggle": ["h", "?"],
             "topics": crate::views::help_overlay::HELP_TOPICS,
         },
+        "next_safe_action_model": crate::next_safe_action::HEADLESS_PROOF_STATES,
         "api_url": api_url,
         "health": health,
         "focus_stack": focus_stack,
@@ -157,6 +159,7 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
             "quit": ["q", "Esc"],
             "refresh": ["r"],
             "help_overlay": ["h", "?"],
+            "next_safe_action": ["n"],
             "next_tab": ["Tab"],
             "prev_tab": ["BackTab"],
             "scroll_down": ["Down", "j"],
