@@ -25,9 +25,11 @@ use std::time::Duration;
 async fn main() -> Result<()> {
     let mut args_iter = std::env::args().skip(1);
     let mut headless = false;
+    let mut no_intro = false;
     for arg in args_iter.by_ref() {
         match arg.as_str() {
             "--headless-self-test" => headless = true,
+            "--no-intro" => no_intro = true,
             "--help" | "-h" => {
                 println!("focusa-tui — Focusa Mission Deck");
                 println!("Usage: focusa-tui [--headless-self-test]");
@@ -52,7 +54,7 @@ async fn main() -> Result<()> {
         return run_headless_self_test(&api_url).await;
     }
 
-    let mut app = app::App::new(api_url);
+    let mut app = app::App::new_with_intro(api_url, !no_intro);
 
     // Initial fetch.
     app.refresh().await;
@@ -78,6 +80,7 @@ async fn main() -> Result<()> {
         {
             match key.code {
                 KeyCode::Char('q') | KeyCode::Esc => break,
+                _ if app.show_intro => app.dismiss_intro(),
                 KeyCode::Char('d') | KeyCode::Char('n') => app.tab = app::Tab::DeckHome,
                 KeyCode::Char('1') => app.tab = app::Tab::FocusState,
                 KeyCode::Char('2') => app.tab = app::Tab::FocusStack,
@@ -109,6 +112,9 @@ async fn main() -> Result<()> {
         if last_refresh.elapsed() >= refresh_rate {
             app.refresh().await;
             last_refresh = std::time::Instant::now();
+            if app.show_intro {
+                app.tick_intro_dismiss(last_refresh.elapsed().as_millis());
+            }
         }
     }
 
@@ -141,6 +147,11 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
     let payload = serde_json::json!({
         "schema": "focusa.tui_headless_self_test.v1",
         "title": "Focusa Mission Deck",
+        "intro_splash": {
+            "logo": crate::views::intro::FOCUSA_LOGO,
+            "tagline": crate::views::intro::FOCUSA_TAGLINE,
+            "version_line": crate::views::intro::INTRO_VERSION_LINE,
+        },
         "default_tab": "DeckHome",
         "deck_home_beautification_checklist": crate::views::deck_home::BEAUTIFICATION_CHECKLIST,
         "beginner_mode_decision_tree": crate::beginner_mode::DECISION_TREE,

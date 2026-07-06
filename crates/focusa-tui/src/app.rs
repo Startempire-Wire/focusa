@@ -200,6 +200,7 @@ pub struct App {
     pub extra_data: HashMap<String, Option<serde_json::Value>>,
     pub scroll_offset: u16,
     pub show_help: bool,
+    pub show_intro: bool,
     pub connected: bool,
     pub last_error: Option<String>,
     client: ApiClient,
@@ -207,12 +208,17 @@ pub struct App {
 
 impl App {
     pub fn new(api_url: String) -> Self {
+        Self::new_with_intro(api_url, true)
+    }
+
+    pub fn new_with_intro(api_url: String, show_intro: bool) -> Self {
         Self {
             tab: Tab::DeckHome,
             state: StateSnapshot::default(),
             extra_data: HashMap::new(),
             scroll_offset: 0,
             show_help: false,
+            show_intro,
             connected: false,
             last_error: None,
             client: ApiClient::new(api_url),
@@ -273,6 +279,16 @@ impl App {
 
     pub fn toggle_help(&mut self) {
         self.show_help = !self.show_help;
+    }
+
+    pub fn dismiss_intro(&mut self) {
+        self.show_intro = false;
+    }
+
+    pub fn tick_intro_dismiss(&mut self, elapsed_ms: u128) {
+        if self.show_intro && elapsed_ms >= 2500 {
+            self.show_intro = false;
+        }
     }
 
     pub fn next_tab(&mut self) {

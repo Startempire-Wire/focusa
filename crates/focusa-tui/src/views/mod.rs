@@ -10,6 +10,7 @@ mod focus_stack;
 mod focus_state;
 mod gate;
 pub mod help_overlay;
+pub mod intro;
 mod intuition;
 mod lineage;
 mod metrics;
@@ -49,6 +50,9 @@ pub fn render(app: &App, frame: &mut ratatui::Frame) {
     render_status_bar(app, frame, chunks[2]);
     if app.show_help {
         help_overlay::render(frame, area);
+    }
+    if app.show_intro {
+        intro::render(app, frame, area);
     }
 }
 
