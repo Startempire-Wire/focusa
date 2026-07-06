@@ -1,0 +1,99 @@
+deck-freshop-q ready                              
+root@host [/home/wirebot/focusa]# /home/wirebot/focusa/target/release/focusa --help 2>&1 | head -8  
+   ÛÛÛ ÛÛÛÛÛ   ÛÛÛÛ ÛÛÛÛ ÛÛÛ                      
+ ÛÛ  Û Û   Û     Û Û   Û ÛÛ                       
+ ÛÛÛÛÛÛÛ  ÛÛÛÛ ÛÛ ÛÛÛ ÛÛÛ Û                       
+ ÛÛ  Û ÛÛÛÛÛ Û   Û ÛÛÛÛ ÛÛ                        
+                                                  
+cognitive governance runtime                      
+---------- 60-second quickstart ----------        
+  bash scripts/install-daemon.sh /usr/local       
+root@host [/home/wirebot/focusa]# /home/wirebot/focusa/target/release/focusa init --quickstart --dry-run 2>&1 | head -20                                                                                
+{                                                 
+  "canonical_name": "Focusa",                     
+  "daemon_health": {                              
+    "checked": false,                             
+    "ok": null,                                   
+    "reason": "quickstart skip"                   
+  },                                              
+  "marker_path": "/home/wirebot/focusa/.focusa-project.json",                                       
+  "marker_preview": {                             
+    "aliases": [],                                
+    "beads_prefix": "focusa",                     
+    "canonical_name": "Focusa",                   
+    "created_at": "2026-07-06T01:46:03Z",         
+    "project_id": "focusa",                       
+    "project_root": "/home/wirebot/focusa",       
+    "schema": "focusa.project.v1",                
+    "workspace_kind": "rust-monorepo"             
+  },                                              
+  "mode": "dry_run",                              
+  "project_id": "focusa",                         
+root@host [/home/wirebot/focusa]# curl -fsS http://127.0.0.1:8787/v1/about 2>&1 | head -30          
+curl: (22) The requested URL returned error: 404 Not Found                                          
+root@host [/home/wirebot/focusa]# /home/wirebot/focusa/target/release/focusa about 2>&1 | head -25  
+   ÛÛÛ ÛÛÛÛÛ   ÛÛÛÛ ÛÛÛÛ ÛÛÛ                      
+ ÛÛ  Û Û   Û     Û Û   Û ÛÛ                       
+ ÛÛÛÛÛÛÛ  ÛÛÛÛ ÛÛ ÛÛÛ ÛÛÛ Û                       
+ ÛÛ  Û ÛÛÛÛÛ Û   Û ÛÛÛÛ ÛÛ                        
+                                                  
+cognitive governance runtime                      
+one-line: Focusa turns long AI chat into long-running AI project work.                              
+version 0.9.64-dev  •  repo Startempire-Wire/focusa                                                 
+focusa — cognitive governance CLI/daemon          
+Cognitive governance that gives AI agents durable state continuity.                                 
+
+Core concepts:                                    
+  - Workpoint:   a canonical save state for in-progress work                                        
+  - Trajectory:  hierarchical goal stack (long/mid/short term)                                      
+  - Focus Stack: bounded task frame stack         
+  - Memory:      semantic + procedural facts      
+  - Constitution: operator-pinned rules the agent must follow                                       
+
+Try next:                                         
+  focusa doctor                                   
+  focusa workpoint current --project-root "$(pwd)"                                                  
+  focusa focus push "<task>" --goal "<why>" --beads-issue-id <id>                                   
+
+Recover:                                          
+  focusa doctor                                   
+root@host [/home/wirebot/focusa]# cp target/release/focusa-api /usr/local/bin/focusa-daemon.new && FOCUSA_DAEMON_PORT=18787 FOCUSA_DAEMON_URL=http://127.0.0.1:18787 /home/wirebot/focusa/target/release/focusa-api >/tmp/focusa-api-new.log 2>&1 & echo PID=$!                                             
+[1] 2766192                                       
+PID=2766192                                       
+root@host [/home/wirebot/focusa]# cp: cannot stat 'target/release/focusa-api': No such file or directory                                                                                                
+sleep 2 && curl -fsS http://127.0.0.1:18787/v1/health | head -c 200; echo                           
+[1]+  Exit 1                  cp target/release/focusa-api /usr/local/bin/focusa-daemon.new && FOCUSA_DAEMON_PORT=18787 FOCUSA_DAEMON_URL=http://127.0.0.1:18787 /home/wirebot/focusa/target/release/focusa-api > /tmp/focusa-api-new.log 2>&1            
+curl -fsS http://127.0.0.1:18787/v1/about 2>&1 | head -40                                           
+curl: (7) Failed to connect to 127.0.0.1 port 18787: Connection refused                             
+
+root@host [/home/wirebot/focusa]# curl -fsS http://127.0.0.1:18787/v1/about 2>&1 | head -40         
+curl: (7) Failed to connect to 127.0.0.1 port 18787: Connection refused                             
+root@host [/home/wirebot/focusa]# FOCUSA_DAEMON_PORT=18787 FOCUSA_DAEMON_URL=http://127.0.0.1:18787 /home/wirebot/focusa/target/release/focusa-daemon >/tmp/focusa-daemon-new.log 2>&1 & echo PID=$!    
+[1] 2769088                                       
+PID=2769088                                       
+root@host [/home/wirebot/focusa]# sleep 3 && curl -fsS http://127.0.0.1:18787/v1/health | head -c 200; echo                                                                                             
+curl -fsS http://127.0.0.1:18787/v1/about | head -c 600; echo                                       
+[1]+  Done                    FOCUSA_DAEMON_PORT=18787 FOCUSA_DAEMON_URL=http://127.0.0.1:18787 /home/wirebot/focusa/target/release/focusa-daemon > /tmp/focusa-daemon-new.log 2>&1                     
+curl: (7) Failed to connect to 127.0.0.1 port 18787: Connection refused                             
+
+root@host [/home/wirebot/focusa]# curl -fsS http://127.0.0.1:18787/v1/about | head -c 600; echo     
+curl: (7) Failed to connect to 127.0.0.1 port 18787: Connection refused                             
+
+root@host [/home/wirebot/focusa]# cat /tmp/focusa-daemon-new.log 2>&1 | head -30                    
+2026-07-06T01:54:30.827043Z  INFO focusa_daemon: acquired daemon lock pid=2769088 lock=/home/wirebot/focusa/focusa-daemon.lock                                                                          
+2026-07-06T01:54:31.240053Z  INFO focusa_core::runtime::daemon: Focusa daemon starting (version 412601)                                                                                                 
+2026-07-06T01:54:31.246663Z  WARN focusa_daemon: Bonjour advertisement ended (non-fatal) error=register _focusa._tcp.local                                                                              
+2026-07-06T01:54:31.265041Z  INFO focusa_daemon::server: V2: PairingStore rehydrated from ledger on startup rooms=0 tokens=8                                                                            
+2026-07-06T01:54:31.265719Z ERROR focusa_daemon: API server error: Address already in use (os error 98)                                                                                                 
+2026-07-06T01:54:31.265763Z  WARN focusa_daemon: API server exited                                  
+root@host [/home/wirebot/focusa]# FOCUSA_BIND=127.0.0.1:18787 /home/wirebot/focusa/target/release/focusa-daemon >/tmp/focusa-daemon-18787.log 2>&1 & echo PID=$!                                        
+[1] 2775603                                       
+PID=2775603                                       
+root@host [/home/wirebot/focusa]# sleep 3 && curl -fsS http://127.0.0.1:18787/v1/health 2>&1 | head -c 300; echo                                                                                        
+curl -fsS http://127.0.0.1:18787/v1/about 2>&1 | head -c 800; echo                                  
+{"ok":true,"status":"ok","uptime_ms":6569,"version":"0.9.64-dev"}                                   
+root@host [/home/wirebot/focusa]# curl -fsS http://127.0.0.1:18787/v1/about 2>&1 | head -c 800; echo                                                                                                    
+{"interactive_first_run":["focusa onboard","focusa init --quickstart"],"next_commands":{"audit":"focusa audit-failure-summary","doctor":"focusa doctor","init":"focusa init [--quickstart] [--project-root PATH]","onboard":"focusa onboard [--scope project|host] [--remote <git-url>]","pi_install":"bash scripts/install-pi-skill.sh","tui":"focusa tui [--headless-self-test]"},"ok":true,"one_line":"Focusa turns long AI chat into long-running AI project work.","project":"Focusa","quickstart":{"commands":["bash scripts/install-daemon.sh /usr/local","focusa start && sleep 2","focusa init --quickstart"],"summary":"Three commands to a green Focusa install on this host."},"schema":"focusa.about.v1","uptime_ms":6579,"version":"0.9.64-dev"}                                                                  
+root@host [/home/wirebot/focusa]# curl -fsS http://127.0.0.1:18787/v1/health && echo OK             
+{"ok":true,"status":"ok","uptime_ms":7573,"version":"0.9.64-dev"}OK                                 
+root@host [/home/wirebot/focusa]#                 
