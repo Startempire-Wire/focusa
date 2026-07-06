@@ -123,8 +123,6 @@ async fn main() -> Result<()> {
                 KeyCode::Char('x') => app.tab = app::Tab::Training,
                 KeyCode::Char('r') => app.refresh().await,
                 KeyCode::Char('h') | KeyCode::Char('?') => app.toggle_help(),
-                KeyCode::Tab => app.next_tab(),
-                KeyCode::BackTab => app.prev_tab(),
                 KeyCode::Down | KeyCode::Char('j') => app.scroll_down(),
                 KeyCode::Up | KeyCode::Char('k') => app.scroll_up(),
                 _ => {}
@@ -269,8 +267,7 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
             "command_palette": [":"],
             "next_safe_action": ["n"],
             "recall": ["/"],
-            "next_tab": ["Tab"],
-            "prev_tab": ["BackTab"],
+
             "scroll_down": ["Down", "j"],
             "scroll_up": ["Up", "k"],
         },

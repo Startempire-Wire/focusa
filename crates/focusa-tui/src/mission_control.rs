@@ -12,7 +12,6 @@ use crate::app::App;
 use crate::beginner_mode;
 use crate::next_safe_action;
 use crate::theme;
-use crate::views::intro::FOCUSA_LOGO;
 use crate::views::proof_status;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
@@ -35,7 +34,7 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         .constraints([
             Constraint::Length(3),
             Constraint::Min(3),
-            Constraint::Length(3),
+            Constraint::Length(1),
         ])
         .split(area);
 
@@ -57,25 +56,21 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
 }
 
 fn render_header(app: &App, frame: &mut ratatui::Frame, area: Rect) -> Rect {
-    let title = Line::from(vec![
-        Span::styled(" FOCUSA · MISSION CONTROL ", theme::title()),
-        Span::raw(" · "),
-        Span::styled(format!("project: {}", project_label(app)), theme::label()),
-        Span::raw(" · "),
-        Span::styled(
-            "safe",
-            if app.connected {
-                Style::default()
-            } else {
-                Style::default().fg(Color::Red)
-            },
+    let state = if app.connected { "connected" } else { "offline" };
+    let proj = project_label(app);
+    let line = Line::from(vec![
+        Span::styled("MISSION CONTROL", theme::title().add_modifier(Modifier::BOLD)),
+        Span::raw("  "),
+        Span::styled(format!("{proj}"), theme::label()),
+        Span::raw("  "),
+        Span::styled(state,
+            if app.connected { Style::default().fg(Color::Green) } else { Style::default().fg(Color::Red) },
         ),
     ]);
-    let block = Block::default()
-        .borders(Borders::BOTTOM)
-        .border_style(theme::border());
-    let p = Paragraph::new(title).block(block);
-    frame.render_widget(p, area);
+    frame.render_widget(
+        Paragraph::new(line).block(Block::default().borders(Borders::BOTTOM).border_style(theme::border())),
+        area,
+    );
     area
 }
 
@@ -108,24 +103,39 @@ fn render_grid(app: &App, frame: &mut ratatui::Frame, area: Rect) -> Vec<Rect> {
 }
 
 fn render_stack(app: &App, frame: &mut ratatui::Frame, area: Rect) -> Vec<Rect> {
-    // Mobile fallback: single stacked column.
+    // Mobile: keep it simple. Mission Card + beginnner hint + key shortcuts.
     let rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Ratio(1, 4),
-            Constraint::Ratio(1, 8),
-            Constraint::Ratio(1, 8),
-            Constraint::Ratio(1, 8),
-            Constraint::Ratio(1, 4),
+            Constraint::Min(8),
+            Constraint::Length(3),
+            Constraint::Length(2),
         ])
         .split(area);
 
     render_mission_column(app, frame, rows[0]);
-    let ladder = render_ladder_block(app, frame, rows[1]);
-    let proof_scope = render_proof_scope_blocks(app, frame, rows[2]);
-    let walkthroughs = render_walkthroughs_block(app, frame, rows[3]);
-    let footer_extra = render_footer_compact(app, frame, rows[4]);
-    vec![ladder, proof_scope, walkthroughs, footer_extra]
+    render_beginner_hint_mobile(app, frame, rows[1]);
+    render_keys_mobile(app, frame, rows[2]);
+    vec![rows[0], rows[1], rows[2]]
+}
+
+fn render_beginner_hint_mobile(app: &App, frame: &mut ratatui::Frame, area: Rect) {
+    let mode = beginner_mode::assess(app);
+    let lines = vec![
+        Line::from(Span::styled(format!("{}", mode.id()), theme::title())),
+        Line::from(mode.explanation()),
+        Line::from(format!("Run: {}", mode.primary_action())),
+    ];
+    let block = Block::default().title(" Next ").borders(Borders::ALL).border_style(theme::border());
+    frame.render_widget(Paragraph::new(lines).block(block).wrap(Wrap { trim: true }), area);
+}
+
+fn render_keys_mobile(app: &App, frame: &mut ratatui::Frame, area: Rect) {
+    let label = if app.connected { "n=next  /=recall  l=learn  ?=help  q=quit" } else { "waiting for daemon…" };
+    frame.render_widget(
+        Paragraph::new(Span::styled(label, theme::label())),
+        area,
+    );
 }
 
 fn render_mission_column(app: &App, frame: &mut ratatui::Frame, area: Rect) -> Vec<Rect> {
@@ -368,7 +378,7 @@ fn render_modal_overlay(
 }
 
 // Public constant so other modules (e.g. status) can reference the FOCUSA mark
-pub const FOCUSA_BRAND: &str = FOCUSA_LOGO;
+pub const FOCUSA_BRAND: &str = "FOCUSA";
 
 #[cfg(test)]
 mod tests {

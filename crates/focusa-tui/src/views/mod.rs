@@ -38,19 +38,19 @@ use ratatui::widgets::*;
 pub fn render(app: &App, frame: &mut ratatui::Frame) {
     let area = frame.area();
 
-    // Global layout: header (3) + body + status bar (3).
+    // Global layout: header (1) + body + footer (1).
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),
+            Constraint::Length(1),
             Constraint::Min(0),
-            Constraint::Length(3),
+            Constraint::Length(1),
         ])
         .split(area);
 
     render_header(app, frame, chunks[0]);
     render_body(app, frame, chunks[1]);
-    render_status_bar(app, frame, chunks[2]);
+    render_footer_keys(app, frame, chunks[2]);
     if app.show_help {
         help_overlay::render(frame, area);
     }
@@ -75,32 +75,38 @@ pub fn render(app: &App, frame: &mut ratatui::Frame) {
     }
 }
 
+fn render_footer_keys(app: &App, frame: &mut ratatui::Frame, area: Rect) {
+    let hint = if app.connected {
+        "n=deck  /=recall  l=learn  ?=help  q=quit"
+    } else {
+        "waiting…  r=retry  q=quit"
+    };
+    frame.render_widget(
+        Paragraph::new(Span::styled(hint, theme::label())),
+        area,
+    );
+}
+
 fn render_header(app: &App, frame: &mut ratatui::Frame, area: Rect) {
-    let tabs: Vec<Line> = Tab::ALL
-        .iter()
-        .map(|t| {
-            let style = if *t == app.tab {
-                theme::tab_active()
-            } else {
-                theme::tab_inactive()
-            };
-            Line::from(format!(" {} {} ", t.hotkey(), t.label())).style(style)
-        })
-        .collect();
-
-    let tabs_widget = Tabs::new(tabs)
-        .block(
-            Block::default()
-                .title(" Focusa Mission Deck ")
-                .title_style(theme::title())
-                .borders(Borders::ALL)
-                .border_style(theme::border()),
-        )
-        .select(Tab::ALL.iter().position(|t| *t == app.tab).unwrap_or(0))
-        .divider("│")
-        .highlight_style(theme::tab_active());
-
-    frame.render_widget(tabs_widget, area);
+    let (logo_color, dot) = if app.connected {
+        (theme::title(), Span::styled("●", Style::default().fg(Color::Green)))
+    } else {
+        (theme::status_err(), Span::styled("○", Style::default().fg(Color::Red)))
+    };
+    let line = Line::from(vec![
+        Span::styled("FOCUSA", logo_color.add_modifier(Modifier::BOLD)),
+        Span::raw("  "),
+        dot,
+        Span::raw("  "),
+        Span::styled(
+            "Local-first mission cohesion for AI coding agents.",
+            theme::label(),
+        ),
+    ]);
+    let block = Block::default()
+        .borders(Borders::BOTTOM)
+        .border_style(theme::border());
+    frame.render_widget(Paragraph::new(line).block(block), area);
 }
 
 fn render_body(app: &App, frame: &mut ratatui::Frame, area: Rect) {

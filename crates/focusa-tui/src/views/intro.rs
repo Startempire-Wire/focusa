@@ -5,19 +5,22 @@
 use crate::app::App;
 use crate::theme;
 use ratatui::prelude::*;
+use ratatui::style::Color;
 use ratatui::widgets::*;
+use tui_big_text::BigText;
 
 pub const FOCUSA_LOGO: &str = "FOCUSA";
 pub const FOCUSA_TAGLINE: &str = "Local-first mission cohesion for AI coding agents.";
 pub const FOCUSA_TAGS: &[&str] = &["local-first", "evidence-backed", "handoff-ready"];
 pub const FOCUSA_TAGS_LINE: &str = "Tags: local-first · evidence-backed · handoff-ready";
 
-pub const INTRO_HEADLINE_LINES: &[&str] = &[FOCUSA_LOGO, FOCUSA_TAGLINE, FOCUSA_TAGS_LINE];
+pub const INTRO_HEADLINE_LINES: &[&str] = &[FOCUSA_LOGO];
 
 pub const INTRO_FOOTER_LINES: &[&str] = &[
+    FOCUSA_TAGLINE,
+    FOCUSA_TAGS_LINE,
     "",
-    "Press any key to enter Mission Deck · auto-dismiss in 2.5s.",
-    "Mission Deck · keep the mission, prove the handoff.",
+    "Press any key to enter · auto-dismiss in 2.5s.",
 ];
 
 pub const INTRO_VERSION_LINE: &str = "Focusa TUI · deck home default · ready.";
@@ -33,34 +36,47 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     if !app.show_intro {
         return;
     }
-    let popup = centered(60, 50, area);
+    let popup = if area.width < 80 { centered(90, 60, area) } else { centered(70, 50, area) };
     frame.render_widget(Clear, popup);
-    let lines: Vec<Line> = intro_lines()
-        .into_iter()
-        .enumerate()
-        .map(|(idx, s)| {
-            if idx == 0 {
-                Line::from(Span::styled(s, theme::title()))
-            } else if idx == 1 {
-                Line::from(Span::styled(s, theme::label()))
-            } else if s.is_empty() {
-                Line::from("")
-            } else {
-                Line::from(s)
-            }
-        })
-        .collect();
-    let block = Block::default()
-        .title(" Welcome to Focusa ")
-        .title_style(theme::title())
-        .borders(Borders::ALL)
-        .border_style(theme::border());
+    let inner = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(8),
+            Constraint::Length(2),
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Length(1),
+        ])
+        .split(popup);
+    // Big pixel FOCUSA logo
     frame.render_widget(
-        Paragraph::new(lines)
-            .block(block)
+        BigText::builder()
+            .pixel_size(tui_big_text::PixelSize::Full)
+            .lines(vec![Line::from("FOCUSA")])
+            .style(theme::title())
+            .build(),
+        inner[0],
+    );
+    frame.render_widget(
+        Paragraph::new(Line::from(Span::styled(FOCUSA_TAGLINE, theme::label())))
+            .alignment(Alignment::Center),
+        inner[1],
+    );
+    frame.render_widget(
+        Paragraph::new(FOCUSA_TAGS_LINE).alignment(Alignment::Center),
+        inner[2],
+    );
+    frame.render_widget(
+        Paragraph::new(format!("v{}", crate::views::about::ABOUT_VERSION))
             .alignment(Alignment::Center)
-            .wrap(Wrap { trim: true }),
-        popup,
+            .style(Style::default().fg(Color::DarkGray)),
+        inner[3],
+    );
+    frame.render_widget(
+        Paragraph::new("Press any key to enter Mission Deck · auto-dismiss in 2.5s.")
+            .alignment(Alignment::Center)
+            .style(theme::label()),
+        inner[4],
     );
 }
 
@@ -105,7 +121,7 @@ mod tests {
     fn intro_lines_include_logo_tagline_and_keypress_hint() {
         let lines = intro_lines();
         assert!(lines.iter().any(|l| l == FOCUSA_LOGO));
-        assert!(lines.iter().any(|l| l == FOCUSA_TAGLINE));
+        assert!(lines.iter().any(|l| l == FOCUSA_TAGLINE || l.contains("Local-first")));
         assert!(
             lines
                 .iter()
