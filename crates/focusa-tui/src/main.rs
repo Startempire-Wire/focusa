@@ -168,6 +168,8 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
             "proof_status_values": crate::views::recall::PROOF_STATUS_VALUES,
             "allowed_use_values": crate::views::recall::ALLOWED_USE_VALUES,
             "workpoint_candidate_promotion_flow": crate::views::recall::WORKPOINT_CANDIDATE_PROMOTION_FLOW,
+            "workpoint_candidate_preview_state": crate::views::recall::WorkpointCandidatePromotion::recall_default().preview_state,
+            "workpoint_candidate_preview_only": crate::views::recall::WorkpointCandidatePromotion::recall_default().is_preview_only(),
             "workpoint_candidate_forbidden": crate::views::recall::WORKPOINT_CANDIDATE_FORBIDDEN,
         },
         "api_url": api_url,

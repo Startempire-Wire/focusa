@@ -134,6 +134,9 @@ pub struct WorkpointCandidatePromotion {
     pub proof_gate: &'static str,
     pub approval_gate: &'static str,
     pub canonical_write: &'static str,
+    /// Spec 119 §7.11 preview-before-commit invariant. Always true
+    /// until operator approval has been recorded.
+    pub preview_state: &'static str,
 }
 
 impl WorkpointCandidatePromotion {
@@ -145,7 +148,14 @@ impl WorkpointCandidatePromotion {
             proof_gate: "require proof_status linked|verified or explicit proof-gap acknowledgement",
             approval_gate: "explicit operator approval required",
             canonical_write: "canonical Workpoint checkpoint only after approval",
+            preview_state: "preview_only_until_operator_approval",
         }
+    }
+
+    /// True when the candidate has not yet been approved; canonical
+    /// write must remain blocked.
+    pub fn is_preview_only(&self) -> bool {
+        self.preview_state == "preview_only_until_operator_approval"
     }
 }
 
@@ -293,6 +303,16 @@ mod tests {
         let card = RecallDeckCard::demo("/tmp/project");
         assert_eq!(card.provider, "focusa-local");
         assert_eq!(card.allowed_use, AllowedUse::InspectOnly);
+    }
+
+    #[test]
+    fn workpoint_candidate_preview_state_blocks_canonical_write() {
+        let p = WorkpointCandidatePromotion::recall_default();
+        assert_eq!(p.preview_state, "preview_only_until_operator_approval");
+        assert!(p.is_preview_only());
+        // Spec 119 §7.11: canonical_write must remain forbidden until operator approval.
+        let forbidden = WORKPOINT_CANDIDATE_FORBIDDEN.join("\n");
+        assert!(forbidden.contains("promotion_without_operator_approval"));
     }
 
     #[test]
