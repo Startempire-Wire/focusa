@@ -252,6 +252,7 @@ impl App {
             ("training", "/v1/training/status"),
             ("project_identity", "/v1/project/identity"),
             ("workpoint_resume", "/v1/workpoint/resume"),
+            ("trajectory_view", "/v1/trajectory/view"),
         ];
 
         for (key, endpoint) in endpoints {

@@ -4,6 +4,7 @@ use crate::app::App;
 use crate::beginner_mode;
 use crate::next_safe_action;
 use crate::theme;
+use crate::views::mission_ladder;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
@@ -19,7 +20,7 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
 
     render_mission_card(app, frame, chunks[0]);
     render_next_safe_action(app, frame, chunks[1]);
-    render_orientation(app, frame, chunks[2]);
+    mission_ladder::render(app, frame, chunks[2]);
 }
 
 fn render_mission_card(app: &App, frame: &mut ratatui::Frame, area: Rect) {

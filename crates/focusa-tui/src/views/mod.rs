@@ -13,6 +13,7 @@ pub mod help_overlay;
 mod intuition;
 mod lineage;
 mod metrics;
+pub mod mission_ladder;
 mod proposals;
 mod references;
 mod rfm;
