@@ -144,6 +144,10 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
         "default_tab": "DeckHome",
         "deck_home_beautification_checklist": crate::views::deck_home::BEAUTIFICATION_CHECKLIST,
         "beginner_mode_decision_tree": crate::beginner_mode::DECISION_TREE,
+        "beginner_mode_affordance_by_state": crate::beginner_mode::AFFORDANCE_REALITY_BY_BEGINNER_STATE
+            .iter()
+            .map(|(state, affordance)| serde_json::json!({"state": state, "affordance_reality": affordance}))
+            .collect::<Vec<_>>(),
         "help_overlay": {
             "toggle": ["h", "?"],
             "topics": crate::views::help_overlay::HELP_TOPICS,

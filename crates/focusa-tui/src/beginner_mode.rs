@@ -141,6 +141,25 @@ pub const DECISION_TREE: &[&str] = &[
     "resumable",
 ];
 
+/// Spec 119 §30 affordance reality per BeginnerModeState. Practical possibility
+/// (not desired outcome) for each beginner-state branch.
+pub const AFFORDANCE_REALITY_BY_BEGINNER_STATE: &[(&str, &str)] = &[
+    ("disconnected", "unavailable"),
+    ("unbound", "limited"),
+    ("no_workpoint", "limited"),
+    ("no_evidence", "limited"),
+    ("resumable", "possible"),
+];
+
+pub fn affordance_reality_for(state: BeginnerModeState) -> &'static str {
+    let id = state.id();
+    AFFORDANCE_REALITY_BY_BEGINNER_STATE
+        .iter()
+        .find(|(key, _)| *key == id)
+        .map(|(_, value)| *value)
+        .unwrap_or("unavailable")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -150,6 +169,15 @@ mod tests {
     fn disconnected_wins_first() {
         let app = App::new("http://127.0.0.1:8787".into());
         assert_eq!(assess(&app), BeginnerModeState::Disconnected);
+    }
+
+    #[test]
+    fn affordance_reality_matches_spec119() {
+        assert_eq!(affordance_reality_for(BeginnerModeState::Disconnected), "unavailable");
+        assert_eq!(affordance_reality_for(BeginnerModeState::Unbound), "limited");
+        assert_eq!(affordance_reality_for(BeginnerModeState::NoWorkpoint), "limited");
+        assert_eq!(affordance_reality_for(BeginnerModeState::NoEvidence), "limited");
+        assert_eq!(affordance_reality_for(BeginnerModeState::Resumable), "possible");
     }
 
     #[test]
