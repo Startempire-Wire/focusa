@@ -128,14 +128,17 @@ fn render_header(app: &App, frame: &mut ratatui::Frame, area: Rect) {
 fn render_body(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     if !app.connected {
         let msg = app.last_error.as_deref().unwrap_or("Not connected");
+        let spinner_len = throbber::CLOCK.symbols.len() as i8;
+        let i = app.throbber_state.index().rem_euclid(spinner_len) as usize;
+        let spinner_char = throbber::CLOCK.symbols[i];
         let block = Block::default()
             .title(" Disconnected ")
             .title_style(theme::status_err())
             .borders(Borders::ALL)
             .border_style(theme::border());
         let para = Paragraph::new(format!(
-            "\n  Waiting for Focusa daemon at {}...\n\n  {}\n\n  Press 'r' to retry, 'q' to quit.",
-            "FOCUSA_API_URL", msg
+            "\n   {} Waiting for Focusa daemon at {}...\n\n   {}\n\n   Press 'r' to retry, 'q' to quit.",
+            spinner_char, "FOCUSA_API_URL", msg
         ))
         .style(theme::label())
         .block(block);
