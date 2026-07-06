@@ -63,6 +63,8 @@ focusa init --quickstart        # writes .focusa-project.json, returns project_i
 
 That's it. The daemon is bound, your project is on disk, and `focusa doctor` will surface the next safe action.
 
+For the launch-ready install → post-install → quickstart path, see the [Release Install Postcard](docs/RELEASE_INSTALL_POSTCARD.md).
+
 For more first-run choices (interactive prompts, ASCII intros), run `focusa onboard` instead of `focusa init`.
 
 ---
