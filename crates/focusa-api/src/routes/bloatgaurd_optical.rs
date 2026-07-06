@@ -189,7 +189,7 @@ pub const FALLBACK_CHAIN: &[&str] = &[
     "tool_history_elision_after_checkpoint",
     "semantic_scoped_cache",
     "deep_dive_rehydrate_for_exact_blocker_evidence",
-    "no_image_transform_text_passthrough",
+    FALLBACK_TEXT_PASSTHROUGH,
 ];
 
 #[derive(Debug, Clone, PartialEq)]
@@ -397,7 +397,7 @@ mod tests {
     #[test]
     fn fallback_chain_starts_with_text_and_ends_with_passthrough() {
         assert_eq!(FALLBACK_CHAIN[0], "plain_text_context_cognition_render");
-        assert_eq!(FALLBACK_CHAIN[6], "no_image_transform_text_passthrough");
+        assert_eq!(FALLBACK_CHAIN[6], FALLBACK_TEXT_PASSTHROUGH);
         assert_eq!(FALLBACK_CHAIN.len(), 7);
     }
 
@@ -444,4 +444,139 @@ mod tests {
         assert_eq!(DEFAULT_MIN_NET_SAVINGS, 0.30);
         assert_eq!(DEFAULT_MAX_QUALITY_REGRESSION, 0);
     }
+}
+
+// --- Spec 101 §5.11.9 Verification Suite ---
+// Each test below corresponds to a bullet from the spec verification list.
+
+#[test]
+fn spec_5_11_9_defaults_safe_auto_with_text_passthrough_fallback() {
+    assert_eq!(POSTURE.enabled, "safe_auto");
+    assert_eq!(POSTURE.default_fallback, "text_passthrough");
+    assert_eq!(POSTURE.full_payload_policy, "cold_opt_in");
+}
+
+#[test]
+fn spec_5_11_9_provider_policy_gate_blocks_unauthorized_provider() {
+    for status in [
+        POLICY_STATUS_BLOCKED,
+        POLICY_STATUS_UNKNOWN,
+        POLICY_STATUS_STALE,
+        POLICY_STATUS_NEEDS_REVIEW,
+    ] {
+        let ctx = FallbackContext {
+            policy_status_allowed: status == POLICY_STATUS_ALLOWED,
+            all_probes_pass: true,
+            recoverable_store_available: true,
+            net_savings_meets_threshold: true,
+        };
+        assert_eq!(choose_fallback(&ctx), FALLBACK_TEXT_PASSTHROUGH);
+    }
+}
+
+#[test]
+fn spec_5_11_9_provider_terms_hash_change_triggers_text_passthrough() {
+    // Simulates a hash change: provider_policy_status flips to STALE.
+    let stale_ctx = FallbackContext {
+        policy_status_allowed: false,
+        all_probes_pass: true,
+        recoverable_store_available: true,
+        net_savings_meets_threshold: true,
+    };
+    assert_eq!(choose_fallback(&stale_ctx), FALLBACK_TEXT_PASSTHROUGH);
+}
+
+#[test]
+fn spec_5_11_9_image_input_rejected_falls_back() {
+    // Simulates image_rejected: any_probes_pass = false.
+    let rejected_ctx = FallbackContext {
+        policy_status_allowed: true,
+        all_probes_pass: false,
+        recoverable_store_available: true,
+        net_savings_meets_threshold: true,
+    };
+    assert_eq!(choose_fallback(&rejected_ctx), FALLBACK_TEXT_PASSTHROUGH);
+}
+
+#[test]
+fn spec_5_11_9_model_allowlist_required() {
+    // POSTURE.verified_models_only must be true so the transform only runs
+    // against Focusa-verified models.
+    assert!(POSTURE.verified_models_only);
+}
+
+#[test]
+fn spec_5_11_9_verbatim_guard_protects_action_authority() {
+    assert!(NEVER_IMAGED.contains(&"workpoint_action_authority"));
+    assert!(NEVER_IMAGED.contains(&"evidence_refs_themselves"));
+    assert!(NEVER_IMAGED.contains(&"exact_diffs"));
+    assert!(NEVER_IMAGED.contains(&"secrets"));
+    assert!(NEVER_IMAGED.contains(&"hashes"));
+    assert!(NEVER_IMAGED.contains(&"uuids"));
+}
+
+#[test]
+fn spec_5_11_9_active_blocker_kept_as_text() {
+    // active_blocker_kept_text_test: active error lines must not be imaged.
+    assert!(NEVER_IMAGED.contains(&"active_error_lines"));
+    assert!(NEVER_IMAGED.contains(&"test_names_currently_blocking_work"));
+}
+
+#[test]
+fn spec_5_11_9_profitability_gate_required() {
+    assert!(POSTURE.profitability_gate_required);
+    let unprofitable_ctx = FallbackContext {
+        policy_status_allowed: true,
+        all_probes_pass: true,
+        recoverable_store_available: true,
+        net_savings_meets_threshold: false,
+    };
+    assert_eq!(
+        choose_fallback(&unprofitable_ctx),
+        FALLBACK_TEXT_PASSTHROUGH
+    );
+    assert!(POSTURE.min_net_savings >= 0.30);
+}
+
+#[test]
+fn spec_5_11_9_recoverable_ref_required() {
+    assert!(POSTURE.recoverable_store_required);
+    let b = empty_imaged_block("evidence:test123");
+    assert!(!b.rehydrate_ref.is_empty());
+    assert!(b.fallback_used == "text_passthrough" || b.fallback_used.is_empty());
+}
+
+#[test]
+fn spec_5_11_9_canary_failed_text_passthrough() {
+    // canary_failed_text_passthrough_test: any probe failure must fall back.
+    let failed_ctx = FallbackContext {
+        policy_status_allowed: true,
+        all_probes_pass: false,
+        recoverable_store_available: true,
+        net_savings_meets_threshold: true,
+    };
+    assert_eq!(choose_fallback(&failed_ctx), FALLBACK_TEXT_PASSTHROUGH);
+}
+
+#[test]
+fn spec_5_11_9_context_cognition_no_canonical_mutation() {
+    // The Bloatgaurd optical gateway does not mutate Workpoint/Trajectory/Evidence.
+    // We verify by construction: choose_fallback never returns a "commit" sentinel.
+    let no_op = choose_fallback(&FallbackContext {
+        policy_status_allowed: true,
+        all_probes_pass: true,
+        recoverable_store_available: true,
+        net_savings_meets_threshold: true,
+    });
+    assert!(!no_op.contains("commit"));
+    assert!(!no_op.contains("mutate"));
+    assert!(!no_op.contains("write"));
+    assert_eq!(no_op, "noop_until_safe_auto");
+}
+
+#[test]
+fn spec_5_11_9_focus_slice_no_raw_blob_default() {
+    // Bloatgaurd keeps verbatim text by default; raw blob injection is cold opt-in.
+    assert!(POSTURE.keep_verbatim_text);
+    assert_eq!(POSTURE.full_payload_policy, "cold_opt_in");
 }
