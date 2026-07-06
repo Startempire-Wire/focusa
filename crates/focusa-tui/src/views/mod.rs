@@ -14,6 +14,7 @@ mod intuition;
 mod lineage;
 mod metrics;
 pub mod mission_ladder;
+pub mod proof_status;
 mod proposals;
 mod references;
 mod rfm;

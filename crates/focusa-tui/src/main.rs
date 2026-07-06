@@ -147,6 +147,8 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
         },
         "next_safe_action_model": crate::next_safe_action::HEADLESS_PROOF_STATES,
         "mission_ladder_levels": crate::views::mission_ladder::LADDER_LEVELS,
+        "proof_meter_states": crate::views::proof_status::PROOF_METER_STATES,
+        "scope_badge_states": crate::views::proof_status::SCOPE_BADGE_STATES,
         "api_url": api_url,
         "health": health,
         "focus_stack": focus_stack,

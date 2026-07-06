@@ -5,6 +5,7 @@ use crate::beginner_mode;
 use crate::next_safe_action;
 use crate::theme;
 use crate::views::mission_ladder;
+use crate::views::proof_status;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
@@ -36,6 +37,8 @@ fn render_mission_card(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         .active_id
         .as_deref()
         .unwrap_or("no active frame");
+    let proof = proof_status::proof_meter(app);
+    let scope = proof_status::scope_badge(app);
     let text = vec![
         Line::from(vec![
             Span::styled("Mission Deck", theme::title()),
@@ -43,6 +46,8 @@ fn render_mission_card(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         ]),
         Line::from(format!("session: {session}")),
         Line::from(format!("active frame: {active_frame}")),
+        Line::from(format!("scope: {} {}", scope.visual, scope.label)),
+        Line::from(format!("proof: {} {}", proof.visual, proof.label)),
         Line::from(format!(
             "frames: {}  events: {}",
             app.state.focus_stack.frames.len(),
