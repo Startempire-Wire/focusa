@@ -5,6 +5,13 @@ use crate::beginner_mode::{self, BeginnerModeState};
 use serde_json::Value;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RecoveryTool {
+    pub id: &'static str,
+    pub label: &'static str,
+    pub command: &'static str,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NextSafeAction {
     pub id: &'static str,
     pub label: &'static str,
@@ -12,6 +19,8 @@ pub struct NextSafeAction {
     pub why: &'static str,
     pub authority_posture: &'static str,
     pub walkthrough_context: &'static str,
+    /// Up to 3 bounded recovery tools (Spec 119 §7.6 + §19).
+    pub recovery_tools: &'static [RecoveryTool],
 }
 
 pub fn recommend(app: &App) -> NextSafeAction {
@@ -25,6 +34,11 @@ pub fn recommend(app: &App) -> NextSafeAction {
             why: "The saved mission may not match the current project/request scope.",
             authority_posture: authority,
             walkthrough_context: beginner_state.id(),
+            recovery_tools: &[
+                RecoveryTool { id: "0", label: "doctor", command: "focusa doctor --scope host" },
+                RecoveryTool { id: "1", label: "resume", command: "focusa workpoint resume" },
+                RecoveryTool { id: "2", label: "walkthrough", command: "focusa walkthrough show --walkthrough first-mission" },
+            ],
         };
     }
 
@@ -36,6 +50,11 @@ pub fn recommend(app: &App) -> NextSafeAction {
             why: "Mission Deck cannot verify project, Workpoint, or evidence until the daemon responds.",
             authority_posture: authority,
             walkthrough_context: beginner_state.id(),
+            recovery_tools: &[
+                RecoveryTool { id: "0", label: "doctor", command: "focusa doctor --scope host" },
+                RecoveryTool { id: "1", label: "start", command: "focusa start" },
+                RecoveryTool { id: "2", label: "walkthrough", command: "focusa walkthrough show --walkthrough first-mission" },
+            ],
         },
         BeginnerModeState::Unbound => NextSafeAction {
             id: "bind_project",
@@ -44,6 +63,11 @@ pub fn recommend(app: &App) -> NextSafeAction {
             why: "Project identity is required before Focusa can trust carryover state.",
             authority_posture: authority,
             walkthrough_context: beginner_state.id(),
+            recovery_tools: &[
+                RecoveryTool { id: "0", label: "doctor", command: "focusa doctor --scope project" },
+                RecoveryTool { id: "1", label: "init", command: "focusa init --quickstart" },
+                RecoveryTool { id: "2", label: "walkthrough", command: "focusa walkthrough show --walkthrough first-mission" },
+            ],
         },
         BeginnerModeState::NoWorkpoint => NextSafeAction {
             id: "create_workpoint",
@@ -52,6 +76,11 @@ pub fn recommend(app: &App) -> NextSafeAction {
             why: "A Workpoint is the canonical save state for mission, action, evidence, and next step.",
             authority_posture: authority,
             walkthrough_context: beginner_state.id(),
+            recovery_tools: &[
+                RecoveryTool { id: "0", label: "checkpoint", command: "focusa workpoint checkpoint" },
+                RecoveryTool { id: "1", label: "walkthrough", command: "focusa walkthrough show --walkthrough first-mission" },
+                RecoveryTool { id: "2", label: "doctor", command: "focusa doctor --scope host" },
+            ],
         },
         BeginnerModeState::NoEvidence => NextSafeAction {
             id: "attach_evidence",
@@ -60,6 +89,11 @@ pub fn recommend(app: &App) -> NextSafeAction {
             why: "The next agent needs proof, not just a claim that work is complete.",
             authority_posture: authority,
             walkthrough_context: beginner_state.id(),
+            recovery_tools: &[
+                RecoveryTool { id: "0", label: "checkpoint", command: "focusa workpoint checkpoint --evidence-ref <proof>" },
+                RecoveryTool { id: "1", label: "capture", command: "focusa evidence capture" },
+                RecoveryTool { id: "2", label: "walkthrough", command: "focusa walkthrough show --walkthrough no-proof-no-done" },
+            ],
         },
         BeginnerModeState::Resumable => NextSafeAction {
             id: "resume_mission",
@@ -68,6 +102,11 @@ pub fn recommend(app: &App) -> NextSafeAction {
             why: "Project, Workpoint, and proof context are available enough to continue safely.",
             authority_posture: authority,
             walkthrough_context: beginner_state.id(),
+            recovery_tools: &[
+                RecoveryTool { id: "0", label: "resume", command: "focusa workpoint resume" },
+                RecoveryTool { id: "1", label: "context", command: "focusa context cognition render" },
+                RecoveryTool { id: "2", label: "walkthrough", command: "focusa walkthrough show --walkthrough agent-handoff" },
+            ],
         },
     }
 }
@@ -110,6 +149,9 @@ pub const HEADLESS_PROOF_STATES: &[&str] = &[
     "blocked:review_scope_before_acting",
 ];
 
+/// Spec 119 §7.6 + §19: recovery tool list capped at 3 per next safe action.
+pub const HEADLESS_PROOF_RECOVERY_TOOL_CAP: usize = 3;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -119,6 +161,13 @@ mod tests {
     fn disconnected_recommends_start_daemon() {
         let app = App::new("http://127.0.0.1:8787".into());
         assert_eq!(recommend(&app).id, "start_daemon");
+    }
+
+    #[test]
+    fn recovery_tools_are_bounded_to_three() {
+        let rec = recommend(&App::new("http://127.0.0.1:8787".into()));
+        assert!(rec.recovery_tools.len() <= HEADLESS_PROOF_RECOVERY_TOOL_CAP);
+        assert!(!rec.recovery_tools.is_empty());
     }
 
     #[test]

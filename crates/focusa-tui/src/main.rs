@@ -154,6 +154,7 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
             "progressive_loading_plan": crate::startup_perf::PROGRESSIVE_LOADING_PLAN,
         },
         "next_safe_action_model": crate::next_safe_action::HEADLESS_PROOF_STATES,
+        "next_safe_action_recovery_tool_cap": crate::next_safe_action::HEADLESS_PROOF_RECOVERY_TOOL_CAP,
         "mission_ladder_levels": crate::views::mission_ladder::LADDER_LEVELS,
         "proof_meter_states": crate::views::proof_status::PROOF_METER_STATES,
         "scope_badge_states": crate::views::proof_status::SCOPE_BADGE_STATES,
