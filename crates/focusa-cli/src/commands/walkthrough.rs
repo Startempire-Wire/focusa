@@ -119,10 +119,17 @@ pub struct Completion {
     pub proof_required: bool,
     #[serde(default = "default_evidence_class")]
     pub evidence_class: String,
+    /// Spec 119 §7.8 invariant: proof must precede completion. Defaults to true.
+    #[serde(default = "default_proof_precedes_completion")]
+    pub proof_precedes_completion: bool,
 }
 
 fn default_evidence_class() -> String {
     EVIDENCE_ACTUAL.to_string()
+}
+
+fn default_proof_precedes_completion() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -341,6 +348,7 @@ pub fn first_mission() -> Walkthrough {
             success_message: "This mission can now survive handoff, compaction, and agent restart.".to_string(),
             proof_required: true,
             evidence_class: EVIDENCE_ACTUAL.to_string(),
+            proof_precedes_completion: true,
         },
         resettable: true,
         side_effects: Vec::new(),
@@ -443,6 +451,7 @@ pub fn agent_handoff() -> Walkthrough {
             success_message: "A new agent can now recover mission, next action, boundaries, and proof expectations without transcript memory.".to_string(),
             proof_required: true,
             evidence_class: EVIDENCE_ACTUAL.to_string(),
+            proof_precedes_completion: true,
         },
         resettable: true,
         side_effects: Vec::new(),
@@ -533,6 +542,7 @@ pub fn no_proof_no_done() -> Walkthrough {
             success_message: "The completion claim now has proof, or the proof gap is explicit and cannot be mistaken for done.".to_string(),
             proof_required: true,
             evidence_class: EVIDENCE_ACTUAL.to_string(),
+            proof_precedes_completion: true,
         },
         resettable: true,
         side_effects: Vec::new(),
@@ -719,6 +729,16 @@ mod tests {
         assert_eq!(back.id, "agent-handoff");
         assert_eq!(back.steps.len(), 6);
         assert!(back.completion.proof_required);
+    }
+
+    #[test]
+    fn no_proof_no_done_enforces_proof_precedes_completion() {
+        let wt = no_proof_no_done();
+        let json = serde_json::to_string(&wt).expect("serialize");
+        let back: Walkthrough = serde_json::from_str(&json).expect("deserialize");
+        assert!(back.completion.proof_required);
+        assert!(back.completion.proof_precedes_completion);
+        assert_eq!(back.completion.evidence_class, EVIDENCE_ACTUAL);
     }
 
     #[test]
