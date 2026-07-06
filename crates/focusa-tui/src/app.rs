@@ -249,6 +249,7 @@ impl App {
             ("ufi", "/v1/ufi"),
             ("training", "/v1/training/status"),
             ("project_identity", "/v1/project/identity"),
+            ("workpoint_resume", "/v1/workpoint/resume"),
         ];
 
         for (key, endpoint) in endpoints {

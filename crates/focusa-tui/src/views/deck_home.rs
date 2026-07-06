@@ -1,6 +1,7 @@
 //! Mission Deck home surface (Spec 117 §8).
 
 use crate::app::App;
+use crate::beginner_mode;
 use crate::theme;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
@@ -10,7 +11,7 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(7),
-            Constraint::Length(7),
+            Constraint::Length(9),
             Constraint::Min(0),
         ])
         .split(area);
@@ -59,6 +60,7 @@ fn render_mission_card(app: &App, frame: &mut ratatui::Frame, area: Rect) {
 
 fn render_next_safe_action(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     let focus_state = app.state.focus_state.as_ref();
+    let mode_state = beginner_mode::assess(app);
     let intent = focus_state
         .map(|state| state.intent.as_str())
         .filter(|s| !s.trim().is_empty())
@@ -70,6 +72,9 @@ fn render_next_safe_action(app: &App, frame: &mut ratatui::Frame, area: Rect) {
 
     let text = vec![
         Line::from(Span::styled("Next safe action", theme::label())),
+        Line::from(format!("beginner_state: {}", mode_state.id())),
+        Line::from(mode_state.explanation()),
+        Line::from(format!("primary_action: {}", mode_state.primary_action())),
         Line::from(format!("intent: {intent}")),
         Line::from(format!("focus: {current}")),
         Line::from("keys: d Deck Home · 1 State · 2 Stack · Tab next · r refresh · q quit"),

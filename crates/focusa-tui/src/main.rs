@@ -5,6 +5,7 @@
 
 mod api;
 mod app;
+mod beginner_mode;
 mod theme;
 mod views;
 
@@ -137,6 +138,7 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
         "schema": "focusa.tui_headless_self_test.v1",
         "title": "Focusa Mission Deck",
         "default_tab": "DeckHome",
+        "beginner_mode_decision_tree": crate::beginner_mode::DECISION_TREE,
         "api_url": api_url,
         "health": health,
         "focus_stack": focus_stack,
