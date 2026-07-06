@@ -346,6 +346,169 @@ Acceptance criteria before enforcement:
 
 ### 5.10 Tool-call history elision and structured rehydration
 
+
+### 5.11 Optical context compression (pxpipe-inspired, default-safe)
+
+Focusa Bloatgaurd may convert selected dense, non-verbatim-critical context into recoverable image artifacts when every safety gate passes. This is inspired by pxpipe’s observation that image-token cost is tied to pixel dimensions rather than raw character count, but Focusa MUST NOT adopt pxpipe’s exact assumptions: image render is lossy, model-dependent, and unsafe for exact identifiers. This domain is therefore default-on only as `safe_auto`, and the transform is a no-op unless every gate passes.
+
+#### 5.11.1 Purpose
+
+> Convert only dense, old, non-verbatim-critical context into recoverable image artifacts when provider policy, model capability, profitability, and readability gates all pass.
+
+This domain lives beside the existing tokenbloat controls (query-aware compression, context compiler, LLMLingua-style compression, semantic caching, prefix caching, handles over raw context, output firewall, speculative routing, progressive disclosure, dedupe, and §5.10 tool-history elision). Bloatgaurd must reuse Spec 100 Context Cognition rather than create a competing context engine: Context Cognition may annotate compression hints, but Bloatgaurd decides transport and rendering.
+
+#### 5.11.2 Integration point
+
+After Context Cognition / Focus Slice / prompt packet render, before provider request forward, the pipeline is:
+
+```text
+Context Cognition / Focus Slice
+        ↓
+Bloatgaurd Context Decision
+        ↓
+Optical Compression Gate
+        ↓
+Provider Policy Gate
+        ↓
+Provider Request Injection
+        ↓
+Upstream Provider Forward
+        ↓
+Runtime Telemetry Capture
+```
+
+Component name: **Bloatgaurd Optical Context Gateway** (alias `Context Economizer`).
+
+#### 5.11.3 Default-on posture (`safe_auto`)
+
+```text
+bloatgaurd.optical_context.enabled: safe_auto
+bloatgaurd.optical_context.provider_policy_gate: required
+bloatgaurd.optical_context.verified_models_only: true
+bloatgaurd.optical_context.profitability_gate: required
+bloatgaurd.optical_context.canary_gate: required
+bloatgaurd.optical_context.keep_verbatim_text: true
+bloatgaurd.optical_context.recoverable_store: required
+bloatgaurd.optical_context.default_fallback: text_passthrough
+bloatgaurd.optical_context.min_net_savings: 0.30
+bloatgaurd.optical_context.max_quality_regression: 0
+bloatgaurd.optical_context.full_payload_policy: cold_opt_in
+```
+
+Meaning: the feature is on by default, but the transform is a no-op unless every gate passes.
+
+#### 5.11.4 What is imaged vs preserved
+
+Imaged by default ONLY:
+
+- old dense tool output
+- old command logs
+- old collapsed history after checkpoint
+- large non-current tool docs
+- large structured JSON already preserved behind a rehydrate ref
+- diagnostic dumps where gist is enough
+
+Never imaged (must remain verbatim text):
+
+- current operator ask
+- recent live turns
+- Workpoint action authority
+- Trajectory current goal/gap authority
+- Evidence refs themselves
+- secrets
+- tokens
+- hashes
+- UUIDs
+- 12-char identifiers
+- file paths needed for edits
+- exact diffs
+- active error lines
+- test names currently blocking work
+- package versions involved in a fix
+- security-sensitive content
+- anything sparse/prose where image tokens do not win
+
+#### 5.11.5 Provider Policy Ledger
+
+```json
+{
+  "schema": "focusa.provider_policy_ledger.v1",
+  "provider": "openai",
+  "feature": "optical_context_compression",
+  "status": "allowed | blocked | unknown | stale | needs_review",
+  "official_policy_refs": [],
+  "terms_hash": "sha256:...",
+  "vision_docs_hash": "sha256:...",
+  "checked_at": "2026-07-06T00:00:00Z",
+  "expires_at": "2026-07-13T00:00:00Z",
+  "review_required_on_change": true,
+  "fallback": "text_passthrough"
+}
+```
+
+Runtime rule: if `provider_policy_status != allowed`, do not image; use `text_passthrough`.
+
+#### 5.11.6 Compatibility probe
+
+```text
+provider supports image input
+provider counts image input normally as tokens
+model accepts image input
+model is Focusa-verified for dense text reading
+pricing did not flip the profitability math
+request limits still allow the payload
+canary read passes
+```
+
+Any probe failure: `fallback=text_passthrough`, `reason=provider_policy_unknown | provider_banned | model_not_verified | image_rejected | canary_failed | not_profitable`.
+
+#### 5.11.7 Strong fallback chain
+
+1. Plain text ContextCognition render
+2. Bloatgaurd compact envelope
+3. Context handles + summaries + rehydrate refs
+4. Tool-history elision after checkpoint
+5. Semantic scoped cache
+6. Deep Dive rehydrate for exact blocker evidence
+7. No image transform (`text_passthrough`)
+
+Raw source must never be destroyed. Every imaged block must carry:
+
+```text
+raw_ref
+image_ref
+rehydrate_ref
+omitted_bytes
+risk_class
+provider_policy_ref
+model_eval_ref
+canary_status
+fallback_used
+```
+
+#### 5.11.8 Forbidden optical context
+
+`operator_current_ask`, `recent_turns`, `secrets`, `hashes`, `uuids`, `file_paths_needed_for_edit`, `exact diffs`. Optical compression MUST NOT silently cross these boundaries.
+
+#### 5.11.9 Verification suite
+
+```text
+spec101_optical_context_defaults_static_test
+provider_policy_gate_static_test
+provider_terms_hash_change_fallback_test
+image_input_rejected_fallback_test
+model_allowlist_required_test
+verbatim_guard_hash_uuid_secret_test
+active_blocker_kept_text_test
+profitability_gate_dense_vs_sparse_test
+recoverable_ref_required_test
+canary_failed_text_passthrough_test
+context_cognition_no_canonical_mutation_test
+focus_slice_no_raw_blob_default_test
+```
+
+These plug into the existing Spec 100 eval harness (prompt token waste, compaction recovery, precision/recall/F1, token budget savings, operator correction rate, packet render parity) rather than creating a separate proof universe.
+
 Historical tool calls should not remain in the model-visible conversation as raw transcripts once their useful information has been distilled. Focusa Bloatgaurd should convert tool calls into structured summaries and rehydratable evidence handles, then remove or suppress raw tool-call payloads from hot prompts.
 
 Core transform:

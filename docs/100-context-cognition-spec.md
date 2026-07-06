@@ -49,6 +49,40 @@ Short form:
 ## 3. Non-goals
 
 Context Cognition is not:
+Context Cognition is also not:
+
+- a renderer of PNG/image artifacts for token optimization,
+- a transport that mutates the provider request shape,
+- a source that overrides Bloatgaurd's transport or rendering decisions.
+
+Context Cognition MAY emit `compression_hints` so Bloatgaurd can decide whether to image dense, non-verbatim-critical context. Bloatgaurd owns transport and rendering, including the Optical Context Gateway (§101 §5.11). Spec 100 must not mutate canonical state through these hints.
+
+Example `compression_hints`:
+
+```text
+compression_hints:
+  optical_candidates:
+    - ref: toolrun:abc123
+      reason: old_dense_tool_output
+      risk: gist_safe
+      rehydrate_ref: evidence:toolrun:abc123
+  keep_text:
+    - ref: workpoint.current
+      reason: action_authority
+    - ref: evidence.refs
+      reason: exact_identifier
+    - ref: active_error
+      reason: active_blocker
+  forbidden_optical:
+    - operator_current_ask
+    - recent_turns
+    - secrets
+    - hashes
+    - uuids
+    - file_paths_needed_for_edit
+    - exact diffs
+```
+
 
 - LoRA or model fine-tuning,
 - durable memory authority,
