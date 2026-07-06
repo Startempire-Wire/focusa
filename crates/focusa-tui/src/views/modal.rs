@@ -12,14 +12,16 @@ use ratatui::widgets::*;
 
 pub fn render_modal(modal: ModalKind, app: &App, frame: &mut ratatui::Frame, area: Rect) {
     let (title, body) = build_body(modal, app, area.width);
+    // Clear the entire canvas so modal stands as foreground.
+    frame.render_widget(Clear, area);
     let popup = centered(75, 70, area);
-    frame.render_widget(Clear, popup);
     let p = Paragraph::new(body)
         .block(
             Block::default()
                 .title(title)
                 .borders(Borders::ALL)
-                .border_style(theme::border()),
+                .border_style(theme::border().add_modifier(Modifier::BOLD))
+                .border_type(BorderType::Thick),
         )
         .wrap(Wrap { trim: true });
     frame.render_widget(p, popup);

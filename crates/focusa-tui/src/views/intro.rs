@@ -36,18 +36,33 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     if !app.show_intro {
         return;
     }
-    let popup = if area.width < 80 { centered(90, 60, area) } else { centered(70, 50, area) };
-    frame.render_widget(Clear, popup);
-    let inner = Layout::default()
+    // Fill entire screen — hide underlying UI until user enters.
+    frame.render_widget(Clear, area);
+    let bg = Block::default().style(Style::default().bg(Color::Black));
+    frame.render_widget(bg, area);
+
+    // Keep logo centered on every terminal size.
+    let intro = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
+            Constraint::Ratio(1, 6),
             Constraint::Length(8),
             Constraint::Length(2),
             Constraint::Length(1),
             Constraint::Length(1),
             Constraint::Length(1),
+            Constraint::Ratio(1, 6),
         ])
-        .split(popup);
+        .split(area);
+
+    let big_logo = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Min(0),
+            Constraint::Length(30),
+            Constraint::Min(0),
+        ])
+        .split(intro[1]);
     // Big pixel FOCUSA logo
     frame.render_widget(
         BigText::builder()
@@ -55,49 +70,31 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
             .lines(vec![Line::from("FOCUSA")])
             .style(theme::title())
             .build(),
-        inner[0],
+        big_logo[1],
     );
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(FOCUSA_TAGLINE, theme::label())))
             .alignment(Alignment::Center),
-        inner[1],
+        intro[2],
     );
     frame.render_widget(
         Paragraph::new(FOCUSA_TAGS_LINE).alignment(Alignment::Center),
-        inner[2],
+        intro[3],
     );
     frame.render_widget(
         Paragraph::new(format!("v{}", crate::views::about::ABOUT_VERSION))
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::DarkGray)),
-        inner[3],
+        intro[4],
     );
     frame.render_widget(
         Paragraph::new("Press any key to enter Mission Deck · auto-dismiss in 2.5s.")
             .alignment(Alignment::Center)
             .style(theme::label()),
-        inner[4],
+        intro[5],
     );
 }
 
-fn centered(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
-    let vertical = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage((100 - percent_y) / 2),
-            Constraint::Percentage(percent_y),
-            Constraint::Percentage((100 - percent_y) / 2),
-        ])
-        .split(area);
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage((100 - percent_x) / 2),
-            Constraint::Percentage(percent_x),
-            Constraint::Percentage((100 - percent_x) / 2),
-        ])
-        .split(vertical[1])[1]
-}
 
 #[cfg(test)]
 mod tests {

@@ -33,6 +33,7 @@ use crate::app::{App, Tab};
 use crate::theme;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
+use throbber_widgets_tui::symbols::throbber;
 
 /// Root render — layout + dispatch to active view.
 pub fn render(app: &App, frame: &mut ratatui::Frame) {
@@ -88,15 +89,30 @@ fn render_footer_keys(app: &App, frame: &mut ratatui::Frame, area: Rect) {
 }
 
 fn render_header(app: &App, frame: &mut ratatui::Frame, area: Rect) {
-    let (logo_color, dot) = if app.connected {
-        (theme::title(), Span::styled("●", Style::default().fg(Color::Green)))
+    let logo_color = if app.connected {
+        theme::title()
     } else {
-        (theme::status_err(), Span::styled("○", Style::default().fg(Color::Red)))
+        theme::status_err()
     };
+
+    let status = if app.connected {
+        Span::styled("●", Style::default().fg(Color::Green))
+    } else {
+        let spinner_len = throbber::CLOCK.symbols.len() as i8;
+        let i = app.throbber_state.index().rem_euclid(spinner_len) as usize;
+        Span::styled(
+            format!("{}", throbber::CLOCK.symbols[i]),
+            Style::default().fg(Color::Yellow),
+        )
+    };
+
+    let status_label = if app.connected { "online" } else { "connecting" };
     let line = Line::from(vec![
         Span::styled("FOCUSA", logo_color.add_modifier(Modifier::BOLD)),
         Span::raw("  "),
-        dot,
+        status,
+        Span::raw(" "),
+        Span::styled(status_label, theme::label()),
         Span::raw("  "),
         Span::styled(
             "Local-first mission cohesion for AI coding agents.",

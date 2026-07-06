@@ -231,6 +231,7 @@ pub struct App {
     pub scroll_offset: u16,
     pub show_help: bool,
     pub show_intro: bool,
+    pub throbber_state: throbber_widgets_tui::ThrobberState,
     pub modal: Option<ModalKind>,
     pub modal_selection: usize,
     pub palette_open: bool,
@@ -253,6 +254,7 @@ impl App {
             scroll_offset: 0,
             show_help: false,
             show_intro,
+            throbber_state: throbber_widgets_tui::ThrobberState::default(),
             modal: None,
             modal_selection: 0,
             palette_open: false,
@@ -321,6 +323,10 @@ impl App {
 
     pub fn dismiss_intro(&mut self) {
         self.show_intro = false;
+    }
+
+    pub fn tick_throbber(&mut self) {
+        self.throbber_state.calc_next();
     }
 
     pub fn tick_intro_dismiss(&mut self, elapsed_ms: u128) {

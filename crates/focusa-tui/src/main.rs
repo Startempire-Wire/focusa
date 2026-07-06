@@ -129,6 +129,9 @@ async fn main() -> Result<()> {
             }
         }
 
+        // Animation tick.
+        app.tick_throbber();
+
         // Periodic refresh.
         if last_refresh.elapsed() >= refresh_rate {
             app.refresh().await;
