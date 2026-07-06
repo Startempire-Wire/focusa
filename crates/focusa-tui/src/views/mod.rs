@@ -4,6 +4,7 @@ mod autonomy;
 mod cache;
 mod constitution;
 mod contribution;
+mod deck_home;
 mod events;
 mod focus_stack;
 mod focus_state;
@@ -60,7 +61,7 @@ fn render_header(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     let tabs_widget = Tabs::new(tabs)
         .block(
             Block::default()
-                .title(" Focusa — Cognitive Runtime ")
+                .title(" Focusa Mission Deck ")
                 .title_style(theme::title())
                 .borders(Borders::ALL)
                 .border_style(theme::border()),
@@ -91,6 +92,7 @@ fn render_body(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     }
 
     match app.tab {
+        Tab::DeckHome => deck_home::render(app, frame, area),
         Tab::FocusState => focus_state::render(app, frame, area),
         Tab::FocusStack => focus_stack::render(app, frame, area),
         Tab::Gate => gate::render(app, frame, area),

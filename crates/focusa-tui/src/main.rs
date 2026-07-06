@@ -26,13 +26,15 @@ async fn main() -> Result<()> {
         match arg.as_str() {
             "--headless-self-test" => headless = true,
             "--help" | "-h" => {
-                println!("focusa-tui — terminal dashboard for Focusa");
+                println!("focusa-tui — Focusa Mission Deck");
                 println!("Usage: focusa-tui [--headless-self-test]");
                 println!("Env: FOCUSA_API_URL (default http://127.0.0.1:8787)");
                 return Ok(());
             }
             other => {
-                eprintln!("focusa-tui: unknown argument {other:?}; pass --headless-self-test or no args");
+                eprintln!(
+                    "focusa-tui: unknown argument {other:?}; pass --headless-self-test or no args"
+                );
                 std::process::exit(2);
             }
         }
@@ -73,6 +75,7 @@ async fn main() -> Result<()> {
         {
             match key.code {
                 KeyCode::Char('q') | KeyCode::Esc => break,
+                KeyCode::Char('d') => app.tab = app::Tab::DeckHome,
                 KeyCode::Char('1') => app.tab = app::Tab::FocusState,
                 KeyCode::Char('2') => app.tab = app::Tab::FocusStack,
                 KeyCode::Char('3') => app.tab = app::Tab::Gate,
@@ -132,12 +135,14 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
     let workpoint = fetch(&client, api_url, "/v1/workpoint/resume").await;
     let payload = serde_json::json!({
         "schema": "focusa.tui_headless_self_test.v1",
+        "title": "Focusa Mission Deck",
+        "default_tab": "DeckHome",
         "api_url": api_url,
         "health": health,
         "focus_stack": focus_stack,
         "workpoint": workpoint,
         "tabs": [
-            "1:FocusState", "2:FocusStack", "3:Gate", "4:Events", "5:Metrics",
+            "d:DeckHome", "1:FocusState", "2:FocusStack", "3:Gate", "4:Events", "5:Metrics",
             "6:Lineage", "w:WorkLoop", "7:Autonomy", "8:Constitution",
             "9:Telemetry", "0:Rfm", "p:Proposals", "s:Skills", "u:Uxp", "x:Training",
         ],

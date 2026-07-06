@@ -7,6 +7,7 @@ use std::collections::HashMap;
 /// Active tab in the TUI.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tab {
+    DeckHome,
     FocusState,
     FocusStack,
     Gate,
@@ -30,6 +31,7 @@ pub enum Tab {
 
 impl Tab {
     pub const ALL: &[Tab] = &[
+        Tab::DeckHome,
         Tab::FocusState,
         Tab::FocusStack,
         Tab::Gate,
@@ -53,6 +55,7 @@ impl Tab {
 
     pub fn label(&self) -> &'static str {
         match self {
+            Tab::DeckHome => "Deck Home",
             Tab::FocusState => "State",
             Tab::FocusStack => "Stack",
             Tab::Gate => "Gate",
@@ -77,6 +80,7 @@ impl Tab {
 
     pub fn hotkey(&self) -> &'static str {
         match self {
+            Tab::DeckHome => "d",
             Tab::FocusState => "1",
             Tab::FocusStack => "2",
             Tab::Gate => "3",
@@ -199,7 +203,7 @@ pub struct App {
 impl App {
     pub fn new(api_url: String) -> Self {
         Self {
-            tab: Tab::FocusState,
+            tab: Tab::DeckHome,
             state: StateSnapshot::default(),
             extra_data: HashMap::new(),
             scroll_offset: 0,
