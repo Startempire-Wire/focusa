@@ -347,9 +347,111 @@ pub fn first_mission() -> Walkthrough {
     }
 }
 
+pub fn agent_handoff() -> Walkthrough {
+    Walkthrough {
+        schema_version: SCHEMA_VERSION.to_string(),
+        id: "agent-handoff".to_string(),
+        title: "Agent Handoff".to_string(),
+        audience: AUDIENCE_AGENT.to_string(),
+        trigger: Trigger {
+            missing_evidence: true,
+            ..Trigger::default()
+        },
+        goal: "Show why Focusa exists: a new agent can recover mission, Workpoint, boundaries, and proof expectations.".to_string(),
+        why_it_matters: "Market evaluators need to see the handoff value immediately: compaction or agent restart should not lose what matters.".to_string(),
+        required_state: RequiredState {
+            daemon: true,
+            project_identity: true,
+            workpoint: true,
+            evidence: false,
+        },
+        steps: vec![
+            Step {
+                id: "show-current-mission".to_string(),
+                title: "Show current mission".to_string(),
+                explanation: "Start with the plain-language objective so the next agent knows what success means.".to_string(),
+                visual: "[mission]".to_string(),
+                action_kind: STEP_KIND_READ.to_string(),
+                command: "focusa trajectory view".to_string(),
+                api_route: "/v1/trajectory/view".to_string(),
+                authority_required: false,
+                success_condition: "Mission summary is visible and scoped to the current project.".to_string(),
+                recovery_hint: "If the mission is missing, checkpoint the operator ask before continuing.".to_string(),
+            },
+            Step {
+                id: "show-current-workpoint".to_string(),
+                title: "Show current Workpoint".to_string(),
+                explanation: "The Workpoint is the canonical mission save: action, evidence, blockers, and next step.".to_string(),
+                visual: "[workpoint]".to_string(),
+                action_kind: STEP_KIND_READ.to_string(),
+                command: "focusa workpoint resume".to_string(),
+                api_route: "/v1/workpoint/resume".to_string(),
+                authority_required: false,
+                success_condition: "Resume packet has a canonical workpoint_id or clearly explains why it is advisory/blocked.".to_string(),
+                recovery_hint: "Create a Workpoint checkpoint with mission/current_action/next_action.".to_string(),
+            },
+            Step {
+                id: "render-bootstrap-packet".to_string(),
+                title: "Render the handoff packet".to_string(),
+                explanation: "A handoff packet gives a new agent enough context without dumping the transcript.".to_string(),
+                visual: "[bootstrap]".to_string(),
+                action_kind: STEP_KIND_READ.to_string(),
+                command: "focusa workpoint resume --mode compact_prompt".to_string(),
+                api_route: "/v1/workpoint/resume".to_string(),
+                authority_required: false,
+                success_condition: "Packet includes mission, current action, proof refs, blockers, next action, and do-not-drift boundaries.".to_string(),
+                recovery_hint: "Use focusa workpoint checkpoint before relying on transcript memory.".to_string(),
+            },
+            Step {
+                id: "show-new-agent-receives".to_string(),
+                title: "Show what a new agent receives".to_string(),
+                explanation: "The next agent should see the same mission and exact next action after reload or compaction.".to_string(),
+                visual: "[new-agent]".to_string(),
+                action_kind: STEP_KIND_PROPOSE.to_string(),
+                command: "focusa context cognition render".to_string(),
+                api_route: "/v1/context-cognition/render".to_string(),
+                authority_required: false,
+                success_condition: "Rendered packet is concise and project-bound.".to_string(),
+                recovery_hint: "If scope conflicts, verify project identity before editing files.".to_string(),
+            },
+            Step {
+                id: "show-drift-boundaries".to_string(),
+                title: "Show drift boundaries".to_string(),
+                explanation: "Do-not-drift boundaries prevent a fast agent from damaging adjacent work.".to_string(),
+                visual: "[boundaries]".to_string(),
+                action_kind: STEP_KIND_READ.to_string(),
+                command: "focusa workpoint resume | grep DO_NOT_DRIFT".to_string(),
+                api_route: "/v1/workpoint/resume".to_string(),
+                authority_required: false,
+                success_condition: "At least one drift boundary is visible when risk exists.".to_string(),
+                recovery_hint: "Add do_not_drift lines to the next Workpoint checkpoint.".to_string(),
+            },
+            Step {
+                id: "show-proof-expectations".to_string(),
+                title: "Show evidence and proof expectations".to_string(),
+                explanation: "Handoff is not done until proof expectations are visible to the next agent.".to_string(),
+                visual: "[proof]".to_string(),
+                action_kind: STEP_KIND_READ.to_string(),
+                command: "focusa workpoint resume | grep -i evidence".to_string(),
+                api_route: "/v1/workpoint/resume".to_string(),
+                authority_required: false,
+                success_condition: "Proof refs or explicit proof gap expectations are visible.".to_string(),
+                recovery_hint: "Attach a test, file, screenshot, command output, or an intentional proof-gap note.".to_string(),
+            },
+        ],
+        completion: Completion {
+            success_message: "A new agent can now recover mission, next action, boundaries, and proof expectations without transcript memory.".to_string(),
+            proof_required: true,
+            evidence_class: EVIDENCE_ACTUAL.to_string(),
+        },
+        resettable: true,
+        side_effects: Vec::new(),
+    }
+}
+
 /// JSON envelope for `focusa deck walkthrough list` and similar commands.
 pub fn list_catalog() -> Vec<&'static str> {
-    vec!["first-mission"]
+    vec!["first-mission", "agent-handoff"]
 }
 
 #[derive(Args)]
@@ -423,6 +525,7 @@ pub async fn run(args: WalkthroughArgs, json_mode: bool) -> Result<()> {
             let id = args.walkthrough.as_deref().unwrap_or("first-mission");
             let first_step = match id {
                 "first-mission" => first_mission().steps[0].id.clone(),
+                "agent-handoff" => agent_handoff().steps[0].id.clone(),
                 _ => "step-1".to_string(),
             };
             let event = WalkthroughEvent {
@@ -492,6 +595,7 @@ pub async fn run(args: WalkthroughArgs, json_mode: bool) -> Result<()> {
 fn render_walkthrough(id: &str) -> Result<Value> {
     match id {
         "first-mission" => Ok(serde_json::to_value(first_mission())?),
+        "agent-handoff" => Ok(serde_json::to_value(agent_handoff())?),
         _ => anyhow::bail!("unknown walkthrough id: {id}"),
     }
 }
@@ -513,6 +617,16 @@ mod tests {
         assert_eq!(back.id, "first-mission");
         assert_eq!(back.steps.len(), 5);
         assert!(back.resettable);
+    }
+
+    #[test]
+    fn agent_handoff_round_trips() {
+        let wt = agent_handoff();
+        let json = serde_json::to_string(&wt).expect("serialize");
+        let back: Walkthrough = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(back.id, "agent-handoff");
+        assert_eq!(back.steps.len(), 6);
+        assert!(back.completion.proof_required);
     }
 
     #[test]
