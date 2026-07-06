@@ -47,7 +47,9 @@ pub fn render_help_banner() -> String {
          bash scripts/install-daemon.sh /usr/local\n  \
          focusa start && sleep 2\n  \
          focusa init --quickstart\n\n\
-         {dim}---------- canonical subcommands ----------{reset}\n"
+         {dim}---------- canonical subcommands ----------{reset}\n",
+        dim = FOCUSA_DIM,
+        reset = FOCUSA_RESET,
     ));
     out
 }
@@ -62,12 +64,14 @@ pub fn render_about_banner(version: &str, owner: Option<&str>, repo: Option<&str
     ));
     out.push_str(&format!(
         "{dim}version{reset} {ver}  {dot}  {dim}repo{reset} {repo}\n",
+        dim = FOCUSA_DIM,
+        reset = FOCUSA_RESET,
         ver = version,
         dot = "•",
         repo = repo.unwrap_or("Startempire-Wire/focusa"),
     ));
     if let Some(label) = owner {
-        out.push_str(&format!("{dim}owner:{reset} {label}\n", label = label));
+        out.push_str(&format!("{dim}owner:{reset} {label}\n", label = label, dim = FOCUSA_DIM, reset = FOCUSA_RESET));
     }
     out
 }
@@ -75,9 +79,14 @@ pub fn render_about_banner(version: &str, owner: Option<&str>, repo: Option<&str
 pub fn render_onboard_banner(project_root_label: &str, scope_label: &str) -> String {
     let mut out = String::new();
     out.push_str(&render_wordmark());
-    out.push_str(&format!("{primary}Focusa operator preview onboarding{reset}\n"));
+    out.push_str(&format!("{primary}Focusa operator preview onboarding{reset}\n",
+        primary = FOCUSA_PRIMARY,
+        reset = FOCUSA_RESET,
+    ));
     out.push_str(&format!(
         "{dim}project_root:{reset} {root}\n{dim}scope:{reset} {scope}\n",
+        dim = FOCUSA_DIM,
+        reset = FOCUSA_RESET,
         root = project_root_label,
         scope = scope_label,
     ));
