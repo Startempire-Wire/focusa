@@ -182,6 +182,61 @@ pub fn effective_posture(allowed: bool, all_probes_pass: bool) -> &'static str {
     "noop_until_safe_auto"
 }
 
+pub const FALLBACK_CHAIN: &[&str] = &[
+    "plain_text_context_cognition_render",
+    "bloatgaurd_compact_envelope",
+    "context_handles_summaries_rehydrate_refs",
+    "tool_history_elision_after_checkpoint",
+    "semantic_scoped_cache",
+    "deep_dive_rehydrate_for_exact_blocker_evidence",
+    "no_image_transform_text_passthrough",
+];
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct FallbackContext {
+    pub policy_status_allowed: bool,
+    pub all_probes_pass: bool,
+    pub recoverable_store_available: bool,
+    pub net_savings_meets_threshold: bool,
+}
+
+pub fn choose_fallback(ctx: &FallbackContext) -> &'static str {
+    if ctx.policy_status_allowed
+        && ctx.all_probes_pass
+        && ctx.recoverable_store_available
+        && ctx.net_savings_meets_threshold
+    {
+        return "noop_until_safe_auto";
+    }
+    FALLBACK_CHAIN[6]
+}
+
+pub struct ImagedBlock {
+    pub raw_ref: String,
+    pub image_ref: String,
+    pub rehydrate_ref: String,
+    pub omitted_bytes: usize,
+    pub risk_class: String,
+    pub provider_policy_ref: String,
+    pub model_eval_ref: String,
+    pub canary_status: String,
+    pub fallback_used: &'static str,
+}
+
+pub fn empty_imaged_block(rehydrate_ref: &str) -> ImagedBlock {
+    ImagedBlock {
+        raw_ref: String::new(),
+        image_ref: String::new(),
+        rehydrate_ref: rehydrate_ref.to_string(),
+        omitted_bytes: 0,
+        risk_class: "gist_safe".to_string(),
+        provider_policy_ref: "focusa.provider_policy_ledger.v1".to_string(),
+        model_eval_ref: "focusa.model_eval.v1".to_string(),
+        canary_status: "passed".to_string(),
+        fallback_used: "text_passthrough",
+    }
+}
+
 pub fn decide(action: &str, status: &str) -> &'static str {
     if status != POLICY_STATUS_ALLOWED {
         return FALLBACK_TEXT_PASSTHROUGH;
@@ -337,6 +392,49 @@ mod tests {
         assert_eq!(effective_posture(true, true), "noop_until_safe_auto");
         assert_eq!(effective_posture(false, true), FALLBACK_TEXT_PASSTHROUGH);
         assert_eq!(effective_posture(true, false), FALLBACK_TEXT_PASSTHROUGH);
+    }
+
+    #[test]
+    fn fallback_chain_starts_with_text_and_ends_with_passthrough() {
+        assert_eq!(FALLBACK_CHAIN[0], "plain_text_context_cognition_render");
+        assert_eq!(FALLBACK_CHAIN[6], "no_image_transform_text_passthrough");
+        assert_eq!(FALLBACK_CHAIN.len(), 7);
+    }
+
+    #[test]
+    fn choose_fallback_returns_noop_when_every_gate_passes() {
+        let ctx = FallbackContext {
+            policy_status_allowed: true,
+            all_probes_pass: true,
+            recoverable_store_available: true,
+            net_savings_meets_threshold: true,
+        };
+        assert_eq!(choose_fallback(&ctx), "noop_until_safe_auto");
+    }
+
+    #[test]
+    fn choose_fallback_falls_back_when_any_gate_fails() {
+        let mut ctx = FallbackContext {
+            policy_status_allowed: true,
+            all_probes_pass: true,
+            recoverable_store_available: true,
+            net_savings_meets_threshold: true,
+        };
+        ctx.net_savings_meets_threshold = false;
+        assert_eq!(choose_fallback(&ctx), FALLBACK_CHAIN[6]);
+
+        ctx.net_savings_meets_threshold = true;
+        ctx.policy_status_allowed = false;
+        assert_eq!(choose_fallback(&ctx), FALLBACK_CHAIN[6]);
+    }
+
+    #[test]
+    fn imaged_block_carries_all_required_refs() {
+        let b = empty_imaged_block("evidence:abc");
+        assert_eq!(b.rehydrate_ref, "evidence:abc");
+        assert_eq!(b.provider_policy_ref, "focusa.provider_policy_ledger.v1");
+        assert_eq!(b.fallback_used, "text_passthrough");
+        assert!(b.raw_ref.is_empty());
     }
 
     #[test]
