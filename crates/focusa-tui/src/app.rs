@@ -195,6 +195,7 @@ pub struct App {
     pub state: StateSnapshot,
     pub extra_data: HashMap<String, Option<serde_json::Value>>,
     pub scroll_offset: u16,
+    pub show_help: bool,
     pub connected: bool,
     pub last_error: Option<String>,
     client: ApiClient,
@@ -207,6 +208,7 @@ impl App {
             state: StateSnapshot::default(),
             extra_data: HashMap::new(),
             scroll_offset: 0,
+            show_help: false,
             connected: false,
             last_error: None,
             client: ApiClient::new(api_url),
@@ -262,6 +264,10 @@ impl App {
                 }
             }
         }
+    }
+
+    pub fn toggle_help(&mut self) {
+        self.show_help = !self.show_help;
     }
 
     pub fn next_tab(&mut self) {

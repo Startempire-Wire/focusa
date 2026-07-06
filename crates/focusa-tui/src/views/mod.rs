@@ -9,6 +9,7 @@ mod events;
 mod focus_stack;
 mod focus_state;
 mod gate;
+pub mod help_overlay;
 mod intuition;
 mod lineage;
 mod metrics;
@@ -43,6 +44,9 @@ pub fn render(app: &App, frame: &mut ratatui::Frame) {
     render_header(app, frame, chunks[0]);
     render_body(app, frame, chunks[1]);
     render_status_bar(app, frame, chunks[2]);
+    if app.show_help {
+        help_overlay::render(frame, area);
+    }
 }
 
 fn render_header(app: &App, frame: &mut ratatui::Frame, area: Rect) {
@@ -147,7 +151,7 @@ fn render_status_bar(app: &App, frame: &mut ratatui::Frame, area: Rect) {
             theme::label(),
         ),
         Span::styled(
-            "  │  q:quit  Tab:switch  r:refresh  j/k:scroll ",
+            "  │  q:quit  Tab:switch  h/?:help  r:refresh  j/k:scroll ",
             theme::label(),
         ),
     ]);

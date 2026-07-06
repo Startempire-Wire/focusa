@@ -93,6 +93,7 @@ async fn main() -> Result<()> {
                 KeyCode::Char('u') => app.tab = app::Tab::Uxp,
                 KeyCode::Char('x') => app.tab = app::Tab::Training,
                 KeyCode::Char('r') => app.refresh().await,
+                KeyCode::Char('h') | KeyCode::Char('?') => app.toggle_help(),
                 KeyCode::Tab => app.next_tab(),
                 KeyCode::BackTab => app.prev_tab(),
                 KeyCode::Down | KeyCode::Char('j') => app.scroll_down(),
@@ -139,6 +140,10 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
         "title": "Focusa Mission Deck",
         "default_tab": "DeckHome",
         "beginner_mode_decision_tree": crate::beginner_mode::DECISION_TREE,
+        "help_overlay": {
+            "toggle": ["h", "?"],
+            "topics": crate::views::help_overlay::HELP_TOPICS,
+        },
         "api_url": api_url,
         "health": health,
         "focus_stack": focus_stack,
@@ -151,6 +156,7 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
         "keybindings": {
             "quit": ["q", "Esc"],
             "refresh": ["r"],
+            "help_overlay": ["h", "?"],
             "next_tab": ["Tab"],
             "prev_tab": ["BackTab"],
             "scroll_down": ["Down", "j"],
