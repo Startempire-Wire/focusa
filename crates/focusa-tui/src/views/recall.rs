@@ -126,7 +126,50 @@ pub const SCOPE_STATUS_VALUES: &[&str] = &[
 pub const PROOF_STATUS_VALUES: &[&str] = &["none", "linked", "verified"];
 pub const ALLOWED_USE_VALUES: &[&str] = &["include", "inspect_only", "verify_first", "exclude"];
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkpointCandidatePromotion {
+    pub source: &'static str,
+    pub candidate_kind: &'static str,
+    pub authority_gate: &'static str,
+    pub proof_gate: &'static str,
+    pub approval_gate: &'static str,
+    pub canonical_write: &'static str,
+}
+
+impl WorkpointCandidatePromotion {
+    pub fn recall_default() -> Self {
+        Self {
+            source: "RecallDeckCard",
+            candidate_kind: "advisory_workpoint_candidate",
+            authority_gate: "verify project_root + continuity_id + Context Authority preflight",
+            proof_gate: "require proof_status linked|verified or explicit proof-gap acknowledgement",
+            approval_gate: "explicit operator approval required",
+            canonical_write: "canonical Workpoint checkpoint only after approval",
+        }
+    }
+}
+
+pub const WORKPOINT_CANDIDATE_PROMOTION_FLOW: &[&str] = &[
+    "recall_search",
+    "recall_deck_card",
+    "verify_project_root_and_continuity_id",
+    "context_authority_preflight",
+    "proof_check",
+    "render_workpoint_candidate",
+    "operator_approval",
+    "canonical_workpoint_checkpoint",
+];
+
+pub const WORKPOINT_CANDIDATE_FORBIDDEN: &[&str] = &[
+    "recall_direct_canonical_write",
+    "promotion_without_scope_verification",
+    "promotion_without_operator_approval",
+    "promotion_without_proof_or_explicit_gap",
+];
+
 pub const RECALL_AUTHORITY_RULE: &str = "Recall is advisory: inspect/verify first; canonical Workpoint promotion requires operator approval.";
+pub const RECALL_FORBIDDEN_RULE: &str =
+    "Recall cannot directly create canonical Workpoint authority";
 
 pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     let chunks = Layout::default()
@@ -204,6 +247,7 @@ fn render_preview_card(app: &App, frame: &mut ratatui::Frame, area: Rect) {
 fn render_authority_card(frame: &mut ratatui::Frame, area: Rect) {
     let text = vec![
         Line::from(RECALL_AUTHORITY_RULE),
+        Line::from(RECALL_FORBIDDEN_RULE),
         Line::from(
             "Promotion flow: search → card → verify project/continuity → authority preflight → proof check → candidate → operator approval → checkpoint.",
         ),
@@ -249,6 +293,28 @@ mod tests {
         let card = RecallDeckCard::demo("/tmp/project");
         assert_eq!(card.provider, "focusa-local");
         assert_eq!(card.allowed_use, AllowedUse::InspectOnly);
+    }
+
+    #[test]
+    fn workpoint_candidate_promotion_is_guarded() {
+        let flow = WORKPOINT_CANDIDATE_PROMOTION_FLOW.join("→");
+        for required in [
+            "recall_deck_card",
+            "verify_project_root_and_continuity_id",
+            "context_authority_preflight",
+            "proof_check",
+            "operator_approval",
+            "canonical_workpoint_checkpoint",
+        ] {
+            assert!(flow.contains(required), "missing {required}");
+        }
+        let forbidden = WORKPOINT_CANDIDATE_FORBIDDEN.join(
+            "
+",
+        );
+        assert!(forbidden.contains("recall_direct_canonical_write"));
+        let promotion = WorkpointCandidatePromotion::recall_default();
+        assert!(promotion.approval_gate.contains("operator approval"));
     }
 
     #[test]

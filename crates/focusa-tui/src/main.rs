@@ -159,6 +159,8 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
             "scope_status_values": crate::views::recall::SCOPE_STATUS_VALUES,
             "proof_status_values": crate::views::recall::PROOF_STATUS_VALUES,
             "allowed_use_values": crate::views::recall::ALLOWED_USE_VALUES,
+            "workpoint_candidate_promotion_flow": crate::views::recall::WORKPOINT_CANDIDATE_PROMOTION_FLOW,
+            "workpoint_candidate_forbidden": crate::views::recall::WORKPOINT_CANDIDATE_FORBIDDEN,
         },
         "api_url": api_url,
         "health": health,
