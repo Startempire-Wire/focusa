@@ -8,6 +8,9 @@ pub struct ProofMeter {
     pub status: &'static str,
     pub visual: &'static str,
     pub label: String,
+    /// Spec 119 §30 affordance reality: practical possibility assessment,
+    /// not desired outcome. One of possible|limited|unavailable.
+    pub affordance_reality: &'static str,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -15,10 +18,20 @@ pub struct ScopeBadge {
     pub posture: &'static str,
     pub visual: &'static str,
     pub label: String,
+    /// Spec 119 §31 governing prior chain that yielded the current posture.
+    pub precedence_frame: &'static str,
 }
 
 pub const PROOF_METER_STATES: &[&str] = &["none:[-----]", "linked:[##---]", "verified:[#####]"];
 pub const SCOPE_BADGE_STATES: &[&str] = &["canonical", "advisory", "blocked", "unbound"];
+
+pub const AFFORDANCE_REALITY_POSSIBLE: &str = "possible";
+pub const AFFORDANCE_REALITY_LIMITED: &str = "limited";
+pub const AFFORDANCE_REALITY_UNAVAILABLE: &str = "unavailable";
+
+pub const PRECEDENCE_FRAME_PROJECT: &str = "project_identity -> workpoint -> operator";
+pub const PRECEDENCE_FRAME_AUTHORITY: &str = "scope -> authority_posture -> operator";
+pub const PRECEDENCE_FRAME_OPERATOR: &str = "operator_only";
 
 pub fn proof_meter(app: &App) -> ProofMeter {
     let workpoint = app
@@ -33,18 +46,21 @@ pub fn proof_meter(app: &App) -> ProofMeter {
     if verified > 0 {
         ProofMeter {
             status: "verified",
+            affordance_reality: crate::views::proof_status::AFFORDANCE_REALITY_POSSIBLE,
             visual: "[#####]",
             label: format!("verified ({verified} refs)"),
         }
     } else if linked > 0 {
         ProofMeter {
             status: "linked",
+            affordance_reality: crate::views::proof_status::AFFORDANCE_REALITY_LIMITED,
             visual: "[##---]",
             label: format!("linked ({linked} refs)"),
         }
     } else {
         ProofMeter {
             status: "none",
+            affordance_reality: crate::views::proof_status::AFFORDANCE_REALITY_UNAVAILABLE,
             visual: "[-----]",
             label: "no proof refs visible".to_string(),
         }
@@ -64,6 +80,7 @@ pub fn scope_badge(app: &App) -> ScopeBadge {
     if project.is_none() {
         return ScopeBadge {
             posture: "unbound",
+            precedence_frame: crate::views::proof_status::PRECEDENCE_FRAME_PROJECT,
             visual: "[unbound]",
             label: "project identity unavailable".to_string(),
         };
@@ -72,18 +89,21 @@ pub fn scope_badge(app: &App) -> ScopeBadge {
     if is_blocked(workpoint) {
         ScopeBadge {
             posture: "blocked",
+            precedence_frame: crate::views::proof_status::PRECEDENCE_FRAME_AUTHORITY,
             visual: "[blocked]",
             label: "scope or action authority conflict".to_string(),
         }
     } else if is_canonical(workpoint) {
         ScopeBadge {
             posture: "canonical",
+            precedence_frame: crate::views::proof_status::PRECEDENCE_FRAME_AUTHORITY,
             visual: "[canonical]",
             label: "safe to act within this scope".to_string(),
         }
     } else {
         ScopeBadge {
             posture: "advisory",
+            precedence_frame: crate::views::proof_status::PRECEDENCE_FRAME_OPERATOR,
             visual: "[advisory]",
             label: "review before acting".to_string(),
         }
@@ -126,6 +146,30 @@ fn is_blocked(source: Option<&Value>) -> bool {
 mod tests {
     use super::*;
     use crate::app::App;
+
+    #[test]
+    fn affordance_reality_matches_status() {
+        let mut app = App::new("http://127.0.0.1:8787".into());
+        app.extra_data.insert(
+            "workpoint_resume".into(),
+            Some(serde_json::json!({"verified_evidence":["t"]})),
+        );
+        let meter = proof_meter(&app);
+        assert_eq!(meter.affordance_reality, AFFORDANCE_REALITY_POSSIBLE);
+
+        app.extra_data.insert(
+            "workpoint_resume".into(),
+            Some(serde_json::json!({"evidence_refs":["t"]})),
+        );
+        let meter = proof_meter(&app);
+        assert_eq!(meter.affordance_reality, AFFORDANCE_REALITY_LIMITED);
+    }
+
+    #[test]
+    fn scope_badge_carries_precedence_frame() {
+        let badge = scope_badge(&App::new("http://127.0.0.1:8787".into()));
+        assert_eq!(badge.precedence_frame, PRECEDENCE_FRAME_PROJECT);
+    }
 
     #[test]
     fn proof_meter_none_when_no_workpoint_evidence() {

@@ -157,7 +157,17 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
         "next_safe_action_recovery_tool_cap": crate::next_safe_action::HEADLESS_PROOF_RECOVERY_TOOL_CAP,
         "mission_ladder_levels": crate::views::mission_ladder::LADDER_LEVELS,
         "proof_meter_states": crate::views::proof_status::PROOF_METER_STATES,
+        "affordance_reality_states": [
+            crate::views::proof_status::AFFORDANCE_REALITY_POSSIBLE,
+            crate::views::proof_status::AFFORDANCE_REALITY_LIMITED,
+            crate::views::proof_status::AFFORDANCE_REALITY_UNAVAILABLE,
+        ],
         "scope_badge_states": crate::views::proof_status::SCOPE_BADGE_STATES,
+        "precedence_frames": [
+            crate::views::proof_status::PRECEDENCE_FRAME_PROJECT,
+            crate::views::proof_status::PRECEDENCE_FRAME_AUTHORITY,
+            crate::views::proof_status::PRECEDENCE_FRAME_OPERATOR,
+        ],
         "recall_tab": {
             "hotkey": "/",
             "sources": crate::views::recall::RECALL_SEARCH_SOURCES,
