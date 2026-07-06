@@ -143,6 +143,45 @@ async fn never_imaged() -> Json<Value> {
     }))
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct DefaultOnSafeAutoPosture {
+    pub enabled: &'static str,
+    pub provider_policy_gate_required: bool,
+    pub verified_models_only: bool,
+    pub canary_gate_required: bool,
+    pub profitability_gate_required: bool,
+    pub keep_verbatim_text: bool,
+    pub recoverable_store_required: bool,
+    pub min_net_savings: f64,
+    pub max_quality_regression: i32,
+    pub default_fallback: &'static str,
+    pub full_payload_policy: &'static str,
+}
+
+pub const POSTURE: DefaultOnSafeAutoPosture = DefaultOnSafeAutoPosture {
+    enabled: DEFAULT_OPTICAL_POLICY,
+    provider_policy_gate_required: true,
+    verified_models_only: true,
+    canary_gate_required: true,
+    profitability_gate_required: true,
+    keep_verbatim_text: true,
+    recoverable_store_required: true,
+    min_net_savings: DEFAULT_MIN_NET_SAVINGS,
+    max_quality_regression: DEFAULT_MAX_QUALITY_REGRESSION,
+    default_fallback: FALLBACK_TEXT_PASSTHROUGH,
+    full_payload_policy: DEFAULT_FULL_PAYLOAD_POLICY,
+};
+
+pub fn effective_posture(allowed: bool, all_probes_pass: bool) -> &'static str {
+    if !allowed {
+        return FALLBACK_TEXT_PASSTHROUGH;
+    }
+    if !all_probes_pass {
+        return FALLBACK_TEXT_PASSTHROUGH;
+    }
+    "noop_until_safe_auto"
+}
+
 pub fn decide(action: &str, status: &str) -> &'static str {
     if status != POLICY_STATUS_ALLOWED {
         return FALLBACK_TEXT_PASSTHROUGH;
@@ -276,6 +315,28 @@ mod tests {
         assert!(NEVER_IMAGED.contains(&"evidence_refs_themselves"));
         assert!(NEVER_IMAGED.contains(&"exact_diffs"));
         assert!(NEVER_IMAGED.contains(&"secrets"));
+    }
+
+    #[test]
+    fn posture_constants_match_spec_5_11_3() {
+        assert_eq!(POSTURE.enabled, "safe_auto");
+        assert_eq!(POSTURE.min_net_savings, 0.30);
+        assert_eq!(POSTURE.max_quality_regression, 0);
+        assert_eq!(POSTURE.full_payload_policy, "cold_opt_in");
+        assert_eq!(POSTURE.default_fallback, "text_passthrough");
+        assert!(POSTURE.provider_policy_gate_required);
+        assert!(POSTURE.verified_models_only);
+        assert!(POSTURE.canary_gate_required);
+        assert!(POSTURE.profitability_gate_required);
+        assert!(POSTURE.keep_verbatim_text);
+        assert!(POSTURE.recoverable_store_required);
+    }
+
+    #[test]
+    fn effective_posture_only_runs_when_every_gate_passes() {
+        assert_eq!(effective_posture(true, true), "noop_until_safe_auto");
+        assert_eq!(effective_posture(false, true), FALLBACK_TEXT_PASSTHROUGH);
+        assert_eq!(effective_posture(true, false), FALLBACK_TEXT_PASSTHROUGH);
     }
 
     #[test]
