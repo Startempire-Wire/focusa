@@ -79,7 +79,7 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/bloatgaurd/optical/policy", get(optical_policy))
         .route("/v1/bloatgaurd/optical/ledger", get(list_ledger).post(upsert_ledger_route))
-        .route("/v1/bloatgaurd/optical/ledger/:provider", get(get_one_ledger))
+        .route("/v1/bloatgaurd/optical/ledger/{provider}", get(get_one_ledger))
         .route("/v1/bloatgaurd/optical/probe", get(compatibility_probe))
         .route("/v1/bloatgaurd/optical/imaged-kinds", get(imaged_kinds))
         .route("/v1/bloatgaurd/optical/never-imaged", get(never_imaged))
