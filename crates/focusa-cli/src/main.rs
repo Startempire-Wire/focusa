@@ -181,6 +181,12 @@ enum Commands {
     /// Minimal low-risk project bootstrap (writes .focusa-project.json).
     Init(commands::init::InitArgs),
 
+    /// Mission Deck walkthroughs (Spec 117 §12). List and start first-mission.
+    Walkthrough(commands::walkthrough::WalkthroughArgs),
+
+    /// Launch Focusa Mission Deck (alias for `focusa-tui`).
+    Deck(commands::deck::DeckArgs),
+
     /// Canonical workflow templates for LLM/operator execution.
     #[command(subcommand)]
     Workflow(commands::workflow::WorkflowCmd),
@@ -732,6 +738,8 @@ async fn main() -> anyhow::Result<()> {
         Commands::Continue(args) => commands::continue_work::run(args, cli.json).await,
         Commands::Tui(args) => commands::tui::run(args, cli.json).await,
         Commands::Init(args) => commands::init::run(args, cli.json).await,
+        Commands::Walkthrough(args) => commands::walkthrough::run(args, cli.json).await,
+        Commands::Deck(args) => commands::deck::run(args, cli.json).await,
         Commands::Workflow(cmd) => commands::workflow::run(cmd, cli.json).await,
         Commands::Stack => {
             let api = api_client::ApiClient::new();

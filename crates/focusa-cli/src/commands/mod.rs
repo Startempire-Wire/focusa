@@ -67,3 +67,5 @@ pub mod wrap;
 pub mod tui;
 pub mod init;
 pub mod intro;
+pub mod walkthrough;
+pub mod deck;
