@@ -1,0 +1,35 @@
+Claude Code adapter proof — 2026-07-06
+
+Hook script: /home/wirebot/focusa/adapters/claude-code/bin/focusa-claude-code-hook.sh
+Daemon: focusa-daemon on 127.0.0.1:8787
+
+=== seed two turns via /v1/turns/recent ===
+{"continuity_id":"claude-code:test-123","inserted":false,"ok":true,"schema":"focusa.recent_turns.v1","turn_id":"cc-test-1"}
+{"continuity_id":"claude-code:test-123","inserted":false,"ok":true,"schema":"focusa.recent_turns.v1","turn_id":"cc-test-2"}
+
+=== /v1/turns/recent?n=4 ===
+{"count":2,"fetched_at":1783375033,"schema":"focusa.recent_turns.v1","turns":[{"continuity_id":"claude-code:test-123","emitted_at":1783374924,"evidence_refs":["ev:43","ev:44"],"mission_at_turn":"close topology gap","outcome":"committed","tool_call_count":6,"turn_id":"cc-test-2"},{"continuity_id":"claude-code:test-123","emitted_at":1783374923,"evidence_refs":["ev:42"],"mission_at_turn":"audit agent-kb spec gaps","outcome":"filed_bead","tool_call_count":4,"turn_id":"cc-test-1"}]}
+
+=== hook: SessionStart ===
+
+## Recent turns (last 2, Focusa daemon)
+- T[cc-test-2] mission="close topology gap" outcome=committed tools=6 ev=ev:43,ev:44
+- T[cc-test-1] mission="audit agent-kb spec gaps" outcome=filed_bead tools=4 ev=ev:42
+
+=== hook: UserPromptSubmit (recall intent) ===
+matched{"agent_kind":"claude-code","continuity_id":"claude-code:test-123","forced_re_emit":true,"matched_category":"direct_recall","matched_phrase":"","ok":true,"ring_size":0,"schema":"focusa.recall_trigger.v1","slice_size":0}
+## Recent turns (last 2, Focusa daemon)
+- T[cc-test-2] mission="close topology gap" outcome=committed tools=6 ev=ev:43,ev:44
+- T[cc-test-1] mission="audit agent-kb spec gaps" outcome=filed_bead tools=4 ev=ev:42
+
+=== hook: UserPromptSubmit (no recall) ===
+
+## Recent turns (last 2, Focusa daemon)
+- T[cc-test-2] mission="close topology gap" outcome=committed tools=6 ev=ev:43,ev:44
+- T[cc-test-1] mission="audit agent-kb spec gaps" outcome=filed_bead tools=4 ev=ev:42
+
+=== hook: bad JSON (graceful noop) ===
+exit=0
+
+=== recall-trigger endpoint ===
+{"agent_kind":"claude-code","continuity_id":"verify","forced_re_emit":true,"matched_category":"test","matched_phrase":"verify","ok":true,"ring_size":0,"schema":"focusa.recall_trigger.v1","slice_size":0}
