@@ -18,8 +18,8 @@ use tower_http::services::ServeDir;
 /// Vendored static files directory (e.g. jsQR for offline PWA /scan pages).
 const STATIC_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/static");
 use focusa_core::types::{
-    Action, FocusaConfig, FocusaState, FocusStackState, WorkLoopPolicy, WorkLoopPolicyOverrides, WorkLoopPreset,
-    WorkLoopStatus,
+    Action, FocusStackState, FocusaConfig, FocusaState, WorkLoopPolicy, WorkLoopPolicyOverrides,
+    WorkLoopPreset, WorkLoopStatus,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -510,6 +510,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::call_stack::router())
         .merge(routes::context_cognition::router())
         .merge(routes::device_pairing::router())
+        .merge(routes::deck::router())
         .nest_service("/static", ServeDir::new(STATIC_DIR))
         .merge(routes::dxux::router())
         .merge(routes::utility::router())
