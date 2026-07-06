@@ -26,9 +26,15 @@ impl TypedScope {
     pub fn display(&self) -> String {
         let status = self.scope_status.as_deref().unwrap_or("unknown");
         if self.canonical_scope == Some(false) {
-            return format!("[advisory] {} ({}) [{}]", self.project_root, self.continuity_id, status);
+            return format!(
+                "[advisory] {} ({}) [{}]",
+                self.project_root, self.continuity_id, status
+            );
         }
-        format!("{} ({}) [{}]", self.project_root, self.continuity_id, status)
+        format!(
+            "{} ({}) [{}]",
+            self.project_root, self.continuity_id, status
+        )
     }
 
     /// Encode as query-string suffix for HTTP requests.
@@ -47,16 +53,29 @@ impl TypedScope {
 mod url_query_stringify {
     pub struct UrlQueryParams(String);
     impl UrlQueryParams {
-        pub fn new() -> Self { Self(String::new()) }
+        pub fn new() -> Self {
+            Self(String::new())
+        }
         pub fn push(&mut self, k: &str, v: &str) {
-            if !self.0.is_empty() { self.0.push('&'); }
+            if !self.0.is_empty() {
+                self.0.push('&');
+            }
             self.0.push_str(&format!("{}={}", k, urlencoded(k, v)));
         }
-        pub fn finish(self) -> String { if self.0.is_empty() { String::new() } else { format!("?{}", self.0) } }
+        pub fn finish(self) -> String {
+            if self.0.is_empty() {
+                String::new()
+            } else {
+                format!("?{}", self.0)
+            }
+        }
     }
     fn urlencoded(_k: &str, v: &str) -> String {
         // Minimal URL-encoding for scope params: only handle & = ? in values.
-        v.replace('&', "%26").replace('=', "%3D").replace('?', "%3F").replace(' ', "%20")
+        v.replace('&', "%26")
+            .replace('=', "%3D")
+            .replace('?', "%3F")
+            .replace(' ', "%20")
     }
 }
 
@@ -82,10 +101,15 @@ impl ApiClient {
 
     /// Spec104 TUI-01: Fetch with typed ScopeContext. The scope query
     /// suffix preserves project_root + continuity_id + session_id end-to-end.
-    pub async fn fetch_with_scope(&self, path: &str, scope: &TypedScope) -> Result<serde_json::Value> {
+    pub async fn fetch_with_scope(
+        &self,
+        path: &str,
+        scope: &TypedScope,
+    ) -> Result<serde_json::Value> {
         let suffix = scope.as_query_suffix();
         let url = format!("{}{}{}", self.base_url, path, suffix);
-        let resp = self.client
+        let resp = self
+            .client
             .get(&url)
             .header("x-scope-project-root", &scope.project_root)
             .header("x-scope-continuity-id", &scope.continuity_id)

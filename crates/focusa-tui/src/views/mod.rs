@@ -1,5 +1,6 @@
 //! View rendering — all panels composable, read-only.
 
+pub mod about;
 mod autonomy;
 mod cache;
 mod constitution;
@@ -15,6 +16,7 @@ mod intuition;
 mod lineage;
 mod metrics;
 pub mod mission_ladder;
+pub mod modal;
 pub mod proof_status;
 mod proposals;
 pub mod recall;
@@ -24,6 +26,7 @@ mod skills;
 mod telemetry;
 mod training;
 mod uxp;
+pub mod walkthroughs;
 mod work_loop;
 
 use crate::app::{App, Tab};
@@ -53,6 +56,22 @@ pub fn render(app: &App, frame: &mut ratatui::Frame) {
     }
     if app.show_intro {
         intro::render(app, frame, area);
+    }
+    if matches!(app.tab, crate::app::Tab::About) {
+        about::render(frame, area);
+    }
+    if matches!(app.tab, crate::app::Tab::Walkthroughs) {
+        walkthroughs::render(frame, area);
+    }
+    if matches!(app.tab, crate::app::Tab::DeckHome)
+        && app.modal.is_none()
+        && !app.show_intro
+        && !app.show_help
+    {
+        crate::mission_control::render(app, frame, chunks[1]);
+    }
+    if let Some(modal) = app.modal {
+        modal::render_modal(modal, app, frame, area);
     }
 }
 
@@ -110,6 +129,8 @@ fn render_body(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         Tab::Events => events::render(app, frame, area),
         Tab::Metrics => metrics::render(app, frame, area),
         Tab::Lineage => lineage::render(app, frame, area),
+        Tab::About => {}        // handled at root in render() with about::render
+        Tab::Walkthroughs => {} // handled at root in render() with walkthroughs::render
         Tab::WorkLoop => work_loop::render(app, frame, area),
         Tab::Recall => recall::render(app, frame, area),
         Tab::Autonomy => autonomy::render(app, frame, area),

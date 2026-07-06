@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 //! Focusa TUI — terminal dashboard for cognitive runtime introspection.
 //!
 //! Read-only, event-driven, calm.
@@ -6,6 +7,7 @@
 mod api;
 mod app;
 mod beginner_mode;
+mod mission_control;
 mod next_safe_action;
 mod startup_perf;
 mod theme;
@@ -89,7 +91,10 @@ async fn main() -> Result<()> {
                 KeyCode::Char('5') => app.tab = app::Tab::Metrics,
                 KeyCode::Char('6') => app.tab = app::Tab::Lineage,
                 KeyCode::Char('w') => app.tab = app::Tab::WorkLoop,
-                KeyCode::Char('/') => app.tab = app::Tab::Recall,
+                KeyCode::Char('/') => app.open_modal(crate::app::ModalKind::Recall),
+                KeyCode::Char('A') | KeyCode::Char('a') => {
+                    app.open_modal(crate::app::ModalKind::About)
+                }
                 KeyCode::Char('7') => app.tab = app::Tab::Autonomy,
                 KeyCode::Char('8') => app.tab = app::Tab::Constitution,
                 KeyCode::Char('9') => app.tab = app::Tab::Telemetry,
@@ -97,6 +102,9 @@ async fn main() -> Result<()> {
                 KeyCode::Char('p') => app.tab = app::Tab::Proposals,
                 KeyCode::Char('s') => app.tab = app::Tab::Skills,
                 KeyCode::Char('u') => app.tab = app::Tab::Uxp,
+                KeyCode::Char('L') | KeyCode::Char('l') => {
+                    app.open_modal(crate::app::ModalKind::Learn)
+                }
                 KeyCode::Char('x') => app.tab = app::Tab::Training,
                 KeyCode::Char('r') => app.refresh().await,
                 KeyCode::Char('h') | KeyCode::Char('?') => app.toggle_help(),
@@ -147,6 +155,26 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
     let payload = serde_json::json!({
         "schema": "focusa.tui_headless_self_test.v1",
         "title": "Focusa Mission Deck",
+        "ui_architecture": "mission_control_canvas_plus_modal_overlays",
+        "mission_control_mobile_breakpoint_cols": crate::mission_control::MOBILE_BREAKPOINT_COLS,
+        "mission_control": {
+            "architecture": "mission_control_canvas_plus_modal_overlays",
+            "mobile_breakpoint_cols": crate::mission_control::MOBILE_BREAKPOINT_COLS,
+            "compact_keys_hint": crate::mission_control::COMPACT_KEYS_HINT,
+            "full_keys_hint": crate::mission_control::FULL_KEYS_HINT,
+        },
+        "modal_shortcuts": {
+            "recall": "/",
+            "learn": "l",
+            "help": "?",
+            "command_palette": ":",
+            "about": "a",
+            "close": "Esc"
+        },
+        "about_logo": crate::views::intro::FOCUSA_LOGO,
+        "about_tagline": crate::views::intro::FOCUSA_TAGLINE,
+        "about_version": crate::views::about::ABOUT_VERSION,
+        "about_credits_count": crate::views::about::ABOUT_CREDITS.len(),
         "intro_splash": {
             "logo": crate::views::intro::FOCUSA_LOGO,
             "tagline": crate::views::intro::FOCUSA_TAGLINE,
@@ -203,13 +231,17 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
         "workpoint": workpoint,
         "tabs": [
             "d:DeckHome", "1:FocusState", "2:FocusStack", "3:Gate", "4:Events", "5:Metrics",
-            "6:Lineage", "w:WorkLoop", "/:Recall", "7:Autonomy", "8:Constitution",
+            "6:Lineage", "w:WorkLoop", "/:RecallModal", "a:AboutModal", "l:LearnModal",
+            "?:HelpModal", "::CommandPalette", "7:Autonomy", "8:Constitution",
             "9:Telemetry", "0:Rfm", "p:Proposals", "s:Skills", "u:Uxp", "x:Training",
         ],
         "keybindings": {
-            "quit": ["q", "Esc"],
+            "quit": ["q", "Esc when no modal is open"],
+            "modal_close": ["Esc"],
             "refresh": ["r"],
-            "help_overlay": ["h", "?"],
+            "help_overlay": ["h"],
+            "help_modal": ["?"],
+            "command_palette": [":"],
             "next_safe_action": ["n"],
             "recall": ["/"],
             "next_tab": ["Tab"],

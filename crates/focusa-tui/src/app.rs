@@ -4,6 +4,28 @@ use crate::api::ApiClient;
 use serde::Deserialize;
 use std::collections::HashMap;
 
+/// Modal layer opened on top of the Mission Control canvas.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ModalKind {
+    Recall,
+    Learn,
+    Help,
+    About,
+    CommandPalette,
+}
+
+impl ModalKind {
+    pub fn title(self) -> &'static str {
+        match self {
+            ModalKind::Recall => " Recall (advisory) ",
+            ModalKind::Learn => " Learn · walkthroughs ",
+            ModalKind::Help => " Help · concepts overlay ",
+            ModalKind::About => " About Focusa ",
+            ModalKind::CommandPalette => " Command Palette ",
+        }
+    }
+}
+
 /// Active tab in the TUI.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tab {
@@ -16,6 +38,7 @@ pub enum Tab {
     Lineage,
     WorkLoop,
     Recall,
+    About,
     Autonomy,
     Constitution,
     Telemetry,
@@ -28,6 +51,7 @@ pub enum Tab {
     Cache,
     Contribution,
     Intuition,
+    Walkthroughs,
 }
 
 impl Tab {
@@ -41,6 +65,8 @@ impl Tab {
         Tab::Lineage,
         Tab::WorkLoop,
         Tab::Recall,
+        Tab::About,
+        Tab::Walkthroughs,
         Tab::Autonomy,
         Tab::Constitution,
         Tab::Telemetry,
@@ -66,6 +92,8 @@ impl Tab {
             Tab::Lineage => "CLT",
             Tab::WorkLoop => "Loop",
             Tab::Recall => "Recall",
+            Tab::About => "About",
+            Tab::Walkthroughs => "Learn",
             Tab::Autonomy => "Autonomy",
             Tab::Constitution => "ACP",
             Tab::Telemetry => "Telemetry",
@@ -92,6 +120,8 @@ impl Tab {
             Tab::Lineage => "6",
             Tab::WorkLoop => "w",
             Tab::Recall => "/",
+            Tab::About => "A",
+            Tab::Walkthroughs => "L",
             Tab::Autonomy => "7",
             Tab::Constitution => "8",
             Tab::Telemetry => "9",
@@ -201,6 +231,10 @@ pub struct App {
     pub scroll_offset: u16,
     pub show_help: bool,
     pub show_intro: bool,
+    pub modal: Option<ModalKind>,
+    pub modal_selection: usize,
+    pub palette_open: bool,
+    pub palette_buffer: String,
     pub connected: bool,
     pub last_error: Option<String>,
     client: ApiClient,
@@ -219,6 +253,10 @@ impl App {
             scroll_offset: 0,
             show_help: false,
             show_intro,
+            modal: None,
+            modal_selection: 0,
+            palette_open: false,
+            palette_buffer: String::new(),
             connected: false,
             last_error: None,
             client: ApiClient::new(api_url),
@@ -288,6 +326,23 @@ impl App {
     pub fn tick_intro_dismiss(&mut self, elapsed_ms: u128) {
         if self.show_intro && elapsed_ms >= 2500 {
             self.show_intro = false;
+        }
+    }
+
+    pub fn open_modal(&mut self, modal: ModalKind) {
+        self.modal = Some(modal);
+        self.modal_selection = 0;
+    }
+
+    pub fn close_modal(&mut self) {
+        self.modal = None;
+        self.modal_selection = 0;
+    }
+
+    pub fn toggle_palette(&mut self) {
+        self.palette_open = !self.palette_open;
+        if !self.palette_open {
+            self.palette_buffer.clear();
         }
     }
 

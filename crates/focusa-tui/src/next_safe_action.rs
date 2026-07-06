@@ -35,9 +35,21 @@ pub fn recommend(app: &App) -> NextSafeAction {
             authority_posture: authority,
             walkthrough_context: beginner_state.id(),
             recovery_tools: &[
-                RecoveryTool { id: "0", label: "doctor", command: "focusa doctor --scope host" },
-                RecoveryTool { id: "1", label: "resume", command: "focusa workpoint resume" },
-                RecoveryTool { id: "2", label: "walkthrough", command: "focusa walkthrough show --walkthrough first-mission" },
+                RecoveryTool {
+                    id: "0",
+                    label: "doctor",
+                    command: "focusa doctor --scope host",
+                },
+                RecoveryTool {
+                    id: "1",
+                    label: "resume",
+                    command: "focusa workpoint resume",
+                },
+                RecoveryTool {
+                    id: "2",
+                    label: "walkthrough",
+                    command: "focusa walkthrough show --walkthrough first-mission",
+                },
             ],
         };
     }
@@ -51,9 +63,21 @@ pub fn recommend(app: &App) -> NextSafeAction {
             authority_posture: authority,
             walkthrough_context: beginner_state.id(),
             recovery_tools: &[
-                RecoveryTool { id: "0", label: "doctor", command: "focusa doctor --scope host" },
-                RecoveryTool { id: "1", label: "start", command: "focusa start" },
-                RecoveryTool { id: "2", label: "walkthrough", command: "focusa walkthrough show --walkthrough first-mission" },
+                RecoveryTool {
+                    id: "0",
+                    label: "doctor",
+                    command: "focusa doctor --scope host",
+                },
+                RecoveryTool {
+                    id: "1",
+                    label: "start",
+                    command: "focusa start",
+                },
+                RecoveryTool {
+                    id: "2",
+                    label: "walkthrough",
+                    command: "focusa walkthrough show --walkthrough first-mission",
+                },
             ],
         },
         BeginnerModeState::Unbound => NextSafeAction {
@@ -64,9 +88,21 @@ pub fn recommend(app: &App) -> NextSafeAction {
             authority_posture: authority,
             walkthrough_context: beginner_state.id(),
             recovery_tools: &[
-                RecoveryTool { id: "0", label: "doctor", command: "focusa doctor --scope project" },
-                RecoveryTool { id: "1", label: "init", command: "focusa init --quickstart" },
-                RecoveryTool { id: "2", label: "walkthrough", command: "focusa walkthrough show --walkthrough first-mission" },
+                RecoveryTool {
+                    id: "0",
+                    label: "doctor",
+                    command: "focusa doctor --scope project",
+                },
+                RecoveryTool {
+                    id: "1",
+                    label: "init",
+                    command: "focusa init --quickstart",
+                },
+                RecoveryTool {
+                    id: "2",
+                    label: "walkthrough",
+                    command: "focusa walkthrough show --walkthrough first-mission",
+                },
             ],
         },
         BeginnerModeState::NoWorkpoint => NextSafeAction {
@@ -77,9 +113,21 @@ pub fn recommend(app: &App) -> NextSafeAction {
             authority_posture: authority,
             walkthrough_context: beginner_state.id(),
             recovery_tools: &[
-                RecoveryTool { id: "0", label: "checkpoint", command: "focusa workpoint checkpoint" },
-                RecoveryTool { id: "1", label: "walkthrough", command: "focusa walkthrough show --walkthrough first-mission" },
-                RecoveryTool { id: "2", label: "doctor", command: "focusa doctor --scope host" },
+                RecoveryTool {
+                    id: "0",
+                    label: "checkpoint",
+                    command: "focusa workpoint checkpoint",
+                },
+                RecoveryTool {
+                    id: "1",
+                    label: "walkthrough",
+                    command: "focusa walkthrough show --walkthrough first-mission",
+                },
+                RecoveryTool {
+                    id: "2",
+                    label: "doctor",
+                    command: "focusa doctor --scope host",
+                },
             ],
         },
         BeginnerModeState::NoEvidence => NextSafeAction {
@@ -90,9 +138,21 @@ pub fn recommend(app: &App) -> NextSafeAction {
             authority_posture: authority,
             walkthrough_context: beginner_state.id(),
             recovery_tools: &[
-                RecoveryTool { id: "0", label: "checkpoint", command: "focusa workpoint checkpoint --evidence-ref <proof>" },
-                RecoveryTool { id: "1", label: "capture", command: "focusa evidence capture" },
-                RecoveryTool { id: "2", label: "walkthrough", command: "focusa walkthrough show --walkthrough no-proof-no-done" },
+                RecoveryTool {
+                    id: "0",
+                    label: "checkpoint",
+                    command: "focusa workpoint checkpoint --evidence-ref <proof>",
+                },
+                RecoveryTool {
+                    id: "1",
+                    label: "capture",
+                    command: "focusa evidence capture",
+                },
+                RecoveryTool {
+                    id: "2",
+                    label: "walkthrough",
+                    command: "focusa walkthrough show --walkthrough no-proof-no-done",
+                },
             ],
         },
         BeginnerModeState::Resumable => NextSafeAction {
@@ -103,9 +163,21 @@ pub fn recommend(app: &App) -> NextSafeAction {
             authority_posture: authority,
             walkthrough_context: beginner_state.id(),
             recovery_tools: &[
-                RecoveryTool { id: "0", label: "resume", command: "focusa workpoint resume" },
-                RecoveryTool { id: "1", label: "context", command: "focusa context cognition render" },
-                RecoveryTool { id: "2", label: "walkthrough", command: "focusa walkthrough show --walkthrough agent-handoff" },
+                RecoveryTool {
+                    id: "0",
+                    label: "resume",
+                    command: "focusa workpoint resume",
+                },
+                RecoveryTool {
+                    id: "1",
+                    label: "context",
+                    command: "focusa context cognition render",
+                },
+                RecoveryTool {
+                    id: "2",
+                    label: "walkthrough",
+                    command: "focusa walkthrough show --walkthrough agent-handoff",
+                },
             ],
         },
     }

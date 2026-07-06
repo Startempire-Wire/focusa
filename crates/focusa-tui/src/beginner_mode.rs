@@ -173,11 +173,26 @@ mod tests {
 
     #[test]
     fn affordance_reality_matches_spec119() {
-        assert_eq!(affordance_reality_for(BeginnerModeState::Disconnected), "unavailable");
-        assert_eq!(affordance_reality_for(BeginnerModeState::Unbound), "limited");
-        assert_eq!(affordance_reality_for(BeginnerModeState::NoWorkpoint), "limited");
-        assert_eq!(affordance_reality_for(BeginnerModeState::NoEvidence), "limited");
-        assert_eq!(affordance_reality_for(BeginnerModeState::Resumable), "possible");
+        assert_eq!(
+            affordance_reality_for(BeginnerModeState::Disconnected),
+            "unavailable"
+        );
+        assert_eq!(
+            affordance_reality_for(BeginnerModeState::Unbound),
+            "limited"
+        );
+        assert_eq!(
+            affordance_reality_for(BeginnerModeState::NoWorkpoint),
+            "limited"
+        );
+        assert_eq!(
+            affordance_reality_for(BeginnerModeState::NoEvidence),
+            "limited"
+        );
+        assert_eq!(
+            affordance_reality_for(BeginnerModeState::Resumable),
+            "possible"
+        );
     }
 
     #[test]
