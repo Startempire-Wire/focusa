@@ -7,7 +7,11 @@
 //! the safe-write route; Slice 5 will integrate with Spec 119 receipts.
 
 use crate::server::AppState;
-use axum::{Json, Router, http::StatusCode, routing::get};
+use axum::{
+    Json, Router,
+    http::StatusCode,
+    routing::{get, post},
+};
 use serde_json::{Value, json};
 use std::sync::Arc;
 
@@ -36,15 +40,35 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/preload/doctor", get(doctor))
         .route("/v1/preload/receipt-preview", get(receipt_preview))
         .route("/v1/preload/receipt-commit", get(receipt_commit))
+        .route("/v1/preload/write", post(write_packet))
 }
 
 async fn list_profiles() -> Json<Value> {
+    let profiles: Vec<Value> = AGENT_BOOTSTRAP_PROFILES
+        .iter()
+        .map(|p| {
+            json!({
+                "id": p.id,
+                "label": p.label,
+                "description": p.description,
+                "includes_dynamic_context": p.includes_dynamic_context,
+                "includes_acceptance_prompt": p.includes_acceptance_prompt,
+                "max_dynamic_items": p.max_dynamic_items,
+            })
+        })
+        .collect();
     Json(json!({
         "schema": PRELOAD_SCHEMA,
-        "profiles": PROFILE_IDS,
+        "profiles": profiles,
         "default_profile": PROFILE_RULES_AND_CONTEXT,
         "read_only": true,
     }))
+}
+
+#[derive(serde::Deserialize, Default)]
+struct ProfileQuery {
+    #[serde(default)]
+    profile: Option<String>,
 }
 
 async fn build() -> Json<Value> {
@@ -84,6 +108,20 @@ async fn doctor() -> Json<Value> {
         "read_only": true,
         "status": "noop",
         "report": {"ok": false, "checks": []},
+    }))
+}
+
+pub fn build_packet_for_profile(profile_id: &str) -> Result<Value, String> {
+    let packet = build_packet(profile_id)?;
+    Ok(json!({
+        "schema": packet.schema,
+        "profile_id": packet.profile_id,
+        "render_mode": format!("{:?}", packet.render_mode),
+        "static_rule_lines": packet.static_rule_lines,
+        "dynamic_context_lines": packet.dynamic_context_lines,
+        "acceptance_prompt": packet.acceptance_prompt,
+        "bounded_dynamic_items": packet.bounded_dynamic_items,
+        "rendered": render_packet(&packet),
     }))
 }
 
@@ -233,6 +271,130 @@ pub fn render_packet(packet: &AgentBootstrapPacket) -> String {
     out
 }
 
+#[derive(serde::Deserialize)]
+struct WriteRequest {
+    profile_id: String,
+    target_path: String,
+    idempotency_key: String,
+    #[serde(default)]
+    overwrite: bool,
+}
+
+#[derive(serde::Serialize)]
+struct WriteFailure {
+    error: &'static str,
+    code: String,
+    reason: String,
+}
+
+fn write_failure(err: &'static str, reason: impl Into<String>) -> Json<WriteFailure> {
+    Json(WriteFailure {
+        error: err,
+        code: FAIL_CODE_PRELOAD.to_string(),
+        reason: reason.into(),
+    })
+}
+
+fn is_safe_target(target: &str) -> bool {
+    let p = std::path::Path::new(target);
+    if target.contains('\0') {
+        return false;
+    }
+    if p.is_absolute() {
+        target.starts_with("/tmp/focusa-preload/")
+            || target.starts_with("/var/cache/focusa/preload/")
+    } else {
+        false
+    }
+}
+
+async fn write_packet(Json(req): Json<WriteRequest>) -> (StatusCode, Json<Value>) {
+    if req.idempotency_key.trim().is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "schema": PRELOAD_SCHEMA,
+                "error": FAIL_CODE_PRELOAD,
+                "reason": "missing_idempotency_key",
+            })),
+        );
+    }
+    if !is_safe_target(&req.target_path) {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({
+                "schema": PRELOAD_SCHEMA,
+                "error": FAIL_CODE_PRELOAD,
+                "reason": "unsafe_target_path",
+                "allowed_prefixes": ["/tmp/focusa-preload/", "/var/cache/focusa/preload/"],
+            })),
+        );
+    }
+    let packet = match build_packet(&req.profile_id) {
+        Ok(p) => p,
+        Err(reason) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({
+                    "schema": PRELOAD_SCHEMA,
+                    "error": FAIL_CODE_PRELOAD,
+                    "reason": reason,
+                })),
+            );
+        }
+    };
+    let path = std::path::Path::new(&req.target_path);
+    if path.exists() && !req.overwrite {
+        return (
+            StatusCode::CONFLICT,
+            Json(json!({
+                "schema": PRELOAD_SCHEMA,
+                "error": FAIL_CODE_PRELOAD,
+                "reason": "target_exists_set_overwrite_true_to_replace",
+            })),
+        );
+    }
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let body = render_packet(&packet);
+    let write_result = std::fs::write(path, body.as_bytes());
+    match write_result {
+        Ok(()) => (
+            StatusCode::OK,
+            Json(json!({
+                "schema": PRELOAD_SCHEMA,
+                "step": "write",
+                "profile_id": req.profile_id,
+                "target_path": req.target_path,
+                "idempotency_key": req.idempotency_key,
+                "ok": true,
+            })),
+        ),
+        Err(err) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "schema": PRELOAD_SCHEMA,
+                "error": FAIL_CODE_PRELOAD,
+                "reason": "io_error",
+                "detail": err.to_string(),
+            })),
+        ),
+    }
+}
+
+pub fn receipt_preview_for(profile_id: &str) -> Result<Value, String> {
+    let packet = build_packet(profile_id)?;
+    Ok(json!({
+        "schema": PRELOAD_SCHEMA,
+        "receipt_kind": BOOTSTRAP_RECEIPT_KIND,
+        "preview": true,
+        "ok": true,
+        "profile_id": packet.profile_id,
+        "rendered": render_packet(&packet),
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -268,6 +430,45 @@ mod tests {
         assert!(profile.includes_dynamic_context);
         assert_eq!(p.bounded_dynamic_items, 16);
         assert!(!p.acceptance_prompt.is_empty());
+    }
+
+    #[test]
+    fn slice4_unsafe_target_path_is_rejected() {
+        assert!(!is_safe_target("/etc/passwd"));
+        assert!(!is_safe_target("./local.txt"));
+        assert!(is_safe_target("/tmp/focusa-preload/packet.md"));
+        assert!(is_safe_target("/var/cache/focusa/preload/x.md"));
+    }
+
+    #[test]
+    fn slice5_receipt_preview_returns_rendered_packet() {
+        let v = receipt_preview_for(PROFILE_RULES_AND_CONTEXT).expect("preview");
+        assert_eq!(v["receipt_kind"], BOOTSTRAP_RECEIPT_KIND);
+        assert!(
+            v["rendered"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("Focusa Agent Bootstrap")
+        );
+    }
+
+    #[test]
+    fn slice3_profile_list_contains_required_ids() {
+        for id in [
+            PROFILE_RULES_ONLY,
+            PROFILE_RULES_AND_CONTEXT,
+            PROFILE_BUDGET_LIGHT,
+            PROFILE_BUDGET_DEEP,
+        ] {
+            assert!(profile_by_id(id).is_some(), "missing {id}");
+        }
+    }
+
+    #[test]
+    fn slice3_build_packet_for_profile_json_includes_rendered() {
+        let v = build_packet_for_profile(PROFILE_RULES_AND_CONTEXT).expect("packet");
+        let rendered = v["rendered"].as_str().unwrap_or_default();
+        assert!(rendered.contains("Focusa Agent Bootstrap"));
     }
 
     #[test]
