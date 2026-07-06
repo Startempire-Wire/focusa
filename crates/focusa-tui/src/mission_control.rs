@@ -97,21 +97,19 @@ fn render_grid(app: &App, frame: &mut ratatui::Frame, area: Rect) -> Vec<Rect> {
     left.into_iter().chain(right.into_iter()).collect()
 }
 
-fn render_stack(app: &App, frame: &mut ratatui::Frame, area: Rect) -> Vec<Rect> {
-    // Mobile: keep it simple. Mission Card + beginnner hint + key shortcuts.
+fn render_stack(app: &App, frame: &mut ratatui::Frame, area: Rect) {
+    // Mobile: keep it simple. Mission Card + beginner hint.
+    // Key hints are in the global footer.
     let rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Min(8),
             Constraint::Length(3),
-            Constraint::Length(2),
         ])
         .split(area);
 
     render_mission_column(app, frame, rows[0]);
     render_beginner_hint_mobile(app, frame, rows[1]);
-    render_keys_mobile(app, frame, rows[2]);
-    vec![rows[0], rows[1], rows[2]]
 }
 
 fn render_beginner_hint_mobile(app: &App, frame: &mut ratatui::Frame, area: Rect) {
@@ -123,14 +121,6 @@ fn render_beginner_hint_mobile(app: &App, frame: &mut ratatui::Frame, area: Rect
     ];
     let block = Block::default().title(" Next ").borders(Borders::ALL).border_style(theme::border());
     frame.render_widget(Paragraph::new(lines).block(block).wrap(Wrap { trim: true }), area);
-}
-
-fn render_keys_mobile(app: &App, frame: &mut ratatui::Frame, area: Rect) {
-    let label = if app.connected { "n=next  /=recall  l=learn  ?=help  q=quit" } else { "waiting for daemon…" };
-    frame.render_widget(
-        Paragraph::new(Span::styled(label, theme::label())),
-        area,
-    );
 }
 
 fn render_mission_column(app: &App, frame: &mut ratatui::Frame, area: Rect) -> Vec<Rect> {
