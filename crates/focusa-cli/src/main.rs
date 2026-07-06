@@ -184,6 +184,9 @@ enum Commands {
     /// Mission Deck walkthroughs (Spec 117 §12). List and start first-mission.
     Walkthrough(commands::walkthrough::WalkthroughArgs),
 
+    /// Spec 111 agent context bootstrap and delivery.
+    Preload(commands::preload::PreloadArgs),
+
     /// Launch Focusa Mission Deck (alias for `focusa-tui`).
     Deck(commands::deck::DeckArgs),
 
@@ -739,6 +742,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Tui(args) => commands::tui::run(args, cli.json).await,
         Commands::Init(args) => commands::init::run(args, cli.json).await,
         Commands::Walkthrough(args) => commands::walkthrough::run(args, cli.json).await,
+        Commands::Preload(args) => commands::preload::run(args, cli.json).await,
         Commands::Deck(args) => commands::deck::run(args, cli.json).await,
         Commands::Workflow(cmd) => commands::workflow::run(cmd, cli.json).await,
         Commands::Stack => {
