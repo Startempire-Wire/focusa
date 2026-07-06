@@ -585,6 +585,7 @@ Start here:
 - `docs/README.md` — documentation index for the current snapshot.
 - `docs/PUBLIC_DOCS_SYNC.md` — public-facing docs sync map: proven claims, install/quickstart/GTM paths, and launch polish blockers.
 - `docs/NEWBIE_ONBOARDING_WALKTHROUGH_QA.md` — full newbie onboarding and walkthrough experience QA, audit checklist, and source-backed claim matrix.
+- `docs/PUBLIC_GITHUB_SWEEP.md` — public GitHub repo sweep: allowed/avoid list, findings table, and verification steps.
 - `docs/focusa-tools/README.md` — focused docs for every current `focusa_*` tool family, with tool descriptions and examples.
 - `docs/focusa-tools/workpoint.md` — Workpoint checkpoint/resume/evidence/object-resolution tools.
 - `docs/focusa-tools/focus-state.md` — Focus State and scratchpad tools.
