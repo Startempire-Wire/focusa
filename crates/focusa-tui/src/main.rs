@@ -141,6 +141,7 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
         "schema": "focusa.tui_headless_self_test.v1",
         "title": "Focusa Mission Deck",
         "default_tab": "DeckHome",
+        "deck_home_beautification_checklist": crate::views::deck_home::BEAUTIFICATION_CHECKLIST,
         "beginner_mode_decision_tree": crate::beginner_mode::DECISION_TREE,
         "help_overlay": {
             "toggle": ["h", "?"],

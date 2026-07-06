@@ -4,7 +4,7 @@ mod autonomy;
 mod cache;
 mod constitution;
 mod contribution;
-mod deck_home;
+pub mod deck_home;
 mod events;
 mod focus_stack;
 mod focus_state;

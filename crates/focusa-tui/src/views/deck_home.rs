@@ -9,6 +9,16 @@ use crate::views::proof_status;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
+pub const BEAUTIFICATION_CHECKLIST: &[&str] = &[
+    "clear_mission_headline",
+    "visible_scope_badge",
+    "visible_proof_meter",
+    "one_primary_next_action",
+    "plain_language_why",
+    "discoverable_hotkeys",
+    "explicit_unavailable_states",
+];
+
 pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -42,12 +52,12 @@ fn render_mission_card(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     let text = vec![
         Line::from(vec![
             Span::styled("Mission Deck", theme::title()),
-            Span::raw(" — resume the right mission, with proof."),
+            Span::raw(" — keep the mission, prove the handoff."),
         ]),
-        Line::from(format!("session: {session}")),
-        Line::from(format!("active frame: {active_frame}")),
-        Line::from(format!("scope: {} {}", scope.visual, scope.label)),
-        Line::from(format!("proof: {} {}", proof.visual, proof.label)),
+        Line::from(format!("Session       {session}")),
+        Line::from(format!("Active frame  {active_frame}")),
+        Line::from(format!("Scope badge   {}  {}", scope.visual, scope.label)),
+        Line::from(format!("Proof meter   {}  {}", proof.visual, proof.label)),
         Line::from(format!(
             "frames: {}  events: {}",
             app.state.focus_stack.frames.len(),
@@ -55,7 +65,7 @@ fn render_mission_card(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         )),
     ];
     let block = Block::default()
-        .title(" Deck Home ")
+        .title(" Deck Home · Mission + Proof ")
         .title_style(theme::title())
         .borders(Borders::ALL)
         .border_style(theme::border());
@@ -79,22 +89,25 @@ fn render_next_safe_action(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         .unwrap_or("Bind project, resume workpoint, capture proof");
 
     let text = vec![
-        Line::from(Span::styled("Next safe action", theme::label())),
-        Line::from(format!("beginner_state: {}", mode_state.id())),
+        Line::from(Span::styled(
+            "Next safe action — one move, with why",
+            theme::label(),
+        )),
+        Line::from(format!("State          {}", mode_state.id())),
         Line::from(mode_state.explanation()),
-        Line::from(format!("primary_action: {}", next.label)),
-        Line::from(format!("command: {}", next.command)),
+        Line::from(format!("Primary action {}", next.label)),
+        Line::from(format!("Command        {}", next.command)),
         Line::from(format!(
-            "authority: {} · context: {}",
+            "Authority     {} · context {}",
             next.authority_posture, next.walkthrough_context
         )),
-        Line::from(format!("why: {}", next.why)),
-        Line::from(format!("intent: {intent}")),
-        Line::from(format!("focus: {current}")),
-        Line::from("keys: d Deck Home · 1 State · 2 Stack · Tab next · r refresh · q quit"),
+        Line::from(format!("Why           {}", next.why)),
+        Line::from(format!("Intent        {intent}")),
+        Line::from(format!("Focus         {current}")),
+        Line::from("Keys          d Deck · n next · / recall · h help · r refresh · q quit"),
     ];
     let block = Block::default()
-        .title(" Mission Control ")
+        .title(" Mission Control · Do This Next ")
         .title_style(theme::title())
         .borders(Borders::ALL)
         .border_style(theme::border());
