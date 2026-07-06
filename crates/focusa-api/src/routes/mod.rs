@@ -36,6 +36,7 @@ pub mod metacognition;
 pub mod ontology;
 pub mod permissions;
 pub mod predictions;
+pub mod preload;
 pub mod project;
 pub mod proposals;
 pub mod proxy;
