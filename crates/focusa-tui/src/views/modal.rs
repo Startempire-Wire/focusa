@@ -55,27 +55,48 @@ fn learn_body(app: &App) -> Vec<Line<'static>> {
     let mut out: Vec<Line<'static>> = Vec::new();
     let titles = walkthroughs::WALKTHROUGH_TITLES;
     let audiences = walkthroughs::WALKTHROUGH_AUDIENCES;
+    let ids = walkthroughs::WALKTHROUGH_IDS;
+    let selected = walkthroughs::selected_index(app);
     out.push(Line::from(Span::styled(
-        "Walkthroughs available:",
+        "Choose a walkthrough with 1/2/3:",
         theme::title(),
     )));
     for (i, t) in titles.iter().enumerate() {
+        let marker = if i == selected { "▶" } else { " " };
         let aud = audiences.get(i).copied().unwrap_or("?");
+        let id = ids.get(i).copied().unwrap_or("?");
         out.push(Line::from(format!(
-            "  [{}] {} · audience: {}",
+            "{marker} [{}] {} · {} · {}",
             i + 1,
             t,
-            aud
+            aud,
+            id
         )));
     }
     out.push(Line::from(""));
+    out.push(Line::from(Span::styled("Why", theme::title())));
+    out.push(Line::from(
+        walkthroughs::WALKTHROUGH_WHY_IT_MATTERS[selected],
+    ));
+    out.push(Line::from(""));
+    out.push(Line::from(Span::styled("Success", theme::title())));
+    out.push(Line::from(
+        walkthroughs::WALKTHROUGH_SUCCESS_SIGNALS[selected],
+    ));
+    out.push(Line::from(""));
+    out.push(Line::from(Span::styled("Anti-drift", theme::title())));
+    out.push(Line::from(
+        walkthroughs::WALKTHROUGH_ANTI_DRIFT_RULES[selected],
+    ));
+    out.push(Line::from(""));
+    out.push(Line::from(Span::styled("Steps", theme::title())));
+    for step in walkthroughs::WALKTHROUGH_STEPS[selected] {
+        out.push(Line::from(format!("  {step}")));
+    }
+    out.push(Line::from(""));
     out.push(Line::from(Span::styled(
-        "Tip: open CLI for full control — focusa walkthrough show --walkthrough <id>",
+        "Esc closes · CLI: focusa walkthrough show --walkthrough <id>",
         theme::label(),
-    )));
-    out.push(Line::from(format!(
-        "Press Esc to close · current selection {}",
-        app.modal_selection
     )));
     out
 }

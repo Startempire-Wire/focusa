@@ -9,8 +9,10 @@ use ratatui::widgets::*;
 
 pub const FOCUSA_LOGO: &str = "FOCUSA";
 pub const FOCUSA_TAGLINE: &str = "Local-first mission cohesion for AI coding agents.";
+pub const FOCUSA_TAGS: &[&str] = &["local-first", "evidence-backed", "handoff-ready"];
+pub const FOCUSA_TAGS_LINE: &str = "Tags: local-first · evidence-backed · handoff-ready";
 
-pub const INTRO_HEADLINE_LINES: &[&str] = &[FOCUSA_LOGO, FOCUSA_TAGLINE];
+pub const INTRO_HEADLINE_LINES: &[&str] = &[FOCUSA_LOGO, FOCUSA_TAGLINE, FOCUSA_TAGS_LINE];
 
 pub const INTRO_FOOTER_LINES: &[&str] = &[
     "",
@@ -93,6 +95,10 @@ mod tests {
             "Local-first mission cohesion for AI coding agents."
         );
         assert!(!FOCUSA_TAGLINE.starts_with(FOCUSA_LOGO));
+        assert_eq!(
+            FOCUSA_TAGS,
+            ["local-first", "evidence-backed", "handoff-ready"]
+        );
     }
 
     #[test]

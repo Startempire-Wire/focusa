@@ -8,6 +8,7 @@ use crate::theme;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
+pub const WALKTHROUGH_IDS: &[&str] = &["first-mission", "agent-handoff", "no-proof-no-done"];
 pub const WALKTHROUGH_TITLES: &[&str] = &["First Mission", "Agent Handoff", "No Proof, No Done"];
 
 pub const WALKTHROUGH_AUDIENCES: &[&str] = &["beginner", "agent", "beginner"];
@@ -44,12 +45,21 @@ pub const WALKTHROUGH_WHY_IT_MATTERS: &[&str] = &[
     "Teaches evidence discipline: an agent completion claim is not done until proof is visible or the gap is explicit.",
 ];
 
+pub const WALKTHROUGH_SUCCESS_SIGNALS: &[&str] = &[
+    "A second agent can run resume and continue the same mission safely.",
+    "The handoff packet states mission, next action, evidence, and do-not-drift boundaries.",
+    "The proof meter shows linked/verified evidence or an explicit proof gap.",
+];
+
+pub const WALKTHROUGH_ANTI_DRIFT_RULES: &[&str] = &[
+    "Do not rely on transcript tail when Workpoint resume is available.",
+    "Do not start unrelated work until authority and scope are visible.",
+    "Do not close a task without evidence citations or an explicit blocker.",
+];
+
 pub fn selected_index(app: &App) -> usize {
-    let key = app.tab.hotkey();
-    WALKTHROUGH_TITLES
-        .iter()
-        .position(|_| key == WALKTHROUGH_AUDIENCES.get(0).copied().unwrap_or(""))
-        .unwrap_or(0)
+    app.modal_selection
+        .min(WALKTHROUGH_TITLES.len().saturating_sub(1))
 }
 
 pub fn render(frame: &mut ratatui::Frame, area: Rect) {
@@ -80,10 +90,11 @@ pub fn render(frame: &mut ratatui::Frame, area: Rect) {
         .enumerate()
         .map(|(idx, t)| {
             Line::from(format!(
-                "  [{}] {} (audience: {})",
+                "  [{}] {} · {} · {}",
                 idx + 1,
                 t,
-                WALKTHROUGH_AUDIENCES.get(idx).copied().unwrap_or("?")
+                WALKTHROUGH_AUDIENCES.get(idx).copied().unwrap_or("?"),
+                WALKTHROUGH_IDS.get(idx).copied().unwrap_or("?")
             ))
         })
         .collect();
@@ -91,17 +102,24 @@ pub fn render(frame: &mut ratatui::Frame, area: Rect) {
     frame.render_widget(Paragraph::new(catalog).block(cat_block), chunks[1]);
 
     // First walkthrough steps (mobile-friendly detail card)
+    let selected = 0usize;
     let mut detail: Vec<Line> = Vec::new();
     detail.push(Line::from(format!(
         "Currently showing: {}",
-        WALKTHROUGH_TITLES[0]
+        WALKTHROUGH_TITLES[selected]
     )));
     detail.push(Line::from(""));
     detail.push(Line::from(Span::styled("Why", theme::title())));
-    detail.push(Line::from(WALKTHROUGH_WHY_IT_MATTERS[0]));
+    detail.push(Line::from(WALKTHROUGH_WHY_IT_MATTERS[selected]));
+    detail.push(Line::from(""));
+    detail.push(Line::from(Span::styled("Success signal", theme::title())));
+    detail.push(Line::from(WALKTHROUGH_SUCCESS_SIGNALS[selected]));
+    detail.push(Line::from(""));
+    detail.push(Line::from(Span::styled("Anti-drift rule", theme::title())));
+    detail.push(Line::from(WALKTHROUGH_ANTI_DRIFT_RULES[selected]));
     detail.push(Line::from(""));
     detail.push(Line::from(Span::styled("Steps", theme::title())));
-    for step in WALKTHROUGH_STEPS[0] {
+    for step in WALKTHROUGH_STEPS[selected] {
         detail.push(Line::from(format!("  {step}")));
     }
     detail.push(Line::from(""));
@@ -133,9 +151,12 @@ mod tests {
 
     #[test]
     fn walkthrough_steps_match_titles_count() {
+        assert_eq!(WALKTHROUGH_TITLES.len(), WALKTHROUGH_IDS.len());
         assert_eq!(WALKTHROUGH_TITLES.len(), WALKTHROUGH_STEPS.len());
         assert_eq!(WALKTHROUGH_TITLES.len(), WALKTHROUGH_AUDIENCES.len());
         assert_eq!(WALKTHROUGH_TITLES.len(), WALKTHROUGH_WHY_IT_MATTERS.len());
+        assert_eq!(WALKTHROUGH_TITLES.len(), WALKTHROUGH_SUCCESS_SIGNALS.len());
+        assert_eq!(WALKTHROUGH_TITLES.len(), WALKTHROUGH_ANTI_DRIFT_RULES.len());
     }
 
     #[test]
@@ -145,8 +166,22 @@ mod tests {
 
     #[test]
     fn walkthrough_lines_are_mobile_friendly() {
-        for line in WALKTHROUGH_TITLES {
+        for line in WALKTHROUGH_TITLES
+            .iter()
+            .chain(WALKTHROUGH_IDS)
+            .chain(WALKTHROUGH_AUDIENCES)
+        {
             assert!(line.chars().count() <= 40);
         }
+    }
+
+    #[test]
+    fn education_copy_has_success_and_anti_drift_signals() {
+        assert!(WALKTHROUGH_SUCCESS_SIGNALS.iter().all(|s| !s.is_empty()));
+        assert!(
+            WALKTHROUGH_ANTI_DRIFT_RULES
+                .iter()
+                .all(|s| s.contains("Do not"))
+        );
     }
 }

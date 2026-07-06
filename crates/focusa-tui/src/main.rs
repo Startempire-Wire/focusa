@@ -83,6 +83,15 @@ async fn main() -> Result<()> {
             match key.code {
                 KeyCode::Char('q') | KeyCode::Esc => break,
                 _ if app.show_intro => app.dismiss_intro(),
+                KeyCode::Char('1') if matches!(app.modal, Some(crate::app::ModalKind::Learn)) => {
+                    app.modal_selection = 0;
+                }
+                KeyCode::Char('2') if matches!(app.modal, Some(crate::app::ModalKind::Learn)) => {
+                    app.modal_selection = 1;
+                }
+                KeyCode::Char('3') if matches!(app.modal, Some(crate::app::ModalKind::Learn)) => {
+                    app.modal_selection = 2;
+                }
                 KeyCode::Char('d') | KeyCode::Char('n') => app.tab = app::Tab::DeckHome,
                 KeyCode::Char('1') => app.tab = app::Tab::FocusState,
                 KeyCode::Char('2') => app.tab = app::Tab::FocusStack,
@@ -173,6 +182,8 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
         },
         "about_logo": crate::views::intro::FOCUSA_LOGO,
         "about_tagline": crate::views::intro::FOCUSA_TAGLINE,
+        "focusa_tags": crate::views::intro::FOCUSA_TAGS,
+        "focusa_tags_line": crate::views::intro::FOCUSA_TAGS_LINE,
         "about_version": crate::views::about::ABOUT_VERSION,
         "about_credits_count": crate::views::about::ABOUT_CREDITS.len(),
         "intro_splash": {
@@ -211,6 +222,14 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
             crate::views::proof_status::PRECEDENCE_FRAME_AUTHORITY,
             crate::views::proof_status::PRECEDENCE_FRAME_OPERATOR,
         ],
+        "walkthrough_education": {
+            "ids": crate::views::walkthroughs::WALKTHROUGH_IDS,
+            "titles": crate::views::walkthroughs::WALKTHROUGH_TITLES,
+            "audiences": crate::views::walkthroughs::WALKTHROUGH_AUDIENCES,
+            "why_it_matters": crate::views::walkthroughs::WALKTHROUGH_WHY_IT_MATTERS,
+            "success_signals": crate::views::walkthroughs::WALKTHROUGH_SUCCESS_SIGNALS,
+            "anti_drift_rules": crate::views::walkthroughs::WALKTHROUGH_ANTI_DRIFT_RULES,
+        },
         "recall_tab": {
             "hotkey": "/",
             "sources": crate::views::recall::RECALL_SEARCH_SOURCES,

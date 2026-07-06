@@ -3,7 +3,7 @@
 //! Version, build info, telemetry opt-in state, credits, canonical FOCUSA
 //! LOGO & TAGLINE, and other important data.
 
-use crate::views::intro::{FOCUSA_LOGO, FOCUSA_TAGLINE};
+use crate::views::intro::{FOCUSA_LOGO, FOCUSA_TAGLINE, FOCUSA_TAGS_LINE};
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
@@ -30,6 +30,7 @@ pub fn about_lines() -> Vec<(String, String)> {
     vec![
         ("Logo".to_string(), FOCUSA_LOGO.to_string()),
         ("Tagline".to_string(), FOCUSA_TAGLINE.to_string()),
+        ("Tags".to_string(), FOCUSA_TAGS_LINE.to_string()),
         ("Version".to_string(), ABOUT_VERSION.to_string()),
         ("Build".to_string(), ABOUT_BUILD_INFO.to_string()),
         ("Toolchain".to_string(), ABOUT_RUSTC.to_string()),
@@ -64,6 +65,7 @@ pub fn render(frame: &mut ratatui::Frame, area: Rect) {
             Style::new().bold().fg(Color::Cyan),
         )),
         Line::from(Span::styled(FOCUSA_TAGLINE, Style::new().italic())),
+        Line::from(FOCUSA_TAGS_LINE),
         Line::from(""),
         Line::from(format!("Version {}", ABOUT_VERSION)),
         Line::from(format!("Build   {}", ABOUT_BUILD_INFO)),
