@@ -552,6 +552,160 @@ Default posture:
 - Advisory-only for current-turn tool calls.
 - Disabled for active blocker logs unless a summary includes exact error class and rehydrate ref.
 
+### 5.12 Provider prompt cache + bounded recent-turns slice
+
+Long-horizon Focusa sessions drain provider usage because every LLM call re-sends the full conversation context. Pi does not cache provider responses; `transport: "websocket-cached"` only caches the websocket connection. This domain introduces two related, additive levers to reduce per-turn token spend without sacrificing agent orientation: provider-side prompt caching and a bounded recent-turns slice. It sits alongside §5.10 (tool-history elision), §5.11 (optical context), and §10.4 (semantic caching) and reuses Spec 100 Context Cognition for the candidate set.
+
+#### 5.12.1 Purpose
+
+> Reduce provider token usage on long-horizon sessions by making the stable system prefix cacheable upstream and giving the agent a bounded, deduplicated orientation slice so it stops re-reading prior tool outputs and re-calling Workpoint/Trajectory surfaces.
+
+When this domain is on:
+
+- Provider sees a stable system prefix across consecutive turns and can cache it natively (Anthropic `cache_control: ephemeral` or OpenAI `prompt_cache_key`).
+- Agent receives a recent-turns slice (default 4, hard cap 8) carrying only `[turn_id, mission_at_turn, outcome, evidence_refs]` per turn — never the assistant text.
+- Pi-extension collapses the slice into the existing `## Cognitive Summary` section (no new section header) so prompt-token cost stays flat with current Focusa sessions.
+- Status-only turns (`test`, `cont`, `ack`, etc. — matched via `isNonTaskStatusLikeText`) and tool-empty turns are filtered out before the slice is emitted.
+- Hard guard: when `S.turnCount < 4`, no slice is emitted; when no qualifying turns exist, no slice is emitted.
+
+#### 5.12.2 Integration point
+
+After §5.11 optical compression and after §5.10 tool-history elision, before the provider request is forwarded:
+
+```text
+Context Cognition / Focus Slice
+        ↓
+Bloatgaurd Context Decision (§10.4 semantic cache lookup first)
+        ↓
+§5.10 Tool-history elision
+        ↓
+§5.11 Optical compression gate
+        ↓
+§5.12 Cacheable stable block split (this section)  ← NEW
+        ↓
+§5.12 Recent-turns slice emission (this section)   ← NEW
+        ↓
+Provider Request Injection (with cache_control breakpoint)
+        ↓
+Upstream Provider Forward
+        ↓
+Runtime Telemetry Capture (per-turn token in/out + cache_hit)
+```
+
+#### 5.12.3 Cacheable stable block + breakpoint
+
+The pi-extension `before_agent_start` and `context` hooks (in `apps/pi-extension/src/turns.ts` and `…/compaction.ts`) currently mutate `event.systemPrompt` by appending plain strings. This domain introduces a structured split:
+
+```ts
+const stableBlock = [
+  "## Focusa Cognitive Guidance",          // static rules
+  "## Cognitive Summary",                  // intent/focus/decisions/constraints
+  "## Workpoint Resume",                   // canonical mission + next_action + evidence
+].join("\n\n");
+
+const variableBlock = [
+  "## Recent Turns (last 4)",              // NEW — bounded turn slice (deduped)
+  "## Tool Result Tail",                   // active step tool output if any
+].join("\n\n");
+
+// Provider request body, in order:
+{
+  system: [
+    { type: "text", text: stableBlock,   cache_control: { type: "ephemeral" } },
+    { type: "text", text: variableBlock },
+  ],
+  // ...
+}
+```
+
+Provider cache requirements:
+
+- The stable block must contain **zero** variable content (no per-turn timestamps, no per-session paths, no per-tool-call output).
+- The break must occur exactly once, between stable and variable.
+- The pi-extension must support emitting `cache_control: ephemeral` (Anthropic) or equivalent on the stable block. When the underlying model SDK does not expose this, fall back to `safe_off` and emit a finding.
+
+#### 5.12.4 Recent-turns ring buffer
+
+State lives in pi-extension (`apps/pi-extension/src/state.ts`):
+
+```ts
+S.recentTurns: Array<{
+  turn_id: string;           // mono increasing, e.g. `turn_<n>`
+  mission_at_turn: string;   // active Frame mission or ask at turn start, bounded 120 chars
+  outcome: string;           // bounded 80 chars: "committed | filed_bead | observed | blocked | ack"
+  evidence_refs: string[];   // handles captured during this turn
+  tool_call_count: number;
+}> = [];
+```
+
+Ring buffer invariants:
+
+- Hard cap: 8 entries. On overflow, oldest entry is dropped.
+- Emission cap: default 4 (configurable via `bloatgaurd.recent_turns.n`; cold ceiling 8).
+- Populated in the existing `turn_end` hook (`turns.ts:1111`), filtered by:
+  - `!isNonTaskStatusLikeText(text)` (already exists in `compaction.ts`)
+  - `tool_call_count > 0 || outcome !== "ack"`
+- Empty array is a no-op; no empty `## Recent Turns` header is emitted.
+
+#### 5.12.5 Trigger wiring
+
+`event.systemPrompt += formatRecentTurnsSection()` is invoked in exactly three existing hook bodies (no new hooks):
+
+| Hook | File:line | When |
+|---|---|---|
+| `before_agent_start` | `turns.ts:447` | every agent loop start (existing — keeps agent re-orientable after compaction) |
+| `session_compact` | `compaction.ts:521` | after compaction (new injection on the resumed loop) |
+| `model_select` | `turns.ts:1345` | after model switch (new model sees prior turns) |
+
+Idempotency guard:
+
+```ts
+if (S.lastRecentTurnsSliceTurn !== S.turnCount) {
+  S.lastRecentTurnsSliceTurn = S.turnCount;
+  event.systemPrompt += formatRecentTurnsSection(4);
+}
+```
+
+This guarantees one slice per turn across rapid agent loops, while still refreshing on compaction / model_select events that bump `S.turnCount`.
+
+#### 5.12.6 Gate posture
+
+Default posture (`bloatgaurd.recent_turns`):
+
+- `enabled`: `safe_auto`
+- `n_default`: 4
+- `n_cold_max`: 8
+- `drop_status_only`: true
+- `drop_tool_empty`: true
+- `fold_into_cognitive_summary`: true   (omit `## Recent Turns` header; render as sub-bullets)
+- `cache_control_emitter`: `auto`       (auto-detect Anthropic / OpenAI SDK support)
+
+Modes A → B → C graduated by per-turn token delta vs baseline.
+
+#### 5.12.7 Initial checks
+
+- Cacheable stable block split exists in `before_agent_start` and `context` hooks.
+- `S.recentTurns` ring buffer is populated in `turn_end` and capped at 8.
+- Recent-turns slice folds into existing `## Cognitive Summary`; no new top-level section.
+- `cache_control: ephemeral` (or equivalent) emitted on stable block when supported.
+- Provider cache hit reported by upstream is recorded in spec 29 telemetry.
+- Idempotency guard prevents double-slice across rapid agent loops.
+
+#### 5.12.8 Potential findings
+
+- `provider_cache_breakpoint_missing` — stable block not split, no cache hint emitted.
+- `uncapped_recent_turns_slice` — slice exceeds `n_cold_max` (8) or contains raw assistant text.
+- `context_cache_dump_replacing_handle` — recent-turns slice inlines evidence payloads instead of using ECS handles.
+- `redundant_injection_after_compaction` — slice re-emitted on every agent loop without idempotency guard.
+- `raw_tool_history_replayed_in_slice` — turn slice includes tool output tail instead of evidence ref.
+- `provider_cache_skipped_in_safe_auto` — fallback silently degrades without diagnostic.
+
+#### 5.12.9 Default posture
+
+- Enabled in `safe_auto` mode by default.
+- Disabled entirely if upstream provider does not advertise prompt cache support and no SDK path is found; emits a single `provider_cache_skipped_in_safe_auto` finding on first turn.
+- Recent-turns slice always enabled (separate from cache path) — it costs ~400-600 tokens per turn but prevents 2-5k token re-reads on the agent side, so net negative in typical sessions.
+
 ## 6. Gate modes
 
 ### Mode A: advisory report
