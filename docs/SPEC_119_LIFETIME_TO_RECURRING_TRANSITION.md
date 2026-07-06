@@ -280,26 +280,60 @@ blocking — drafts can hold all three options until decided.
 
 **Q1 — Does a Bundle sale consume from both the Focusa 150 and the UIAI 150?**
 
-| Option | What it means | Mechanical effect |
-|---|---|---|
-| A. Bundle consumes from BOTH | 50 bundles + 100 individual Focusa + 100 individual UIAI = 150 / 150 / 50 caps filled | Caps overlap; total unit ceiling = 300 (150 + 150) but slot-fill depends on mix |
-| B. Bundle is independent ledger | 50 bundles + 150 Focusa + 150 UIAI = 350 unit ceiling (one Bundle = 1 unit) | Caps stack independently; total ceiling = 350 |
-| C. Bundle counts once across BOTH | 50 bundles + 100 Focusa + 100 UIAI = 200 total users with both products | Halfway between A and B; cleanest for marketing |
+**Operator draft decision (2026-07-06):** No — bundle sales are **not**
+separate. Bundles consume from both individual caps (Option C).
 
-**Current operator lean:** none recorded yet — open for input.
+| Option | What it means | Status |
+|---|---|---|
+| A. Bundle consumes from BOTH | 50 bundles + 100 individual Focusa + 100 individual UIAI = 150/150/50 caps filled; cap binding = whichever hits first | superseded |
+| B. Bundle is independent ledger | 50 bundles + 150 Focusa + 150 UIAI = 350 unit ceiling (caps stack) | rejected |
+| **C. Bundle counts once across BOTH (DRAFT)** | Bundle = 1 from Focusa 150 + 1 from UIAI 150. Max bundles = min(50, remaining F, remaining U). | **operator lean** |
+
+**Mechanical effect of C:**
+
+```text
+50 bundles  + 100 Focusa individual  + 100 UIAI individual  = 150/150 filled
+0  bundles  + 150 Focusa individual  + 150 UIAI individual  = 150/150 filled (no bundles)
+50 bundles  + 0   Focusa individual  + 0   UIAI individual  = 50/150 filled (early)
+```
+
+Same combined $384,330 ceiling. Bundle cap of 50 becomes the binding
+constraint (stops bundle sales even when individual caps have room).
+Updates after this decision: **none required to §10.1**, but §10.6 trigger
+now flags Option C as the answer to Q1.
 
 **Q2 — Does a Founders Forge buyer consume a slot in any of the other caps?**
 
-Forge buyers receive both products (Focusa + UIAI) plus cohort extras. Three
-options:
+**Operator draft decision (2026-07-06):** **Forge is separate.** Does
+NOT count against Focusa 150, UIAI 150, or Bundle 50.
 
-| Option | What it means |
-|---|---|
-| A. Forge independent of caps | 15 Forge + 150 + 150 + 50 = 365 unit ceiling |
-| B. Forge counts against both caps | 15 Forge + 135 individual Focusa + 135 individual UIAI + 50 Bundle maxes out at 150/150/50 |
-| C. Forge is its own complete package, no cap overlap | Same as A, but Forge is the only path to get both products + cohort extras at the $7,500 price |
+| Option | What it means | Status |
+|---|---|---|
+| A. Forge independent of caps | 15 Forge + 150 + 150 + 50 = 365 unit ceiling | superseded |
+| B. Forge counts against both caps | 15 Forge + 135 individual Focusa + 135 individual UIAI + 50 Bundle, maxing at 150/150/50 | rejected |
+| **C. Forge separate, complete package (DRAFT)** | 15 Forge sits on its own ledger. Forge is the only path to get both products + cohort extras at $7,500. Individual caps untouched by Forge sales. | **operator lean** |
 
-**Current operator lean:** none recorded yet.
+**Mechanical effect of C:**
+
+```text
+15 Forge         = 15 complete Focusa+UIAI+extras buyers (cohort)
++ 50 Bundle      = 50 buyers, each consuming 1 F + 1 U
++ 100 Focusa     = 100 individual
++ 100 UIAI       = 100 individual
+= 365 unit ceiling across all four tracks
+= $384,330 revenue cap
+```
+
+Forge being separate keeps the cohort signal clean: the 15 Forge buyers
+are *cohort members*, not just premium-purchasers. They get the
+1:1 access, the cohort extras, and a different relationship to the
+operator than a $697 buyer. Putting them on the same ledger would
+muddy that signal.
+
+Updates after this decision: **none required to §10.1 cap table**. The
+trigger email in §10.6 should explicitly state "Forge is separate" so
+the registry admin doesn't accidentally cross-attribute Forge sales
+into the Focusa 150 counter.
 
 **Q3 — Does a Bundle buyer get the cohort extras that come with Forge?**
 
