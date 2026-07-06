@@ -3,7 +3,7 @@
 Status: Draft  
 Owner: Verious Smith  
 Created: 2026-07-05  
-Scope: Focusa daemon HTTP API, CLI, Pi tools, Workpoint, Evidence, Context Authority, UIAI diagnostics intake, Spec111 Agent Context Bootstrap, Spec112 install verification, Spec113 Eval Ledger, Spec114 public proof surfaces, Spec115 cloud projections, Spec116 provider-neutral work-item closure, public-safe cards, receipt schema package, local receipt ledger, event-chain verification, and future integration adapters.
+Scope: Focusa daemon HTTP API, CLI, Pi tools, Workpoint, Evidence, Context Authority, UIAI diagnostics intake, Spec88 Workpoint continuity, Spec100 Context Cognition, Spec111 Agent Context Bootstrap, Spec112 install verification, Spec113 Eval Ledger, Spec114 public proof surfaces, Spec115 cloud projections, Spec116 provider-neutral work-item closure, public-safe cards, receipt schema package, local receipt ledger, event-chain verification, and future integration adapters.
 
 ---
 
@@ -42,6 +42,13 @@ This spec formalizes a unifying receipt layer for current and planned Focusa sur
 
 ### 0.2 Prior and planned specs this spec must preserve
 
+- `docs/88-ontology-backed-workpoint-continuity.md`
+  - Defines the ontology-backed Workpoint as the typed continuation contract, not raw transcript tail.
+  - Defines WorkpointCheckpoint, WorkpointResumePacket, ActiveMissionSet, CurrentActionIntent, VerificationRecords, blockers, and drift detection.
+  - Requires Pi compaction, context overflow, and model switch/fork to preserve/resume from Workpoint packets.
+- `docs/100-context-cognition-spec.md`
+  - Defines Context Cognition as bounded advisory context curation and reasoning guidance.
+  - Requires `project_root + continuity_id` scope, advisory/canonical=false posture, stale/degraded labeling, selected/excluded context, evidence frames, and no canonical mutation from packet generation.
 - `docs/107-spec-first-feature-lifecycle-and-claim-discipline-spec.md`
   - Defines actual/partial/surrogate/blocked/missing evidence classes.
   - Blocks completion claims when required evidence is missing or insufficient.
@@ -73,9 +80,9 @@ This spec formalizes a unifying receipt layer for current and planned Focusa sur
 
 Focusa must make verifiable agent work a first-class product surface.
 
-The major product capability is a **Focusa Receipt**: a local-first, proof-backed, scope-bound artifact that records what an agent was asked to do, what scope it belonged to, what authority allowed or blocked action, what evidence supports the result, what remains unfinished, what context was delivered, what work item/provider closure state exists, and what the next safe action is.
+The major product capability is a **Focusa Receipt**: a local-first, proof-backed, scope-bound artifact that records what an agent was asked to do, what scope it belonged to, which Workpoint checkpoint/revision anchored continuation, what advisory context was supplied, what authority allowed or blocked action, what evidence supports the result, what remains unfinished, what context was delivered, what work item/provider closure state exists, and what the next safe action is.
 
-This turns Focusa’s memory, authority, evidence, bootstrap, install, eval, cloud, and closure primitives into one visible work ledger that developers, teams, future agents, public-safe proof surfaces, and provider integrations can trust.
+This turns Focusa’s Workpoint continuity, Context Cognition, authority, evidence, bootstrap, install, eval, cloud, and closure primitives into one visible work ledger that developers, teams, future agents, public-safe proof surfaces, and provider integrations can trust.
 
 ---
 
@@ -99,9 +106,11 @@ Focusa should not add new terminology, tool families, API surfaces, public claim
 8. operator trust;
 9. agent doability;
 10. local verification;
-11. bootstrap delivery proof;
-12. install/license proof;
-13. public-safe proof projection.
+11. typed continuation provenance;
+12. advisory-context clarity;
+13. bootstrap delivery proof;
+14. install/license proof;
+15. public-safe proof projection.
 
 ---
 
@@ -112,7 +121,12 @@ Focusa already has strong primitives:
 - ProjectIdentity;
 - Continuity ID;
 - Trajectory ladder;
-- Workpoint;
+- ontology-backed Workpoint continuity from Spec88;
+- WorkpointCheckpoint and WorkpointResumePacket;
+- ActiveMissionSet and CurrentActionIntent;
+- Workpoint drift detection;
+- Context Cognition from Spec100;
+- ContextCognitionPacket, curator, optimizer, selected/excluded context, and evidence frame;
 - Evidence Ref;
 - Context Authority;
 - Context Cognition;
@@ -132,11 +146,14 @@ Focusa already has strong primitives:
 
 The current gap is product consolidation.
 
-The system can preserve state, enforce scope, capture proof, guide recovery, deliver bootstrap context, validate work-item closure truth, and hash-link events, but users and agents still need one canonical artifact that answers:
+The system can preserve state, enforce scope, capture proof, guide recovery, deliver bootstrap context, validate work-item closure truth, curate advisory context, detect drift, and hash-link events, but users and agents still need one canonical artifact that answers:
 
 ```text
 What was the work?
 What was the scope?
+Which Workpoint checkpoint/revision anchored it?
+Did the work drift from the active ActionIntent?
+What advisory context was supplied or excluded?
 Was the action allowed?
 Was bootstrap context delivered?
 Was install/license state verified?
@@ -144,6 +161,7 @@ Was a work item closure claim valid?
 Which provider mutation happened or was blocked?
 What changed?
 What proves it?
+What is advisory only?
 What is unfinished?
 What is the next safe step?
 Can this record be locally verified?
@@ -153,6 +171,8 @@ Without this artifact:
 
 - internal vocabulary can feel like friction;
 - tool count can feel like complexity;
+- Workpoint provenance can be reduced to a bare id without revision/checkpoint/drift context;
+- advisory Context Cognition can be mistaken for proof or authority;
 - proof remains distributed across logs, tests, Workpoints, UIAI diagnostics, bootstrap receipts, provider task systems, eval ledgers, and docs;
 - public demos lack a consistent evidence object;
 - closure systems can drift into provider-specific truth;
@@ -177,6 +197,9 @@ and receive a compact receipt with:
 - task summary;
 - scoped project identity;
 - Workpoint continuity;
+- Workpoint checkpoint/revision/provenance;
+- active object/action/evidence provenance;
+- Context Cognition advisory context status;
 - bootstrap delivery status when relevant;
 - work item closure status when relevant;
 - install/license verification status when relevant;
@@ -194,8 +217,10 @@ and receive a compact receipt with:
 An agent using Focusa should receive:
 
 - one canonical continuation anchor;
+- one Workpoint checkpoint/revision anchor;
 - one current authority posture;
 - one proof status;
+- one advisory-context status;
 - one bootstrap/delivery status when relevant;
 - one work-item closure status when relevant;
 - one next safe tool/action;
@@ -247,6 +272,10 @@ Receipts create structured outcome records:
 
 - task type;
 - plan shape;
+- Workpoint checkpoint/revision;
+- action intent;
+- drift status;
+- selected/excluded context summary;
 - bootstrap delivery status;
 - authority decision;
 - closure validation status;
@@ -264,19 +293,54 @@ Local-first storage remains the default. Any aggregation, sharing, export, publi
 
 ## 5. Technical Advantages
 
-### 5.1 Workpoint Becomes the Execution Anchor
+### 5.1 Spec88 Workpoint Becomes the Typed Continuation Anchor
 
 The Workpoint remains the immediate continuation authority.
 
 Receipts must reference a canonical Workpoint when available and must mark the receipt degraded or blocked when no exact-scoped Workpoint exists.
 
-### 5.2 Context Authority Becomes the Mutation Boundary
+Receipts must not reduce Workpoint continuity to `workpoint_id` alone. They should preserve:
+
+- Workpoint id;
+- revision;
+- status;
+- source checkpoint id;
+- checkpoint reason;
+- ActiveMissionSet / active object set;
+- CurrentActionIntent;
+- VerificationRecords;
+- blockers/open loops;
+- next slice;
+- drift status.
+
+This preserves Spec88’s design law: meaning lives in the typed Workpoint, not in the transcript.
+
+### 5.2 Spec100 Context Cognition Becomes Advisory Context Frame
+
+Context Cognition is advisory by default and must not become proof or authority inside receipts.
+
+Receipts may summarize ContextCognitionPacket state, but must preserve:
+
+- `canonical=false`;
+- `advisory=true`;
+- scope status;
+- stale/degraded/block status;
+- selected context summary;
+- excluded context summary;
+- evidence frame;
+- contradiction/drift risks;
+- source refs;
+- next/recovery tool suggestions.
+
+Context Cognition can support reasoning, but Evidence refs remain the proof boundary and Workpoint remains action authority.
+
+### 5.3 Context Authority Becomes the Mutation Boundary
 
 Receipts must include Context Authority verdicts for risky operations.
 
 A receipt must never claim a risky mutation was safely completed unless the relevant preflight verdict is present, fresh, and compatible with the action.
 
-### 5.3 Evidence Becomes Structural
+### 5.4 Evidence Becomes Structural
 
 Receipts must classify evidence as:
 
@@ -286,7 +350,7 @@ actual | partial | surrogate | blocked | missing
 
 Partial, surrogate, or blocked evidence may be useful, but must not support a completed claim unless the acceptance criteria allow it.
 
-### 5.4 UIAI Becomes Product-Reality Proof
+### 5.5 UIAI Becomes Product-Reality Proof
 
 UIAI diagnostics and browser reliability reports should become first-class receipt evidence.
 
@@ -298,7 +362,7 @@ Browser proof must distinguish:
 - missing native proof;
 - surrogate API/web proof.
 
-### 5.5 Spec111 Bootstrap Becomes Receipt-Producing Delivery Proof
+### 5.6 Spec111 Bootstrap Becomes Receipt-Producing Delivery Proof
 
 Spec111 Agent Context Bootstrap should not maintain a separate durable receipt system.
 
@@ -311,7 +375,7 @@ Focusa Receipt = canonical durable record committed through Spec119.
 
 Bootstrap build/render/write/verify outcomes should map into `receipt_type = bootstrap_delivery` when persisted.
 
-### 5.6 Spec112 Install Verification Becomes Receipt-Producing Setup Proof
+### 5.7 Spec112 Install Verification Becomes Receipt-Producing Setup Proof
 
 Install and upgrade flows should be able to produce `install_verification` receipts that record:
 
@@ -324,7 +388,7 @@ Install and upgrade flows should be able to produce `install_verification` recei
 - doctor result;
 - recovery hints.
 
-### 5.7 Spec113 Eval Ledger Becomes Receipt-Producing Measurement Proof
+### 5.8 Spec113 Eval Ledger Becomes Receipt-Producing Measurement Proof
 
 Eval Ledger events remain append-only measurement records. Receipts do not replace them.
 
@@ -335,15 +399,15 @@ Eval Ledger = task/run event truth.
 Receipt = summarized, evidence-linked proof object for a run, comparison, or benchmark claim.
 ```
 
-### 5.8 Spec114 Public Proof Uses Receipt Projections
+### 5.9 Spec114 Public Proof Uses Receipt Projections
 
 `proof.focusa.dev` and `bench.focusa.dev` should consume public-safe receipt projections, not raw daemon state.
 
-### 5.9 Spec115 Cloud Hosts Projections, Not Authority
+### 5.10 Spec115 Cloud Hosts Projections, Not Authority
 
 The local node owns canonical receipts. Cloud may host redacted projections, indexes, and published snapshots only after explicit export/publish.
 
-### 5.10 Spec116 Closure Authority Becomes Receipt-Producing Closure Truth
+### 5.11 Spec116 Closure Authority Becomes Receipt-Producing Closure Truth
 
 Spec116’s ClosureClaim and provider mutation lifecycle must map into `work_item_closure` receipts.
 
@@ -355,7 +419,7 @@ Providers store and display the closure.
 Receipts prove the closure validation and provider mutation result.
 ```
 
-### 5.11 Tool Count Becomes Tool Selection
+### 5.12 Tool Count Becomes Tool Selection
 
 The receipt layer must use tool contract/choreography metadata to recommend:
 
@@ -364,7 +428,7 @@ The receipt layer must use tool contract/choreography metadata to recommend:
 - up to three recovery tools;
 - relevant family hints only.
 
-### 5.12 Existing Event Integrity Becomes Work-Level Verification
+### 5.13 Existing Event Integrity Becomes Work-Level Verification
 
 Receipt commits must reuse Focusa’s existing event hash chain.
 
@@ -382,6 +446,8 @@ This spec does not require:
 
 - replacing existing agent frameworks;
 - replacing external agent/tool protocols;
+- replacing Spec88 Workpoint continuity;
+- replacing Spec100 Context Cognition;
 - replacing Spec111 Agent Context Bootstrap;
 - replacing Spec113 Eval Ledger;
 - replacing Spec116 provider adapters;
@@ -402,6 +468,8 @@ This spec does require:
 - a local-first receipt artifact;
 - API/CLI/Pi access;
 - scope-bound persistence;
+- Workpoint checkpoint/revision/drift provenance;
+- Context Cognition advisory-context summary;
 - evidence classification;
 - authority posture and authority freshness;
 - local receipt verification;
@@ -424,61 +492,73 @@ Canonical Focusa terms remain, but the product experience should lead with usefu
 
 A new user should understand the receipt before needing to fully understand every internal term.
 
-### 7.2 One Safe Next Action
+### 7.2 Typed Workpoint Over Transcript Tail
+
+Receipt continuation must be anchored in Workpoint checkpoint/revision state, not raw transcript summary.
+
+Transcript tail may be evidence/context only when captured and labeled; it cannot override a canonical Workpoint.
+
+### 7.3 Advisory Context Is Not Proof
+
+Context Cognition may help choose context and guide reasoning, but receipts must label it as advisory.
+
+Selected context, codemaps, snippets, and optimization hints do not prove completion unless linked through Evidence refs.
+
+### 7.4 One Safe Next Action
 
 Every receipt should include `next_safe_action`.
 
 When Focusa cannot determine a safe next action, it should say why and return recovery tools.
 
-### 7.3 Scope Before Certainty
+### 7.5 Scope Before Certainty
 
 A receipt cannot be canonical unless `project_root + continuity_id` are verified.
 
 If scope is missing, unsafe, stale, or mismatched, the receipt must be degraded or blocked.
 
-### 7.4 Proof Before Completion
+### 7.6 Proof Before Completion
 
 A final claim cannot be marked complete unless matching evidence exists.
 
 Completion language must be blocked when evidence is partial, surrogate, blocked, or missing.
 
-### 7.5 Closure Truth Before Provider Mutation
+### 7.7 Closure Truth Before Provider Mutation
 
 A work item may not be closed through Focusa unless a `work_item_closure` receipt preview returns `completion_allowed=true` and the ClosureClaim is valid, fresh, provider-scoped, and evidence-backed.
 
-### 7.6 Preview Before Commit
+### 7.8 Preview Before Commit
 
 Receipt generation must support preview mode before writing to the durable ledger.
 
 Preview may aggregate read models. Commit must enter the daemon-owned write path or serialized writer path.
 
-### 7.7 Local-First by Default
+### 7.9 Local-First by Default
 
 Receipts are stored locally by default.
 
 Public export, Arena export, team export, cloud projection, or external telemetry must be explicit and redacted.
 
-### 7.8 Selection Over Surface Area
+### 7.10 Selection Over Surface Area
 
 Receipts and awareness cards should compress Focusa’s tool graph into relevant choices.
 
 The default surface should never overwhelm the user or agent with the full tool list.
 
-### 7.9 Integration-Ready, Not Integration-Dependent
+### 7.11 Integration-Ready, Not Integration-Dependent
 
 Focusa Receipts should be useful through CLI/API/Pi on day one and later portable through adapters.
 
-### 7.10 Hash-Linked at Commit
+### 7.12 Hash-Linked at Commit
 
 A committed receipt must have a receipt hash and a canonical receipt event linked into the existing Focusa event hash chain.
 
-### 7.11 Fresh Authority for Risky Actions
+### 7.13 Fresh Authority for Risky Actions
 
 Risky action authorization expires.
 
 A stale or expired allow verdict cannot support a committed risky-mutation receipt.
 
-### 7.12 Public and Cloud Surfaces Are Projections
+### 7.14 Public and Cloud Surfaces Are Projections
 
 Local receipt state is canonical. Public, cloud, proof, bench, and Arena surfaces consume redacted projections.
 
@@ -488,7 +568,7 @@ Local receipt state is canonical. Public, cloud, proof, bench, and Arena surface
 
 ### Focusa Receipt
 
-A local-first, scope-bound artifact summarizing agent work, authority posture, evidence, result, bootstrap delivery, install verification, closure status, benchmark relation, verification status, and next safe action.
+A local-first, scope-bound artifact summarizing agent work, Workpoint provenance, advisory context, authority posture, evidence, result, bootstrap delivery, install verification, closure status, benchmark relation, verification status, and next safe action.
 
 ### Agent Work Ledger
 
@@ -500,7 +580,7 @@ A generated receipt candidate that does not mutate the durable ledger.
 
 ### Receipt Commit
 
-A persisted receipt written after scope, authority, evidence, closure, idempotency, and integrity checks.
+A persisted receipt written after scope, Workpoint, authority, evidence, advisory-context, closure, idempotency, and integrity checks.
 
 ### Public-Safe Receipt
 
@@ -522,9 +602,17 @@ actual | partial | surrogate | blocked | missing
 
 A stable reference to proof such as test output, command output, browser diagnostics, screenshot path, API response, CI run, release artifact, bootstrap verification result, provider closure result, eval run report, install verification result, or log bundle.
 
+### Workpoint Provenance
+
+The receipt-visible Workpoint checkpoint, revision, ActiveMissionSet, CurrentActionIntent, VerificationRecords, blockers, next slice, and drift status that anchor continuation.
+
+### Context Cognition Frame
+
+A receipt-visible advisory summary of ContextCognitionPacket status, selected/excluded context, evidence frame, contradiction/drift risks, source refs, stale/degraded posture, and next/recovery tools.
+
 ### Governed Execution Boundary
 
-The point where Focusa reconciles current ask, project scope, Workpoint, environment facts, risky action class, authority freshness, Context Authority verdict, and closure policy before allowing or blocking mutation.
+The point where Focusa reconciles current ask, project scope, Workpoint, advisory context, environment facts, risky action class, authority freshness, Context Authority verdict, and closure policy before allowing or blocking mutation.
 
 ### Receipt Hash
 
@@ -556,7 +644,7 @@ A redacted, published, or indexed representation of a local receipt. It is not t
 
 ---
 
-## 9. Receipt Relationship to Reports, Bootstrap, Closure, Evals, Public Proof, and Cloud
+## 9. Receipt Relationship to Reports, Workpoints, Context Cognition, Bootstrap, Closure, Evals, Public Proof, and Cloud
 
 A Focusa Receipt does not replace every report or ledger.
 
@@ -564,6 +652,8 @@ Instead:
 
 ```text
 Receipt = structured source of truth for work proof
+Workpoint = typed continuation authority and next-action anchor
+ContextCognitionPacket = advisory context/reasoning support
 Final report = human-readable rendering of receipt + operator-facing explanation
 AgentBootstrapReceipt = target-specific delivery projection of a receipt
 ClosureClaim = provider-neutral close claim validated before closure receipt commit
@@ -575,7 +665,7 @@ Cloud projection = redacted hosted index/snapshot of local receipt
 CI summary = automation-focused rendering of receipt
 ```
 
-Agents must treat the receipt as the canonical structured artifact when reporting completion, blockers, bootstrap delivery, closure state, install verification, eval evidence, or next steps.
+Agents must treat the receipt as the canonical structured artifact when reporting completion, blockers, Workpoint provenance, advisory context, bootstrap delivery, closure state, install verification, eval evidence, or next steps.
 
 ---
 
@@ -693,11 +783,65 @@ Minimum shape:
   },
   "workpoint": {
     "workpoint_id": "uuid|null",
+    "revision": null,
+    "status": "active|superseded|degraded|blocked|unknown|null",
+    "source_checkpoint_id": "string|null",
+    "checkpoint_reason": "compaction|resume|context_overflow|operator_checkpoint|pre_surgery|model_switch|verification_complete|unknown|null",
+    "work_item_id": "string|null",
     "mission": "string|null",
-    "next_slice": "string|null",
+    "active_object_set_id": "string|null",
     "active_object_refs": [],
+    "current_action_intent_id": "string|null",
+    "current_action_summary": "string|null",
+    "verification_record_ids": [],
+    "blocker_object_ids": [],
+    "next_slice": "string|null",
+    "do_not_drift": [],
+    "drift_status": "not_checked|aligned|drift_detected|superseded_by_operator|unknown",
+    "drift_reason": "string|null",
     "canonical": true,
     "posture": "canonical|advisory|degraded|blocked|stale"
+  },
+  "context_cognition": {
+    "packet_id": "string|null",
+    "schema_version": "focusa.context_cognition_packet.v1|null",
+    "status": "completed|degraded|stale|blocked|null",
+    "scope_status": "matched|missing|partial|mismatch|null",
+    "canonical": false,
+    "advisory": true,
+    "stale": false,
+    "source_snapshot": "string|null",
+    "selected_context_summary": [],
+    "excluded_context_summary": [],
+    "over_budget_summary": [],
+    "ontology_frame_summary": {
+      "active_objects": [],
+      "relations": [],
+      "risks": [],
+      "valid_next_actions": []
+    },
+    "evidence_frame_summary": {
+      "proven": [],
+      "unproven": [],
+      "stale": [],
+      "missing": []
+    },
+    "reasoning_frame_summary": {
+      "likely_goal": "string|null",
+      "active_gap": "string|null",
+      "confidence": "low|medium|high|unknown|null",
+      "contradiction_flags": [],
+      "drift_risks": []
+    },
+    "optimization_frame_summary": {
+      "module_name": "string|null",
+      "prompt_artifact_ref": "string|null",
+      "eval_ref": "string|null",
+      "promoted": false
+    },
+    "source_refs": [],
+    "next_tools": [],
+    "recovery_tools": []
   },
   "authority": {
     "required": false,
@@ -789,6 +933,7 @@ Minimum shape:
     "event_refs": [],
     "workpoint_refs": [],
     "trajectory_refs": [],
+    "context_cognition_refs": [],
     "evidence_refs": []
   },
   "evidence": {
@@ -849,7 +994,7 @@ Guidance:
 
 - `primary_actions` should contain only important actions.
 - `touched_refs` should contain compact references to files, routes, services, providers, eval runs, or objects.
-- Full command logs, tool call logs, browser logs, bootstrap packet JSON, provider API payloads, eval event streams, and CI logs should remain in their original stores and be linked through refs.
+- Full command logs, tool call logs, browser logs, bootstrap packet JSON, provider API payloads, eval event streams, context cognition packets, full selected snippets, and CI logs should remain in their original stores and be linked through refs.
 - Receipts should be compact enough for agents to read and reliable enough for humans to audit.
 
 ---
@@ -862,10 +1007,12 @@ Receipt evidence refs must use a consistent shape:
 {
   "evidence_ref": "string",
   "class": "actual|partial|surrogate|blocked|missing",
-  "source": "test|cli|api|browser|uiai|ci|screenshot|log|operator|agent|bootstrap|install|provider|eval|benchmark|cloud|unknown",
+  "source": "test|cli|api|browser|uiai|ci|screenshot|log|operator|agent|workpoint|context_cognition|bootstrap|install|provider|eval|benchmark|cloud|unknown",
   "summary": "string",
   "supports_claim": true,
   "workpoint_id": "uuid|null",
+  "workpoint_revision": null,
+  "context_cognition_packet_id": "string|null",
   "work_item_ref": "string|null",
   "artifact_path": "string|null",
   "external_url": "string|null",
@@ -898,6 +1045,10 @@ Shape:
   "project_root": "string",
   "continuity_id": "string|null",
   "workpoint_id": "uuid|null",
+  "workpoint_revision": null,
+  "current_action_intent_id": "string|null",
+  "drift_status": "not_checked|aligned|drift_detected|superseded_by_operator|unknown",
+  "context_cognition_status": "completed|degraded|stale|blocked|null",
   "claim_status": "actual|partial|surrogate|blocked|missing",
   "outcome_status": "completed|partial|blocked|failed|in_progress|unknown",
   "authority_verdict": "allow|block|ask_operator|verify_first|diagnosis_only|planning_only|null",
@@ -940,6 +1091,8 @@ schemas/receipt/focusa.receipt_verification.v1.schema.json
 schemas/receipt/examples/final_report.partial.json
 schemas/receipt/examples/risky_mutation.blocked.json
 schemas/receipt/examples/work_session.actual.json
+schemas/receipt/examples/workpoint_drift.blocked.json
+schemas/receipt/examples/context_cognition.stale.json
 schemas/receipt/examples/bootstrap_delivery.verified.json
 schemas/receipt/examples/work_item_closure.valid.json
 schemas/receipt/examples/install_verification.partial.json
@@ -986,8 +1139,10 @@ receipt_type
 project_root
 continuity_id
 workpoint_id
+workpoint_revision
 claim_status
 authority_verdict
+context_cognition_status
 bootstrap_delivery_status
 closure_validation_status
 evidence_summary
@@ -1036,7 +1191,10 @@ POST /v1/receipts/{receipt_id}/export
 Required behavior:
 
 - verify project scope;
-- inspect current Workpoint;
+- inspect current Workpoint id/revision/checkpoint;
+- inspect ActiveMissionSet, CurrentActionIntent, VerificationRecords, blockers, next slice, and drift status when available;
+- inspect current ContextCognitionPacket status when available;
+- preserve Context Cognition as advisory and never as proof/authority;
 - inspect trajectory;
 - inspect Context Authority if action is risky;
 - evaluate authority freshness when applicable;
@@ -1059,6 +1217,9 @@ Commit must reject when:
 - `project_root` is missing or unsafe;
 - `continuity_id` is missing for canonical project-bound receipt;
 - Workpoint scope mismatches current ask;
+- Workpoint drift is detected and not operator-superseded;
+- Workpoint checkpoint/revision is required but missing;
+- Context Cognition is used as proof without Evidence refs;
 - risky mutation lacks required Context Authority verdict;
 - risky mutation has expired authority;
 - bootstrap write evidence is claimed verified but verifier failed or was skipped;
@@ -1110,7 +1271,8 @@ Redaction must remove or mask:
 - private screenshots unless explicitly public-safe;
 - private evidence refs that cannot be shared;
 - provider tokens or private provider payloads;
-- private eval holdout task bodies.
+- private eval holdout task bodies;
+- raw selected context snippets unless explicitly marked public-safe.
 
 ### 17.6 Export
 
@@ -1122,6 +1284,8 @@ markdown
 arena_card
 agent_handoff
 ci_summary
+workpoint_projection
+context_cognition_projection
 bootstrap_projection
 closure_projection
 install_projection
@@ -1143,7 +1307,7 @@ focusa receipt list
 focusa receipt verify <receipt_id>
 focusa receipt verify-chain
 focusa receipt redact <receipt_id>
-focusa receipt export <receipt_id> --format json|markdown|arena-card|agent-handoff|ci-summary|bootstrap-projection|closure-projection|install-projection|benchmark-projection|cloud-projection
+focusa receipt export <receipt_id> --format json|markdown|arena-card|agent-handoff|ci-summary|workpoint-projection|context-cognition-projection|bootstrap-projection|closure-projection|install-projection|benchmark-projection|cloud-projection
 ```
 
 MVP CLI:
@@ -1161,7 +1325,7 @@ Post-MVP CLI:
 
 ```bash
 focusa receipt redact <receipt_id>
-focusa receipt export <receipt_id> --format json|markdown|arena-card|agent-handoff|ci-summary|bootstrap-projection|closure-projection|install-projection|benchmark-projection|cloud-projection
+focusa receipt export <receipt_id> --format json|markdown|arena-card|agent-handoff|ci-summary|workpoint-projection|context-cognition-projection|bootstrap-projection|closure-projection|install-projection|benchmark-projection|cloud-projection
 ```
 
 CLI requirements:
@@ -1210,6 +1374,7 @@ Pi tool behavior:
 - Agents should call `focusa_receipt_preview` before final reports.
 - Agents must not call `focusa_receipt_commit` when `completion_allowed=false`.
 - Agents must not close provider work items unless closure receipt preview allows it.
+- Agents must not treat Context Cognition packet suggestions as operator authorization or proof.
 - If receipt preview blocks completion or closure, the agent must report the missing evidence plainly.
 - Pi output should show one next safe action and up to three recovery tools.
 - `focusa_receipt_verify` should be used when the operator asks whether a committed receipt is intact.
@@ -1242,6 +1407,12 @@ receipt_type
 project_root
 continuity_id
 workpoint_id
+workpoint_revision
+source_checkpoint_id
+current_action_intent_id
+drift_status
+context_cognition_packet_id
+context_cognition_status
 claim_status
 completion_allowed
 bootstrap_delivery_status
@@ -1267,6 +1438,11 @@ created_at
 project_root
 continuity_id
 workpoint_id
+workpoint_revision
+source_checkpoint_id
+current_action_intent_id
+drift_status
+context_cognition_packet_id
 claim_status
 outcome_status
 bootstrap_delivery_status
@@ -1308,7 +1484,7 @@ Receipt commit must dispatch or serialize through the daemon-owned write path.
 Acceptable MVP implementation:
 
 1. API receives `POST /v1/receipts/commit`.
-2. API validates request shape, scope, evidence class, authority freshness, bootstrap verifier state, closure state, and idempotency.
+2. API validates request shape, scope, Workpoint provenance, advisory context labels, evidence class, authority freshness, bootstrap verifier state, closure state, and idempotency.
 3. API dispatches a receipt commit action or enters the existing serialized writer path.
 4. Core receipt evaluator produces the accepted receipt record.
 5. Persistence writes the receipt query record.
@@ -1399,6 +1575,12 @@ ReceiptPublished
   "project_root": "string",
   "continuity_id": "string|null",
   "workpoint_id": "uuid|null",
+  "workpoint_revision": null,
+  "source_checkpoint_id": "string|null",
+  "current_action_intent_id": "string|null",
+  "drift_status": "not_checked|aligned|drift_detected|superseded_by_operator|unknown",
+  "context_cognition_packet_id": "string|null",
+  "context_cognition_status": "completed|degraded|stale|blocked|null",
   "claim_status": "actual|partial|surrogate|blocked|missing",
   "completion_allowed": false,
   "bootstrap_delivery_status": "not_applicable|rendered|written|verified|failed|dry_run|blocked",
@@ -1451,6 +1633,7 @@ continuity
 operator_ask
 trajectory
 workpoint
+context_cognition
 authority
 bootstrap
 closure
@@ -1469,13 +1652,17 @@ privacy
 
 ## 25. Governed Execution Boundary
 
-Receipt generation must integrate with Context Authority.
+Receipt generation must integrate with Workpoint, Context Cognition, and Context Authority.
 
 For risky operations, a receipt must include:
 
 - action kind;
 - target;
 - current ask;
+- Workpoint checkpoint/revision;
+- CurrentActionIntent;
+- drift status;
+- Context Cognition advisory status when used;
 - environment role when available;
 - project root;
 - repo/daemon/CLI version when relevant;
@@ -1616,11 +1803,97 @@ Blocked response:
 
 ---
 
-## 27. Spec111 Bootstrap Integration
+## 27. Spec88 Workpoint Continuity Integration
+
+Spec88 is a first-class receipt input.
+
+### 27.1 Relationship
+
+```text
+Spec88 preserves typed continuation.
+Spec119 records which typed continuation was used, whether the agent drifted, and what proof closed the loop.
+```
+
+### 27.2 Required Mapping
+
+When a receipt is previewed or committed for work tied to an active Workpoint, map:
+
+```text
+Workpoint.workpoint_id              → receipt.workpoint.workpoint_id
+Workpoint.revision                  → receipt.workpoint.revision
+Workpoint.status                    → receipt.workpoint.status
+Workpoint.source_checkpoint_id      → receipt.workpoint.source_checkpoint_id
+Workpoint.checkpoint_reason         → receipt.workpoint.checkpoint_reason
+Workpoint.work_item_id              → receipt.workpoint.work_item_id
+Workpoint.active_object_set_id      → receipt.workpoint.active_object_set_id
+Workpoint.current_action_intent_id  → receipt.workpoint.current_action_intent_id
+Workpoint.verification_record_ids   → receipt.workpoint.verification_record_ids
+Workpoint.blocker_object_ids        → receipt.workpoint.blocker_object_ids
+Workpoint.next_slice                → receipt.workpoint.next_slice
+Workpoint.do_not_drift              → receipt.workpoint.do_not_drift
+WorkpointDriftDetected              → receipt.workpoint.drift_status + drift_reason
+```
+
+### 27.3 Rules
+
+- A receipt may not use raw transcript tail as the continuation anchor when a scoped Workpoint exists.
+- If Workpoint drift is detected, receipt preview must return blocked/degraded unless operator steering explicitly supersedes the Workpoint.
+- If receipt completion depends on Workpoint action intent, the receipt must include CurrentActionIntent or mark itself degraded.
+- If receipt proof depends on verification records, the receipt must include linked VerificationRecord ids or Evidence refs.
+- A receipt generated during compaction, overflow recovery, model switch, or handoff must record the Workpoint checkpoint/revision used.
+
+---
+
+## 28. Spec100 Context Cognition Integration
+
+Spec100 is a first-class advisory-context input.
+
+### 28.1 Relationship
+
+```text
+Spec100 selects and frames context.
+Spec119 records which context frame was used and keeps it advisory unless evidence promotes the claim.
+```
+
+### 28.2 Required Mapping
+
+When Context Cognition participates in a receipt preview or commit, map:
+
+```text
+ContextCognitionPacket.packet_id                    → receipt.context_cognition.packet_id
+ContextCognitionPacket.schema_version               → receipt.context_cognition.schema_version
+ContextCognitionPacket.status                       → receipt.context_cognition.status
+ContextCognitionPacket.scope_status                 → receipt.context_cognition.scope_status
+ContextCognitionPacket.canonical/advisory           → receipt.context_cognition.canonical/advisory
+ContextCognitionPacket.freshness.stale              → receipt.context_cognition.stale
+ContextCognitionPacket.freshness.source_snapshot    → receipt.context_cognition.source_snapshot
+selected_context                                    → receipt.context_cognition.selected_context_summary
+excluded_context                                    → receipt.context_cognition.excluded_context_summary
+over_budget                                         → receipt.context_cognition.over_budget_summary
+ontology_frame                                      → receipt.context_cognition.ontology_frame_summary
+evidence_frame                                      → receipt.context_cognition.evidence_frame_summary
+reasoning_frame                                     → receipt.context_cognition.reasoning_frame_summary
+optimization_frame                                  → receipt.context_cognition.optimization_frame_summary
+source_refs                                         → receipt.context_cognition.source_refs
+route_frame.next_tools                              → receipt.context_cognition.next_tools
+route_frame.recovery_tools                          → receipt.context_cognition.recovery_tools
+```
+
+### 28.3 Rules
+
+- Context Cognition output is always advisory unless separately promoted through existing Focusa systems.
+- A receipt must never treat selected context, codemaps, snippets, relation candidates, or optimizer hints as proof.
+- Context Cognition may contribute to `next_safe_action`, `recovery_tools`, overclaim risks, and missing evidence analysis.
+- If Context Cognition is stale, degraded, or scope-mismatched, the receipt must surface that status.
+- Public receipt projections must not expose raw selected snippets unless explicitly public-safe.
+
+---
+
+## 29. Spec111 Bootstrap Integration
 
 Spec111 Agent Context Bootstrap & Delivery should become a receipt-producing subsystem.
 
-### 27.1 Relationship
+### 29.1 Relationship
 
 ```text
 Spec111 Bootstrap builds/delivers/verifies startup context.
@@ -1629,7 +1902,7 @@ Spec119 Receipts record that delivery as verifiable work.
 
 `AgentBootstrapReceipt` becomes a compact target-specific projection of `focusa.receipt.v1`, not a separate durable receipt system.
 
-### 27.2 Required Mapping
+### 29.2 Required Mapping
 
 When `/v1/preload/build`, `/v1/preload/render`, `/v1/preload/write`, or `/v1/preload/verify` produces a delivery result, Focusa SHOULD be able to generate a receipt preview.
 
@@ -1654,7 +1927,7 @@ failed_checks                         → receipt.bootstrap.failed_checks
 FOCUSA_PRELOAD_FAIL                   → receipt.bootstrap.fail_phrase
 ```
 
-### 27.3 Claim Status Rules
+### 29.3 Claim Status Rules
 
 Bootstrap delivery receipts must classify claim status as:
 
@@ -1666,7 +1939,7 @@ missing   = bootstrap packet is absent when required
 surrogate = delivery proof comes from a different target/surface than required
 ```
 
-### 27.4 Authority Rules
+### 29.4 Authority Rules
 
 - `preload build` and `preload render` are read/compose by default and do not require mutation authority.
 - `preload verify` is read-only and does not require mutation authority.
@@ -1676,18 +1949,18 @@ surrogate = delivery proof comes from a different target/surface than required
 
 ---
 
-## 28. Spec116 Work-Item Closure Integration
+## 30. Spec116 Work-Item Closure Integration
 
 Spec116 provider-neutral closure authority is a first-class receipt producer.
 
-### 28.1 Relationship
+### 30.1 Relationship
 
 ```text
 Spec116 validates closure truth.
 Spec119 records closure validation, provider mutation, reconcile, bypass, and proof status.
 ```
 
-### 28.2 Required Mapping
+### 30.2 Required Mapping
 
 When `focusa work-item closure prepare|validate|submit` or `focusa work-item close` produces a closure state, Focusa SHOULD generate a receipt preview.
 
@@ -1715,7 +1988,7 @@ reconcile result                         → receipt.closure.provider_submit_sta
 bypass audit                             → receipt.closure.bypass_detected
 ```
 
-### 28.3 Closure Claim Status Rules
+### 30.3 Closure Claim Status Rules
 
 Closure receipts must classify claim status as:
 
@@ -1727,7 +2000,7 @@ missing   = no ClosureClaim exists when provider close is requested
 surrogate = provider state changed but Focusa validation/audit evidence is indirect or out-of-band
 ```
 
-### 28.4 Closure Authority Rules
+### 30.4 Closure Authority Rules
 
 - Raw provider close attempts guarded by Focusa should produce `work_item_closure` receipt previews or blocked receipt candidates.
 - `focusa work-item close <id> --from-workpoint` should run receipt preview or equivalent closure validation before provider mutation.
@@ -1735,7 +2008,7 @@ surrogate = provider state changed but Focusa validation/audit evidence is indir
 - Break-glass overrides must create `work_item_closure` receipts with `claim.status=partial|blocked|surrogate` unless policy explicitly validates the override as actual.
 - Bypassed provider-side closures must be recorded as `bypass_detected=true` and should block public/release claims until reconciled.
 
-### 28.5 Closure Next Tools
+### 30.5 Closure Next Tools
 
 Typical next-tool routing:
 
@@ -1749,7 +2022,7 @@ receipt missing              → focusa_receipt_preview
 
 ---
 
-## 29. Spec112 Install Verification Integration
+## 31. Spec112 Install Verification Integration
 
 Spec112 installer and upgrade flows should become receipt-producing setup proof.
 
@@ -1773,7 +2046,7 @@ Install receipts must not expose license keys, auth tokens, private hostnames, o
 
 ---
 
-## 30. Spec113 Eval Ledger and Benchmark Integration
+## 32. Spec113 Eval Ledger and Benchmark Integration
 
 Spec113 Eval Ledger events remain the source of measurement truth.
 
@@ -1793,7 +2066,7 @@ Rules:
 
 ---
 
-## 31. Spec114 Public Proof Integration
+## 33. Spec114 Public Proof Integration
 
 Spec114 public proof and benchmark surfaces consume public-safe projections.
 
@@ -1807,7 +2080,7 @@ Rules:
 
 ---
 
-## 32. Spec115 Cloud Projection Integration
+## 34. Spec115 Cloud Projection Integration
 
 Spec115 cloud control plane may index, host, and publish redacted receipt projections.
 
@@ -1837,7 +2110,7 @@ Cloud must not own:
 
 ---
 
-## 33. Claim Gate Integration
+## 35. Claim Gate Integration
 
 Spec107 claim discipline must become a hard pre-close path.
 
@@ -1879,7 +2152,7 @@ Minimum blocked response shape:
 
 ---
 
-## 34. Blocked and Degraded Agent View
+## 36. Blocked and Degraded Agent View
 
 When a receipt is degraded or blocked, the agent-facing response must include:
 
@@ -1888,8 +2161,10 @@ status
 posture
 why_not_canonical
 missing_scope
+missing_workpoint_provenance
 missing_evidence
 authority_needed
+context_cognition_status
 bootstrap_status
 closure_status
 install_status
@@ -1906,8 +2181,10 @@ Example:
   "posture": "blocked",
   "why_not_canonical": "workpoint project_root does not match current project_root",
   "missing_scope": ["verified project_root + continuity_id"],
+  "missing_workpoint_provenance": ["source_checkpoint_id", "current_action_intent_id"],
   "missing_evidence": [],
   "authority_needed": null,
+  "context_cognition_status": "stale",
   "bootstrap_status": "not_applicable",
   "closure_status": "not_applicable",
   "install_status": "not_applicable",
@@ -1920,6 +2197,7 @@ Example:
   "recovery_tools": [
     "focusa_project_identity",
     "focusa_workpoint_checkpoint",
+    "focusa_context_cognition_preview",
     "focusa_receipt_preview"
   ]
 }
@@ -1927,7 +2205,7 @@ Example:
 
 ---
 
-## 35. UIAI Proof Bridge Requirements
+## 37. UIAI Proof Bridge Requirements
 
 UIAI diagnostics intake must be receipt-aware.
 
@@ -1957,11 +2235,11 @@ UIAI evidence must be linkable to:
 
 ---
 
-## 36. Integration Strategy
+## 38. Integration Strategy
 
 Focusa should not require every external system to adopt Focusa internals.
 
-Instead, Focusa should provide portable receipt/workpoint/evidence/bootstrap/closure payloads that can be consumed by:
+Instead, Focusa should provide portable receipt/workpoint/context/evidence/bootstrap/closure payloads that can be consumed by:
 
 - agent harnesses;
 - CLI-based coding agents;
@@ -1982,8 +2260,11 @@ receipt_id
 project_root
 continuity_id
 workpoint_id
+workpoint_revision
+current_action_intent_id
 claim_status
 authority_verdict
+context_cognition_status
 bootstrap_delivery_status
 closure_validation_status
 provider_submit_status
@@ -1995,7 +2276,7 @@ Adapters should not expose the entire Focusa tool surface by default.
 
 ---
 
-## 37. Public-Safe / Arena / Bench / Proof Card Requirements
+## 39. Public-Safe / Arena / Bench / Proof Card Requirements
 
 Public-safe export is post-MVP.
 
@@ -2005,6 +2286,8 @@ A public-safe receipt should render as a compact card:
 Project: <public project name>
 Work: <summary>
 Scope: verified/degraded/blocked
+Workpoint: <id>@<revision> drift=<status>
+Context: advisory <completed/stale/degraded>
 Bootstrap: verified/not applicable/blocked
 Closure: valid/reconciled/blocked/not applicable
 Authority: allowed/blocked/verify-first
@@ -2022,6 +2305,9 @@ Cards should be searchable by:
 - task type;
 - evidence class;
 - outcome status;
+- workpoint id/revision;
+- drift status;
+- context cognition status;
 - bootstrap delivery status;
 - closure validation status;
 - provider submit status;
@@ -2032,7 +2318,7 @@ Cards should be searchable by:
 
 ---
 
-## 38. Agent DX Requirements
+## 40. Agent DX Requirements
 
 Receipt surfaces must reduce agent confusion.
 
@@ -2041,6 +2327,10 @@ Every receipt response must include:
 - `status`;
 - `canonical`;
 - `posture`;
+- `workpoint.workpoint_id` and `workpoint.revision` when relevant;
+- `workpoint.current_action_intent_id` when relevant;
+- `workpoint.drift_status` when relevant;
+- `context_cognition.status` and `context_cognition.advisory=true` when relevant;
 - `claim.status`;
 - `completion_allowed`;
 - `bootstrap.delivery_status` when relevant;
@@ -2058,6 +2348,9 @@ If a receipt cannot be generated, Focusa should return:
 
 - why;
 - what scope is missing;
+- which Workpoint provenance is missing;
+- whether Workpoint drift exists;
+- which advisory context is stale/degraded;
 - which evidence is missing;
 - which authority verdict is needed;
 - whether authority is expired;
@@ -2067,7 +2360,7 @@ If a receipt cannot be generated, Focusa should return:
 
 ---
 
-## 39. AwarenessPacket Integration
+## 41. AwarenessPacket Integration
 
 The shared AwarenessPacket substrate should use receipt state.
 
@@ -2076,6 +2369,9 @@ Input additions:
 ```text
 latest_receipt
 open_receipt_preview
+workpoint_revision
+drift_status
+context_cognition_status
 claim_status
 missing_evidence
 authority_freshness
@@ -2091,6 +2387,9 @@ Output additions:
 
 ```text
 receipt_line
+workpoint_line
+drift_line
+context_cognition_line
 claim_status_line
 proof_line
 authority_freshness_line
@@ -2106,6 +2405,8 @@ Minimal awareness card should include receipt state only when useful:
 - before final report;
 - before provider closure;
 - after risky mutation;
+- after Workpoint checkpoint/resume/drift detection;
+- after Context Cognition render/curate/proof;
 - after evidence capture;
 - after UIAI diagnostics;
 - after bootstrap write/verify;
@@ -2117,7 +2418,7 @@ Minimal awareness card should include receipt state only when useful:
 
 ---
 
-## 40. Implementation Phases
+## 42. Implementation Phases
 
 ### Phase 0 — Field Map and Fixtures
 
@@ -2129,6 +2430,8 @@ receipt schema fixture
 example degraded receipt
 example blocked claim receipt
 example actual proof receipt
+example workpoint drift receipt
+example stale context cognition receipt
 example bootstrap delivery receipt
 example work item closure receipt
 example install verification receipt
@@ -2138,6 +2441,8 @@ example benchmark result receipt
 Acceptance:
 
 - Existing Focusa surfaces are mapped to receipt fields.
+- Spec88 Workpoint fields are mapped to receipt fields.
+- Spec100 Context Cognition fields are mapped to receipt fields.
 - Spec111 bootstrap fields are mapped to receipt fields.
 - Spec112 install fields are mapped to receipt fields.
 - Spec113/114 eval and public proof fields are mapped to receipt fields.
@@ -2162,8 +2467,11 @@ Acceptance:
 
 - Read-only.
 - No ledger mutation.
-- Aggregates project identity, continuity, Workpoint, trajectory, authority posture, authority freshness, bootstrap status, closure status, evidence summary, claim status, and next safe action.
+- Aggregates project identity, continuity, Workpoint provenance, Context Cognition advisory status, trajectory, authority posture, authority freshness, bootstrap status, closure status, evidence summary, claim status, and next safe action.
 - Blocks or degrades on scope mismatch.
+- Blocks or degrades when required Workpoint provenance is missing.
+- Blocks or degrades when drift is detected and not operator-superseded.
+- Labels Context Cognition as advisory.
 - Supports `receipt_type`.
 - Supports `schema_version`.
 - Returns one next safe action and up to three recovery tools.
@@ -2204,7 +2512,7 @@ Acceptance:
 - Expired authority blocks commit.
 - Critical-risk actions require recheck at commit.
 
-### Phase 2.5 — Basic UIAI, Bootstrap, and Closure Evidence Classification
+### Phase 2.5 — Basic UIAI, Workpoint, Context Cognition, Bootstrap, and Closure Evidence Classification
 
 Deliverables:
 
@@ -2212,6 +2520,8 @@ Deliverables:
 UIAI diagnostics mapped into receipt evidence classes
 browser proof shown in receipt preview
 blocked browser proof shown as blocked evidence
+Spec88 Workpoint provenance mapped into receipts
+Spec100 Context Cognition advisory status mapped into receipts
 Spec111 bootstrap verify result mapped into bootstrap_delivery receipts
 Spec116 closure validation mapped into work_item_closure receipts
 ```
@@ -2222,6 +2532,9 @@ Acceptance:
 - Blocked browser proof cannot support completion.
 - Surrogate proof is labeled as surrogate.
 - Missing native/browser proof is labeled missing when required.
+- Workpoint checkpoint/revision/current action intent can anchor receipts.
+- Workpoint drift can block or degrade completion.
+- Context Cognition stale/degraded/advisory state is visible and never counted as proof.
 - Verified bootstrap delivery can support `bootstrap_delivery` actual claim status.
 - Failed bootstrap verification blocks bootstrap delivery completion.
 - Valid ClosureClaim can support `work_item_closure` actual claim status only after provider reconcile evidence.
@@ -2229,7 +2542,7 @@ Acceptance:
 
 ### Post-MVP Phase 3 — Install, Eval, Benchmark, and Public Proof Receipt Projections
 
-Deferred until preview, commit, verification, bootstrap, and closure mappings are proven.
+Deferred until preview, commit, verification, Workpoint, Context Cognition, bootstrap, and closure mappings are proven.
 
 Deliverables:
 
@@ -2259,7 +2572,7 @@ Deferred until receipt UX and event-chain verification are proven.
 
 ---
 
-## 41. MVP Acceptance Criteria
+## 43. MVP Acceptance Criteria
 
 MVP is accepted when:
 
@@ -2271,31 +2584,36 @@ MVP is accepted when:
 6. Receipt preview is read-only.
 7. Receipt preview returns `receipt_type` and `schema_version`.
 8. Receipt preview uses existing Workpoint as the execution anchor.
-9. Receipt preview degrades or blocks when `project_root + continuity_id` are missing or mismatched.
-10. Receipt preview classifies claim status as actual/partial/surrogate/blocked/missing.
-11. Receipt preview supports `bootstrap_delivery` receipt type.
-12. Receipt preview supports `work_item_closure` receipt type.
-13. Receipt preview returns one next safe action and up to three recovery tools.
-14. Receipt commit persists locally through the Focusa write model.
-15. Receipt commit emits receipt events.
-16. Receipt commits produce `receipt_hash`.
-17. Receipt commits create or link to a canonical receipt event.
-18. Receipt events participate in the existing hash chain.
-19. `focusa receipt verify <receipt_id>` verifies receipt hash and event-chain linkage.
-20. Completion claims are blocked when `completion_allowed=false`.
-21. Provider closure claims are blocked when ClosureClaim is invalid, expired, or missing proof refs.
-22. Risky mutation receipts require Context Authority evidence.
-23. Risky `allow` authority includes `issued_at`, `valid_until`, and `ttl_seconds`.
-24. Expired authority blocks receipt commit.
-25. Critical-risk actions require recheck at commit.
-26. Basic UIAI diagnostics can appear as receipt evidence.
-27. Basic Spec111 bootstrap verification can appear as receipt evidence.
-28. Basic Spec116 closure validation can appear as receipt evidence.
-29. The minimal receipt summary schema works without importing Focusa daemon internals.
+9. Receipt preview includes Workpoint checkpoint/revision/current action intent when available.
+10. Receipt preview degrades or blocks when `project_root + continuity_id` are missing or mismatched.
+11. Receipt preview classifies claim status as actual/partial/surrogate/blocked/missing.
+12. Receipt preview labels Context Cognition as advisory when included.
+13. Receipt preview blocks claims that rely on Context Cognition without Evidence refs.
+14. Receipt preview supports `bootstrap_delivery` receipt type.
+15. Receipt preview supports `work_item_closure` receipt type.
+16. Receipt preview returns one next safe action and up to three recovery tools.
+17. Receipt commit persists locally through the Focusa write model.
+18. Receipt commit emits receipt events.
+19. Receipt commits produce `receipt_hash`.
+20. Receipt commits create or link to a canonical receipt event.
+21. Receipt events participate in the existing hash chain.
+22. `focusa receipt verify <receipt_id>` verifies receipt hash and event-chain linkage.
+23. Completion claims are blocked when `completion_allowed=false`.
+24. Provider closure claims are blocked when ClosureClaim is invalid, expired, or missing proof refs.
+25. Risky mutation receipts require Context Authority evidence.
+26. Risky `allow` authority includes `issued_at`, `valid_until`, and `ttl_seconds`.
+27. Expired authority blocks receipt commit.
+28. Critical-risk actions require recheck at commit.
+29. Basic UIAI diagnostics can appear as receipt evidence.
+30. Basic Spec88 Workpoint provenance can appear in receipts.
+31. Basic Spec100 Context Cognition packet status can appear in receipts.
+32. Basic Spec111 bootstrap verification can appear as receipt evidence.
+33. Basic Spec116 closure validation can appear as receipt evidence.
+34. The minimal receipt summary schema works without importing Focusa daemon internals.
 
 ---
 
-## 42. Required MVP Tests
+## 44. Required MVP Tests
 
 MVP tests:
 
@@ -2308,6 +2626,10 @@ tests/spec119_receipt_preview_api_test.sh
 tests/spec119_receipt_preview_cli_static_test.sh
 tests/spec119_receipt_preview_pi_tool_static_test.sh
 tests/spec119_receipt_scope_mismatch_test.sh
+tests/spec119_receipt_workpoint_provenance_test.sh
+tests/spec119_receipt_workpoint_drift_test.sh
+tests/spec119_receipt_context_cognition_advisory_test.sh
+tests/spec119_receipt_context_cognition_stale_test.sh
 tests/spec119_receipt_claim_gate_test.sh
 tests/spec119_receipt_commit_persistence_test.sh
 tests/spec119_receipt_commit_hash_test.sh
@@ -2343,19 +2665,23 @@ Existing tamper-evident event-chain tests must remain required by CI.
 Regression fixtures:
 
 1. Cross-project Workpoint resume must block canonical receipt.
-2. Mac menubar API/web-only proof must classify as surrogate when native proof is required.
-3. Risky deploy without Context Authority preflight must block completion.
-4. Risky mutation with expired authority must block commit.
-5. UIAI browser failure must classify as blocked evidence, not success.
-6. Receipt query model mismatch with event chain must return degraded/broken verification.
-7. Spec111 bootstrap verification failure must classify `bootstrap_delivery` as blocked.
-8. Spec116 invalid ClosureClaim must classify `work_item_closure` as blocked.
-9. Provider-side bypass without Focusa validation must classify closure evidence as surrogate or blocked until reconciled.
-10. Public export must remove private URLs and local absolute paths unless explicitly allowed.
+2. Missing Workpoint checkpoint/revision must degrade receipt when action continuity is claimed.
+3. Workpoint drift must block receipt completion unless operator supersession is explicit.
+4. Context Cognition selected context must not count as proof without Evidence refs.
+5. Stale Context Cognition packet must degrade receipt context status.
+6. Mac menubar API/web-only proof must classify as surrogate when native proof is required.
+7. Risky deploy without Context Authority preflight must block completion.
+8. Risky mutation with expired authority must block commit.
+9. UIAI browser failure must classify as blocked evidence, not success.
+10. Receipt query model mismatch with event chain must return degraded/broken verification.
+11. Spec111 bootstrap verification failure must classify `bootstrap_delivery` as blocked.
+12. Spec116 invalid ClosureClaim must classify `work_item_closure` as blocked.
+13. Provider-side bypass without Focusa validation must classify closure evidence as surrogate or blocked until reconciled.
+14. Public export must remove private URLs and local absolute paths unless explicitly allowed.
 
 ---
 
-## 43. Documentation Updates
+## 45. Documentation Updates
 
 Required docs:
 
@@ -2364,6 +2690,7 @@ docs/current/FOCUSA_RECEIPT_CURRENT.md
 docs/current/FOCUSA_RECEIPT_FIELD_MAP.md
 docs/current/FOCUSA_RECEIPT_INTEGRITY.md
 docs/current/FOCUSA_RECEIPT_SCHEMA_PACKAGE.md
+docs/current/FOCUSA_RECEIPT_WORKPOINT_CONTEXT_INTEGRATION.md
 docs/current/FOCUSA_RECEIPT_AUTHORITY_FRESHNESS.md
 docs/current/FOCUSA_RECEIPT_BOOTSTRAP_INTEGRATION.md
 docs/current/FOCUSA_RECEIPT_CLOSURE_INTEGRATION.md
@@ -2383,6 +2710,8 @@ docs/focusa-tools/tools/focusa_receipt_export.md
 Required links from:
 
 - `README.md`;
+- `docs/88-ontology-backed-workpoint-continuity.md`;
+- `docs/100-context-cognition-spec.md`;
 - `docs/current/GOLDEN_WORKFLOW.md`;
 - `docs/current/AUTHORITY_MODEL.md`;
 - `docs/current/CONTEXT_AUTHORITY_CURRENT.md`;
@@ -2402,16 +2731,30 @@ Required links from:
 Required documentation statement:
 
 ```text
-Focusa Receipts are local-first, hash-linked to the Focusa event chain at commit, and verifiable through local CLI/API commands. Hash-chain verification detects ordinary database edits or deletions, but does not replace external signing, backups, access controls, or future out-of-band checkpoint publication.
+Focusa Receipts are local-first, Workpoint-anchored, Context-Cognition-aware, hash-linked to the Focusa event chain at commit, and verifiable through local CLI/API commands. Hash-chain verification detects ordinary database edits or deletions, but does not replace external signing, backups, access controls, or future out-of-band checkpoint publication.
 ```
 
 ---
 
-## 44. Required Future Updates to Prior Specs
+## 46. Required Future Updates to Prior Specs
 
 After Spec119 MVP lands, update these specs surgically.
 
-### 44.1 Spec111 update
+### 46.1 Spec88 update
+
+- Add Spec119 to the normative basis.
+- State that Workpoint checkpoint/revision/drift provenance is receipt-visible.
+- Add receipt preview/commit to compaction, overflow, model-switch, and handoff flows where durable proof is required.
+- Add tests proving receipts preserve Workpoint checkpoint/revision and drift status.
+
+### 46.2 Spec100 update
+
+- Add Spec119 to the normative basis.
+- State that ContextCognitionPacket may be summarized in receipts but remains advisory.
+- Add tests proving Context Cognition cannot satisfy proof without Evidence refs.
+- Add receipt projection fields for stale/degraded/selected/excluded context.
+
+### 46.3 Spec111 update
 
 - Add Spec119 to the normative basis.
 - State that `AgentBootstrapReceipt` is a specialized projection of `focusa.receipt.v1`.
@@ -2420,31 +2763,31 @@ After Spec119 MVP lands, update these specs surgically.
 - Add receipt ledger consistency to preload doctor.
 - Add tests proving bootstrap delivery receipts can be generated.
 
-### 44.2 Spec112 update
+### 46.4 Spec112 update
 
 - Add `install_verification` receipt type to install success/failure/rollback docs.
 - Add receipt generation after install doctor.
 - Ensure license keys and private host data are excluded from receipts.
 
-### 44.3 Spec113 update
+### 46.5 Spec113 update
 
 - Add receipt projection for Eval Ledger run summaries.
 - Add `receipt_id` to benchmark run reports.
 - Require public claims to cite benchmark_result receipt projection.
 
-### 44.4 Spec114 update
+### 46.6 Spec114 update
 
 - Define `proof.focusa.dev` snapshots as public-safe receipt projections.
 - Define `bench.focusa.dev` benchmark claim cards as benchmark_result receipt projections.
 - Keep public APIs serving generated/redacted artifacts only.
 
-### 44.5 Spec115 update
+### 46.7 Spec115 update
 
 - Define cloud-hosted proof receipts as projections of local canonical receipts.
 - Ensure cloud cannot mutate local receipt truth.
 - Add receipt projection index boundaries.
 
-### 44.6 Spec116 update
+### 46.8 Spec116 update
 
 - Add Spec119 to normative basis.
 - State that valid provider closures should produce `work_item_closure` receipts.
@@ -2454,12 +2797,15 @@ After Spec119 MVP lands, update these specs surgically.
 
 ---
 
-## 45. Success Criteria
+## 47. Success Criteria
 
 This work is successful when Focusa can reliably answer:
 
 ```text
 What did the agent do?
+Which Workpoint checkpoint/revision anchored it?
+Did it drift?
+Which advisory context was supplied, stale, excluded, or degraded?
 Was it allowed?
 Was the authority fresh?
 Was bootstrap context delivered?
@@ -2475,6 +2821,8 @@ The default experience should become:
 
 ```text
 One resumable mission.
+One typed Workpoint continuation anchor.
+One advisory context frame.
 One governed action path.
 One bootstrap delivery proof when relevant.
 One closure truth record when relevant.
@@ -2486,7 +2834,7 @@ One next safe action.
 
 ---
 
-## 46. Closure Policy
+## 48. Closure Policy
 
 Do not close Spec119 MVP implementation work until:
 
@@ -2498,12 +2846,17 @@ Do not close Spec119 MVP implementation work until:
 - receipt commit creates a canonical event;
 - receipt commit links into existing `event_hash_chain`;
 - receipt verification works through CLI/API;
+- Workpoint checkpoint/revision/current-action provenance is receipt-visible;
+- Workpoint drift can block/degrade receipt completion;
+- Context Cognition is visible as advisory and cannot satisfy proof by itself;
 - claim gate blocks unsupported completion;
 - provider closure gate blocks invalid closure;
 - risky mutation receipts include Context Authority;
 - authority freshness is enforced;
 - expired authority blocks commit;
 - UIAI diagnostics can become receipt evidence;
+- Spec88 Workpoint provenance can become receipt context;
+- Spec100 Context Cognition state can become advisory receipt context;
 - Spec111 bootstrap verification can become receipt evidence;
 - Spec116 closure validation can become receipt evidence;
 - tests prove scope mismatch and surrogate evidence behavior;
