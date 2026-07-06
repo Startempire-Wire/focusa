@@ -1,6 +1,7 @@
 //! Application state for the TUI.
 
 use crate::api::ApiClient;
+use chrono::{DateTime, Local};
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -238,6 +239,7 @@ pub struct App {
     pub palette_buffer: String,
     pub connected: bool,
     pub last_error: Option<String>,
+    pub last_refresh_at: Option<DateTime<Local>>,
     client: ApiClient,
 }
 
@@ -261,6 +263,7 @@ impl App {
             palette_buffer: String::new(),
             connected: false,
             last_error: None,
+            last_refresh_at: None,
             client: ApiClient::new(api_url),
         }
     }
@@ -271,6 +274,7 @@ impl App {
                 self.state = snapshot;
                 self.connected = true;
                 self.last_error = None;
+                self.last_refresh_at = Some(Local::now());
 
                 // Fetch extra data for the active tab.
                 self.refresh_tab_data().await;
