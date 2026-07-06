@@ -2,6 +2,8 @@
 
 Fast path for a first-time evaluator: install Focusa, see the daemon alive, bind a project, then open Mission Deck.
 
+For the buyer-facing demo script, see the [GTM Five-Minute Proof](GTM_FIVE_MINUTE_PROOF.md).
+
 ## 1. Install
 
 ```bash
