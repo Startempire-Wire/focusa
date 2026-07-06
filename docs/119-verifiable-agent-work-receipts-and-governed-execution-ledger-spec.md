@@ -3,13 +3,15 @@
 Status: Draft  
 Owner: Verious Smith  
 Created: 2026-07-05  
-Scope: Focusa daemon HTTP API, CLI, Pi tools, Workpoint, Evidence, Context Authority, UIAI diagnostics intake, Spec111 Agent Context Bootstrap, public-safe cards, receipt schema package, local receipt ledger, event-chain verification, and future integration adapters.
+Scope: Focusa daemon HTTP API, CLI, Pi tools, Workpoint, Evidence, Context Authority, UIAI diagnostics intake, Spec111 Agent Context Bootstrap, Spec112 install verification, Spec113 Eval Ledger, Spec114 public proof surfaces, Spec115 cloud projections, Spec116 provider-neutral work-item closure, public-safe cards, receipt schema package, local receipt ledger, event-chain verification, and future integration adapters.
 
 ---
 
 ## 0. Source Grounding
 
-This spec formalizes the next Focusa product/architecture direction from current repository surfaces:
+This spec formalizes a unifying receipt layer for current and planned Focusa surfaces.
+
+### 0.1 Current implemented / current-doc surfaces
 
 - `README.md`
   - Focusa is a local-first mission cohesion layer for AI coding agents.
@@ -26,17 +28,6 @@ This spec formalizes the next Focusa product/architecture direction from current
   - Defines the canonical happy path from ProjectIdentity → Trajectory → Workpoint → Context Cognition → implementation → Evidence → session transfer → final proof report.
 - `docs/current/CONTEXT_AUTHORITY_CURRENT.md`
   - Requires preflight before risky mutations including deploy, release, git push, destructive file operations, migrations, broad refactors, config changes, live service actions, and install/update ambiguity.
-- `docs/107-spec-first-feature-lifecycle-and-claim-discipline-spec.md`
-  - Defines actual/partial/surrogate/blocked/missing evidence classes.
-  - Blocks completion claims when required evidence is missing or insufficient.
-- `docs/109-agent-first-api-redesign-ax-spec.md`
-  - Establishes the direction toward typed, bounded, discoverable, recoverable Agent Experience contracts.
-- `docs/111-agent-context-bootstrap-and-delivery-spec.md`
-  - Defines Focusa Agent Context Bootstrap & Delivery.
-  - Defines AgentBootstrapPacket and AgentBootstrapReceipt.
-  - States that Focusa Bootstrap turns a cold agent session into verified mission continuation.
-- `docs/current/FOCUSA_ECOSYSTEM_INTERCONNECTEDNESS_AUDIT_2026-06-15.md`
-  - Identifies the need for selection over dumping, shared AwarenessPacket substrate, UIAI proof bridge, tool-family selection, and public claim/evidence alignment.
 - `docs/current/TAMPER_EVIDENT_EVENT_CHAIN.md`
   - Documents the current SQLite `event_hash_chain` behavior.
   - Event chain rows include `event_id`, `chain_index`, `previous_hash`, `payload_sha256`, `event_hash`, and `created_at`.
@@ -49,15 +40,42 @@ This spec formalizes the next Focusa product/architecture direction from current
   - SQLite persistence is the canonical store for append-only events and versioned state snapshots.
   - Existing `append_event` writes canonical events and links them into `event_hash_chain`.
 
+### 0.2 Prior and planned specs this spec must preserve
+
+- `docs/107-spec-first-feature-lifecycle-and-claim-discipline-spec.md`
+  - Defines actual/partial/surrogate/blocked/missing evidence classes.
+  - Blocks completion claims when required evidence is missing or insufficient.
+- `docs/109-agent-first-api-redesign-ax-spec.md`
+  - Establishes typed, bounded, discoverable, recoverable Agent Experience contracts.
+- `docs/111-agent-context-bootstrap-and-delivery-spec.md`
+  - Defines Focusa Agent Context Bootstrap & Delivery.
+  - Defines AgentBootstrapPacket and AgentBootstrapReceipt.
+  - States that Focusa Bootstrap turns a cold agent session into verified mission continuation.
+- `docs/112-install-binary-architecture-spec.md`
+  - Defines system detection, release asset selection, checksum/signature verification, atomic install/rollback, license validation, daemon install, and AX-correct install recovery.
+- `docs/113-agent-benchmark-spec.md`
+  - Defines Focusa-vs-No-Focusa benchmark runs, Eval Ledger boundaries, evidence capture, grounded claims tasks, and measured release comparisons.
+- `docs/114-public-benchmark-flywheel-spec.md`
+  - Defines `bench.focusa.dev`, `evals.focusa.dev`, and `proof.focusa.dev`.
+  - Defines public-safe proof snapshots and the rule that public APIs serve generated/redacted artifacts only.
+- `docs/115-focusa-cloud-control-plane-tool-gateway-master-spec.md`
+  - Defines cloud as hosted coordination while local nodes retain Workpoints, Focus State, Evidence refs, Context Authority, Eval Ledger, private diagnostics, and project files.
+  - Core rule preserved by this spec: cloud coordinates, node decides, receipts prove, private state stays local.
+- `docs/116-provider-neutral-work-item-closure-authority-spec.md`
+  - Defines Focusa as the provider-neutral closure authority.
+  - Defines WorkItem, WorkItemRef, WorkItemProvider, ClosureClaim, ClosurePolicy, ClosureValidationResult, ProviderAdapter, and ProviderCapabilities.
+  - Defines the closure lifecycle: prepare → validate → authorize → submit → reconcile → audit.
+  - Defines close-time blocking and bypass detection for provider systems such as bd, Linear, Asana, and GitHub Issues.
+
 ---
 
 ## 1. Purpose
 
 Focusa must make verifiable agent work a first-class product surface.
 
-The next major product capability is a **Focusa Receipt**: a local-first, proof-backed, scope-bound artifact that records what an agent was asked to do, what scope it belonged to, what authority allowed or blocked action, what evidence supports the result, what remains unfinished, what context was delivered, and what the next safe action is.
+The major product capability is a **Focusa Receipt**: a local-first, proof-backed, scope-bound artifact that records what an agent was asked to do, what scope it belonged to, what authority allowed or blocked action, what evidence supports the result, what remains unfinished, what context was delivered, what work item/provider closure state exists, and what the next safe action is.
 
-This turns Focusa from a collection of agent memory/governance primitives into a visible work ledger that developers, teams, future agents, and public demo surfaces can trust.
+This turns Focusa’s memory, authority, evidence, bootstrap, install, eval, cloud, and closure primitives into one visible work ledger that developers, teams, future agents, public-safe proof surfaces, and provider integrations can trust.
 
 ---
 
@@ -69,18 +87,21 @@ Focusa MUST prioritize this outcome:
 Every meaningful agent work session should be resumable, governed, evidence-backed, receipt-producing, and locally verifiable.
 ```
 
-Focusa should not add new terminology, tool families, API surfaces, or product claims unless they improve at least one of:
+Focusa should not add new terminology, tool families, API surfaces, public claims, or provider integrations unless they improve at least one of:
 
 1. receipt quality;
 2. proof quality;
 3. authority accuracy;
-4. recovery clarity;
-5. integration portability;
-6. outcome evaluation;
-7. operator trust;
-8. agent doability;
-9. local verification;
-10. bootstrap delivery proof.
+4. closure truth;
+5. recovery clarity;
+6. integration portability;
+7. outcome evaluation;
+8. operator trust;
+9. agent doability;
+10. local verification;
+11. bootstrap delivery proof;
+12. install/license proof;
+13. public-safe proof projection.
 
 ---
 
@@ -97,6 +118,11 @@ Focusa already has strong primitives:
 - Context Cognition;
 - Session Transfer;
 - Agent Context Bootstrap from Spec111;
+- install/license verification direction from Spec112;
+- Eval Ledger and benchmark direction from Spec113;
+- public proof/benchmark direction from Spec114;
+- local/cloud boundary direction from Spec115;
+- provider-neutral closure authority from Spec116;
 - Prediction and Metacognition;
 - DX/UX surfaces;
 - UIAI diagnostics intake;
@@ -106,13 +132,16 @@ Focusa already has strong primitives:
 
 The current gap is product consolidation.
 
-The system can preserve state, enforce scope, capture proof, guide recovery, deliver bootstrap context, and hash-link events, but users and agents still need one canonical artifact that answers:
+The system can preserve state, enforce scope, capture proof, guide recovery, deliver bootstrap context, validate work-item closure truth, and hash-link events, but users and agents still need one canonical artifact that answers:
 
 ```text
 What was the work?
 What was the scope?
 Was the action allowed?
 Was bootstrap context delivered?
+Was install/license state verified?
+Was a work item closure claim valid?
+Which provider mutation happened or was blocked?
 What changed?
 What proves it?
 What is unfinished?
@@ -124,8 +153,9 @@ Without this artifact:
 
 - internal vocabulary can feel like friction;
 - tool count can feel like complexity;
-- proof remains distributed across logs, tests, Workpoints, UIAI diagnostics, bootstrap receipts, and docs;
+- proof remains distributed across logs, tests, Workpoints, UIAI diagnostics, bootstrap receipts, provider task systems, eval ledgers, and docs;
 - public demos lack a consistent evidence object;
+- closure systems can drift into provider-specific truth;
 - team workflows lack a simple audit boundary;
 - future integration adapters have no portable payload to exchange;
 - event-chain integrity is not directly visible at the work-summary level.
@@ -148,10 +178,12 @@ and receive a compact receipt with:
 - scoped project identity;
 - Workpoint continuity;
 - bootstrap delivery status when relevant;
+- work item closure status when relevant;
+- install/license verification status when relevant;
 - changed objects;
 - authority posture;
 - evidence refs;
-- test/browser/API proof;
+- test/browser/API/CI/provider proof;
 - blocked or missing proof;
 - final claim status;
 - local verification status;
@@ -165,6 +197,7 @@ An agent using Focusa should receive:
 - one current authority posture;
 - one proof status;
 - one bootstrap/delivery status when relevant;
+- one work-item closure status when relevant;
 - one next safe tool/action;
 - up to three recovery tools when blocked.
 
@@ -175,7 +208,7 @@ The agent should not need to scan the full Focusa tool surface to determine what
 A team should be able to require:
 
 ```text
-No risky agent mutation without Context Authority preflight and a Focusa Receipt.
+No risky agent mutation, provider close, or public claim without a Focusa Receipt.
 ```
 
 This creates a governed execution boundary for:
@@ -192,11 +225,14 @@ This creates a governed execution boundary for:
 - daemon restart;
 - generated-code overwrite;
 - cross-project file edits;
-- bootstrap file writes.
+- bootstrap file writes;
+- work-item close/status mutations;
+- install/license activation claims;
+- benchmark/public proof claims.
 
 ### 4.4 Public Demo Benefit
 
-A public-safe receipt can become the standard object for Arena demos:
+A public-safe receipt can become the standard object for Arena, proof, and benchmark surfaces:
 
 ```text
 Here is the work.
@@ -213,13 +249,16 @@ Receipts create structured outcome records:
 - plan shape;
 - bootstrap delivery status;
 - authority decision;
+- closure validation status;
+- provider mutation status;
 - tool sequence;
 - evidence class;
 - failure mode;
 - recovery path;
+- eval/benchmark relation;
 - final outcome.
 
-Local-first storage remains the default. Any aggregation, sharing, export, or training use must be explicit, redacted, and opt-in.
+Local-first storage remains the default. Any aggregation, sharing, export, public snapshot, cloud publication, or training use must be explicit, redacted, and opt-in.
 
 ---
 
@@ -272,7 +311,51 @@ Focusa Receipt = canonical durable record committed through Spec119.
 
 Bootstrap build/render/write/verify outcomes should map into `receipt_type = bootstrap_delivery` when persisted.
 
-### 5.6 Tool Count Becomes Tool Selection
+### 5.6 Spec112 Install Verification Becomes Receipt-Producing Setup Proof
+
+Install and upgrade flows should be able to produce `install_verification` receipts that record:
+
+- detected OS/arch/libc/init system;
+- selected release asset;
+- checksum/signature verification;
+- license validation state;
+- daemon install/start result;
+- rollback state;
+- doctor result;
+- recovery hints.
+
+### 5.7 Spec113 Eval Ledger Becomes Receipt-Producing Measurement Proof
+
+Eval Ledger events remain append-only measurement records. Receipts do not replace them.
+
+Instead:
+
+```text
+Eval Ledger = task/run event truth.
+Receipt = summarized, evidence-linked proof object for a run, comparison, or benchmark claim.
+```
+
+### 5.8 Spec114 Public Proof Uses Receipt Projections
+
+`proof.focusa.dev` and `bench.focusa.dev` should consume public-safe receipt projections, not raw daemon state.
+
+### 5.9 Spec115 Cloud Hosts Projections, Not Authority
+
+The local node owns canonical receipts. Cloud may host redacted projections, indexes, and published snapshots only after explicit export/publish.
+
+### 5.10 Spec116 Closure Authority Becomes Receipt-Producing Closure Truth
+
+Spec116’s ClosureClaim and provider mutation lifecycle must map into `work_item_closure` receipts.
+
+The rule is:
+
+```text
+Focusa validates closure truth.
+Providers store and display the closure.
+Receipts prove the closure validation and provider mutation result.
+```
+
+### 5.11 Tool Count Becomes Tool Selection
 
 The receipt layer must use tool contract/choreography metadata to recommend:
 
@@ -281,7 +364,7 @@ The receipt layer must use tool contract/choreography metadata to recommend:
 - up to three recovery tools;
 - relevant family hints only.
 
-### 5.7 Existing Event Integrity Becomes Work-Level Verification
+### 5.12 Existing Event Integrity Becomes Work-Level Verification
 
 Receipt commits must reuse Focusa’s existing event hash chain.
 
@@ -300,7 +383,9 @@ This spec does not require:
 - replacing existing agent frameworks;
 - replacing external agent/tool protocols;
 - replacing Spec111 Agent Context Bootstrap;
-- making Focusa a general task runner;
+- replacing Spec113 Eval Ledger;
+- replacing Spec116 provider adapters;
+- making Focusa a general task manager;
 - making Focusa a generic vector memory system;
 - exposing all Focusa tools to users by default;
 - weakening canonical Focusa vocabulary;
@@ -322,6 +407,9 @@ This spec does require:
 - local receipt verification;
 - receipt events linked into the existing event hash chain;
 - bootstrap delivery receipt mapping;
+- install verification receipt mapping;
+- eval/benchmark receipt mapping;
+- provider-neutral closure receipt mapping;
 - public-safe redaction path for post-MVP;
 - adapter-friendly schema design;
 - portable JSON Schemas in the repository.
@@ -354,37 +442,45 @@ A final claim cannot be marked complete unless matching evidence exists.
 
 Completion language must be blocked when evidence is partial, surrogate, blocked, or missing.
 
-### 7.5 Preview Before Commit
+### 7.5 Closure Truth Before Provider Mutation
+
+A work item may not be closed through Focusa unless a `work_item_closure` receipt preview returns `completion_allowed=true` and the ClosureClaim is valid, fresh, provider-scoped, and evidence-backed.
+
+### 7.6 Preview Before Commit
 
 Receipt generation must support preview mode before writing to the durable ledger.
 
 Preview may aggregate read models. Commit must enter the daemon-owned write path or serialized writer path.
 
-### 7.6 Local-First by Default
+### 7.7 Local-First by Default
 
 Receipts are stored locally by default.
 
-Public export, Arena export, team export, or external telemetry must be explicit and redacted.
+Public export, Arena export, team export, cloud projection, or external telemetry must be explicit and redacted.
 
-### 7.7 Selection Over Surface Area
+### 7.8 Selection Over Surface Area
 
 Receipts and awareness cards should compress Focusa’s tool graph into relevant choices.
 
 The default surface should never overwhelm the user or agent with the full tool list.
 
-### 7.8 Integration-Ready, Not Integration-Dependent
+### 7.9 Integration-Ready, Not Integration-Dependent
 
 Focusa Receipts should be useful through CLI/API/Pi on day one and later portable through adapters.
 
-### 7.9 Hash-Linked at Commit
+### 7.10 Hash-Linked at Commit
 
 A committed receipt must have a receipt hash and a canonical receipt event linked into the existing Focusa event hash chain.
 
-### 7.10 Fresh Authority for Risky Actions
+### 7.11 Fresh Authority for Risky Actions
 
 Risky action authorization expires.
 
 A stale or expired allow verdict cannot support a committed risky-mutation receipt.
+
+### 7.12 Public and Cloud Surfaces Are Projections
+
+Local receipt state is canonical. Public, cloud, proof, bench, and Arena surfaces consume redacted projections.
 
 ---
 
@@ -392,7 +488,7 @@ A stale or expired allow verdict cannot support a committed risky-mutation recei
 
 ### Focusa Receipt
 
-A local-first, scope-bound artifact summarizing agent work, authority posture, evidence, result, bootstrap delivery when relevant, verification status, and next safe action.
+A local-first, scope-bound artifact summarizing agent work, authority posture, evidence, result, bootstrap delivery, install verification, closure status, benchmark relation, verification status, and next safe action.
 
 ### Agent Work Ledger
 
@@ -404,15 +500,15 @@ A generated receipt candidate that does not mutate the durable ledger.
 
 ### Receipt Commit
 
-A persisted receipt written after scope, authority, evidence, idempotency, and integrity checks.
+A persisted receipt written after scope, authority, evidence, closure, idempotency, and integrity checks.
 
 ### Public-Safe Receipt
 
-A redacted receipt suitable for public demo, Arena display, client review, or investor proof.
+A redacted receipt suitable for public demo, Arena display, proof viewer, benchmark display, client review, or investor proof.
 
 ### Claim
 
-A statement that the agent, tool, or operator wants to treat as true about work performed.
+A statement that the agent, tool, provider adapter, or operator wants to treat as true about work performed.
 
 ### Claim Status
 
@@ -424,11 +520,11 @@ actual | partial | surrogate | blocked | missing
 
 ### Evidence Ref
 
-A stable reference to proof such as test output, command output, browser diagnostics, screenshot path, API response, CI run, release artifact, bootstrap verification result, or log bundle.
+A stable reference to proof such as test output, command output, browser diagnostics, screenshot path, API response, CI run, release artifact, bootstrap verification result, provider closure result, eval run report, install verification result, or log bundle.
 
 ### Governed Execution Boundary
 
-The point where Focusa reconciles current ask, project scope, Workpoint, environment facts, risky action class, authority freshness, and Context Authority verdict before allowing or blocking mutation.
+The point where Focusa reconciles current ask, project scope, Workpoint, environment facts, risky action class, authority freshness, Context Authority verdict, and closure policy before allowing or blocking mutation.
 
 ### Receipt Hash
 
@@ -450,32 +546,42 @@ The canonical event path: `events + event_hash_chain`.
 
 A target-specific Spec111 delivery/verification projection generated from a canonical Focusa Receipt. It is not a separate durable receipt system after Spec119.
 
+### ClosureClaim
+
+A Spec116 provider-neutral claim that a WorkItem is eligible for provider closure because Focusa has validated scope, policy, evidence, and mutation plan.
+
+### Cloud Projection
+
+A redacted, published, or indexed representation of a local receipt. It is not the canonical receipt.
+
 ---
 
-## 9. Receipt Relationship to Final Reports and Bootstrap Receipts
+## 9. Receipt Relationship to Reports, Bootstrap, Closure, Evals, Public Proof, and Cloud
 
-A Focusa Receipt does not replace every final report.
+A Focusa Receipt does not replace every report or ledger.
 
 Instead:
 
 ```text
-Receipt = structured source of truth
+Receipt = structured source of truth for work proof
 Final report = human-readable rendering of receipt + operator-facing explanation
 AgentBootstrapReceipt = target-specific delivery projection of a receipt
-Arena card = public-safe rendering of receipt
+ClosureClaim = provider-neutral close claim validated before closure receipt commit
+Eval Ledger = append-only event truth for benchmark runs
+Benchmark report = measured aggregate derived from Eval Ledger + receipts
+Arena/proof/bench card = public-safe rendering of receipt
 Agent handoff = continuation-focused rendering of receipt
+Cloud projection = redacted hosted index/snapshot of local receipt
 CI summary = automation-focused rendering of receipt
 ```
 
-Agents must treat the receipt as the canonical structured artifact when reporting completion, blockers, bootstrap delivery, or next steps.
+Agents must treat the receipt as the canonical structured artifact when reporting completion, blockers, bootstrap delivery, closure state, install verification, eval evidence, or next steps.
 
 ---
 
-## 10. MVP Receipt Types
+## 10. Receipt Types
 
-Add top-level `receipt_type`.
-
-Allowed MVP values:
+### 10.1 MVP receipt types
 
 ```text
 work_session
@@ -484,6 +590,7 @@ final_report
 blocked_claim
 handoff
 bootstrap_delivery
+work_item_closure
 ```
 
 Definitions:
@@ -494,6 +601,27 @@ Definitions:
 - `blocked_claim`: records why a claim cannot be treated as complete.
 - `handoff`: captures state for another agent/session/operator.
 - `bootstrap_delivery`: records Spec111 bootstrap packet build/render/write/verify status.
+- `work_item_closure`: records Spec116 ClosureClaim validation, provider mutation, reconcile, bypass, or block status.
+
+### 10.2 Post-MVP receipt types
+
+```text
+install_verification
+eval_run
+benchmark_result
+public_proof_snapshot
+cloud_projection
+support_bundle
+```
+
+Definitions:
+
+- `install_verification`: records Spec112 install/upgrade/license verification.
+- `eval_run`: summarizes one Spec113 Eval Ledger run.
+- `benchmark_result`: summarizes one measured benchmark comparison or release result.
+- `public_proof_snapshot`: records a Spec114 public-safe proof export.
+- `cloud_projection`: records a Spec115 redacted cloud-hosted projection.
+- `support_bundle`: records operator-approved support bundle generation and redaction state.
 
 ---
 
@@ -534,7 +662,7 @@ Minimum shape:
 {
   "schema": "focusa.receipt.v1",
   "schema_version": "1.0.0",
-  "receipt_type": "work_session|risky_mutation|final_report|blocked_claim|handoff|bootstrap_delivery",
+  "receipt_type": "work_session|risky_mutation|final_report|blocked_claim|handoff|bootstrap_delivery|work_item_closure|install_verification|eval_run|benchmark_result|public_proof_snapshot|cloud_projection|support_bundle",
   "receipt_id": "uuid",
   "created_at": "iso8601",
   "project_identity": {
@@ -545,14 +673,14 @@ Minimum shape:
     "posture": "canonical|advisory|degraded|blocked|stale"
   },
   "continuity": {
-    "continuity_id": "string",
+    "continuity_id": "string|null",
     "session_id": "string|null",
     "workstream_key": "string|null",
     "scope_verified": true
   },
   "operator_ask": {
-    "text": "string",
-    "source": "operator|agent|system|unknown",
+    "text": "string|null",
+    "source": "operator|agent|system|provider|installer|eval_runner|cloud|unknown",
     "captured_at": "iso8601|null"
   },
   "trajectory": {
@@ -597,6 +725,61 @@ Minimum shape:
     "missing_fields": [],
     "failed_checks": [],
     "fail_phrase": "FOCUSA_PRELOAD_FAIL|null"
+  },
+  "closure": {
+    "claim_id": "string|null",
+    "work_item": {
+      "provider": "bd|linear|asana|github|unknown|null",
+      "provider_item_id": "string|null",
+      "external_url": "string|null"
+    },
+    "closure_kind": "code|docs|deploy|investigation|no_code|admin|null",
+    "closure_policy": {
+      "mode": "off|warn|block|null",
+      "require_focusa_claim": true,
+      "require_proof_refs": true,
+      "require_spec_refs": true,
+      "policy_version": "string|null"
+    },
+    "validation_status": "valid|blocked|expired|null",
+    "provider_mutation_plan": {
+      "provider": "bd|linear|asana|github|unknown|null",
+      "action": "close|comment|status_update|close_with_comment|null",
+      "target_status": "string|null",
+      "idempotency_key": "string|null"
+    },
+    "provider_submit_status": "not_attempted|submitted|reconciled|partial_failure|bypassed|null",
+    "bypass_detected": false
+  },
+  "install": {
+    "install_id": "string|null",
+    "os": "string|null",
+    "arch": "string|null",
+    "libc": "string|null",
+    "init_system": "string|null",
+    "asset": "string|null",
+    "checksum_status": "not_applicable|passed|failed|missing",
+    "signature_status": "not_applicable|passed|failed|missing",
+    "license_status": "not_applicable|valid|invalid|expired|skipped_eval",
+    "service_status": "not_applicable|installed|started|failed|rolled_back",
+    "rollback_status": "not_applicable|not_needed|completed|failed"
+  },
+  "eval": {
+    "suite_id": "string|null",
+    "run_id": "string|null",
+    "task_id": "string|null",
+    "arm": "no_focusa|passive_focusa|tool_only_focusa|full_focusa|null",
+    "resolved": null,
+    "score": null,
+    "report_ref": "string|null",
+    "ledger_ref": "string|null"
+  },
+  "public_projection": {
+    "projection_type": "none|arena_card|proof_snapshot|benchmark_snapshot|cloud_projection",
+    "publish_allowed": false,
+    "redaction_status": "not_applicable|pending|passed|failed",
+    "public_url": "string|null",
+    "projection_hash": "string|null"
   },
   "execution": {
     "summary": "string",
@@ -665,8 +848,8 @@ The `execution` block should summarize and link rather than duplicate every low-
 Guidance:
 
 - `primary_actions` should contain only important actions.
-- `touched_refs` should contain compact references to files, routes, services, or objects.
-- Full command logs, tool call logs, browser logs, bootstrap packet JSON, and CI logs should remain in their original stores and be linked through refs.
+- `touched_refs` should contain compact references to files, routes, services, providers, eval runs, or objects.
+- Full command logs, tool call logs, browser logs, bootstrap packet JSON, provider API payloads, eval event streams, and CI logs should remain in their original stores and be linked through refs.
 - Receipts should be compact enough for agents to read and reliable enough for humans to audit.
 
 ---
@@ -679,11 +862,13 @@ Receipt evidence refs must use a consistent shape:
 {
   "evidence_ref": "string",
   "class": "actual|partial|surrogate|blocked|missing",
-  "source": "test|cli|api|browser|uiai|ci|screenshot|log|operator|agent|bootstrap|unknown",
+  "source": "test|cli|api|browser|uiai|ci|screenshot|log|operator|agent|bootstrap|install|provider|eval|benchmark|cloud|unknown",
   "summary": "string",
   "supports_claim": true,
   "workpoint_id": "uuid|null",
+  "work_item_ref": "string|null",
   "artifact_path": "string|null",
+  "external_url": "string|null",
   "created_at": "iso8601|null",
   "public_safe": false,
   "redaction_required": true
@@ -709,14 +894,18 @@ Shape:
   "schema": "focusa.receipt.summary.v1",
   "schema_version": "1.0.0",
   "receipt_id": "uuid",
-  "receipt_type": "work_session|risky_mutation|final_report|blocked_claim|handoff|bootstrap_delivery",
+  "receipt_type": "work_session|risky_mutation|final_report|blocked_claim|handoff|bootstrap_delivery|work_item_closure|install_verification|eval_run|benchmark_result|public_proof_snapshot|cloud_projection|support_bundle",
   "project_root": "string",
-  "continuity_id": "string",
+  "continuity_id": "string|null",
   "workpoint_id": "uuid|null",
   "claim_status": "actual|partial|surrogate|blocked|missing",
   "outcome_status": "completed|partial|blocked|failed|in_progress|unknown",
   "authority_verdict": "allow|block|ask_operator|verify_first|diagnosis_only|planning_only|null",
   "bootstrap_delivery_status": "not_applicable|rendered|written|verified|failed|dry_run|blocked",
+  "closure_validation_status": "valid|blocked|expired|null",
+  "provider_submit_status": "not_attempted|submitted|reconciled|partial_failure|bypassed|null",
+  "install_verification_status": "not_applicable|passed|failed|partial",
+  "public_projection_status": "none|pending|published|blocked",
   "evidence_summary": {
     "actual": 0,
     "partial": 0,
@@ -732,7 +921,7 @@ Shape:
 }
 ```
 
-This summary is the preferred integration object for external agent tools, editor plugins, CI systems, and future handoff adapters.
+This summary is the preferred integration object for external agent tools, editor plugins, CI systems, provider adapters, cloud projections, public proof surfaces, and future handoff adapters.
 
 External systems should not need to consume the full Focusa tool graph to benefit from Focusa receipts.
 
@@ -752,6 +941,9 @@ schemas/receipt/examples/final_report.partial.json
 schemas/receipt/examples/risky_mutation.blocked.json
 schemas/receipt/examples/work_session.actual.json
 schemas/receipt/examples/bootstrap_delivery.verified.json
+schemas/receipt/examples/work_item_closure.valid.json
+schemas/receipt/examples/install_verification.partial.json
+schemas/receipt/examples/benchmark_result.public_safe.json
 ```
 
 Add generated language bindings later:
@@ -782,6 +974,8 @@ Portable receipt schemas must not depend on:
 - Pi extension internals;
 - Tauri menubar code;
 - UIAI implementation details;
+- provider-specific adapter internals;
+- cloud control plane internals;
 - internal-only tool names beyond optional metadata fields.
 
 The portable schema may reference Focusa concepts, but the minimum integration summary must be usable with:
@@ -795,6 +989,7 @@ workpoint_id
 claim_status
 authority_verdict
 bootstrap_delivery_status
+closure_validation_status
 evidence_summary
 next_safe_action
 ```
@@ -846,6 +1041,10 @@ Required behavior:
 - inspect Context Authority if action is risky;
 - evaluate authority freshness when applicable;
 - inspect bootstrap packet/delivery state when `receipt_type=bootstrap_delivery`;
+- inspect closure claim/policy/provider state when `receipt_type=work_item_closure`;
+- inspect install verification state when `receipt_type=install_verification`;
+- inspect eval/benchmark references when `receipt_type=eval_run|benchmark_result`;
+- inspect public/cloud projection status when `receipt_type=public_proof_snapshot|cloud_projection`;
 - collect evidence refs;
 - classify claim status;
 - recommend next safe action;
@@ -858,11 +1057,15 @@ Required behavior:
 Commit must reject when:
 
 - `project_root` is missing or unsafe;
-- `continuity_id` is missing for canonical receipt;
+- `continuity_id` is missing for canonical project-bound receipt;
 - Workpoint scope mismatches current ask;
 - risky mutation lacks required Context Authority verdict;
 - risky mutation has expired authority;
 - bootstrap write evidence is claimed verified but verifier failed or was skipped;
+- closure claim is invalid, expired, or mismatched to provider/work item;
+- provider mutation is claimed reconciled without provider proof;
+- install verification is claimed complete without checksum/signature/license/service evidence when required;
+- benchmark or public claim lacks eval/proof references;
 - completion claim lacks actual evidence;
 - supplied evidence refs do not exist or are private without redaction markers;
 - idempotency conflicts with a prior receipt commit.
@@ -905,7 +1108,9 @@ Redaction must remove or mask:
 - private logs;
 - customer/client names when flagged;
 - private screenshots unless explicitly public-safe;
-- private evidence refs that cannot be shared.
+- private evidence refs that cannot be shared;
+- provider tokens or private provider payloads;
+- private eval holdout task bodies.
 
 ### 17.6 Export
 
@@ -918,6 +1123,10 @@ arena_card
 agent_handoff
 ci_summary
 bootstrap_projection
+closure_projection
+install_projection
+benchmark_projection
+cloud_projection
 ```
 
 ---
@@ -934,7 +1143,7 @@ focusa receipt list
 focusa receipt verify <receipt_id>
 focusa receipt verify-chain
 focusa receipt redact <receipt_id>
-focusa receipt export <receipt_id> --format json|markdown|arena-card|agent-handoff|ci-summary|bootstrap-projection
+focusa receipt export <receipt_id> --format json|markdown|arena-card|agent-handoff|ci-summary|bootstrap-projection|closure-projection|install-projection|benchmark-projection|cloud-projection
 ```
 
 MVP CLI:
@@ -952,7 +1161,7 @@ Post-MVP CLI:
 
 ```bash
 focusa receipt redact <receipt_id>
-focusa receipt export <receipt_id> --format json|markdown|arena-card|agent-handoff|ci-summary|bootstrap-projection
+focusa receipt export <receipt_id> --format json|markdown|arena-card|agent-handoff|ci-summary|bootstrap-projection|closure-projection|install-projection|benchmark-projection|cloud-projection
 ```
 
 CLI requirements:
@@ -963,7 +1172,7 @@ CLI requirements:
 - `show` must render compact human-readable summary by default.
 - `verify` must show receipt hash and event-chain status.
 - `--json` must return full schema.
-- `export --format arena-card` must require redaction unless `--private` is explicitly supplied.
+- `export --format arena-card|benchmark-projection|cloud-projection` must require redaction unless `--private` is explicitly supplied.
 
 ---
 
@@ -1000,7 +1209,8 @@ Pi tool behavior:
 
 - Agents should call `focusa_receipt_preview` before final reports.
 - Agents must not call `focusa_receipt_commit` when `completion_allowed=false`.
-- If receipt preview blocks completion, the agent must report the missing evidence plainly.
+- Agents must not close provider work items unless closure receipt preview allows it.
+- If receipt preview blocks completion or closure, the agent must report the missing evidence plainly.
 - Pi output should show one next safe action and up to three recovery tools.
 - `focusa_receipt_verify` should be used when the operator asks whether a committed receipt is intact.
 
@@ -1035,6 +1245,11 @@ workpoint_id
 claim_status
 completion_allowed
 bootstrap_delivery_status
+closure_validation_status
+provider_submit_status
+install_verification_status
+eval_run_id
+public_projection_status
 receipt_json
 receipt_hash
 receipt_event_id
@@ -1055,6 +1270,11 @@ workpoint_id
 claim_status
 outcome_status
 bootstrap_delivery_status
+closure_validation_status
+provider_submit_status
+install_verification_status
+eval_run_id
+public_projection_status
 public_safe
 receipt_hash
 receipt_event_id
@@ -1088,7 +1308,7 @@ Receipt commit must dispatch or serialize through the daemon-owned write path.
 Acceptable MVP implementation:
 
 1. API receives `POST /v1/receipts/commit`.
-2. API validates request shape, scope, evidence class, authority freshness, bootstrap verifier state, and idempotency.
+2. API validates request shape, scope, evidence class, authority freshness, bootstrap verifier state, closure state, and idempotency.
 3. API dispatches a receipt commit action or enters the existing serialized writer path.
 4. Core receipt evaluator produces the accepted receipt record.
 5. Persistence writes the receipt query record.
@@ -1175,13 +1395,15 @@ ReceiptPublished
 {
   "type": "ReceiptCommitted",
   "receipt_id": "uuid",
-  "receipt_type": "work_session|risky_mutation|final_report|blocked_claim|handoff|bootstrap_delivery",
+  "receipt_type": "work_session|risky_mutation|final_report|blocked_claim|handoff|bootstrap_delivery|work_item_closure|install_verification|eval_run|benchmark_result|public_proof_snapshot|cloud_projection|support_bundle",
   "project_root": "string",
-  "continuity_id": "string",
+  "continuity_id": "string|null",
   "workpoint_id": "uuid|null",
   "claim_status": "actual|partial|surrogate|blocked|missing",
   "completion_allowed": false,
   "bootstrap_delivery_status": "not_applicable|rendered|written|verified|failed|dry_run|blocked",
+  "closure_validation_status": "valid|blocked|expired|null",
+  "provider_submit_status": "not_attempted|submitted|reconciled|partial_failure|bypassed|null",
   "receipt_hash": "string",
   "receipt_event_id": "uuid",
   "evidence_counts": {
@@ -1231,6 +1453,10 @@ trajectory
 workpoint
 authority
 bootstrap
+closure
+install
+eval
+public_projection
 execution
 evidence
 claim
@@ -1274,7 +1500,8 @@ Risky operations include:
 - binary replacement;
 - daemon restart;
 - install/update ambiguity;
-- preload/bootstrap file write.
+- preload/bootstrap file write;
+- work-item provider close/status mutation.
 
 If no preflight exists, receipt status must be `blocked` or `verify_first`.
 
@@ -1342,6 +1569,7 @@ broad refactor: medium
 cross-project edit: high
 generated-code overwrite: medium
 preload/bootstrap file write: medium
+work-item provider close/status mutation: high
 ```
 
 This policy may later become configurable, but MVP should hardcode safe defaults.
@@ -1446,27 +1674,177 @@ surrogate = delivery proof comes from a different target/surface than required
 - `preload write` receipts must include Context Authority when the target writes files into a project root.
 - Pi session-start bootstrap remains special: no file write by default; delivery happens through Pi session lifecycle and follow-up message/tool context.
 
-### 27.5 Doc111 Update Required After Spec119 MVP
+---
 
-After Spec119 MVP is implemented, update `docs/111-agent-context-bootstrap-and-delivery-spec.md`:
+## 28. Spec116 Work-Item Closure Integration
 
-- add Spec119 to the normative basis;
-- state that `AgentBootstrapReceipt` is a specialized projection of `focusa.receipt.v1`;
-- update preload write/verify routes to mention receipt preview/commit;
-- add `focusa_receipt_preview` and `focusa_receipt_commit` as likely next tools after `focusa_preload_verify`;
-- add receipt ledger consistency to preload doctor;
-- update tests to assert bootstrap delivery receipts can be generated.
+Spec116 provider-neutral closure authority is a first-class receipt producer.
+
+### 28.1 Relationship
+
+```text
+Spec116 validates closure truth.
+Spec119 records closure validation, provider mutation, reconcile, bypass, and proof status.
+```
+
+### 28.2 Required Mapping
+
+When `focusa work-item closure prepare|validate|submit` or `focusa work-item close` produces a closure state, Focusa SHOULD generate a receipt preview.
+
+When a closure is submitted or blocked under Focusa authority, Focusa SHOULD commit:
+
+```text
+receipt_type = work_item_closure
+```
+
+Mapping:
+
+```text
+ClosureClaim.claim_id                    → receipt.closure.claim_id
+ClosureClaim.work_item.provider          → receipt.closure.work_item.provider
+ClosureClaim.work_item.provider_item_id  → receipt.closure.work_item.provider_item_id
+ClosureClaim.work_item.external_url      → receipt.closure.work_item.external_url
+ClosureClaim.closure_kind                → receipt.closure.closure_kind
+ClosureClaim.policy_version              → receipt.closure.closure_policy.policy_version
+ClosureClaim.validation_status           → receipt.closure.validation_status
+ProviderMutationPlan.provider            → receipt.closure.provider_mutation_plan.provider
+ProviderMutationPlan.action              → receipt.closure.provider_mutation_plan.action
+ProviderMutationPlan.target_status       → receipt.closure.provider_mutation_plan.target_status
+ProviderMutationPlan.idempotency_key     → receipt.closure.provider_mutation_plan.idempotency_key
+reconcile result                         → receipt.closure.provider_submit_status
+bypass audit                             → receipt.closure.bypass_detected
+```
+
+### 28.3 Closure Claim Status Rules
+
+Closure receipts must classify claim status as:
+
+```text
+actual    = ClosureClaim valid, provider mutation reconciled, evidence refs satisfy closure profile
+partial   = ClosureClaim valid but provider mutation or reconcile is incomplete
+blocked   = ClosureClaim invalid, expired, missing required proof/spec refs, or policy blocks close
+missing   = no ClosureClaim exists when provider close is requested
+surrogate = provider state changed but Focusa validation/audit evidence is indirect or out-of-band
+```
+
+### 28.4 Closure Authority Rules
+
+- Raw provider close attempts guarded by Focusa should produce `work_item_closure` receipt previews or blocked receipt candidates.
+- `focusa work-item close <id> --from-workpoint` should run receipt preview or equivalent closure validation before provider mutation.
+- Provider mutation must not occur unless ClosureClaim is valid and receipt preview says `completion_allowed=true`.
+- Break-glass overrides must create `work_item_closure` receipts with `claim.status=partial|blocked|surrogate` unless policy explicitly validates the override as actual.
+- Bypassed provider-side closures must be recorded as `bypass_detected=true` and should block public/release claims until reconciled.
+
+### 28.5 Closure Next Tools
+
+Typical next-tool routing:
+
+```text
+blocked/missing ClosureClaim → focusa work-item closure prepare
+invalid ClosureClaim         → focusa work-item closure validate
+valid but not submitted      → focusa work-item closure submit
+provider mismatch/bypass     → focusa doctor closure
+receipt missing              → focusa_receipt_preview
+```
 
 ---
 
-## 28. Claim Gate Integration
+## 29. Spec112 Install Verification Integration
+
+Spec112 installer and upgrade flows should become receipt-producing setup proof.
+
+When `focusa install`, install bootstrapper, update, or license activation produces a result, Focusa SHOULD be able to generate:
+
+```text
+receipt_type = install_verification
+```
+
+Claim status rules:
+
+```text
+actual    = asset selected, checksum/signature verified, license state resolved, service install/start proven
+partial   = install succeeded but optional service/license/doctor proof is missing
+blocked   = incompatible system, checksum/signature failure, license invalid, service start failed without rollback proof
+missing   = install claim exists without install evidence
+surrogate = installer output exists but no local binary/service proof exists
+```
+
+Install receipts must not expose license keys, auth tokens, private hostnames, or environment secrets.
+
+---
+
+## 30. Spec113 Eval Ledger and Benchmark Integration
+
+Spec113 Eval Ledger events remain the source of measurement truth.
+
+Receipts should summarize and prove:
+
+```text
+receipt_type = eval_run
+receipt_type = benchmark_result
+```
+
+Rules:
+
+- Do not duplicate full eval event streams inside receipts.
+- Link to Eval Ledger run IDs, raw report artifacts, scoring commit, environment digest, and evidence refs.
+- Public benchmark claims must come from measured artifacts, not predictions.
+- Receipt `claim.status` must be `blocked` or `missing` if benchmark evidence is predicted, incomplete, cherry-picked, or lacks raw artifacts.
+
+---
+
+## 31. Spec114 Public Proof Integration
+
+Spec114 public proof and benchmark surfaces consume public-safe projections.
+
+Rules:
+
+- `proof.focusa.dev` consumes `public_proof_snapshot` projections.
+- `bench.focusa.dev` consumes `benchmark_result` projections.
+- `arena.focusa.dev` consumes `arena_card` projections.
+- Public projections must not expose the internal daemon or `/v1/evals/*` directly.
+- Public projection requires redaction, secret scan, proof refs, and publish approval.
+
+---
+
+## 32. Spec115 Cloud Projection Integration
+
+Spec115 cloud control plane may index, host, and publish redacted receipt projections.
+
+Rules:
+
+```text
+Local receipt = canonical.
+Cloud/proof/bench receipt = redacted projection.
+Cloud must not become receipt authority.
+```
+
+Cloud may own:
+
+- receipt projection index;
+- public-safe proof hosting;
+- benchmark snapshot hosting;
+- support bundle intake;
+- team visibility summaries.
+
+Cloud must not own:
+
+- canonical Workpoint authority;
+- raw private Focus State;
+- raw project files;
+- unredacted diagnostics;
+- private Eval Ledger events unless explicitly exported by policy.
+
+---
+
+## 33. Claim Gate Integration
 
 Spec107 claim discipline must become a hard pre-close path.
 
 Rule:
 
 ```text
-No final completion claim may be emitted by Focusa tooling when receipt preview returns completion_allowed=false.
+No final completion claim, provider close, public claim, or benchmark claim may be emitted by Focusa tooling when receipt preview returns completion_allowed=false.
 ```
 
 Required behavior:
@@ -1501,7 +1879,7 @@ Minimum blocked response shape:
 
 ---
 
-## 29. Blocked and Degraded Agent View
+## 34. Blocked and Degraded Agent View
 
 When a receipt is degraded or blocked, the agent-facing response must include:
 
@@ -1513,6 +1891,9 @@ missing_scope
 missing_evidence
 authority_needed
 bootstrap_status
+closure_status
+install_status
+projection_status
 next_safe_action
 recovery_tools
 ```
@@ -1528,6 +1909,9 @@ Example:
   "missing_evidence": [],
   "authority_needed": null,
   "bootstrap_status": "not_applicable",
+  "closure_status": "not_applicable",
+  "install_status": "not_applicable",
+  "projection_status": "none",
   "next_safe_action": {
     "summary": "Verify project identity and checkpoint a new Workpoint in the current project.",
     "tool": "focusa_project_identity",
@@ -1543,7 +1927,7 @@ Example:
 
 ---
 
-## 30. UIAI Proof Bridge Requirements
+## 35. UIAI Proof Bridge Requirements
 
 UIAI diagnostics intake must be receipt-aware.
 
@@ -1568,21 +1952,26 @@ UIAI evidence must be linkable to:
 - active object;
 - claim;
 - receipt;
-- final report.
+- final report;
+- public-safe projection when explicitly redacted and allowed.
 
 ---
 
-## 31. Integration Strategy
+## 36. Integration Strategy
 
 Focusa should not require every external system to adopt Focusa internals.
 
-Instead, Focusa should provide portable receipt/workpoint/evidence/bootstrap payloads that can be consumed by:
+Instead, Focusa should provide portable receipt/workpoint/evidence/bootstrap/closure payloads that can be consumed by:
 
 - agent harnesses;
 - CLI-based coding agents;
 - editor extensions;
+- provider adapters;
 - CI/CD workflows;
 - browser/product proof systems;
+- installer/update flows;
+- eval and benchmark systems;
+- cloud projection surfaces;
 - public demo surfaces;
 - future agent-to-agent handoff adapters.
 
@@ -1594,7 +1983,10 @@ project_root
 continuity_id
 workpoint_id
 claim_status
+authority_verdict
 bootstrap_delivery_status
+closure_validation_status
+provider_submit_status
 evidence_refs
 next_safe_action
 ```
@@ -1603,7 +1995,7 @@ Adapters should not expose the entire Focusa tool surface by default.
 
 ---
 
-## 32. Public-Safe / Arena Card Requirements
+## 37. Public-Safe / Arena / Bench / Proof Card Requirements
 
 Public-safe export is post-MVP.
 
@@ -1614,6 +2006,7 @@ Project: <public project name>
 Work: <summary>
 Scope: verified/degraded/blocked
 Bootstrap: verified/not applicable/blocked
+Closure: valid/reconciled/blocked/not applicable
 Authority: allowed/blocked/verify-first
 Evidence: 3 actual, 1 blocked, 0 missing
 Claim: actual/partial/blocked
@@ -1621,15 +2014,17 @@ Verification: hash-linked/unverified/broken
 Next: <safe next action>
 ```
 
-Arena export must never include private data unless explicitly marked public-safe.
+Public export must never include private data unless explicitly marked public-safe.
 
-Arena cards should be searchable by:
+Cards should be searchable by:
 
 - project;
 - task type;
 - evidence class;
 - outcome status;
 - bootstrap delivery status;
+- closure validation status;
+- provider submit status;
 - blocked reason;
 - tool family;
 - date;
@@ -1637,7 +2032,7 @@ Arena cards should be searchable by:
 
 ---
 
-## 33. Agent DX Requirements
+## 38. Agent DX Requirements
 
 Receipt surfaces must reduce agent confusion.
 
@@ -1649,6 +2044,8 @@ Every receipt response must include:
 - `claim.status`;
 - `completion_allowed`;
 - `bootstrap.delivery_status` when relevant;
+- `closure.validation_status` when relevant;
+- `install.license_status` and verification state when relevant;
 - `next_safe_action`;
 - `recovery_tools`;
 - `evidence.counts`;
@@ -1665,11 +2062,12 @@ If a receipt cannot be generated, Focusa should return:
 - which authority verdict is needed;
 - whether authority is expired;
 - which bootstrap proof is missing when relevant;
+- which closure proof/policy/provider status is missing when relevant;
 - which tool to call next.
 
 ---
 
-## 34. AwarenessPacket Integration
+## 39. AwarenessPacket Integration
 
 The shared AwarenessPacket substrate should use receipt state.
 
@@ -1682,6 +2080,9 @@ claim_status
 missing_evidence
 authority_freshness
 bootstrap_delivery_status
+closure_validation_status
+provider_submit_status
+install_verification_status
 receipt_verification_status
 public_export_state
 ```
@@ -1694,6 +2095,8 @@ claim_status_line
 proof_line
 authority_freshness_line
 bootstrap_line
+closure_line
+install_line
 verification_line
 next_safe_action_line
 ```
@@ -1701,10 +2104,12 @@ next_safe_action_line
 Minimal awareness card should include receipt state only when useful:
 
 - before final report;
+- before provider closure;
 - after risky mutation;
 - after evidence capture;
 - after UIAI diagnostics;
 - after bootstrap write/verify;
+- after closure validation/submit/reconcile;
 - after blocked claim;
 - after compaction/session transfer;
 - when operator asks for status;
@@ -1712,7 +2117,7 @@ Minimal awareness card should include receipt state only when useful:
 
 ---
 
-## 35. Implementation Phases
+## 40. Implementation Phases
 
 ### Phase 0 — Field Map and Fixtures
 
@@ -1725,12 +2130,19 @@ example degraded receipt
 example blocked claim receipt
 example actual proof receipt
 example bootstrap delivery receipt
+example work item closure receipt
+example install verification receipt
+example benchmark result receipt
 ```
 
 Acceptance:
 
 - Existing Focusa surfaces are mapped to receipt fields.
 - Spec111 bootstrap fields are mapped to receipt fields.
+- Spec112 install fields are mapped to receipt fields.
+- Spec113/114 eval and public proof fields are mapped to receipt fields.
+- Spec115 cloud projection fields are mapped to receipt fields.
+- Spec116 closure fields are mapped to receipt fields.
 - Example receipts are checked into docs or fixtures.
 - Portable JSON Schema directory exists.
 - Examples validate against schemas.
@@ -1750,7 +2162,7 @@ Acceptance:
 
 - Read-only.
 - No ledger mutation.
-- Aggregates project identity, continuity, Workpoint, trajectory, authority posture, authority freshness, bootstrap status, evidence summary, claim status, and next safe action.
+- Aggregates project identity, continuity, Workpoint, trajectory, authority posture, authority freshness, bootstrap status, closure status, evidence summary, claim status, and next safe action.
 - Blocks or degrades on scope mismatch.
 - Supports `receipt_type`.
 - Supports `schema_version`.
@@ -1792,7 +2204,7 @@ Acceptance:
 - Expired authority blocks commit.
 - Critical-risk actions require recheck at commit.
 
-### Phase 2.5 — Basic UIAI and Bootstrap Evidence Classification
+### Phase 2.5 — Basic UIAI, Bootstrap, and Closure Evidence Classification
 
 Deliverables:
 
@@ -1801,6 +2213,7 @@ UIAI diagnostics mapped into receipt evidence classes
 browser proof shown in receipt preview
 blocked browser proof shown as blocked evidence
 Spec111 bootstrap verify result mapped into bootstrap_delivery receipts
+Spec116 closure validation mapped into work_item_closure receipts
 ```
 
 Acceptance:
@@ -1811,26 +2224,42 @@ Acceptance:
 - Missing native/browser proof is labeled missing when required.
 - Verified bootstrap delivery can support `bootstrap_delivery` actual claim status.
 - Failed bootstrap verification blocks bootstrap delivery completion.
+- Valid ClosureClaim can support `work_item_closure` actual claim status only after provider reconcile evidence.
+- Invalid, expired, or bypassed closure blocks completion or marks surrogate/partial as appropriate.
 
-### Post-MVP Phase 3 — Public-Safe Export
+### Post-MVP Phase 3 — Install, Eval, Benchmark, and Public Proof Receipt Projections
 
-Deferred until preview, commit, and verification are proven.
+Deferred until preview, commit, verification, bootstrap, and closure mappings are proven.
 
-### Post-MVP Phase 4 — Arena Card
+Deliverables:
+
+```text
+install_verification receipt preview/commit
+eval_run receipt projection
+benchmark_result receipt projection
+public_proof_snapshot projection
+cloud_projection export boundary
+```
+
+### Post-MVP Phase 4 — Public-Safe Export
+
+Deferred until public-safe projection fields and redaction tests are proven.
+
+### Post-MVP Phase 5 — Arena/Bench/Proof Cards
 
 Deferred until public-safe export is proven.
 
-### Post-MVP Phase 5 — External Adapter Payloads
+### Post-MVP Phase 6 — External Adapter Payloads
 
 Deferred until summary schema stabilizes.
 
-### Post-MVP Phase 6 — External Checkpointing / Signing
+### Post-MVP Phase 7 — External Checkpointing / Signing
 
 Deferred until receipt UX and event-chain verification are proven.
 
 ---
 
-## 36. MVP Acceptance Criteria
+## 41. MVP Acceptance Criteria
 
 MVP is accepted when:
 
@@ -1845,25 +2274,28 @@ MVP is accepted when:
 9. Receipt preview degrades or blocks when `project_root + continuity_id` are missing or mismatched.
 10. Receipt preview classifies claim status as actual/partial/surrogate/blocked/missing.
 11. Receipt preview supports `bootstrap_delivery` receipt type.
-12. Receipt preview returns one next safe action and up to three recovery tools.
-13. Receipt commit persists locally through the Focusa write model.
-14. Receipt commit emits receipt events.
-15. Receipt commits produce `receipt_hash`.
-16. Receipt commits create or link to a canonical receipt event.
-17. Receipt events participate in the existing hash chain.
-18. `focusa receipt verify <receipt_id>` verifies receipt hash and event-chain linkage.
-19. Completion claims are blocked when `completion_allowed=false`.
-20. Risky mutation receipts require Context Authority evidence.
-21. Risky `allow` authority includes `issued_at`, `valid_until`, and `ttl_seconds`.
-22. Expired authority blocks receipt commit.
-23. Critical-risk actions require recheck at commit.
-24. Basic UIAI diagnostics can appear as receipt evidence.
-25. Basic Spec111 bootstrap verification can appear as receipt evidence.
-26. The minimal receipt summary schema works without importing Focusa daemon internals.
+12. Receipt preview supports `work_item_closure` receipt type.
+13. Receipt preview returns one next safe action and up to three recovery tools.
+14. Receipt commit persists locally through the Focusa write model.
+15. Receipt commit emits receipt events.
+16. Receipt commits produce `receipt_hash`.
+17. Receipt commits create or link to a canonical receipt event.
+18. Receipt events participate in the existing hash chain.
+19. `focusa receipt verify <receipt_id>` verifies receipt hash and event-chain linkage.
+20. Completion claims are blocked when `completion_allowed=false`.
+21. Provider closure claims are blocked when ClosureClaim is invalid, expired, or missing proof refs.
+22. Risky mutation receipts require Context Authority evidence.
+23. Risky `allow` authority includes `issued_at`, `valid_until`, and `ttl_seconds`.
+24. Expired authority blocks receipt commit.
+25. Critical-risk actions require recheck at commit.
+26. Basic UIAI diagnostics can appear as receipt evidence.
+27. Basic Spec111 bootstrap verification can appear as receipt evidence.
+28. Basic Spec116 closure validation can appear as receipt evidence.
+29. The minimal receipt summary schema works without importing Focusa daemon internals.
 
 ---
 
-## 37. Required MVP Tests
+## 42. Required MVP Tests
 
 MVP tests:
 
@@ -1886,12 +2318,18 @@ tests/spec119_receipt_authority_ttl_test.sh
 tests/spec119_receipt_authority_expired_commit_block_test.sh
 tests/spec119_receipt_uiai_basic_evidence_test.sh
 tests/spec119_receipt_bootstrap_delivery_test.sh
+tests/spec119_receipt_work_item_closure_test.sh
 tests/spec119_receipt_summary_schema_static_test.sh
 ```
 
 Post-MVP tests:
 
 ```text
+tests/spec119_receipt_install_verification_test.sh
+tests/spec119_receipt_eval_run_projection_test.sh
+tests/spec119_receipt_benchmark_result_test.sh
+tests/spec119_receipt_public_projection_test.sh
+tests/spec119_receipt_cloud_projection_test.sh
 tests/spec119_receipt_redaction_test.sh
 tests/spec119_receipt_export_static_test.sh
 tests/spec119_receipt_arena_card_test.sh
@@ -1911,11 +2349,13 @@ Regression fixtures:
 5. UIAI browser failure must classify as blocked evidence, not success.
 6. Receipt query model mismatch with event chain must return degraded/broken verification.
 7. Spec111 bootstrap verification failure must classify `bootstrap_delivery` as blocked.
-8. Public export must remove private URLs and local absolute paths unless explicitly allowed.
+8. Spec116 invalid ClosureClaim must classify `work_item_closure` as blocked.
+9. Provider-side bypass without Focusa validation must classify closure evidence as surrogate or blocked until reconciled.
+10. Public export must remove private URLs and local absolute paths unless explicitly allowed.
 
 ---
 
-## 38. Documentation Updates
+## 43. Documentation Updates
 
 Required docs:
 
@@ -1926,6 +2366,10 @@ docs/current/FOCUSA_RECEIPT_INTEGRITY.md
 docs/current/FOCUSA_RECEIPT_SCHEMA_PACKAGE.md
 docs/current/FOCUSA_RECEIPT_AUTHORITY_FRESHNESS.md
 docs/current/FOCUSA_RECEIPT_BOOTSTRAP_INTEGRATION.md
+docs/current/FOCUSA_RECEIPT_CLOSURE_INTEGRATION.md
+docs/current/FOCUSA_RECEIPT_INSTALL_INTEGRATION.md
+docs/current/FOCUSA_RECEIPT_EVAL_BENCH_PROOF_INTEGRATION.md
+docs/current/FOCUSA_RECEIPT_CLOUD_PROJECTION.md
 docs/current/FOCUSA_RECEIPT_PUBLIC_EXPORT.md
 
 docs/focusa-tools/tools/focusa_receipt_preview.md
@@ -1946,6 +2390,11 @@ Required links from:
 - `docs/107-spec-first-feature-lifecycle-and-claim-discipline-spec.md`;
 - `docs/109-agent-first-api-redesign-ax-spec.md`;
 - `docs/111-agent-context-bootstrap-and-delivery-spec.md`;
+- `docs/112-install-binary-architecture-spec.md`;
+- `docs/113-agent-benchmark-spec.md`;
+- `docs/114-public-benchmark-flywheel-spec.md`;
+- `docs/115-focusa-cloud-control-plane-tool-gateway-master-spec.md`;
+- `docs/116-provider-neutral-work-item-closure-authority-spec.md`;
 - generated tool surface summary;
 - release docs;
 - marketing copy.
@@ -1958,27 +2407,54 @@ Focusa Receipts are local-first, hash-linked to the Focusa event chain at commit
 
 ---
 
-## 39. Required Future Update to Spec111
+## 44. Required Future Updates to Prior Specs
 
-After Spec119 MVP lands, update `docs/111-agent-context-bootstrap-and-delivery-spec.md` surgically:
+After Spec119 MVP lands, update these specs surgically.
 
-1. Add Spec119 to normative basis.
-2. Replace standalone durable interpretation of `AgentBootstrapReceipt` with:
+### 44.1 Spec111 update
 
-```text
-AgentBootstrapReceipt is a target-specific projection of a canonical Focusa Receipt with receipt_type=bootstrap_delivery.
-```
+- Add Spec119 to the normative basis.
+- State that `AgentBootstrapReceipt` is a specialized projection of `focusa.receipt.v1`.
+- Update preload write/verify routes to mention receipt preview/commit.
+- Add `focusa_receipt_preview` and `focusa_receipt_commit` as likely next tools after successful `focusa_preload_verify`.
+- Add receipt ledger consistency to preload doctor.
+- Add tests proving bootstrap delivery receipts can be generated.
 
-3. Add receipt preview/commit to preload write and verify flows.
-4. Add `focusa_receipt_preview` and `focusa_receipt_commit` as likely next tools after successful `focusa_preload_verify`.
-5. Add receipt ledger consistency to preload doctor.
-6. Add tests proving bootstrap delivery receipts can be generated.
+### 44.2 Spec112 update
 
-This update is intentionally deferred so Spec119 can be added without rewriting Doc111 in the same change.
+- Add `install_verification` receipt type to install success/failure/rollback docs.
+- Add receipt generation after install doctor.
+- Ensure license keys and private host data are excluded from receipts.
+
+### 44.3 Spec113 update
+
+- Add receipt projection for Eval Ledger run summaries.
+- Add `receipt_id` to benchmark run reports.
+- Require public claims to cite benchmark_result receipt projection.
+
+### 44.4 Spec114 update
+
+- Define `proof.focusa.dev` snapshots as public-safe receipt projections.
+- Define `bench.focusa.dev` benchmark claim cards as benchmark_result receipt projections.
+- Keep public APIs serving generated/redacted artifacts only.
+
+### 44.5 Spec115 update
+
+- Define cloud-hosted proof receipts as projections of local canonical receipts.
+- Ensure cloud cannot mutate local receipt truth.
+- Add receipt projection index boundaries.
+
+### 44.6 Spec116 update
+
+- Add Spec119 to normative basis.
+- State that valid provider closures should produce `work_item_closure` receipts.
+- Add receipt preview/commit to prepare/validate/submit/reconcile lifecycle.
+- Add `focusa_receipt_preview` and `focusa_receipt_commit` to likely next tools.
+- Add receipt verification to closure doctor.
 
 ---
 
-## 40. Success Criteria
+## 45. Success Criteria
 
 This work is successful when Focusa can reliably answer:
 
@@ -1987,6 +2463,8 @@ What did the agent do?
 Was it allowed?
 Was the authority fresh?
 Was bootstrap context delivered?
+Was install/license state verified?
+Was work-item closure valid and reconciled?
 What proves it?
 What remains?
 Can the record be locally verified?
@@ -1999,6 +2477,7 @@ The default experience should become:
 One resumable mission.
 One governed action path.
 One bootstrap delivery proof when relevant.
+One closure truth record when relevant.
 One proof trail.
 One local receipt.
 One verification status.
@@ -2007,7 +2486,7 @@ One next safe action.
 
 ---
 
-## 41. Closure Policy
+## 46. Closure Policy
 
 Do not close Spec119 MVP implementation work until:
 
@@ -2020,15 +2499,17 @@ Do not close Spec119 MVP implementation work until:
 - receipt commit links into existing `event_hash_chain`;
 - receipt verification works through CLI/API;
 - claim gate blocks unsupported completion;
+- provider closure gate blocks invalid closure;
 - risky mutation receipts include Context Authority;
 - authority freshness is enforced;
 - expired authority blocks commit;
 - UIAI diagnostics can become receipt evidence;
 - Spec111 bootstrap verification can become receipt evidence;
+- Spec116 closure validation can become receipt evidence;
 - tests prove scope mismatch and surrogate evidence behavior;
 - tests prove receipt hash and event-chain linkage;
 - docs explain the receipt workflow in beginner and advanced modes.
 
 Partial receipt surfaces may ship behind preview labels, but public docs must not claim the receipt system is complete until all MVP acceptance criteria are met.
 
-Public-safe export, Arena cards, external schema packages, out-of-band checkpoints, signing, and Doc111 surgical updates remain post-MVP unless explicitly accepted by operator steering.
+Public-safe export, Arena cards, benchmark projections, cloud projections, external schema packages, out-of-band checkpoints, signing, and prior-spec surgical updates remain post-MVP unless explicitly accepted by operator steering.
