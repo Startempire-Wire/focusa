@@ -513,6 +513,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::deck::router())
         .merge(routes::preload::router())
         .merge(routes::bloatgaurd_optical::router())
+        .merge(routes::turn_recent::router())
         .nest_service("/static", ServeDir::new(STATIC_DIR))
         .merge(routes::dxux::router())
         .merge(routes::utility::router())

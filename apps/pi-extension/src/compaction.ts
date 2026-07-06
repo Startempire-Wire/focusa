@@ -524,6 +524,10 @@ export function registerCompaction(pi: ExtensionAPI) {
     const lastDecision = S.localDecisions[S.localDecisions.length - 1] ?? "pre-compaction work";
     S.lastCompactDecision = lastDecision;
 
+    // §5.12: On compaction, force re-emit recent-turns slice on the resumed loop.
+    // Reset idempotency guard so the next before_agent_start injects fresh.
+    (S as any).lastRecentTurnsSliceTurn = -1;
+
     if (S.focusaAvailable && getActiveFrameId()) {
       const data = await getFocusState();
       if (data?.fs?.decisions?.length || data?.fs?.constraints?.length) {

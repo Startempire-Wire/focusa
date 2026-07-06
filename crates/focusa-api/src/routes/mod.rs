@@ -4,6 +4,7 @@ pub mod autonomy;
 pub mod awareness;
 pub mod bloatgaurd;
 pub mod bloatgaurd_optical;
+pub mod turn_recent;
 pub mod bounded;
 pub mod call_stack;
 pub mod capabilities;

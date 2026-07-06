@@ -9,12 +9,142 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
 import type { PiGoverningPriorKind } from "./state.js";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, persistState, projectRootConfirmationRequired, projectRootConfirmationSummary, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, maybeCaptureReportSummaryFromAssistantOutput, recordToolOutputPressure, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, markVisibleRecapEmittedIfPresent, observeProjectThreadHintsFromText, formatProjectSwitchLedgerLines, buildCurrentAskScopeVerdict, formatCurrentAskScopeVerdictLines, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary, getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, getLatestReportSummary , setLastStreamLen, resetToolUsageBatch, getToolUsageBatch, pushToToolUsageBatch, setLongSessionSignaled, getLongSessionSignaled, getCurrentTaskTurnStart, setCurrentTaskTurnStart, incrementTotalCompactions, getLastStreamLen, pushCompilationError, getCompilationErrors, incrementFileEditCount, getFileEditCounts, getTurnCount, setTurnCount, incrementTurnCount, getSessionCwd, getContinuityId } from "./state.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, persistState, projectRootConfirmationRequired, projectRootConfirmationSummary, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, maybeCaptureReportSummaryFromAssistantOutput, recordToolOutputPressure, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, markVisibleRecapEmittedIfPresent, observeProjectThreadHintsFromText, formatProjectSwitchLedgerLines, buildCurrentAskScopeVerdict, formatCurrentAskScopeVerdictLines, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary, getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, getLatestReportSummary , setLastStreamLen, resetToolUsageBatch, getToolUsageBatch, pushToToolUsageBatch, setLongSessionSignaled, getLongSessionSignaled, getCurrentTaskTurnStart, setCurrentTaskTurnStart, incrementTotalCompactions, getLastStreamLen, pushCompilationError, getCompilationErrors, incrementFileEditCount, getFileEditCounts, getTurnCount, setTurnCount, incrementTurnCount, getSessionCwd, getContinuityId, pushRecentTurn, getRecentTurns, formatRecentTurnsSection, shouldEmitRecentTurnsSlice, markRecentTurnsSliceEmitted } from "./state.js";
 import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
 import { buildFocusaUtilityCard } from "./awareness.js";
 import { selectFocusSliceToolAffordances } from "./tool-contracts.js";
+
+// ─── §5.12 Recent-turns adapter (Pi implementation) ──────────────────────
+// Spec: docs/101-focusa-bloatgaurd-spec.md §5.12 + §5.12.11 (adapter contract)
+// Pi is Adapter 1; the daemon owns the canonical ring buffer. Other agents
+// (Claude Code, Aider, Cursor, Cline, Gemini, Codex) implement the same contract.
+
+const ADAPTER_KIND = "pi-extension";
+
+function shouldIncludeTurnInSlice(text: string, toolCallCount: number): boolean {
+  // Drop status-only turns (test/cont/ack/...) and tool-empty turns when non-task text exists.
+  if (isNonTaskStatusLikeText(text || "")) return false;
+  if (toolCallCount === 0 && (!text || text.trim().length === 0)) return false;
+  return true;
+}
+
+function deriveOutcome(text: string, hasFailureSignal: boolean): string {
+  if (hasFailureSignal) return "blocked";
+  if (!text || text.trim().length === 0) return "observed";
+  return "tooled";
+}
+
+function captureRecentTurnSlice(assistantOutput: string): void {
+  try {
+    const turnCount = getTurnCount();
+    const toolCount = (S as any).currentTaskToolCalls ?? 0;
+    const text = assistantOutput || "";
+    if (!shouldIncludeTurnInSlice(text, toolCount)) return;
+    const slice = {
+      turn_id: `pi-turn-${turnCount}`,
+      mission_at_turn: (S.activeFrameGoal || S.activeFrameTitle || "").slice(0, 120),
+      outcome: deriveOutcome(text, false),
+      evidence_refs: [] as string[],
+      tool_call_count: toolCount,
+      emitted_at: Math.floor(Date.now() / 1000),
+    };
+    pushRecentTurn(slice);
+    // Best-effort POST to daemon; ignore failures (fail soft per §5.12.11).
+    if (S.focusaAvailable) {
+      focusaPost("/v1/turns/recent", {
+        turn_id: slice.turn_id,
+        continuity_id: getContinuityId(),
+        mission_at_turn: slice.mission_at_turn,
+        outcome: slice.outcome,
+        evidence_refs: slice.evidence_refs,
+        tool_call_count: slice.tool_call_count,
+        emitted_at: slice.emitted_at,
+      }).catch(() => null);
+    }
+  } catch {
+    // never throw from capture
+  }
+}
+
+async function fetchRecentTurnsFromDaemon(n: number): Promise<string[]> {
+  if (!S.focusaAvailable) return [];
+  try {
+    const continuity = getContinuityId();
+    if (!continuity) return [];
+    const res: any = await focusaFetch(`/v1/turns/recent?n=${n}&continuity_id=${encodeURIComponent(continuity)}`);
+    const value = res?.value;
+    if (!value || Array.isArray(value?.error)) return [];
+    const turns = Array.isArray(value?.turns) ? value.turns : [];
+    return turns.map((t: any) => ({
+      turn_id: String(t.turn_id || "?"),
+      mission_at_turn: String(t.mission_at_turn || ""),
+      outcome: String(t.outcome || "tooled"),
+      evidence_refs: Array.isArray(t.evidence_refs) ? t.evidence_refs : [],
+      tool_call_count: Number(t.tool_call_count || 0),
+      emitted_at: Number(t.emitted_at || 0),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function injectRecentTurnsSlice(event: any, n: number = 4): Promise<void> {
+  const currentTurn = getTurnCount();
+  if (!shouldEmitRecentTurnsSlice(currentTurn)) return;
+  const daemonTurns = await fetchRecentTurnsFromDaemon(n);
+  if (daemonTurns.length === 0) {
+    // Fallback to local ring if daemon is unreachable or empty.
+    const localSection = formatRecentTurnsSection(n);
+    if (localSection) {
+      event.systemPrompt = (event.systemPrompt || "") + "\n\n" + localSection;
+    }
+    markRecentTurnsSliceEmitted(currentTurn);
+    return;
+  }
+  // Use daemon data, format inline.
+  const lines = [`Recent turns (last ${daemonTurns.length}, daemon source):`];
+  for (const t of daemonTurns) {
+    const mission = t.mission_at_turn.length > 120 ? t.mission_at_turn.slice(0, 119) + "\u2026" : t.mission_at_turn;
+    const refs = t.evidence_refs.length > 0 ? ` ev=${t.evidence_refs.join(",")}` : "";
+    lines.push(`- T[${t.turn_id}] mission="${mission}" outcome=${t.outcome} tools=${t.tool_call_count}${refs}`);
+  }
+  event.systemPrompt = (event.systemPrompt || "") + "\n\n" + lines.join("\n");
+  markRecentTurnsSliceEmitted(currentTurn);
+}
+
+// Recall-intent detection (mirrors §5.12.10 word set).
+const RECALL_INTENT_PATTERNS: Array<{ category: string; pattern: RegExp }> = [
+  { category: "direct_recall", pattern: /\b(recall|remember|remind me|bring me back|catch up|orient me|refocus|rewind)\b/i },
+  { category: "implicit_prior", pattern: /\b(what did we|earlier|last time|previously|where were we|as we discussed|we talked about|you mentioned|you said|i asked|i said|i meant|didn't we)\b/i },
+  { category: "coherence_loss", pattern: /\bcontext\b.{0,40}\?|lost|confused|on track|where (were|are) we going|what's the state/i },
+  { category: "repetition", pattern: /\balready covered|already done|already filed|duplicate|going in circles/i },
+  { category: "operator_steering", pattern: /^wait$|^hold on$|^back up$|^scratch that$/i },
+];
+
+function detectRecallIntent(text: string): { matched_category: string; matched_phrase: string } | null {
+  if (!text || text.length > 240) return null;
+  for (const { category, pattern } of RECALL_INTENT_PATTERNS) {
+    const m = text.match(pattern);
+    if (m) return { matched_category: category, matched_phrase: m[0] };
+  }
+  return null;
+}
+
+function isNonTaskStatusLikeTextLocal(text: string): boolean {
+  // Delegate to the canonical helper imported in the wider scope if available; otherwise re-implement narrowly.
+  try {
+    return (require("./state.js") as any).isNonTaskStatusLikeText?.(text) ?? false;
+  } catch {
+    return /^(test|cont|ack|ok|got it|continue|next|k|yes|no|y|n|\.+)\b/i.test(text.trim());
+  }
+}
+
+// Expose isNonTaskStatusLikeText to captureRecentTurnSlice scope.
+function isNonTaskStatusLikeText(text: string): boolean {
+  return isNonTaskStatusLikeTextLocal(text);
+}
 
 let traceBatch: any[] = [];
 
@@ -455,6 +585,9 @@ export function registerTurns(pi: ExtensionAPI) {
     }
 
     const confirmedProjectRoot = await hardGateVitalProjectRoot(ctx);
+
+    // §5.12.11: Inject recent-turns slice (daemon-sourced, fallback local).
+    await injectRecentTurnsSlice(event, 4);
 
     // §35.2: Behavioral instructions (ONE TIME per prompt — §36.6 layering)
     const behavioral = [
@@ -965,6 +1098,25 @@ export function registerTurns(pi: ExtensionAPI) {
   pi.on("input", async (event, _ctx) => {
     const text = (event as any).text || (event as any).message || "";
     const cleanedText = stripQuotedFocusaContext(String(text));
+
+    // §5.12.10: recall-intent trigger — detect and force re-emit.
+    const intent = detectRecallIntent(cleanedText);
+    if (intent) {
+      S.lastRecentTurnsSliceTurn = -1;
+      if (S.focusaAvailable) {
+        const ringSize = (S.recentTurns || []).length;
+        focusaPost("/v1/events/recall-trigger", {
+          matched_category: intent.matched_category,
+          matched_phrase: intent.matched_phrase,
+          slice_size: 0,
+          ring_size: ringSize,
+          forced_re_emit: true,
+          alternative_tools_surfaced: ringSize === 0 ? ["focusa_lineage_tree", "focusa_awareness_packet"] : [],
+          continuity_id: getContinuityId(),
+          agent_kind: ADAPTER_KIND,
+        }).catch(() => null);
+      }
+    }
     // Input is the pre-turn boundary for the upcoming model call.
     // Use the next turn id so CurrentAsk/QueryScope survive unchanged into context injection.
     const sourceTurnId = `pi-turn-${getTurnCount() + 1}`;
@@ -1324,6 +1476,9 @@ export function registerTurns(pi: ExtensionAPI) {
 
     flushTraceTelemetryBatch("turn_end");
 
+    // §5.12: Capture recent-turn slice for cross-agent ring buffer
+    captureRecentTurnSlice(assistantOutput);
+
     // §20: Compaction tier check
     await checkCompactionTier(ctx);
     // §21: Micro-compact check
@@ -1354,6 +1509,11 @@ export function registerTurns(pi: ExtensionAPI) {
       frame_id: S.activeFrameId,
       payload: { model_id: model?.id || "unknown", context_window: model?.contextWindow || S.activeContextWindow },
     });
+    // §5.12: force re-emit on model switch
+    S.lastRecentTurnsSliceTurn = -1;
+    if ((event as any).systemPrompt != null) {
+      await injectRecentTurnsSlice(event, 4);
+    }
   });
 
 

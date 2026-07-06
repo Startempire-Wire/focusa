@@ -706,6 +706,101 @@ Modes A → B → C graduated by per-turn token delta vs baseline.
 - Disabled entirely if upstream provider does not advertise prompt cache support and no SDK path is found; emits a single `provider_cache_skipped_in_safe_auto` finding on first turn.
 - Recent-turns slice always enabled (separate from cache path) — it costs ~400-600 tokens per turn but prevents 2-5k token re-reads on the agent side, so net negative in typical sessions.
 
+#### 5.12.10 Operator recall-intent trigger (last safeguard)
+
+Detect operator phrases matching the recall-intent word set (see `docs/focusa-tools/recall-intent-words.md`) in the agent input handler, force-emit the recent-turns slice, and emit `recall_intent_triggered` telemetry with the matched category. When the daemon ring buffer is empty or fully filtered, surface `focusa_lineage_tree` and `focusa_awareness_packet` as alternative recall tools in the next-step affordances.
+
+Trigger categories (high → low precision):
+
+- direct recall: `recall`, `remember`, `remind me`, `bring me back`, `catch up`, `orient me`, `refocus`, `rewind`
+- implicit prior: `what did we`, `earlier`, `last time`, `previously`, `where were we`, `as we discussed`, `you mentioned`, `you said`, `I asked`
+- coherence loss: `context`, `on track`, `lost`, `confused`, `where were we going`, `what's the state`
+- repetition: `again`, `already`, `already covered`, `duplicate`, `going in circles`
+- operator steering: `wait`, `hold on`, `back up`, `scratch that`
+
+False-positive guards:
+
+- `again` matches recall only when no imperative mood is present (`why again?` = recall; `do X again` = not).
+- `context` matches recall only when the operator phrase is ≤6 words.
+- `I said` / `you said` are high-precision — always trigger.
+
+Telemetry shape:
+
+```json
+{
+  "event_type": "recall_intent_triggered",
+  "matched_category": "implicit_prior",
+  "matched_phrase": "earlier",
+  "slice_size": 4,
+  "ring_size": 7,
+  "forced_re_emit": true,
+  "alternative_tools_surfaced": []
+}
+```
+
+#### 5.12.11 Adapter contract (cross-agent)
+
+The recent-turns slice, recall-intent trigger, and cacheable-split features are delivered via a single adapter contract implemented once per agent (Pi, Claude Code, Aider, Cursor, Cline, Gemini CLI, etc.). The daemon owns the canonical ring buffer; adapters are thin clients.
+
+Routes (all part of `focusa.recent_turns.v1`):
+
+```text
+GET  /v1/turns/recent?n=4&continuity_id=...   → RecentTurnsResponse
+POST /v1/turns/recent                         → AppendTurnRequest (idempotent on turn_id)
+POST /v1/events/recall-trigger                → telemetry ack
+```
+
+Canonical types (defined in `crates/focusa-core/src/recent_turns.rs`, mirrored in `apps/pi-extension/src/state.ts` for TS adapters):
+
+```rust
+pub struct AppendTurnRequest {
+    pub turn_id: String,
+    pub continuity_id: String,
+    pub mission_at_turn: String,        // bounded 120 chars
+    pub outcome: String,                 // committed|filed_bead|observed|blocked|ack|tooled
+    pub evidence_refs: Vec<String>,
+    pub tool_call_count: u32,
+    pub emitted_at: u64,                 // unix seconds
+}
+
+pub struct RecentTurnSlice {
+    pub turn_id: String,
+    pub mission_at_turn: String,
+    pub outcome: String,
+    pub evidence_refs: Vec<String>,
+    pub tool_call_count: u32,
+    pub emitted_at: u64,
+}
+
+pub struct RecentTurnsResponse {
+    pub schema: String,                  // "focusa.recent_turns.v1"
+    pub count: usize,
+    pub turns: Vec<RecentTurnSlice>,     // newest first
+    pub fetched_at: u64,
+}
+```
+
+Adapter responsibilities:
+
+1. **Capture**: on turn_end (or agent-equivalent lifecycle event), POST `AppendTurnRequest` to the daemon with the current continuity_id.
+2. **Inject**: on agent_start / session_compact / model_select (or equivalents), GET `/v1/turns/recent?n=4&continuity_id=...` and inject the formatted slice into the agent's system context.
+3. **Trigger**: on operator input, run recall-intent detection against the canonical word set. On match, force-emit (reset idempotency guard), inject a 1-line nudge, and POST `recall-trigger` telemetry.
+4. **Cache split**: at injection time, use `splitCacheableSystemPrompt` to mark the stable block; emit `cache_control` hint when the agent SDK supports it.
+5. **Fail soft**: when the daemon is unreachable, the adapter skips injection silently and emits a `daemon_unavailable` telemetry event — never blocks the agent loop.
+
+Adapters MUST NOT mutate the canonical ring buffer outside the documented routes. All ring mutations go through the daemon.
+
+Default agent priority (which agent the operator can flag for primary):
+
+- Pi: focusa-pi-extension adapter (this bead)
+- Claude Code: focusa-claude-code-recent-turns-adapter (filed)
+- Aider: focusa-aider-recent-turns-adapter (filed)
+- Cursor: focusa-cursor-recent-turns-adapter (filed)
+- Cline/Roo: focusa-cline-recent-turns-adapter (filed)
+- Gemini CLI: focusa-gemini-recent-turns-adapter (filed)
+
+Each adapter is a separate bead implementing the same contract.
+
 ## 6. Gate modes
 
 ### Mode A: advisory report

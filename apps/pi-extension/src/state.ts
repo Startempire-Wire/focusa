@@ -370,6 +370,10 @@ export function clearRecentTurns(): void {
   S.lastRecentTurnsSliceTurn = -1;
 }
 
+export function getRecentTurns(): RecentTurnSlice[] {
+  return S.recentTurns;
+}
+
 export function shouldEmitRecentTurnsSlice(currentTurnCount: number): boolean {
   if (currentTurnCount < 1) return false;
   if (S.lastRecentTurnsSliceTurn === currentTurnCount) return false;
