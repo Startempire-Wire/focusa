@@ -138,7 +138,7 @@ fn render_body(app: &App, frame: &mut ratatui::Frame, area: Rect) {
             .border_style(theme::border());
         let para = Paragraph::new(format!(
             "\n   {} Waiting for Focusa daemon at {}...\n\n   {}\n\n   Press 'r' to retry, 'q' to quit.",
-            spinner_char, "FOCUSA_API_URL", msg
+            spinner_char, app.api_url(), msg
         ))
         .style(theme::label())
         .block(block);

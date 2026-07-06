@@ -92,6 +92,10 @@ impl ApiClient {
         }
     }
 
+    pub fn base_url(&self) -> &str {
+        &self.base_url
+    }
+
     /// Fetch arbitrary JSON from an endpoint.
     pub async fn fetch_json(&self, path: &str) -> Result<serde_json::Value> {
         let url = format!("{}{}", self.base_url, path);

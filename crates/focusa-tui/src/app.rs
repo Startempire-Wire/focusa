@@ -325,6 +325,10 @@ impl App {
         self.show_intro = false;
     }
 
+    pub fn api_url(&self) -> &str {
+        self.client.base_url()
+    }
+
     pub fn tick_throbber(&mut self) {
         self.throbber_state.calc_next();
     }
