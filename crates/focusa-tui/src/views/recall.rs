@@ -36,6 +36,96 @@ pub const RECALL_CARD_FIELDS: &[&str] = &[
     "next_action",
 ];
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MemoryStatus {
+    Active,
+    Stale,
+    Superseded,
+    Contradicted,
+    Noise,
+    Quarantined,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ScopeStatus {
+    Current,
+    SameProjectOtherContinuity,
+    OtherProject,
+    GlobalAdvisory,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ProofStatus {
+    None,
+    Linked,
+    Verified,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AllowedUse {
+    Include,
+    InspectOnly,
+    VerifyFirst,
+    Exclude,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RecallDeckCard {
+    pub result_id: String,
+    pub provider: String,
+    pub source_session_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub timestamp: String,
+    pub span_type: String,
+    pub memory_status: MemoryStatus,
+    pub scope_status: ScopeStatus,
+    pub proof_status: ProofStatus,
+    pub allowed_use: AllowedUse,
+    pub safe_excerpt: String,
+    pub evidence_refs: Vec<String>,
+    pub next_action: String,
+}
+
+impl RecallDeckCard {
+    pub fn demo(project_root: &str) -> Self {
+        Self {
+            result_id: "demo-recall-card".to_string(),
+            provider: "focusa-local".to_string(),
+            source_session_id: "unknown".to_string(),
+            project_root: project_root.to_string(),
+            continuity_id: "current".to_string(),
+            timestamp: "now".to_string(),
+            span_type: "workpoint".to_string(),
+            memory_status: MemoryStatus::Active,
+            scope_status: ScopeStatus::Current,
+            proof_status: ProofStatus::None,
+            allowed_use: AllowedUse::InspectOnly,
+            safe_excerpt: "Advisory recall excerpt; verify scope and proof before promotion."
+                .to_string(),
+            evidence_refs: Vec::new(),
+            next_action: "verify_first".to_string(),
+        }
+    }
+}
+
+pub const MEMORY_STATUS_VALUES: &[&str] = &[
+    "active",
+    "stale",
+    "superseded",
+    "contradicted",
+    "noise",
+    "quarantined",
+];
+pub const SCOPE_STATUS_VALUES: &[&str] = &[
+    "current",
+    "same_project_other_continuity",
+    "other_project",
+    "global_advisory",
+];
+pub const PROOF_STATUS_VALUES: &[&str] = &["none", "linked", "verified"];
+pub const ALLOWED_USE_VALUES: &[&str] = &["include", "inspect_only", "verify_first", "exclude"];
+
 pub const RECALL_AUTHORITY_RULE: &str = "Recall is advisory: inspect/verify first; canonical Workpoint promotion requires operator approval.";
 
 pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
@@ -85,9 +175,13 @@ fn render_preview_card(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         .and_then(|value| value.get("root").or_else(|| value.get("project_root")))
         .and_then(|value| value.as_str())
         .unwrap_or("current project unknown");
+    let card = RecallDeckCard::demo(project);
     let text = vec![
         Line::from("RecallDeckCard preview:"),
-        Line::from(format!("provider: focusa-local · project_root: {project}")),
+        Line::from(format!(
+            "provider: {} · project_root: {}",
+            card.provider, card.project_root
+        )),
         Line::from("memory_status: active|stale|superseded|contradicted|noise|quarantined"),
         Line::from(
             "scope_status: current|same_project_other_continuity|other_project|global_advisory",
@@ -141,6 +235,20 @@ mod tests {
         ] {
             assert!(joined.contains(required), "missing {required}");
         }
+    }
+
+    #[test]
+    fn recall_deck_card_schema_values_match_spec() {
+        assert_eq!(MEMORY_STATUS_VALUES.len(), 6);
+        assert_eq!(SCOPE_STATUS_VALUES.len(), 4);
+        assert_eq!(PROOF_STATUS_VALUES, &["none", "linked", "verified"]);
+        assert_eq!(
+            ALLOWED_USE_VALUES,
+            &["include", "inspect_only", "verify_first", "exclude"]
+        );
+        let card = RecallDeckCard::demo("/tmp/project");
+        assert_eq!(card.provider, "focusa-local");
+        assert_eq!(card.allowed_use, AllowedUse::InspectOnly);
     }
 
     #[test]
