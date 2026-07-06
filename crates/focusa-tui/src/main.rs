@@ -7,6 +7,7 @@ mod api;
 mod app;
 mod beginner_mode;
 mod next_safe_action;
+mod startup_perf;
 mod theme;
 mod views;
 
@@ -146,6 +147,11 @@ async fn run_headless_self_test(api_url: &str) -> Result<()> {
         "help_overlay": {
             "toggle": ["h", "?"],
             "topics": crate::views::help_overlay::HELP_TOPICS,
+        },
+        "startup": {
+            "first_paint_budget_ms": crate::startup_perf::FIRST_PAINT_BUDGET_MS,
+            "shell_render_phases": crate::startup_perf::SHELL_RENDER_PHASES,
+            "progressive_loading_plan": crate::startup_perf::PROGRESSIVE_LOADING_PLAN,
         },
         "next_safe_action_model": crate::next_safe_action::HEADLESS_PROOF_STATES,
         "mission_ladder_levels": crate::views::mission_ladder::LADDER_LEVELS,
