@@ -449,9 +449,99 @@ pub fn agent_handoff() -> Walkthrough {
     }
 }
 
+pub fn no_proof_no_done() -> Walkthrough {
+    Walkthrough {
+        schema_version: SCHEMA_VERSION.to_string(),
+        id: "no-proof-no-done".to_string(),
+        title: "No Proof, No Done".to_string(),
+        audience: AUDIENCE_BEGINNER.to_string(),
+        trigger: Trigger {
+            missing_evidence: true,
+            ..Trigger::default()
+        },
+        goal: "Teach evidence discipline: an agent completion claim is not done until proof is visible or an explicit proof gap is recorded.".to_string(),
+        why_it_matters: "Fast market work only stays safe when every shipped claim has proof a new agent or evaluator can inspect.".to_string(),
+        required_state: RequiredState {
+            daemon: true,
+            project_identity: true,
+            workpoint: true,
+            evidence: true,
+        },
+        steps: vec![
+            Step {
+                id: "display-completion-claim".to_string(),
+                title: "Display the agent completion claim".to_string(),
+                explanation: "Begin with what the agent says is complete, then require proof before accepting it.".to_string(),
+                visual: "[claim]".to_string(),
+                action_kind: STEP_KIND_READ.to_string(),
+                command: "focusa workpoint resume".to_string(),
+                api_route: "/v1/workpoint/resume".to_string(),
+                authority_required: false,
+                success_condition: "Completion claim or current action is visible.".to_string(),
+                recovery_hint: "Checkpoint the claim as current_action before evaluating proof.".to_string(),
+            },
+            Step {
+                id: "check-evidence-refs".to_string(),
+                title: "Check evidence refs".to_string(),
+                explanation: "Evidence refs are the inspectable handles that make a completion claim trustworthy.".to_string(),
+                visual: "[evidence refs]".to_string(),
+                action_kind: STEP_KIND_READ.to_string(),
+                command: "focusa workpoint resume | grep -i evidence".to_string(),
+                api_route: "/v1/workpoint/resume".to_string(),
+                authority_required: false,
+                success_condition: "At least one proof handle or explicit proof-gap marker is visible.".to_string(),
+                recovery_hint: "Use focusa evidence capture or checkpoint with --evidence-ref.".to_string(),
+            },
+            Step {
+                id: "show-proof-gap-if-missing".to_string(),
+                title: "Show proof gap if missing".to_string(),
+                explanation: "Missing proof is not a failure; hiding it is. Mark the gap before calling work done.".to_string(),
+                visual: "[proof gap]".to_string(),
+                action_kind: STEP_KIND_PROPOSE.to_string(),
+                command: "focusa workpoint checkpoint --blocker \"proof missing\"".to_string(),
+                api_route: "/v1/workpoint/checkpoint".to_string(),
+                authority_required: true,
+                success_condition: "Proof gap is visible as blocked, partial, surrogate, or missing.".to_string(),
+                recovery_hint: "Record why actual proof is missing and what would satisfy it.".to_string(),
+            },
+            Step {
+                id: "attach-proof-or-mark-missing".to_string(),
+                title: "Attach proof or mark intentionally missing".to_string(),
+                explanation: "Attach actual proof when possible; otherwise make the proof gap explicit and bounded.".to_string(),
+                visual: "[attach proof]".to_string(),
+                action_kind: STEP_KIND_WRITE.to_string(),
+                command: "focusa workpoint checkpoint --evidence-ref <proof>".to_string(),
+                api_route: "/v1/workpoint/checkpoint".to_string(),
+                authority_required: true,
+                success_condition: "Workpoint includes evidence_refs or a declared proof-gap blocker.".to_string(),
+                recovery_hint: "Accept file path, test id, screenshot, URL, curl output, or explicit proof-gap note.".to_string(),
+            },
+            Step {
+                id: "rerender-proof-meter".to_string(),
+                title: "Re-render proof meter".to_string(),
+                explanation: "The proof meter should update from none to linked/verified/partial/missing based on the new evidence state.".to_string(),
+                visual: "[proof meter]".to_string(),
+                action_kind: STEP_KIND_READ.to_string(),
+                command: "focusa deck".to_string(),
+                api_route: "/v1/deck/proof-meter".to_string(),
+                authority_required: false,
+                success_condition: "Proof status is visible and no longer silently absent.".to_string(),
+                recovery_hint: "Refresh Mission Deck or re-run workpoint resume to inspect evidence state.".to_string(),
+            },
+        ],
+        completion: Completion {
+            success_message: "The completion claim now has proof, or the proof gap is explicit and cannot be mistaken for done.".to_string(),
+            proof_required: true,
+            evidence_class: EVIDENCE_ACTUAL.to_string(),
+        },
+        resettable: true,
+        side_effects: Vec::new(),
+    }
+}
+
 /// JSON envelope for `focusa deck walkthrough list` and similar commands.
 pub fn list_catalog() -> Vec<&'static str> {
-    vec!["first-mission", "agent-handoff"]
+    vec!["first-mission", "agent-handoff", "no-proof-no-done"]
 }
 
 #[derive(Args)]
@@ -526,6 +616,7 @@ pub async fn run(args: WalkthroughArgs, json_mode: bool) -> Result<()> {
             let first_step = match id {
                 "first-mission" => first_mission().steps[0].id.clone(),
                 "agent-handoff" => agent_handoff().steps[0].id.clone(),
+                "no-proof-no-done" => no_proof_no_done().steps[0].id.clone(),
                 _ => "step-1".to_string(),
             };
             let event = WalkthroughEvent {
@@ -596,6 +687,7 @@ fn render_walkthrough(id: &str) -> Result<Value> {
     match id {
         "first-mission" => Ok(serde_json::to_value(first_mission())?),
         "agent-handoff" => Ok(serde_json::to_value(agent_handoff())?),
+        "no-proof-no-done" => Ok(serde_json::to_value(no_proof_no_done())?),
         _ => anyhow::bail!("unknown walkthrough id: {id}"),
     }
 }
@@ -626,6 +718,16 @@ mod tests {
         let back: Walkthrough = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(back.id, "agent-handoff");
         assert_eq!(back.steps.len(), 6);
+        assert!(back.completion.proof_required);
+    }
+
+    #[test]
+    fn no_proof_no_done_round_trips() {
+        let wt = no_proof_no_done();
+        let json = serde_json::to_string(&wt).expect("serialize");
+        let back: Walkthrough = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(back.id, "no-proof-no-done");
+        assert_eq!(back.steps.len(), 5);
         assert!(back.completion.proof_required);
     }
 
