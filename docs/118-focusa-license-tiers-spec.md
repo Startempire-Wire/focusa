@@ -17,6 +17,31 @@ install-binary spec (§18.7) which only documents 3.
 
 ---
 
+## 0. Lifetime caps (DRAFT — see Spec 119 §10)
+
+The downloadable Phase 1 lifetime tiers are **capped**. The cap numbers
+are a **working draft** as of `2026-07-06`, not finalized. Operator is
+still iterating. The structural shape (caps exist, registry enforces,
+existing keys survive) is settled; the numbers are not.
+
+| Tier | Phase 1 price | Draft cap | See |
+|---|---|---|---|
+| Operator Lifetime | $697 | **150** | [Spec 119 §10.1](SPEC_119_LIFETIME_TO_RECURRING_TRANSITION.md#101-cap-table-draft) |
+| UIAI Engine Operator | $697 | **150** | same |
+| Bundle (Focusa + UIAI Engine) | 10% off sum ($1,254.60) | **50** | same |
+| Founders Forge | $7,500 | **15** | same |
+
+**Combined draft ceiling (if every cap fills):** ~$384,330.
+
+**Open ledger questions** (Bundle/Forge overlap with individual caps): see
+Spec 119 §10.3. Three options A/B/C are on the table for each.
+
+**When the draft settles:** Spec 119 §10.5 walks through what changes
+(registry admin, install.focusa.dev copy, this doc) — but no code change
+to `crates/focusa-core/src/license.rs`.
+
+---
+
 ## 1. Tier enum (authoritative)
 
 `LicenseMode` in `crates/focusa-core/src/license.rs:37`:
