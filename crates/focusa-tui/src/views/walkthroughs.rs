@@ -8,10 +8,23 @@ use crate::theme;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
-pub const WALKTHROUGH_IDS: &[&str] = &["first-mission", "agent-handoff", "no-proof-no-done"];
-pub const WALKTHROUGH_TITLES: &[&str] = &["First Mission", "Agent Handoff", "No Proof, No Done"];
+pub const WALKTHROUGH_IDS: &[&str] = &[
+    "first-mission",
+    "agent-handoff",
+    "no-proof-no-done",
+    "clean-install",
+    "clean-uninstall",
+];
+pub const WALKTHROUGH_TITLES: &[&str] = &[
+    "First Mission",
+    "Agent Handoff",
+    "No Proof, No Done",
+    "Clean Install",
+    "Clean Uninstall",
+];
 
-pub const WALKTHROUGH_AUDIENCES: &[&str] = &["beginner", "agent", "beginner"];
+pub const WALKTHROUGH_AUDIENCES: &[&str] =
+    &["beginner", "agent", "beginner", "beginner", "beginner"];
 
 pub const WALKTHROUGH_STEPS: &[&[&str]] = &[
     &[
@@ -37,24 +50,46 @@ pub const WALKTHROUGH_STEPS: &[&[&str]] = &[
         "4. Attach proof or mark proof intentionally missing",
         "5. Re-render proof meter (none | linked | verified)",
     ],
+    &[
+        "1. Preview plan: focusa install --dry-run --json",
+        "2. Run installer: focusa install (or shell bootstrapper)",
+        "3. Verify service: focusa start; focusa doctor",
+        "4. Open TUI: focusa-tui (press L for Learn, post-install)",
+        "5. Prove uninstall: focusa uninstall --dry-run --json",
+        "6. Pair with menubar: focusa pair start",
+    ],
+    &[
+        "1. Preview: focusa uninstall --dry-run --json",
+        "2. Run: focusa uninstall --yes",
+        "3. Verify: focusa --version not found",
+        "4. Check: daemon stopped (systemctl is-active inactive)",
+        "5. Check: ~/.focusa absent or empty",
+        "6. Trust signal: clean removal proven.",
+    ],
 ];
 
 pub const WALKTHROUGH_WHY_IT_MATTERS: &[&str] = &[
     "Teaches the core Focusa loop: daemon → project → Workpoint → evidence → resume.",
     "Shows why Focusa exists: a new agent can recover mission, Workpoint, boundaries, and proof expectations without transcript memory.",
     "Teaches evidence discipline: an agent completion claim is not done until proof is visible or the gap is explicit.",
+    "Every evaluator starts with install. A frictionless CLI+daemon install makes the first impression safe, predictable, and uninstallable.",
+    "Easy uninstall is a trust signal. Evaluators keep tools they can remove cleanly; they abandon tools that leave cruft.",
 ];
 
 pub const WALKTHROUGH_SUCCESS_SIGNALS: &[&str] = &[
     "A second agent can run resume and continue the same mission safely.",
     "The handoff packet states mission, next action, evidence, and do-not-drift boundaries.",
     "The proof meter shows linked/verified evidence or an explicit proof gap.",
+    "focusa install --dry-run shows a clean plan; focusa install runs to completion with symlinks, service unit, PATH, and walkthrough card.",
+    "focusa uninstall --dry-run shows every file/step; focusa uninstall removes daemon, service, symlinks, install root, license, and PATH edits cleanly.",
 ];
 
 pub const WALKTHROUGH_ANTI_DRIFT_RULES: &[&str] = &[
     "Do not rely on transcript tail when Workpoint resume is available.",
     "Do not start unrelated work until authority and scope are visible.",
     "Do not close a task without evidence citations or an explicit blocker.",
+    "Do not ship install scripts that skip service wiring with a comment saying 'Phase 2'.",
+    "Do not leave evaluators wondering how to uninstall. Include it in the help, CLI, TUI, and first-run card.",
 ];
 
 pub fn selected_index(app: &App) -> usize {
@@ -143,7 +178,7 @@ mod tests {
 
     #[test]
     fn walkthrough_titles_match_spec_117() {
-        assert_eq!(WALKTHROUGH_TITLES.len(), 3);
+        assert_eq!(WALKTHROUGH_TITLES.len(), 5);
         assert!(WALKTHROUGH_TITLES.contains(&"First Mission"));
         assert!(WALKTHROUGH_TITLES.contains(&"Agent Handoff"));
         assert!(WALKTHROUGH_TITLES.contains(&"No Proof, No Done"));

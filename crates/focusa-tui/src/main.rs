@@ -92,6 +92,12 @@ async fn main() -> Result<()> {
                 KeyCode::Char('3') if matches!(app.modal, Some(crate::app::ModalKind::Learn)) => {
                     app.modal_selection = 2;
                 }
+                KeyCode::Char('4') if matches!(app.modal, Some(crate::app::ModalKind::Learn)) => {
+                    app.modal_selection = 3;
+                }
+                KeyCode::Char('5') if matches!(app.modal, Some(crate::app::ModalKind::Learn)) => {
+                    app.modal_selection = 4;
+                }
                 KeyCode::Char('d') | KeyCode::Char('n') => app.tab = app::Tab::DeckHome,
                 KeyCode::Char('1') => app.tab = app::Tab::FocusState,
                 KeyCode::Char('2') => app.tab = app::Tab::FocusStack,

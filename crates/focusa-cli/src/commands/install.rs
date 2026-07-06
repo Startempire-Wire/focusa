@@ -177,6 +177,8 @@ pub struct InstallPlan {
     pub shell_rc_plan: Vec<String>,
     pub license_mode: String,
     pub notes: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_install_walkthrough_v1: Option<FirstInstallWalkthrough>,
 }
 
 #[derive(Debug, Serialize)]
@@ -266,18 +268,32 @@ async fn phase_license(args: &InstallArgs) -> Result<String> {
     let registry = "https://install.focusa.dev";
     let outcome = registry_validate(registry, key).await;
     match outcome {
-        RegistryValidateOutcome { response: Some(r), error: None } if r.valid => {
-            Ok("active".to_string())
-        }
-        RegistryValidateOutcome { response: Some(_), error: None } => Ok("not_valid".to_string()),
-        RegistryValidateOutcome { response: None, error: Some(err) } => {
-            Err(anyhow!("license validation failed: {} ({})", err, err.recovery_hint()))
-        }
+        RegistryValidateOutcome {
+            response: Some(r),
+            error: None,
+        } if r.valid => Ok("active".to_string()),
+        RegistryValidateOutcome {
+            response: Some(_),
+            error: None,
+        } => Ok("not_valid".to_string()),
+        RegistryValidateOutcome {
+            response: None,
+            error: Some(err),
+        } => Err(anyhow!(
+            "license validation failed: {} ({})",
+            err,
+            err.recovery_hint()
+        )),
         _ => Err(anyhow!("license validation: unexpected outcome")),
     }
 }
 
-fn dry_run_summary(_args: &InstallArgs, _target: InstallTarget, _install_root: &std::path::Path, _phase: &str) -> Option<()> {
+fn dry_run_summary(
+    _args: &InstallArgs,
+    _target: InstallTarget,
+    _install_root: &std::path::Path,
+    _phase: &str,
+) -> Option<()> {
     None
 }
 
@@ -320,9 +336,7 @@ async fn phase_asset_download(
     let mut out = Vec::new();
     for asset_name in assets {
         let expected = format!("{asset_name}-{tag_name}-{triple}");
-        let install_path = install_root_for(target)
-            .join("bin")
-            .join(asset_name);
+        let install_path = install_root_for(target).join("bin").join(asset_name);
         out.push(InstalledAsset {
             name: asset_name.to_string(),
             version: tag_name.clone(),
@@ -395,7 +409,10 @@ async fn verify_checksum(asset: &InstalledAsset) -> Result<()> {
         .with_context(|| format!("read downloaded asset for checksum: {}", asset.install_path))?;
     let actual = hex::encode(Sha256::digest(&bytes));
     if actual != expected {
-        bail!("checksum mismatch for {}: expected {expected}, got {actual}", asset.name);
+        bail!(
+            "checksum mismatch for {}: expected {expected}, got {actual}",
+            asset.name
+        );
     }
     eprintln!("✓ SHA256 verified for {}", asset.name);
     Ok(())
@@ -403,8 +420,7 @@ async fn verify_checksum(asset: &InstalledAsset) -> Result<()> {
 
 // ----- Phase 4: Symlink placement (focusa-112-symlinks) -----
 fn place_symlinks(bin_dir: &std::path::Path, _install_root: &std::path::Path) -> Result<()> {
-    std::fs::create_dir_all(bin_dir)
-        .with_context(|| format!("create {}", bin_dir.display()))?;
+    std::fs::create_dir_all(bin_dir).with_context(|| format!("create {}", bin_dir.display()))?;
     let home = std::env::var_os("HOME")
         .map(std::path::PathBuf::from)
         .ok_or_else(|| anyhow!("HOME not set"))?;
@@ -491,8 +507,7 @@ pub fn persist_path_to_rc(rc: &std::path::Path, path_line: &str) -> Result<()> {
             .with_context(|| format!("write {}", rc.display()))?;
         return Ok(());
     }
-    let content = std::fs::read_to_string(rc)
-        .with_context(|| format!("read {}", rc.display()))?;
+    let content = std::fs::read_to_string(rc).with_context(|| format!("read {}", rc.display()))?;
     if content.contains(".local/bin") && content.contains("PATH") {
         // Already there in some form; don't duplicate.
         return Ok(());
@@ -503,8 +518,7 @@ pub fn persist_path_to_rc(rc: &std::path::Path, path_line: &str) -> Result<()> {
     }
     new_content.push_str(path_line);
     new_content.push('\n');
-    std::fs::write(rc, &new_content)
-        .with_context(|| format!("write {}", rc.display()))?;
+    std::fs::write(rc, &new_content).with_context(|| format!("write {}", rc.display()))?;
     Ok(())
 }
 
@@ -527,7 +541,8 @@ pub fn build_first_install_walkthrough(
         license_status: "active".to_string(),
         scope_key: None,
         recovery_hint_root: vec![
-            "If `focusa --version` returns 'command not found', re-source your shell rc.".to_string(),
+            "If `focusa --version` returns 'command not found', re-source your shell rc."
+                .to_string(),
             "If the daemon fails to start, run `focusa doctor` for diagnosis.".to_string(),
         ],
     };
@@ -536,7 +551,9 @@ pub fn build_first_install_walkthrough(
             command: format!("{}", binary.display()),
             intent: "verify install (executable present, returns --version)".to_string(),
             expected_outcome: "binary exits 0 with focusa version string".to_string(),
-            recovery_hint: Some("re-run focusa install; check ~/.focusa/bin/focusa exists".to_string()),
+            recovery_hint: Some(
+                "re-run focusa install; check ~/.focusa/bin/focusa exists".to_string(),
+            ),
         },
         NextStep {
             command: "focusa start".to_string(),
@@ -551,21 +568,28 @@ pub fn build_first_install_walkthrough(
             recovery_hint: Some("follow the first failed check's recovery_hint".to_string()),
         },
         NextStep {
-            command: "focusa workpoint checkpoint --mission \"first install\" --project-root \"$(pwd)\"".to_string(),
+            command:
+                "focusa workpoint checkpoint --mission \"first install\" --project-root \"$(pwd)\""
+                    .to_string(),
             intent: "create a save state".to_string(),
             expected_outcome: "ok: workpoint id returned".to_string(),
-            recovery_hint: Some("pass --project-root explicitly if PWD is not a project".to_string()),
+            recovery_hint: Some(
+                "pass --project-root explicitly if PWD is not a project".to_string(),
+            ),
         },
         NextStep {
             command: "focusa about".to_string(),
             intent: "read the human-facing recap".to_string(),
             expected_outcome: "30-line ASCII card explaining what focusa is".to_string(),
-            recovery_hint: Some("for LLM agents, read GET /llms.txt on the daemon instead".to_string()),
+            recovery_hint: Some(
+                "for LLM agents, read GET /llms.txt on the daemon instead".to_string(),
+            ),
         },
         NextStep {
             command: "focusa workflow list".to_string(),
             intent: "discover canonical workflow templates".to_string(),
-            expected_outcome: "6 templates listed (long-refactor, multi-session-resume, etc.)".to_string(),
+            expected_outcome: "6 templates listed (long-refactor, multi-session-resume, etc.)"
+                .to_string(),
             recovery_hint: Some("apply with `focusa workflow show <name>`".to_string()),
         },
     ];
@@ -653,7 +677,9 @@ async fn phase_smoke_test(bin_dir: &std::path::Path) -> Result<()> {
             "smoke test failed: focusa --version exited {}",
             s.code().unwrap_or(-1)
         )),
-        Err(e) => Err(anyhow!("smoke test failed: could not exec focusa --version: {e}")),
+        Err(e) => Err(anyhow!(
+            "smoke test failed: could not exec focusa --version: {e}"
+        )),
     }
 }
 
@@ -679,7 +705,12 @@ fn verify_macos_codesign(target: InstallTarget, asset: &InstalledAsset) -> Resul
         .arg("--strict")
         .arg(&asset.install_path)
         .status()
-        .map_err(|e| anyhow!("macOS codesign verify failed to execute for {}: {e}", asset.name))?;
+        .map_err(|e| {
+            anyhow!(
+                "macOS codesign verify failed to execute for {}: {e}",
+                asset.name
+            )
+        })?;
     if !status.success() {
         bail!(
             "macOS codesign verify failed for {}: codesign exited {}",
@@ -718,13 +749,8 @@ async fn execute_real_install(
 
     // First-install walkthrough (focusa-112-first-walkthrough). Prints inline
     // to the same terminal where install ran — no separate wizard UI.
-    let walkthrough = build_first_install_walkthrough(
-        target,
-        channel,
-        &bin_dir,
-        install_root,
-        assets.len(),
-    );
+    let walkthrough =
+        build_first_install_walkthrough(target, channel, &bin_dir, install_root, assets.len());
     if !args.json {
         print_walkthrough_human(&walkthrough);
     } else {
@@ -771,7 +797,9 @@ async fn delegate_service_render(
         InstallTarget::Linux | InstallTarget::Auto => {
             home.join(".config/systemd/user/focusa-daemon.service")
         }
-        InstallTarget::Darwin => home.join("Library/LaunchAgents/com.startempire.focusa-daemon.plist"),
+        InstallTarget::Darwin => {
+            home.join("Library/LaunchAgents/com.startempire.focusa-daemon.plist")
+        }
         InstallTarget::WindowsX64 | InstallTarget::WindowsArm64 => {
             return Err(anyhow!("sc.exe service registration: Phase 2.0"));
         }
@@ -780,7 +808,10 @@ async fn delegate_service_render(
         std::fs::create_dir_all(parent).ok();
     }
     if !daemon_bin.exists() {
-        eprintln!("warning: {} not present yet; service unit will be rendered when binary lands", daemon_bin.display());
+        eprintln!(
+            "warning: {} not present yet; service unit will be rendered when binary lands",
+            daemon_bin.display()
+        );
     }
     let _ = dry_run; // reserved for future --dry-run support
     Ok(())
@@ -805,7 +836,11 @@ fn detect_platform_target() -> Result<InstallTarget> {
     })
 }
 
-fn build_plan(args: &InstallArgs, target: InstallTarget, root: &std::path::Path) -> Result<InstallPlan> {
+fn build_plan(
+    args: &InstallArgs,
+    target: InstallTarget,
+    root: &std::path::Path,
+) -> Result<InstallPlan> {
     Ok(InstallPlan {
         target,
         channel: args.channel,
@@ -830,11 +865,16 @@ fn build_plan(args: &InstallArgs, target: InstallTarget, root: &std::path::Path)
                 install_path: root.join("bin").join("focusa-tui").display().to_string(),
             },
         ],
-        symlink_planned: format!("{}/.local/bin/focusa", std::env::var("HOME").unwrap_or_default()),
+        symlink_planned: format!(
+            "{}/.local/bin/focusa",
+            std::env::var("HOME").unwrap_or_default()
+        ),
         service_manager_planned: match target {
             InstallTarget::Linux => "systemd --user".to_string(),
             InstallTarget::Darwin => "launchd user agent".to_string(),
-            InstallTarget::WindowsX64 | InstallTarget::WindowsArm64 => "sc.exe (Phase 2.0)".to_string(),
+            InstallTarget::WindowsX64 | InstallTarget::WindowsArm64 => {
+                "sc.exe (Phase 2.0)".to_string()
+            }
             InstallTarget::Auto => "auto".to_string(),
         },
         shell_rc_plan: vec![
@@ -854,6 +894,13 @@ fn build_plan(args: &InstallArgs, target: InstallTarget, root: &std::path::Path)
             "license json shape parity audit must pass before live install".to_string(),
             "PATH automation writes idemptoent export lines to rc files".to_string(),
         ],
+        first_install_walkthrough_v1: Some(build_first_install_walkthrough(
+            target,
+            args.channel,
+            &std::path::PathBuf::from(root.join("bin")),
+            root,
+            /* asset_count */ 3,
+        )),
     })
 }
 
@@ -911,8 +958,14 @@ mod tests {
         // Triples are part of the install GH release asset contract.
         assert_eq!(triple_for(InstallTarget::Linux), "x86_64-unknown-linux-gnu");
         assert_eq!(triple_for(InstallTarget::Darwin), "aarch64-apple-darwin");
-        assert_eq!(triple_for(InstallTarget::WindowsX64), "x86_64-pc-windows-msvc");
-        assert_eq!(triple_for(InstallTarget::WindowsArm64), "aarch64-pc-windows-msvc");
+        assert_eq!(
+            triple_for(InstallTarget::WindowsX64),
+            "x86_64-pc-windows-msvc"
+        );
+        assert_eq!(
+            triple_for(InstallTarget::WindowsArm64),
+            "aarch64-pc-windows-msvc"
+        );
     }
 
     #[test]
@@ -929,10 +982,19 @@ mod tests {
             json: false,
             github_repo: None,
         };
-        let plan = build_plan(&args, InstallTarget::Linux, std::path::Path::new("/tmp/.focusa")).unwrap();
+        let plan = build_plan(
+            &args,
+            InstallTarget::Linux,
+            std::path::Path::new("/tmp/.focusa"),
+        )
+        .unwrap();
         assert_eq!(plan.assets_planned.len(), 3);
         assert!(plan.assets_planned.iter().any(|a| a.name == "focusa"));
-        assert!(plan.assets_planned.iter().any(|a| a.name == "focusa-daemon"));
+        assert!(
+            plan.assets_planned
+                .iter()
+                .any(|a| a.name == "focusa-daemon")
+        );
         assert!(plan.assets_planned.iter().any(|a| a.name == "focusa-tui"));
         assert_eq!(plan.license_mode, "missing");
     }
@@ -951,7 +1013,12 @@ mod tests {
             json: false,
             github_repo: None,
         };
-        let plan = build_plan(&args, InstallTarget::Darwin, std::path::Path::new("/tmp/.focusa")).unwrap();
+        let plan = build_plan(
+            &args,
+            InstallTarget::Darwin,
+            std::path::Path::new("/tmp/.focusa"),
+        )
+        .unwrap();
         assert_eq!(plan.license_mode, "eval");
         assert!(plan.service_manager_planned.contains("launchd"));
     }
@@ -970,7 +1037,12 @@ mod tests {
             json: false,
             github_repo: None,
         };
-        let plan = build_plan(&args, InstallTarget::Linux, std::path::Path::new("/tmp/.focusa")).unwrap();
+        let plan = build_plan(
+            &args,
+            InstallTarget::Linux,
+            std::path::Path::new("/tmp/.focusa"),
+        )
+        .unwrap();
         assert_eq!(plan.license_mode, "commercial");
     }
 }
