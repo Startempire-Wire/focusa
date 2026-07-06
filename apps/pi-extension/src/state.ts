@@ -318,6 +318,10 @@ export const S = {
     data: null as any,
     inflight: null as Promise<any> | null,
   },
+  // §5.12 recent-turns ring buffer (bounded, capped at RECENT_TURNS_HARD_CAP)
+  recentTurns: [] as RecentTurnSlice[],
+  // §5.12 idempotency guard — last turn_index we emitted the slice for
+  lastRecentTurnsSliceTurn: -1,
 };
 
 const FOCUS_STATE_CACHE_TTL_MS = 1_200;
@@ -325,6 +329,105 @@ const AUX_CONTEXT_CACHE_TTL_MS = 3_000;
 const CONTEXT_SEMANTIC_LIMIT = 64;
 const CONTEXT_ECS_HANDLES_LIMIT = 128;
 const HEALTHCHECK_STATUS_FALLBACK_PATH = "/status?summary_only=true";
+
+// ─── §5.12 Recent Turns Ring Buffer ──────────────────────────────────────
+// Spec: docs/101-focusa-bloatgaurd-spec.md §5.12
+// Bounded, deduplicated orientation slice emitted after compaction / model switch
+// to prevent the agent from re-reading prior tool outputs.
+
+export const RECENT_TURNS_HARD_CAP = 8;
+export const RECENT_TURNS_N_DEFAULT = 4;
+
+export interface RecentTurnSlice {
+  turn_id: string;
+  mission_at_turn: string;
+  outcome: "committed" | "filed_bead" | "observed" | "blocked" | "ack" | "tooled";
+  evidence_refs: string[];
+  tool_call_count: number;
+  emitted_at: number;
+}
+
+export function classifyTurnOutcome(
+  toolCallCount: number,
+  hasNonTaskText: boolean,
+  hasFailureSignal: boolean,
+): RecentTurnSlice["outcome"] {
+  if (hasFailureSignal) return "blocked";
+  if (toolCallCount === 0 && hasNonTaskText) return "ack";
+  if (toolCallCount === 0) return "observed";
+  return "tooled";
+}
+
+export function pushRecentTurn(slice: RecentTurnSlice): void {
+  S.recentTurns.push(slice);
+  while (S.recentTurns.length > RECENT_TURNS_HARD_CAP) {
+    S.recentTurns.shift();
+  }
+}
+
+export function clearRecentTurns(): void {
+  S.recentTurns = [];
+  S.lastRecentTurnsSliceTurn = -1;
+}
+
+export function shouldEmitRecentTurnsSlice(currentTurnCount: number): boolean {
+  if (currentTurnCount < 1) return false;
+  if (S.lastRecentTurnsSliceTurn === currentTurnCount) return false;
+  return true;
+}
+
+export function markRecentTurnsSliceEmitted(currentTurnCount: number): void {
+  S.lastRecentTurnsSliceTurn = currentTurnCount;
+}
+
+function truncate(s: string, n: number): string {
+  if (s.length <= n) return s;
+  return s.slice(0, Math.max(0, n - 1)) + "\u2026";
+}
+
+export function formatRecentTurnsSection(n: number = RECENT_TURNS_N_DEFAULT): string {
+  const cap = Math.max(0, Math.min(RECENT_TURNS_HARD_CAP, Math.floor(n)));
+  if (cap === 0) return "";
+  const recent = S.recentTurns.slice(-cap).reverse();
+  if (recent.length === 0) return "";
+  const lines = ["Recent turns (last " + recent.length + "):"];
+  for (const t of recent) {
+    const refs = t.evidence_refs.length > 0 ? ` ev=${t.evidence_refs.join(",")}` : "";
+    lines.push(`- T[${t.turn_id}] mission="${truncate(t.mission_at_turn, 120)}" outcome=${t.outcome} tools=${t.tool_call_count}${refs}`);
+  }
+  return lines.join("\n");
+}
+
+export interface CacheableSplit {
+  stable: string;
+  variable: string;
+  cache_hint_supported: boolean;
+}
+
+/**
+ * Conservative split of the injected system prompt into a stable prefix
+ * (cacheable upstream) and a variable tail. Stable blocks MUST NOT contain
+ * per-turn timestamps, paths, or tool output \u2014 otherwise the provider
+ * invalidates the cache.
+ */
+export function splitCacheableSystemPrompt(systemPrompt: string): CacheableSplit {
+  const boundaryMarkers = [
+    "## Recent turns",
+    "## Tool Result Tail",
+    "## Active Step",
+  ];
+  for (const marker of boundaryMarkers) {
+    const idx = systemPrompt.indexOf(marker);
+    if (idx > 0) {
+      return {
+        stable: systemPrompt.slice(0, idx),
+        variable: systemPrompt.slice(idx),
+        cache_hint_supported: false,
+      };
+    }
+  }
+  return { stable: systemPrompt, variable: "", cache_hint_supported: false };
+}
 
 export function resetPiSessionScopedState(reason = "session_boundary"): void {
   S.seenFirstBeforeAgentStart = false;
