@@ -139,7 +139,7 @@ async fn probe_health(daemon_base: &str) -> Result<Value> {
     let body: Value = resp.json().await.unwrap_or_else(|_| json!({"raw_error": "decode_failed"}));
     Ok(json!({
         "checked": true,
-        "ok": status >= 200 && status < 300,
+        "ok": (200..300).contains(&status),
         "status": status,
         "url": url,
         "body": body,
