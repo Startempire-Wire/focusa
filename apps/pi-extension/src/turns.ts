@@ -633,7 +633,19 @@ export function registerTurns(pi: ExtensionAPI) {
     if (!S.seenFirstBeforeAgentStart) {
       S.seenFirstBeforeAgentStart = true;
       const visibleCard = buildFocusaUtilityCard("visible");
-      pi.sendMessage({ customType: "focusa-utility-card", content: visibleCard, display: true });
+      // pi's custom-message renderer reads `this.toolOutputExpanded` (see
+      // pi-coding-agent dist/modes/interactive/interactive-mode.js: case "custom":
+      //   component.setExpanded(this.toolOutputExpanded);
+      // ). Save + set false + restore around the send so the utility card
+      // emits collapsed by default (operator can ctrl+o to expand).
+      const ctxUi = ctx.ui as any;
+      const wasExpanded = ctxUi?.getToolsExpanded?.() ?? true;
+      ctxUi?.setToolsExpanded?.(false);
+      try {
+        pi.sendMessage({ customType: "focusa-utility-card", content: visibleCard, display: true });
+      } finally {
+        ctxUi?.setToolsExpanded?.(wasExpanded);
+      }
       queueTraceTelemetry({ event_type: "focusa_utility_card_visible", turn_id: `pi-turn-${getTurnCount()}`, surface: "pi", bytes: visibleCard.length });
     }
 
