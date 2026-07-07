@@ -209,6 +209,10 @@ enum Commands {
     #[command(subcommand)]
     Gate(commands::gate::GateCmd),
 
+    /// Provider-neutral work item closure authority (Spec 116).
+    #[command(subcommand)]
+    WorkItem(commands::work_item::WorkItemCmd),
+
     /// Action authority / mutation preflight operations.
     #[command(subcommand)]
     Action(commands::action::ActionCmd),
@@ -787,6 +791,7 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::Focus(cmd) => commands::focus::run(cmd, cli.json).await,
         Commands::Gate(cmd) => commands::gate::run(cmd, cli.json).await,
+        Commands::WorkItem(cmd) => commands::work_item::run(cmd).await,
         Commands::Action(cmd) => commands::action::run(cmd, cli.json).await,
         Commands::Runtime(cmd) => commands::runtime::run(cmd, cli.json).await,
         Commands::Binary(cmd) => commands::binary::run(cmd, cli.json).await,

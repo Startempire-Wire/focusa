@@ -29,6 +29,7 @@ pub mod gate;
 pub mod hlt;
 pub mod init;
 pub mod install;
+pub mod work_item;
 pub mod intro;
 pub mod license;
 pub mod lineage;
