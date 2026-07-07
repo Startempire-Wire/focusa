@@ -267,12 +267,12 @@ async fn phase_license(args: &InstallArgs) -> Result<String> {
     };
     // License registry URL. Read from FOCUSA_LICENSE_REGISTRY env var when set,
     // so operators can point at a private endpoint without baking the URL into the
-    // binary. The public default (https://install.focusa.dev) is the same facade
-    // install.focusa.dev uses for the install-script distribution; the live license
-    // API at that facade returns 404. Operators must set FOCUSA_LICENSE_REGISTRY to
-    // a working endpoint to actually validate commercial keys.
+    // binary. The default points at wpuiai.com, the actual license authority that
+    // hosts the live /wp-json/wpuiai-ai-cloud/v1/license/validate endpoint.
+    // install.focusa.dev is only the public shell-script distribution facade; its
+    // license API path returns license_not_found.
     let registry = std::env::var("FOCUSA_LICENSE_REGISTRY")
-        .unwrap_or_else(|_| "https://install.focusa.dev".to_string());
+        .unwrap_or_else(|_| "https://wpuiai.com".to_string());
     let outcome = registry_validate(&registry, key).await;
     match outcome {
         RegistryValidateOutcome {
