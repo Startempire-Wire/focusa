@@ -151,7 +151,7 @@ fn list_recent_turns(
     continuity_id: &str,
     n: usize,
 ) -> rusqlite::Result<Vec<RecentTurnSlice>> {
-    let cap = n.min(MAX_N).max(1) as i64;
+    let cap = n.clamp(1, MAX_N) as i64;
     let mut stmt = conn.prepare(
         "SELECT turn_id, continuity_id, mission, outcome, evidence_refs, tool_calls, emitted_at
          FROM recent_turns

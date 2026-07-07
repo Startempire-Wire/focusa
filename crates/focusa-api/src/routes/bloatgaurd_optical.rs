@@ -279,9 +279,9 @@ pub fn run_compatibility_probe(
             });
         }
     }
-    let decision = if provider_policy_status != POLICY_STATUS_ALLOWED {
-        FALLBACK_TEXT_PASSTHROUGH
-    } else if results.iter().any(|c| c.status == ProbeCheckStatus::Fail) {
+    let decision = if provider_policy_status != POLICY_STATUS_ALLOWED
+        || results.iter().any(|c| c.status == ProbeCheckStatus::Fail)
+    {
         FALLBACK_TEXT_PASSTHROUGH
     } else {
         "noop_until_safe_auto"

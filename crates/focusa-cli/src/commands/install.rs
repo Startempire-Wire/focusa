@@ -904,7 +904,7 @@ fn build_plan(
         first_install_walkthrough_v1: Some(build_first_install_walkthrough(
             target,
             args.channel,
-            &std::path::PathBuf::from(root.join("bin")),
+            &root.join("bin"),
             root,
             /* asset_count */ 3,
         )),
