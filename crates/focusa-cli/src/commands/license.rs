@@ -39,6 +39,30 @@ pub enum LicenseCmd {
     Doctor,
     /// Check whether a specific feature is enabled by the current license.
     CheckFeature(CheckFeatureArgs),
+    /// End-to-end license provisioning harness. Generates a fresh test
+    /// key, validates it against the registry (dev_mode is acceptable for
+    /// operator testing but downgrades commercial_use to false), writes
+    /// license.json / license_authority.json / license_receipt.json,
+    /// round-trips the files through the daemon parser, and reports the
+    /// result. Use this to verify the full provisioning pipeline before
+    /// the first real transaction.
+    DevmodeFull(DevmodeFullArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct DevmodeFullArgs {
+    /// Override the registry URL (default: https://wpuiai.com).
+    #[arg(long, value_name = "URL")]
+    pub registry: Option<String>,
+    /// Optional customer email to embed in the receipt (test fixture).
+    #[arg(long, value_name = "EMAIL")]
+    pub email: Option<String>,
+    /// Optional fixed license key to use (otherwise one is generated).
+    #[arg(long, value_name = "KEY")]
+    pub key: Option<String>,
+    /// Print the parsed registry response as JSON for inspection.
+    #[arg(long)]
+    pub print_response: bool,
 }
 
 #[derive(Args, Debug)]
@@ -457,6 +481,7 @@ pub async fn run(json_output: bool, args: LicenseArgs) -> anyhow::Result<()> {
         LicenseCmd::Deactivate => run_deactivate(json_output).await,
         LicenseCmd::Doctor => run_doctor(json_output).await,
         LicenseCmd::CheckFeature(a) => run_check_feature(json_output, a).await,
+        LicenseCmd::DevmodeFull(a) => run_devmode_full(json_output, a).await,
     }
 }
 
@@ -656,6 +681,282 @@ async fn run_check_feature(json_output: bool, args: CheckFeatureArgs) -> anyhow:
 // Avoid unused import warnings when ApiClient is not used in this module directly.
 #[allow(dead_code)]
 fn _suppress_unused(_: &ApiClient) {}
+
+/// End-to-end license provisioning harness. The devmodefull command
+/// exercises the entire provisioning pipeline (test key → registry
+/// validate → license file write → daemon-side round-trip parse) and
+/// reports the result of every step. Use it to validate the pipeline
+/// before the first real-money transaction.
+///
+/// Operator rule (2026-07-07): dev_mode is a TEST FIXTURE. The harness
+/// always writes a license.json with `commercial_use=false` when the
+/// registry returns `status=dev_mode`, so devmodefull can never grant
+/// commercial privileges by accident.
+async fn run_devmode_full(json_output: bool, args: DevmodeFullArgs) -> anyhow::Result<()> {
+    use chrono::Utc;
+    use focusa_core::license::{LocalLicense, LicenseStatus};
+    use sha2::{Digest, Sha256};
+    use std::fs;
+    use std::path::PathBuf;
+
+    let registry = args
+        .registry
+        .clone()
+        .or_else(|| std::env::var("FOCUSA_LICENSE_REGISTRY").ok())
+        .unwrap_or_else(|| DEFAULT_REGISTRY.to_string());
+    let validate_url = format!(
+        "{}{}",
+        registry.trim_end_matches('/'),
+        REGISTRY_VALIDATE_PATH
+    );
+
+    // 1. Generate (or accept) a test key. We use a recognisable prefix so
+    //    the registry / receipt audit trail is easy to filter.
+    let key = args.key.clone().unwrap_or_else(|| {
+        let stamp = Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
+        format!("focusa_test_devmodefull_{stamp}")
+    });
+    let key_hash = {
+        let mut hasher = Sha256::new();
+        hasher.update(key.as_bytes());
+        format!("{:x}", hasher.finalize())
+    };
+    let key_prefix: String = key.chars().take(16).collect();
+
+    // 2. POST to the registry.
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()?;
+    let response = client
+        .post(&validate_url)
+        .header("Content-Type", "application/json")
+        .header("X-License-Key", &key)
+        .json(&serde_json::json!({ "license_key": key }))
+        .send()
+        .await;
+
+    let body: serde_json::Value = match response {
+        Ok(r) => r.json().await.unwrap_or(serde_json::Value::Null),
+        Err(e) => {
+            let payload = serde_json::json!({
+                "status": "blocked",
+                "step": "registry_post",
+                "registry": registry,
+                "validate_url": validate_url,
+                "error": e.to_string(),
+                "recovery_hint": "check network connectivity to the license authority",
+            });
+            if json_output {
+                println!("{}", serde_json::to_string_pretty(&payload)?);
+            } else {
+                println!("[devmodefull] step=registry_post status=blocked error={e}");
+            }
+            std::process::exit(2);
+        }
+    };
+    let valid = body.get("valid").and_then(|v| v.as_bool()).unwrap_or(false);
+    let status = body.get("status").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+    let tier = body.get("tier").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+    let commercial_use = body.get("commercial_use").and_then(|v| v.as_bool()).unwrap_or(false);
+    let features: Vec<String> = body
+        .get("features")
+        .and_then(|v| v.as_array())
+        .map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())
+        .unwrap_or_default();
+    let expires_at = body.get("expires_at").and_then(|v| v.as_str()).map(String::from);
+
+    // 3. Decide commercial vs eval based on registry status. The
+    //    operator's rule: dev_mode is for testing only; it never grants
+    //    commercial_use.
+    let is_dev_mode_fixture = status == "dev_mode";
+    let granted_commercial_use = commercial_use && !is_dev_mode_fixture;
+    let granted_tier = if is_dev_mode_fixture { "evaluation".to_string() } else { tier.clone() };
+    let granted_features = if is_dev_mode_fixture {
+        vec!["daemon".to_string(), "tui".to_string(), "cli".to_string()]
+    } else {
+        features.clone()
+    };
+
+    // 4. Locate writeable file paths.
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("/root"));
+    let license_dir = home.join(".config").join("focusa");
+    let license_file = license_dir.join("license.json");
+    let authority_file = license_dir.join("license_authority.json");
+    let receipt_file = license_dir.join("license_receipt.json");
+    fs::create_dir_all(&license_dir)?;
+
+    let offline_until = (Utc::now() + chrono::Duration::days(7))
+        .format("%Y-%m-%dT%H:%M:%SZ")
+        .to_string();
+    let issued_at: u64 = Utc::now().timestamp() as u64;
+
+    // 5. Write the daemon-compatible license.json.
+    let license = LocalLicense {
+        key_hash: key_hash.clone(),
+        key_prefix: key_prefix.clone(),
+        product: "focusa".to_string(),
+        tier: granted_tier.clone(),
+        status: if is_dev_mode_fixture { "active".to_string() } else { status.clone() },
+        commercial_use: granted_commercial_use,
+        customer_email: args.email.clone().unwrap_or_default(),
+        features: granted_features.clone(),
+        offline_valid_until: Some(offline_until.clone()),
+        expires_at: expires_at.clone(),
+        eval: is_dev_mode_fixture,
+        registry: registry.clone(),
+        issued_at,
+    };
+    let license_json = serde_json::to_string_pretty(&license)?;
+    fs::write(&license_file, format!("{license_json}\n"))?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut p = fs::metadata(&license_file)?.permissions();
+        p.set_mode(0o600);
+        fs::set_permissions(&license_file, p)?;
+    }
+
+    // 6. Write the license authority file so the operator can see who
+    //    governs this install.
+    let authority = serde_json::json!({
+        "name": "Wirebot / Phil Overacity LLC",
+        "url": registry.clone(),
+        "doc": "https://install.focusa.dev/license",
+        "support": "https://wpuiai.com/wp-admin",
+        "registry_url": registry.clone(),
+        "validate_path": REGISTRY_VALIDATE_PATH,
+        "spec_refs": [
+            "docs/SPEC_118_LICENSING.md",
+            "docs/SPEC_119_LIFETIME_TO_RECURRING_TRANSITION.md"
+        ],
+        "written_at": Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string(),
+        "channel": "devmodefull",
+        "target": "test-fixture",
+    });
+    fs::write(
+        &authority_file,
+        format!("{}\n", serde_json::to_string_pretty(&authority)?),
+    )?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut p = fs::metadata(&authority_file)?.permissions();
+        p.set_mode(0o600);
+        fs::set_permissions(&authority_file, p)?;
+    }
+
+    // 7. Write the durable receipt (the operator's only local record).
+    let receipt = serde_json::json!({
+        "issued_at": Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string(),
+        "tier": granted_tier,
+        "status": if is_dev_mode_fixture { "active".to_string() } else { status.clone() },
+        "expires_at": expires_at,
+        "customer_email": args.email.clone(),
+        "authority": {
+            "name": "Wirebot / Phil Overacity LLC",
+            "url": registry.clone(),
+        },
+        "key_hash": key_hash,
+        "key_prefix": key_prefix,
+        "eval": is_dev_mode_fixture,
+        "commercial_use": granted_commercial_use,
+        "devmodefull": true,
+        "note": "Created by `focusa license devmodefull`. Use this to verify the full provisioning pipeline before the first real-money transaction. This receipt is the only durable local record of which authority + tier issued this license.",
+    });
+    fs::write(
+        &receipt_file,
+        format!("{}\n", serde_json::to_string_pretty(&receipt)?),
+    )?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut p = fs::metadata(&receipt_file)?.permissions();
+        p.set_mode(0o600);
+        fs::set_permissions(&receipt_file, p)?;
+    }
+
+    // 8. Round-trip: read the license.json back through the daemon's
+    //    parser to confirm the file shape is acceptable. A failure here
+    //    means the on-disk shape diverges from what the daemon expects;
+    //    in production that would be a "focusa license status" parse
+    //    error.
+    let round_trip = fs::read_to_string(&license_file)
+        .ok()
+        .and_then(|s| serde_json::from_str::<LocalLicense>(&s).ok());
+    let round_trip_status = match round_trip {
+        Some(_) => "parsed",
+        None => "parse_failed",
+    };
+    // Also load through the public `load_local_license` so we exercise
+    // the same code path as `focusa license status` / `focusa license
+    // doctor`. The daemon reads from the canonical path
+    // (`~/.config/focusa/license.json`), which is where we just wrote.
+    let canonical_path = focusa_core::license::license_file_path();
+    let status_round_trip =
+        focusa_core::license::load_local_license().ok().map(|s| s.status);
+
+    // 9. Report.
+    let summary = serde_json::json!({
+        "step": "report",
+        "valid": valid,
+        "registry_status": status,
+        "registry_tier": tier,
+        "registry_commercial_use": commercial_use,
+        "is_dev_mode_fixture": is_dev_mode_fixture,
+        "granted_tier": if is_dev_mode_fixture { "evaluation".to_string() } else { tier.clone() },
+        "granted_commercial_use": granted_commercial_use,
+        "granted_features": granted_features,
+        "offline_valid_until": offline_until,
+        "issued_at": issued_at,
+        "files": {
+            "license": license_file.to_string_lossy(),
+            "authority": authority_file.to_string_lossy(),
+            "receipt": receipt_file.to_string_lossy(),
+        },
+        "round_trip": {
+            "license_file_parse": round_trip_status,
+            "license_status_load": if status_round_trip.is_some() { "ok" } else { "failed" },
+        },
+        "key_hash": key_hash,
+        "key_prefix": key_prefix,
+        "registry": registry,
+        "validate_url": validate_url,
+    });
+
+    if args.print_response {
+        let mut both = body.clone();
+        if let Some(obj) = both.as_object_mut() {
+            obj.insert("devmodefull".to_string(), summary.clone());
+        }
+        let rendered = serde_json::to_string_pretty(&both)?;
+        println!("{rendered}");
+    } else if json_output {
+        println!("{}", serde_json::to_string_pretty(&summary)?);
+    } else {
+        println!("[devmodefull] step=report");
+        println!("  registry:            {registry}");
+        println!("  valid:               {valid}");
+        println!("  registry status:     {status}");
+        println!("  registry tier:       {tier}");
+        println!("  is_dev_mode:         {is_dev_mode_fixture}");
+        println!("  granted tier:        {}", if is_dev_mode_fixture { "evaluation" } else { tier.as_str() });
+        println!("  commercial_use:      {granted_commercial_use}");
+        println!("  offline_valid_until: {offline_until}");
+        println!("  files written:");
+        println!("    license:    {}", license_file.to_string_lossy());
+        println!("    authority:  {}", authority_file.to_string_lossy());
+        println!("    receipt:    {}", receipt_file.to_string_lossy());
+        println!("  round-trip:");
+        println!("    license_file_parse:  {round_trip_status}");
+        println!("    license_status_load:  {}", if status_round_trip.is_some() { "ok" } else { "failed" });
+        if is_dev_mode_fixture {
+            println!("  note: dev_mode is a TEST FIXTURE; this install was downgraded to evaluation.");
+        }
+    }
+    Ok(())
+}
 
 #[cfg(test)]
 mod tests {

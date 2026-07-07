@@ -461,6 +461,29 @@ if [ -n "$LICENSE_KEY" ]; then
     exit 2
   fi
   json_get() { python3 -c "import json,sys;print(json.loads(sys.stdin.read()).get(\"$1\", \"\"))" ; }
+
+  # Operator rule (2026-07-07): dev_mode responses exist for testing and must
+  # not hinder transactions. A real commercial buyer must have a real
+  # license row in the registry; the registry returns status="active" in
+  # that case. status="dev_mode" means "this is a test fixture, not a
+  # purchase". Downgrade to eval so the install succeeds without
+  # silently granting commercial privileges.
+  RESP_STATUS="$(printf '%s' "$VALIDATE_RESP" | json_get status)"
+  RESP_TIER="$(printf '%s' "$VALIDATE_RESP" | json_get tier)"
+  if [ "$RESP_STATUS" = "dev_mode" ] && [ "${FOCUSA_REQUIRE_REAL_LICENSE:-0}" = 1 ]; then
+    err "registry returned status=dev_mode for a license key."
+    err "this key did not resolve to a real license row."
+    err "recovery_hint: remove FOCUSA_REQUIRE_REAL_LICENSE or purchase at ${LICENSE_AUTHORITY_URL}/buy."
+    exit 2
+  fi
+  if [ "$RESP_STATUS" = "dev_mode" ]; then
+    warn "registry returned status=dev_mode; this is a TEST FIXTURE, not a real purchase."
+    warn "installing in EVAL mode (tier=evaluation, commercial_use=false)."
+    warn "to use this key commercially, complete the purchase at ${LICENSE_AUTHORITY_URL}/buy."
+    log "switching to --eval semantics for the rest of this install"
+    LICENSE_KEY=""          # so downstream branches treat this as eval
+    EVAL=1
+  fi
   KH="$(key_hash "$LICENSE_KEY")"
   KP="${LICENSE_KEY:0:16}"
   PRODUCT="$(printf '%s' "$VALIDATE_RESP" | json_get product)"; PRODUCT="${PRODUCT:-focusa}"
