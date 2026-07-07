@@ -1,0 +1,26 @@
+# Focusa Menubar (Preview)
+
+**Status: preview / not flagship.** Svelte + Tauri menubar app for macOS that
+shows live focus, workpoint, and trajectory state from a paired Focusa daemon.
+
+## What works in v0.9.74-dev (preview)
+
+- SvelteKit web build with type-checked pairing, project, and runtime surfaces
+- OAuth-like device pairing with the Focusa daemon (CLI / QR + phone / QR + VPS)
+- HTTP/WebSocket binding to a paired daemon over loopback or Tailscale
+
+## Tracked testing work (NOT launch-ready)
+
+- Native macOS `.app` lifecycle (launchd persistence, restart, screenshot/log capture)
+- Keychain persistence for tokens, device IDs, and pairing secrets
+- Real notarization / Developer ID signing (currently uses ad-hoc / Personal Team)
+- Apple silicon launch + Gatekeeper + TCC acceptance on first run
+
+## Do NOT promote as flagship
+
+Phase 1 of the MVP launch uses the daemon / CLI / TUI / Operator Preview as the
+main surface. This menubar app is intentionally positioned as a **preview** so
+public-launch messaging does not over-claim macOS readiness.
+
+See `docs/PHASE2_OPERATOR_PREVIEW.md` for the controlled preview cohort plan
+and `docs/PHASE3_PRODUCT_HUNT_READINESS.md` (TBD) for the launch surface.
