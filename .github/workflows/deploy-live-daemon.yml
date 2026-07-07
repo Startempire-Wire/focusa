@@ -70,7 +70,7 @@ jobs:
           REQUIRE_SERVICE="${DEPLOY_REQUIRE_SERVICE:-1}"
           USE_SUDO="${DEPLOY_USE_SUDO:-1}"
           AUDIT_LOG="${DEPLOY_AUDIT_LOG:-/var/log/focusa/deploy-audit.jsonl}"
-          MIN_FREE_GB="${DEPLOY_MIN_FREE_GB:-15}"
+          MIN_FREE_GB="${DEPLOY_MIN_FREE_GB:-13}"
           MAX_USAGE_PCT="${DEPLOY_MAX_USAGE_PCT:-92}"
           BACKUP_KEEP="${DEPLOY_BACKUP_KEEP:-5}"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
