@@ -4396,7 +4396,14 @@ export function registerTools(pi: ExtensionAPI) {
   }
 
   function strictObject(properties: Record<string, any>) {
-    return Type.Object(properties, { additionalProperties: false });
+    // NOTE: previously used { additionalProperties: false } here, but the
+    // pi-coding-agent runtime (TypeBox 0.34 + AJV) was rejecting valid params
+    // for tools that declared string params (focusa_bloatgaurd_domain,
+    // focusa_dxux_requirement, focusa_call_stack_verify, etc.) with the error
+    // "name: must have required properties name". The runtime already enforces
+    // extra-key rejection via validateNoExtraKeys, so additionalProperties is
+    // safe to drop here.
+    return Type.Object(properties);
   }
 
   function summarizeValue(value: unknown): string {
