@@ -65,41 +65,67 @@ impl<'a> ScopeSafety<'a> {
 /// matching. Returns [`ScopeSafety::Safe`] only when the path is structurally
 /// acceptable as a durable project boundary.
 pub fn classify_project_root(path: &str) -> ScopeSafety<'_> {
-    let root = path.trim().trim_end_matches('/');
-    if root.is_empty() {
+    let raw = path.trim();
+    if raw.is_empty() {
         return ScopeSafety::Missing;
     }
-    match root {
-        "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt" | "/srv" | "/var/tmp"
-        | "/etc" => ScopeSafety::UnsafeBroadRoot(root),
-        _ if root
-            .strip_prefix("/home/")
-            .is_some_and(|rest| !rest.contains('/')) =>
-        {
-            ScopeSafety::UnsafeUserHome(root)
-        }
-        // Agent runtime paths — never treat as project scope.
-        "/root/pi-mono" => ScopeSafety::AgentRuntimeDirectory(root),
-        _ if root.starts_with("/root/pi-") => ScopeSafety::AgentRuntimeDirectory(root),
-        _ if root.starts_with("/opt/node-") => ScopeSafety::AgentRuntimeDirectory(root),
-        _ if root == "/usr/local/bin" => ScopeSafety::AgentRuntimeDirectory(root),
-        _ if root.starts_with("/usr/local/lib/node_modules") => {
-            ScopeSafety::AgentRuntimeDirectory(root)
-        }
-        _ if root.contains("/.claude") => ScopeSafety::AgentRuntimeDirectory(root),
-        _ if root.contains("/.opencode") => ScopeSafety::AgentRuntimeDirectory(root),
-        _ if root.contains("/.letta") => ScopeSafety::AgentRuntimeDirectory(root),
-        _ if root.contains("/.pi/") || root.ends_with("/.pi") => {
-            ScopeSafety::AgentRuntimeDirectory(root)
-        }
-        _ if root.contains("/site-packages/letta") => ScopeSafety::AgentRuntimeDirectory(root),
-        _ if root.contains("/site-packages/open-code") => ScopeSafety::AgentRuntimeDirectory(root),
-        _ if root.contains("/site-packages/pi-coding-agent") => {
-            ScopeSafety::AgentRuntimeDirectory(root)
-        }
-        _ if root.contains("/site-packages/claude") => ScopeSafety::AgentRuntimeDirectory(root),
-        _ => ScopeSafety::Safe,
+    // Normalize: strip trailing slashes, but preserve "/" as broad root.
+    let root = raw.trim_end_matches('/');
+    let normalized = if root.is_empty() { raw } else { root };
+    match normalized {
+        "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt" | "/srv"
+        | "/var/tmp" | "/etc" => return ScopeSafety::UnsafeBroadRoot(normalized),
+        _ => {}
     }
+    // /home/<user> is a user home, not a project
+    if normalized
+        .strip_prefix("/home/")
+        .is_some_and(|rest| !rest.contains('/'))
+    {
+        return ScopeSafety::UnsafeUserHome(normalized);
+    }
+    // Agent runtime paths — never treat as project scope.
+    match normalized {
+        "/root/pi-mono" => return ScopeSafety::AgentRuntimeDirectory(normalized),
+        _ if normalized.starts_with("/root/pi-") => {
+            return ScopeSafety::AgentRuntimeDirectory(normalized)
+        }
+        _ if normalized.starts_with("/opt/node-") => {
+            return ScopeSafety::AgentRuntimeDirectory(normalized)
+        }
+        _ if normalized == "/usr/local/bin" => {
+            return ScopeSafety::AgentRuntimeDirectory(normalized)
+        }
+        _ if normalized.starts_with("/usr/local/lib/node_modules") => {
+            return ScopeSafety::AgentRuntimeDirectory(normalized)
+        }
+        _ if normalized.contains("/.claude") => {
+            return ScopeSafety::AgentRuntimeDirectory(normalized)
+        }
+        _ if normalized.contains("/.opencode") => {
+            return ScopeSafety::AgentRuntimeDirectory(normalized)
+        }
+        _ if normalized.contains("/.letta") => {
+            return ScopeSafety::AgentRuntimeDirectory(normalized)
+        }
+        _ if normalized.contains("/.pi/") || normalized.ends_with("/.pi") => {
+            return ScopeSafety::AgentRuntimeDirectory(normalized)
+        }
+        _ if normalized.contains("/site-packages/letta") => {
+            return ScopeSafety::AgentRuntimeDirectory(normalized)
+        }
+        _ if normalized.contains("/site-packages/open-code") => {
+            return ScopeSafety::AgentRuntimeDirectory(normalized)
+        }
+        _ if normalized.contains("/site-packages/pi-coding-agent") => {
+            return ScopeSafety::AgentRuntimeDirectory(normalized)
+        }
+        _ if normalized.contains("/site-packages/claude") => {
+            return ScopeSafety::AgentRuntimeDirectory(normalized)
+        }
+        _ => {}
+    }
+    ScopeSafety::Safe
 }
 
 /// Convenience for `Option<&str>` call sites (e.g. `record.project_root.as_deref()`).
