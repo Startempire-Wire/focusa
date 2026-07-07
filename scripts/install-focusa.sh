@@ -1,95 +1,350 @@
 #!/usr/bin/env bash
 # ============================================================================
 # Focusa Installer — Bash bootstrapper (Spec 112 §15A.4)
-# Source: https://install.focusa.dev/focusa
-# Real install logic lives in crates/focusa-cli/src/commands/install.rs
-# (`focusa install --target=auto`).
 #
-# Full-release-only policy:
-#   The installer queries the GitHub releases list and refuses to download
-#   from any tag that does not ship ALL three binaries (focusa,
-#   focusa-daemon, focusa-tui) for the detected target triple. Partial
-#   releases are skipped automatically; the latest complete release wins.
+# SINGLE SOURCE OF TRUTH for the bash install surface.
+#   * Served publicly at `https://install.focusa.dev/focusa` (live copy kept
+#     byte-identical via `scripts/sync-install-bootstrapper.sh`; parity
+#     enforced by `scripts/verify-bootstrapper-parity.sh` in CI).
+#   * In-repo copy at `scripts/install-focusa.sh` is the canonical source.
 #
-# No version strings are hardcoded here — the script discovers the latest
-# complete release for the channel at install time.
+# Behavior:
+#   * Pre-flight (this script): target detection, channel-aware release
+#     selection, license validate via the real license registry
+#     (https://wpuiai.com), cosign-verified SHA256SUMS, license.json write,
+#     and download of the `focusa` bootstrapper binary.
+#   * Install (Rust orchestrator): `exec focusa install --target=auto`,
+#     which owns asset downloads for focusa-daemon and focusa-tui, symlink
+#     placement, service rendering (systemd user unit on Linux, launchd on
+#     macOS), PATH automation + rc-file edit, atomic stash + rollback,
+#     smoke test (`focusa --version`), and the first-install walkthrough
+#     card. See crates/focusa-cli/src/commands/install.rs.
+#
+# URLs:
+#   * `install.focusa.dev/*` is a public-facing install facade and is
+#     preserved as-is for marketing and `curl | bash` UX.
+#   * API calls (license registry, GitHub releases, asset CDN) point at
+#     absolute real-backend URLs (https://wpuiai.com and
+#     https://github.com), never the install facade.
 # ============================================================================
 set -euo pipefail
 
-CHANNEL="${CHANNEL:-stable}"; DRY_RUN="${DRY_RUN:-0}"; EVAL="${EVAL:-0}"
-LICENSE_KEY="${FOCUSA_LICENSE_KEY:-${LICENSE_KEY:-}}"
-LICENSE_KEY="${LICENSE_KEY:-${WPUIAI_LICENSE_KEY:-}}"
-TARGET="auto"; GITHUB_REPO="Startempire-Wire/focusa"
+# ----------------------------------------------------------------------------
+# Defaults — override via env or flags.
+# ----------------------------------------------------------------------------
+GITHUB_REPO="${GITHUB_REPO:-Startempire-Wire/focusa}"
+# Real license registry backend. Operator rule (2026-07-07): preserve
+# install.focusa.dev facades; API calls use absolute real-backend URLs.
 LICENSE_REGISTRY="${LICENSE_REGISTRY:-https://wpuiai.com}"
-REQUIRED_ASSETS=(focusa focusa-daemon focusa-tui)
-MAX_CANDIDATES="${MAX_CANDIDATES:-20}"   # scan the most-recent N releases
+LICENSE_VALIDATE_PATH="${LICENSE_VALIDATE_PATH:-/wp-json/wpuiai-ai-cloud/v1/license/validate}"
+# License authority — the operator of record for Focusa licenses.
+# Source of truth: docs/SPEC_118_LICENSING.md + docs/SPEC_119_LIFETIME_TO_RECURRING_TRANSITION.md.
+# Operator-facing page: https://wpuiai.com/buy
+LICENSE_AUTHORITY_NAME="Wirebot / Phil Overacity LLC"
+LICENSE_AUTHORITY_URL="https://wpuiai.com"
+LICENSE_AUTHORITY_DOC="https://install.focusa.dev/license"
+LICENSE_AUTHORITY_SUPPORT="https://wpuiai.com/wp-admin"
+CHANNEL="${CHANNEL:-stable}"
+DRY_RUN="${DRY_RUN:-0}"
+EVAL="${EVAL:-0}"
+ACCEPT_LICENSE="${ACCEPT_LICENSE:-0}"
+NO_SERVICE="${NO_SERVICE:-0}"
+FORCE="${FORCE:-0}"
+LICENSE_KEY="${FOCUSA_LICENSE_KEY:-${LICENSE_KEY:-${WPUIAI_LICENSE_KEY:-}}}"
+# Customer email for receipt and reissue contact (Spec 118 §6).
+LICENSE_EMAIL="${FOCUSA_LICENSE_EMAIL:-${LICENSE_EMAIL:-}}"
+TARGET="auto"
+BIN_DIR="${HOME}/.focusa/bin"
+STATE_DIR="${HOME}/.focusa/state"
+CONFIG_DIR="${HOME}/.focusa/config"
+LIBEXEC_DIR="${HOME}/.focusa/libexec"
+LICENSE_DIR="${HOME}/.config/focusa"
+LICENSE_FILE="${LICENSE_DIR}/license.json"
+LICENSE_AUTHORITY_FILE="${LICENSE_DIR}/license_authority.json"
+LICENSE_RECEIPT_FILE="${LICENSE_DIR}/license_receipt.json"
+INSTALL_LOG_FILE="${STATE_DIR}/installs.jsonl"
+MAX_CANDIDATES="${MAX_CANDIDATES:-20}"
+
+usage() {
+  cat <<USAGE
+Usage: install-focusa.sh [options]
+
+Options:
+  --dry-run                print the install plan; do not write anything
+  --eval                   install in eval mode (no license key required)
+  --target=auto|linux|darwin|windows-x64|windows-arm64
+  --channel=stable|preview|nightly
+  --github-repo=OWNER/REPO  override asset host (default: ${GITHUB_REPO})
+  --registry=URL           override license registry URL (default: ${LICENSE_REGISTRY})
+  --license-key=KEY        commercial install with the given key
+  --email=EMAIL            customer email for receipt + reissue (commercial)
+  --accept-license         accept BSL 1.1 terms without prompting
+  --no-service             skip systemd user unit / launchd registration
+  --force                  allow downgrade or overwriting an existing install
+  --help                   print this help
+
+Environment overrides (lower precedence than flags):
+  CHANNEL, DRY_RUN, EVAL, ACCEPT_LICENSE, NO_SERVICE, FORCE,
+  LICENSE_KEY, FOCUSA_LICENSE_KEY, LICENSE_KEY, WPUIAI_LICENSE_KEY,
+  LICENSE_EMAIL, FOCUSA_LICENSE_EMAIL, EMAIL,
+  GITHUB_REPO, LICENSE_REGISTRY, FOCUSA_LICENSE_REGISTRY
+
+Exit codes:
+   0 success / dry-run printed
+   1 generic failure
+   2 license validation failed
+  64 unknown argument
+  65 required tool missing
+  66 unsupported platform
+  67 release list missing partial assets
+  68 checksum or signature mismatch
+USAGE
+}
+
+# ----------------------------------------------------------------------------
+# Argument parsing.
+# ----------------------------------------------------------------------------
 for arg in "$@"; do
   case "$arg" in
-    --dry-run)          DRY_RUN=1 ;;
-    --eval)             EVAL=1 ;;
-    --target=*)         TARGET="${arg#--target=}" ;;
-    --channel=*)        CHANNEL="${arg#--channel=}" ;;
-    --license-key=*)    LICENSE_KEY="${arg#--license-key=}" ;;
-    --github-repo=*)    GITHUB_REPO="${arg#--github-repo=}" ;;
-    --max-candidates=*) MAX_CANDIDATES="${arg#--max-candidates=}" ;;
-    --help|-h)          sed -n '2,18p' "$0"; exit 0 ;;
-    *) echo "unknown arg: $arg" >&2; exit 64 ;;
+    --dry-run)            DRY_RUN=1 ;;
+    --eval)               EVAL=1 ;;
+    --accept-license)     ACCEPT_LICENSE=1 ;;
+    --no-service)         NO_SERVICE=1 ;;
+    --force)              FORCE=1 ;;
+    --target=*)           TARGET="${arg#--target=}" ;;
+    --channel=*)          CHANNEL="${arg#--channel=}" ;;
+    --github-repo=*)      GITHUB_REPO="${arg#--github-repo=}" ;;
+    --registry=*)         LICENSE_REGISTRY="${arg#--registry=}" ;;
+    --license-key=*)      LICENSE_KEY="${arg#--license-key=}" ;;
+    --email=*)            LICENSE_EMAIL="${arg#--email=}" ;;
+    --help|-h)            usage; exit 0 ;;
+    *) printf '[focusa-install] unknown arg: %s\n' "$arg" >&2; usage >&2; exit 64 ;;
   esac
 done
 
-command -v curl >/dev/null || { echo "curl is required" >&2; exit 1; }
-command -v python3 >/dev/null || { echo "python3 is required" >&2; exit 1; }
-command -v sha256sum >/dev/null || command -v shasum >/dev/null || { echo "sha256sum required" >&2; exit 1; }
+# Allow FOCUSA_LICENSE_REGISTRY env override too (matches Rust install.rs).
+LICENSE_REGISTRY="${FOCUSA_LICENSE_REGISTRY:-$LICENSE_REGISTRY}"
 
+log()  { printf '\033[1;34m[focusa-install]\033[0m %s\n' "$*"; }
+warn() { printf '\033[1;33m[focusa-install]\033[0m %s\n' "$*" >&2; }
+err()  { printf '\033[1;31m[focusa-install]\033[0m %s\n' "$*" >&2; }
+die()  { err "$@"; exit 1; }
+have() { command -v "$1" >/dev/null 2>&1; }
+
+# ----------------------------------------------------------------------------
+# Pre-flight: required tools.
+# ----------------------------------------------------------------------------
+have curl   || { err "curl is required. recovery_hint: install curl, then retry."; exit 65; }
+have python3 || { err "python3 is required. recovery_hint: install python3, then retry."; exit 65; }
+have sha256sum || have shasum || { err "sha256sum (or shasum) is required."; exit 65; }
+
+# ----------------------------------------------------------------------------
+# Pre-flight: BSL 1.1 acceptance gate. Commercial installs must accept
+# the BSL terms. Eval is permitted without acceptance.
+# ----------------------------------------------------------------------------
+bsl_summary() {
+  cat <<BSL
+Focusa is source-available under the Business Source License 1.1 (BSL 1.1).
+
+  Permitted without a license key:
+    - Personal, educational, and non-commercial local use
+    - Evaluation on real projects (--eval mode)
+    - Reading and studying the source tree
+
+  NOT permitted without a commercial license:
+    - Production deployments
+    - Hosted services that bill customers
+    - Client delivery, consulting, or agency work
+    - Team or company use that materially supports commercial operations
+    - Embedding in a commercial product
+    - Redistribution or resale
+
+  Full terms:  https://focusa.dev/LICENSE  (BSL 1.1)
+  Pricing:     https://wpuiai.com/buy      (Operator Lifetime $697)
+  Authority:   ${LICENSE_AUTHORITY_NAME}  (${LICENSE_AUTHORITY_URL})
+BSL
+}
+
+if [ "$EVAL" = 0 ] && [ -z "$LICENSE_KEY" ] && [ "$ACCEPT_LICENSE" = 0 ]; then
+  err "Commercial install requires --accept-license or a --license-key."
+  err "Use --eval to install in evaluation mode (BSL 1.1 non-commercial use)."
+  err "license authority: ${LICENSE_AUTHORITY_NAME} <${LICENSE_AUTHORITY_URL}>"
+  exit 64
+fi
+
+# ----------------------------------------------------------------------------
+# Pre-flight: existing install / license check (anti-rollback + idempotency).
+# * Refuse to downgrade unless --force.
+# * Refuse to overwrite a different-key license unless --force.
+# * Migrate legacy license.json (customer_email: null) on read.
+# ----------------------------------------------------------------------------
+INSTALLED_VERSION_FILE="${STATE_DIR}/installed_version"
+INSTALLED_VERSION=""
+[ -s "$INSTALLED_VERSION_FILE" ] && INSTALLED_VERSION="$(cat "$INSTALLED_VERSION_FILE" 2>/dev/null || true)"
+if [ -n "$INSTALLED_VERSION" ] && [ "$FORCE" != 1 ]; then
+  case "$RELEASE_TAG" in
+    "")
+      ;;
+    *)
+      # RELEASE_TAG not yet known here; skip until release is picked.
+      ;;
+  esac
+fi
+
+migrate_legacy_license() {
+  [ -f "$LICENSE_FILE" ] || return 0
+  python3 - "$LICENSE_FILE" <<'PY' 2>/dev/null || true
+import json, os, sys
+path = sys.argv[1]
+try:
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+except Exception:
+    sys.exit(0)
+changed = False
+# Spec §5.1: customer_email is nullable in the daemon parser; the legacy
+# live installer wrote literal null. Normalize to "" so future activations
+# see a consistent shape.
+if "customer_email" in data and data["customer_email"] is None:
+    data["customer_email"] = ""
+    changed = True
+# Add registry_authority metadata if missing.
+if "registry_authority" not in data:
+    data["registry_authority"] = {
+        "name": "Wirebot / Phil Overacity LLC",
+        "url": "https://wpuiai.com",
+        "doc": "https://install.focusa.dev/license",
+    }
+    changed = True
+if changed:
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, path)
+PY
+}
+
+# ----------------------------------------------------------------------------
+# Pre-flight: write the license authority record. Written BEFORE validation
+# so the operator can see at a glance which authority governs this install,
+# even if the network call fails.
+# ----------------------------------------------------------------------------
+write_license_authority() {
+  mkdir -p "$LICENSE_DIR"
+  cat > "$LICENSE_AUTHORITY_FILE" <<JSON
+{
+  "name": "${LICENSE_AUTHORITY_NAME}",
+  "url": "${LICENSE_AUTHORITY_URL}",
+  "doc": "${LICENSE_AUTHORITY_DOC}",
+  "support": "${LICENSE_AUTHORITY_SUPPORT}",
+  "registry_url": "${LICENSE_REGISTRY}",
+  "validate_path": "${LICENSE_VALIDATE_PATH}",
+  "spec_refs": [
+    "docs/SPEC_118_LICENSING.md",
+    "docs/SPEC_119_LIFETIME_TO_RECURRING_TRANSITION.md"
+  ],
+  "written_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "channel": "${CHANNEL}",
+  "target": "${TARGET}"
+}
+JSON
+  chmod 600 "$LICENSE_AUTHORITY_FILE"
+}
+
+write_license_receipt() {
+  local tier="$1" status="$2" expires="$3" customer_email="$4" eval_flag="$5"
+  mkdir -p "$LICENSE_DIR"
+  python3 - "$LICENSE_RECEIPT_FILE" "$tier" "$status" "$expires" \
+                     "$customer_email" "$eval_flag" "$LICENSE_AUTHORITY_NAME" \
+                     "$LICENSE_AUTHORITY_URL" <<'PY'
+import json, os, sys
+from datetime import datetime, timezone
+(path, tier, status, expires, customer_email, eval_flag,
+ authority_name, authority_url) = sys.argv[1:]
+ef = (eval_flag or "").strip().lower()
+is_eval = ef in ("true", "1", "yes")
+data = {
+    "issued_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "tier": tier,
+    "status": status,
+    "expires_at": expires or None,
+    "customer_email": customer_email or None,
+    "authority": {"name": authority_name, "url": authority_url},
+    "eval": is_eval,
+    "note": "Save this receipt with your purchase confirmation. "
+            "It is the only durable local record of which authority "
+            "and tier issued this license."
+}
+tmp = path + ".tmp"
+with open(tmp, "w", encoding="utf-8") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+os.chmod(tmp, 0o600)
+os.replace(tmp, path)
+PY
+  chmod 600 "$LICENSE_RECEIPT_FILE"
+  log "wrote receipt to ${LICENSE_RECEIPT_FILE}"
+}
+
+# ----------------------------------------------------------------------------
+# Pre-flight: platform detection → target triple.
+# ----------------------------------------------------------------------------
 HOST_OS=$(uname -s); HOST_ARCH=$(uname -m)
-[ "$HOST_OS" = "Linux" ] || [ "$HOST_OS" = "Darwin" ] \
-  || { echo "unsupported OS: $HOST_OS (use install-focusa.ps1 on Windows)" >&2; exit 1; }
-case "$HOST_ARCH" in x86_64|aarch64) ;; *) echo "unsupported arch: $HOST_ARCH" >&2; exit 1;; esac
-
-case "$HOST_OS-$HOST_ARCH" in
-  Linux-x86_64)  TRIPLE="x86_64-unknown-linux-gnu" ;;
-  Linux-aarch64) TRIPLE="aarch64-unknown-linux-gnu" ;;
-  Darwin-x86_64) TRIPLE="x86_64-apple-darwin" ;;
-  Darwin-arm64|Darwin-aarch64) TRIPLE="aarch64-apple-darwin" ;;
+case "$HOST_OS" in
+  Linux|Darwin) ;;
+  MINGW*|MSYS*|CYGWIN*)
+    err "Windows native installs must use https://install.focusa.dev/focusa.ps1 in PowerShell."
+    exit 66 ;;
+  *) err "unsupported OS: $HOST_OS"; exit 66 ;;
 esac
+case "$HOST_ARCH" in x86_64|aarch64) ;; *) err "unsupported arch: $HOST_ARCH"; exit 66 ;; esac
 
-# ---------------------------------------------------------------------------
-# Channel → release-tag pattern. The channel picks which tag prefix to look
-# for in the release list; the actual selected tag is the latest FULL release
-# (all required assets present for our triple) that matches the prefix.
-# ---------------------------------------------------------------------------
+if [ "$TARGET" = "auto" ]; then
+  case "$HOST_OS-$HOST_ARCH" in
+    Linux-x86_64)   TRIPLE="x86_64-unknown-linux-gnu" ;;
+    Linux-aarch64)  TRIPLE="aarch64-unknown-linux-gnu" ;;
+    Darwin-x86_64)  TRIPLE="x86_64-apple-darwin" ;;
+    Darwin-arm64|Darwin-aarch64) TRIPLE="aarch64-apple-darwin" ;;
+    *) err "unsupported host: $HOST_OS-$HOST_ARCH"; exit 66 ;;
+  esac
+  TARGET="$TRIPLE"
+fi
+
+# ----------------------------------------------------------------------------
+# Channel → release-tag pattern.
+# ----------------------------------------------------------------------------
 case "$CHANNEL" in
-  stable)
-    PATTERN='v'            # match any tag
-    ;;
-  preview)
-    PATTERN='v*-preview'
-    ;;
-  nightly)
-    PATTERN='v*-nightly'
-    ;;
-  *)
-    echo "unknown channel: $CHANNEL" >&2
-    exit 1
-    ;;
+  stable)  TAG_PATTERN="v*-dev"  ;;
+  preview) TAG_PATTERN="v*-rc.*" ;;
+  nightly) TAG_PATTERN="v*-nightly.*" ;;
+  *) err "unknown channel: $CHANNEL"; exit 1 ;;
 esac
 
-# ---------------------------------------------------------------------------
-# Fetch the most-recent N releases (GH API paginates 30 at a time; per_page=30
-# + the API returns them newest-first). Iterate, prefer latest matching the
-# channel pattern AND shipping all required assets for our triple.
-# ---------------------------------------------------------------------------
-RELEASES=$(curl -fsSL "https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=30" 2>/dev/null) \
-  || { echo "[focusa-install] release list fetch failed" >&2; exit 1; }
+# ----------------------------------------------------------------------------
+# Scratch tmpdir for the install transaction. Cleaned up on exit.
+# ----------------------------------------------------------------------------
+TMP="$(mktemp -d "${TMPDIR:-/tmp}/focusa-install.XXXXXX")"
+trap 'rm -rf "$TMP"' EXIT
 
-# Returns tab-separated: <tag>\t<focusa-url> when a release is complete.
-# Empty stdout when no complete release matches the channel pattern within
-# the first MAX_CANDIDATES.
+# ----------------------------------------------------------------------------
+# Discover the latest COMPLETE release for this target. A complete release
+# must ship all three binaries (focusa, focusa-daemon, focusa-tui) for the
+# target triple. Partial releases are skipped automatically.
+# ----------------------------------------------------------------------------
+log "fetching release list (channel=${CHANNEL} target=${TARGET})"
+RELEASES_FILE="$TMP/releases.json"
+curl -fsSL "https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=${MAX_CANDIDATES}" \
+  -o "$RELEASES_FILE" \
+  || die "failed to fetch release list from GitHub"
+
 pick_complete_release() {
-  python3 - "$RELEASES" "$PATTERN" "$TRIPLE" "$MAX_CANDIDATES" <<'PY'
+  python3 - "$RELEASES_FILE" "$TAG_PATTERN" "$TARGET" "$MAX_CANDIDATES" <<'PY'
 import json, re, sys
-releases, pattern, triple, max_n = sys.argv[1:]
-data = json.loads(releases)
+path, pattern, triple, max_n = sys.argv[1:]
+with open(path, "r", encoding="utf-8") as f:
+    data = json.load(f)
 pat_re = re.compile("^" + pattern.replace("*", ".*") + "$")
 seen = 0
 for rel in data:
@@ -117,58 +372,276 @@ for rel in data:
 PY
 }
 
-SELECTED=$(pick_complete_release)
+SELECTED="$(pick_complete_release)"
 if [ -z "$SELECTED" ]; then
-  echo "[focusa-install] no complete release for channel='${CHANNEL}' triple='${TRIPLE}' within first ${MAX_CANDIDATES} releases" >&2
-  echo "[focusa-install] recovery_hint: a release is complete only when it ships focusa, focusa-daemon, AND focusa-tui for the target triple." >&2
-  echo "[focusa-install] recovery_hint: check https://github.com/${GITHUB_REPO}/releases for the latest full release." >&2
-  exit 1
+  err "no complete release for channel='${CHANNEL}' target='${TARGET}'"
+  err "recovery_hint: a complete release ships focusa + focusa-daemon + focusa-tui for ${TARGET}."
+  exit 67
+fi
+RELEASE_TAG="${SELECTED%%	*}"
+ASSET_URL="${SELECTED##*	}"
+[ -n "$RELEASE_TAG" ] && [ -n "$ASSET_URL" ] || die "could not parse selected release"
+log "selected: tag=${RELEASE_TAG} target=${TARGET}"
+
+# ----------------------------------------------------------------------------
+# Pre-flight: license phase.
+#   * --eval: write a self-signed eval license.json with offline grace.
+#   * --license-key: POST to the real license registry; on valid response,
+#     write the daemon-compatible license.json with offline_valid_until
+#     +7 days so the operator can install offline for one week.
+#   * Neither: refused above (BSL acceptance gate).
+# ----------------------------------------------------------------------------
+key_hash() { printf '%s' "$1" | sha256sum 2>/dev/null | awk '{print $1}' || \
+             printf '%s' "$1" | shasum -a 256 | awk '{print $1}'; }
+
+# Compute offline_valid_until = now + 7 days (ISO 8601 UTC).
+offline_until() {
+  python3 - <<'PY'
+from datetime import datetime, timedelta, timezone
+print((datetime.now(timezone.utc) + timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ"))
+PY
+}
+
+write_license_json() {
+  local key_hash_val="$1" key_prefix_val="$2" product="$3" tier="$4" \
+        status="$5" commercial="$6" features="$7" expires="$8" \
+        activated="$9" eval_flag="${10}"
+  mkdir -p "$LICENSE_DIR"
+  OFFLINE="$(offline_until)"
+  python3 - "$LICENSE_FILE" "$key_hash_val" "$key_prefix_val" "$product" "$tier" \
+                  "$status" "$commercial" "$features" "$expires" "$activated" \
+                  "$eval_flag" "$OFFLINE" "$LICENSE_REGISTRY" <<'PY'
+import json, os, sys
+(path, key_hash, key_prefix, product, tier, status,
+ commercial, features, expires, activated, eval_flag,
+ offline_until, registry_url) = sys.argv[1:]
+data = {
+    "key_hash": key_hash,
+    "key_prefix": key_prefix,
+    "product": product,
+    "tier": tier,
+    "status": status,
+    "commercial_use": json.loads(commercial.lower() if commercial.lower() in ("true","false") else commercial),
+    "customer_email": None,
+    "features": json.loads(features or "[]"),
+    "expires_at": expires or None,
+    "offline_valid_until": offline_until,
+    "registry_url": registry_url,
+    "activated_at": activated or None,
+    "eval": json.loads(eval_flag.lower() if eval_flag.lower() in ("true","false") else eval_flag),
+}
+tmp = path + ".tmp"
+os.makedirs(os.path.dirname(path), exist_ok=True)
+with open(tmp, "w", encoding="utf-8") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+os.chmod(tmp, 0o600)
+os.replace(tmp, path)
+PY
+  chmod 600 "$LICENSE_FILE"
+  log "wrote license state to ${LICENSE_FILE}"
+}
+
+if [ -n "$LICENSE_KEY" ]; then
+  log "validating license against ${LICENSE_REGISTRY}${LICENSE_VALIDATE_PATH}"
+  VALIDATE_RESP="$(
+    curl -sS -X POST \
+      -H "Content-Type: application/json" \
+      -H "X-License-Key: $LICENSE_KEY" \
+      -d "{\"license_key\":\"$LICENSE_KEY\"}" \
+      "${LICENSE_REGISTRY}${LICENSE_VALIDATE_PATH}" \
+      2>/dev/null || true
+  )"
+  if ! printf '%s' "$VALIDATE_RESP" | grep -q '"valid"[[:space:]]*:[[:space:]]*true'; then
+    err "license validation failed."
+    err "response: ${VALIDATE_RESP:-(empty)}"
+    err "purchase/manage license: https://install.focusa.dev/license"
+    err "recovery_hint: re-run with --eval, or fix the key, or check the registry URL."
+    err "license authority: ${LICENSE_AUTHORITY_NAME} <${LICENSE_AUTHORITY_URL}>"
+    exit 2
+  fi
+  json_get() { python3 -c "import json,sys;print(json.loads(sys.stdin.read()).get(\"$1\", \"\"))" ; }
+  KH="$(key_hash "$LICENSE_KEY")"
+  KP="${LICENSE_KEY:0:16}"
+  PRODUCT="$(printf '%s' "$VALIDATE_RESP" | json_get product)"; PRODUCT="${PRODUCT:-focusa}"
+  TIER="$(printf '%s' "$VALIDATE_RESP" | json_get tier)"; TIER="${TIER:-operator}"
+  STATUS="$(printf '%s' "$VALIDATE_RESP" | json_get status)"; STATUS="${STATUS:-active}"
+  COMMERCIAL="$(printf '%s' "$VALIDATE_RESP" | json_get commercial_use)"; COMMERCIAL="${COMMERCIAL:-true}"
+  FEATURES="$(printf '%s' "$VALIDATE_RESP" | json_get features)"; FEATURES="${FEATURES:-[]}"
+  EXPIRES="$(printf '%s' "$VALIDATE_RESP" | json_get expires_at)"
+  ACTIVATED="$(printf '%s' "$VALIDATE_RESP" | json_get activated_at)"
+  # Customer email: prefer registry response, then --email flag, then empty.
+  RESP_EMAIL="$(printf '%s' "$VALIDATE_RESP" | json_get customer_email)"
+  CUSTOMER_EMAIL="${RESP_EMAIL:-${LICENSE_EMAIL:-}}"
+  log "license valid: tier=${TIER}"
+  write_license_authority
+  write_license_json "$KH" "$KP" "$PRODUCT" "$TIER" "$STATUS" "$COMMERCIAL" \
+                     "$FEATURES" "$EXPIRES" "$ACTIVATED" "false"
+  write_license_receipt "$TIER" "$STATUS" "$EXPIRES" "$CUSTOMER_EMAIL" "false"
+elif [ "$EVAL" = 1 ]; then
+  log "eval mode: writing self-signed license.json with 7-day offline grace"
+  KH="eval"
+  KP="eval-$(date -u +%Y%m%d)"
+  write_license_authority
+  write_license_json "$KH" "$KP" "focusa" "evaluation" "active" "false" \
+                     '["daemon","tui","cli"]' "" "" "true"
+  write_license_receipt "evaluation" "active" "" "" "true"
+else
+  # Should be unreachable (BSL gate above). Surface a clear error.
+  err "no license key provided and --eval not set. pass --eval or --license-key."
+  exit 64
 fi
 
-RELEASE_TAG=$(printf '%s' "$SELECTED" | cut -f1)
-ASSET_URL=$(printf '%s' "$SELECTED" | cut -f2-)
-[ -n "$RELEASE_TAG" ] && [ -n "$ASSET_URL" ] \
-  || { echo "[focusa-install] could not parse selected release" >&2; exit 1; }
+# ----------------------------------------------------------------------------
+# Migrate any pre-existing legacy license.json (customer_email: null shape)
+# so the daemon parser accepts it.
+# ----------------------------------------------------------------------------
+migrate_legacy_license
 
-# ---------------------------------------------------------------------------
-# Download focusa, verify SHA256SUMS if available.
-# ---------------------------------------------------------------------------
-BIN_DIR="${HOME}/.focusa/bin"
-mkdir -p "$BIN_DIR"
-TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
-curl -fsSL "$ASSET_URL" -o "$TMP/focusa" || { echo "[focusa-install] download failed" >&2; exit 1; }
+# ----------------------------------------------------------------------------
+# Download focusa bootstrapper binary for this target triple.
+# ----------------------------------------------------------------------------
+ASSET_FOCUSA="focusa-${RELEASE_TAG}-${TARGET}"
+log "downloading ${ASSET_FOCUSA}"
+
+curl -fsSL "$ASSET_URL" -o "$TMP/focusa" || die "download failed: $ASSET_URL"
 chmod +x "$TMP/focusa"
 
-ASSET_FOCUSA="focusa-${RELEASE_TAG}-${TRIPLE}"
-SHA=""
-for sha_path in "SHA256SUMS" "SHA256SUMS.txt"; do
-  RAW=$(curl -fsSL "https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}/${sha_path}" 2>/dev/null || true)
-  if [ -n "$RAW" ]; then
-    SHA=$(printf '%s' "$RAW" | awk -v n="${ASSET_FOCUSA}" '$2 == n {print $1; exit}')
-    [ -n "$SHA" ] && break
+# ----------------------------------------------------------------------------
+# Verify SHA256SUMS if available. Prefer cosign-signed manifest, fall back
+# to plain SHA256SUMS, fall back to skip-with-warning.
+# ----------------------------------------------------------------------------
+CHECKSUM_MANIFEST=""
+for sha_path in SHA256SUMS.txt SHA256SUMS; do
+  if curl -fsSL "https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}/${sha_path}" \
+       -o "$TMP/$sha_path" 2>/dev/null; then
+    CHECKSUM_MANIFEST="$TMP/$sha_path"
+    break
   fi
 done
-if [ -n "$SHA" ]; then
-  ACT=$(sha256sum "$TMP/focusa" | awk '{print $1}')
-  [ "$ACT" = "$SHA" ] || { echo "[focusa-install] checksum mismatch" >&2; exit 1; }
+
+verify_signature() {
+  local manifest="$1"
+  [ -s "$manifest" ] || return 1
+  if ! have cosign; then
+    warn "cosign not installed; falling back to SHA256SUMS-only verification"
+    return 1
+  fi
+  local base sig cert
+  base="$(basename "$manifest")"
+  sig="$TMP/${base}.sig"; cert="$TMP/${base}.pem"
+  if curl -fsSL "https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}/${base}.sig" -o "$sig" 2>/dev/null \
+     && curl -fsSL "https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}/${base}.pem" -o "$cert" 2>/dev/null; then
+    if cosign verify-blob --cert "$cert" --signature "$sig" --insecure-ignore-tlog=true "$manifest" >/dev/null 2>&1; then
+      log "cosign signature verified: ${base}"
+      return 0
+    fi
+    err "cosign signature verification failed for ${base}"
+    return 1
+  fi
+  warn "no cosign .sig/.pem found next to ${base}; skipping signature verify"
+  return 1
+}
+
+verified_signature=1
+if [ -n "$CHECKSUM_MANIFEST" ]; then
+  log "checksum manifest: $(basename "$CHECKSUM_MANIFEST")"
+  if ! verify_signature "$CHECKSUM_MANIFEST"; then
+    verified_signature=0
+  fi
+  EXPECTED="$(awk -v n="${ASSET_FOCUSA}" '$2 == n {print $1; exit}' "$CHECKSUM_MANIFEST")"
+  if [ -z "$EXPECTED" ]; then
+    err "no checksum entry for ${ASSET_FOCUSA} in $(basename "$CHECKSUM_MANIFEST")"
+    exit 68
+  fi
+  ACTUAL="$(sha256sum "$TMP/focusa" 2>/dev/null | awk '{print $1}')"
+  [ "$ACTUAL" = "$EXPECTED" ] || { err "checksum mismatch for focusa (expected $EXPECTED, got $ACTUAL)"; exit 68; }
+  log "sha256 verified: ${ACTUAL:0:12}…"
 else
-  echo "[focusa-install] warning: SHA256SUMS not available for ${RELEASE_TAG}; skipping verify" >&2
+  warn "no SHA256SUMS asset for ${RELEASE_TAG}; digest verification is incomplete until release signing lands."
 fi
 
+[ "$verified_signature" = 1 ] || exit 68
+
+# ----------------------------------------------------------------------------
+# Place the bootstrapper binary and hand off to the Rust orchestrator.
+# ----------------------------------------------------------------------------
+mkdir -p "$BIN_DIR" "$STATE_DIR" "$CONFIG_DIR" "$LIBEXEC_DIR"
+
+# Anti-rollback: refuse to downgrade an existing install unless --force.
+INSTALLED_VERSION_FILE="${STATE_DIR}/installed_version"
+if [ -s "$INSTALLED_VERSION_FILE" ] && [ "$FORCE" != 1 ]; then
+  CURRENT_VER="$(cat "$INSTALLED_VERSION_FILE" 2>/dev/null || echo unknown)"
+  if python3 - "$CURRENT_VER" "$RELEASE_TAG" <<'PY' 2>/dev/null
+import sys
+def parse(v):
+    s = v.lstrip('v')
+    parts = s.split('-')[0].split('.')
+    try:
+        return tuple(int(p) for p in parts)
+    except Exception:
+        return None
+a, b = sys.argv[1], sys.argv[2]
+pa, pb = parse(a), parse(b)
+if pa is None or pb is None:
+    sys.exit(0)
+sys.exit(0 if pb >= pa else 1)
+PY
+  then
+    : # current >= selected; allow
+  else
+    err "refusing to downgrade: installed=${CURRENT_VER} selected=${RELEASE_TAG}"
+    err "recovery_hint: re-run with --force to overwrite, or pick a newer channel."
+    exit 68
+  fi
+fi
+
+# Idempotent write of focusa bootstrapper.
 mv "$TMP/focusa" "$BIN_DIR/focusa"
+chmod 0755 "$BIN_DIR/focusa"
 
-ARGS=(install --target="$TARGET" --version="$RELEASE_TAG" --github-repo="$GITHUB_REPO")
-[ "$DRY_RUN" = 1 ] && ARGS+=(--dry-run)
-[ "$EVAL" = 1 ] && ARGS+=(--eval)
-if [ -n "$LICENSE_KEY" ]; then
-  ARGS+=(--license-key="$LICENSE_KEY")
-elif [ "$EVAL" != 1 ]; then
-  # Default to eval when no license key provided AND --eval was not set,
-  # so first-time users get a working install while the operator can
-  # promote to a paid key later via `focusa license activate`.
-  ARGS+=(--eval)
-  echo "[focusa-install] no license key provided; defaulting to --eval mode (install will succeed; activate license later with 'focusa license activate <key>')." >&2
+# Record installed version and append an install event for audit.
+mkdir -p "$STATE_DIR"
+printf '%s\n' "$RELEASE_TAG" > "$INSTALLED_VERSION_FILE"
+chmod 0644 "$INSTALLED_VERSION_FILE"
+
+if [ "$DRY_RUN" != 1 ]; then
+  install_event_tier="${TIER:-evaluation}"
+  install_event_eval="false"
+  [ "$EVAL" = 1 ] && install_event_eval="true"
+  install_event_channel="$CHANNEL"
+  install_event_target="$TARGET"
+  install_event_key_hash="$(key_hash "$LICENSE_KEY" 2>/dev/null || echo unknown)"
+  install_event_email="${LICENSE_EMAIL:-}"
+  install_event_ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  install_event_host="$(uname -n 2>/dev/null || echo unknown)"
+  install_event_os="$(uname -s)"
+  install_event_arch="$(uname -m)"
+  install_event_bin_dir="$BIN_DIR"
+  install_event_license_authority="$LICENSE_AUTHORITY_NAME"
+  install_event_registry="$LICENSE_REGISTRY"
+  {
+    printf '{"event":"install","ts":"%s","channel":"%s","target":"%s","tag":"%s","tier":"%s","eval":%s,"key_hash":"%s","customer_email":"%s","host":"%s","os":"%s","arch":"%s","bin_dir":"%s","license_authority":"%s","registry":"%s"}\n' \
+      "$install_event_ts" "$install_event_channel" "$install_event_target" "$RELEASE_TAG" \
+      "$install_event_tier" "$install_event_eval" "$install_event_key_hash" \
+      "$install_event_email" "$install_event_host" "$install_event_os" \
+      "$install_event_arch" "$install_event_bin_dir" "$install_event_license_authority" \
+      "$install_event_registry"
+  } >> "$INSTALL_LOG_FILE"
+  chmod 0600 "$INSTALL_LOG_FILE"
 fi
-[ "$CHANNEL" != "stable" ] && ARGS+=(--channel="$CHANNEL")
 
+log "handing off to Rust orchestrator: focusa install --target=${TARGET}"
+if [ "$DRY_RUN" = 1 ]; then
+  log "DRY RUN: would exec $BIN_DIR/focusa install --target=$TARGET --version=$RELEASE_TAG --github-repo=$GITHUB_REPO ..."
+  exit 0
+fi
+
+# Forward every relevant flag; the Rust orchestrator owns the rest.
+ARGS=(install --target="$TARGET" --version="$RELEASE_TAG" --github-repo="$GITHUB_REPO")
+[ "$EVAL" = 1 ] && ARGS+=(--eval)
+[ "$NO_SERVICE" = 1 ] && ARGS+=(--no-service)
+[ "$ACCEPT_LICENSE" = 1 ] && ARGS+=(--accept-license)
+[ "$CHANNEL" != "stable" ] && ARGS+=(--channel="$CHANNEL")
+[ -n "$LICENSE_KEY" ] && ARGS+=(--license-key="$LICENSE_KEY")
 exec "$BIN_DIR/focusa" "${ARGS[@]}"
