@@ -112,7 +112,7 @@ impl Lifecycle {
     /// Run all five stages in order. Returns the final claim on
     /// success, or the first `ClosureBlock` produced.
     #[allow(clippy::result_large_err)]
-    pub fn run(
+    pub async fn run(
         &self,
         actor: &str,
         work_item: WorkItemRef,
@@ -127,7 +127,7 @@ impl Lifecycle {
             return Err(b);
         }
         let validated = self
-            .validate(prepared.claim.claim_id.clone())
+            .validate(prepared.claim.claim_id.clone()).await
             .map_err(|e| e.into_block())?;
         if let Some(b) = validated.block {
             return Err(b);
@@ -139,13 +139,13 @@ impl Lifecycle {
             return Err(b);
         }
         let submitted = self
-            .submit(authorized.claim.claim_id.clone())
+            .submit(authorized.claim.claim_id.clone()).await
             .map_err(|e| e.into_block())?;
         if let Some(b) = submitted.block {
             return Err(b);
         }
         let reconciled = self
-            .reconcile(submitted.claim.claim_id.clone())
+            .reconcile(submitted.claim.claim_id.clone()).await
             .map_err(|e| e.into_block())?;
         if let Some(b) = reconciled.block {
             return Err(b);
@@ -232,25 +232,9 @@ impl Lifecycle {
 
     /// Stage 2: validate. Loads the claim from storage, runs every
     /// verifier, persists, audits.
-    pub fn validate(&self, claim_id: String) -> Result<ValidateResult, ClosureError> {
+    pub async fn validate(&self, claim_id: String) -> Result<ValidateResult, ClosureError> {
         let mut claim = self.load_claim(&claim_id, LifecycleStage::Validate)?;
         let mut verify_results = Vec::new();
-        // The verifier dispatch is async; we run a single-threaded
-        // tokio runtime inside the sync `validate()` so the rest of
-        // the lifecycle stays sync (the CLI doctor and the audit
-        // replay path are easier to reason about that way).
-        let rt = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
-            Ok(r) => r,
-            Err(e) => {
-                return Err(ClosureError {
-                    stage: LifecycleStage::Validate,
-                    failure_class: "internal_error".into(),
-                    code: "runtime_build_failed".into(),
-                    why: format!("tokio runtime build failed: {e}"),
-                    recovery_hint: "check the host's libssl/libc".into(),
-                });
-            }
-        };
         // Run verifier on every citation across every field.
         for citation in claim.code_refs.iter_mut()
             .chain(claim.spec_refs.iter_mut())
@@ -258,7 +242,7 @@ impl Lifecycle {
             .chain(claim.deploy_refs.iter_mut())
             .chain(claim.artifact_refs.iter_mut())
         {
-            let res = rt.block_on(run_verifier_for(citation));
+            let res = run_verifier_for(citation).await;
             citation.result = Some(res.result.clone());
             citation.verified = res.verified;
             verify_results.push(res.clone());
@@ -387,7 +371,7 @@ impl Lifecycle {
     }
 
     /// Stage 4: submit. Calls the provider adapter.
-    pub fn submit(&self, claim_id: String) -> Result<SubmitResult, ClosureError> {
+    pub async fn submit(&self, claim_id: String) -> Result<SubmitResult, ClosureError> {
         let claim = self.load_claim(&claim_id, LifecycleStage::Submit)?;
         let adapter = self.registry.get(claim.work_item.provider).ok_or_else(|| {
             ClosureError {
@@ -414,23 +398,11 @@ impl Lifecycle {
                 recovery_hint: "switch to a mutable provider or use the no-op adapter".into(),
             });
         }
-        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().map_err(|e| {
-            ClosureError {
-                stage: LifecycleStage::Submit,
-                failure_class: "internal_error".into(),
-                code: "runtime_build_failed".into(),
-                why: format!("tokio runtime build failed: {e}"),
-                recovery_hint: "check the host's libssl/libc".into(),
-            }
-        })?;
         let claim_for_audit = claim.clone();
-        let adapter_for_call = adapter.clone();
         let work_item_for_call = claim.work_item.clone();
-        let res = rt.block_on(async move {
-            adapter_for_call
-                .submit(&work_item_for_call)
-                .await
-        });
+        let res = adapter
+            .submit(&work_item_for_call)
+            .await;
         let work_item = match res {
             Ok(w) => w,
             Err(RegistryError::ProviderError { provider, stage: _, why }) => {
@@ -486,7 +458,7 @@ impl Lifecycle {
 
     /// Stage 5: reconcile. Re-resolves the work item from the
     /// provider and verifies the post-submit state.
-    pub fn reconcile(&self, claim_id: String) -> Result<ReconcileResult, ClosureError> {
+    pub async fn reconcile(&self, claim_id: String) -> Result<ReconcileResult, ClosureError> {
         let claim = self.load_claim(&claim_id, LifecycleStage::Reconcile)?;
         let adapter = self.registry.get(claim.work_item.provider).ok_or_else(|| {
             ClosureError {
@@ -500,18 +472,8 @@ impl Lifecycle {
                 recovery_hint: "register the provider or accept the local reconciliation result".into(),
             }
         })?;
-        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().map_err(|e| ClosureError {
-            stage: LifecycleStage::Reconcile,
-            failure_class: "internal_error".into(),
-            code: "runtime_build_failed".into(),
-            why: format!("tokio runtime build failed: {e}"),
-            recovery_hint: "check the host's libssl/libc".into(),
-        })?;
-        let adapter_for_call = adapter.clone();
         let work_item_for_call = claim.work_item.clone();
-        let res = rt.block_on(async move {
-            adapter_for_call.reconcile(&work_item_for_call).await
-        });
+        let res = adapter.reconcile(&work_item_for_call).await;
         let work_item = match res {
             Ok(w) => w,
             Err(RegistryError::ProviderError { provider, stage: _, why }) => {
