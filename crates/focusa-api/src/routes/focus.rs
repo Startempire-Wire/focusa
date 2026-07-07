@@ -18,6 +18,7 @@ use axum::{
 };
 use chrono::Utc;
 use focusa_core::reducer;
+use focusa_core::scope_safety::classify_project_root_option;
 use focusa_core::types::{
     CompletionReason, EventLogEntry, FocusStackState, FocusStateDelta, FocusaEvent, FocusaState,
     FrameRecord, FrameStatus, SessionState, SessionStatus, SignalOrigin, WorkpointStatus,
@@ -138,22 +139,7 @@ fn normalize_project_root_authority(value: &str) -> String {
 }
 
 fn unsafe_project_root_reason(value: Option<&str>) -> Option<&'static str> {
-    let root = normalize_project_root_authority(value.unwrap_or(""));
-    if root.is_empty() {
-        return Some("missing_project_root");
-    }
-    match root.as_str() {
-        "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt" => {
-            Some("unsafe_broad_project_root")
-        }
-        _ if root
-            .strip_prefix("/home/")
-            .is_some_and(|rest| !rest.contains('/')) =>
-        {
-            Some("unsafe_user_home_project_root")
-        }
-        _ => None,
-    }
+    classify_project_root_option(value).reason()
 }
 
 fn clean_scope_value(value: Option<&str>) -> Option<String> {

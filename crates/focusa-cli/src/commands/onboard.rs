@@ -4,6 +4,7 @@ use crate::api_client::ApiClient;
 use crate::commands::daemon;
 use chrono::Utc;
 use clap::Args;
+use focusa_core::scope_safety::classify_project_root;
 use serde_json::{Value, json};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -77,15 +78,7 @@ fn detect_project_root(explicit: Option<String>) -> anyhow::Result<PathBuf> {
 
 fn safe_project_root(project_root: &Path) -> bool {
     let root = project_root.to_string_lossy();
-    let trimmed = root.trim().trim_end_matches('/');
-    !trimmed.is_empty()
-        && trimmed != "/"
-        && trimmed != "/root"
-        && trimmed != "/home"
-        && trimmed != "/tmp"
-        && trimmed != "/var"
-        && trimmed != "/usr"
-        && trimmed != "/opt"
+    classify_project_root(&root).is_safe()
 }
 
 fn slug_from_remote(remote: &str) -> String {
