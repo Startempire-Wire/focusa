@@ -1,0 +1,48 @@
+Provider Policy Ledger — 404 status fix proof
+Date: 2026-07-07
+
+Bug: GET /v1/bloatgaurd/optical/ledger/{provider} returned 200 with found:false for unknown providers.
+Fix: get_one_ledger returns (StatusCode::NOT_FOUND, Json(...)) on Ok(None) and (INTERNAL_SERVER_ERROR, ...) on Err.
+
+=== test matrix ===
+list (2 entries):
+{
+  "count": 2,
+  "entries": [
+    {
+      "provider": "anthropic",
+      "status": "allowed",
+      "effective_status": "allowed",
+      "is_stale": false
+    },
+    {
+      "provider": "openai",
+      "status": "allowed",
+      "effective_status": "allowed",
+      "is_stale": false
+    }
+  ]
+}
+
+anthropic:
+{
+  "provider": "anthropic",
+  "status": "allowed",
+  "effective_status": "allowed",
+  "is_stale": false
+}
+
+openai:
+{
+  "provider": "openai",
+  "status": "allowed",
+  "effective_status": "allowed",
+  "is_stale": false
+}
+
+bogus (404):
+{"effective_status":"unknown","fallback":"text_passthrough","found":false,"provider":"bogus","schema":"focusa.provider_policy_ledger.v1"}
+HTTP 404
+
+=== cargo tests ===
+error: could not find `Cargo.toml` in `/root` or any parent directory
