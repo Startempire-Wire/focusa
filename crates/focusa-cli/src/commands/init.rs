@@ -8,6 +8,7 @@
 
 use anyhow::{Context, Result};
 use clap::Args;
+use focusa_core::scope_safety::{classify_project_root, ScopeSafety};
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 
@@ -35,7 +36,7 @@ pub struct InitArgs {
     pub allow_unsafe_root: bool,
 }
 
-pub async fn run(args: InitArgs, _json: bool) -> Result<()> {
+pub async fn run(args: InitArgs, json: bool) -> Result<()> {
     let cwd = std::env::current_dir().context("cwd unavailable")?;
     let project_root = match args.project_root.as_deref() {
         Some(value) if !value.trim().is_empty() => PathBuf::from(value),
@@ -46,19 +47,47 @@ pub async fn run(args: InitArgs, _json: bool) -> Result<()> {
     // Without this, `focusa init --quickstart` happily writes a marker to
     // `/root` (or any /home/<user>) which is exactly the case the auto-
     // bootstrap nag warns against. This was an MVP-launch blocker.
-    if is_unsafe_root(&project_root) && !args.allow_unsafe_root {
+    //
+    // This uses the shared ScopeSafety classifier so init, project identity,
+    // trajectory, and workpoint all agree on what is too broad to bind.
+    let project_root_str = project_root.to_string_lossy();
+    let safety = classify_project_root(&project_root_str);
+    if !safety.is_safe() && !args.allow_unsafe_root {
+        if json {
+            let blocked = json!({
+                "schema": "focusa.init.v1",
+                "status": "blocked",
+                "failure_class": "scope_mismatch",
+                "reason": safety.reason(),
+                "project_root": project_root.display().to_string(),
+                "next_step_hint": safety.next_step_hint(),
+                "safe_next_commands": [
+                    "cd /path/to/repo && focusa init --quickstart",
+                    "focusa onboard --scope host"
+                ]
+            });
+            println!("{}", serde_json::to_string_pretty(&blocked)?);
+            return Ok(());
+        }
         anyhow::bail!(
-            "refusing to init at broad unsafe root: {}\n\
+            "Scope blocked: {} is too broad to bind as a Focusa project.\n\
              \n\
-             broad unsafe roots: /, /root, /home, /tmp, /var/tmp\n\
+             Why:\n\
+               {} is a {}, not a focused project.\n\
              \n\
-             remediation:\n  \
-               1. cd into a specific project directory (e.g. ~/Projects/foo)\n  \
-               2. or pass --project-root <path> explicitly\n  \
-               3. or pass --allow-unsafe-root to override (NOT recommended)\n\
+             Do this instead:\n\
+               cd /path/to/your/repo\n\
+               focusa init --quickstart\n\
              \n\
-             then verify with: focusa project identity --project-root <path>",
+             For host setup:\n\
+               focusa onboard --scope host\n\
+             \n\
+             Override:\n\
+               focusa init --quickstart --allow-unsafe-root\n\
+               Not recommended.",
             project_root.display(),
+            project_root.display(),
+            safety.human_kind()
         );
     }
 
@@ -113,6 +142,12 @@ pub async fn run(args: InitArgs, _json: bool) -> Result<()> {
         payload["marker"] = marker;
     }
 
+    // Loud override: surface when a marker was written with unsafe-root override.
+    if args.allow_unsafe_root && !safety.is_safe() {
+        payload["scope_override"] = json!(true);
+        payload["scope_warning"] = json!("unsafe project root override used");
+    }
+
     println!("{}", serde_json::to_string_pretty(&payload)?);
     Ok(())
 }
@@ -136,22 +171,6 @@ fn project_slug(project_root: &Path) -> String {
 /// project marker. These are directories that contain user homes or are
 /// shared mutable roots; a project marker here is meaningless and pollutes
 /// downstream scope (state.db, beads, workpoints, trajectory).
-fn is_unsafe_root(path: &Path) -> bool {
-    if !path.exists() {
-        // Non-existent paths are allowed (init can create them). The
-        // rejection is for paths that exist and are broad roots.
-        return false;
-    }
-    // Canonicalize to handle trailing-slash, symlink, "." components.
-    let canonical = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
-    let raw = canonical.to_string_lossy();
-    let trimmed = raw.trim_end_matches('/');
-    if trimmed.is_empty() {
-        return true; // "/" itself
-    }
-    matches!(trimmed, "/" | "/root" | "/home" | "/tmp" | "/var/tmp" | "/etc" | "/usr" | "/opt" | "/srv")
-}
-
 fn title_from_slug(slug: &str) -> String {
     slug.split('-')
         .filter(|part| !part.is_empty())

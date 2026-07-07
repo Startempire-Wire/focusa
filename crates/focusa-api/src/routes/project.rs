@@ -6,6 +6,7 @@
 use crate::routes::predictions::read_predictions;
 use crate::scope::ScopeContext;
 use crate::server::AppState;
+use focusa_core::scope_safety::classify_project_root;
 use axum::{
     Json, Router,
     extract::{Query, State},
@@ -233,37 +234,7 @@ fn identity_name_matches(
 }
 
 fn unsafe_project_root_reason(value: &str) -> Option<&'static str> {
-    let root = value.trim().trim_end_matches('/');
-    if root.is_empty() {
-        return Some("missing_project_root");
-    }
-    match root {
-        "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt" => {
-            Some("unsafe_broad_project_root")
-        }
-        _ if root
-            .strip_prefix("/home/")
-            .is_some_and(|rest| !rest.contains('/')) =>
-        {
-            Some("unsafe_user_home_project_root")
-        }
-        // Agent runtime paths — never treat as project scope
-        "/root/pi-mono" => Some("agent_runtime_directory"),
-        _ if root.starts_with("/root/pi-") => Some("agent_runtime_directory"),
-        _ if root.starts_with("/opt/node-") => Some("agent_runtime_directory"),
-        _ if root == "/usr/local/bin" => Some("agent_runtime_directory"),
-        _ if root.starts_with("/usr/local/lib/node_modules") => Some("agent_runtime_directory"),
-        // Claude Code, OpenCode, Letta, and other agent runtimes
-        _ if root.contains("/.claude") => Some("agent_runtime_directory"),
-        _ if root.contains("/.opencode") => Some("agent_runtime_directory"),
-        _ if root.contains("/.letta") => Some("agent_runtime_directory"),
-        _ if root.contains("/.pi/") || root.ends_with("/.pi") => Some("agent_runtime_directory"),
-        _ if root.contains("/site-packages/letta") => Some("agent_runtime_directory"),
-        _ if root.contains("/site-packages/open-code") => Some("agent_runtime_directory"),
-        _ if root.contains("/site-packages/pi-coding-agent") => Some("agent_runtime_directory"),
-        _ if root.contains("/site-packages/claude") => Some("agent_runtime_directory"),
-        _ => None,
-    }
+    classify_project_root(value).reason()
 }
 
 fn expand_home(path: &str) -> PathBuf {
