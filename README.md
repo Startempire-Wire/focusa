@@ -71,7 +71,7 @@ For more first-run choices (interactive prompts, ASCII intros), run `focusa onbo
 
 ## Current Snapshot
 
-**Version:** `v0.9.25-dev`
+**Version:** `v0.9.74-dev`
 **Release track:** Focusa Operator Preview + Context Authority hardening
 **Runtime state:** Rust daemon, HTTP API, CLI, TUI, Pi extension, and menubar web/macOS package proof are implemented and live-tested. Context-authority CLI gates now protect risky mutations.
 **Development state:** Focusa is actively evolving. This README describes the current released snapshot, not a finished product.

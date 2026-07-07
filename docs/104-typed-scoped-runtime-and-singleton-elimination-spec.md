@@ -945,6 +945,7 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-api/src/routes/autonomy.rs`
 - `crates/focusa-api/src/routes/awareness.rs`
 - `crates/focusa-api/src/routes/bloatgaurd.rs`
+- `crates/focusa-api/src/routes/bloatgaurd_optical.rs`
 - `crates/focusa-api/src/routes/bounded.rs`
 - `crates/focusa-api/src/routes/call_stack.rs`
 - `crates/focusa-api/src/routes/capabilities.rs`
@@ -953,6 +954,7 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-api/src/routes/commands.rs`
 - `crates/focusa-api/src/routes/constitution.rs`
 - `crates/focusa-api/src/routes/context_cognition.rs`
+- `crates/focusa-api/src/routes/deck.rs`
 - `crates/focusa-api/src/routes/device_pairing.rs`
 - `crates/focusa-api/src/routes/dxux.rs`
 - `crates/focusa-api/src/routes/ecs.rs`
@@ -965,13 +967,16 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-api/src/routes/health.rs`
 - `crates/focusa-api/src/routes/info.rs`
 - `crates/focusa-api/src/routes/instances.rs`
+- `crates/focusa-api/src/routes/llms_txt.rs`
 - `crates/focusa-api/src/routes/memory.rs`
 - `crates/focusa-api/src/routes/metacognition.rs`
+- `crates/focusa-api/src/routes/mcp.rs`
 - `crates/focusa-api/src/routes/ontology.rs`
 - `crates/focusa-api/src/routes/pairing_store.rs`
 - `crates/focusa-api/src/routes/device_pairing.rs`
 - `crates/focusa-api/src/routes/permissions.rs`
 - `crates/focusa-api/src/routes/predictions.rs`
+- `crates/focusa-api/src/routes/preload.rs`
 - `crates/focusa-api/src/routes/project.rs`
 - `crates/focusa-api/src/routes/proposals.rs`
 - `crates/focusa-api/src/routes/proxy.rs`
@@ -995,6 +1000,7 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-api/src/routes/traverse.rs`
 - `crates/focusa-api/src/routes/trust.rs`
 - `crates/focusa-api/src/routes/turn.rs`
+- `crates/focusa-api/src/routes/turn_recent.rs`
 - `crates/focusa-api/src/routes/utility.rs`
 - `crates/focusa-api/src/routes/uxp.rs`
 - `crates/focusa-api/src/routes/visual_workflow.rs`
@@ -1008,6 +1014,8 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-cli/src/api_client.rs`
 - `crates/focusa-cli/src/main.rs`
 - `crates/focusa-cli/src/commands/action.rs`
+- `crates/focusa-cli/src/commands/about.rs`
+- `crates/focusa-cli/src/commands/audit.rs`
 - `crates/focusa-cli/src/commands/autonomy.rs`
 - `crates/focusa-cli/src/commands/awareness.rs`
 - `crates/focusa-cli/src/commands/binary.rs`
@@ -1022,6 +1030,7 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-cli/src/commands/context_cognition.rs`
 - `crates/focusa-cli/src/commands/continue_work.rs`
 - `crates/focusa-cli/src/commands/contribute.rs`
+- `crates/focusa-cli/src/commands/deck.rs`
 - `crates/focusa-cli/src/commands/daemon.rs`
 - `crates/focusa-cli/src/commands/debug.rs`
 - `crates/focusa-cli/src/commands/device_pairing.rs`
@@ -1033,6 +1042,9 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-cli/src/commands/focus.rs`
 - `crates/focusa-cli/src/commands/gate.rs`
 - `crates/focusa-cli/src/commands/hlt.rs`
+- `crates/focusa-cli/src/commands/init.rs`
+- `crates/focusa-cli/src/commands/install.rs`
+- `crates/focusa-cli/src/commands/intro.rs`
 - `crates/focusa-cli/src/commands/license.rs`
 - `crates/focusa-cli/src/commands/lineage.rs`
 - `crates/focusa-cli/src/commands/memory.rs`
@@ -1047,8 +1059,10 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-cli/src/commands/pairing_transport.rs`
 - `crates/focusa-cli/src/commands/pairing_wizard.rs`
 - `crates/focusa-cli/src/commands/predict.rs`
+- `crates/focusa-cli/src/commands/preload.rs`
 - `crates/focusa-cli/src/commands/project.rs`
 - `crates/focusa-cli/src/commands/proposals.rs`
+- `crates/focusa-cli/src/commands/recover.rs`
 - `crates/focusa-cli/src/commands/reflection.rs`
 - `crates/focusa-cli/src/commands/release.rs`
 - `crates/focusa-cli/src/commands/resource.rs`
@@ -1063,7 +1077,12 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-cli/src/commands/trajectory.rs`
 - `crates/focusa-cli/src/commands/traverse.rs`
 - `crates/focusa-cli/src/commands/turns.rs`
+- `crates/focusa-cli/src/commands/tui.rs`
 - `crates/focusa-cli/src/commands/utility.rs`
+- `crates/focusa-cli/src/commands/uninstall.rs`
+- `crates/focusa-cli/src/commands/upgrade.rs`
+- `crates/focusa-cli/src/commands/walkthrough.rs`
+- `crates/focusa-cli/src/commands/workflow.rs`
 - `crates/focusa-cli/src/commands/workpoint.rs`
 - `crates/focusa-cli/src/commands/wrap.rs`
 - `crates/focusa-cli/src/commands/mod.rs`

@@ -14,7 +14,7 @@ Push CI: GitHub Actions run `28785403296` (success).
 | `focusa-cli` walkthrough tests | PASS (5) | `cargo test --release -p focusa-cli -- commands::walkthrough` |
 | Static aggregate (release deploy automation, BD sync ownership, self-heal, Pi nag, TUI usage, remote marker) | PASS | `bash tests/release_deploy_automation_static_test.sh` |
 | Mission Deck headless proof | PASS | `target/release/focusa-tui --headless-self-test` |
-| Daemon health | PASS | `/v1/health` reports `{ok:true,status:"ok",uptime_ms:...,version:"0.9.64-dev"}` |
+| Daemon health | PASS | `/v1/health` reports `{ok:true,status:"ok",uptime_ms:...,version:"0.9.74-dev"}` |
 | GitHub CI | PASS | Run `28785403296` success at `9d1bde49` |
 | Spec 117 public docs (postcard, GTM 5-min, public docs sync, newbie QA, public sweep) | current | linked from README docs map |
 | Spec 117 launch polish beads (.24 TUI beautify, .25 startup perf, .26 onboarding QA, .27 public sweep) | closed with proof | evidence docs under `docs/evidence/` |

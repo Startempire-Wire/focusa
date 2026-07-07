@@ -129,6 +129,40 @@ async fn recent(
 
     let limit = budgeted_requested_limit(Some(params.limit), default_limit(), hard_limit());
     let query_limit = limit + 1;
+    // Bounded window for the event_type LIKE subquery. 50k rows is well under the
+    // 5s API timeout on busy hosts while still returning recent activity. The
+    // outer LIMIT-N keeps the wire response small.
+    let recent_window: usize = 50_000;
+
+    // Validate event_type shape up front to avoid a payload_json LIKE full-table scan
+    // when the caller passes garbage (e.g. focusa audit --event-type DefinitelyNotARealType).
+    // The events.payload_json column has no index, so a non-matching LIKE scans the entire
+    // events table (5+ GB on busy hosts) and trips the 5s API_TIMEOUT. Reject malformed or
+    // unknown-shaped identifiers with a 400 instead of silently timing out.
+    if let Some(event_type) = params.event_type.as_deref() {
+        if event_type.is_empty()
+            || event_type.len() > 64
+            || !event_type
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '_')
+        {
+            let mut payload = events_failure(
+                format!("invalid event_type filter: {event_type:?}"),
+                "validation_rejected",
+                "event_type must match [A-Za-z0-9_]{1,64}",
+                "Pass a known event type (e.g. MemoryDecayTick, TurnStarted) or omit the filter.",
+                "Likely a CLI typo, a removed event class, or an injection probe.",
+                vec!["focusa audit", "focusa traverse"],
+            );
+            if let Some(obj) = payload.as_object_mut() {
+                obj.insert("events".to_string(), json!([]));
+                obj.insert("total".to_string(), json!(0));
+                obj.insert("returned".to_string(), json!(0));
+            }
+            return Json(payload);
+        }
+    }
+
     let mut sql = "SELECT ts, payload_json FROM events".to_string();
     let mut clauses = Vec::new();
     if params.cursor.is_some() {
@@ -137,7 +171,14 @@ async fn recent(
     if params.since.is_some() {
         clauses.push("ts >= ?".to_string());
     }
+    // event_type filter is a LIKE on the JSON blob (no index on payload_json).
+    // Wrap it in a subquery bounded by the most recent rows so the LIKE scan
+    // is O(recent_window) instead of O(all events). Without this bound, a
+    // non-matching event_type on a 5+ GB events table trips the 5s API_TIMEOUT.
     if params.event_type.is_some() {
+        sql = format!(
+            "SELECT ts, payload_json FROM (SELECT ts, payload_json FROM events ORDER BY ts DESC LIMIT {recent_window})"
+        );
         clauses.push("payload_json LIKE ?".to_string());
     }
     if !clauses.is_empty() {
