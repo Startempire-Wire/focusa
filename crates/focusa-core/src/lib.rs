@@ -57,3 +57,4 @@ pub mod types;
 pub mod utility_card;
 pub mod uxp;
 pub mod workers;
+pub mod work_item;
