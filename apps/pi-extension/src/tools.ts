@@ -7113,7 +7113,10 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       const { surface = "reload" } = (params as { surface?: string }) || {};
       const route = surface === "reload" ? "/v1/awareness/packet" : `/v1/awareness/packet/${encodeURIComponent(surface)}`;
       const result = await focusaFetch(route, { method: "GET" });
-      const body = result.value as any;
+      // Guard against null/empty result from focusaFetch — previously crashed with
+      // "Cannot read properties of null (reading 'value')" when the daemon is
+      // unreachable or returns a falsy result envelope.
+      const body = (result && (result as any).value) as any;
       const packet = body || {};
       const visibleCount = Array.isArray(packet.visibleLines) ? packet.visibleLines.length : 0;
       const textLines = [`awareness_packet | surface=${packet.surface || surface} | mode=${packet.mode || "?"} | visible=${visibleCount}`];
