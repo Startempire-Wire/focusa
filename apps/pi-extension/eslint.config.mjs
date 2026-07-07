@@ -24,7 +24,20 @@ export default [
     rules: {
       // Permissive on pre-existing style; tighten over time.
       "no-unused-vars": "off",
-      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+      // Root-cause fix: `vars: "local"` makes @typescript-eslint/no-unused-vars
+      // skip EXPORTED variables (which are public API for cross-file consumers).
+      // Without this, every `export function foo()` in state.ts was flagged as
+      // "defined but never used" because the rule's default `vars: "all"`
+      // checks exports too. State.ts has 120+ exports consumed by other modules.
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          vars: "never",
+          args: "after-used",
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+        },
+      ],
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-non-null-assertion": "off",
       "no-empty": ["error", { allowEmptyCatch: true }],
