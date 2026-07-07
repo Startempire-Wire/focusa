@@ -25,7 +25,6 @@ pub struct InitArgs {
 
     /// Skip writing the marker file (dry-run). Useful for CI guards.
     #[arg(long)]
-    #[arg(long)]
     pub dry_run: bool,
 
     /// Acknowledge that --project-root (or cwd) is a broad unsafe path
