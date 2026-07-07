@@ -94,7 +94,7 @@ fn render_grid(app: &App, frame: &mut ratatui::Frame, area: Rect) -> Vec<Rect> {
 
     let left = render_mission_column(app, frame, cols[0]);
     let right = render_status_column(app, frame, cols[1]);
-    left.into_iter().chain(right.into_iter()).collect()
+    left.into_iter().chain(right).collect()
 }
 
 fn render_stack(app: &App, frame: &mut ratatui::Frame, area: Rect) {
@@ -131,7 +131,7 @@ fn render_mission_column(app: &App, frame: &mut ratatui::Frame, area: Rect) -> V
         Line::from(format!(
             "Intent       {}",
             short(
-                &app.state
+                app.state
                     .focus_state
                     .as_ref()
                     .map(|f| f.intent.as_str())
@@ -140,13 +140,13 @@ fn render_mission_column(app: &App, frame: &mut ratatui::Frame, area: Rect) -> V
             )
         )),
         Line::from(format!("Current      {}", short(&current_state(app), 56))),
-        Line::from(format!("Next action  {}", short(&next.label, 56))),
+        Line::from(format!("Next action  {}", short(next.label, 56))),
         Line::from(format!(
             "Authority    {} · beginner state {}",
             next.authority_posture,
             mode.id()
         )),
-        Line::from(format!("Why          {}", short(&next.why, 64))),
+        Line::from(format!("Why          {}", short(next.why, 64))),
         Line::from(""),
         Line::from(Span::styled(COMPACT_KEYS_HINT, theme::label())),
     ];
