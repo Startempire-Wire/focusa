@@ -52,12 +52,9 @@ async fn run_pairing(cmd: PairingCmd) -> anyhow::Result<()> {
 }
 
 #[derive(Parser)]
-#[command(name = "focusa", about = "Focusa cognitive governance CLI")]
+#[command(name = "focusa", version = "0.9.71-dev", about = "Focusa cognitive governance CLI")]
 #[command(propagate_version = true)]
 struct Cli {
-    /// Print version.
-    #[arg(short = 'v', long = "version", global = true)]
-    version: bool,
     /// Output in JSON format.
     #[arg(long, global = true)]
     json: bool,
@@ -440,6 +437,12 @@ fn classify_cli_error(message: &str) -> (&'static str, &'static str, &'static st
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Handle -v (lowercase) as version before clap parsing.
+    // Clap 4 auto-assigns -V for version but not -v.
+    if std::env::args().any(|a| a == "-v") {
+        println!("focusa {}", env!("CARGO_PKG_VERSION"));
+        return Ok(());
+    }
     // Render the Focusa wordmark before clap parses --help. eprintln so it
     // never pollutes JSON output.
     if std::env::args().any(|a| a == "--help" || a == "-h") {
