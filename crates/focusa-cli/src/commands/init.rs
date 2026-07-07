@@ -25,7 +25,15 @@ pub struct InitArgs {
 
     /// Skip writing the marker file (dry-run). Useful for CI guards.
     #[arg(long)]
+    #[arg(long)]
     pub dry_run: bool,
+
+    /// Acknowledge that --project-root (or cwd) is a broad unsafe path
+    /// (e.g. /, /root, /home). Required to write a marker at such a path.
+    /// Without this flag, init refuses and prints a remediation pointing at
+    /// `focusa project identity` + the canonical project_root path.
+    #[arg(long)]
+    pub allow_unsafe_root: bool,
 }
 
 pub async fn run(args: InitArgs, _json: bool) -> Result<()> {
@@ -34,6 +42,26 @@ pub async fn run(args: InitArgs, _json: bool) -> Result<()> {
         Some(value) if !value.trim().is_empty() => PathBuf::from(value),
         _ => cwd,
     };
+
+    // SAFETY: reject broad unsafe roots unless --allow-unsafe-root is set.
+    // Without this, `focusa init --quickstart` happily writes a marker to
+    // `/root` (or any /home/<user>) which is exactly the case the auto-
+    // bootstrap nag warns against. This was an MVP-launch blocker.
+    if is_unsafe_root(&project_root) && !args.allow_unsafe_root {
+        anyhow::bail!(
+            "refusing to init at broad unsafe root: {}\n\
+             \n\
+             broad unsafe roots: /, /root, /home, /tmp, /var/tmp\n\
+             \n\
+             remediation:\n  \
+               1. cd into a specific project directory (e.g. ~/Projects/foo)\n  \
+               2. or pass --project-root <path> explicitly\n  \
+               3. or pass --allow-unsafe-root to override (NOT recommended)\n\
+             \n\
+             then verify with: focusa project identity --project-root <path>",
+            project_root.display(),
+        );
+    }
 
     // ensure_dir_all so a fresh `--project-root /tmp/foo/bar` works on a
     // directory that has not been created yet (gap #4 from the dry-run).
@@ -103,6 +131,26 @@ fn project_slug(project_root: &Path) -> String {
         .filter(|part| !part.is_empty())
         .collect::<Vec<_>>()
         .join("-")
+}
+
+/// Returns true if `path` is a broad unsafe root that should not host a
+/// project marker. These are directories that contain user homes or are
+/// shared mutable roots; a project marker here is meaningless and pollutes
+/// downstream scope (state.db, beads, workpoints, trajectory).
+fn is_unsafe_root(path: &Path) -> bool {
+    if !path.exists() {
+        // Non-existent paths are allowed (init can create them). The
+        // rejection is for paths that exist and are broad roots.
+        return false;
+    }
+    // Canonicalize to handle trailing-slash, symlink, "." components.
+    let canonical = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+    let raw = canonical.to_string_lossy();
+    let trimmed = raw.trim_end_matches('/');
+    if trimmed.is_empty() {
+        return true; // "/" itself
+    }
+    matches!(trimmed, "/" | "/root" | "/home" | "/tmp" | "/var/tmp" | "/etc" | "/usr" | "/opt" | "/srv")
 }
 
 fn title_from_slug(slug: &str) -> String {
