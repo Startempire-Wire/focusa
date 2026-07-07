@@ -132,7 +132,7 @@ export async function catalogueFromMessages(messages: any[]): Promise<number> {
   }
 
   // §29: Try LLM extraction first (MiniMax M2.7 via Focusa) — per window
-  let extracted: { type: string; text: string }[] = [];
+  const extracted: { type: string; text: string }[] = [];
   if (S.focusaAvailable) {
     for (const window of windows) {
       try {

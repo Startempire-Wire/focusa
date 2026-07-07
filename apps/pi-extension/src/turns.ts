@@ -247,7 +247,7 @@ function isNonTaskStatusLikeText(text: string): boolean {
   return isNonTaskStatusLikeTextLocal(text);
 }
 
-let traceBatch: any[] = [];
+const traceBatch: any[] = [];
 
 function vitalPromptSurfaceEnabled(surface: string): boolean {
   const raw = String(S.cfg?.vitalInfoPromptSurfaces || "project_root,project_verify,workpoint,trajectory");

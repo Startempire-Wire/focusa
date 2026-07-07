@@ -161,16 +161,27 @@ fn sqlite_crdt_import_is_scoped_and_idempotent() {
 
     let mut log = CrdtLog::new();
     let mut in_scope = test_event("crdt-in-scope");
-    in_scope.correlation_id = Some("project_root=/tmp/focusa-portable-fixture/project|continuity_id=main".into());
+    in_scope.correlation_id =
+        Some("project_root=/tmp/focusa-portable-fixture/project|continuity_id=main".into());
     in_scope.machine_id = Some("machine-a".into());
     let event = log.add_local_event(in_scope, "machine-a");
 
     let imported = p
-        .import_crdt_events_same_root("peer-a", "/tmp/focusa-portable-fixture/project", "main", &[event.clone()])
+        .import_crdt_events_same_root(
+            "peer-a",
+            "/tmp/focusa-portable-fixture/project",
+            "main",
+            &[event.clone()],
+        )
         .unwrap();
     assert_eq!(imported, 1);
     let imported_again = p
-        .import_crdt_events_same_root("peer-a", "/tmp/focusa-portable-fixture/project", "main", &[event.clone()])
+        .import_crdt_events_same_root(
+            "peer-a",
+            "/tmp/focusa-portable-fixture/project",
+            "main",
+            &[event.clone()],
+        )
         .unwrap();
     assert_eq!(imported_again, 0);
     let scoped = p
@@ -239,10 +250,12 @@ fn sqlite_crdt_same_root_two_daemon_reconciliation_converges() {
     let mut log_a = CrdtLog::new();
     let mut log_b = CrdtLog::new();
     let mut event_a = test_event("daemon-a-turn");
-    event_a.correlation_id = Some("project_root=/tmp/focusa-portable-fixture/project|continuity_id=main".into());
+    event_a.correlation_id =
+        Some("project_root=/tmp/focusa-portable-fixture/project|continuity_id=main".into());
     event_a.machine_id = Some("daemon-a".into());
     let mut event_b = test_event("daemon-b-turn");
-    event_b.correlation_id = Some("project_root=/tmp/focusa-portable-fixture/project|continuity_id=main".into());
+    event_b.correlation_id =
+        Some("project_root=/tmp/focusa-portable-fixture/project|continuity_id=main".into());
     event_b.machine_id = Some("daemon-b".into());
 
     let crdt_a = log_a.add_local_event(event_a, "daemon-a");
@@ -257,13 +270,23 @@ fn sqlite_crdt_same_root_two_daemon_reconciliation_converges() {
         .crdt_events_for_scope("/tmp/focusa-portable-fixture/project", "main", 100)
         .unwrap();
     assert_eq!(
-        a.import_crdt_events_same_root("daemon-b", "/tmp/focusa-portable-fixture/project", "main", &b_events)
-            .unwrap(),
+        a.import_crdt_events_same_root(
+            "daemon-b",
+            "/tmp/focusa-portable-fixture/project",
+            "main",
+            &b_events
+        )
+        .unwrap(),
         1
     );
     assert_eq!(
-        b.import_crdt_events_same_root("daemon-a", "/tmp/focusa-portable-fixture/project", "main", &a_events)
-            .unwrap(),
+        b.import_crdt_events_same_root(
+            "daemon-a",
+            "/tmp/focusa-portable-fixture/project",
+            "main",
+            &a_events
+        )
+        .unwrap(),
         1
     );
 

@@ -88,13 +88,18 @@ fn safe_project_root(project_root: &Path) -> bool {
         && trimmed != "/opt"
 }
 
-
 fn slug_from_remote(remote: &str) -> String {
     let trimmed = remote.trim().trim_end_matches('/').trim_end_matches(".git");
     let tail = trimmed.rsplit('/').next().unwrap_or(trimmed);
     let tail = tail.rsplit(':').next().unwrap_or(tail);
     tail.chars()
-        .map(|ch| if ch.is_ascii_alphanumeric() { ch.to_ascii_lowercase() } else { '-' })
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() {
+                ch.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
         .collect::<String>()
         .split('-')
         .filter(|part| !part.is_empty())
@@ -130,8 +135,13 @@ fn detect_workspace_kind(project_root: &Path) -> &'static str {
 
 fn ensure_project_marker(project_root: &Path, remote: &str) -> anyhow::Result<Value> {
     if !project_root.exists() {
-        std::fs::create_dir_all(project_root)
-            .map_err(|e| anyhow::anyhow!("create_dir_all failed for {}: {}", project_root.display(), e))?;
+        std::fs::create_dir_all(project_root).map_err(|e| {
+            anyhow::anyhow!(
+                "create_dir_all failed for {}: {}",
+                project_root.display(),
+                e
+            )
+        })?;
     }
     let marker_path = project_root.join(".focusa-project.json");
     if marker_path.exists() {
@@ -228,10 +238,7 @@ fn print_human(response: &Value) {
         "Agent mode: {}",
         response["agent"].as_str().unwrap_or("manual")
     );
-    if let Some(marker_status) = response
-        .pointer("/marker/status")
-        .and_then(Value::as_str)
-    {
+    if let Some(marker_status) = response.pointer("/marker/status").and_then(Value::as_str) {
         println!("Project marker: {marker_status}");
     }
     println!(
@@ -277,11 +284,22 @@ fn print_human(response: &Value) {
 }
 
 pub async fn run(args: OnboardArgs, json_mode: bool) -> anyhow::Result<()> {
-    print!("{}", crate::commands::intro::render_onboard_banner(&args.project_root.clone().unwrap_or_else(|| std::env::current_dir().map(|d| d.display().to_string()).unwrap_or_else(|_| ".".into())), "project (interactive)"));
+    print!(
+        "{}",
+        crate::commands::intro::render_onboard_banner(
+            &args
+                .project_root
+                .clone()
+                .unwrap_or_else(|| std::env::current_dir()
+                    .map(|d| d.display().to_string())
+                    .unwrap_or_else(|_| ".".into())),
+            "project (interactive)"
+        )
+    );
     let intent = crate::commands::intro::detect_prompt_intent();
     let scope_idx = crate::commands::intro::pick_scope_intent(intent, |choices| {
         // Tiny interactive picker: print arrows + read number (1-2) from stdin.
-        use std::io::{Write, BufRead};
+        use std::io::{BufRead, Write};
         for (idx, choice) in choices.iter().enumerate() {
             println!("  {}. {}", idx + 1, choice);
         }
@@ -290,7 +308,11 @@ pub async fn run(args: OnboardArgs, json_mode: bool) -> anyhow::Result<()> {
         let mut input = String::new();
         std::io::stdin().lock().read_line(&mut input).unwrap_or(0);
         let n = input.trim().parse::<usize>().unwrap_or(1);
-        if n == 0 || n > choices.len() { 0 } else { n - 1 }
+        if n == 0 || n > choices.len() {
+            0
+        } else {
+            n - 1
+        }
     });
     let _ = scope_idx; // current arg-based dispatch is the source of truth.
     let project_root = detect_project_root(args.project_root)?;

@@ -65,7 +65,8 @@ pub async fn run(json_output: bool, args: RecoverArgs) -> anyhow::Result<()> {
         }
     }
 
-    let should_probe_resume = daemon_running_before || (!args.dry_run && recovery_errors.is_empty());
+    let should_probe_resume =
+        daemon_running_before || (!args.dry_run && recovery_errors.is_empty());
     let workpoint_resume = if should_probe_resume {
         let resume_client = ApiClient::with_timeout_secs(8);
         match resume_client
@@ -142,7 +143,10 @@ pub async fn run(json_output: bool, args: RecoverArgs) -> anyhow::Result<()> {
 
 fn print_human(envelope: &Value) {
     println!("focusa recover");
-    println!("  status: {}", envelope["status"].as_str().unwrap_or("unknown"));
+    println!(
+        "  status: {}",
+        envelope["status"].as_str().unwrap_or("unknown")
+    );
     println!(
         "  crashed_state: {}",
         envelope["crashed_state"].as_str().unwrap_or("unknown")

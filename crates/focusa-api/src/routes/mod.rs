@@ -4,7 +4,6 @@ pub mod autonomy;
 pub mod awareness;
 pub mod bloatgaurd;
 pub mod bloatgaurd_optical;
-pub mod turn_recent;
 pub mod bounded;
 pub mod call_stack;
 pub mod capabilities;
@@ -22,6 +21,7 @@ pub mod pairing_store;
 pub mod sync;
 pub mod sync_receive;
 pub mod sync_transfer;
+pub mod turn_recent;
 // pub mod events; // deprecated JSONL event tailing
 pub mod agent_reminder;
 pub mod events_sqlite;

@@ -82,7 +82,9 @@ pub async fn run(args: PreloadArgs, _json_mode: bool) -> Result<()> {
 
 async fn curl_get(base: &str, path: &str) -> Result<()> {
     let url = format!("{}{}", base.trim_end_matches('/'), path);
-    let out = Command::new("curl").args(["-fsS", "-m", "5", &url]).output()?;
+    let out = Command::new("curl")
+        .args(["-fsS", "-m", "5", &url])
+        .output()?;
     let stdout = String::from_utf8_lossy(&out.stdout);
     let trimmed = stdout.trim();
     if trimmed.is_empty() {

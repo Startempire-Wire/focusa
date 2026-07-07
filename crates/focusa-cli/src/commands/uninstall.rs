@@ -187,15 +187,13 @@ fn plan_steps(
     license_path: &Path,
     args: &UninstallArgs,
 ) -> Vec<UninstallStep> {
-    let mut steps = vec![
-        UninstallStep {
-            name: "stop_daemon".to_string(),
-            kind: UninstallStepKind::StopDaemon,
-            target_path: Some("http://127.0.0.1:8787/v1/daemon/stop".to_string()),
-            status: UninstallStepStatus::Planned,
-            detail: None,
-        },
-    ];
+    let mut steps = vec![UninstallStep {
+        name: "stop_daemon".to_string(),
+        kind: UninstallStepKind::StopDaemon,
+        target_path: Some("http://127.0.0.1:8787/v1/daemon/stop".to_string()),
+        status: UninstallStepStatus::Planned,
+        detail: None,
+    }];
 
     let service_step = UninstallStep {
         name: "remove_service".to_string(),
@@ -282,7 +280,11 @@ fn plan_steps(
     steps
 }
 
-fn execute_step(step: &mut UninstallStep, _home: &Path, _args: &UninstallArgs) -> Result<StepOutcome> {
+fn execute_step(
+    step: &mut UninstallStep,
+    _home: &Path,
+    _args: &UninstallArgs,
+) -> Result<StepOutcome> {
     use UninstallStepKind::*;
     match step.kind {
         StopDaemon => {
@@ -303,8 +305,7 @@ fn execute_step(step: &mut UninstallStep, _home: &Path, _args: &UninstallArgs) -
             if let Some(p) = &step.target_path {
                 let path = std::path::PathBuf::from(p);
                 if path.is_symlink() || path.exists() {
-                    std::fs::remove_file(&path)
-                        .with_context(|| format!("remove symlink {p}"))?;
+                    std::fs::remove_file(&path).with_context(|| format!("remove symlink {p}"))?;
                 } else {
                     step.detail = Some("not present (idempotent skip)".to_string());
                     return Ok(StepOutcome::Skipped);
@@ -316,8 +317,7 @@ fn execute_step(step: &mut UninstallStep, _home: &Path, _args: &UninstallArgs) -
             if let Some(p) = &step.target_path {
                 let path = std::path::PathBuf::from(p);
                 if path.exists() {
-                    std::fs::remove_dir_all(&path)
-                        .with_context(|| format!("remove {p}"))?;
+                    std::fs::remove_dir_all(&path).with_context(|| format!("remove {p}"))?;
                 } else {
                     step.detail = Some("not present (idempotent skip)".to_string());
                     return Ok(StepOutcome::Skipped);
@@ -329,8 +329,7 @@ fn execute_step(step: &mut UninstallStep, _home: &Path, _args: &UninstallArgs) -
             if let Some(p) = &step.target_path {
                 let path = std::path::PathBuf::from(p);
                 if path.exists() {
-                    std::fs::remove_file(&path)
-                        .with_context(|| format!("remove license {p}"))?;
+                    std::fs::remove_file(&path).with_context(|| format!("remove license {p}"))?;
                 } else {
                     step.detail = Some("not present (idempotent skip)".to_string());
                     return Ok(StepOutcome::Skipped);
@@ -345,13 +344,11 @@ fn execute_step(step: &mut UninstallStep, _home: &Path, _args: &UninstallArgs) -
                 let expanded = p.replace("$HOME", &std::env::var("HOME").unwrap_or_default());
                 let path = std::path::PathBuf::from(&expanded);
                 if path.exists() {
-                    let content = std::fs::read_to_string(&path)
-                        .with_context(|| format!("read {p}"))?;
+                    let content =
+                        std::fs::read_to_string(&path).with_context(|| format!("read {p}"))?;
                     let new_content: String = content
                         .lines()
-                        .filter(|line| {
-                            !(line.contains(".local/bin") && line.contains("PATH"))
-                        })
+                        .filter(|line| !(line.contains(".local/bin") && line.contains("PATH")))
                         .collect::<Vec<_>>()
                         .join("\n");
                     if new_content != content {
@@ -374,8 +371,7 @@ fn execute_step(step: &mut UninstallStep, _home: &Path, _args: &UninstallArgs) -
                 let expanded = p.replace("~", &std::env::var("HOME").unwrap_or_default());
                 let path = std::path::PathBuf::from(&expanded);
                 if path.exists() {
-                    std::fs::remove_dir_all(&path)
-                        .with_context(|| format!("purge {p}"))?;
+                    std::fs::remove_dir_all(&path).with_context(|| format!("purge {p}"))?;
                 } else {
                     step.detail = Some("not present (idempotent skip)".to_string());
                     return Ok(StepOutcome::Skipped);
@@ -530,7 +526,10 @@ mod tests {
             std::path::Path::new("/tmp/.config/focusa/license.json"),
             &args,
         );
-        let step = steps.iter().find(|s| s.name == "remove_install_root").unwrap();
+        let step = steps
+            .iter()
+            .find(|s| s.name == "remove_install_root")
+            .unwrap();
         assert!(matches!(step.status, UninstallStepStatus::Skipped));
     }
 
@@ -555,7 +554,11 @@ mod tests {
             &args,
         );
         // No rc revert steps
-        assert!(!steps.iter().any(|s| matches!(s.kind, UninstallStepKind::RevertPath)));
+        assert!(
+            !steps
+                .iter()
+                .any(|s| matches!(s.kind, UninstallStepKind::RevertPath))
+        );
     }
 
     #[test]
@@ -578,7 +581,11 @@ mod tests {
             std::path::Path::new("/tmp/.config/focusa/license.json"),
             &args,
         );
-        assert!(steps.iter().any(|s| matches!(s.kind, UninstallStepKind::PurgeAgentSkills)));
+        assert!(
+            steps
+                .iter()
+                .any(|s| matches!(s.kind, UninstallStepKind::PurgeAgentSkills))
+        );
     }
 
     #[test]

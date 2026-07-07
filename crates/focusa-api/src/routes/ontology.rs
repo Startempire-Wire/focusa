@@ -1719,8 +1719,12 @@ fn ontology_read_index_cache_key(
     frame_id: Option<&str>,
     scope: Option<&ScopeContext>,
 ) -> String {
-    let scope_root = scope.and_then(|s| s.project_root.as_deref()).unwrap_or_default();
-    let scope_cont = scope.and_then(|s| s.continuity_id.as_deref()).unwrap_or_default();
+    let scope_root = scope
+        .and_then(|s| s.project_root.as_deref())
+        .unwrap_or_default();
+    let scope_cont = scope
+        .and_then(|s| s.continuity_id.as_deref())
+        .unwrap_or_default();
     format!(
         "scope_root={}\nscope_cont={}\nversion={}\nframe_id={}",
         scope_root,

@@ -98,7 +98,6 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     );
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -121,7 +120,11 @@ mod tests {
     fn intro_lines_include_logo_tagline_and_keypress_hint() {
         let lines = intro_lines();
         assert!(lines.iter().any(|l| l == FOCUSA_LOGO));
-        assert!(lines.iter().any(|l| l == FOCUSA_TAGLINE || l.contains("Local-first")));
+        assert!(
+            lines
+                .iter()
+                .any(|l| l == FOCUSA_TAGLINE || l.contains("Local-first"))
+        );
         assert!(
             lines
                 .iter()

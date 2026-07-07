@@ -17,11 +17,16 @@
 //!   - full_payload_policy = "cold_opt_in"
 
 use crate::server::AppState;
-use axum::{Json, Router, extract::State, http::StatusCode, routing::{get, post}};
-use serde_json::{Value, json};
-use std::sync::Arc;
+use axum::{
+    Json, Router,
+    extract::State,
+    http::StatusCode,
+    routing::{get, post},
+};
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
+use serde_json::{Value, json};
+use std::sync::Arc;
 
 pub const BLOATGAURD_OPTICAL_SCHEMA: &str = "focusa.bloatgaurd_optical.v1";
 pub const PROVIDER_POLICY_LEDGER_SCHEMA: &str = "focusa.provider_policy_ledger.v1";
@@ -78,8 +83,14 @@ pub const DEFAULT_FULL_PAYLOAD_POLICY: &str = "cold_opt_in";
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/bloatgaurd/optical/policy", get(optical_policy))
-        .route("/v1/bloatgaurd/optical/ledger", get(list_ledger).post(upsert_ledger_route))
-        .route("/v1/bloatgaurd/optical/ledger/{provider}", get(get_one_ledger))
+        .route(
+            "/v1/bloatgaurd/optical/ledger",
+            get(list_ledger).post(upsert_ledger_route),
+        )
+        .route(
+            "/v1/bloatgaurd/optical/ledger/{provider}",
+            get(get_one_ledger),
+        )
         .route("/v1/bloatgaurd/optical/probe", get(compatibility_probe))
         .route("/v1/bloatgaurd/optical/imaged-kinds", get(imaged_kinds))
         .route("/v1/bloatgaurd/optical/never-imaged", get(never_imaged))
@@ -601,7 +612,9 @@ fn ledger_db_path(data_dir: &str) -> std::path::PathBuf {
     if let Some(rest) = data_dir.strip_prefix("~/")
         && let Ok(home) = std::env::var("HOME")
     {
-        return std::path::PathBuf::from(home).join(rest).join("focusa.sqlite");
+        return std::path::PathBuf::from(home)
+            .join(rest)
+            .join("focusa.sqlite");
     }
     std::path::PathBuf::from(data_dir).join("focusa.sqlite")
 }
@@ -636,7 +649,8 @@ pub fn effective_status(row_status: &str, expires_at: &str, now: &str) -> String
 }
 
 fn upsert_ledger(conn: &Connection, entry: &ProviderPolicyLedger) -> rusqlite::Result<()> {
-    let refs_json = serde_json::to_string(&entry.official_policy_refs).unwrap_or_else(|_| "[]".to_string());
+    let refs_json =
+        serde_json::to_string(&entry.official_policy_refs).unwrap_or_else(|_| "[]".to_string());
     let now = chrono_now();
     conn.execute(
         "INSERT INTO provider_policy_ledger (
@@ -740,7 +754,11 @@ fn format_unix_rfc3339(secs: u64) -> String {
     let mut year: i64 = 1970;
     let mut remaining = days as i64;
     loop {
-        let y_days = if (year % 4 == 0 && year % 100 != 0) || year % 400 == 0 { 366 } else { 365 };
+        let y_days = if (year % 4 == 0 && year % 100 != 0) || year % 400 == 0 {
+            366
+        } else {
+            365
+        };
         if remaining < y_days {
             break;
         }
@@ -748,7 +766,20 @@ fn format_unix_rfc3339(secs: u64) -> String {
         year += 1;
     }
     let leap = (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
-    let month_days = [31, if leap { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let month_days = [
+        31,
+        if leap { 29 } else { 28 },
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
+    ];
     let mut month: i64 = 1;
     for &md in &month_days {
         if remaining < md {
@@ -762,7 +793,10 @@ fn format_unix_rfc3339(secs: u64) -> String {
     let h = secs_today / 3600;
     let m = (secs_today % 3600) / 60;
     let s = secs_today % 60;
-    format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z", year, month, day, h, m, s)
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
+        year, month, day, h, m, s
+    )
 }
 
 fn entry_to_view_json(e: &ProviderPolicyLedger, now: &str) -> Value {
@@ -785,7 +819,6 @@ fn entry_to_view_json(e: &ProviderPolicyLedger, now: &str) -> Value {
 }
 
 // ─── HTTP handlers ────────────────────────────────────────────────────────
-
 
 async fn list_ledger(State(state): State<Arc<AppState>>) -> Json<Value> {
     let db_path = ledger_db_path(&state.config.data_dir);
@@ -817,7 +850,6 @@ async fn list_ledger(State(state): State<Arc<AppState>>) -> Json<Value> {
         "runtime_rule": "if effective_status != allowed then fallback=text_passthrough",
     }))
 }
-
 
 async fn get_one_ledger(
     State(state): State<Arc<AppState>>,
@@ -860,7 +892,6 @@ async fn get_one_ledger(
         ),
     }
 }
-
 
 async fn upsert_ledger_route(
     State(state): State<Arc<AppState>>,

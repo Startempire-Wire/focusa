@@ -200,10 +200,7 @@ fn run_launchd_user(
 /// Uninstall the Focusa daemon service from the user's session.
 /// Mirror of `run_systemd_user` and `run_launchd_user` for the install path.
 /// Idempotent: re-running on an already-removed service is a no-op success.
-pub fn uninstall_service(
-    manager: ServiceManager,
-    dry_run: bool,
-) -> Result<(bool, Vec<String>)> {
+pub fn uninstall_service(manager: ServiceManager, dry_run: bool) -> Result<(bool, Vec<String>)> {
     let mut notes = Vec::new();
     match manager {
         ServiceManager::SystemdUser => {

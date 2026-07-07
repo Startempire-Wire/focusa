@@ -26,7 +26,8 @@ pub async fn run(args: TuiArgs, _json: bool) -> Result<()> {
         return run_headless_self_test(&api).await;
     }
 
-    let bin = locate_tui_binary().context("focusa-tui binary not found in PATH or target/*/build")?;
+    let bin =
+        locate_tui_binary().context("focusa-tui binary not found in PATH or target/*/build")?;
     let status = Command::new(&bin)
         .env("FOCUSA_API_URL", &api)
         .status()
@@ -89,7 +90,12 @@ async fn run_headless_self_test(api: &str) -> Result<()> {
     }
 
     let health = fetch(&client, api, "/v1/health").await;
-    let identity = fetch(&client, api, "/v1/project/identity?project_root=/home/wirebot/focusa").await;
+    let identity = fetch(
+        &client,
+        api,
+        "/v1/project/identity?project_root=/home/wirebot/focusa",
+    )
+    .await;
     let focus_stack = fetch(&client, api, "/v1/focus/stack").await;
     let workpoint = fetch(&client, api, "/v1/workpoint/resume").await;
     let telemetry = fetch(&client, api, "/v1/telemetry/snapshot").await;

@@ -30,10 +30,7 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     // Layout: header + body only (global views footer handles key hints).
     let header = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3),
-            Constraint::Min(3),
-        ])
+        .constraints([Constraint::Length(3), Constraint::Min(3)])
         .split(area);
 
     render_header(app, frame, header[0]);
@@ -51,19 +48,35 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
 }
 
 fn render_header(app: &App, frame: &mut ratatui::Frame, area: Rect) -> Rect {
-    let state = if app.connected { "connected" } else { "offline" };
+    let state = if app.connected {
+        "connected"
+    } else {
+        "offline"
+    };
     let proj = project_label(app);
     let line = Line::from(vec![
-        Span::styled("MISSION CONTROL", theme::title().add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "MISSION CONTROL",
+            theme::title().add_modifier(Modifier::BOLD),
+        ),
         Span::raw("  "),
         Span::styled(format!("{proj}"), theme::label()),
         Span::raw("  "),
-        Span::styled(state,
-            if app.connected { Style::default().fg(Color::Green) } else { Style::default().fg(Color::Red) },
+        Span::styled(
+            state,
+            if app.connected {
+                Style::default().fg(Color::Green)
+            } else {
+                Style::default().fg(Color::Red)
+            },
         ),
     ]);
     frame.render_widget(
-        Paragraph::new(line).block(Block::default().borders(Borders::BOTTOM).border_style(theme::border())),
+        Paragraph::new(line).block(
+            Block::default()
+                .borders(Borders::BOTTOM)
+                .border_style(theme::border()),
+        ),
         area,
     );
     area
@@ -102,10 +115,7 @@ fn render_stack(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     // Key hints are in the global footer.
     let rows = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Min(8),
-            Constraint::Length(3),
-        ])
+        .constraints([Constraint::Min(8), Constraint::Length(3)])
         .split(area);
 
     render_mission_column(app, frame, rows[0]);
@@ -119,8 +129,14 @@ fn render_beginner_hint_mobile(app: &App, frame: &mut ratatui::Frame, area: Rect
         Line::from(mode.explanation()),
         Line::from(format!("Run: {}", mode.primary_action())),
     ];
-    let block = Block::default().title(" Next ").borders(Borders::ALL).border_style(theme::border());
-    frame.render_widget(Paragraph::new(lines).block(block).wrap(Wrap { trim: true }), area);
+    let block = Block::default()
+        .title(" Next ")
+        .borders(Borders::ALL)
+        .border_style(theme::border());
+    frame.render_widget(
+        Paragraph::new(lines).block(block).wrap(Wrap { trim: true }),
+        area,
+    );
 }
 
 fn render_mission_column(app: &App, frame: &mut ratatui::Frame, area: Rect) -> Vec<Rect> {

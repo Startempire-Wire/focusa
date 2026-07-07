@@ -38,7 +38,8 @@ pub struct UpgradeArgs {
 
 pub async fn run(json_output: bool, args: UpgradeArgs) -> anyhow::Result<()> {
     let current_version = env!("CARGO_PKG_VERSION").to_string();
-    let latest_version = latest_version(args.channel, args.github_repo.as_deref(), args.check_github);
+    let latest_version =
+        latest_version(args.channel, args.github_repo.as_deref(), args.check_github);
     let plan = json!({
         "ok": true,
         "status": if args.dry_run { "dry_run" } else { "planned" },
@@ -107,7 +108,9 @@ fn latest_version(channel: Channel, repo: Option<&str>, check_github: bool) -> V
     if check_github {
         let repo = repo.unwrap_or("Startempire-Wire/focusa");
         if let Ok(output) = Command::new("gh")
-            .args(["release", "view", "--repo", repo, "--json", "tagName", "-q", ".tagName"])
+            .args([
+                "release", "view", "--repo", repo, "--json", "tagName", "-q", ".tagName",
+            ])
             .output()
             && output.status.success()
         {
@@ -130,7 +133,10 @@ fn print_upgrade(envelope: &Value, json_output: bool) -> anyhow::Result<()> {
         println!("{}", serde_json::to_string_pretty(envelope)?);
     } else {
         println!("focusa upgrade");
-        println!("  status: {}", envelope["status"].as_str().unwrap_or("unknown"));
+        println!(
+            "  status: {}",
+            envelope["status"].as_str().unwrap_or("unknown")
+        );
         println!(
             "  current_version: {}",
             envelope["current_version"]

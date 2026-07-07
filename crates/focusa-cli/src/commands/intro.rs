@@ -73,7 +73,12 @@ pub fn render_about_banner(version: &str, owner: Option<&str>, repo: Option<&str
         repo = repo.unwrap_or("Startempire-Wire/focusa"),
     ));
     if let Some(label) = owner {
-        out.push_str(&format!("{dim}owner:{reset} {label}\n", label = label, dim = FOCUSA_DIM, reset = FOCUSA_RESET));
+        out.push_str(&format!(
+            "{dim}owner:{reset} {label}\n",
+            label = label,
+            dim = FOCUSA_DIM,
+            reset = FOCUSA_RESET
+        ));
     }
     out
 }
@@ -81,7 +86,8 @@ pub fn render_about_banner(version: &str, owner: Option<&str>, repo: Option<&str
 pub fn render_onboard_banner(project_root_label: &str, scope_label: &str) -> String {
     let mut out = String::new();
     out.push_str(&render_wordmark());
-    out.push_str(&format!("{primary}Focusa operator preview onboarding{reset}\n",
+    out.push_str(&format!(
+        "{primary}Focusa operator preview onboarding{reset}\n",
         primary = FOCUSA_PRIMARY,
         reset = FOCUSA_RESET,
     ));
@@ -113,10 +119,12 @@ pub fn detect_prompt_intent() -> PromptIntent {
         Some("1") => return PromptIntent::Interactive,
         _ => {}
     }
-    let stdin_tty = matches!(std::env::var("FOCUSA_STDIN_TTY").ok().as_deref(), Some("1"))
-        || atty_stdin();
-    let stdout_tty = matches!(std::env::var("FOCUSA_STDOUT_TTY").ok().as_deref(), Some("1"))
-        || atty_stdout();
+    let stdin_tty =
+        matches!(std::env::var("FOCUSA_STDIN_TTY").ok().as_deref(), Some("1")) || atty_stdin();
+    let stdout_tty = matches!(
+        std::env::var("FOCUSA_STDOUT_TTY").ok().as_deref(),
+        Some("1")
+    ) || atty_stdout();
     if stdin_tty && stdout_tty {
         PromptIntent::Interactive
     } else {

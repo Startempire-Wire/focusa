@@ -205,20 +205,12 @@ impl RegistryError {
 
     pub fn recovery_hint(&self) -> &'static str {
         match self {
-            Self::NotFound | Self::Invalid => {
-                "Purchase or check key at https://wpuiai.com/buy"
-            }
+            Self::NotFound | Self::Invalid => "Purchase or check key at https://wpuiai.com/buy",
             Self::Revoked => "Contact https://wpuiai.com/wp-admin for reissue",
             Self::Expired(_) => "Renew at https://install.focusa.dev/renew",
-            Self::Malformed(_) => {
-                "Verify the key was copied correctly (no spaces or line wraps)"
-            }
-            Self::RateLimited { .. } => {
-                "Wait 60s and retry; --eval mode avoids registry calls"
-            }
-            Self::Unavailable { .. } => {
-                "Check https://install.focusa.dev/status; retry in 5 min"
-            }
+            Self::Malformed(_) => "Verify the key was copied correctly (no spaces or line wraps)",
+            Self::RateLimited { .. } => "Wait 60s and retry; --eval mode avoids registry calls",
+            Self::Unavailable { .. } => "Check https://install.focusa.dev/status; retry in 5 min",
             Self::MalformedResponse(_) => {
                 "File a bug at https://install.focusa.dev/help — registry schema drift"
             }
@@ -311,7 +303,9 @@ pub(crate) async fn registry_validate(registry: &str, key: &str) -> RegistryVali
         },
         Err(e) => RegistryValidateOutcome {
             response: None,
-            error: Some(RegistryError::MalformedResponse(format!("schema mismatch: {e}"))),
+            error: Some(RegistryError::MalformedResponse(format!(
+                "schema mismatch: {e}"
+            ))),
         },
     }
 }
@@ -319,10 +313,7 @@ pub(crate) async fn registry_validate(registry: &str, key: &str) -> RegistryVali
 /// Map a non-success HTTP status to a typed `RegistryError`, reading the
 /// `code` / `message` / `errors` fields of the WP REST envelope.
 fn map_wp_error_status(status: u16, body: &Value) -> RegistryError {
-    let code = body
-        .get("code")
-        .and_then(Value::as_str)
-        .unwrap_or("");
+    let code = body.get("code").and_then(Value::as_str).unwrap_or("");
     let message = body
         .get("message")
         .and_then(Value::as_str)
@@ -742,10 +733,7 @@ pub(crate) fn derive_machine_id() -> String {
     }
     // Fallback: hostname + first non-loopback MAC (best-effort).
     let host = std::env::var("HOSTNAME")
-        .or_else(|_| {
-            std::fs::read_to_string("/etc/hostname")
-                .map(|s| s.trim().to_string())
-        })
+        .or_else(|_| std::fs::read_to_string("/etc/hostname").map(|s| s.trim().to_string()))
         .unwrap_or_else(|_| "unknown".to_string());
     let mac = read_first_mac().unwrap_or_else(|| "nomac".to_string());
     let mut hasher = Sha256::new();
@@ -828,7 +816,9 @@ async fn run_refresh(json_output: bool, args: RefreshArgs) -> anyhow::Result<()>
             if json_output {
                 println!("{}", serde_json::to_string_pretty(&payload)?);
             } else {
-                println!("[refresh] step=refresh_input status=blocked error=\"no license key available\"");
+                println!(
+                    "[refresh] step=refresh_input status=blocked error=\"no license key available\""
+                );
                 println!("[refresh] recovery_hint: pass --raw-key <KEY>");
             }
             std::process::exit(2);
@@ -852,20 +842,41 @@ async fn run_refresh(json_output: bool, args: RefreshArgs) -> anyhow::Result<()>
         .send()
         .await
     {
-        Ok(r) => r.json::<serde_json::Value>().await.unwrap_or(serde_json::Value::Null),
+        Ok(r) => r
+            .json::<serde_json::Value>()
+            .await
+            .unwrap_or(serde_json::Value::Null),
         Err(_) => serde_json::Value::Null,
     };
 
     let valid = body.get("valid").and_then(|v| v.as_bool()).unwrap_or(false);
-    let status = body.get("status").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
-    let tier = body.get("tier").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
-    let commercial_use = body.get("commercial_use").and_then(|v| v.as_bool()).unwrap_or(false);
+    let status = body
+        .get("status")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown")
+        .to_string();
+    let tier = body
+        .get("tier")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown")
+        .to_string();
+    let commercial_use = body
+        .get("commercial_use")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
     let features: Vec<String> = body
         .get("features")
         .and_then(|v| v.as_array())
-        .map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())
+        .map(|a| {
+            a.iter()
+                .filter_map(|x| x.as_str().map(String::from))
+                .collect()
+        })
         .unwrap_or_default();
-    let expires_at = body.get("expires_at").and_then(|v| v.as_str()).map(String::from);
+    let expires_at = body
+        .get("expires_at")
+        .and_then(|v| v.as_str())
+        .map(String::from);
 
     // dev_mode rule (same as devmode-full): downgrade to eval.
     let is_dev_mode_fixture = status == "dev_mode";
@@ -889,7 +900,11 @@ async fn run_refresh(json_output: bool, args: RefreshArgs) -> anyhow::Result<()>
         std::process::exit(2);
     }
 
-    let granted_tier = if is_dev_mode_fixture { "evaluation".to_string() } else { tier.clone() };
+    let granted_tier = if is_dev_mode_fixture {
+        "evaluation".to_string()
+    } else {
+        tier.clone()
+    };
     let granted_features = if is_dev_mode_fixture {
         vec!["daemon".to_string(), "tui".to_string(), "cli".to_string()]
     } else {
@@ -922,7 +937,9 @@ async fn run_refresh(json_output: bool, args: RefreshArgs) -> anyhow::Result<()>
         std::process::exit(2);
     }
 
-    let home = std::env::var_os("HOME").map(PathBuf::from).unwrap_or_else(|| PathBuf::from("/root"));
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("/root"));
     let license_dir = home.join(".config").join("focusa");
     let license_file = license_dir.join("license.json");
     let receipt_file = license_dir.join("license_receipt.json");
@@ -945,9 +962,16 @@ async fn run_refresh(json_output: bool, args: RefreshArgs) -> anyhow::Result<()>
         key_prefix: key_prefix.clone(),
         product: "focusa".to_string(),
         tier: granted_tier.clone(),
-        status: if is_dev_mode_fixture { "active".to_string() } else { status.clone() },
+        status: if is_dev_mode_fixture {
+            "active".to_string()
+        } else {
+            status.clone()
+        },
         commercial_use: granted_commercial,
-        customer_email: prior.as_ref().map(|p| p.customer_email.clone()).unwrap_or_default(),
+        customer_email: prior
+            .as_ref()
+            .map(|p| p.customer_email.clone())
+            .unwrap_or_default(),
         features: granted_features.clone(),
         offline_valid_until: Some(offline_until.clone()),
         expires_at: expires_at.clone(),
@@ -978,7 +1002,10 @@ async fn run_refresh(json_output: bool, args: RefreshArgs) -> anyhow::Result<()>
         "intent": "refresh",
         "note": "Refreshed from registry. Use `focusa license status` to view the current state.",
     });
-    fs::write(&receipt_file, format!("{}\n", serde_json::to_string_pretty(&receipt)?))?;
+    fs::write(
+        &receipt_file,
+        format!("{}\n", serde_json::to_string_pretty(&receipt)?),
+    )?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -1016,7 +1043,9 @@ async fn run_refresh(json_output: bool, args: RefreshArgs) -> anyhow::Result<()>
         println!("  commercial_use:    {granted_commercial}");
         println!("  offline_valid_until: {offline_until}");
         if is_dev_mode_fixture {
-            println!("  note: dev_mode is a TEST FIXTURE; this refresh was downgraded to evaluation.");
+            println!(
+                "  note: dev_mode is a TEST FIXTURE; this refresh was downgraded to evaluation."
+            );
         }
     }
     Ok(())
@@ -1056,15 +1085,21 @@ async fn run_watch(json_output: bool, args: WatchArgs) -> anyhow::Result<()> {
                             "{}:{}:{}:{}",
                             v.get("status").and_then(|x| x.as_str()).unwrap_or(""),
                             v.get("tier").and_then(|x| x.as_str()).unwrap_or(""),
-                            v.get("offline_valid_until").and_then(|x| x.as_str()).unwrap_or(""),
-                            v.get("commercial_use").and_then(|x| x.as_bool()).unwrap_or(false),
+                            v.get("offline_valid_until")
+                                .and_then(|x| x.as_str())
+                                .unwrap_or(""),
+                            v.get("commercial_use")
+                                .and_then(|x| x.as_bool())
+                                .unwrap_or(false),
                         ))
                     })
                     .unwrap_or_default();
                 if !json_output {
                     println!("[watch] poll={polls} signature={sig}");
                 } else if sig != last_signature {
-                    println!("{{\"event\":\"watch_change\",\"poll\":{polls},\"signature\":\"{sig}\"}}");
+                    println!(
+                        "{{\"event\":\"watch_change\",\"poll\":{polls},\"signature\":\"{sig}\"}}"
+                    );
                     last_signature = sig;
                 } else {
                     last_signature = sig;
@@ -1072,7 +1107,10 @@ async fn run_watch(json_output: bool, args: WatchArgs) -> anyhow::Result<()> {
             }
             Err(e) => {
                 if json_output {
-                    println!("{{\"event\":\"watch_error\",\"poll\":{polls},\"error\":\"{}\"}}", e);
+                    println!(
+                        "{{\"event\":\"watch_error\",\"poll\":{polls},\"error\":\"{}\"}}",
+                        e
+                    );
                 } else {
                     println!("[watch] poll={polls} error={e}");
                 }
@@ -1098,7 +1136,7 @@ async fn run_watch(json_output: bool, args: WatchArgs) -> anyhow::Result<()> {
 /// commercial privileges by accident.
 async fn run_devmode_full(json_output: bool, args: DevmodeFullArgs) -> anyhow::Result<()> {
     use chrono::Utc;
-    use focusa_core::license::{LocalLicense, LicenseStatus};
+    use focusa_core::license::{LicenseStatus, LocalLicense};
     use sha2::{Digest, Sha256};
     use std::fs;
     use std::path::PathBuf;
@@ -1159,22 +1197,44 @@ async fn run_devmode_full(json_output: bool, args: DevmodeFullArgs) -> anyhow::R
         }
     };
     let valid = body.get("valid").and_then(|v| v.as_bool()).unwrap_or(false);
-    let status = body.get("status").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
-    let tier = body.get("tier").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
-    let commercial_use = body.get("commercial_use").and_then(|v| v.as_bool()).unwrap_or(false);
+    let status = body
+        .get("status")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown")
+        .to_string();
+    let tier = body
+        .get("tier")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown")
+        .to_string();
+    let commercial_use = body
+        .get("commercial_use")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
     let features: Vec<String> = body
         .get("features")
         .and_then(|v| v.as_array())
-        .map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())
+        .map(|a| {
+            a.iter()
+                .filter_map(|x| x.as_str().map(String::from))
+                .collect()
+        })
         .unwrap_or_default();
-    let expires_at = body.get("expires_at").and_then(|v| v.as_str()).map(String::from);
+    let expires_at = body
+        .get("expires_at")
+        .and_then(|v| v.as_str())
+        .map(String::from);
 
     // 3. Decide commercial vs eval based on registry status. The
     //    operator's rule: dev_mode is for testing only; it never grants
     //    commercial_use.
     let is_dev_mode_fixture = status == "dev_mode";
     let granted_commercial_use = commercial_use && !is_dev_mode_fixture;
-    let granted_tier = if is_dev_mode_fixture { "evaluation".to_string() } else { tier.clone() };
+    let granted_tier = if is_dev_mode_fixture {
+        "evaluation".to_string()
+    } else {
+        tier.clone()
+    };
     let granted_features = if is_dev_mode_fixture {
         vec!["daemon".to_string(), "tui".to_string(), "cli".to_string()]
     } else {
@@ -1202,7 +1262,11 @@ async fn run_devmode_full(json_output: bool, args: DevmodeFullArgs) -> anyhow::R
         key_prefix: key_prefix.clone(),
         product: "focusa".to_string(),
         tier: granted_tier.clone(),
-        status: if is_dev_mode_fixture { "active".to_string() } else { status.clone() },
+        status: if is_dev_mode_fixture {
+            "active".to_string()
+        } else {
+            status.clone()
+        },
         commercial_use: granted_commercial_use,
         customer_email: args.email.clone().unwrap_or_default(),
         features: granted_features.clone(),
@@ -1298,8 +1362,9 @@ async fn run_devmode_full(json_output: bool, args: DevmodeFullArgs) -> anyhow::R
     // doctor`. The daemon reads from the canonical path
     // (`~/.config/focusa/license.json`), which is where we just wrote.
     let canonical_path = focusa_core::license::license_file_path();
-    let status_round_trip =
-        focusa_core::license::load_local_license().ok().map(|s| s.status);
+    let status_round_trip = focusa_core::license::load_local_license()
+        .ok()
+        .map(|s| s.status);
 
     // 9. Report.
     let summary = serde_json::json!({
@@ -1345,7 +1410,14 @@ async fn run_devmode_full(json_output: bool, args: DevmodeFullArgs) -> anyhow::R
         println!("  registry status:     {status}");
         println!("  registry tier:       {tier}");
         println!("  is_dev_mode:         {is_dev_mode_fixture}");
-        println!("  granted tier:        {}", if is_dev_mode_fixture { "evaluation" } else { tier.as_str() });
+        println!(
+            "  granted tier:        {}",
+            if is_dev_mode_fixture {
+                "evaluation"
+            } else {
+                tier.as_str()
+            }
+        );
         println!("  commercial_use:      {granted_commercial_use}");
         println!("  offline_valid_until: {offline_until}");
         println!("  files written:");
@@ -1354,9 +1426,18 @@ async fn run_devmode_full(json_output: bool, args: DevmodeFullArgs) -> anyhow::R
         println!("    receipt:    {}", receipt_file.to_string_lossy());
         println!("  round-trip:");
         println!("    license_file_parse:  {round_trip_status}");
-        println!("    license_status_load:  {}", if status_round_trip.is_some() { "ok" } else { "failed" });
+        println!(
+            "    license_status_load:  {}",
+            if status_round_trip.is_some() {
+                "ok"
+            } else {
+                "failed"
+            }
+        );
         if is_dev_mode_fixture {
-            println!("  note: dev_mode is a TEST FIXTURE; this install was downgraded to evaluation.");
+            println!(
+                "  note: dev_mode is a TEST FIXTURE; this install was downgraded to evaluation."
+            );
         }
     }
     Ok(())
@@ -1434,7 +1515,10 @@ mod tests {
     fn wp_envelope_status_to_error() {
         // 404 → NotFound
         let body = serde_json::json!({"code": "focusa_license_not_found", "message": "missing"});
-        assert!(matches!(map_wp_error_status(404, &body), RegistryError::NotFound));
+        assert!(matches!(
+            map_wp_error_status(404, &body),
+            RegistryError::NotFound
+        ));
 
         // 410 with expires_at → Expired
         let body = serde_json::json!({
@@ -1467,14 +1551,23 @@ mod tests {
 
         // 401 → Invalid (no code match, falls through to status)
         let body = serde_json::json!({"code": "", "message": "auth required"});
-        assert!(matches!(map_wp_error_status(401, &body), RegistryError::Invalid));
+        assert!(matches!(
+            map_wp_error_status(401, &body),
+            RegistryError::Invalid
+        ));
 
         // 403 → Revoked (no code match, falls through to status)
         let body = serde_json::json!({"code": "", "message": "revoked"});
-        assert!(matches!(map_wp_error_status(403, &body), RegistryError::Revoked));
+        assert!(matches!(
+            map_wp_error_status(403, &body),
+            RegistryError::Revoked
+        ));
 
         // 422 → Malformed
         let body = serde_json::json!({"errors": {"license_key": ["bad"]}});
-        assert!(matches!(map_wp_error_status(422, &body), RegistryError::Malformed(_)));
+        assert!(matches!(
+            map_wp_error_status(422, &body),
+            RegistryError::Malformed(_)
+        ));
     }
 }

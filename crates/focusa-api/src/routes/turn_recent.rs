@@ -13,7 +13,11 @@
 //!   keyed by (continuity_id, turn_id), bounded by retention window.
 
 use crate::server::AppState;
-use axum::{Json, Router, extract::{Query, State}, routing::{get, post}};
+use axum::{
+    Json, Router,
+    extract::{Query, State},
+    routing::{get, post},
+};
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -89,7 +93,9 @@ fn recent_db_path(data_dir: &str) -> std::path::PathBuf {
     if let Some(rest) = data_dir.strip_prefix("~/")
         && let Ok(home) = std::env::var("HOME")
     {
-        return std::path::PathBuf::from(home).join(rest).join("focusa.sqlite");
+        return std::path::PathBuf::from(home)
+            .join(rest)
+            .join("focusa.sqlite");
     }
     std::path::PathBuf::from(data_dir).join("focusa.sqlite")
 }
@@ -114,7 +120,10 @@ fn ensure_recent_turns_table(conn: &Connection) -> rusqlite::Result<()> {
 
 fn unix_now_secs() -> u64 {
     use std::time::{SystemTime, UNIX_EPOCH};
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
 }
 
 fn append_recent_turn(conn: &Connection, req: &AppendTurnRequest) -> rusqlite::Result<bool> {
@@ -179,7 +188,6 @@ fn list_recent_turns(
 
 // ─── Handlers ─────────────────────────────────────────────────────────────
 
-
 async fn list_recent_handler(
     State(state): State<Arc<AppState>>,
     Query(q): Query<ListQuery>,
@@ -201,16 +209,18 @@ async fn list_recent_handler(
         }));
     }
     match list_recent_turns(&conn, &continuity, n) {
-        Ok(rows) => Json(serde_json::to_value(RecentTurnsResponse {
-            schema: RECENT_TURNS_SCHEMA.to_string(),
-            count: rows.len(),
-            turns: rows,
-            fetched_at: unix_now_secs(),
-        }).unwrap_or_else(|_| json!({"error": "encode_failed"}))),
+        Ok(rows) => Json(
+            serde_json::to_value(RecentTurnsResponse {
+                schema: RECENT_TURNS_SCHEMA.to_string(),
+                count: rows.len(),
+                turns: rows,
+                fetched_at: unix_now_secs(),
+            })
+            .unwrap_or_else(|_| json!({"error": "encode_failed"})),
+        ),
         Err(e) => Json(json!({"error": "read_failed", "why": e.to_string()})),
     }
 }
-
 
 async fn append_recent_handler(
     State(state): State<Arc<AppState>>,
@@ -243,7 +253,6 @@ async fn append_recent_handler(
     }
 }
 
-
 async fn recall_trigger_handler(Json(req): Json<RecallTriggerRequest>) -> Json<Value> {
     // Telemetry-only ack; canonical ring buffer is updated by append_recent_turn.
     Json(json!({
@@ -261,7 +270,10 @@ async fn recall_trigger_handler(Json(req): Json<RecallTriggerRequest>) -> Json<V
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/v1/turns/recent", get(list_recent_handler).post(append_recent_handler))
+        .route(
+            "/v1/turns/recent",
+            get(list_recent_handler).post(append_recent_handler),
+        )
         .route("/v1/events/recall-trigger", post(recall_trigger_handler))
 }
 

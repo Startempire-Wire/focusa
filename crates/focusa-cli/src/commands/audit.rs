@@ -54,7 +54,11 @@ pub async fn run(args: AuditArgs, json_mode: bool) -> anyhow::Result<()> {
     if let Some(bead) = args.beads_issue.as_deref().filter(|s| !s.trim().is_empty()) {
         events.retain(|event| event_mentions(event, bead));
     }
-    if let Some(workpoint_id) = args.workpoint_id.as_deref().filter(|s| !s.trim().is_empty()) {
+    if let Some(workpoint_id) = args
+        .workpoint_id
+        .as_deref()
+        .filter(|s| !s.trim().is_empty())
+    {
         events.retain(|event| event_mentions(event, workpoint_id));
     }
 
@@ -90,18 +94,30 @@ fn event_mentions(event: &Value, needle: &str) -> bool {
 }
 
 fn print_human(envelope: &Value) {
-    println!("Status: {}", envelope["status"].as_str().unwrap_or("unknown"));
-    println!("Source: {}", envelope["source"].as_str().unwrap_or("/v1/events/recent"));
+    println!(
+        "Status: {}",
+        envelope["status"].as_str().unwrap_or("unknown")
+    );
+    println!(
+        "Source: {}",
+        envelope["source"].as_str().unwrap_or("/v1/events/recent")
+    );
     println!("Returned: {}", envelope["returned"].as_u64().unwrap_or(0));
     if let Some(events) = envelope["events"].as_array() {
         for event in events.iter().take(20) {
-            let ts = event.get("timestamp").and_then(Value::as_str).unwrap_or("unknown-time");
+            let ts = event
+                .get("timestamp")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown-time");
             let ty = event
                 .get("type")
                 .or_else(|| event.get("event_type"))
                 .and_then(Value::as_str)
                 .unwrap_or("unknown-event");
-            let id = event.get("id").and_then(Value::as_str).unwrap_or("unknown-id");
+            let id = event
+                .get("id")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown-id");
             println!("- {ts} {ty} {id}");
         }
     }

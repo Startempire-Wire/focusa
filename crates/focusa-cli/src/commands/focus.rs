@@ -135,8 +135,7 @@ pub async fn run(cmd: FocusCmd, json_mode: bool) -> anyhow::Result<()> {
             // and the operator didn't override, use that as the project_root.
             let effective_project_root = match project_root {
                 Some(p) if !p.trim().is_empty() => p.clone(),
-                _ => discover_project_root_from_cwd()
-                    .unwrap_or_default(),
+                _ => discover_project_root_from_cwd().unwrap_or_default(),
             };
             let effective_continuity_id = match continuity_id {
                 Some(c) if !c.trim().is_empty() => c.clone(),
@@ -162,7 +161,10 @@ pub async fn run(cmd: FocusCmd, json_mode: bool) -> anyhow::Result<()> {
             // they just hit. Previously the CLI printed "✓ Frame pushed" even when
             // the daemon returned `status: rejected_unsafe_project_root`.
             let status = resp.get("status").and_then(|v| v.as_str()).unwrap_or("");
-            let canonical = resp.get("canonical").and_then(|v| v.as_bool()).unwrap_or(true);
+            let canonical = resp
+                .get("canonical")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(true);
             if !canonical || status.starts_with("rejected") {
                 if json_mode {
                     println!("{}", serde_json::to_string_pretty(&resp)?);
@@ -306,7 +308,10 @@ mod tests {
     fn discover_finds_beads_walking_up() {
         // Current dir (focusa repo) has .beads/ — must find this project root.
         let root = discover_project_root_from_cwd();
-        assert!(root.is_some(), "expected to find .beads walking up from CWD");
+        assert!(
+            root.is_some(),
+            "expected to find .beads walking up from CWD"
+        );
         let p = std::path::PathBuf::from(root.unwrap());
         assert!(p.join(".beads").is_dir());
     }

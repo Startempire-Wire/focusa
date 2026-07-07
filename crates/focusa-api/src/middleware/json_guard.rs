@@ -90,7 +90,19 @@ fn validate_scope_field_value(key: &str, value: &str) -> Result<(), &'static str
             return Err("invalid_continuity_id");
         }
     }
-    if key == "checkpoint_reason" && !matches!(value, "manual" | "operator_checkpoint" | "before_compact" | "after_compact" | "context_overflow" | "session_resume" | "model_switch" | "fork") {
+    if key == "checkpoint_reason"
+        && !matches!(
+            value,
+            "manual"
+                | "operator_checkpoint"
+                | "before_compact"
+                | "after_compact"
+                | "context_overflow"
+                | "session_resume"
+                | "model_switch"
+                | "fork"
+        )
+    {
         return Err("invalid_checkpoint_reason");
     }
     Ok(())

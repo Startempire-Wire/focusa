@@ -78,17 +78,15 @@ pub fn render(app: &App, frame: &mut ratatui::Frame) {
 
 fn render_footer_keys(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     let hint = if app.connected {
-        let ts = app.last_refresh_at
+        let ts = app
+            .last_refresh_at
             .map(|t| format!(" · updated {}", t.format("%H:%M:%S")))
             .unwrap_or_default();
         format!("n=deck  /=recall  l=learn  ?=help  a=about  :=cmd  q=quit{ts}")
     } else {
         "waiting…  r=retry  q=quit".to_string()
     };
-    frame.render_widget(
-        Paragraph::new(Span::styled(hint, theme::label())),
-        area,
-    );
+    frame.render_widget(Paragraph::new(Span::styled(hint, theme::label())), area);
 }
 
 fn render_header(app: &App, frame: &mut ratatui::Frame, area: Rect) {
@@ -109,7 +107,11 @@ fn render_header(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         )
     };
 
-    let status_label = if app.connected { "online" } else { "connecting" };
+    let status_label = if app.connected {
+        "online"
+    } else {
+        "connecting"
+    };
     let line = Line::from(vec![
         Span::styled("FOCUSA", logo_color.add_modifier(Modifier::BOLD)),
         Span::raw("  "),

@@ -169,7 +169,11 @@ struct AppliedWorkflow {
     recovery_hint: &'static str,
 }
 
-fn apply_template(template: &WorkflowTemplate, project_root: &str, continuity_id: &str) -> AppliedWorkflow {
+fn apply_template(
+    template: &WorkflowTemplate,
+    project_root: &str,
+    continuity_id: &str,
+) -> AppliedWorkflow {
     AppliedWorkflow {
         id: template.id,
         when_to_use: template.when_to_use,

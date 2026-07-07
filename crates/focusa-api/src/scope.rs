@@ -10,7 +10,7 @@
 /// ```
 use axum::{
     extract::FromRequestParts,
-    http::{request::Parts, HeaderMap, StatusCode},
+    http::{HeaderMap, StatusCode, request::Parts},
     response::{IntoResponse, Response},
 };
 use serde::{Deserialize, Serialize};
@@ -81,9 +81,24 @@ where
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         // Try headers first
-        let project_root = header_or_query(&parts.headers, parts.uri.query().unwrap_or(""), "x-scope-project-root", "project_root");
-        let continuity_id = header_or_query(&parts.headers, parts.uri.query().unwrap_or(""), "x-scope-continuity-id", "continuity_id");
-        let session_id = header_or_query(&parts.headers, parts.uri.query().unwrap_or(""), "x-scope-session-id", "session_id");
+        let project_root = header_or_query(
+            &parts.headers,
+            parts.uri.query().unwrap_or(""),
+            "x-scope-project-root",
+            "project_root",
+        );
+        let continuity_id = header_or_query(
+            &parts.headers,
+            parts.uri.query().unwrap_or(""),
+            "x-scope-continuity-id",
+            "continuity_id",
+        );
+        let session_id = header_or_query(
+            &parts.headers,
+            parts.uri.query().unwrap_or(""),
+            "x-scope-session-id",
+            "session_id",
+        );
 
         let source = if parts.headers.contains_key("x-scope-project-root") {
             ScopeSource::Header
@@ -102,7 +117,12 @@ where
     }
 }
 
-fn header_or_query(headers: &HeaderMap, query_str: &str, header_name: &str, query_key: &str) -> Option<String> {
+fn header_or_query(
+    headers: &HeaderMap,
+    query_str: &str,
+    header_name: &str,
+    query_key: &str,
+) -> Option<String> {
     if let Some(val) = headers.get(header_name) {
         if let Ok(s) = val.to_str() {
             return Some(s.to_string());
@@ -113,7 +133,7 @@ fn header_or_query(headers: &HeaderMap, query_str: &str, header_name: &str, quer
         let mut parts = pair.splitn(2, '=');
         if let (Some(k), Some(v)) = (parts.next(), parts.next()) {
             if k == query_key {
-                return Some(v.to_string());  // simple ASCII-safe query values
+                return Some(v.to_string()); // simple ASCII-safe query values
             }
         }
     }

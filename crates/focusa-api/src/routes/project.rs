@@ -377,7 +377,12 @@ fn select_canonical_project_root(signals: &[ProjectSignal], fallback: &str) -> S
         .iter()
         .filter(|signal| signal.independent)
         .filter_map(|signal| signal.root.as_ref().map(|root| (signal, root)))
-        .max_by_key(|(signal, root)| (directory_detection_priority(signal), *counts.get(*root).unwrap_or(&0)))
+        .max_by_key(|(signal, root)| {
+            (
+                directory_detection_priority(signal),
+                *counts.get(*root).unwrap_or(&0),
+            )
+        })
         .map(|(_, root)| root.clone())
         .or_else(|| signals.iter().find_map(|signal| signal.root.clone()))
         .unwrap_or_else(|| fallback.to_string())
@@ -414,7 +419,13 @@ fn normalize_project_hint(value: &str) -> String {
 
 fn marker_hint_values(marker: &Value) -> Vec<String> {
     let mut values = Vec::new();
-    for key in ["project_id", "canonical_name", "live_url", "root_url", "local_url"] {
+    for key in [
+        "project_id",
+        "canonical_name",
+        "live_url",
+        "root_url",
+        "local_url",
+    ] {
         if let Some(value) = marker.get(key).and_then(Value::as_str) {
             values.push(normalize_project_hint(value));
         }
@@ -429,7 +440,10 @@ fn marker_hint_values(marker: &Value) -> Vec<String> {
             values.push(normalize_project_hint(value));
         }
     }
-    values.into_iter().filter(|value| !value.is_empty()).collect()
+    values
+        .into_iter()
+        .filter(|value| !value.is_empty())
+        .collect()
 }
 
 fn project_hint_candidates(value: &str) -> Vec<String> {
@@ -458,19 +472,22 @@ fn marker_matches_project_hint(marker: &Value, hint: &str) -> Option<String> {
     if normalized_hint.is_empty() {
         return None;
     }
-    marker_hint_values(marker)
-        .into_iter()
-        .find(|value| {
-            value == &normalized_hint
-                || value.starts_with(&format!("{}.", normalized_hint))
-                || value.starts_with(&format!("{}-", normalized_hint))
-        })
+    marker_hint_values(marker).into_iter().find(|value| {
+        value == &normalized_hint
+            || value.starts_with(&format!("{}.", normalized_hint))
+            || value.starts_with(&format!("{}-", normalized_hint))
+    })
 }
 
 fn project_directory_search_roots(start: &Path) -> Vec<PathBuf> {
     let mut roots = Vec::new();
     if let Ok(configured) = std::env::var("FOCUSA_PROJECT_SEARCH_DIRS") {
-        roots.extend(configured.split(':').filter(|part| !part.trim().is_empty()).map(PathBuf::from));
+        roots.extend(
+            configured
+                .split(':')
+                .filter(|part| !part.trim().is_empty())
+                .map(PathBuf::from),
+        );
     }
     if start.exists() {
         roots.push(start.to_path_buf());
@@ -489,7 +506,10 @@ fn project_directory_search_roots(start: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
-fn find_project_marker_for_hint(start: &Path, hint: Option<&str>) -> Option<(PathBuf, Value, String)> {
+fn find_project_marker_for_hint(
+    start: &Path,
+    hint: Option<&str>,
+) -> Option<(PathBuf, Value, String)> {
     let hint = clean(hint)?;
     let hint_candidates = project_hint_candidates(&hint);
     if hint_candidates.is_empty() {
@@ -512,7 +532,11 @@ fn find_project_marker_for_hint(start: &Path, hint: Option<&str>) -> Option<(Pat
                 .iter()
                 .find_map(|candidate| marker_matches_project_hint(&marker, candidate))
         {
-            return Some((PathBuf::from(marker_project_root(&dir, &marker)), marker, matched_hint));
+            return Some((
+                PathBuf::from(marker_project_root(&dir, &marker)),
+                marker,
+                matched_hint,
+            ));
         }
         if marker_path.exists() {
             continue;
@@ -1391,7 +1415,9 @@ fn discover_identity(
         find_upwards(&start, ".focusa-project.json")
     };
     let marker = marker_root.as_ref().and_then(|root| read_marker(root));
-    if let Some((detected_root, detected_marker, matched_hint)) = find_project_marker_for_hint(&start, current_ask) {
+    if let Some((detected_root, detected_marker, matched_hint)) =
+        find_project_marker_for_hint(&start, current_ask)
+    {
         signals.push(ProjectSignal {
             source: "project_directory_detector",
             root: Some(normalize_path(&detected_root)),
@@ -1992,8 +2018,12 @@ fn project_identity_cache_key(
     remote_hint: &RemoteProjectHint,
     scope: Option<&crate::scope::ScopeContext>,
 ) -> String {
-    let scope_root = scope.and_then(|s| s.project_root.as_deref()).unwrap_or_default();
-    let scope_cont = scope.and_then(|s| s.continuity_id.as_deref()).unwrap_or_default();
+    let scope_root = scope
+        .and_then(|s| s.project_root.as_deref())
+        .unwrap_or_default();
+    let scope_cont = scope
+        .and_then(|s| s.continuity_id.as_deref())
+        .unwrap_or_default();
     format!(
         "cwd={}\nproject_root={}\ncurrent_ask={}\nscope_root={}\nscope_cont={}\nremote_host={}\nremote_repo_remote={}\nremote_workspace_kind={}\nremote_deploy_root={}\npersisted_project_root={}\npersisted_project_fingerprint={}\npersisted_project_id={}\npersisted_canonical_name={}",
         cwd.unwrap_or_default(),
@@ -2052,7 +2082,10 @@ fn project_identity_payload_for_scope_with_remote(
         return payload.clone();
     }
 
-    let payload = candidate_payload(discover_identity(cwd, project_root, current_ask, remote_hint), None);
+    let payload = candidate_payload(
+        discover_identity(cwd, project_root, current_ask, remote_hint),
+        None,
+    );
     if let Ok(mut guard) = cache.lock() {
         if guard.len() > 64 {
             guard.retain(|_, (cached_at, _)| {
@@ -2069,7 +2102,13 @@ pub(crate) fn project_identity_payload_for_scope(
     project_root: Option<&str>,
     scope: Option<&crate::scope::ScopeContext>,
 ) -> Value {
-    project_identity_payload_for_scope_with_remote(cwd, project_root, None, RemoteProjectHint::default(), scope)
+    project_identity_payload_for_scope_with_remote(
+        cwd,
+        project_root,
+        None,
+        RemoteProjectHint::default(),
+        scope,
+    )
 }
 
 async fn identity(Query(query): Query<ProjectIdentityQuery>) -> Json<Value> {
@@ -3279,7 +3318,9 @@ async fn session_transfer(
         }),
         ..Default::default()
     };
-    let card_payload = card(ScopeContext::default(), State(state), Query(query)).await.0;
+    let card_payload = card(ScopeContext::default(), State(state), Query(query))
+        .await
+        .0;
     let project_root = card_payload
         .pointer("/project_identity/project_root")
         .and_then(Value::as_str)
@@ -3439,7 +3480,12 @@ mod tests {
     fn identity_name_match_accepts_safe_case_and_aliases() {
         let aliases = vec!["focusa-daemon".to_string(), "focusa-cli".to_string()];
         assert!(identity_name_matches(
-            "focusa", "Focusa", "focusa", &aliases, Some("/workspace/focusa"), Some("/workspace/focusa")
+            "focusa",
+            "Focusa",
+            "focusa",
+            &aliases,
+            Some("/workspace/focusa"),
+            Some("/workspace/focusa")
         ));
         assert!(identity_name_matches(
             "FOCUSA DAEMON",
@@ -3754,8 +3800,12 @@ mod tests {
         )
         .unwrap();
 
-        let candidate =
-            discover_identity(root.to_str(), root.to_str(), None, RemoteProjectHint::default());
+        let candidate = discover_identity(
+            root.to_str(),
+            root.to_str(),
+            None,
+            RemoteProjectHint::default(),
+        );
         assert_eq!(candidate.status, "verified");
         assert_eq!(candidate.confidence, "high");
         assert!(candidate.mismatches.is_empty());
@@ -3883,8 +3933,12 @@ mod tests {
 
     #[test]
     fn broad_root_never_verifies_as_project_identity() {
-        let candidate =
-            discover_identity(Some("/root"), Some("/root"), None, RemoteProjectHint::default());
+        let candidate = discover_identity(
+            Some("/root"),
+            Some("/root"),
+            None,
+            RemoteProjectHint::default(),
+        );
         assert_eq!(candidate.status, "unsafe_project_root");
         assert_eq!(candidate.confidence, "low");
         assert!(candidate.mismatches.iter().any(

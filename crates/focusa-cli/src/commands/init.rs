@@ -44,15 +44,17 @@ pub async fn run(args: InitArgs, _json: bool) -> Result<()> {
 
     let marker_path = project_root.join(".focusa-project.json");
     let slug = project_slug(&project_root);
-    let daemon_base = std::env::var("FOCUSA_DAEMON_URL")
-        .unwrap_or_else(|_| "http://127.0.0.1:8787".into());
+    let daemon_base =
+        std::env::var("FOCUSA_DAEMON_URL").unwrap_or_else(|_| "http://127.0.0.1:8787".into());
 
     let health = if args.quickstart {
         json!({"checked": false, "ok": null, "reason": "quickstart skip"})
     } else {
         match probe_health(&daemon_base).await {
             Ok(payload) => payload,
-            Err(err) => json!({"checked": true, "ok": false, "error": err.to_string(), "url": daemon_base}),
+            Err(err) => {
+                json!({"checked": true, "ok": false, "error": err.to_string(), "url": daemon_base})
+            }
         }
     };
 
@@ -136,7 +138,10 @@ async fn probe_health(daemon_base: &str) -> Result<Value> {
         .build()?;
     let resp = client.get(&url).send().await?;
     let status = resp.status().as_u16();
-    let body: Value = resp.json().await.unwrap_or_else(|_| json!({"raw_error": "decode_failed"}));
+    let body: Value = resp
+        .json()
+        .await
+        .unwrap_or_else(|_| json!({"raw_error": "decode_failed"}));
     Ok(json!({
         "checked": true,
         "ok": (200..300).contains(&status),

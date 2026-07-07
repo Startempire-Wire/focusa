@@ -66,7 +66,9 @@ async fn handle_jsonrpc(Json(request): Json<Value>) -> Json<Value> {
             id,
             -32601,
             "Method not found",
-            Some(json!({"method": method, "supported": ["initialize", "ping", "tools/list", "tools/call"]})),
+            Some(
+                json!({"method": method, "supported": ["initialize", "ping", "tools/list", "tools/call"]}),
+            ),
         )),
     }
 }

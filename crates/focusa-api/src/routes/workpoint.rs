@@ -1708,7 +1708,8 @@ async fn checkpoint(
     }
 
     let materialized_state =
-        materialize_workpoint_events(_scope.clone(), &state, events, "workpoint_checkpoint").await?;
+        materialize_workpoint_events(_scope.clone(), &state, events, "workpoint_checkpoint")
+            .await?;
     let promoted_record = if promote && canonical {
         materialized_state
             .workpoint
@@ -1801,11 +1802,12 @@ async fn current(
         .and_then(|value| clean_resume_scope_value(Some(value)));
     // If project_root was auto-detected but no continuity_id was passed,
     // look up the continuity_id from the .focusa-project.json marker.
-    let effective_continuity_id = if effective_continuity_id.is_none() && effective_project_root.is_some() {
-        read_continuity_id_from_marker(&effective_project_root.clone().unwrap())
-    } else {
-        effective_continuity_id
-    };
+    let effective_continuity_id =
+        if effective_continuity_id.is_none() && effective_project_root.is_some() {
+            read_continuity_id_from_marker(&effective_project_root.clone().unwrap())
+        } else {
+            effective_continuity_id
+        };
     let focusa = state.focusa.read().await;
     let Some(record) = active_workpoint_for_scope(
         &focusa,

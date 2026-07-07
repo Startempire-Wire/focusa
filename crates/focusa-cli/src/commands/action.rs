@@ -331,8 +331,13 @@ pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope 
         value_observed: format!("current_ask={:?} action={:?}", args.current_ask, args.kind),
         threshold: "current_ask and proposed action should target the same task type".to_string(),
         recovery_hint: if !ask_consistent {
-            Some("Inspect existing runtime, repair from local repo if needed, then run focusa pair.".to_string())
-        } else { None },
+            Some(
+                "Inspect existing runtime, repair from local repo if needed, then run focusa pair."
+                    .to_string(),
+            )
+        } else {
+            None
+        },
     });
 
     // Check 3: full_live_pipeline_required — release/deploy must use full GH pipeline, never local toolchains or partial workflow shortcuts.
@@ -387,8 +392,14 @@ pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope 
             class: "consumer_install_path_conflicts_with_live_build_host",
             why: "This host is the live Focusa build host; release assets are not the repair source.",
         });
-        plain_language_error.get_or_insert_with(|| "Blocked: release assets are not the repair source for the live Focusa build host.".to_string());
-        safe_alternative = Some("Use the full live GitHub release pipeline; do not replace live binaries by hand.".to_string());
+        plain_language_error.get_or_insert_with(|| {
+            "Blocked: release assets are not the repair source for the live Focusa build host."
+                .to_string()
+        });
+        safe_alternative = Some(
+            "Use the full live GitHub release pipeline; do not replace live binaries by hand."
+                .to_string(),
+        );
     }
 
     if !ask_consistent {
@@ -397,7 +408,9 @@ pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope 
             class: "task_substitution_detected",
             why: "The current ask is pairing initiation, but the proposed action is binary installation/replacement.",
         });
-        plain_language_error.get_or_insert_with(|| "Blocked: this action does not match the current user ask.".to_string());
+        plain_language_error.get_or_insert_with(|| {
+            "Blocked: this action does not match the current user ask.".to_string()
+        });
         safe_alternative.get_or_insert_with(|| {
             "Inspect existing runtime, then run the requested pairing action; do not substitute a binary install."
                 .to_string()
@@ -411,7 +424,9 @@ pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope 
             class: "environment_role_unknown_for_risky_mutation",
             why: "Binary replacement requires a verified install role before mutation.",
         });
-        plain_language_error.get_or_insert_with(|| "Blocked until the environment role is verified for this risky mutation.".to_string());
+        plain_language_error.get_or_insert_with(|| {
+            "Blocked until the environment role is verified for this risky mutation.".to_string()
+        });
         safe_alternative =
             Some("Verify environment contract before replacing Focusa binaries.".to_string());
     }
