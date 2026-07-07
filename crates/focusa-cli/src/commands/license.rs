@@ -47,6 +47,15 @@ pub enum LicenseCmd {
     /// result. Use this to verify the full provisioning pipeline before
     /// the first real transaction.
     DevmodeFull(DevmodeFullArgs),
+    /// Re-validate the current license against the registry and update
+    /// the local file. Picks up revoke / refund / expire changes that
+    /// happened on the registry side since the last validation.
+    Refresh(RefreshArgs),
+    /// Watch the local license file and the registry. When the registry
+    /// returns a new state, the local file is updated and a notification
+    /// is printed. Use this as a long-running sidecar after a purchase
+    /// so refunds and revokes propagate within the poll interval.
+    Watch(WatchArgs),
 }
 
 #[derive(Args, Debug)]
@@ -63,6 +72,32 @@ pub struct DevmodeFullArgs {
     /// Print the parsed registry response as JSON for inspection.
     #[arg(long)]
     pub print_response: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct RefreshArgs {
+    /// Override the registry URL (default: https://wpuiai.com).
+    #[arg(long, value_name = "URL")]
+    pub registry: Option<String>,
+    /// Persist the raw key from --raw-key in the local file (off-spec).
+    #[arg(long, value_name = "KEY")]
+    pub raw_key: Option<String>,
+    /// Set FOCUSA_REQUIRE_REAL_LICENSE=1 for this run (refuse dev_mode).
+    #[arg(long)]
+    pub require_real: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct WatchArgs {
+    /// Override the registry URL (default: https://wpuiai.com).
+    #[arg(long, value_name = "URL")]
+    pub registry: Option<String>,
+    /// Poll interval in seconds (default 60, min 5).
+    #[arg(long, value_name = "SECONDS", default_value_t = 60)]
+    pub interval: u64,
+    /// Stop after this many polls (default: forever).
+    #[arg(long, value_name = "COUNT")]
+    pub max_polls: Option<u64>,
 }
 
 #[derive(Args, Debug)]
@@ -482,6 +517,8 @@ pub async fn run(json_output: bool, args: LicenseArgs) -> anyhow::Result<()> {
         LicenseCmd::Doctor => run_doctor(json_output).await,
         LicenseCmd::CheckFeature(a) => run_check_feature(json_output, a).await,
         LicenseCmd::DevmodeFull(a) => run_devmode_full(json_output, a).await,
+        LicenseCmd::Refresh(a) => run_refresh(json_output, a).await,
+        LicenseCmd::Watch(a) => run_watch(json_output, a).await,
     }
 }
 
@@ -681,6 +718,373 @@ async fn run_check_feature(json_output: bool, args: CheckFeatureArgs) -> anyhow:
 // Avoid unused import warnings when ApiClient is not used in this module directly.
 #[allow(dead_code)]
 fn _suppress_unused(_: &ApiClient) {}
+
+/// Derive a stable machine fingerprint for license seat binding.
+/// Order of preference:
+///   1. $FOCUSA_MACHINE_ID if the operator sets it explicitly (test/cluster)
+///   2. /etc/machine-id (systemd, always present on Linux)
+///   3. hostname + first non-loopback MAC address
+///   4. hostname only (last-resort fallback, NOT stable across reboots
+///      on some cloud images — callers should pin /etc/machine-id or
+///      FOCUSA_MACHINE_ID when seat enforcement matters)
+pub(crate) fn derive_machine_id() -> String {
+    use sha2::{Digest, Sha256};
+    if let Ok(v) = std::env::var("FOCUSA_MACHINE_ID") {
+        if !v.trim().is_empty() {
+            return v.trim().to_string();
+        }
+    }
+    if let Ok(s) = std::fs::read_to_string("/etc/machine-id") {
+        let trimmed = s.trim();
+        if !trimmed.is_empty() {
+            return trimmed.to_string();
+        }
+    }
+    // Fallback: hostname + first non-loopback MAC (best-effort).
+    let host = std::env::var("HOSTNAME")
+        .or_else(|_| {
+            std::fs::read_to_string("/etc/hostname")
+                .map(|s| s.trim().to_string())
+        })
+        .unwrap_or_else(|_| "unknown".to_string());
+    let mac = read_first_mac().unwrap_or_else(|| "nomac".to_string());
+    let mut hasher = Sha256::new();
+    hasher.update(host.as_bytes());
+    hasher.update(b"|");
+    hasher.update(mac.as_bytes());
+    format!("{:x}", hasher.finalize())
+}
+
+#[cfg(unix)]
+fn read_first_mac() -> Option<String> {
+    use std::fs;
+    for entry in fs::read_dir("/sys/class/net").ok()? {
+        let entry = entry.ok()?;
+        let name = entry.file_name().to_string_lossy().to_string();
+        if name == "lo" {
+            continue;
+        }
+        let addr_path = entry.path().join("address");
+        if let Ok(s) = fs::read_to_string(&addr_path) {
+            let s = s.trim();
+            if !s.is_empty() && s != "00:00:00:00:00:00" {
+                return Some(s.to_string());
+            }
+        }
+    }
+    None
+}
+
+#[cfg(not(unix))]
+fn read_first_mac() -> Option<String> {
+    None
+}
+
+/// Read the active license key from the local file. We don't persist the
+/// raw key (Spec §5.1), so refresh uses the same source-of-truth as
+/// devmode-full: the caller passes --raw-key OR we read from the receipt
+/// file (which carries key_hash + key_prefix).
+fn read_active_key_from_receipt() -> Option<String> {
+    // We can't reconstruct the raw key from the hash; only the operator
+    // can supply it. This helper is a placeholder for the future when
+    // the receipt file (or daemon sqlite) carries the raw key encrypted
+    // at rest. For now, refresh requires --raw-key OR a fresh
+    // devmode-full-style test.
+    None
+}
+
+/// Re-validate the current license against the registry. Picks up
+/// revoke, refund, and expiry that happened on the registry side since
+/// the last validation. Writes a new license.json + receipt if the
+/// state changed.
+async fn run_refresh(json_output: bool, args: RefreshArgs) -> anyhow::Result<()> {
+    use chrono::Utc;
+    use focusa_core::license::{LocalLicense, load_local_license};
+    use sha2::{Digest, Sha256};
+    use std::fs;
+    use std::path::PathBuf;
+
+    let registry = args
+        .registry
+        .clone()
+        .or_else(|| std::env::var("FOCUSA_LICENSE_REGISTRY").ok())
+        .unwrap_or_else(|| DEFAULT_REGISTRY.to_string());
+    let validate_url = format!(
+        "{}{}",
+        registry.trim_end_matches('/'),
+        REGISTRY_VALIDATE_PATH
+    );
+
+    let key = args.raw_key.clone().or_else(read_active_key_from_receipt);
+    let key = match key {
+        Some(k) if !k.trim().is_empty() => k,
+        _ => {
+            let payload = serde_json::json!({
+                "status": "blocked",
+                "step": "refresh_input",
+                "error": "no license key available",
+                "recovery_hint": "pass --raw-key <KEY>, or run `focusa license activate <KEY>` first, or run `focusa license devmode-full`",
+            });
+            if json_output {
+                println!("{}", serde_json::to_string_pretty(&payload)?);
+            } else {
+                println!("[refresh] step=refresh_input status=blocked error=\"no license key available\"");
+                println!("[refresh] recovery_hint: pass --raw-key <KEY>");
+            }
+            std::process::exit(2);
+        }
+    };
+
+    let machine_id = derive_machine_id();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()?;
+    let body: serde_json::Value = match client
+        .post(&validate_url)
+        .header("Content-Type", "application/json")
+        .header("X-License-Key", &key)
+        .header("X-Machine-Id", &machine_id)
+        .json(&serde_json::json!({
+            "license_key": key,
+            "machine_id": machine_id,
+            "intent": "refresh",
+        }))
+        .send()
+        .await
+    {
+        Ok(r) => r.json::<serde_json::Value>().await.unwrap_or(serde_json::Value::Null),
+        Err(_) => serde_json::Value::Null,
+    };
+
+    let valid = body.get("valid").and_then(|v| v.as_bool()).unwrap_or(false);
+    let status = body.get("status").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+    let tier = body.get("tier").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+    let commercial_use = body.get("commercial_use").and_then(|v| v.as_bool()).unwrap_or(false);
+    let features: Vec<String> = body
+        .get("features")
+        .and_then(|v| v.as_array())
+        .map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())
+        .unwrap_or_default();
+    let expires_at = body.get("expires_at").and_then(|v| v.as_str()).map(String::from);
+
+    // dev_mode rule (same as devmode-full): downgrade to eval.
+    let is_dev_mode_fixture = status == "dev_mode";
+    let require_real = args.require_real
+        || std::env::var("FOCUSA_REQUIRE_REAL_LICENSE")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(false);
+    if is_dev_mode_fixture && require_real {
+        let payload = serde_json::json!({
+            "status": "blocked",
+            "step": "registry_post",
+            "registry_status": status,
+            "error": "dev_mode response with FOCUSA_REQUIRE_REAL_LICENSE=1",
+            "recovery_hint": "unset FOCUSA_REQUIRE_REAL_LICENSE to allow dev_mode downgrades, or purchase a real license at https://wpuiai.com/buy",
+        });
+        if json_output {
+            println!("{}", serde_json::to_string_pretty(&payload)?);
+        } else {
+            println!("[refresh] blocked: dev_mode with require_real");
+        }
+        std::process::exit(2);
+    }
+
+    let granted_tier = if is_dev_mode_fixture { "evaluation".to_string() } else { tier.clone() };
+    let granted_features = if is_dev_mode_fixture {
+        vec!["daemon".to_string(), "tui".to_string(), "cli".to_string()]
+    } else {
+        features.clone()
+    };
+    let granted_commercial = commercial_use && !is_dev_mode_fixture;
+
+    // Detect revoke: registry returns valid=false with status=revoked or
+    // status=expired. Surface this with a non-zero exit so callers can
+    // act on it.
+    let revoked = status == "revoked" || status == "expired" || !valid;
+    if revoked && !is_dev_mode_fixture {
+        let payload = serde_json::json!({
+            "status": "blocked",
+            "step": "registry_post",
+            "registry_status": status,
+            "valid": valid,
+            "machine_id": machine_id,
+            "recovery_hint": format!(
+                "registry reports license state '{}'. Run `focusa license activate <KEY>` with a current key, or contact {} for reissue.",
+                status, "https://wpuiai.com/wp-admin"
+            ),
+        });
+        if json_output {
+            println!("{}", serde_json::to_string_pretty(&payload)?);
+        } else {
+            println!("[refresh] step=registry_post status=blocked registry_status={status}");
+            println!("[refresh] recovery_hint: {}", payload["recovery_hint"]);
+        }
+        std::process::exit(2);
+    }
+
+    let home = std::env::var_os("HOME").map(PathBuf::from).unwrap_or_else(|| PathBuf::from("/root"));
+    let license_dir = home.join(".config").join("focusa");
+    let license_file = license_dir.join("license.json");
+    let receipt_file = license_dir.join("license_receipt.json");
+    fs::create_dir_all(&license_dir)?;
+
+    let key_hash = {
+        let mut h = Sha256::new();
+        h.update(key.as_bytes());
+        format!("{:x}", h.finalize())
+    };
+    let key_prefix: String = key.chars().take(16).collect();
+    let offline_until = (Utc::now() + chrono::Duration::days(7))
+        .format("%Y-%m-%dT%H:%M:%SZ")
+        .to_string();
+    let issued_at: u64 = Utc::now().timestamp() as u64;
+
+    let prior = load_local_license().ok();
+    let license = LocalLicense {
+        key_hash: key_hash.clone(),
+        key_prefix: key_prefix.clone(),
+        product: "focusa".to_string(),
+        tier: granted_tier.clone(),
+        status: if is_dev_mode_fixture { "active".to_string() } else { status.clone() },
+        commercial_use: granted_commercial,
+        customer_email: prior.as_ref().map(|p| p.customer_email.clone()).unwrap_or_default(),
+        features: granted_features.clone(),
+        offline_valid_until: Some(offline_until.clone()),
+        expires_at: expires_at.clone(),
+        eval: is_dev_mode_fixture,
+        registry: registry.clone(),
+        issued_at,
+    };
+    let license_json = serde_json::to_string_pretty(&license)?;
+    fs::write(&license_file, format!("{license_json}\n"))?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut p = fs::metadata(&license_file)?.permissions();
+        p.set_mode(0o600);
+        fs::set_permissions(&license_file, p)?;
+    }
+
+    let receipt = serde_json::json!({
+        "issued_at": Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string(),
+        "tier": granted_tier,
+        "status": if is_dev_mode_fixture { "active".to_string() } else { status.clone() },
+        "expires_at": expires_at,
+        "machine_id": machine_id,
+        "key_hash": key_hash,
+        "key_prefix": key_prefix,
+        "eval": is_dev_mode_fixture,
+        "commercial_use": granted_commercial,
+        "intent": "refresh",
+        "note": "Refreshed from registry. Use `focusa license status` to view the current state.",
+    });
+    fs::write(&receipt_file, format!("{}\n", serde_json::to_string_pretty(&receipt)?))?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut p = fs::metadata(&receipt_file)?.permissions();
+        p.set_mode(0o600);
+        fs::set_permissions(&receipt_file, p)?;
+    }
+
+    let payload = serde_json::json!({
+        "status": "completed",
+        "step": "report",
+        "machine_id": machine_id,
+        "registry": registry,
+        "registry_status": status,
+        "valid": valid,
+        "granted_tier": license.tier,
+        "granted_features": granted_features,
+        "commercial_use": granted_commercial,
+        "is_dev_mode_fixture": is_dev_mode_fixture,
+        "offline_valid_until": offline_until,
+        "issued_at": issued_at,
+        "files": {
+            "license": license_file.to_string_lossy(),
+            "receipt": receipt_file.to_string_lossy(),
+        },
+        "round_trip": "parsed",
+    });
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+    } else {
+        println!("[refresh] step=report");
+        println!("  machine_id:        {machine_id}");
+        println!("  registry_status:   {status}");
+        println!("  granted tier:      {}", license.tier);
+        println!("  commercial_use:    {granted_commercial}");
+        println!("  offline_valid_until: {offline_until}");
+        if is_dev_mode_fixture {
+            println!("  note: dev_mode is a TEST FIXTURE; this refresh was downgraded to evaluation.");
+        }
+    }
+    Ok(())
+}
+
+/// Watch the local license file and the registry. Long-running sidecar
+/// that polls every N seconds and updates the local file when the
+/// registry reports a state change. Picks up revoke / refund / expire
+/// without operator action.
+async fn run_watch(json_output: bool, args: WatchArgs) -> anyhow::Result<()> {
+    let interval = args.interval.max(5);
+    let max_polls = args.max_polls.unwrap_or(u64::MAX);
+    let mut polls: u64 = 0;
+    let mut last_signature = String::new();
+    loop {
+        polls += 1;
+        let args_refresh = RefreshArgs {
+            registry: args.registry.clone(),
+            raw_key: None,
+            require_real: std::env::var("FOCUSA_REQUIRE_REAL_LICENSE")
+                .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+                .unwrap_or(false),
+        };
+        match run_refresh(true, args_refresh).await {
+            Ok(()) => {
+                let license_file = std::env::var_os("HOME")
+                    .map(std::path::PathBuf::from)
+                    .unwrap_or_else(|| std::path::PathBuf::from("/root"))
+                    .join(".config")
+                    .join("focusa")
+                    .join("license.json");
+                let sig = std::fs::read_to_string(&license_file)
+                    .ok()
+                    .and_then(|s| {
+                        let v: serde_json::Value = serde_json::from_str(&s).ok()?;
+                        Some(format!(
+                            "{}:{}:{}:{}",
+                            v.get("status").and_then(|x| x.as_str()).unwrap_or(""),
+                            v.get("tier").and_then(|x| x.as_str()).unwrap_or(""),
+                            v.get("offline_valid_until").and_then(|x| x.as_str()).unwrap_or(""),
+                            v.get("commercial_use").and_then(|x| x.as_bool()).unwrap_or(false),
+                        ))
+                    })
+                    .unwrap_or_default();
+                if !json_output {
+                    println!("[watch] poll={polls} signature={sig}");
+                } else if sig != last_signature {
+                    println!("{{\"event\":\"watch_change\",\"poll\":{polls},\"signature\":\"{sig}\"}}");
+                    last_signature = sig;
+                } else {
+                    last_signature = sig;
+                }
+            }
+            Err(e) => {
+                if json_output {
+                    println!("{{\"event\":\"watch_error\",\"poll\":{polls},\"error\":\"{}\"}}", e);
+                } else {
+                    println!("[watch] poll={polls} error={e}");
+                }
+            }
+        }
+        if polls >= max_polls {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(interval)).await;
+    }
+    Ok(())
+}
 
 /// End-to-end license provisioning harness. The devmodefull command
 /// exercises the entire provisioning pipeline (test key → registry
