@@ -137,7 +137,7 @@ through to `Operator` mode — the daemon behavior is unchanged.
 - `focusa license doctor` warns when `paid_through` < today or
   `current_major` < installed major.
 
-### Registry (`install.focusa.dev` WordPress/WPUIAI backend)
+### Registry (WPUIAI backend at wpuiai.com)
 
 - Add `paid_through` to the `/wp-json/wpuiai-ai-cloud/v1/license/validate`
   response shape.
