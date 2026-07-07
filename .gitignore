@@ -44,3 +44,7 @@ ecs/handles-index/
 ecs/objects/
 device-pairing/
 hlt-ledger/
+# Large release binaries belong on GitHub Releases, not in git.
+releases/*/focusa-daemon-linux-*
+releases/*/focusa-cli-linux-*
+releases/*/focusa-tui-linux-*
