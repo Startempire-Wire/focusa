@@ -589,6 +589,47 @@ mod tests {
     }
 
     #[test]
+    fn team_tier_maps_to_team_mode() {
+        let mut local = LocalLicense::evaluation();
+        local.tier = "team".to_string();
+        local.commercial_use = true;
+        local.features = vec!["packaged_installer".to_string()];
+        local.eval = false;
+        assert_eq!(local.mode(), LicenseMode::Team);
+    }
+
+    #[test]
+    fn enterprise_tier_maps_to_enterprise_mode() {
+        let mut local = LocalLicense::evaluation();
+        local.tier = "enterprise".to_string();
+        local.commercial_use = true;
+        local.features = vec!["packaged_installer".to_string()];
+        local.eval = false;
+        assert_eq!(local.mode(), LicenseMode::Enterprise);
+    }
+
+    #[test]
+    fn forge_tier_accepts_underscore_alias() {
+        let mut local = LocalLicense::evaluation();
+        local.tier = "founders_forge".to_string();
+        local.commercial_use = true;
+        local.features = vec!["packaged_installer".to_string()];
+        local.eval = false;
+        assert_eq!(local.mode(), LicenseMode::FoundersForge);
+    }
+
+    #[test]
+    fn unknown_tier_falls_through_to_operator() {
+        let mut local = LocalLicense::evaluation();
+        local.tier = "future-tier-shape".to_string();
+        local.commercial_use = true;
+        local.features = vec!["packaged_installer".to_string()];
+        local.eval = false;
+        // Unknown tier strings fall through to Operator per Spec 118 §1 fallback.
+        assert_eq!(local.mode(), LicenseMode::Operator);
+    }
+
+    #[test]
     fn key_hash_is_sha256_and_prefix_stored() {
         let key = "focusa_live_abc123";
         let hash = sha256_hex(key.as_bytes());

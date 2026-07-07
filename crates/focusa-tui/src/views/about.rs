@@ -7,8 +7,8 @@ use crate::views::intro::{FOCUSA_LOGO, FOCUSA_TAGLINE, FOCUSA_TAGS_LINE};
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
-pub const ABOUT_BUILD_INFO: &str = "release · 0.9.64-dev";
-pub const ABOUT_VERSION: &str = "0.9.64-dev";
+pub const ABOUT_BUILD_INFO: &str = "release · 0.9.67-dev";
+pub const ABOUT_VERSION: &str = "0.9.67-dev";
 pub const ABOUT_RUSTC: &str = "rustc nightly (2024 edition)";
 pub const ABOUT_WORKSPACE: &str = "rust-monorepo";
 pub const ABOUT_TELEMETRY: &str = "opt-in: off by default · see FOCUSA_TELEMETRY env";
