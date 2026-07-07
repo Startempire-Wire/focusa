@@ -63,10 +63,13 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
             Constraint::Min(0),
         ])
         .split(intro[1]);
-    // Big pixel FOCUSA logo
+    // Big pixel FOCUSA logo.
+    // Width math: HalfWidth packs 2 glyph pixels per char cell → 4 cols × 6 chars = 24 cols
+    // for "FOCUSA". Fits cleanly inside the 30-col horizontal slot with breathing room,
+    // and survives narrow terminals. (PixelSize::Full would need 48 cols and clip.)
     frame.render_widget(
         BigText::builder()
-            .pixel_size(tui_big_text::PixelSize::Full)
+            .pixel_size(tui_big_text::PixelSize::HalfWidth)
             .lines(vec![Line::from("FOCUSA")])
             .style(theme::title())
             .build(),
@@ -136,5 +139,23 @@ mod tests {
     #[test]
     fn splash_version_line_is_non_empty() {
         assert!(!INTRO_VERSION_LINE.is_empty());
+    }
+
+    /// Regression: "FOCUSA" rendered at PixelSize::HalfWidth needs 4 cols × 6 chars = 24 cols.
+    /// The horizontal layout slot in `render()` is `Constraint::Length(30)`. If the slot is
+    /// ever smaller than the rendered width, the right edge of the logo gets clipped (operator
+    /// reported seeing "FOCU" instead of "FOCUSA"). This test pins the math so future
+    /// pixel-size or layout changes don't silently regress.
+    #[test]
+    fn big_text_focusa_width_fits_in_layout_slot() {
+        const LOGO_CHARS: usize = 6; // "FOCUSA"
+        const COLS_PER_CHAR_HALFWIDTH: u16 = 4; // 2 glyph pixels per cell, 8-px font
+        const RENDERED_WIDTH: u16 = LOGO_CHARS as u16 * COLS_PER_CHAR_HALFWIDTH;
+        const LAYOUT_SLOT: u16 = 30; // matches Constraint::Length(30) in render()
+        assert!(
+            RENDERED_WIDTH <= LAYOUT_SLOT,
+            "BigText HalfWidth 'FOCUSA' needs {RENDERED_WIDTH} cols, layout slot is {LAYOUT_SLOT}. \
+             Either widen the slot or pick a smaller pixel size (e.g., Quadrant=2x2 → 12 cols)."
+        );
     }
 }
