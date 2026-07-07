@@ -17,7 +17,7 @@
 //!   - full_payload_policy = "cold_opt_in"
 
 use crate::server::AppState;
-use axum::{Json, Router, extract::State, routing::{get, post}};
+use axum::{Json, Router, extract::State, http::StatusCode, routing::{get, post}};
 use serde_json::{Value, json};
 use std::sync::Arc;
 use rusqlite::{Connection, OptionalExtension, params};
@@ -822,30 +822,42 @@ async fn list_ledger(State(state): State<Arc<AppState>>) -> Json<Value> {
 async fn get_one_ledger(
     State(state): State<Arc<AppState>>,
     axum::extract::Path(provider): axum::extract::Path<String>,
-) -> Json<Value> {
+) -> (StatusCode, Json<Value>) {
     let db_path = ledger_db_path(&state.config.data_dir);
     let conn = match Connection::open(&db_path) {
         Ok(c) => c,
         Err(e) => {
-            return Json(json!({
-                "error": "db_open_failed",
-                "why": e.to_string(),
-            }));
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "error": "db_open_failed",
+                    "why": e.to_string(),
+                })),
+            );
         }
     };
     if let Err(e) = ensure_ledger_table(&conn) {
-        return Json(json!({"error": "schema_init_failed", "why": e.to_string()}));
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": "schema_init_failed", "why": e.to_string()})),
+        );
     }
     match fetch_one(&conn, &provider) {
-        Ok(Some(e)) => Json(entry_to_view_json(&e, &chrono_now())),
-        Ok(None) => Json(json!({
-            "schema": LEDGER_SCHEMA,
-            "found": false,
-            "provider": provider,
-            "effective_status": POLICY_STATUS_UNKNOWN,
-            "fallback": FALLBACK_TEXT_PASSTHROUGH,
-        })),
-        Err(e) => Json(json!({"error": "read_failed", "why": e.to_string()})),
+        Ok(Some(e)) => (StatusCode::OK, Json(entry_to_view_json(&e, &chrono_now()))),
+        Ok(None) => (
+            StatusCode::NOT_FOUND,
+            Json(json!({
+                "schema": LEDGER_SCHEMA,
+                "found": false,
+                "provider": provider,
+                "effective_status": POLICY_STATUS_UNKNOWN,
+                "fallback": FALLBACK_TEXT_PASSTHROUGH,
+            })),
+        ),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": "read_failed", "why": e.to_string()})),
+        ),
     }
 }
 
