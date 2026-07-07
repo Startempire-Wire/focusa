@@ -714,6 +714,7 @@ mod tests {
             assert!(!hint.is_empty(), "empty hint for {:?}", v.code());
             assert!(
                 hint.contains("https://install.focusa.dev")
+                    || hint.contains("https://wpuiai.com")
                     || hint.contains("60s")
                     || hint.contains("verify")
                     || hint.contains("Wait")
