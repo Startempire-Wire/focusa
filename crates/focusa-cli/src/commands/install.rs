@@ -278,6 +278,34 @@ async fn phase_license(args: &InstallArgs) -> Result<String> {
         RegistryValidateOutcome {
             response: Some(r),
             error: None,
+        } if r.valid && r.status == "dev_mode" => {
+            // Operator rule (2026-07-07): dev_mode is a test fixture for the
+            // operator's testing and must not hinder transactions. The
+            // registry returned a successful test-fixture response, not a
+            // real license row. The bash bootstrapper downgrades this to
+            // eval mode before reaching the Rust orchestrator, but if we
+            // hit this branch the caller passed `--license-key` to the
+            // Rust installer directly. Refuse and explain.
+            let require_real = std::env::var("FOCUSA_REQUIRE_REAL_LICENSE")
+                .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+                .unwrap_or(false);
+            if require_real {
+                return Err(anyhow!(
+                    "registry returned status=dev_mode for a license key; this is a TEST FIXTURE, not a real purchase. \
+                     unset FOCUSA_REQUIRE_REAL_LICENSE to allow dev_mode downgrades, or purchase at {}/buy.",
+                    registry
+                ));
+            }
+            eprintln!(
+                "[focusa-install] registry returned status=dev_mode for license key; downgrading to eval. \
+                 this is a TEST FIXTURE — purchase at {}/buy for a real commercial license.",
+                registry
+            );
+            Ok("dev_mode_downgraded_to_eval".to_string())
+        }
+        RegistryValidateOutcome {
+            response: Some(r),
+            error: None,
         } if r.valid => Ok("active".to_string()),
         RegistryValidateOutcome {
             response: Some(_),
