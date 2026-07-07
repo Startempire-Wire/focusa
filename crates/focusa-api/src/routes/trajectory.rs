@@ -2178,8 +2178,34 @@ async fn define_goal(
     State(state): State<Arc<AppState>>,
     Json(body): Json<TrajectoryDefineGoalRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    // MVP-launch safety: require explicit project_root + continuity_id. Without
+    // these, the trajectory lands in the global "unbound" bucket and pollutes
+    // downstream scope (workpoint, project_card, ontology). This was a real
+    // MVP-launch blocker: `focusa trajectory define-goal` without --project-root
+    // would complete and return canonical=true,persisted=true.
+    let project_root = body.project_root.as_deref().unwrap_or("").trim();
+    let continuity_id = body.continuity_id.as_deref().unwrap_or("").trim();
+    if project_root.is_empty() || continuity_id.is_empty() {
+        return Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({
+                "status": "validation_rejected",
+                "canonical": false,
+                "failure_class": "scope_required",
+                "missing_fields": if project_root.is_empty() && continuity_id.is_empty() {
+                    vec!["project_root", "continuity_id"]
+                } else if project_root.is_empty() {
+                    vec!["project_root"]
+                } else {
+                    vec!["continuity_id"]
+                },
+                "retry_posture": "do_not_retry_unchanged",
+                "next_step_hint": "Both project_root and continuity_id are required for focusa trajectory define-goal. Bind the session via `focusa project identity --project-root <path>` first, then pass the returned project_id and continuity_id to this call.",
+            })),
+        ));
+    }
+
     // QN Addendum (2026-06-08): Reject agent runtime paths as project scope
-    let project_root = body.project_root.as_deref().unwrap_or("");
     let identity = project_identity_payload_for_scope(Some(project_root), Some(project_root), None);
     let identity_status = identity
         .get("project_identity")
