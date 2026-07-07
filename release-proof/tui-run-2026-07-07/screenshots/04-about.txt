@@ -1,0 +1,36 @@
+
+
+
+
+
+
+                 ┏ About Focusa ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+                 ┃FOCUSA                                                                                                 ┃
+                 ┃Local-first mission cohesion for AI coding agents.                                                     ┃
+                 ┃                                                                                                       ┃
+                 ┃Version       0.9.67-dev                                                                               ┃
+                 ┃Build         release · 0.9.67-dev                                                                     ┃
+                 ┃License       BSL-1.1 (source-available)                                                               ┃
+                 ┃                                                                                                       ┃
+                 ┃Credits                                                                                                ┃
+                 ┃• FOCUSA team — Verious Smith (owner) and contributors                                                 ┃
+                 ┃• Mission Deck, Bloatgaurd, Context Cognition — Focusa core                                            ┃
+                 ┃• Spec 101 / 117 / 119 — focusa-spec working group                                                     ┃
+                 ┃• Pi tool, menubar, menubar web — Focusa integrations                                                  ┃
+                 ┃• UIAI Engine, Paste, Flow — operator preview integrations                                             ┃
+                 ┃                                                                                                       ┃
+                 ┃Press Esc to close.                                                                                    ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛

@@ -1,0 +1,42 @@
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+┌ Deck Home · Mission + Proof ─────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│Mission Deck — keep the mission, prove the handoff.                                                                                       │
+│Session       019f2ed7-5b15-76e3-8a0a-8fbe9c4e4799                                                                                        │
+│Active frame  019f2eed-cdc1-7bc1-b821-50f320c0a6ad                                                                                        │
+│Scope badge   [blocked]  scope or action authority conflict                                                                               │
+│Proof meter   [-----]  no proof refs visible                                                                                              │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌ Mission Control ┌ Help Overlay ────────────────────────────────────────────────────────────────────────────────────────┐─────────────────┐
+│Next safe action │Mission Deck Help — press h or ? to close                                                             │                 │
+│State          no│                                                                                                      │                 │
+│This project is k│• Workpoint — the saved mission state: objective, current action, proof, next action.                 │                 │
+│Primary action Cr│• Evidence — a test, file, screenshot, command output, or URL proving the claim.                      │                 │
+│Command        fo│• Recall — Focusa remembering the mission after compaction, restart, or handoff.                      │                 │
+│Authority     adv│• Mission Ladder — high-level goal → current milestone → next safe action.                            │                 │
+│Why           A W│• Authority badges — canonical means safe to act; advisory means review first; blocked means stop and │                 │
+│Intent        No │rebind.                                                                                               │                 │
+│Focus         Bin│                                                                                                      │                 │
+│Keys          d D│Rule: Beginner Mode shows one primary next safe action, with why before commands.                     │                 │
+└─────────────────│                                                                                                      │─────────────────┘
+┌ Mission Ladder ─│                                                                                                      │─────────────────┐
+│HLT: Maintain and│                                                                                                      │                 │
+│└─ MLG: unavailab│                                                                                                      │                 │
+│└─ STG: unavailab│                                                                                                      │                 │
+│└─ Workpoint: una│                                                                                                      │                 │
+│└─ Evidence: miss│                                                                                                      │                 │
+│                 │                                                                                                      │                 │
+│                 │                                                                                                      │                 │
+│                 │                                                                                                      │                 │
+│                 │                                                                                                      │                 │
+│                 │                                                                                                      │                 │
+│                 │                                                                                                      │                 │
+│                 │                                                                                                      │                 │
+│                 └──────────────────────────────────────────────────────────────────────────────────────────────────────┘                 │
+│                                                                                                                                          │
+│                                                                                                                                          │
+│                                                                                                                                          │
+│                                                                                                                                          │
+│                                                                                                                                          │
+│                                                                                                                                          │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+n=deck  /=recall  l=learn  ?=help  a=about  :=cmd  q=quit · updated 18:52:58

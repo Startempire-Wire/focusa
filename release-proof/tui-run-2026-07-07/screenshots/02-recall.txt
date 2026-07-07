@@ -1,0 +1,36 @@
+
+
+
+
+
+
+                 ┏ Recall (advisory) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+                 ┃Sources (advisory): events, workpoints, evidence refs, audit timeline,                                 ┃
+                 ┃agent bootstrap, UIAI diagnostics, manual session notes.                                               ┃
+                 ┃                                                                                                       ┃
+                 ┃Recall is advisory only.                                                                               ┃
+                 ┃Promote to Workpoint candidate only after operator approval.                                           ┃
+                 ┃                                                                                                       ┃
+                 ┃Continuity: (not bound)                                                                                ┃
+                 ┃Press Esc to close.                                                                                    ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛

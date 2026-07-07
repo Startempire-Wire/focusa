@@ -2,10 +2,14 @@
 .SYNOPSIS
   Focusa Installer — PowerShell bootstrapper (Spec 112 §15A.4).
 .DESCRIPTION
-  Thin bootstrapper per Spec 112 §15A.4. Downloads the `focusa` binary
-  from a GitHub release, verifies SHA256SUMS, then `exec`s the Rust
-  `focusa install` orchestrator with --target=windows-<arch>. All real
-  install logic lives in crates/focusa-cli/src/commands/install.rs.
+  Thin bootstrapper per Spec 112 §15A.4. Discovers the latest COMPLETE
+  Focusa release (one that ships focusa, focusa-daemon, AND focusa-tui
+  binaries for the detected Windows triple), downloads the focusa CLI,
+  verifies SHA256SUMS if available, then exec's the Rust orchestrator.
+
+  No version strings are hardcoded. Channel pattern only (stable / preview /
+  nightly). Partial releases are skipped automatically.
+
 .PARAMETER DryRun
   Print install plan without writing.
 .PARAMETER Eval
@@ -16,6 +20,10 @@
   Release channel: stable | preview | nightly.
 .PARAMETER Target
   Platform target: auto | windows-x64 | windows-arm64.
+.PARAMETER GitHubRepo
+  Override GitHub repo (default: Startempire-Wire/focusa).
+.PARAMETER MaxCandidates
+  How many of the most-recent releases to scan (default 20).
 #>
 param(
   [switch]$DryRun,
@@ -23,67 +31,166 @@ param(
   [string]$LicenseKey = "",
   [string]$Channel = "stable",
   [string]$Target = "auto",
-  [string]$GitHubRepo = "Startempire-Wire/focusa"
+  [string]$GitHubRepo = "Startempire-Wire/focusa",
+  [int]$MaxCandidates = 20
 )
 
 $ErrorActionPreference = "Stop"
 
-function Log($msg)  { Write-Host "[focusa-bootstrap] $msg" -ForegroundColor Cyan }
-function Die($msg)  { Log $msg; exit 1 }
+# License key precedence: --license-key > $env:FOCUSA_LICENSE_KEY > $env:WPUIAI_LICENSE_KEY
+if (-not $LicenseKey -and $env:FOCUSA_LICENSE_KEY) { $LicenseKey = $env:FOCUSA_LICENSE_KEY }
+if (-not $LicenseKey -and $env:WPUIAI_LICENSE_KEY) { $LicenseKey = $env:WPUIAI_LICENSE_KEY }
+$LicenseRegistry = if ($env:LICENSE_REGISTRY) { $env:LICENSE_REGISTRY } else { "https://wpuiai.com" }
 
-# Resolve channel -> tag
+function Log($msg) { Write-Host "[focusa-install] $msg" -ForegroundColor Cyan }
+function Warn($msg) { Write-Host "[focusa-install] $msg" -ForegroundColor Yellow }
+function Die($msg) { Write-Error "[focusa-install] $msg"; exit 1 }
+
+# ---------------------------------------------------------------------------
+# Detect OS + arch (no hardcoded target — derived from runtime).
+# ---------------------------------------------------------------------------
+if ($Target -eq "auto") {
+  if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -match "Arm64") {
+    $Triple = "aarch64-pc-windows-msvc"
+    $ResolvedTarget = "windows-arm64"
+  } else {
+    $Triple = "x86_64-pc-windows-msvc"
+    $ResolvedTarget = "windows-x64"
+  }
+} elseif ($Target -eq "windows-arm64") {
+  $Triple = "aarch64-pc-windows-msvc"
+  $ResolvedTarget = "windows-arm64"
+} else {
+  $Triple = "x86_64-pc-windows-msvc"
+  $ResolvedTarget = "windows-x64"
+}
+
+# ---------------------------------------------------------------------------
+# Channel pattern (no version strings).
+# ---------------------------------------------------------------------------
 switch ($Channel) {
-  "stable"  { $Tag = "v0.9.54-dev" }
-  "preview" { $Tag = "v0.9.55-dev-preview" }
-  "nightly" { $Tag = "v0.9.55-dev-nightly" }
+  "stable"  { $ChannelPattern = "^v.*$" }
+  "preview" { $ChannelPattern = "^v.*-preview$" }
+  "nightly" { $ChannelPattern = "^v.*-nightly$" }
   default   { Die "unknown channel: $Channel" }
 }
 
-# Detect arch
-$Arch = if ([System.Environment]::Is64BitOperatingSystem) {
-  if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -match "Arm64") { "arm64" } else { "x64" }
-} else { Die "32-bit Windows not supported" }
+$RequiredAssets = @("focusa", "focusa-daemon", "focusa-tui")
 
-# Resolve asset URL via GH release API
-$Manifest = Invoke-RestMethod -Uri "https://api.github.com/repos/$GitHubRepo/releases/tags/$Tag" `
-  -Headers @{ "User-Agent" = "focusa-install/0.9.54-dev" }
-$AssetName = "focusa-$Tag-windows-$Arch"
-$Asset = $Manifest.assets | Where-Object { $_.name -like "$AssetName*" } | Select-Object -First 1
-if (-not $Asset) { Die "asset $AssetName not in $Tag" }
+# ---------------------------------------------------------------------------
+# Discover latest COMPLETE release.
+# Iterates GH releases newest-first and picks the first whose assets include
+# focusa-{tag}-{triple}, focusa-daemon-{tag}-{triple}, focusa-tui-{tag}-{triple}.
+# ---------------------------------------------------------------------------
+Log "Scanning GitHub releases for latest complete build (channel=$Channel, triple=$Triple)"
+$Releases = Invoke-RestMethod -Uri "https://api.github.com/repos/$GitHubRepo/releases?per_page=30" `
+  -Headers @{ "User-Agent" = "focusa-install-ps" }
+if (-not $Releases) { Die "release list fetch failed" }
 
-# Install dir
+$Selected = $null
+$Seen = 0
+foreach ($Rel in $Releases) {
+  $Tag = $Rel.tag_name
+  if (-not $Tag) { continue }
+  if ($Tag -notmatch $ChannelPattern) { continue }
+  $Seen += 1
+  if ($Seen -gt $MaxCandidates) { break }
+
+  $AssetNames = @{}
+  foreach ($A in $Rel.assets) { $AssetNames[$A.name] = $A.browser_download_url }
+
+  $HasAll = $true
+  foreach ($R in $RequiredAssets) {
+    $Expected = "$R-$Tag-$Triple"
+    if (-not $AssetNames.ContainsKey($Expected)) { $HasAll = $false; break }
+  }
+  if ($HasAll) {
+    $Selected = @{
+      Tag    = $Tag
+      Focusa = $AssetNames["focusa-$Tag-$Triple"]
+    }
+    break
+  }
+}
+
+if (-not $Selected) {
+  Die "no complete release found for channel='$Channel' triple='$Triple' within first $MaxCandidates releases. A complete release ships focusa + focusa-daemon + focusa-tui for the triple. See https://github.com/$GitHubRepo/releases."
+}
+
+$Tag = $Selected.Tag
+$AssetUrl = $Selected.Focusa
+Log "Selected release: $Tag (triple=$Triple)"
+
+# ---------------------------------------------------------------------------
+# Download focusa CLI.
+# ---------------------------------------------------------------------------
 $InstallRoot = Join-Path $env:LOCALAPPDATA "Programs\Focusa"
 $BinDir = Join-Path $InstallRoot "bin"
-New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
-
-# Download
 $Tmp = New-TemporaryFile
 try {
-  Invoke-WebRequest -Uri $Asset.browser_download_url -OutFile "$($Tmp.FullName).tmp" -UseBasicParsing
-  Move-Item -Force "$($Tmp.FullName).tmp" (Join-Path $BinDir "focusa.exe")
+  if ($DryRun) {
+    Log "DRY RUN: would download $AssetUrl -> $BinDir\focusa.exe"
+  } else {
+    New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
+    Invoke-WebRequest -Uri $AssetUrl -OutFile "$($Tmp.FullName).tmp" -UseBasicParsing
+    Move-Item -Force "$($Tmp.FullName).tmp" (Join-Path $BinDir "focusa.exe")
+    Log "Installed focusa CLI to $BinDir\focusa.exe"
+  }
 } finally {
   Remove-Item -Force $Tmp -ErrorAction SilentlyContinue
 }
 
-# SHA256 verify (best-effort)
-try {
-  $ShaUrl = "https://github.com/$GitHubRepo/releases/download/$Tag/SHA256SUMS.txt"
-  $Sha = Invoke-WebRequest -Uri $ShaUrl -UseBasicParsing | Select-Object -ExpandProperty Content
-  $Expected = ($Sha -split "`n" | Where-Object { $_ -match $AssetName } | Select-Object -First 1) `
-    -replace '^\s*([a-f0-9]+)\s+.*$', '$1'
-  if ($Expected) {
-    $Actual = (Get-FileHash (Join-Path $BinDir "focusa.exe") -Algorithm SHA256).Hash.ToLower()
-    if ($Actual -ne $Expected.ToLower()) { Die "checksum mismatch" }
+# ---------------------------------------------------------------------------
+# SHA256SUMS verify (best-effort; tries SHA256SUMS then SHA256SUMS.txt).
+# ---------------------------------------------------------------------------
+if (-not $DryRun) {
+  $AssetFocusa = "focusa-$Tag-$Triple"
+  $Actual = (Get-FileHash (Join-Path $BinDir "focusa.exe") -Algorithm SHA256).Hash.ToLower()
+  $Verified = $false
+  foreach ($ShaPath in @("SHA256SUMS", "SHA256SUMS.txt")) {
+    try {
+      $ShaUrl = "https://github.com/$GitHubRepo/releases/download/$Tag/$ShaPath"
+      $ShaLines = (Invoke-WebRequest -Uri $ShaUrl -UseBasicParsing).Content -split "`n"
+      foreach ($Line in $ShaLines) {
+        if ($Line -match "^\s*([a-f0-9]+)\s+(.*)$") {
+          $Expected = $Matches[1].ToLower()
+          $Name = $Matches[2]
+          if ($Name -eq $AssetFocusa) {
+            if ($Expected -eq $Actual) { $Verified = $true; Log "SHA256 verified" }
+            else { Die "checksum mismatch for $AssetFocusa" }
+            break
+          }
+        }
+      }
+      if ($Verified) { break }
+    } catch {
+      Warn "could not fetch $ShaPath: $($_.Exception.Message)"
+    }
   }
-} catch { Log "warning: SHA256SUMS not available; skipping verify" }
+  if (-not $Verified) { Warn "SHA256SUMS not available for $Tag; skipping verify" }
+}
 
-# Hand off to Rust orchestrator
-$Args = @("install", "--target=$Target")
-if ($DryRun)   { $Args += "--dry-run" }
-if ($Eval)      { $Args += "--eval" }
-if ($LicenseKey){ $Args += "--license-key=$LicenseKey" }
+# ---------------------------------------------------------------------------
+# Hand off to Rust orchestrator (downloads focusa-daemon + focusa-tui
+# from the same release, validates license, renders service, etc.).
+# ---------------------------------------------------------------------------
+$Focusa = Join-Path $BinDir "focusa.exe"
+$Args = @("install", "--target=$ResolvedTarget", "--version=$Tag", "--github-repo=$GitHubRepo")
+if ($DryRun) { $Args += "--dry-run" }
+if ($Eval) { $Args += "--eval" }
+if ($LicenseKey) { $Args += "--license-key=$LicenseKey" }
+elseif (-not $Eval) {
+  # Default to --eval when no license key was provided AND -Eval was not set,
+  # so first-time users get a working install. Activate license later via
+  # `focusa license activate <key>`.
+  $Args += "--eval"
+  Log "no license key provided; defaulting to --eval mode (install will succeed; activate license later with 'focusa license activate <key>')."
+}
 if ($Channel -ne "stable") { $Args += "--channel=$Channel" }
-$Args += "--github-repo=$GitHubRepo"
 
-Log "delegating to focusa install ($($Args -join ' '))"
-& (Join-Path $BinDir "focusa.exe") @Args
+if ($DryRun) {
+  Log "DRY RUN: would exec: $Focusa $($Args -join ' ')"
+} else {
+  & $Focusa @Args
+  if ($LASTEXITCODE -ne 0) { Die "focusa install failed with exit code $LASTEXITCODE" }
+}

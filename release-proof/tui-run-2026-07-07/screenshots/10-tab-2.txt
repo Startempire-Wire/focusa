@@ -1,0 +1,42 @@
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+┌ Focus Stack ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│  13853 frames  │  path: [019f2ed7-5c00-74e0-94dc-fa07b5ff4f1d → 019f2ede-713f-7792-bc45-5245959a71a7 → 019f2ee0-bb09-7323-b7c3-cef7b0c5ac│
+│                                                                                                                                          │
+│  [019c86ff…]                                                                                                                             │
+│       completed  beads:test-001                                                                                                          │
+│  [019c8700…]                                                                                                                             │
+│       completed  beads:audit-1                                                                                                           │
+│  [019c8827…]                                                                                                                             │
+│       completed  beads:TEST-FOC                                                                                                          │
+│  [019cfd9a…]                                                                                                                             │
+│       completed  beads:TEST-REA                                                                                                          │
+│  [019d53ff…]                                                                                                                             │
+│       completed  beads:📋                                                                                                                 │
+│  [019d5427…]                                                                                                                             │
+│       paused  beads:focusa-f                                                                                                             │
+│  [019d54a2…]                                                                                                                             │
+│       paused  beads:pi-reset                                                                                                             │
+│  [019d5507…]                                                                                                                             │
+│       paused  beads:pi-reset                                                                                                             │
+│  [019d555c…] Fix Focus State pollution loop (LLM output bypassing validation, loose extraction patterns) and daemon emoji panics (floor_c│
+│       paused  beads:pi-reset                                                                                                             │
+│  [019d5b75…]                                                                                                                             │
+│       completed  beads:focusa-a                                                                                                          │
+│  [019d5b78…]                                                                                                                             │
+│       completed  beads:focusa-a                                                                                                          │
+│  [019d5b7e…]                                                                                                                             │
+│       paused  beads:focusa-c                                                                                                             │
+│  [019d5c35…]                                                                                                                             │
+│       paused  beads:focusa-a                                                                                                             │
+│  [019d85a7…]                                                                                                                             │
+│       paused  beads:pi-ct-00                                                                                                             │
+│  [019d85b0…]                                                                                                                             │
+│       paused  beads:pi-ct-00                                                                                                             │
+│  [019d85c0…]                                                                                                                             │
+│       paused  beads:pi-ct-00                                                                                                             │
+│  [019d85c1…]                                                                                                                             │
+│       paused  beads:pi-ct-00                                                                                                             │
+│  [019d85c9…]                                                                                                                             │
+│       paused  beads:spec53-0                                                                                                             │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+n=deck  /=recall  l=learn  ?=help  a=about  :=cmd  q=quit · updated 18:56:50

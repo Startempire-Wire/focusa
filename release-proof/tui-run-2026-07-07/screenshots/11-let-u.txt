@@ -1,0 +1,42 @@
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+┌ UXP Profile ───────────────────────────────────────────────────────┐┌ UFI Signals ───────────────────────────────────────────────────────┐
+│autonomy tolerance       ███████░░░░░░░░ 0.50 c=0.00                ││Aggregate: 0.660                                                    │
+│verbosity preference     ███████░░░░░░░░ 0.50 c=0.00                ││Signals: 41523                                                      │
+│interruption sensitivity █████████░░░░░░ 0.66 c=1.00                ││                                                                    │
+│explanation depth        ███████░░░░░░░░ 0.50 c=0.00                ││[low] negation_language                                             │
+│confirmation preference  ███████░░░░░░░░ 0.50 c=0.00                ││[medium] scope_clarification                                        │
+│risk tolerance           ███████░░░░░░░░ 0.50 c=0.00                ││[medium] repeat_request                                             │
+│review cadence           ███████░░░░░░░░ 0.50 c=0.00                ││[high] manual_override                                              │
+│                                                                    ││[low] negation_language                                             │
+│                                                                    ││[medium] scope_clarification                                        │
+│                                                                    ││[medium] repeat_request                                             │
+│                                                                    ││[high] manual_override                                              │
+│                                                                    ││[low] negation_language                                             │
+│                                                                    ││[medium] scope_clarification                                        │
+│                                                                    ││[medium] repeat_request                                             │
+│                                                                    ││[high] manual_override                                              │
+│                                                                    ││[low] negation_language                                             │
+│                                                                    ││[medium] scope_clarification                                        │
+│                                                                    ││[medium] repeat_request                                             │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+└────────────────────────────────────────────────────────────────────┘└────────────────────────────────────────────────────────────────────┘
+n=deck  /=recall  l=learn  ?=help  a=about  :=cmd  q=quit · updated 18:54:31

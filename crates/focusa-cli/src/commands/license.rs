@@ -93,7 +93,7 @@ pub(crate) struct RegistryValidateResponse {
     expires_at: Option<String>,
 }
 
-const DEFAULT_REGISTRY: &str = "https://install.focusa.dev";
+const DEFAULT_REGISTRY: &str = "https://wpuiai.com";
 const REGISTRY_VALIDATE_PATH: &str = "/wp-json/wpuiai-ai-cloud/v1/license/validate";
 const LICENSE_FILE_NAME: &str = "license.json";
 
@@ -147,9 +147,9 @@ impl RegistryError {
     pub fn recovery_hint(&self) -> &'static str {
         match self {
             Self::NotFound | Self::Invalid => {
-                "Purchase or check key at https://install.focusa.dev/buy"
+                "Purchase or check key at https://wpuiai.com/buy"
             }
-            Self::Revoked => "Contact https://install.focusa.dev/license for reissue",
+            Self::Revoked => "Contact https://wpuiai.com/wp-admin for reissue",
             Self::Expired(_) => "Renew at https://install.focusa.dev/renew",
             Self::Malformed(_) => {
                 "Verify the key was copied correctly (no spaces or line wraps)"
@@ -226,6 +226,15 @@ pub(crate) async fn registry_validate(registry: &str, key: &str) -> RegistryVali
     };
 
     if !status.is_success() {
+        // WordPress often returns HTTP 404 with a typed JSON envelope
+        // (`{"valid":false,"error":"license_not_found",...}`). Parse that body
+        // so callers see a structured `valid:false` rather than a transport error.
+        if let Ok(parsed) = serde_json::from_value::<RegistryValidateResponse>(body.clone()) {
+            return RegistryValidateOutcome {
+                response: Some(parsed),
+                error: None,
+            };
+        }
         return RegistryValidateOutcome {
             response: None,
             error: Some(map_wp_error_status(status.as_u16(), &body)),
@@ -623,7 +632,7 @@ async fn run_check_feature(json_output: bool, args: CheckFeatureArgs) -> anyhow:
         }
         Err(err) => {
             let purchase = "https://focusa.dev";
-            let docs_url = "https://install.focusa.dev/license";
+            let docs_url = "https://wpuiai.com/wp-admin";
             let out = json!({
                 "error": "license_required",
                 "feature": feature,

@@ -1,0 +1,42 @@
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+MISSION CONTROL  focusa  connected─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│Mission Deck — keep the mission, prove the handoff.                                                                                       │
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+┌ Mission Card ──────────────────────────────────────────────────────┐┌ Proof Meter ────────────────────┐┌ Scope Badge ────────────────────┐
+│Missionadge   [blocked]  scope or action authority conflict         ││[-----]  no proof refs visible   ││[blocked]  scope or action       │
+│Intent        [-----]  no proof refs visible                        ││affordance  unavailable          ││authority conflict               │
+│Current      Bind project, resume workpoint, capture proof──────────││─────────────────────────────────││precedence  scope ->─────────────│
+│Next action  Create a Workpoint checkpoint──────────────────────────││─────────────────────────────────││authority_posture -> operator────│
+│Authority    advisory · beginner state no_workpoint                 ││                                 ││                                 │
+│Why          A Workpoint is the canonical save state for mission,   │└─────────────────────────────────┘└─────────────────────────────────┘
+│action, ev…t is known, but no saved mission exists yet. Create a Wor│┌ Mission Ladder ────────────────────────────────────────────────────┐
+│Primary action Create a Workpoint checkpoint                        ││HLT  unavailable                                                    │
+│n next · / recall · l learn · ? help · a about · q quit             ││└─ MLG  unavailable                                                 │
+│Authority     advisory · context no_workpoint                       ││└─ STG  unavailable                                                 │
+│Why           A Workpoint is the canonical save state for mission, a││└─ WP  unavailable next step.                                       │
+│Intent        No Focus State intent yet                             ││└─ Evidence  unavailable                                            │
+│Focus         Bind project, resume workpoint, capture proof         ││                                                                    │
+│Keys          d Deck · n next · / recall · h help · r refresh · q qu││                                                                    │
+│────────────────────────────────────────────────────────────────────││────────────────────────────────────────────────────────────────────│
+│ Mission Ladder ────────────────────────────────────────────────────││────────────────────────────────────────────────────────────────────│
+│HLT: Maintain and improve Dual Server Master Plan within verified pr││ect sco…                                                            │
+│└─ MLG: unavailable — checkpoint mission hierarchy                  ││                                                                    │
+│└─ STG: unavailable — checkpoint mission hierarchy                  ││                                                                    │
+│└─ Workpoint: unavailable — checkpoint current mission              ││                                                                    │
+│└─ Evidence: missing — no proof visible yet                         │└────────────────────────────────────────────────────────────────────┘
+│                                                                    │┌ Learn · walkthroughs available ────────────────────────────────────┐
+│                                                                    ││Press 'l' to open Learn modal.                                      │
+│                                                                    ││1. First Mission                                                    │
+│                                                                    ││2. Agent Handoff                                                    │
+│                                                                    ││3. No Proof, No Done                                                │
+│                                                                    ││4. Clean Install                                                    │
+│                                                                    ││5. Clean Uninstall                                                  │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+│                                                                    ││                                                                    │
+└────────────────────────────────────────────────────────────────────┘└────────────────────────────────────────────────────────────────────┘
+n=deck  /=recall  l=learn  ?=help  a=about  :=cmd  q=quit · updated 18:53:19

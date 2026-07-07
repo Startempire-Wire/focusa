@@ -1,0 +1,36 @@
+
+
+
+
+
+
+                 ┏ Learn · walkthroughs ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+                 ┃Choose a walkthrough with 1/2/3:                                                                       ┃
+                 ┃▶ [1] First Mission · beginner · first-mission                                                         ┃
+                 ┃[2] Agent Handoff · agent · agent-handoff                                                              ┃
+                 ┃[3] No Proof, No Done · beginner · no-proof-no-done                                                    ┃
+                 ┃[4] Clean Install · beginner · clean-install                                                           ┃
+                 ┃[5] Clean Uninstall · beginner · clean-uninstall                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃Why                                                                                                    ┃
+                 ┃Teaches the core Focusa loop: daemon → project → Workpoint → evidence → resume.                        ┃
+                 ┃                                                                                                       ┃
+                 ┃Success                                                                                                ┃
+                 ┃A second agent can run resume and continue the same mission safely.                                    ┃
+                 ┃                                                                                                       ┃
+                 ┃Anti-drift                                                                                             ┃
+                 ┃Do not rely on transcript tail when Workpoint resume is available.                                     ┃
+                 ┃                                                                                                       ┃
+                 ┃Steps                                                                                                  ┃
+                 ┃1. Start daemon: focusa start                                                                          ┃
+                 ┃2. Bind project: focusa init --quickstart                                                              ┃
+                 ┃3. Create Workpoint: focusa workpoint checkpoint                                                       ┃
+                 ┃4. Attach evidence or mark proof gap explicitly                                                        ┃
+                 ┃5. Resume: focusa workpoint resume                                                                     ┃
+                 ┃6. Show mission is resumable across handoff                                                            ┃
+                 ┃                                                                                                       ┃
+                 ┃Esc closes · CLI: focusa walkthrough show --walkthrough <id>                                           ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┃                                                                                                       ┃
+                 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛

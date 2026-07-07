@@ -1,0 +1,42 @@
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+┌ Agent Skills ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│Total Skills: 18                                                                                                                          │
+│                                                                                                                                          │
+│                                                                                                                                          │
+│  cognition_inspection:                                                                                                                   │
+│    ✓ inspect_focus        Inspect Focus State                                                                                            │
+│    ✓ inspect_stack        Inspect Focus Stack                                                                                            │
+│    ✓ inspect_gate         Inspect Focus Gate                                                                                             │
+│    ✓ inspect_lineage      Inspect CLT                                                                                                    │
+│    ✓ inspect_memory       Inspect Memory                                                                                                 │
+│    ✓ inspect_constitution Inspect Constitution                                                                                           │
+│    ✓ inspect_autonomy     Inspect Autonomy                                                                                               │
+│    ✓ inspect_uxp          Inspect UXP/UFI                                                                                                │
+│                                                                                                                                          │
+│  telemetry_metrics:                                                                                                                      │
+│    ✓ metrics_tokens       Token Usage Metrics                                                                                            │
+│    ✓ metrics_cost         Cost Metrics                                                                                                   │
+│    ✓ metrics_efficiency   Efficiency Metrics                                                                                             │
+│    ✓ metrics_session      Session Metrics                                                                                                │
+│                                                                                                                                          │
+│  explanation_traceability:                                                                                                               │
+│    ✓ explain_decision     Explain Decision                                                                                               │
+│    ✓ trace_lineage        Trace Lineage Path                                                                                             │
+│                                                                                                                                          │
+│  proposal_request:                                                                                                                       │
+│    ✓ propose_focus        Propose Focus Change                                                                                           │
+│    ✓ propose_thesis       Propose Thesis Update                                                                                          │
+│    ✓ propose_autonomy     Propose Autonomy Adjustment                                                                                    │
+│    ✓ propose_constitution Propose Constitution Revision                                                                                  │
+│                                                                                                                                          │
+│  Prohibited:                                                                                                                             │
+│    ✗ set_focus_state                                                                                                                     │
+│    ✗ modify_lineage                                                                                                                      │
+│    ✗ write_reference                                                                                                                     │
+│    ✗ activate_constitution                                                                                                               │
+│    ✗ escalate_autonomy                                                                                                                   │
+│    ✗ approve_export                                                                                                                      │
+│                                                                                                                                          │
+│                                                                                                                                          │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+n=deck  /=recall  l=learn  ?=help  a=about  :=cmd  q=quit · updated 18:54:25
