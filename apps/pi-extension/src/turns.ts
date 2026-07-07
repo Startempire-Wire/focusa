@@ -9,7 +9,90 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
 import type { PiGoverningPriorKind } from "./state.js";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, persistState, projectRootConfirmationRequired, projectRootConfirmationSummary, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, maybeCaptureReportSummaryFromAssistantOutput, recordToolOutputPressure, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, markVisibleRecapEmittedIfPresent, observeProjectThreadHintsFromText, formatProjectSwitchLedgerLines, buildCurrentAskScopeVerdict, formatCurrentAskScopeVerdictLines, getActiveWorkpointPacket, setActiveWorkpointPacket, getActiveWorkpointSummary, setActiveWorkpointSummary, getLastTrajectoryClarity, setLastTrajectoryClarity, getLastProjectVerify, getLatestReportSummary , setLastStreamLen, resetToolUsageBatch, getToolUsageBatch, pushToToolUsageBatch, setLongSessionSignaled, getLongSessionSignaled, getCurrentTaskTurnStart, setCurrentTaskTurnStart, incrementTotalCompactions, getLastStreamLen, pushCompilationError, getCompilationErrors, incrementFileEditCount, getFileEditCounts, getTurnCount, setTurnCount, incrementTurnCount, getSessionCwd, getContinuityId, pushRecentTurn, getRecentTurns, formatRecentTurnsSection, shouldEmitRecentTurnsSlice, markRecentTurnsSliceEmitted, type RecentTurnSlice } from "./state.js";
+import {
+  S,
+  focusaFetch,
+  focusaPost,
+  extractText,
+  getFocusState,
+  getEffectiveFocusSnapshot,
+  estimateTokens,
+  wbExec,
+  storeEcsArtifact,
+  classifyCurrentAsk,
+  deriveQueryScope,
+  isOperatorSteeringInput,
+  selectRelevantItems,
+  selectRelevantRankedItems,
+  shouldIncludeMissionContext,
+  buildSliceSection,
+  selectionRelevanceScore,
+  retentionBucketsFromSelection,
+  formatWorkingSetItems,
+  formatVerifiedDeltaItems,
+  buildCanonicalReferenceAliases,
+  orderSliceSections,
+  rescopePiFrameFromCurrentAsk,
+  stripQuotedFocusaContext,
+  detectForbiddenVisibleOutputLeakClasses,
+  detectScopeFailureSignals,
+  getSemanticMemorySummary,
+  getEcsHandlesSummary,
+  getScopedWorkpointPacket,
+  ensureContinuityId,
+  isProjectRootAuthoritySafe,
+  isWorkpointPacketScopedToCurrentSession,
+  refreshTrajectoryClarityLifecycle,
+  stampWorkpointPacketForCurrentPiSession,
+  adoptPiProjectRoot,
+  persistState,
+  projectRootConfirmationRequired,
+  projectRootConfirmationSummary,
+  buildAttentionRecallVerdict,
+  formatAttentionRecallFocusSliceLines,
+  maybeCaptureReportSummaryFromAssistantOutput,
+  recordToolOutputPressure,
+  toolOutputVisibleRecapReason,
+  formatToolOutputVisibleRecapLines,
+  markVisibleRecapEmittedIfPresent,
+  observeProjectThreadHintsFromText,
+  formatProjectSwitchLedgerLines,
+  buildCurrentAskScopeVerdict,
+  formatCurrentAskScopeVerdictLines,
+  getActiveWorkpointPacket,
+  setActiveWorkpointPacket,
+  getActiveWorkpointSummary,
+  setActiveWorkpointSummary,
+  getLastTrajectoryClarity,
+  setLastTrajectoryClarity,
+  getLastProjectVerify,
+  getLatestReportSummary,
+  setLastStreamLen,
+  resetToolUsageBatch,
+  getToolUsageBatch,
+  pushToToolUsageBatch,
+  setLongSessionSignaled,
+  getLongSessionSignaled,
+  getCurrentTaskTurnStart,
+  setCurrentTaskTurnStart,
+  incrementTotalCompactions,
+  getLastStreamLen,
+  pushCompilationError,
+  getCompilationErrors,
+  incrementFileEditCount,
+  getFileEditCounts,
+  getTurnCount,
+  setTurnCount,
+  incrementTurnCount,
+  getSessionCwd,
+  getContinuityId,
+  pushRecentTurn,
+  getRecentTurns,
+  formatRecentTurnsSection,
+  shouldEmitRecentTurnsSlice,
+  markRecentTurnsSliceEmitted,
+  type RecentTurnSlice,
+} from "./state.js";
 import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
@@ -73,14 +156,16 @@ async function fetchRecentTurnsFromDaemon(n: number): Promise<RecentTurnSlice[]>
   try {
     const continuity = getContinuityId();
     if (!continuity) return [];
-    const res: any = await focusaFetch(`/v1/turns/recent?n=${n}&continuity_id=${encodeURIComponent(continuity)}`);
+    const res: any = await focusaFetch(
+      `/v1/turns/recent?n=${n}&continuity_id=${encodeURIComponent(continuity)}`
+    );
     const value = res?.value;
     if (!value || Array.isArray(value?.error)) return [];
     const turns = Array.isArray(value?.turns) ? value.turns : [];
     return turns.map((t: any) => ({
       turn_id: String(t.turn_id || "?"),
       mission_at_turn: String(t.mission_at_turn || ""),
-      outcome: (String(t.outcome || "tooled")) as RecentTurnSlice["outcome"],
+      outcome: String(t.outcome || "tooled") as RecentTurnSlice["outcome"],
       evidence_refs: Array.isArray(t.evidence_refs) ? t.evidence_refs : [],
       tool_call_count: Number(t.tool_call_count || 0),
       emitted_at: Number(t.emitted_at || 0),
@@ -106,9 +191,12 @@ async function injectRecentTurnsSlice(event: any, n: number = 4): Promise<void> 
   // Use daemon data, format inline.
   const lines = [`Recent turns (last ${daemonTurns.length}, daemon source):`];
   for (const t of daemonTurns) {
-    const mission = t.mission_at_turn.length > 120 ? t.mission_at_turn.slice(0, 119) + "\u2026" : t.mission_at_turn;
+    const mission =
+      t.mission_at_turn.length > 120 ? t.mission_at_turn.slice(0, 119) + "\u2026" : t.mission_at_turn;
     const refs = t.evidence_refs.length > 0 ? ` ev=${t.evidence_refs.join(",")}` : "";
-    lines.push(`- T[${t.turn_id}] mission="${mission}" outcome=${t.outcome} tools=${t.tool_call_count}${refs}`);
+    lines.push(
+      `- T[${t.turn_id}] mission="${mission}" outcome=${t.outcome} tools=${t.tool_call_count}${refs}`
+    );
   }
   event.systemPrompt = (event.systemPrompt || "") + "\n\n" + lines.join("\n");
   markRecentTurnsSliceEmitted(currentTurn);
@@ -116,10 +204,23 @@ async function injectRecentTurnsSlice(event: any, n: number = 4): Promise<void> 
 
 // Recall-intent detection (mirrors §5.12.10 word set).
 const RECALL_INTENT_PATTERNS: Array<{ category: string; pattern: RegExp }> = [
-  { category: "direct_recall", pattern: /\b(recall|remember|remind me|bring me back|catch up|orient me|refocus|rewind)\b/i },
-  { category: "implicit_prior", pattern: /\b(what did we|earlier|last time|previously|where were we|as we discussed|we talked about|you mentioned|you said|i asked|i said|i meant|didn't we)\b/i },
-  { category: "coherence_loss", pattern: /\bcontext\b.{0,40}\?|lost|confused|on track|where (were|are) we going|what's the state/i },
-  { category: "repetition", pattern: /\balready covered|already done|already filed|duplicate|going in circles/i },
+  {
+    category: "direct_recall",
+    pattern: /\b(recall|remember|remind me|bring me back|catch up|orient me|refocus|rewind)\b/i,
+  },
+  {
+    category: "implicit_prior",
+    pattern:
+      /\b(what did we|earlier|last time|previously|where were we|as we discussed|we talked about|you mentioned|you said|i asked|i said|i meant|didn't we)\b/i,
+  },
+  {
+    category: "coherence_loss",
+    pattern: /\bcontext\b.{0,40}\?|lost|confused|on track|where (were|are) we going|what's the state/i,
+  },
+  {
+    category: "repetition",
+    pattern: /\balready covered|already done|already filed|duplicate|going in circles/i,
+  },
   { category: "operator_steering", pattern: /^wait$|^hold on$|^back up$|^scratch that$/i },
 ];
 
@@ -150,7 +251,10 @@ let traceBatch: any[] = [];
 
 function vitalPromptSurfaceEnabled(surface: string): boolean {
   const raw = String(S.cfg?.vitalInfoPromptSurfaces || "project_root,project_verify,workpoint,trajectory");
-  return raw.split(",").map((part) => part.trim()).includes(surface);
+  return raw
+    .split(",")
+    .map((part) => part.trim())
+    .includes(surface);
 }
 
 async function hardGateVitalProjectRoot(ctx: any): Promise<string | null> {
@@ -162,7 +266,10 @@ async function hardGateVitalProjectRoot(ctx: any): Promise<string | null> {
   }
   const summary = projectRootConfirmationSummary(detected);
   const mode = S.cfg?.vitalInfoPromptMode || "prompt";
-  focusaPost("/telemetry/trace", { event_type: "pi_vital_project_root_before_agent_inference_required", payload: { project_root: detected, summary, mode, session_id: S.sessionFrameKey } });
+  focusaPost("/telemetry/trace", {
+    event_type: "pi_vital_project_root_before_agent_inference_required",
+    payload: { project_root: detected, summary, mode, session_id: S.sessionFrameKey },
+  });
   return null;
 }
 
@@ -186,7 +293,6 @@ function flushTraceTelemetryBatch(reason = "turn_end"): void {
   });
 }
 
-
 async function checkpointDiscontinuity(reason: string, extra: Record<string, any> = {}): Promise<void> {
   if (!S.focusaAvailable) return;
   const root = getSessionCwd() || process.cwd();
@@ -195,7 +301,11 @@ async function checkpointDiscontinuity(reason: string, extra: Record<string, any
     await focusaFetch("/workpoint/checkpoint", {
       method: "POST",
       body: JSON.stringify({
-        mission: S.currentAsk?.text || S.activeFrameGoal || S.lastFocusSnapshot.intent || "Pi discontinuity boundary",
+        mission:
+          S.currentAsk?.text ||
+          S.activeFrameGoal ||
+          S.lastFocusSnapshot.intent ||
+          "Pi discontinuity boundary",
         next_slice: S.lastFocusSnapshot.currentFocus || "Resume from typed Workpoint after discontinuity.",
         checkpoint_reason: reason,
         canonical: true,
@@ -204,11 +314,24 @@ async function checkpointDiscontinuity(reason: string, extra: Record<string, any
         session_id: S.sessionFrameKey,
         project_root: root,
         source_turn_id: `pi-turn-${getTurnCount()}`,
-        action_intent: { action_type: "resume_workpoint", target_ref: S.activeFrameId || "pi-session", verification_hooks: [reason], status: "ready" },
+        action_intent: {
+          action_type: "resume_workpoint",
+          target_ref: S.activeFrameId || "pi-session",
+          verification_hooks: [reason],
+          status: "ready",
+        },
         ...extra,
       }),
     });
-    const packet = await focusaFetch("/workpoint/resume", { method: "POST", body: JSON.stringify({ mode: "compact_prompt", continuity_id: ensureContinuityId(root), session_id: S.sessionFrameKey, project_root: root }) });
+    const packet = await focusaFetch("/workpoint/resume", {
+      method: "POST",
+      body: JSON.stringify({
+        mode: "compact_prompt",
+        continuity_id: ensureContinuityId(root),
+        session_id: S.sessionFrameKey,
+        project_root: root,
+      }),
+    });
     if (packet?.status === "rejected_scope_mismatch") {
       setActiveWorkpointPacket(null);
       setActiveWorkpointSummary("");
@@ -225,9 +348,10 @@ async function checkpointDiscontinuity(reason: string, extra: Record<string, any
       setActiveWorkpointSummary(packet.rendered_summary || packet.next_step_hint || "");
       S.lastWorkpointUpdate = Date.now();
     }
-  } catch { /* best effort */ }
+  } catch {
+    /* best effort */
+  }
 }
-
 
 function formatWorkpointContextSections(): string[] {
   const packet: any = getScopedWorkpointPacket();
@@ -240,15 +364,24 @@ function formatWorkpointContextSections(): string[] {
     .filter((line) => /DO_NOT_DRIFT:/i.test(line))
     .map((line) => line.replace(/.*DO_NOT_DRIFT:\s*/i, "").trim())
     .filter(Boolean);
-  const activeObjects = Array.isArray(packet.active_object_refs) && packet.active_object_refs.length ? packet.active_object_refs : ["(none)"];
+  const activeObjects =
+    Array.isArray(packet.active_object_refs) && packet.active_object_refs.length
+      ? packet.active_object_refs
+      : ["(none)"];
   const verificationHooks = [
     ...(Array.isArray(action.verification_hooks) ? action.verification_hooks : []),
     ...evidence.map((v: any) => v.result || v.evidence_ref || v.target_ref).filter(Boolean),
   ].slice(0, 8);
   const boundaryItems = driftBoundaries.length
     ? driftBoundaries
-    : blockers.map((b: any) => b.reason).filter(Boolean).slice(0, 6).length
-      ? blockers.map((b: any) => b.reason).filter(Boolean).slice(0, 6)
+    : blockers
+          .map((b: any) => b.reason)
+          .filter(Boolean)
+          .slice(0, 6).length
+      ? blockers
+          .map((b: any) => b.reason)
+          .filter(Boolean)
+          .slice(0, 6)
       : ["Do not override WorkpointResumePacket from transcript tail."];
   return [
     `WORKPOINT: ${getActiveWorkpointSummary() || packet.next_slice || packet.mission || "active typed packet present"}`,
@@ -260,9 +393,10 @@ function formatWorkpointContextSections(): string[] {
   ];
 }
 
-
 function boundedTrajectoryText(value: any, max = 180): string {
-  const text = String(value ?? "").replace(/\s+/g, " ").trim();
+  const text = String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!text) return "";
   return text.length > max ? `${text.slice(0, Math.max(0, max - 1))}…` : text;
 }
@@ -275,14 +409,21 @@ function formatHandleTrajectorySummary(handle: any): string {
     trajectory.mlg ? `MLG=${boundedTrajectoryText(trajectory.mlg, 120)}` : "",
     trajectory.stg ? `STG=${boundedTrajectoryText(trajectory.stg, 120)}` : "",
     Array.isArray(trajectory.waypoints) && trajectory.waypoints.length
-      ? `waypoints=${trajectory.waypoints.slice(0, 3).map((item: any) => boundedTrajectoryText(item, 80)).join(" | ")}`
+      ? `waypoints=${trajectory.waypoints
+          .slice(0, 3)
+          .map((item: any) => boundedTrajectoryText(item, 80))
+          .join(" | ")}`
       : "",
   ].filter(Boolean);
   return parts.length ? `TRAJECTORY_CONTEXT: ${parts.join("; ")}\n` : "";
 }
 
 function safeExists(root: string, rel: string): boolean {
-  try { return fs.existsSync(path.join(root, rel)); } catch { return false; }
+  try {
+    return fs.existsSync(path.join(root, rel));
+  } catch {
+    return false;
+  }
 }
 
 function existingProjectDirs(root: string, dirs: string[]): string[] {
@@ -294,13 +435,19 @@ function safeRead(root: string, rel: string, maxBytes = 4096): string {
     const file = path.join(root, rel);
     if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return "";
     return fs.readFileSync(file, "utf8").slice(0, maxBytes);
-  } catch { return ""; }
+  } catch {
+    return "";
+  }
 }
 
 function manifestName(root: string): string {
   const packageJson = safeRead(root, "package.json");
   if (packageJson) {
-    try { return `package=${JSON.parse(packageJson).name || "unknown"}`; } catch { return "package=unparsed"; }
+    try {
+      return `package=${JSON.parse(packageJson).name || "unknown"}`;
+    } catch {
+      return "package=unparsed";
+    }
   }
   const cargo = safeRead(root, "Cargo.toml");
   const cargoName = cargo.match(/^name\s*=\s*["']([^"']+)["']/m)?.[1];
@@ -324,8 +471,20 @@ function buildProjectArchitectureDigestLine(root: string): string {
     mark("pyproject.toml") || mark("requirements.txt") ? "python" : "",
     mark("composer.json") ? "php" : "",
   ].filter(Boolean);
-  const keyDirs = existingProjectDirs(root, ["crates", "apps", "packages", "src", "docs", "tests", ".github", ".beads", "data"]);
-  keyDirs.forEach((dir) => { if (!evidenceRefs.includes(dir)) evidenceRefs.push(dir); });
+  const keyDirs = existingProjectDirs(root, [
+    "crates",
+    "apps",
+    "packages",
+    "src",
+    "docs",
+    "tests",
+    ".github",
+    ".beads",
+    "data",
+  ]);
+  keyDirs.forEach((dir) => {
+    if (!evidenceRefs.includes(dir)) evidenceRefs.push(dir);
+  });
   const deploy = [
     mark("Dockerfile") ? "Dockerfile" : "",
     mark("docker-compose.yml") || mark("compose.yml") ? "compose" : "",
@@ -334,7 +493,12 @@ function buildProjectArchitectureDigestLine(root: string): string {
   ].filter(Boolean);
   const docs = existingProjectDirs(root, ["docs", "README.md", "AGENTS.md", ".focusa-project.json"]);
   const tests = existingProjectDirs(root, ["tests", "test", "spec", "crates", "apps/pi-extension"]);
-  const confidence = stacks.length && docs.length && tests.length ? "high" : stacks.length && (docs.length || tests.length) ? "medium" : "low";
+  const confidence =
+    stacks.length && docs.length && tests.length
+      ? "high"
+      : stacks.length && (docs.length || tests.length)
+        ? "medium"
+        : "low";
   return [
     `stack=${stacks.join("+") || "unknown"}`,
     manifestName(root),
@@ -354,9 +518,15 @@ function formatTrajectoryFallbackFocusSlice(root: string, reason: string): strin
   const continuityId = boundedTrajectoryText(getContinuityId(), 120);
   return [
     `PROJECT_IDENTITY: status=${safe ? "local_fallback" : "unsafe_scope"} project_root=${displayRoot} ${continuityId ? `continuity_id=${continuityId}` : "continuity_id=(unavailable)"}`,
-    safe ? "PROJECT_INFRA: architecture_boundary=use project docs/ontology/evidence; do not infer from folder name alone" : "PROJECT_INFRA: withheld_until_safe_project_root; call focusa_project_identity with explicit project_root",
-    safe ? "PROJECT_ENVIRONMENT: root_url=unknown; live_url=unknown; local_url=unknown; environment=unknown; deploy_target=unknown; deploy_location=unknown; source=missing_project_marker_or_trajectory_view" : "PROJECT_ENVIRONMENT: withheld_until_safe_project_root",
-    safe ? `PROJECT_ARCHITECTURE: ${buildProjectArchitectureDigestLine(root)}` : "PROJECT_ARCHITECTURE: withheld_until_safe_project_root",
+    safe
+      ? "PROJECT_INFRA: architecture_boundary=use project docs/ontology/evidence; do not infer from folder name alone"
+      : "PROJECT_INFRA: withheld_until_safe_project_root; call focusa_project_identity with explicit project_root",
+    safe
+      ? "PROJECT_ENVIRONMENT: root_url=unknown; live_url=unknown; local_url=unknown; environment=unknown; deploy_target=unknown; deploy_location=unknown; source=missing_project_marker_or_trajectory_view"
+      : "PROJECT_ENVIRONMENT: withheld_until_safe_project_root",
+    safe
+      ? `PROJECT_ARCHITECTURE: ${buildProjectArchitectureDigestLine(root)}`
+      : "PROJECT_ARCHITECTURE: withheld_until_safe_project_root",
     `TRAJECTORY_GOALS: unavailable reason=${boundedTrajectoryText(reason, 80)}; call focusa_trajectory_view after safe scope`,
     "TRAJECTORY_SIMILARITY_GROUP: advisory_only=true; authority=project_root+continuity_id; must_not_merge_sessions=true",
     "CURRENT_VERIFIED_STATE: unclear",
@@ -377,7 +547,10 @@ function formatTrajectoryFocusSlice(view: any): string[] {
   const candidate = intelligence.next_workpoint_candidate || {};
   const projectApi = project.project_identity_api || {};
   const continuityId = boundedTrajectoryText(getContinuityId(), 120);
-  const projectRoot = boundedTrajectoryText(project.project_root || projectApi.project_root || getSessionCwd() || process.cwd(), 160);
+  const projectRoot = boundedTrajectoryText(
+    project.project_root || projectApi.project_root || getSessionCwd() || process.cwd(),
+    160
+  );
   const canonicalName = boundedTrajectoryText(project.canonical_name || projectApi.canonical_name, 80);
   const projectId = boundedTrajectoryText(project.project_id || projectApi.project_id, 80);
   const workspaceKind = boundedTrajectoryText(project.workspace_kind || projectApi.workspace_kind, 80);
@@ -385,18 +558,39 @@ function formatTrajectoryFocusSlice(view: any): string[] {
   const beadsPrefix = boundedTrajectoryText(project.beads_prefix || projectApi.beads_prefix, 40);
   const projectUrls = project.project_urls || projectApi.project_urls || {};
   const deployment = project.deployment || projectApi.deployment || {};
-  const rootUrl = boundedTrajectoryText(projectUrls.root_url || projectUrls.live_url || projectUrls.production_url || deployment.root_url, 140);
-  const liveUrl = boundedTrajectoryText(projectUrls.live_url || projectUrls.production_url || deployment.live_url, 140);
-  const wpUrl = boundedTrajectoryText(projectUrls.wp_url || projectUrls.wordpress_url || projectUrls.site_url, 140);
+  const rootUrl = boundedTrajectoryText(
+    projectUrls.root_url || projectUrls.live_url || projectUrls.production_url || deployment.root_url,
+    140
+  );
+  const liveUrl = boundedTrajectoryText(
+    projectUrls.live_url || projectUrls.production_url || deployment.live_url,
+    140
+  );
+  const wpUrl = boundedTrajectoryText(
+    projectUrls.wp_url || projectUrls.wordpress_url || projectUrls.site_url,
+    140
+  );
   const appUrl = boundedTrajectoryText(projectUrls.app_url || deployment.app_url, 140);
   const authUrl = boundedTrajectoryText(projectUrls.auth_url || deployment.auth_url, 140);
   const graphqlUrl = boundedTrajectoryText(projectUrls.graphql_url || deployment.graphql_url, 140);
   const localUrl = boundedTrajectoryText(projectUrls.local_url || deployment.local_url, 140);
-  const deployEnvironment = boundedTrajectoryText(deployment.environment || deployment.deploy_environment || deployment.target_environment, 80);
-  const deployTarget = boundedTrajectoryText(deployment.deploy_target || deployment.target || deployment.host, 120);
-  const deployLocation = boundedTrajectoryText(deployment.deploy_location || deployment.path || deployment.document_root, 160);
+  const deployEnvironment = boundedTrajectoryText(
+    deployment.environment || deployment.deploy_environment || deployment.target_environment,
+    80
+  );
+  const deployTarget = boundedTrajectoryText(
+    deployment.deploy_target || deployment.target || deployment.host,
+    120
+  );
+  const deployLocation = boundedTrajectoryText(
+    deployment.deploy_location || deployment.path || deployment.document_root,
+    160
+  );
   const deployCommand = boundedTrajectoryText(deployment.deploy_command || deployment.command, 160);
-  const environmentConfidence = boundedTrajectoryText(projectUrls.inference_confidence || deployment.inference_confidence, 40);
+  const environmentConfidence = boundedTrajectoryText(
+    projectUrls.inference_confidence || deployment.inference_confidence,
+    40
+  );
   const identityParts = [
     `status=${boundedTrajectoryText(project.status || view.status || "unknown", 40)}`,
     `project_root=${projectRoot}`,
@@ -427,49 +621,82 @@ function formatTrajectoryFocusSlice(view: any): string[] {
     environmentConfidence ? `confidence=${environmentConfidence}` : "confidence=unknown",
     "source=marker+bounded_repo_scan+optional_live_root_scan",
     "local_vs_live_boundary=project-root-relative by default, but DNS/live roots may live outside repo; verify sources before assuming .local is active",
-  ].filter(Boolean).join("; ");
+  ]
+    .filter(Boolean)
+    .join("; ");
   const goals = [
     trajectory.long_term_goal ? `HLT=${boundedTrajectoryText(trajectory.long_term_goal, 180)}` : "",
     trajectory.mid_level_goal ? `MLG=${boundedTrajectoryText(trajectory.mid_level_goal, 160)}` : "",
     trajectory.short_term_goal ? `STG=${boundedTrajectoryText(trajectory.short_term_goal, 160)}` : "",
     trajectory.low_level_goal ? `low=${boundedTrajectoryText(trajectory.low_level_goal, 160)}` : "",
     trajectory.desired_end_state ? `desired=${boundedTrajectoryText(trajectory.desired_end_state, 180)}` : "",
-  ].filter(Boolean).join("; ");
+  ]
+    .filter(Boolean)
+    .join("; ");
   const similarityGroup = trajectory.similarity_group || intelligence.similarity_group || {};
   const similarityBits = [
-    similarityGroup.high_level_group_key ? `high_key=${boundedTrajectoryText(similarityGroup.high_level_group_key, 80)}` : "",
-    similarityGroup.mid_level_group_key ? `mid_key=${boundedTrajectoryText(similarityGroup.mid_level_group_key, 80)}` : "",
-    similarityGroup.low_level_group_key ? `low_key=${boundedTrajectoryText(similarityGroup.low_level_group_key, 80)}` : "",
+    similarityGroup.high_level_group_key
+      ? `high_key=${boundedTrajectoryText(similarityGroup.high_level_group_key, 80)}`
+      : "",
+    similarityGroup.mid_level_group_key
+      ? `mid_key=${boundedTrajectoryText(similarityGroup.mid_level_group_key, 80)}`
+      : "",
+    similarityGroup.low_level_group_key
+      ? `low_key=${boundedTrajectoryText(similarityGroup.low_level_group_key, 80)}`
+      : "",
     `advisory_only=${similarityGroup.advisory_only !== false}`,
     "authority=project_root+continuity_id",
     similarityGroup.must_not_merge_sessions ? "must_not_merge_sessions=true" : "",
-  ].filter(Boolean).join("; ");
+  ]
+    .filter(Boolean)
+    .join("; ");
   const waypoints = Array.isArray(trajectory.waypoints)
-    ? trajectory.waypoints.slice(0, 5).map((item: any) => boundedTrajectoryText(item, 120)).filter(Boolean)
+    ? trajectory.waypoints
+        .slice(0, 5)
+        .map((item: any) => boundedTrajectoryText(item, 120))
+        .filter(Boolean)
     : Array.isArray(trajectory.trajectory_ladder?.waypoints)
-      ? trajectory.trajectory_ladder.waypoints.slice(0, 5).map((item: any) => boundedTrajectoryText(item, 120)).filter(Boolean)
+      ? trajectory.trajectory_ladder.waypoints
+          .slice(0, 5)
+          .map((item: any) => boundedTrajectoryText(item, 120))
+          .filter(Boolean)
       : [];
   const evidence = Array.isArray(trajectory.evidence_refs)
-    ? trajectory.evidence_refs.slice(0, 4).map((item: any) => boundedTrajectoryText(item.evidence_ref || item.result || item.target_ref, 120)).filter(Boolean)
+    ? trajectory.evidence_refs
+        .slice(0, 4)
+        .map((item: any) => boundedTrajectoryText(item.evidence_ref || item.result || item.target_ref, 120))
+        .filter(Boolean)
     : [];
   const doNotUse = Array.isArray(intelligence.do_not_use)
-    ? intelligence.do_not_use.slice(0, 6).map((item: any) => boundedTrajectoryText(item, 100)).filter(Boolean)
+    ? intelligence.do_not_use
+        .slice(0, 6)
+        .map((item: any) => boundedTrajectoryText(item, 100))
+        .filter(Boolean)
     : [];
   const missingFacts = Array.isArray(sufficiency.missing_facts)
-    ? sufficiency.missing_facts.slice(0, 6).map((item: any) => boundedTrajectoryText(item, 80)).filter(Boolean)
+    ? sufficiency.missing_facts
+        .slice(0, 6)
+        .map((item: any) => boundedTrajectoryText(item, 80))
+        .filter(Boolean)
     : [];
   const candidateBits = [
     candidate.workpoint_id ? `id=${boundedTrajectoryText(candidate.workpoint_id, 80)}` : "",
     candidate.work_item_id ? `work_item=${boundedTrajectoryText(candidate.work_item_id, 80)}` : "",
     candidate.next_slice ? `next=${boundedTrajectoryText(candidate.next_slice, 180)}` : "",
     "advisory_only=true",
-  ].filter(Boolean).join("; ");
+  ]
+    .filter(Boolean)
+    .join("; ");
   const lines = [
     `PROJECT_IDENTITY: ${identityParts.join(" ")}`,
-    infraParts.length ? `PROJECT_INFRA: ${infraParts.join("; ")}` : "PROJECT_INFRA: unknown; use focusa_project_identity plus focusa_traverse before architectural assumptions",
+    infraParts.length
+      ? `PROJECT_INFRA: ${infraParts.join("; ")}`
+      : "PROJECT_INFRA: unknown; use focusa_project_identity plus focusa_traverse before architectural assumptions",
     `PROJECT_ENVIRONMENT: ${environmentBits}`,
     `PROJECT_ARCHITECTURE: ${isProjectRootAuthoritySafe(projectRoot) ? buildProjectArchitectureDigestLine(projectRoot) : "withheld_until_safe_project_root"}`,
-    goals ? `TRAJECTORY_LADDER: ${goals}; waypoints=${waypoints.join(" → ") || "derive_next"}; rule=operator_deference_plus_proactive_route_offers` : "TRAJECTORY_LADDER: definition_status=unclear; derive HLT→MLG→STG→Waypoints before durable work",
+    goals
+      ? `TRAJECTORY_LADDER: ${goals}; waypoints=${waypoints.join(" → ") || "derive_next"}; rule=operator_deference_plus_proactive_route_offers`
+      : "TRAJECTORY_LADDER: definition_status=unclear; derive HLT→MLG→STG→Waypoints before durable work",
     `TRAJECTORY_SIMILARITY_GROUP: ${similarityBits || "advisory_only=true; authority=project_root+continuity_id; must_not_merge_sessions=true"}`,
     `CURRENT_VERIFIED_STATE: ${boundedTrajectoryText(trajectory.current_state, 220) || "unclear"}`,
     `ACTIVE_GAP: ${boundedTrajectoryText(trajectory.active_gap, 220) || "unclear"}`,
@@ -483,7 +710,6 @@ function formatTrajectoryFocusSlice(view: any): string[] {
   }
   return lines;
 }
-
 
 async function getResourceModeFocusSliceLines(): Promise<string[]> {
   if (!S.focusaAvailable) return [];
@@ -511,7 +737,10 @@ async function getResourceModeFocusSliceLines(): Promise<string[]> {
 
 function currentAskLooksLikeWebResearch(text: string | undefined): boolean {
   const value = String(text || "").toLowerCase();
-  return /https?:\/\//.test(value) || /\b(url|website|webpage|browser|browse|research|docs?|article|blog|github\.com)\b/.test(value);
+  return (
+    /https?:\/\//.test(value) ||
+    /\b(url|website|webpage|browser|browse|research|docs?|article|blog|github\.com)\b/.test(value)
+  );
 }
 
 function getUiaiFirstFocusSliceLines(askText: string | undefined): string[] {
@@ -561,15 +790,26 @@ async function getTrajectoryFocusSliceLines(): Promise<string[]> {
   }
 }
 
-function providerStatusSuggestsContextOverflow(status: number, headers: Record<string, string> = {}): boolean {
+function providerStatusSuggestsContextOverflow(
+  status: number,
+  headers: Record<string, string> = {}
+): boolean {
   if ([413].includes(status)) return true;
   if (![400, 422].includes(status)) return false;
-  const joined = Object.entries(headers).map(([k, v]) => `${k}:${v}`).join(" ").toLowerCase();
-  return /context[_ -]?length|token|too large|payload|maximum context|input exceeds/.test(joined) || joined.length === 0;
+  const joined = Object.entries(headers)
+    .map(([k, v]) => `${k}:${v}`)
+    .join(" ")
+    .toLowerCase();
+  return (
+    /context[_ -]?length|token|too large|payload|maximum context|input exceeds/.test(joined) ||
+    joined.length === 0
+  );
 }
 
 function textSuggestsContextOverflow(text: string): boolean {
-  return /context_length_exceeded|input exceeds the context|maximum context|prompt too long|too many tokens/i.test(text || "");
+  return /context_length_exceeded|input exceeds the context|maximum context|prompt too long|too many tokens/i.test(
+    text || ""
+  );
 }
 
 export function registerTurns(pi: ExtensionAPI) {
@@ -613,22 +853,27 @@ export function registerTurns(pi: ExtensionAPI) {
           ].join("\n"),
     ].join("\n");
     const scopedWorkpointForPrompt = getScopedWorkpointPacket();
-    const workpointLaw = scopedWorkpointForPrompt ? [
-      "\n## Focusa Workpoint Continuity Law",
-      "If a Focusa WorkpointResumePacket is present, treat it as the authoritative continuation anchor unless the operator explicitly steers elsewhere.",
-      "Do not use raw transcript tail to override the active workpoint.",
-      ...formatWorkpointContextSections(),
-    ].join("\n") : "";
+    const workpointLaw = scopedWorkpointForPrompt
+      ? [
+          "\n## Focusa Workpoint Continuity Law",
+          "If a Focusa WorkpointResumePacket is present, treat it as the authoritative continuation anchor unless the operator explicitly steers elsewhere.",
+          "Do not use raw transcript tail to override the active workpoint.",
+          ...formatWorkpointContextSections(),
+        ].join("\n")
+      : "";
     const utilityCard = "\n" + buildFocusaUtilityCard("system");
     const visibleRecapReason = toolOutputVisibleRecapReason();
-    const visibleRecapLaw = visibleRecapReason ? [
-      "\n## Focusa Visible Recap Enforcement",
-      `Tool-output flood detected: ${visibleRecapReason}`,
-      "Before any tool/file/API action, first produce a one- or two-line `Recap:` from MEMORY_ANCHOR/latest_report_summary_ref.",
-      "Do not ask the operator to scroll; replay the report handle or memory anchor visibly, then continue.",
-    ].join("\n") : "";
+    const visibleRecapLaw = visibleRecapReason
+      ? [
+          "\n## Focusa Visible Recap Enforcement",
+          `Tool-output flood detected: ${visibleRecapReason}`,
+          "Before any tool/file/API action, first produce a one- or two-line `Recap:` from MEMORY_ANCHOR/latest_report_summary_ref.",
+          "Do not ask the operator to scroll; replay the report handle or memory anchor visibly, then continue.",
+        ].join("\n")
+      : "";
 
-    (event as any).systemPrompt = ((event as any).systemPrompt || "") + "\n" + behavioral + workpointLaw + visibleRecapLaw + utilityCard;
+    (event as any).systemPrompt =
+      ((event as any).systemPrompt || "") + "\n" + behavioral + workpointLaw + visibleRecapLaw + utilityCard;
 
     if (!S.seenFirstBeforeAgentStart) {
       S.seenFirstBeforeAgentStart = true;
@@ -646,7 +891,12 @@ export function registerTurns(pi: ExtensionAPI) {
       } finally {
         ctxUi?.setToolsExpanded?.(wasExpanded);
       }
-      queueTraceTelemetry({ event_type: "focusa_utility_card_visible", turn_id: `pi-turn-${getTurnCount()}`, surface: "pi", bytes: visibleCard.length });
+      queueTraceTelemetry({
+        event_type: "focusa_utility_card_visible",
+        turn_id: `pi-turn-${getTurnCount()}`,
+        surface: "pi",
+        bytes: visibleCard.length,
+      });
     }
 
     // §29: WBM inbound context injection
@@ -678,11 +928,27 @@ export function registerTurns(pi: ExtensionAPI) {
       const scopeKind = S.queryScope?.scopeKind || "mission_carryover";
       const askText = S.currentAsk?.text || "";
       const visibleRecapReason = toolOutputVisibleRecapReason();
-      const attentionLines = formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({ currentAskText: askText, currentAskKind: S.currentAsk?.kind, queryScopeKind: scopeKind, projectRoot: getSessionCwd(), workpointPacket: getScopedWorkpointPacket(), visibleRecapReason }));
+      const attentionLines = formatAttentionRecallFocusSliceLines(
+        buildAttentionRecallVerdict({
+          currentAskText: askText,
+          currentAskKind: S.currentAsk?.kind,
+          queryScopeKind: scopeKind,
+          projectRoot: getSessionCwd(),
+          workpointPacket: getScopedWorkpointPacket(),
+          visibleRecapReason,
+        })
+      );
       const lines = [
         "[Focusa Focus Slice — minimal applicable context]",
         ...attentionLines,
-        ...formatCurrentAskScopeVerdictLines(buildCurrentAskScopeVerdict({ currentAskText: askText, workpointPacket: getScopedWorkpointPacket(), projectRoot: getSessionCwd(), continuityId: getContinuityId() })),
+        ...formatCurrentAskScopeVerdictLines(
+          buildCurrentAskScopeVerdict({
+            currentAskText: askText,
+            workpointPacket: getScopedWorkpointPacket(),
+            projectRoot: getSessionCwd(),
+            continuityId: getContinuityId(),
+          })
+        ),
         ...formatToolOutputVisibleRecapLines(visibleRecapReason),
         "PROJECTION_KIND: operator_view",
         "VIEW_PROFILE: pi_operator_view",
@@ -693,19 +959,45 @@ export function registerTurns(pi: ExtensionAPI) {
         ...formatWorkpointContextSections(),
         ...toolAffordanceLines,
       ].filter(Boolean);
-      return { messages: [{ role: "user" as const, content: [{ type: "text" as const, text: lines.join("\n") }] }, ...(event.messages || [])] };
+      return {
+        messages: [
+          { role: "user" as const, content: [{ type: "text" as const, text: lines.join("\n") }] },
+          ...(event.messages || []),
+        ],
+      };
     }
 
     const data = await getFocusState();
     if (!data?.fs) {
       const trajectoryLines = await getTrajectoryFocusSliceLines();
-      const toolAffordanceLines = getToolAffordanceFocusSliceLines({ resourceModeActive: false, hasTrajectory: trajectoryLines.length > 0, hasWorkpoint: Boolean(getActiveWorkpointPacket()), hasOntologyAmbiguity: false });
+      const toolAffordanceLines = getToolAffordanceFocusSliceLines({
+        resourceModeActive: false,
+        hasTrajectory: trajectoryLines.length > 0,
+        hasWorkpoint: Boolean(getActiveWorkpointPacket()),
+        hasOntologyAmbiguity: false,
+      });
       const visibleRecapReason = toolOutputVisibleRecapReason();
-      const attentionLines = formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({ currentAskText: S.currentAsk?.text, currentAskKind: S.currentAsk?.kind, queryScopeKind: S.queryScope?.scopeKind, projectRoot: getSessionCwd(), workpointPacket: getScopedWorkpointPacket(), visibleRecapReason }));
+      const attentionLines = formatAttentionRecallFocusSliceLines(
+        buildAttentionRecallVerdict({
+          currentAskText: S.currentAsk?.text,
+          currentAskKind: S.currentAsk?.kind,
+          queryScopeKind: S.queryScope?.scopeKind,
+          projectRoot: getSessionCwd(),
+          workpointPacket: getScopedWorkpointPacket(),
+          visibleRecapReason,
+        })
+      );
       const lines = [
         "[Focusa Focus Slice — minimal applicable context]",
         ...attentionLines,
-        ...formatCurrentAskScopeVerdictLines(buildCurrentAskScopeVerdict({ currentAskText: S.currentAsk?.text, workpointPacket: getScopedWorkpointPacket(), projectRoot: getSessionCwd(), continuityId: getContinuityId() })),
+        ...formatCurrentAskScopeVerdictLines(
+          buildCurrentAskScopeVerdict({
+            currentAskText: S.currentAsk?.text,
+            workpointPacket: getScopedWorkpointPacket(),
+            projectRoot: getSessionCwd(),
+            continuityId: getContinuityId(),
+          })
+        ),
         ...formatToolOutputVisibleRecapLines(visibleRecapReason),
         "PROJECTION_KIND: operator_view",
         "VIEW_PROFILE: pi_operator_view",
@@ -715,15 +1007,18 @@ export function registerTurns(pi: ExtensionAPI) {
         ...formatWorkpointContextSections(),
         ...toolAffordanceLines,
       ];
-      return { messages: [{ role: "user" as const, content: [{ type: "text" as const, text: lines.join("\n") }] }, ...(event.messages || [])] };
+      return {
+        messages: [
+          { role: "user" as const, content: [{ type: "text" as const, text: lines.join("\n") }] },
+          ...(event.messages || []),
+        ],
+      };
     }
     const { fs, frame } = data;
 
     // §7.1: Format each of the 10 ASCC slots per §Prompt Serialization spec
     const fmt = (label: string, items: string[] | undefined) =>
-      items?.length
-        ? `${label}:\n${items.map((x: string) => `  - ${x}`).join("\n")}`
-        : `${label}:\n  (none)`;
+      items?.length ? `${label}:\n${items.map((x: string) => `  - ${x}`).join("\n")}` : `${label}:\n  (none)`;
 
     // §36.7: Budget check — cap injection to 15% of headroom, max 1500 tokens
     const usage = ctx.getContextUsage?.();
@@ -736,7 +1031,12 @@ export function registerTurns(pi: ExtensionAPI) {
 
     const scopeKind = S.queryScope?.scopeKind || "mission_carryover";
     const askText = S.currentAsk?.text || "";
-    const missionIncluded = shouldIncludeMissionContext(askText, scopeKind, [fs.intent || "", fs.current_focus || "", fs.current_state || "", frame?.title || ""]);
+    const missionIncluded = shouldIncludeMissionContext(askText, scopeKind, [
+      fs.intent || "",
+      fs.current_focus || "",
+      fs.current_state || "",
+      frame?.title || "",
+    ]);
     const projectionKind = "operator_view";
     const viewProfile = "pi_operator_view";
     const activeGoverningPriors: PiGoverningPriorKind[] = [
@@ -749,10 +1049,24 @@ export function registerTurns(pi: ExtensionAPI) {
       activeGoverningPriors.push("mission_commitment_prior");
     }
 
-    const relevantDecisions = selectRelevantItems(fs.decisions, askText, { maxItems: 3, fallbackItems: scopeKind === "mission_carryover" ? 2 : 0, minScore: 2 });
-    const relevantConstraints = selectRelevantItems(fs.constraints, askText, { maxItems: 3, fallbackItems: scopeKind === "mission_carryover" ? 2 : 0, minScore: 2 });
-    const decisionRetention = retentionBucketsFromSelection(relevantDecisions, { maxDecayed: 2, maxHistorical: 2 });
-    const constraintRetention = retentionBucketsFromSelection(relevantConstraints, { maxDecayed: 2, maxHistorical: 2 });
+    const relevantDecisions = selectRelevantItems(fs.decisions, askText, {
+      maxItems: 3,
+      fallbackItems: scopeKind === "mission_carryover" ? 2 : 0,
+      minScore: 2,
+    });
+    const relevantConstraints = selectRelevantItems(fs.constraints, askText, {
+      maxItems: 3,
+      fallbackItems: scopeKind === "mission_carryover" ? 2 : 0,
+      minScore: 2,
+    });
+    const decisionRetention = retentionBucketsFromSelection(relevantDecisions, {
+      maxDecayed: 2,
+      maxHistorical: 2,
+    });
+    const constraintRetention = retentionBucketsFromSelection(relevantConstraints, {
+      maxDecayed: 2,
+      maxHistorical: 2,
+    });
     const decayedContextItems = [
       ...constraintRetention.decayed.map((value) => `constraint: ${value}`),
       ...decisionRetention.decayed.map((value) => `decision: ${value}`),
@@ -761,12 +1075,33 @@ export function registerTurns(pi: ExtensionAPI) {
       ...constraintRetention.historical.map((value) => `constraint: ${value}`),
       ...decisionRetention.historical.map((value) => `decision: ${value}`),
     ];
-    const recentResults = selectRelevantItems(fs.recent_results, askText, { maxItems: 2, fallbackItems: scopeKind === "mission_carryover" ? 1 : 0, minScore: 2 });
-    const nextSteps = selectRelevantItems(fs.next_steps, askText, { maxItems: 2, fallbackItems: scopeKind === "mission_carryover" ? 1 : 0, minScore: 2 });
-    const openQuestions = selectRelevantItems(fs.open_questions, askText, { maxItems: 2, fallbackItems: 0, minScore: 2 });
-    const failures = selectRelevantItems(fs.failures, askText, { maxItems: 2, fallbackItems: scopeKind === "correction" ? 1 : 0, minScore: 2 });
-    const artifactLabels = fs.artifacts?.map((a: any) => `${a.kind}:${a.label}${a.path_or_id ? "@" + a.path_or_id : ""}`) || [];
-    const relevantArtifacts = selectRelevantItems(artifactLabels, askText, { maxItems: 2, fallbackItems: scopeKind === "mission_carryover" ? 1 : 0, minScore: 2 });
+    const recentResults = selectRelevantItems(fs.recent_results, askText, {
+      maxItems: 2,
+      fallbackItems: scopeKind === "mission_carryover" ? 1 : 0,
+      minScore: 2,
+    });
+    const nextSteps = selectRelevantItems(fs.next_steps, askText, {
+      maxItems: 2,
+      fallbackItems: scopeKind === "mission_carryover" ? 1 : 0,
+      minScore: 2,
+    });
+    const openQuestions = selectRelevantItems(fs.open_questions, askText, {
+      maxItems: 2,
+      fallbackItems: 0,
+      minScore: 2,
+    });
+    const failures = selectRelevantItems(fs.failures, askText, {
+      maxItems: 2,
+      fallbackItems: scopeKind === "correction" ? 1 : 0,
+      minScore: 2,
+    });
+    const artifactLabels =
+      fs.artifacts?.map((a: any) => `${a.kind}:${a.label}${a.path_or_id ? "@" + a.path_or_id : ""}`) || [];
+    const relevantArtifacts = selectRelevantItems(artifactLabels, askText, {
+      maxItems: 2,
+      fallbackItems: scopeKind === "mission_carryover" ? 1 : 0,
+      minScore: 2,
+    });
     const includeAuxContext = maxTokens >= 350;
     const [semanticMemory, ecsHandles] = includeAuxContext
       ? await Promise.all([getSemanticMemorySummary(), getEcsHandlesSummary()])
@@ -796,7 +1131,8 @@ export function registerTurns(pi: ExtensionAPI) {
           body: JSON.stringify({
             current_ask: S.currentAsk?.text || askText,
             frame_id: S.activeFrameId,
-            workpoint_id: getScopedWorkpointPacket()?.workpoint_id || getScopedWorkpointPacket()?.workpoint?.workpoint_id,
+            workpoint_id:
+              getScopedWorkpointPacket()?.workpoint_id || getScopedWorkpointPacket()?.workpoint?.workpoint_id,
             target_refs: canonicalReferenceAliases.slice(0, 6),
             budget_tokens: Math.min(maxTokens, 800),
             operator_steering_detected: isOperatorSteeringInput(askText, S.currentAsk?.kind || "unknown"),
@@ -809,23 +1145,32 @@ export function registerTurns(pi: ExtensionAPI) {
     }
     const ontologyPayload = ontologyContext?.ontology_context || ontologyContext;
     const ontologyObjectLines = Array.isArray(ontologyPayload?.active_object_set)
-      ? ontologyPayload.active_object_set.slice(0, 6).map((item: any) => `${item.object_type || "object"}:${item.id || "unknown"} (${item.uncertainty || "unknown"})`)
+      ? ontologyPayload.active_object_set
+          .slice(0, 6)
+          .map(
+            (item: any) =>
+              `${item.object_type || "object"}:${item.id || "unknown"} (${item.uncertainty || "unknown"})`
+          )
       : [];
     const ontologyLinkLines = Array.isArray(ontologyPayload?.relevant_link_paths)
       ? ontologyPayload.relevant_link_paths.slice(0, 6).map((item: any) => String(item.path || item))
       : [];
     const ontologyActionLines = Array.isArray(ontologyPayload?.valid_next_actions)
-      ? ontologyPayload.valid_next_actions.slice(0, 4).map((item: any) => String(item.name || "unknown_action"))
+      ? ontologyPayload.valid_next_actions
+          .slice(0, 4)
+          .map((item: any) => String(item.name || "unknown_action"))
       : [];
     const ontologyBlockedLines = Array.isArray(ontologyPayload?.blocked_affordances)
-      ? ontologyPayload.blocked_affordances.slice(0, 4).map((item: any) => String(item.name || item.id || item))
+      ? ontologyPayload.blocked_affordances
+          .slice(0, 4)
+          .map((item: any) => String(item.name || item.id || item))
       : [];
     const ontologyEvidenceLines = Array.isArray(ontologyPayload?.evidence_handles)
       ? ontologyPayload.evidence_handles.slice(0, 4).map((item: any) => {
-        const trajectory = item?.trajectory || {};
-        const stg = boundedTrajectoryText(trajectory.stg || trajectory.short_term_goal, 70);
-        return `${item.kind || "evidence"}:${item.label || item.id || "unknown"}${stg ? ` (STG=${stg})` : ""}`;
-      })
+          const trajectory = item?.trajectory || {};
+          const stg = boundedTrajectoryText(trajectory.stg || trajectory.short_term_goal, 70);
+          return `${item.kind || "evidence"}:${item.label || item.id || "unknown"}${stg ? ` (STG=${stg})` : ""}`;
+        })
       : [];
     const ontologyUncertaintyLines = Array.isArray(ontologyPayload?.uncertainty_flags)
       ? ontologyPayload.uncertainty_flags.slice(0, 6).map((item: any) => String(item))
@@ -840,58 +1185,367 @@ export function registerTurns(pi: ExtensionAPI) {
     });
 
     const visibleRecapReason = toolOutputVisibleRecapReason();
-    const attentionLines = formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({
-      focusState: fs,
-      workpointPacket: getScopedWorkpointPacket(),
-      currentAskText: S.currentAsk?.text || askText,
-      currentAskKind: S.currentAsk?.kind,
-      queryScopeKind: scopeKind,
-      projectRoot: getSessionCwd(),
-      continuityId: getContinuityId(),
-      visibleRecapReason,
-    }));
+    const attentionLines = formatAttentionRecallFocusSliceLines(
+      buildAttentionRecallVerdict({
+        focusState: fs,
+        workpointPacket: getScopedWorkpointPacket(),
+        currentAskText: S.currentAsk?.text || askText,
+        currentAskKind: S.currentAsk?.kind,
+        queryScopeKind: scopeKind,
+        projectRoot: getSessionCwd(),
+        continuityId: getContinuityId(),
+        visibleRecapReason,
+      })
+    );
 
     const sectionEntries = [
-      { key: "projection_kind", text: `PROJECTION_KIND: ${projectionKind}`, include: true, selectedCount: 1, excludedCount: 0, priority: 0, relevanceScore: 100 },
-      { key: "view_profile", text: `VIEW_PROFILE: ${viewProfile}`, include: true, selectedCount: 1, excludedCount: 0, priority: 1, relevanceScore: 100 },
-      { key: "current_ask", text: `CURRENT_ASK: ${S.currentAsk?.text || askText || "(none)"}`, include: Boolean(S.currentAsk?.text || askText), selectedCount: 1, excludedCount: 0, priority: 2, relevanceScore: 100 },
-      { key: "query_scope", text: `QUERY_SCOPE: ${scopeKind} · ${S.queryScope?.carryoverPolicy || "allow_if_relevant"}`, include: true, selectedCount: 1, excludedCount: 0, priority: 3, relevanceScore: 100 },
-      buildSliceSection("current_ask_scope_verdict", "CURRENT_ASK_SCOPE_VERDICT", formatCurrentAskScopeVerdictLines(buildCurrentAskScopeVerdict({ currentAskText: askText, workpointPacket: getScopedWorkpointPacket(), projectRoot: getSessionCwd(), continuityId: getContinuityId() })), true, (values) => values.join("\n"), 0, 4, 100),
-      buildSliceSection("project_switch_ledger", "PROJECT_SWITCH_LEDGER", formatProjectSwitchLedgerLines(askText), S.projectSwitchLedger.length > 0, (values) => `PROJECT_SWITCH_LEDGER:\n${values.map((value) => `  - ${value}`).join("\n")}`, 0, 5, 96),
-      buildSliceSection("resource_mode", "RESOURCE_MODE", resourceModeLines, resourceModeLines.length > 0, (values) => values.join("\n"), 0, 4, 100),
-      buildSliceSection("trajectory", "PROJECT_TRAJECTORY", trajectoryLines, trajectoryLines.length > 0, (values) => `PROJECT_TRAJECTORY:\n${values.map((value) => `  - ${value}`).join("\n")}`, 0, 5, 100),
-      buildSliceSection("workpoint", "WORKPOINT", formatWorkpointContextSections(), Boolean(getActiveWorkpointPacket()), (values) => values.join("\n"), 0, 6, 100),
-      buildSliceSection("uiai_first_web_research", "UIAI_FIRST_WEB_RESEARCH", getUiaiFirstFocusSliceLines(askText), currentAskLooksLikeWebResearch(askText), (values) => values.join("\n"), 0, 4, 98),
-      buildSliceSection("tool_affordances", "TOOL_AFFORDANCES", toolAffordanceLines, toolAffordanceLines.length > 0, (values) => values.join("\n"), 0, 7, 95),
-      { key: "focus_frame", text: `FOCUS_FRAME: ${frame?.title || "(untitled)"}`, include: missionIncluded && Boolean(frame?.title), selectedCount: frame?.title ? 1 : 0, excludedCount: 0, priority: 10, relevanceScore: missionIncluded ? 50 : 0 },
-      { key: "current_focus", text: `CURRENT_FOCUS: ${fs.current_focus || fs.current_state || "(none)"}`, include: missionIncluded && Boolean(fs.current_focus || fs.current_state), selectedCount: (fs.current_focus || fs.current_state) ? 1 : 0, excludedCount: 0, priority: 11, relevanceScore: missionIncluded ? 45 : 0 },
-      { key: "intent", text: `INTENT: ${fs.intent || "(none)"}`, include: missionIncluded && Boolean(fs.intent), selectedCount: fs.intent ? 1 : 0, excludedCount: 0, priority: 12, relevanceScore: missionIncluded ? 40 : 0 },
-      { key: "projection_boundary", text: `PROJECTION_BOUNDARY: token_budget=${maxTokens} carryover=${S.queryScope?.carryoverPolicy || "allow_if_relevant"} mission=${missionIncluded ? "included" : "suppressed"}` , include: true, selectedCount: 1, excludedCount: 0, priority: 13, relevanceScore: 90 },
-      { key: "canonical_sources", text: `CANONICAL_SOURCES: focus_state semantic_memory ecs_handles reference_index`, include: true, selectedCount: 4, excludedCount: 0, priority: 14, relevanceScore: 90 },
-      buildSliceSection("canonical_references", "REFERENCE_ALIASES", canonicalReferenceAliases, canonicalReferenceAliases.length > 0, (values) => fmt("REFERENCE_ALIASES", values), 0, 15, 85),
-      buildSliceSection("ontology_active_objects", "ACTIVE_OBJECT_SET", ontologyObjectLines, ontologyObjectLines.length > 0, (values) => fmt("ACTIVE_OBJECT_SET", values), 0, 16, 92),
-      buildSliceSection("ontology_link_paths", "RELEVANT_LINK_PATHS", ontologyLinkLines, ontologyLinkLines.length > 0, (values) => fmt("RELEVANT_LINK_PATHS", values), 0, 17, 90),
-      buildSliceSection("ontology_next_actions", "VALID_NEXT_ACTIONS", ontologyActionLines, ontologyActionLines.length > 0, (values) => fmt("VALID_NEXT_ACTIONS", values), 0, 18, 88),
-      buildSliceSection("ontology_blocked_affordances", "BLOCKED_AFFORDANCES", ontologyBlockedLines, ontologyBlockedLines.length > 0, (values) => fmt("BLOCKED_AFFORDANCES", values), 0, 19, 82),
-      buildSliceSection("ontology_evidence_handles", "EVIDENCE_HANDLES", ontologyEvidenceLines, ontologyEvidenceLines.length > 0, (values) => fmt("EVIDENCE_HANDLES", values), 0, 20, 84),
-      buildSliceSection("ontology_uncertainty", "UNCERTAINTY_FLAGS", ontologyUncertaintyLines, ontologyUncertaintyLines.length > 0, (values) => fmt("UNCERTAINTY_FLAGS", values), 0, 21, 80),
-      buildSliceSection("working_set", "WORKING_SET", relevantWorkingSet.items, relevantWorkingSet.items.length > 0, (values) => fmt("WORKING_SET", values), relevantWorkingSet.excluded.length, 20, selectionRelevanceScore(relevantWorkingSet)),
-      buildSliceSection("constraints", "CONSTRAINTS", relevantConstraints.items, relevantConstraints.items.length > 0, (values) => fmt("CONSTRAINTS", values), relevantConstraints.excluded.length, 20, selectionRelevanceScore(relevantConstraints)),
-      buildSliceSection("decisions", "DECISIONS", relevantDecisions.items, relevantDecisions.items.length > 0, (values) => fmt("DECISIONS", values), relevantDecisions.excluded.length, 20, selectionRelevanceScore(relevantDecisions)),
-      buildSliceSection("decayed_context", "DECAYED_CONTEXT", decayedContextItems, (scopeKind === "mission_carryover" || scopeKind === "correction" || scopeKind === "meta") && decayedContextItems.length > 0, (values) => fmt("DECAYED_CONTEXT", values), 0, 21, 6),
-      buildSliceSection("historical_context", "HISTORICAL_CONTEXT", historicalContextItems, (scopeKind === "mission_carryover" || scopeKind === "meta") && historicalContextItems.length > 0, (values) => fmt("HISTORICAL_CONTEXT", values), 0, 22, 4),
-      buildSliceSection("verified_deltas", "VERIFIED_DELTAS", relevantVerifiedDeltas.items, relevantVerifiedDeltas.items.length > 0, (values) => fmt("VERIFIED_DELTAS", values), relevantVerifiedDeltas.excluded.length, 20, selectionRelevanceScore(relevantVerifiedDeltas)),
-      buildSliceSection("recent_results", "RECENT_RESULTS", recentResults.items, scopeKind !== "fresh_question" && recentResults.items.length > 0, (values) => fmt("RECENT_RESULTS", values), recentResults.excluded.length, 20, selectionRelevanceScore(recentResults)),
-      buildSliceSection("failures", "FAILURES", failures.items, (scopeKind === "correction" || scopeKind === "mission_carryover") && failures.items.length > 0, (values) => fmt("FAILURES", values), failures.excluded.length, 20, selectionRelevanceScore(failures)),
-      buildSliceSection("next_steps", "NEXT_STEPS", nextSteps.items, scopeKind === "mission_carryover" && nextSteps.items.length > 0, (values) => fmt("NEXT_STEPS", values), nextSteps.excluded.length, 20, selectionRelevanceScore(nextSteps)),
-      buildSliceSection("artifacts", "ARTIFACT_HANDLES", relevantArtifacts.items, relevantArtifacts.items.length > 0, (values) => fmt("ARTIFACT_HANDLES", values), relevantArtifacts.excluded.length, 20, selectionRelevanceScore(relevantArtifacts)),
-      buildSliceSection("open_questions", "OPEN_QUESTIONS", openQuestions.items, scopeKind === "meta" && openQuestions.items.length > 0, (values) => fmt("OPEN_QUESTIONS", values), openQuestions.excluded.length, 20, selectionRelevanceScore(openQuestions)),
+      {
+        key: "projection_kind",
+        text: `PROJECTION_KIND: ${projectionKind}`,
+        include: true,
+        selectedCount: 1,
+        excludedCount: 0,
+        priority: 0,
+        relevanceScore: 100,
+      },
+      {
+        key: "view_profile",
+        text: `VIEW_PROFILE: ${viewProfile}`,
+        include: true,
+        selectedCount: 1,
+        excludedCount: 0,
+        priority: 1,
+        relevanceScore: 100,
+      },
+      {
+        key: "current_ask",
+        text: `CURRENT_ASK: ${S.currentAsk?.text || askText || "(none)"}`,
+        include: Boolean(S.currentAsk?.text || askText),
+        selectedCount: 1,
+        excludedCount: 0,
+        priority: 2,
+        relevanceScore: 100,
+      },
+      {
+        key: "query_scope",
+        text: `QUERY_SCOPE: ${scopeKind} · ${S.queryScope?.carryoverPolicy || "allow_if_relevant"}`,
+        include: true,
+        selectedCount: 1,
+        excludedCount: 0,
+        priority: 3,
+        relevanceScore: 100,
+      },
+      buildSliceSection(
+        "current_ask_scope_verdict",
+        "CURRENT_ASK_SCOPE_VERDICT",
+        formatCurrentAskScopeVerdictLines(
+          buildCurrentAskScopeVerdict({
+            currentAskText: askText,
+            workpointPacket: getScopedWorkpointPacket(),
+            projectRoot: getSessionCwd(),
+            continuityId: getContinuityId(),
+          })
+        ),
+        true,
+        (values) => values.join("\n"),
+        0,
+        4,
+        100
+      ),
+      buildSliceSection(
+        "project_switch_ledger",
+        "PROJECT_SWITCH_LEDGER",
+        formatProjectSwitchLedgerLines(askText),
+        S.projectSwitchLedger.length > 0,
+        (values) => `PROJECT_SWITCH_LEDGER:\n${values.map((value) => `  - ${value}`).join("\n")}`,
+        0,
+        5,
+        96
+      ),
+      buildSliceSection(
+        "resource_mode",
+        "RESOURCE_MODE",
+        resourceModeLines,
+        resourceModeLines.length > 0,
+        (values) => values.join("\n"),
+        0,
+        4,
+        100
+      ),
+      buildSliceSection(
+        "trajectory",
+        "PROJECT_TRAJECTORY",
+        trajectoryLines,
+        trajectoryLines.length > 0,
+        (values) => `PROJECT_TRAJECTORY:\n${values.map((value) => `  - ${value}`).join("\n")}`,
+        0,
+        5,
+        100
+      ),
+      buildSliceSection(
+        "workpoint",
+        "WORKPOINT",
+        formatWorkpointContextSections(),
+        Boolean(getActiveWorkpointPacket()),
+        (values) => values.join("\n"),
+        0,
+        6,
+        100
+      ),
+      buildSliceSection(
+        "uiai_first_web_research",
+        "UIAI_FIRST_WEB_RESEARCH",
+        getUiaiFirstFocusSliceLines(askText),
+        currentAskLooksLikeWebResearch(askText),
+        (values) => values.join("\n"),
+        0,
+        4,
+        98
+      ),
+      buildSliceSection(
+        "tool_affordances",
+        "TOOL_AFFORDANCES",
+        toolAffordanceLines,
+        toolAffordanceLines.length > 0,
+        (values) => values.join("\n"),
+        0,
+        7,
+        95
+      ),
+      {
+        key: "focus_frame",
+        text: `FOCUS_FRAME: ${frame?.title || "(untitled)"}`,
+        include: missionIncluded && Boolean(frame?.title),
+        selectedCount: frame?.title ? 1 : 0,
+        excludedCount: 0,
+        priority: 10,
+        relevanceScore: missionIncluded ? 50 : 0,
+      },
+      {
+        key: "current_focus",
+        text: `CURRENT_FOCUS: ${fs.current_focus || fs.current_state || "(none)"}`,
+        include: missionIncluded && Boolean(fs.current_focus || fs.current_state),
+        selectedCount: fs.current_focus || fs.current_state ? 1 : 0,
+        excludedCount: 0,
+        priority: 11,
+        relevanceScore: missionIncluded ? 45 : 0,
+      },
+      {
+        key: "intent",
+        text: `INTENT: ${fs.intent || "(none)"}`,
+        include: missionIncluded && Boolean(fs.intent),
+        selectedCount: fs.intent ? 1 : 0,
+        excludedCount: 0,
+        priority: 12,
+        relevanceScore: missionIncluded ? 40 : 0,
+      },
+      {
+        key: "projection_boundary",
+        text: `PROJECTION_BOUNDARY: token_budget=${maxTokens} carryover=${S.queryScope?.carryoverPolicy || "allow_if_relevant"} mission=${missionIncluded ? "included" : "suppressed"}`,
+        include: true,
+        selectedCount: 1,
+        excludedCount: 0,
+        priority: 13,
+        relevanceScore: 90,
+      },
+      {
+        key: "canonical_sources",
+        text: `CANONICAL_SOURCES: focus_state semantic_memory ecs_handles reference_index`,
+        include: true,
+        selectedCount: 4,
+        excludedCount: 0,
+        priority: 14,
+        relevanceScore: 90,
+      },
+      buildSliceSection(
+        "canonical_references",
+        "REFERENCE_ALIASES",
+        canonicalReferenceAliases,
+        canonicalReferenceAliases.length > 0,
+        (values) => fmt("REFERENCE_ALIASES", values),
+        0,
+        15,
+        85
+      ),
+      buildSliceSection(
+        "ontology_active_objects",
+        "ACTIVE_OBJECT_SET",
+        ontologyObjectLines,
+        ontologyObjectLines.length > 0,
+        (values) => fmt("ACTIVE_OBJECT_SET", values),
+        0,
+        16,
+        92
+      ),
+      buildSliceSection(
+        "ontology_link_paths",
+        "RELEVANT_LINK_PATHS",
+        ontologyLinkLines,
+        ontologyLinkLines.length > 0,
+        (values) => fmt("RELEVANT_LINK_PATHS", values),
+        0,
+        17,
+        90
+      ),
+      buildSliceSection(
+        "ontology_next_actions",
+        "VALID_NEXT_ACTIONS",
+        ontologyActionLines,
+        ontologyActionLines.length > 0,
+        (values) => fmt("VALID_NEXT_ACTIONS", values),
+        0,
+        18,
+        88
+      ),
+      buildSliceSection(
+        "ontology_blocked_affordances",
+        "BLOCKED_AFFORDANCES",
+        ontologyBlockedLines,
+        ontologyBlockedLines.length > 0,
+        (values) => fmt("BLOCKED_AFFORDANCES", values),
+        0,
+        19,
+        82
+      ),
+      buildSliceSection(
+        "ontology_evidence_handles",
+        "EVIDENCE_HANDLES",
+        ontologyEvidenceLines,
+        ontologyEvidenceLines.length > 0,
+        (values) => fmt("EVIDENCE_HANDLES", values),
+        0,
+        20,
+        84
+      ),
+      buildSliceSection(
+        "ontology_uncertainty",
+        "UNCERTAINTY_FLAGS",
+        ontologyUncertaintyLines,
+        ontologyUncertaintyLines.length > 0,
+        (values) => fmt("UNCERTAINTY_FLAGS", values),
+        0,
+        21,
+        80
+      ),
+      buildSliceSection(
+        "working_set",
+        "WORKING_SET",
+        relevantWorkingSet.items,
+        relevantWorkingSet.items.length > 0,
+        (values) => fmt("WORKING_SET", values),
+        relevantWorkingSet.excluded.length,
+        20,
+        selectionRelevanceScore(relevantWorkingSet)
+      ),
+      buildSliceSection(
+        "constraints",
+        "CONSTRAINTS",
+        relevantConstraints.items,
+        relevantConstraints.items.length > 0,
+        (values) => fmt("CONSTRAINTS", values),
+        relevantConstraints.excluded.length,
+        20,
+        selectionRelevanceScore(relevantConstraints)
+      ),
+      buildSliceSection(
+        "decisions",
+        "DECISIONS",
+        relevantDecisions.items,
+        relevantDecisions.items.length > 0,
+        (values) => fmt("DECISIONS", values),
+        relevantDecisions.excluded.length,
+        20,
+        selectionRelevanceScore(relevantDecisions)
+      ),
+      buildSliceSection(
+        "decayed_context",
+        "DECAYED_CONTEXT",
+        decayedContextItems,
+        (scopeKind === "mission_carryover" || scopeKind === "correction" || scopeKind === "meta") &&
+          decayedContextItems.length > 0,
+        (values) => fmt("DECAYED_CONTEXT", values),
+        0,
+        21,
+        6
+      ),
+      buildSliceSection(
+        "historical_context",
+        "HISTORICAL_CONTEXT",
+        historicalContextItems,
+        (scopeKind === "mission_carryover" || scopeKind === "meta") && historicalContextItems.length > 0,
+        (values) => fmt("HISTORICAL_CONTEXT", values),
+        0,
+        22,
+        4
+      ),
+      buildSliceSection(
+        "verified_deltas",
+        "VERIFIED_DELTAS",
+        relevantVerifiedDeltas.items,
+        relevantVerifiedDeltas.items.length > 0,
+        (values) => fmt("VERIFIED_DELTAS", values),
+        relevantVerifiedDeltas.excluded.length,
+        20,
+        selectionRelevanceScore(relevantVerifiedDeltas)
+      ),
+      buildSliceSection(
+        "recent_results",
+        "RECENT_RESULTS",
+        recentResults.items,
+        scopeKind !== "fresh_question" && recentResults.items.length > 0,
+        (values) => fmt("RECENT_RESULTS", values),
+        recentResults.excluded.length,
+        20,
+        selectionRelevanceScore(recentResults)
+      ),
+      buildSliceSection(
+        "failures",
+        "FAILURES",
+        failures.items,
+        (scopeKind === "correction" || scopeKind === "mission_carryover") && failures.items.length > 0,
+        (values) => fmt("FAILURES", values),
+        failures.excluded.length,
+        20,
+        selectionRelevanceScore(failures)
+      ),
+      buildSliceSection(
+        "next_steps",
+        "NEXT_STEPS",
+        nextSteps.items,
+        scopeKind === "mission_carryover" && nextSteps.items.length > 0,
+        (values) => fmt("NEXT_STEPS", values),
+        nextSteps.excluded.length,
+        20,
+        selectionRelevanceScore(nextSteps)
+      ),
+      buildSliceSection(
+        "artifacts",
+        "ARTIFACT_HANDLES",
+        relevantArtifacts.items,
+        relevantArtifacts.items.length > 0,
+        (values) => fmt("ARTIFACT_HANDLES", values),
+        relevantArtifacts.excluded.length,
+        20,
+        selectionRelevanceScore(relevantArtifacts)
+      ),
+      buildSliceSection(
+        "open_questions",
+        "OPEN_QUESTIONS",
+        openQuestions.items,
+        scopeKind === "meta" && openQuestions.items.length > 0,
+        (values) => fmt("OPEN_QUESTIONS", values),
+        openQuestions.excluded.length,
+        20,
+        selectionRelevanceScore(openQuestions)
+      ),
     ];
 
     const scopedEntries = orderSliceSections(sectionEntries).filter((entry) => entry.include);
     const scopeExcludedLabels = sectionEntries.filter((entry) => !entry.include).map((entry) => entry.key);
-    const retainedDecisionHistoryCount = decisionRetention.decayed.length + decisionRetention.historical.length;
-    const retainedConstraintHistoryCount = constraintRetention.decayed.length + constraintRetention.historical.length;
+    const retainedDecisionHistoryCount =
+      decisionRetention.decayed.length + decisionRetention.historical.length;
+    const retainedConstraintHistoryCount =
+      constraintRetention.decayed.length + constraintRetention.historical.length;
     const irrelevantExcludedLabels = [
       ...(relevantDecisions.excluded.length > retainedDecisionHistoryCount ? ["decisions"] : []),
       ...(relevantConstraints.excluded.length > retainedConstraintHistoryCount ? ["constraints"] : []),
@@ -904,15 +1558,22 @@ export function registerTurns(pi: ExtensionAPI) {
       ...(relevantArtifacts.excluded.length ? ["artifacts"] : []),
     ];
     const receiptExcludedCount = scopeExcludedLabels.length + irrelevantExcludedLabels.length;
-    const contextReceiptHelpful = receiptExcludedCount > 0 || Boolean(visibleRecapReason) || scopeKind === "correction" || scopeKind === "mission_carryover" || !missionIncluded;
+    const contextReceiptHelpful =
+      receiptExcludedCount > 0 ||
+      Boolean(visibleRecapReason) ||
+      scopeKind === "correction" ||
+      scopeKind === "mission_carryover" ||
+      !missionIncluded;
     const staleOrAdvisory = [
       trajectoryLines.length ? "trajectory_advisory" : "",
       toolAffordanceLines.length ? "tool_affordances_advisory" : "",
       getActiveWorkpointPacket() ? "" : "workpoint_not_verified",
     ].filter(Boolean);
-    const contextReceiptLines = contextReceiptHelpful ? [
-      `CONTEXT_RECEIPT: included=${scopedEntries.length} excluded=${receiptExcludedCount} omitted_bytes=${Math.max(0, receiptExcludedCount * 96)} rehydrate_refs=focusa_workpoint_resume,focusa_trajectory_view,focusa_traverse reason=current_ask+Workpoint+trajectory_gap stale_or_advisory=${staleOrAdvisory.join(",") || "none"}`,
-    ] : [];
+    const contextReceiptLines = contextReceiptHelpful
+      ? [
+          `CONTEXT_RECEIPT: included=${scopedEntries.length} excluded=${receiptExcludedCount} omitted_bytes=${Math.max(0, receiptExcludedCount * 96)} rehydrate_refs=focusa_workpoint_resume,focusa_trajectory_view,focusa_traverse reason=current_ask+Workpoint+trajectory_gap stale_or_advisory=${staleOrAdvisory.join(",") || "none"}`,
+        ]
+      : [];
 
     // §Prompt Serialization: uppercase section headers, bullets for list items
     const lines: string[] = [
@@ -931,7 +1592,8 @@ export function registerTurns(pi: ExtensionAPI) {
       // Truncate from bottom while preserving the non-droppable attention/recall prefix.
       const attentionEnd = lines.findIndex((line) => line === "END_ATTENTION_RECALL");
       const protectedPrefixCount = Math.max(4, attentionEnd >= 0 ? attentionEnd + 1 : 0);
-      text = lines.slice(0, protectedPrefixCount).join("\n") +
+      text =
+        lines.slice(0, protectedPrefixCount).join("\n") +
         `\n[... Focus State truncated — ${fullTokens - maxTokens} tokens over budget]`;
     }
     const injectedTokens = estimateTokens(text);
@@ -941,26 +1603,48 @@ export function registerTurns(pi: ExtensionAPI) {
     // without pretending the hot path already has richer routing/hijack semantics.
     const lastUserMsg = [...(event.messages || [])].reverse().find((m: any) => m?.role === "user");
     const lastUserText = extractText(lastUserMsg?.content || "").slice(0, 200);
-    const priorMissionReused = scopeKind === "mission_carryover" && Boolean(fs.intent || fs.current_focus || fs.current_state || (fs.decisions && fs.decisions.length));
-    const budgetExcludedLabels = truncated ? ["artifacts", "verified_deltas", "working_set", "constraints", "open_questions", "next_steps", "recent_results", "failures"] : [];
+    const priorMissionReused =
+      scopeKind === "mission_carryover" &&
+      Boolean(fs.intent || fs.current_focus || fs.current_state || (fs.decisions && fs.decisions.length));
+    const budgetExcludedLabels = truncated
+      ? [
+          "artifacts",
+          "verified_deltas",
+          "working_set",
+          "constraints",
+          "open_questions",
+          "next_steps",
+          "recent_results",
+          "failures",
+        ]
+      : [];
     const relevantContextLabels = scopedEntries.map((entry) => entry.key);
     const focusSliceRelevanceScore = scopedEntries.length
       ? scopedEntries.reduce((sum, entry) => sum + (entry.relevanceScore || 0), 0) / scopedEntries.length
       : 0;
-    const excludedContext = Array.from(new Set([...scopeExcludedLabels, ...irrelevantExcludedLabels, ...budgetExcludedLabels]));
+    const excludedContext = Array.from(
+      new Set([...scopeExcludedLabels, ...irrelevantExcludedLabels, ...budgetExcludedLabels])
+    );
     const contextTurnId = `pi-turn-${getTurnCount()}`;
     const scopeSourceTurnId = S.queryScope?.sourceTurnId || S.currentAsk?.sourceTurnId || contextTurnId;
     const workingSetPriorHits = relevantWorkingSet.scores
       .filter(({ value, priorBoost }) => relevantWorkingSet.items.includes(value) && (priorBoost || 0) > 0)
-      .map(({ value, priorBoost, appliedPriors }) => ({ value, priorBoost: priorBoost || 0, appliedPriors: appliedPriors || [] }));
+      .map(({ value, priorBoost, appliedPriors }) => ({
+        value,
+        priorBoost: priorBoost || 0,
+        appliedPriors: appliedPriors || [],
+      }));
     const verifiedDeltaPriorHits = relevantVerifiedDeltas.scores
-      .filter(({ value, priorBoost }) => relevantVerifiedDeltas.items.includes(value) && (priorBoost || 0) > 0)
-      .map(({ value, priorBoost, appliedPriors }) => ({ value, priorBoost: priorBoost || 0, appliedPriors: appliedPriors || [] }));
-    const resetReason = scopeKind === "fresh_question"
-      ? "fresh_scope"
-      : scopeKind === "correction"
-        ? "correction_reset"
-        : null;
+      .filter(
+        ({ value, priorBoost }) => relevantVerifiedDeltas.items.includes(value) && (priorBoost || 0) > 0
+      )
+      .map(({ value, priorBoost, appliedPriors }) => ({
+        value,
+        priorBoost: priorBoost || 0,
+        appliedPriors: appliedPriors || [],
+      }));
+    const resetReason =
+      scopeKind === "fresh_question" ? "fresh_scope" : scopeKind === "correction" ? "correction_reset" : null;
     const exclusionReason = truncated
       ? "budget_truncation"
       : resetReason || (irrelevantExcludedLabels.length ? "irrelevance" : "none");
@@ -1050,7 +1734,9 @@ export function registerTurns(pi: ExtensionAPI) {
         event_type: "relevant_context_selected",
         ...common,
         relevant_context_labels: relevantContextLabels,
-        selected_counts: Object.fromEntries(scopedEntries.map((entry) => [entry.key, entry.selectedCount || 0])),
+        selected_counts: Object.fromEntries(
+          scopedEntries.map((entry) => [entry.key, entry.selectedCount || 0])
+        ),
       });
       queueTraceTelemetry({
         event_type: "governing_priors_applied",
@@ -1092,7 +1778,10 @@ export function registerTurns(pi: ExtensionAPI) {
           excluded_context_labels: excludedContext,
         });
       }
-      if (!missionIncluded && (scopeKind === "fresh_question" || scopeKind === "correction" || excludedContext.length > 0)) {
+      if (
+        !missionIncluded &&
+        (scopeKind === "fresh_question" || scopeKind === "correction" || excludedContext.length > 0)
+      ) {
         queueTraceTelemetry({
           event_type: "subject_hijack_prevented",
           ...common,
@@ -1103,7 +1792,12 @@ export function registerTurns(pi: ExtensionAPI) {
     }
 
     // §33.2: Prepend Focus State as first message before every LLM call
-    return { messages: [{ role: "user" as const, content: [{ type: "text" as const, text }] }, ...(event.messages || [])] };
+    return {
+      messages: [
+        { role: "user" as const, content: [{ type: "text" as const, text }] },
+        ...(event.messages || []),
+      ],
+    };
   });
 
   // ── input (§36.3 signal + §35.7 correction — single handler) ──────────────
@@ -1123,7 +1817,8 @@ export function registerTurns(pi: ExtensionAPI) {
           slice_size: 0,
           ring_size: ringSize,
           forced_re_emit: true,
-          alternative_tools_surfaced: ringSize === 0 ? ["focusa_lineage_tree", "focusa_awareness_packet"] : [],
+          alternative_tools_surfaced:
+            ringSize === 0 ? ["focusa_lineage_tree", "focusa_awareness_packet"] : [],
           continuity_id: getContinuityId(),
           agent_kind: ADAPTER_KIND,
         });
@@ -1163,11 +1858,7 @@ export function registerTurns(pi: ExtensionAPI) {
     };
     S.excludedContext = {
       labels: [],
-      reason: askKind === "question"
-        ? "fresh_scope"
-        : askKind === "correction"
-          ? "correction_reset"
-          : "none",
+      reason: askKind === "question" ? "fresh_scope" : askKind === "correction" ? "correction_reset" : "none",
       sourceTurnId,
       updatedAt: Date.now(),
     };
@@ -1233,14 +1924,23 @@ export function registerTurns(pi: ExtensionAPI) {
 
     if (S.focusaAvailable) {
       focusaPost("/focus-gate/ingest-signal", {
-        signal_type: "user_input", surface: "pi",
+        signal_type: "user_input",
+        surface: "pi",
         payload: { length: text.length, preview: String(text).slice(0, 200) },
       });
     }
 
     const lower = String(text).toLowerCase();
-    const corrections = ["no that is wrong", "revert", "undo", "that's incorrect", "wrong approach", "go back", "not what i asked"];
-    if (corrections.some(c => lower.includes(c))) {
+    const corrections = [
+      "no that is wrong",
+      "revert",
+      "undo",
+      "that's incorrect",
+      "wrong approach",
+      "go back",
+      "not what i asked",
+    ];
+    if (corrections.some((c) => lower.includes(c))) {
       // Correction is steering signal, not canonical failure.
       // Keep as telemetry/trust update to avoid stale Known Failures contamination.
       if (S.focusaAvailable) {
@@ -1279,7 +1979,10 @@ export function registerTurns(pi: ExtensionAPI) {
 
     // §35.5: Token counts + assistant output
     if (S.focusaAvailable) {
-      const reportSummary = maybeCaptureReportSummaryFromAssistantOutput(assistantOutput, `pi-turn-${getTurnCount()}`);
+      const reportSummary = maybeCaptureReportSummaryFromAssistantOutput(
+        assistantOutput,
+        `pi-turn-${getTurnCount()}`
+      );
       if (reportSummary) {
         queueTraceTelemetry({
           event_type: "report_summary_captured",
@@ -1334,7 +2037,9 @@ export function registerTurns(pi: ExtensionAPI) {
         carryover_policy: S.queryScope?.carryoverPolicy || "allow_if_relevant",
       };
       if (scopeFailures.length || detectedLeakClasses.length) {
-        refreshTrajectoryClarityLifecycle("failure_or_degradation", getSessionCwd() || process.cwd()).catch(() => null);
+        refreshTrajectoryClarityLifecycle("failure_or_degradation", getSessionCwd() || process.cwd()).catch(
+          () => null
+        );
       }
       if (scopeFailures.length === 0) {
         queueTraceTelemetry({
@@ -1382,7 +2087,9 @@ export function registerTurns(pi: ExtensionAPI) {
       }
 
       if (textSuggestsContextOverflow(assistantOutput)) {
-        await checkpointDiscontinuity("context_overflow", { active_object_refs: ["provider_error_text:context_length_exceeded"] });
+        await checkpointDiscontinuity("context_overflow", {
+          active_object_refs: ["provider_error_text:context_length_exceeded"],
+        });
       }
 
       const expectedActionType = getActiveWorkpointPacket()?.action_intent?.action_type;
@@ -1394,26 +2101,28 @@ export function registerTurns(pi: ExtensionAPI) {
             expected_action_type: expectedActionType,
             emit: true,
           }),
-        }).then((drift: any) => {
-          queueTraceTelemetry({
-            event_type: drift?.drift_detected ? "workpoint_drift_detected" : "workpoint_drift_checked",
-            turn_id: `pi-turn-${getTurnCount()}`,
-            frame_id: S.activeFrameId,
-            surface: "pi",
-            workpoint_id: drift?.workpoint_id || getActiveWorkpointPacket()?.workpoint_id,
-            expected_action_type: expectedActionType,
-            drift_detected: Boolean(drift?.drift_detected),
-            next_step_hint: drift?.next_step_hint,
+        })
+          .then((drift: any) => {
+            queueTraceTelemetry({
+              event_type: drift?.drift_detected ? "workpoint_drift_detected" : "workpoint_drift_checked",
+              turn_id: `pi-turn-${getTurnCount()}`,
+              frame_id: S.activeFrameId,
+              surface: "pi",
+              workpoint_id: drift?.workpoint_id || getActiveWorkpointPacket()?.workpoint_id,
+              expected_action_type: expectedActionType,
+              drift_detected: Boolean(drift?.drift_detected),
+              next_step_hint: drift?.next_step_hint,
+            });
+          })
+          .catch(() => {
+            queueTraceTelemetry({
+              event_type: "workpoint_drift_check_unavailable",
+              turn_id: `pi-turn-${getTurnCount()}`,
+              frame_id: S.activeFrameId,
+              surface: "pi",
+              expected_action_type: expectedActionType,
+            });
           });
-        }).catch(() => {
-          queueTraceTelemetry({
-            event_type: "workpoint_drift_check_unavailable",
-            turn_id: `pi-turn-${getTurnCount()}`,
-            frame_id: S.activeFrameId,
-            surface: "pi",
-            expected_action_type: expectedActionType,
-          });
-        });
       }
 
       const promptTokens = ev.usage?.inputTokens || ev.usage?.input || 0;
@@ -1442,7 +2151,10 @@ export function registerTurns(pi: ExtensionAPI) {
     // §33.4: Flush batched tool usage
     if (S.focusaAvailable && getToolUsageBatch().length) {
       S.currentTaskToolCalls += getToolUsageBatch().length;
-      focusaPost("/telemetry/tool-usage", { turn_id: `pi-turn-${getTurnCount()}`, tools: getToolUsageBatch() });
+      focusaPost("/telemetry/tool-usage", {
+        turn_id: `pi-turn-${getTurnCount()}`,
+        tools: getToolUsageBatch(),
+      });
       queueTraceTelemetry({
         event_type: "tools_invoked",
         turn_id: `pi-turn-${getTurnCount()}`,
@@ -1476,7 +2188,8 @@ export function registerTurns(pi: ExtensionAPI) {
 
     // §34.2C: Update Focus State on significant progress
     if (S.focusaAvailable && S.activeFrameId) {
-      const hasSignificant = S.localDecisions.length > 0 || S.localConstraints.length > 0 || S.localFailures.length > 0;
+      const hasSignificant =
+        S.localDecisions.length > 0 || S.localConstraints.length > 0 || S.localFailures.length > 0;
       if (hasSignificant) {
         await pushDelta({
           decisions: S.localDecisions.slice(-5),
@@ -1519,7 +2232,10 @@ export function registerTurns(pi: ExtensionAPI) {
       signal_type: "model_change",
       surface: "pi",
       frame_id: S.activeFrameId,
-      payload: { model_id: model?.id || "unknown", context_window: model?.contextWindow || S.activeContextWindow },
+      payload: {
+        model_id: model?.id || "unknown",
+        context_window: model?.contextWindow || S.activeContextWindow,
+      },
     });
     // §5.12: force re-emit on model switch
     S.lastRecentTurnsSliceTurn = -1;
@@ -1527,7 +2243,6 @@ export function registerTurns(pi: ExtensionAPI) {
       await injectRecentTurnsSlice(event, 4);
     }
   });
-
 
   // Provider overflow boundary: Pi auto-compacts, but Focusa checkpoints first when HTTP status exposes overflow-like failure.
   (pi as any).on("after_provider_response", async (event: any, _ctx: any) => {
@@ -1551,19 +2266,24 @@ export function registerTurns(pi: ExtensionAPI) {
       setLongSessionSignaled(true);
       if (S.focusaAvailable) {
         focusaPost("/focus-gate/ingest-signal", {
-          signal_type: "long_session", surface: "pi",
+          signal_type: "long_session",
+          surface: "pi",
           payload: { minutes: Math.round(elapsed), turns: getTurnCount() },
         });
       }
     }
 
     // Tool error rate detection
-    const recentErrors = getCompilationErrors().filter(t => Date.now() - t < 300_000);
+    const recentErrors = getCompilationErrors().filter((t) => Date.now() - t < 300_000);
     if (recentErrors.length >= 3) {
-      ctx.ui.notify(`⚠️ ${recentErrors.length} compilation errors in 5 min — consider a different approach`, "warning");
+      ctx.ui.notify(
+        `⚠️ ${recentErrors.length} compilation errors in 5 min — consider a different approach`,
+        "warning"
+      );
       if (S.focusaAvailable) {
         focusaPost("/focus-gate/ingest-signal", {
-          signal_type: "error_rate_high", surface: "pi",
+          signal_type: "error_rate_high",
+          surface: "pi",
           payload: { count: recentErrors.length, window_ms: 300_000 },
         });
       }
@@ -1581,7 +2301,8 @@ export function registerTurns(pi: ExtensionAPI) {
     // §36.2: Error signals
     if (isError && S.focusaAvailable) {
       focusaPost("/focus-gate/ingest-signal", {
-        signal_type: "tool_error", surface: "pi",
+        signal_type: "tool_error",
+        surface: "pi",
         payload: { tool: toolName, error: content.slice(0, 500) },
       });
     }
@@ -1594,11 +2315,25 @@ export function registerTurns(pi: ExtensionAPI) {
       .map((value: any) => String(value || "").trim())
       .filter(Boolean)
       .slice(0, 8);
-    const projectHintText = [toolName, ev.params?.path, ev.input?.path, ev.params?.cwd, ev.input?.cwd, ev.params?.command, ev.input?.command, ...targetRefs]
+    const projectHintText = [
+      toolName,
+      ev.params?.path,
+      ev.input?.path,
+      ev.params?.cwd,
+      ev.input?.cwd,
+      ev.params?.command,
+      ev.input?.command,
+      ...targetRefs,
+    ]
       .map((value: any) => String(value || "").trim())
       .filter(Boolean)
       .join(" ");
-    observeProjectThreadHintsFromText(projectHintText, `pi-turn-${getTurnCount()}`, "tool_evidence", `tool=${toolName || "unknown_tool"}`);
+    observeProjectThreadHintsFromText(
+      projectHintText,
+      `pi-turn-${getTurnCount()}`,
+      "tool_evidence",
+      `tool=${toolName || "unknown_tool"}`
+    );
 
     if (S.focusaAvailable) {
       focusaPost("/ontology/tool-result-proposals", {
@@ -1607,7 +2342,10 @@ export function registerTurns(pi: ExtensionAPI) {
         ok: !isError,
         target_refs: targetRefs,
         evidence_refs: [],
-        workpoint_id: getActiveWorkpointPacket()?.workpoint_id || getActiveWorkpointPacket()?.workpoint?.workpoint_id || null,
+        workpoint_id:
+          getActiveWorkpointPacket()?.workpoint_id ||
+          getActiveWorkpointPacket()?.workpoint?.workpoint_id ||
+          null,
         action_intent: S.currentAsk?.text || null,
         summary: content.slice(0, 500),
         error: isError ? content.slice(0, 500) : null,
@@ -1637,8 +2375,11 @@ export function registerTurns(pi: ExtensionAPI) {
       const handle = await focusaFetch("/ecs/store", {
         method: "POST",
         body: JSON.stringify({
-          kind: "text", label: `${toolName}-output-${Date.now()}`,
-          content: content.slice(0, 32_000), surface: "pi", turn_id: `pi-turn-${getTurnCount()}`,
+          kind: "text",
+          label: `${toolName}-output-${Date.now()}`,
+          content: content.slice(0, 32_000),
+          surface: "pi",
+          turn_id: `pi-turn-${getTurnCount()}`,
         }),
       });
       if (handle?.id) {
@@ -1646,13 +2387,17 @@ export function registerTurns(pi: ExtensionAPI) {
         // §7.4: Also cache locally so handles resolve even if Focusa is temporarily down
         storeEcsArtifact("text", content);
         return {
-          content: [{
-            type: "text",
-            text: `[HANDLE:text:${handle.id} "${toolName} output" (${content.length} bytes, ~${tokens} tokens)]\n` +
-                  formatHandleTrajectorySummary(handle) +
-                  `Use /focusa-rehydrate ${handle.id} to retrieve full content.\n\n` +
-                  content.slice(0, 1000) + (content.length > 1000 ? "\n...[truncated, full content in ECS]" : ""),
-          }],
+          content: [
+            {
+              type: "text",
+              text:
+                `[HANDLE:text:${handle.id} "${toolName} output" (${content.length} bytes, ~${tokens} tokens)]\n` +
+                formatHandleTrajectorySummary(handle) +
+                `Use /focusa-rehydrate ${handle.id} to retrieve full content.\n\n` +
+                content.slice(0, 1000) +
+                (content.length > 1000 ? "\n...[truncated, full content in ECS]" : ""),
+            },
+          ],
         };
       }
     }
@@ -1662,11 +2407,15 @@ export function registerTurns(pi: ExtensionAPI) {
     if (!S.focusaAvailable && (content.length > byteThreshold || tokens > tokenThreshold)) {
       const localId = storeEcsArtifact("text", content);
       return {
-        content: [{
-          type: "text",
-          text: `[HANDLE:text:${localId} "${toolName} output" (${content.length} bytes, ~${tokens} tokens)]\nFocusa offline — content cached locally. Use /focusa-rehydrate ${localId} when available.\n\n` +
-                content.slice(0, 500) + (content.length > 500 ? "\n...[truncated]" : ""),
-        }],
+        content: [
+          {
+            type: "text",
+            text:
+              `[HANDLE:text:${localId} "${toolName} output" (${content.length} bytes, ~${tokens} tokens)]\nFocusa offline — content cached locally. Use /focusa-rehydrate ${localId} when available.\n\n` +
+              content.slice(0, 500) +
+              (content.length > 500 ? "\n...[truncated]" : ""),
+          },
+        ],
       };
     }
 
@@ -1677,7 +2426,8 @@ export function registerTurns(pi: ExtensionAPI) {
         incrementFileEditCount(path);
         if (getFileEditCounts()[path] >= 5 && S.focusaAvailable) {
           focusaPost("/focus-gate/ingest-signal", {
-            signal_type: "file_churn", surface: "pi",
+            signal_type: "file_churn",
+            surface: "pi",
             payload: { path, count: getFileEditCounts()[path] },
           });
         }

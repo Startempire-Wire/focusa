@@ -98,7 +98,8 @@ const DEFAULTS: FocusaConfig = {
   cooldownMs: 180_000,
   maxCompactionsPerHour: 8,
   minTurnsBetweenCompactions: 3,
-  compactInstructions: "Preserve intent, decisions, constraints, next_steps, failures. Prefer handles over blobs.",
+  compactInstructions:
+    "Preserve intent, decisions, constraints, next_steps, failures. Prefer handles over blobs.",
   externalizeThresholdBytes: 8192,
   externalizeThresholdTokens: 800,
   focusaApiBaseUrl: "http://127.0.0.1:8787/v1",
@@ -189,7 +190,9 @@ const ENV_MAP: Record<string, keyof FocusaConfig> = {
 function validate(cfg: FocusaConfig): string[] {
   const errs: string[] = [];
   if (!(0 < cfg.warnPct && cfg.warnPct < cfg.compactPct && cfg.compactPct < cfg.hardPct && cfg.hardPct < 100))
-    errs.push(`Invalid tier ordering: 0 < warnPct(${cfg.warnPct}) < compactPct(${cfg.compactPct}) < hardPct(${cfg.hardPct}) < 100`);
+    errs.push(
+      `Invalid tier ordering: 0 < warnPct(${cfg.warnPct}) < compactPct(${cfg.compactPct}) < hardPct(${cfg.hardPct}) < 100`
+    );
   if (!["off", "actionable", "all"].includes(cfg.contextStatusMode))
     errs.push(`contextStatusMode(${cfg.contextStatusMode}) must be one of: off, actionable, all`);
   if (cfg.vitalInfoPromptMode === "notify") cfg.vitalInfoPromptMode = "warn_only";
@@ -205,7 +208,8 @@ function validate(cfg: FocusaConfig): string[] {
   if (cfg.workLoopMaxWallClockMs < 60_000) errs.push(`workLoopMaxWallClockMs must be >= 60000`);
   if (cfg.workLoopMaxRetries < 0) errs.push(`workLoopMaxRetries must be >= 0`);
   if (cfg.workLoopCooldownMs < 0) errs.push(`workLoopCooldownMs must be >= 0`);
-  if (cfg.workLoopMaxConsecutiveLowProductivityTurns < 1) errs.push(`workLoopMaxConsecutiveLowProductivityTurns must be >= 1`);
+  if (cfg.workLoopMaxConsecutiveLowProductivityTurns < 1)
+    errs.push(`workLoopMaxConsecutiveLowProductivityTurns must be >= 1`);
   if (cfg.workLoopMaxConsecutiveFailures < 1) errs.push(`workLoopMaxConsecutiveFailures must be >= 1`);
   if (cfg.workLoopMaxSameSubproblemRetries < 0) errs.push(`workLoopMaxSameSubproblemRetries must be >= 0`);
   if (cfg.workLoopStatusHeartbeatMs < 1_000) errs.push(`workLoopStatusHeartbeatMs must be >= 1000`);
@@ -226,9 +230,10 @@ function readSettingsFile(path: string): any {
 
 function extractFocusaConfig(raw: any): Partial<FocusaConfig> {
   const rootConfig = isPlainObject(raw?.focusaPiBridge) ? raw.focusaPiBridge : null;
-  const legacyConfig = isPlainObject(raw?.extensions) && isPlainObject(raw.extensions?.focusaPiBridge)
-    ? raw.extensions.focusaPiBridge
-    : null;
+  const legacyConfig =
+    isPlainObject(raw?.extensions) && isPlainObject(raw.extensions?.focusaPiBridge)
+      ? raw.extensions.focusaPiBridge
+      : null;
   const ext = rootConfig ?? legacyConfig;
   if (!ext) return {};
   let fileConfig: Partial<FocusaConfig> = {};
@@ -237,7 +242,10 @@ function extractFocusaConfig(raw: any): Partial<FocusaConfig> {
 }
 
 function resolveSettingsPaths(cwd?: string): string[] {
-  return [cwd ? join(cwd, ".pi/settings.json") : "", join(process.env.HOME || "", ".pi/agent/settings.json")].filter(Boolean);
+  return [
+    cwd ? join(cwd, ".pi/settings.json") : "",
+    join(process.env.HOME || "", ".pi/agent/settings.json"),
+  ].filter(Boolean);
 }
 
 // Load config: §18 precedence: env vars > settings.json > defaults
@@ -270,15 +278,24 @@ export function loadConfig(cwd?: string): { config: FocusaConfig; errors: string
   return { config: cfg, errors };
 }
 
-export function saveConfigOverrides(cwd: string | undefined, overrides: Partial<FocusaConfig>, scope: "project" | "user" = "project"):
-  { config: FocusaConfig; errors: string[]; path: string } {
-  const path = scope === "project" && cwd
-    ? join(cwd, ".pi/settings.json")
-    : join(process.env.HOME || "", ".pi/agent/settings.json");
+export function saveConfigOverrides(
+  cwd: string | undefined,
+  overrides: Partial<FocusaConfig>,
+  scope: "project" | "user" = "project"
+): { config: FocusaConfig; errors: string[]; path: string } {
+  const path =
+    scope === "project" && cwd
+      ? join(cwd, ".pi/settings.json")
+      : join(process.env.HOME || "", ".pi/agent/settings.json");
 
   const raw = readSettingsFile(path);
-  if (!isPlainObject(raw)) throw new Error(`Refusing to write Focusa config into non-object settings file: ${path}`);
-  if (RESERVED_PI_KEYS.has("extensions") && isPlainObject(raw.extensions) && "focusaPiBridge" in raw.extensions) {
+  if (!isPlainObject(raw))
+    throw new Error(`Refusing to write Focusa config into non-object settings file: ${path}`);
+  if (
+    RESERVED_PI_KEYS.has("extensions") &&
+    isPlainObject(raw.extensions) &&
+    "focusaPiBridge" in raw.extensions
+  ) {
     delete raw.extensions.focusaPiBridge;
     if (Object.keys(raw.extensions).length === 0) delete raw.extensions;
   }
@@ -295,5 +312,9 @@ export function saveConfigOverrides(cwd: string | undefined, overrides: Partial<
 }
 
 // §23: Get preset names
-export function getPresetNames(): string[] { return Object.keys(PRESETS); }
-export function getPreset(name: string): Partial<FocusaConfig> | undefined { return PRESETS[name]; }
+export function getPresetNames(): string[] {
+  return Object.keys(PRESETS);
+}
+export function getPreset(name: string): Partial<FocusaConfig> | undefined {
+  return PRESETS[name];
+}

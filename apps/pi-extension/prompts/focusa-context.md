@@ -1,6 +1,7 @@
 ---
 description: Start work with canonical Focusa project, Trajectory, Workpoint, and Context Cognition context
 ---
+
 Before starting: load Focusa context through the current canonical route. Treat transcript tail and stale focus-stack dumps as advisory only.
 
 1. Resolve project scope first:

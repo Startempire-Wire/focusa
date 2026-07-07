@@ -1,4 +1,18 @@
-import { S, getScopedWorkpointPacket, isProjectRootAuthoritySafe, normalizeProjectRoot, getFocusaAvailable, getSessionCwd, getContinuityId, getActiveWorkpointPacket, getActiveWorkpointSummary, getLastTrajectoryClarity, getLastProjectVerify, getLastProjectIdentity, getLastProjectRootResolution } from "./state.js";
+import {
+  S,
+  getScopedWorkpointPacket,
+  isProjectRootAuthoritySafe,
+  normalizeProjectRoot,
+  getFocusaAvailable,
+  getSessionCwd,
+  getContinuityId,
+  getActiveWorkpointPacket,
+  getActiveWorkpointSummary,
+  getLastTrajectoryClarity,
+  getLastProjectVerify,
+  getLastProjectIdentity,
+  getLastProjectRootResolution,
+} from "./state.js";
 
 function line(value: unknown): string {
   return String(value || "").trim();
@@ -28,34 +42,64 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
   const prefix = mode === "visible" ? "# Focusa Utility Card" : "## Focusa Utility Card";
   const safeScope = !!projectRoot && isProjectRootAuthoritySafe(projectRoot);
   const resolution = getLastProjectRootResolution();
-  const confidence = resolution ? ` confidence=${Math.round(resolution.confidenceScore * 100)}% source=${resolution.source}` : "";
+  const confidence = resolution
+    ? ` confidence=${Math.round(resolution.confidenceScore * 100)}% source=${resolution.source}`
+    : "";
   const needsConfirm = resolution?.requiresOperatorConfirmation === true;
   const trajectory = getLastTrajectoryClarity() || {};
   const lastIdentity = getLastProjectIdentity();
-  const cachedProjectIdentity = lastIdentity && normalizeProjectRoot(lastIdentity.project_root) === projectRoot ? lastIdentity : null;
+  const cachedProjectIdentity =
+    lastIdentity && normalizeProjectRoot(lastIdentity.project_root) === projectRoot ? lastIdentity : null;
   const lastVerify = getLastProjectVerify();
-  const verifiedProjectIdentity = lastVerify?.project_identity && normalizeProjectRoot(lastVerify.project_identity.project_root) === projectRoot ? lastVerify.project_identity : null;
-  const trajectoryProjectIdentity = trajectory.project_identity && normalizeProjectRoot(trajectory.project_identity.project_root) === projectRoot ? trajectory.project_identity : null;
-  const projectIdentity = safeScope ? (trajectoryProjectIdentity || cachedProjectIdentity || verifiedProjectIdentity || {}) : {};
+  const verifiedProjectIdentity =
+    lastVerify?.project_identity &&
+    normalizeProjectRoot(lastVerify.project_identity.project_root) === projectRoot
+      ? lastVerify.project_identity
+      : null;
+  const trajectoryProjectIdentity =
+    trajectory.project_identity &&
+    normalizeProjectRoot(trajectory.project_identity.project_root) === projectRoot
+      ? trajectory.project_identity
+      : null;
+  const projectIdentity = safeScope
+    ? trajectoryProjectIdentity || cachedProjectIdentity || verifiedProjectIdentity || {}
+    : {};
   const projectSummary = projectIdentity.project_summary || {};
   const trajectoryFallback = trajectory.fallback_prior_project_trajectory === true;
-  const projectUrls = trajectoryFallback ? (projectIdentity.project_urls || projectSummary.urls || {}) : (trajectory.project_urls || projectIdentity.project_urls || projectSummary.urls || {});
-  const deployment = trajectoryFallback ? (projectIdentity.deployment || projectSummary.deployment || {}) : (trajectory.deployment || projectIdentity.deployment || projectSummary.deployment || {});
-  const trajectorySet = !trajectoryFallback && !!(trajectory.long_term_goal || trajectory.desired_end_state || trajectory.active_gap || trajectory.status);
+  const projectUrls = trajectoryFallback
+    ? projectIdentity.project_urls || projectSummary.urls || {}
+    : trajectory.project_urls || projectIdentity.project_urls || projectSummary.urls || {};
+  const deployment = trajectoryFallback
+    ? projectIdentity.deployment || projectSummary.deployment || {}
+    : trajectory.deployment || projectIdentity.deployment || projectSummary.deployment || {};
+  const trajectorySet =
+    !trajectoryFallback &&
+    !!(
+      trajectory.long_term_goal ||
+      trajectory.desired_end_state ||
+      trajectory.active_gap ||
+      trajectory.status
+    );
   const workpointStatus = scopedPacket
     ? "verified"
     : getActiveWorkpointSummary()
       ? "summary_only"
       : "unavailable/not_verified";
   const envParts = [
-    firstValue(projectUrls.root_url, projectUrls.live_url) ? `root=${compact(firstValue(projectUrls.root_url, projectUrls.live_url), "", 120)}` : "",
+    firstValue(projectUrls.root_url, projectUrls.live_url)
+      ? `root=${compact(firstValue(projectUrls.root_url, projectUrls.live_url), "", 120)}`
+      : "",
     projectUrls.wp_url ? `wp=${compact(projectUrls.wp_url, "", 120)}` : "",
     projectUrls.app_url ? `app=${compact(projectUrls.app_url, "", 120)}` : "",
     projectUrls.auth_url ? `auth=${compact(projectUrls.auth_url, "", 120)}` : "",
     projectUrls.local_url ? `local=${compact(projectUrls.local_url, "", 120)}` : "",
     deployment.environment ? `env=${compact(deployment.environment, "", 50)}` : "",
-    firstValue(projectUrls.inference_confidence, deployment.inference_confidence) ? `confidence=${compact(firstValue(projectUrls.inference_confidence, deployment.inference_confidence), "", 40)}` : "",
-  ].filter(Boolean).join("; ");
+    firstValue(projectUrls.inference_confidence, deployment.inference_confidence)
+      ? `confidence=${compact(firstValue(projectUrls.inference_confidence, deployment.inference_confidence), "", 40)}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("; ");
 
   const missionPacket = [
     "MISSION_PACKET:",
@@ -68,16 +112,22 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     `- boundary=operator steering wins; project_root+continuity_id are authority; trajectory similarity/fallback is advisory only`,
   ];
 
-  const reconciliationActive = !safeScope || needsConfirm || trajectoryFallback || (trajectorySet && !scopedPacket && workpointStatus !== "verified");
-  const reconciliationEnvelope = reconciliationActive ? [
-    "RECONCILIATION_ENVELOPE:",
-    `- surface_states=workpoint:${workpointStatus}; trajectory:${trajectoryFallback ? "fallback_advisory" : trajectorySet ? "available" : "not_hydrated"}; focus_state:unknown; ontology:unknown; evidence:${scopedPacket ? "workpoint_refs_available" : "checkpoint_first"}; doctor:unknown; work_loop:unknown`,
-    `- resolution=${!safeScope || needsConfirm ? "verify_project_scope_first" : trajectoryFallback ? "refresh_current_trajectory" : "checkpoint_or_resume_workpoint"}`,
-    `- authority_for_next_action=${!safeScope || needsConfirm ? "project_identity_verification" : scopedPacket ? "canonical_workpoint" : "operator_current_ask_until_checkpoint"}`,
-    `- supporting_context=project_root:${projectRoot || "unknown"}; continuity_id:${continuityId || "unknown"}`,
-    `- blocked_or_stale_surfaces=${[!safeScope || needsConfirm ? "scope" : "", trajectoryFallback ? "trajectory" : "", !scopedPacket ? "workpoint" : ""].filter(Boolean).join(",") || "none"}`,
-    `- next_repair_tool=${!safeScope || needsConfirm ? "focusa_project_identity" : trajectoryFallback ? "focusa_trajectory_view" : "focusa_workpoint_checkpoint"}`,
-  ] : [];
+  const reconciliationActive =
+    !safeScope ||
+    needsConfirm ||
+    trajectoryFallback ||
+    (trajectorySet && !scopedPacket && workpointStatus !== "verified");
+  const reconciliationEnvelope = reconciliationActive
+    ? [
+        "RECONCILIATION_ENVELOPE:",
+        `- surface_states=workpoint:${workpointStatus}; trajectory:${trajectoryFallback ? "fallback_advisory" : trajectorySet ? "available" : "not_hydrated"}; focus_state:unknown; ontology:unknown; evidence:${scopedPacket ? "workpoint_refs_available" : "checkpoint_first"}; doctor:unknown; work_loop:unknown`,
+        `- resolution=${!safeScope || needsConfirm ? "verify_project_scope_first" : trajectoryFallback ? "refresh_current_trajectory" : "checkpoint_or_resume_workpoint"}`,
+        `- authority_for_next_action=${!safeScope || needsConfirm ? "project_identity_verification" : scopedPacket ? "canonical_workpoint" : "operator_current_ask_until_checkpoint"}`,
+        `- supporting_context=project_root:${projectRoot || "unknown"}; continuity_id:${continuityId || "unknown"}`,
+        `- blocked_or_stale_surfaces=${[!safeScope || needsConfirm ? "scope" : "", trajectoryFallback ? "trajectory" : "", !scopedPacket ? "workpoint" : ""].filter(Boolean).join(",") || "none"}`,
+        `- next_repair_tool=${!safeScope || needsConfirm ? "focusa_project_identity" : trajectoryFallback ? "focusa_trajectory_view" : "focusa_workpoint_checkpoint"}`,
+      ]
+    : [];
 
   const nowWhyHealthDoCards = [
     "NOW_CARD:",
@@ -134,13 +184,29 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     ...missionPacket,
     ...nowWhyHealthDoCards,
     ...reconciliationEnvelope,
-    scopedPacket ? "Project-bound Workpoint: verified project_root + continuity_id match." : "Project-bound Workpoint: none verified for this logical session; use trajectory gap + operator ask, then checkpoint; ignore stale carryover.",
-    !safeScope || needsConfirm ? "Project folder check: confirm the project file folder/container before durable state writes." : "Project root: confirmed project file folder/container; trajectory provides the functional route.",
-    mission ? `Mission: ${mission}` : "Mission: use latest operator instruction as seed; bind it to trajectory + Workpoint before long work.",
-    next ? `Next anchor: ${next}` : "Next anchor: call focusa_workpoint_resume with current continuity_id if resuming project work or uncertain.",
-    projectRoot ? `Project folder: project_root=${projectRoot}${safeScope ? "" : " (broad/unsafe)"}` : "Project folder: bind work to the folder containing project files; reject cross-project resume packets.",
-    scopedPacket && continuityId ? `Continuity: continuity_id=${continuityId}` : "Continuity: no Workpoint continuity verified for this Pi session; use resume/checkpoint before trusting same-root state.",
-    trajectoryFallback ? `Trajectory: prior-project fallback only from continuity=${compact(trajectory.fallback_source_continuity_id, "unknown", 80)}; refresh/define current continuity before durable trajectory writes.` : trajectorySet ? `Trajectory: high=${compact(trajectory.long_term_goal)}; current=${compact(trajectory.current_state)}; gap=${compact(trajectory.active_gap || trajectory.short_term_goal)}.` : "Trajectory: not hydrated in Utility Card memory; run focusa_trajectory_view before durable state writes; if missing/stale, re-bootstrap from project card + ontology + prediction/metacog signals.",
+    scopedPacket
+      ? "Project-bound Workpoint: verified project_root + continuity_id match."
+      : "Project-bound Workpoint: none verified for this logical session; use trajectory gap + operator ask, then checkpoint; ignore stale carryover.",
+    !safeScope || needsConfirm
+      ? "Project folder check: confirm the project file folder/container before durable state writes."
+      : "Project root: confirmed project file folder/container; trajectory provides the functional route.",
+    mission
+      ? `Mission: ${mission}`
+      : "Mission: use latest operator instruction as seed; bind it to trajectory + Workpoint before long work.",
+    next
+      ? `Next anchor: ${next}`
+      : "Next anchor: call focusa_workpoint_resume with current continuity_id if resuming project work or uncertain.",
+    projectRoot
+      ? `Project folder: project_root=${projectRoot}${safeScope ? "" : " (broad/unsafe)"}`
+      : "Project folder: bind work to the folder containing project files; reject cross-project resume packets.",
+    scopedPacket && continuityId
+      ? `Continuity: continuity_id=${continuityId}`
+      : "Continuity: no Workpoint continuity verified for this Pi session; use resume/checkpoint before trusting same-root state.",
+    trajectoryFallback
+      ? `Trajectory: prior-project fallback only from continuity=${compact(trajectory.fallback_source_continuity_id, "unknown", 80)}; refresh/define current continuity before durable trajectory writes.`
+      : trajectorySet
+        ? `Trajectory: high=${compact(trajectory.long_term_goal)}; current=${compact(trajectory.current_state)}; gap=${compact(trajectory.active_gap || trajectory.short_term_goal)}.`
+        : "Trajectory: not hydrated in Utility Card memory; run focusa_trajectory_view before durable state writes; if missing/stale, re-bootstrap from project card + ontology + prediction/metacog signals.",
     "",
     ...friendlyQ,
     ...routeHints,

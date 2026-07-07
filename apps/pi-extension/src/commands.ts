@@ -5,7 +5,24 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { getSettingsListTheme } from "@mariozechner/pi-coding-agent";
 import { Container, Text, type SettingItem, SettingsList } from "@mariozechner/pi-tui";
-import { S, focusaFetch, getFocusState, getEffectiveFocusSnapshot, persistState, persistAuthoritativeState, createPiFrame, ensurePiFrame, getFocusaAvailable, getActiveFrameId, getTurnCount, getSessionCwd, getCurrentScopeStore , getTotalCompactions, setCompilationErrors, resetFileEditCounts} from "./state.js";
+import {
+  S,
+  focusaFetch,
+  getFocusState,
+  getEffectiveFocusSnapshot,
+  persistState,
+  persistAuthoritativeState,
+  createPiFrame,
+  ensurePiFrame,
+  getFocusaAvailable,
+  getActiveFrameId,
+  getTurnCount,
+  getSessionCwd,
+  getCurrentScopeStore,
+  getTotalCompactions,
+  setCompilationErrors,
+  resetFileEditCounts,
+} from "./state.js";
 import { saveConfigOverrides } from "./config.js";
 
 function nonEmptyLines(items: any[] | undefined): string[] {
@@ -26,17 +43,20 @@ function replayConsumerSurface(payload: any): {
 
   const replayStatus = String(replayPayload?.status || (payload ? "ok" : "error"));
   const healthy = !!payload && replayStatus === "ok";
-  const pairObserved = healthy && !!replayPayload?.secondary_loop_closure_replay_evidence?.evidence?.current_task_pair_observed;
+  const pairObserved =
+    healthy && !!replayPayload?.secondary_loop_closure_replay_evidence?.evidence?.current_task_pair_observed;
   const pairLabel = healthy ? (pairObserved ? "observed" : "missing") : "unknown";
   const continuityGateRaw = String(continuityPayload?.state || (healthy ? "open" : "fail-closed"));
   const continuityGate: "open" | "fail-closed" = continuityGateRaw === "open" ? "open" : "fail-closed";
   const continuityFailClosed = continuityGate !== "open";
-  const nonClosureObjectiveEvents = objectiveProfile?.non_closure_objective_events != null
-    ? Number(objectiveProfile.non_closure_objective_events)
-    : null;
-  const nonClosureObjectiveRate = objectiveProfile?.non_closure_objective_rate != null
-    ? Number(objectiveProfile.non_closure_objective_rate)
-    : null;
+  const nonClosureObjectiveEvents =
+    objectiveProfile?.non_closure_objective_events != null
+      ? Number(objectiveProfile.non_closure_objective_events)
+      : null;
+  const nonClosureObjectiveRate =
+    objectiveProfile?.non_closure_objective_rate != null
+      ? Number(objectiveProfile.non_closure_objective_rate)
+      : null;
 
   return {
     replayStatus,
@@ -73,7 +93,8 @@ function nextLower(options: string[], value: number): string {
 }
 
 function normalizeTierConfig(draft: { warnPct: number; compactPct: number; hardPct: number }) {
-  if (draft.warnPct >= draft.compactPct) draft.compactPct = Number(nextHigher(COMPACT_OPTIONS, draft.warnPct));
+  if (draft.warnPct >= draft.compactPct)
+    draft.compactPct = Number(nextHigher(COMPACT_OPTIONS, draft.warnPct));
   if (draft.compactPct >= draft.hardPct) draft.hardPct = Number(nextHigher(HARD_OPTIONS, draft.compactPct));
   if (draft.compactPct >= draft.hardPct) draft.compactPct = Number(nextLower(COMPACT_OPTIONS, draft.hardPct));
   if (draft.warnPct >= draft.compactPct) draft.warnPct = Number(nextLower(WARN_OPTIONS, draft.compactPct));
@@ -81,12 +102,7 @@ function normalizeTierConfig(draft: { warnPct: number; compactPct: number; hardP
 
 function renderFocusaContext(data: { frame: any; fs: any }): string {
   const { frame, fs } = data;
-  const lines: string[] = [
-    "# Focusa Context",
-    "",
-    "Rendered live from focusa-pi-bridge current state.",
-    "",
-  ];
+  const lines: string[] = ["# Focusa Context", "", "Rendered live from focusa-pi-bridge current state.", ""];
 
   if (frame?.title) {
     lines.push(`## Current Focus Frame: ${frame.title}`);
@@ -138,7 +154,10 @@ function renderFocusaContext(data: { frame: any; fs: any }): string {
 
   lines.push("---");
   lines.push("Focusa structured context — rendered from live state; follow operator intent first.");
-  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  return lines
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 export function registerCommands(pi: ExtensionAPI) {
@@ -174,13 +193,14 @@ export function registerCommands(pi: ExtensionAPI) {
     description: "Open Focusa settings panel",
     handler: async (args, ctx) => {
       const simpleProfiles = ["starter", "builder", "hands_off", "audit_safe"] as const;
-      type SimpleProfileId = typeof simpleProfiles[number];
+      type SimpleProfileId = (typeof simpleProfiles)[number];
       const advancedMode = /\badvanced\b/i.test(String(args || ""));
 
       const draft = {
         contextStatusMode: S.cfg?.contextStatusMode || "actionable",
         vitalInfoPromptMode: S.cfg?.vitalInfoPromptMode || "prompt",
-        vitalInfoPromptSurfaces: S.cfg?.vitalInfoPromptSurfaces || "project_root,project_verify,workpoint,trajectory",
+        vitalInfoPromptSurfaces:
+          S.cfg?.vitalInfoPromptSurfaces || "project_root,project_verify,workpoint,trajectory",
         warnPct: S.cfg?.warnPct || 50,
         compactPct: S.cfg?.compactPct || 70,
         hardPct: S.cfg?.hardPct || 85,
@@ -282,51 +302,217 @@ export function registerCommands(pi: ExtensionAPI) {
           id: "simpleProfile",
           label: "Quick profile",
           currentValue: simpleProfile,
+          values: ["starter", "builder", "hands_off", "audit_safe"],
+        },
+        {
+          id: "workLoopMaxTurns",
+          label: "How many turns before pause",
+          currentValue: String(draft.workLoopMaxTurns),
+          values: ["10", "24", "60", "120", "200"],
+        },
+        {
+          id: "workLoopMaxWallClockMs",
+          label: "Max run time (ms)",
+          currentValue: String(draft.workLoopMaxWallClockMs),
+          values: ["1200000", "3600000", "7200000", "14400000"],
+        },
+        {
+          id: "workLoopStatusHeartbeatMs",
+          label: "Refresh heartbeat (ms)",
+          currentValue: String(draft.workLoopStatusHeartbeatMs),
+          values: ["1500", "2000", "3000", "5000"],
+        },
+        {
+          id: "contextStatusMode",
+          label: "Footer hints",
+          currentValue: draft.contextStatusMode,
+          values: ["off", "actionable", "all"],
+        },
+        {
+          id: "vitalInfoPromptMode",
+          label: "Vital project info prompt",
+          currentValue: draft.vitalInfoPromptMode,
+          values: VITAL_INFO_PROMPT_MODE_OPTIONS,
+        },
+        {
+          id: "vitalInfoPromptSurfaces",
+          label: "Vital prompt surfaces",
+          currentValue: draft.vitalInfoPromptSurfaces,
           values: [
-            "starter",
-            "builder",
-            "hands_off",
-            "audit_safe",
+            "project_root,project_verify,workpoint,trajectory",
+            "project_root",
+            "project_root,project_verify",
+            "project_root,workpoint",
+            "project_root,trajectory",
           ],
         },
-        { id: "workLoopMaxTurns", label: "How many turns before pause", currentValue: String(draft.workLoopMaxTurns), values: ["10", "24", "60", "120", "200"] },
-        { id: "workLoopMaxWallClockMs", label: "Max run time (ms)", currentValue: String(draft.workLoopMaxWallClockMs), values: ["1200000", "3600000", "7200000", "14400000"] },
-        { id: "workLoopStatusHeartbeatMs", label: "Refresh heartbeat (ms)", currentValue: String(draft.workLoopStatusHeartbeatMs), values: ["1500", "2000", "3000", "5000"] },
-        { id: "contextStatusMode", label: "Footer hints", currentValue: draft.contextStatusMode, values: ["off", "actionable", "all"] },
-        { id: "vitalInfoPromptMode", label: "Vital project info prompt", currentValue: draft.vitalInfoPromptMode, values: VITAL_INFO_PROMPT_MODE_OPTIONS },
-        { id: "vitalInfoPromptSurfaces", label: "Vital prompt surfaces", currentValue: draft.vitalInfoPromptSurfaces, values: ["project_root,project_verify,workpoint,trajectory", "project_root", "project_root,project_verify", "project_root,workpoint", "project_root,trajectory"] },
-        { id: "workLoopRequireVerificationBeforePersist", label: "Require verification before done", currentValue: String(draft.workLoopRequireVerificationBeforePersist), values: BOOLEAN_OPTIONS },
+        {
+          id: "workLoopRequireVerificationBeforePersist",
+          label: "Require verification before done",
+          currentValue: String(draft.workLoopRequireVerificationBeforePersist),
+          values: BOOLEAN_OPTIONS,
+        },
       ];
 
       const buildAdvancedItems = (): SettingItem[] => [
-        { id: "contextStatusMode", label: "Footer context badge", currentValue: draft.contextStatusMode, values: ["off", "actionable", "all"] },
-        { id: "vitalInfoPromptMode", label: "Vital project info prompt", currentValue: draft.vitalInfoPromptMode, values: VITAL_INFO_PROMPT_MODE_OPTIONS },
-        { id: "vitalInfoPromptSurfaces", label: "Vital prompt surfaces", currentValue: draft.vitalInfoPromptSurfaces, values: ["project_root,project_verify,workpoint,trajectory", "project_root", "project_root,project_verify", "project_root,workpoint", "project_root,trajectory", "project_root,project_verify,workpoint,trajectory,evidence,active_object,resource_mode"] },
-        { id: "warnPct", label: "Warn threshold %", currentValue: String(draft.warnPct), values: WARN_OPTIONS },
-        { id: "compactPct", label: "Auto-compact threshold %", currentValue: String(draft.compactPct), values: COMPACT_OPTIONS },
-        { id: "hardPct", label: "Critical threshold %", currentValue: String(draft.hardPct), values: HARD_OPTIONS },
-        { id: "workLoopPreset", label: "Work-loop preset", currentValue: draft.workLoopPreset, values: WORK_LOOP_PRESET_OPTIONS },
-        { id: "workLoopMaxTurns", label: "Work-loop max turns", currentValue: String(draft.workLoopMaxTurns), values: WORK_LOOP_TURN_OPTIONS },
-        { id: "workLoopMaxWallClockMs", label: "Work-loop max wall clock ms", currentValue: String(draft.workLoopMaxWallClockMs), values: WORK_LOOP_WALL_CLOCK_OPTIONS },
-        { id: "workLoopMaxRetries", label: "Work-loop retries", currentValue: String(draft.workLoopMaxRetries), values: WORK_LOOP_RETRY_OPTIONS },
-        { id: "workLoopCooldownMs", label: "Work-loop cooldown ms", currentValue: String(draft.workLoopCooldownMs), values: WORK_LOOP_COOLDOWN_OPTIONS },
-        { id: "workLoopAllowDestructiveActions", label: "Work-loop allow destructive actions", currentValue: String(draft.workLoopAllowDestructiveActions), values: BOOLEAN_OPTIONS },
-        { id: "workLoopRequireOperatorForGovernance", label: "Work-loop require operator for governance", currentValue: String(draft.workLoopRequireOperatorForGovernance), values: BOOLEAN_OPTIONS },
-        { id: "workLoopRequireOperatorForScopeChange", label: "Work-loop require operator for scope change", currentValue: String(draft.workLoopRequireOperatorForScopeChange), values: BOOLEAN_OPTIONS },
-        { id: "workLoopRequireVerificationBeforePersist", label: "Work-loop require verification before persist", currentValue: String(draft.workLoopRequireVerificationBeforePersist), values: BOOLEAN_OPTIONS },
-        { id: "workLoopMaxConsecutiveLowProductivityTurns", label: "Work-loop max low-productivity turns", currentValue: String(draft.workLoopMaxConsecutiveLowProductivityTurns), values: WORK_LOOP_LOW_PRODUCTIVITY_OPTIONS },
-        { id: "workLoopMaxConsecutiveFailures", label: "Work-loop max consecutive failures", currentValue: String(draft.workLoopMaxConsecutiveFailures), values: WORK_LOOP_FAILURE_OPTIONS },
-        { id: "workLoopAutoPauseOnOperatorMessage", label: "Work-loop auto-pause on operator message", currentValue: String(draft.workLoopAutoPauseOnOperatorMessage), values: BOOLEAN_OPTIONS },
-        { id: "workLoopRequireExplainableContinueReason", label: "Work-loop require explainable continue reason", currentValue: String(draft.workLoopRequireExplainableContinueReason), values: BOOLEAN_OPTIONS },
-        { id: "workLoopMaxSameSubproblemRetries", label: "Work-loop max same-subproblem retries", currentValue: String(draft.workLoopMaxSameSubproblemRetries), values: WORK_LOOP_SAME_SUBPROBLEM_OPTIONS },
-        { id: "workLoopStatusHeartbeatMs", label: "Work-loop status heartbeat ms", currentValue: String(draft.workLoopStatusHeartbeatMs), values: WORK_LOOP_HEARTBEAT_OPTIONS },
+        {
+          id: "contextStatusMode",
+          label: "Footer context badge",
+          currentValue: draft.contextStatusMode,
+          values: ["off", "actionable", "all"],
+        },
+        {
+          id: "vitalInfoPromptMode",
+          label: "Vital project info prompt",
+          currentValue: draft.vitalInfoPromptMode,
+          values: VITAL_INFO_PROMPT_MODE_OPTIONS,
+        },
+        {
+          id: "vitalInfoPromptSurfaces",
+          label: "Vital prompt surfaces",
+          currentValue: draft.vitalInfoPromptSurfaces,
+          values: [
+            "project_root,project_verify,workpoint,trajectory",
+            "project_root",
+            "project_root,project_verify",
+            "project_root,workpoint",
+            "project_root,trajectory",
+            "project_root,project_verify,workpoint,trajectory,evidence,active_object,resource_mode",
+          ],
+        },
+        {
+          id: "warnPct",
+          label: "Warn threshold %",
+          currentValue: String(draft.warnPct),
+          values: WARN_OPTIONS,
+        },
+        {
+          id: "compactPct",
+          label: "Auto-compact threshold %",
+          currentValue: String(draft.compactPct),
+          values: COMPACT_OPTIONS,
+        },
+        {
+          id: "hardPct",
+          label: "Critical threshold %",
+          currentValue: String(draft.hardPct),
+          values: HARD_OPTIONS,
+        },
+        {
+          id: "workLoopPreset",
+          label: "Work-loop preset",
+          currentValue: draft.workLoopPreset,
+          values: WORK_LOOP_PRESET_OPTIONS,
+        },
+        {
+          id: "workLoopMaxTurns",
+          label: "Work-loop max turns",
+          currentValue: String(draft.workLoopMaxTurns),
+          values: WORK_LOOP_TURN_OPTIONS,
+        },
+        {
+          id: "workLoopMaxWallClockMs",
+          label: "Work-loop max wall clock ms",
+          currentValue: String(draft.workLoopMaxWallClockMs),
+          values: WORK_LOOP_WALL_CLOCK_OPTIONS,
+        },
+        {
+          id: "workLoopMaxRetries",
+          label: "Work-loop retries",
+          currentValue: String(draft.workLoopMaxRetries),
+          values: WORK_LOOP_RETRY_OPTIONS,
+        },
+        {
+          id: "workLoopCooldownMs",
+          label: "Work-loop cooldown ms",
+          currentValue: String(draft.workLoopCooldownMs),
+          values: WORK_LOOP_COOLDOWN_OPTIONS,
+        },
+        {
+          id: "workLoopAllowDestructiveActions",
+          label: "Work-loop allow destructive actions",
+          currentValue: String(draft.workLoopAllowDestructiveActions),
+          values: BOOLEAN_OPTIONS,
+        },
+        {
+          id: "workLoopRequireOperatorForGovernance",
+          label: "Work-loop require operator for governance",
+          currentValue: String(draft.workLoopRequireOperatorForGovernance),
+          values: BOOLEAN_OPTIONS,
+        },
+        {
+          id: "workLoopRequireOperatorForScopeChange",
+          label: "Work-loop require operator for scope change",
+          currentValue: String(draft.workLoopRequireOperatorForScopeChange),
+          values: BOOLEAN_OPTIONS,
+        },
+        {
+          id: "workLoopRequireVerificationBeforePersist",
+          label: "Work-loop require verification before persist",
+          currentValue: String(draft.workLoopRequireVerificationBeforePersist),
+          values: BOOLEAN_OPTIONS,
+        },
+        {
+          id: "workLoopMaxConsecutiveLowProductivityTurns",
+          label: "Work-loop max low-productivity turns",
+          currentValue: String(draft.workLoopMaxConsecutiveLowProductivityTurns),
+          values: WORK_LOOP_LOW_PRODUCTIVITY_OPTIONS,
+        },
+        {
+          id: "workLoopMaxConsecutiveFailures",
+          label: "Work-loop max consecutive failures",
+          currentValue: String(draft.workLoopMaxConsecutiveFailures),
+          values: WORK_LOOP_FAILURE_OPTIONS,
+        },
+        {
+          id: "workLoopAutoPauseOnOperatorMessage",
+          label: "Work-loop auto-pause on operator message",
+          currentValue: String(draft.workLoopAutoPauseOnOperatorMessage),
+          values: BOOLEAN_OPTIONS,
+        },
+        {
+          id: "workLoopRequireExplainableContinueReason",
+          label: "Work-loop require explainable continue reason",
+          currentValue: String(draft.workLoopRequireExplainableContinueReason),
+          values: BOOLEAN_OPTIONS,
+        },
+        {
+          id: "workLoopMaxSameSubproblemRetries",
+          label: "Work-loop max same-subproblem retries",
+          currentValue: String(draft.workLoopMaxSameSubproblemRetries),
+          values: WORK_LOOP_SAME_SUBPROBLEM_OPTIONS,
+        },
+        {
+          id: "workLoopStatusHeartbeatMs",
+          label: "Work-loop status heartbeat ms",
+          currentValue: String(draft.workLoopStatusHeartbeatMs),
+          values: WORK_LOOP_HEARTBEAT_OPTIONS,
+        },
       ];
 
       await ctx.ui.custom((_tui, theme, _kb, done) => {
         const container = new Container();
-        container.addChild(new Text(theme.fg("accent", theme.bold(advancedMode ? "Focusa Settings (Advanced)" : "🍎 Focusa Quick Setup")), 1, 1));
+        container.addChild(
+          new Text(
+            theme.fg(
+              "accent",
+              theme.bold(advancedMode ? "Focusa Settings (Advanced)" : "🍎 Focusa Quick Setup")
+            ),
+            1,
+            1
+          )
+        );
         if (!advancedMode) {
-          container.addChild(new Text(theme.fg("dim", "Preset-first setup for beginners. Run /focusa-settings advanced for full controls."), 1, 3));
+          container.addChild(
+            new Text(
+              theme.fg(
+                "dim",
+                "Preset-first setup for beginners. Run /focusa-settings advanced for full controls."
+              ),
+              1,
+              3
+            )
+          );
         }
 
         const settingsList = new SettingsList(
@@ -351,20 +537,29 @@ export function registerCommands(pi: ExtensionAPI) {
             if (id === "workLoopMaxWallClockMs") draft.workLoopMaxWallClockMs = Number(newValue);
             if (id === "workLoopMaxRetries") draft.workLoopMaxRetries = Number(newValue);
             if (id === "workLoopCooldownMs") draft.workLoopCooldownMs = Number(newValue);
-            if (id === "workLoopAllowDestructiveActions") draft.workLoopAllowDestructiveActions = String(newValue) === "true";
-            if (id === "workLoopRequireOperatorForGovernance") draft.workLoopRequireOperatorForGovernance = String(newValue) === "true";
-            if (id === "workLoopRequireOperatorForScopeChange") draft.workLoopRequireOperatorForScopeChange = String(newValue) === "true";
-            if (id === "workLoopRequireVerificationBeforePersist") draft.workLoopRequireVerificationBeforePersist = String(newValue) === "true";
-            if (id === "workLoopMaxConsecutiveLowProductivityTurns") draft.workLoopMaxConsecutiveLowProductivityTurns = Number(newValue);
-            if (id === "workLoopMaxConsecutiveFailures") draft.workLoopMaxConsecutiveFailures = Number(newValue);
-            if (id === "workLoopAutoPauseOnOperatorMessage") draft.workLoopAutoPauseOnOperatorMessage = String(newValue) === "true";
-            if (id === "workLoopRequireExplainableContinueReason") draft.workLoopRequireExplainableContinueReason = String(newValue) === "true";
-            if (id === "workLoopMaxSameSubproblemRetries") draft.workLoopMaxSameSubproblemRetries = Number(newValue);
+            if (id === "workLoopAllowDestructiveActions")
+              draft.workLoopAllowDestructiveActions = String(newValue) === "true";
+            if (id === "workLoopRequireOperatorForGovernance")
+              draft.workLoopRequireOperatorForGovernance = String(newValue) === "true";
+            if (id === "workLoopRequireOperatorForScopeChange")
+              draft.workLoopRequireOperatorForScopeChange = String(newValue) === "true";
+            if (id === "workLoopRequireVerificationBeforePersist")
+              draft.workLoopRequireVerificationBeforePersist = String(newValue) === "true";
+            if (id === "workLoopMaxConsecutiveLowProductivityTurns")
+              draft.workLoopMaxConsecutiveLowProductivityTurns = Number(newValue);
+            if (id === "workLoopMaxConsecutiveFailures")
+              draft.workLoopMaxConsecutiveFailures = Number(newValue);
+            if (id === "workLoopAutoPauseOnOperatorMessage")
+              draft.workLoopAutoPauseOnOperatorMessage = String(newValue) === "true";
+            if (id === "workLoopRequireExplainableContinueReason")
+              draft.workLoopRequireExplainableContinueReason = String(newValue) === "true";
+            if (id === "workLoopMaxSameSubproblemRetries")
+              draft.workLoopMaxSameSubproblemRetries = Number(newValue);
             if (id === "workLoopStatusHeartbeatMs") draft.workLoopStatusHeartbeatMs = Number(newValue);
             persistDraft();
           },
           () => done(undefined),
-          { enableSearch: true },
+          { enableSearch: true }
         );
         container.addChild(settingsList);
 
@@ -390,26 +585,49 @@ export function registerCommands(pi: ExtensionAPI) {
       const titleLine = S.activeFrameTitle ? `\nTitle: ${S.activeFrameTitle}` : "";
       const goalLine = S.activeFrameGoal ? `\nGoal: ${S.activeFrameGoal}` : "";
       const loop = await focusaFetch("/work-loop");
-      const replayPayload = await focusaFetch("/work-loop/replay/closure-bundle")
-        || await focusaFetch("/work-loop/replay/closure-evidence");
+      const replayPayload =
+        (await focusaFetch("/work-loop/replay/closure-bundle")) ||
+        (await focusaFetch("/work-loop/replay/closure-evidence"));
       const replayConsumer = replayConsumerSurface(replayPayload);
-      const loopLine = loop ? `\nLoop: ${loop.enabled ? "on" : "off"} | Status: ${loop.status} | Project: ${loop.project_status} | Tranche: ${loop.tranche_status}` : "";
-      const whyLine = loop?.last_continue_reason || loop?.last_blocker_reason ? `\nWhy: ${loop.last_continue_reason || loop.last_blocker_reason}` : "";
-      const budgetLine = loop?.budget_remaining ? `\nBudget: retries=${loop.budget_remaining.max_retries} remaining_failure_budget=${loop.budget_remaining.remaining_failure_budget}` : "";
+      const loopLine = loop
+        ? `\nLoop: ${loop.enabled ? "on" : "off"} | Status: ${loop.status} | Project: ${loop.project_status} | Tranche: ${loop.tranche_status}`
+        : "";
+      const whyLine =
+        loop?.last_continue_reason || loop?.last_blocker_reason
+          ? `\nWhy: ${loop.last_continue_reason || loop.last_blocker_reason}`
+          : "";
+      const budgetLine = loop?.budget_remaining
+        ? `\nBudget: retries=${loop.budget_remaining.max_retries} remaining_failure_budget=${loop.budget_remaining.remaining_failure_budget}`
+        : "";
       const checkpointLine = loop?.last_checkpoint_id ? `\nCheckpoint: ${loop.last_checkpoint_id}` : "";
-      const supervisionLine = loop?.transport?.daemon_supervised_session ? `\nSupervision: daemon-owned ${loop.transport.daemon_supervised_session.session_id}` : "\nSupervision: none";
+      const supervisionLine = loop?.transport?.daemon_supervised_session
+        ? `\nSupervision: daemon-owned ${loop.transport.daemon_supervised_session.session_id}`
+        : "\nSupervision: none";
       const replayLine = `\nReplay: ${replayConsumer.replayStatus} | pair=${replayConsumer.pairLabel} | continuity_gate=${replayConsumer.continuityGate}`;
-      const objectiveLine = replayConsumer.nonClosureObjectiveEvents == null
-        ? ""
-        : `\nObjectives: non_closure=${replayConsumer.nonClosureObjectiveEvents}${replayConsumer.nonClosureObjectiveRate == null ? "" : ` (${(replayConsumer.nonClosureObjectiveRate * 100).toFixed(1)}%)`}`;
+      const objectiveLine =
+        replayConsumer.nonClosureObjectiveEvents == null
+          ? ""
+          : `\nObjectives: non_closure=${replayConsumer.nonClosureObjectiveEvents}${replayConsumer.nonClosureObjectiveRate == null ? "" : ` (${(replayConsumer.nonClosureObjectiveRate * 100).toFixed(1)}%)`}`;
       const snapshot = getEffectiveFocusSnapshot(focusState?.fs);
       const missionLine = snapshot.intent ? `\nMission: ${snapshot.intent}` : "";
       const focusLine = snapshot.currentFocus ? `\nFocus: ${snapshot.currentFocus}` : "";
       ctx.ui.notify(
-        `Focusa: ${up}\nFrame: ${frame}${titleLine}${goalLine}\nWBM: ${wbm}\nTurns: ${getTurnCount()}${tier}${compactions}` + loopLine + whyLine + budgetLine + checkpointLine + supervisionLine + replayLine + objectiveLine + missionLine + focusLine + `\n` +
-        `Decisions: ${snapshot.decisions.length} | Constraints: ${snapshot.constraints.length} | Failures: ${snapshot.failures.length}` +
-        (S.cfg ? `\nConfig: warn=${S.cfg.warnPct}% compact=${S.cfg.compactPct}% hard=${S.cfg.hardPct}% | work-loop=${S.cfg.workLoopPreset}` : ""),
-        "info",
+        `Focusa: ${up}\nFrame: ${frame}${titleLine}${goalLine}\nWBM: ${wbm}\nTurns: ${getTurnCount()}${tier}${compactions}` +
+          loopLine +
+          whyLine +
+          budgetLine +
+          checkpointLine +
+          supervisionLine +
+          replayLine +
+          objectiveLine +
+          missionLine +
+          focusLine +
+          `\n` +
+          `Decisions: ${snapshot.decisions.length} | Constraints: ${snapshot.constraints.length} | Failures: ${snapshot.failures.length}` +
+          (S.cfg
+            ? `\nConfig: warn=${S.cfg.warnPct}% compact=${S.cfg.compactPct}% hard=${S.cfg.hardPct}% | work-loop=${S.cfg.workLoopPreset}`
+            : ""),
+        "info"
       );
     },
   });
@@ -417,7 +635,10 @@ export function registerCommands(pi: ExtensionAPI) {
   pi.registerCommand("focus-work", {
     description: "Continuous work loop controls: on|off|pause|resume|stop|status|checkpoint|checkpoints",
     handler: async (args, ctx) => {
-      const parts = String(args || "").trim().split(/\s+/).filter(Boolean);
+      const parts = String(args || "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
       const sub = String(parts[0] || "status").toLowerCase();
       const rest = parts.slice(1).join(" ").trim();
       if (sub === "on") {
@@ -440,22 +661,38 @@ export function registerCommands(pi: ExtensionAPI) {
             status_heartbeat_ms: S.cfg?.workLoopStatusHeartbeatMs,
           },
         };
-        const res = await focusaFetch("/work-loop/enable", { method: "POST", headers: { "x-focusa-writer-id": `pi-${process.pid}`, "x-focusa-approval": "approved" }, body: JSON.stringify(payload) });
+        const res = await focusaFetch("/work-loop/enable", {
+          method: "POST",
+          headers: { "x-focusa-writer-id": `pi-${process.pid}`, "x-focusa-approval": "approved" },
+          body: JSON.stringify(payload),
+        });
         ctx.ui.notify(`focus-work on → ${res?.status || res?.ok || "unknown"}`, "info");
         return;
       }
       if (sub === "pause") {
-        const res = await focusaFetch("/work-loop/pause", { method: "POST", headers: { "x-focusa-writer-id": `pi-${process.pid}` }, body: JSON.stringify({ reason: "operator pause via /focus-work" }) });
+        const res = await focusaFetch("/work-loop/pause", {
+          method: "POST",
+          headers: { "x-focusa-writer-id": `pi-${process.pid}` },
+          body: JSON.stringify({ reason: "operator pause via /focus-work" }),
+        });
         ctx.ui.notify(`focus-work pause → ${res?.status || res?.ok || "unknown"}`, "info");
         return;
       }
       if (sub === "resume") {
-        const res = await focusaFetch("/work-loop/resume", { method: "POST", headers: { "x-focusa-writer-id": `pi-${process.pid}` }, body: JSON.stringify({ reason: "operator resume via /focus-work" }) });
+        const res = await focusaFetch("/work-loop/resume", {
+          method: "POST",
+          headers: { "x-focusa-writer-id": `pi-${process.pid}` },
+          body: JSON.stringify({ reason: "operator resume via /focus-work" }),
+        });
         ctx.ui.notify(`focus-work resume → ${res?.status || res?.ok || "unknown"}`, "info");
         return;
       }
       if (sub === "off" || sub === "stop") {
-        const res = await focusaFetch("/work-loop/stop", { method: "POST", headers: { "x-focusa-writer-id": `pi-${process.pid}` }, body: JSON.stringify({ reason: `operator ${sub} via /focus-work` }) });
+        const res = await focusaFetch("/work-loop/stop", {
+          method: "POST",
+          headers: { "x-focusa-writer-id": `pi-${process.pid}` },
+          body: JSON.stringify({ reason: `operator ${sub} via /focus-work` }),
+        });
         ctx.ui.notify(`focus-work ${sub} → ${res?.status || res?.ok || "unknown"}`, "info");
         return;
       }
@@ -468,28 +705,45 @@ export function registerCommands(pi: ExtensionAPI) {
           headers: { "x-focusa-writer-id": `pi-${process.pid}` },
           body: JSON.stringify(payload),
         });
-        ctx.ui.notify(`focus-work checkpoint → ${res?.checkpoint_id || res?.status || res?.ok || "unknown"}`, "info");
+        ctx.ui.notify(
+          `focus-work checkpoint → ${res?.checkpoint_id || res?.status || res?.ok || "unknown"}`,
+          "info"
+        );
         return;
       }
       if (sub === "checkpoints") {
         const res = await focusaFetch("/work-loop/checkpoints");
         const checkpoints = Array.isArray(res?.checkpoints) ? res.checkpoints : [];
-        const lines = checkpoints.slice(0, 5).map((c: any) => `- ${c?.id || "(id?)"}: ${c?.summary || "(no summary)"}`);
-        ctx.ui.notify(lines.length ? `Recent checkpoints (${checkpoints.length})\n${lines.join("\n")}` : "No checkpoints available", "info");
+        const lines = checkpoints
+          .slice(0, 5)
+          .map((c: any) => `- ${c?.id || "(id?)"}: ${c?.summary || "(no summary)"}`);
+        ctx.ui.notify(
+          lines.length
+            ? `Recent checkpoints (${checkpoints.length})\n${lines.join("\n")}`
+            : "No checkpoints available",
+          "info"
+        );
         return;
       }
       const fs = await getFocusState();
       const loop = await focusaFetch("/work-loop");
-      const replayPayload = await focusaFetch("/work-loop/replay/closure-bundle")
-        || await focusaFetch("/work-loop/replay/closure-evidence");
+      const replayPayload =
+        (await focusaFetch("/work-loop/replay/closure-bundle")) ||
+        (await focusaFetch("/work-loop/replay/closure-evidence"));
       const replayConsumer = replayConsumerSurface(replayPayload);
       const snapshot = getEffectiveFocusSnapshot(fs?.fs);
       const mission = snapshot.intent || "(none)";
       const focus = snapshot.currentFocus || "(none)";
-      const objectiveSummary = replayConsumer.nonClosureObjectiveEvents == null
-        ? "(n/a)"
-        : `${replayConsumer.nonClosureObjectiveEvents}${replayConsumer.nonClosureObjectiveRate == null ? "" : ` (${(replayConsumer.nonClosureObjectiveRate * 100).toFixed(1)}%)`}`;
-      ctx.ui.notify(loop ? `Loop: ${loop.enabled ? "on" : "off"}\nStatus: ${loop.status}\nProject: ${loop.project_status}\nTranche: ${loop.tranche_status}\nReplay: ${replayConsumer.replayStatus} | pair=${replayConsumer.pairLabel} | continuity_gate=${replayConsumer.continuityGate}\nObjectives: non_closure=${objectiveSummary}\nMission: ${mission}\nFocus: ${focus}\nReason: ${loop.last_continue_reason || loop.last_blocker_reason || "(none)"}\nCheckpoint: ${loop.last_checkpoint_id || "(none)"}\nSupervision: ${loop.transport?.daemon_supervised_session?.session_id || "(none)"}\nPreset: ${loop.policy?.preset || S.cfg?.workLoopPreset || "balanced"}` : "Loop status unavailable", "info");
+      const objectiveSummary =
+        replayConsumer.nonClosureObjectiveEvents == null
+          ? "(n/a)"
+          : `${replayConsumer.nonClosureObjectiveEvents}${replayConsumer.nonClosureObjectiveRate == null ? "" : ` (${(replayConsumer.nonClosureObjectiveRate * 100).toFixed(1)}%)`}`;
+      ctx.ui.notify(
+        loop
+          ? `Loop: ${loop.enabled ? "on" : "off"}\nStatus: ${loop.status}\nProject: ${loop.project_status}\nTranche: ${loop.tranche_status}\nReplay: ${replayConsumer.replayStatus} | pair=${replayConsumer.pairLabel} | continuity_gate=${replayConsumer.continuityGate}\nObjectives: non_closure=${objectiveSummary}\nMission: ${mission}\nFocus: ${focus}\nReason: ${loop.last_continue_reason || loop.last_blocker_reason || "(none)"}\nCheckpoint: ${loop.last_checkpoint_id || "(none)"}\nSupervision: ${loop.transport?.daemon_supervised_session?.session_id || "(none)"}\nPreset: ${loop.policy?.preset || S.cfg?.workLoopPreset || "balanced"}`
+          : "Loop status unavailable",
+        "info"
+      );
     },
   });
 
@@ -505,7 +759,8 @@ export function registerCommands(pi: ExtensionAPI) {
 
       const alreadyEnabled = getFocusaAvailable();
       S.focusaAvailable = true;
-      const store = getCurrentScopeStore(); if (store) store.focusaAvailable = true;
+      const store = getCurrentScopeStore();
+      if (store) store.focusaAvailable = true;
       S.outageStart = null;
       S.healthBackoffMs = 30_000;
 
@@ -513,7 +768,10 @@ export function registerCommands(pi: ExtensionAPI) {
       if (status?.session?.status !== "active") {
         await focusaFetch("/session/start", {
           method: "POST",
-          body: JSON.stringify({ adapter_id: "pi", workspace_id: ctx.cwd || getSessionCwd() || "pi-workspace" }),
+          body: JSON.stringify({
+            adapter_id: "pi",
+            workspace_id: ctx.cwd || getSessionCwd() || "pi-workspace",
+          }),
         }).catch(() => null);
       }
 
@@ -538,9 +796,13 @@ export function registerCommands(pi: ExtensionAPI) {
   pi.registerCommand("focusa-off", {
     description: "Stop all Focusa writes — Focus State local only",
     handler: async (_args, ctx) => {
-      if (!getFocusaAvailable()) { ctx.ui.notify("Focusa already disabled", "info"); return; }
+      if (!getFocusaAvailable()) {
+        ctx.ui.notify("Focusa already disabled", "info");
+        return;
+      }
       S.focusaAvailable = false;
-      const store = getCurrentScopeStore(); if (store) store.focusaAvailable = false;
+      const store = getCurrentScopeStore();
+      if (store) store.focusaAvailable = false;
       ctx.ui.setStatus("focusa", "⏸️ Focusa disabled");
       ctx.ui.notify("⚠️ Focusa writes disabled — Focus State local only", "warning");
     },
@@ -569,7 +831,10 @@ export function registerCommands(pi: ExtensionAPI) {
       S.currentTier = "";
       const previousFrameId = getActiveFrameId();
       S.activeFrameId = null;
-      { const store = getCurrentScopeStore(); if (store) store.activeFrameId = null; }
+      {
+        const store = getCurrentScopeStore();
+        if (store) store.activeFrameId = null;
+      }
       persistState();
 
       if (getFocusaAvailable() && previousFrameId) {
@@ -590,18 +855,18 @@ export function registerCommands(pi: ExtensionAPI) {
           await persistAuthoritativeState();
           ctx.ui.notify(
             `✅ Focus State reset (cleared D:${cleared.decisions} C:${cleared.constraints} F:${cleared.failures})\nFresh Pi frame: ${frameId}`,
-            "info",
+            "info"
           );
         } else {
           ctx.ui.notify(
             `✅ Local shadow cleared (D:${cleared.decisions} C:${cleared.constraints} F:${cleared.failures})\n⚠️ Focusa frame clear failed — writes may resume on old frame`,
-            "warning",
+            "warning"
           );
         }
       } else {
         ctx.ui.notify(
           `✅ Local shadow cleared (D:${cleared.decisions} C:${cleared.constraints} F:${cleared.failures})\n⚠️ Focusa offline — run /focusa-on to push fresh frame`,
-          "warning",
+          "warning"
         );
       }
     },

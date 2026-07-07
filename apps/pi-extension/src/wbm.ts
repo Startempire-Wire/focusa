@@ -14,11 +14,15 @@ export async function fetchWbmContext(): Promise<string> {
 
   // Context Core: operator state (GET :7400/me)
   try {
-    const me = await fetch(`${ccUrl}/me`, { signal: AbortSignal.timeout(2000) }).then(r => r.json());
-    parts.push(`Operator: ${me.name || "Verious"} (${me.timezone || "Pacific"}), mode=${me.mode || "unknown"}, interruptibility=${me.interruptibility || "unknown"}`);
+    const me = await fetch(`${ccUrl}/me`, { signal: AbortSignal.timeout(2000) }).then((r) => r.json());
+    parts.push(
+      `Operator: ${me.name || "Verious"} (${me.timezone || "Pacific"}), mode=${me.mode || "unknown"}, interruptibility=${me.interruptibility || "unknown"}`
+    );
     if (me.time_context) parts.push(`Time: ${me.time_context}`);
     if (me.phase) parts.push(`Phase: ${me.phase}`);
-  } catch { parts.push("Context Core: unavailable"); }
+  } catch {
+    parts.push("Context Core: unavailable");
+  }
 
   // §29: Objectives from objectives.yaml — formatted as P1/P2/P3 per spec
   try {
@@ -31,18 +35,25 @@ export async function fetchWbmContext(): Promise<string> {
       const tm = line.match(/^\s*-?\s*title:\s*(.+)/);
       const dm = line.match(/^\s*description:\s*(.+)/);
       if (tm) curTitle = tm[1].trim();
-      if (dm && curTitle) { entries.push({ title: curTitle, desc: dm[1].trim() }); curTitle = ""; }
+      if (dm && curTitle) {
+        entries.push({ title: curTitle, desc: dm[1].trim() });
+        curTitle = "";
+      }
       if (entries.length >= 3) break;
     }
     if (entries.length) {
       parts.push(entries.map((e, i) => `P${i + 1}: ${e.title} — "${e.desc}"`).join("\n"));
     }
-  } catch { /* objectives.yaml not available */ }
+  } catch {
+    /* objectives.yaml not available */
+  }
 
   // Scoreboard: drift + season (GET :8100/v1/score)
   try {
     const headers: Record<string, string> = sbToken ? { Authorization: `Bearer ${sbToken}` } : {};
-    const score = await fetch(`${sbUrl}/v1/score`, { headers, signal: AbortSignal.timeout(2000) }).then(r => r.json());
+    const score = await fetch(`${sbUrl}/v1/score`, { headers, signal: AbortSignal.timeout(2000) }).then((r) =>
+      r.json()
+    );
     if (score.drift !== undefined) parts.push(`Drift: ${score.drift}`);
     if (score.season) parts.push(`Season: ${score.season}`);
   } catch {}
@@ -51,7 +62,9 @@ export async function fetchWbmContext(): Promise<string> {
   const stack = await focusaFetch("/focus/stack");
   const allFrames = stack?.stack?.frames || [];
   if (allFrames.length) {
-    const active = stack?.active_frame_id ? allFrames.find((fr: any) => fr.id === stack.active_frame_id) : allFrames[allFrames.length - 1];
+    const active = stack?.active_frame_id
+      ? allFrames.find((fr: any) => fr.id === stack.active_frame_id)
+      : allFrames[allFrames.length - 1];
     const f = active;
     parts.push(`Active Frame: ${f.title || "(unnamed)"}`);
   }
@@ -60,22 +73,36 @@ export async function fetchWbmContext(): Promise<string> {
   try {
     const { readFileSync } = await import("fs");
     const soul = readFileSync("/data/wirebot/SOUL.md", "utf-8");
-    const pillars = soul.split("\n").filter((l: string) => l.startsWith("-")).slice(0, 5);
-    if (pillars.length) parts.push(`Pillars: ${pillars.map((p: string) => p.replace(/^-\s*/, "")).join(" > ")}`);
+    const pillars = soul
+      .split("\n")
+      .filter((l: string) => l.startsWith("-"))
+      .slice(0, 5);
+    if (pillars.length)
+      parts.push(`Pillars: ${pillars.map((p: string) => p.replace(/^-\s*/, "")).join(" > ")}`);
     // §29: Banned patterns from SOUL
-    const banned = soul.split("\n").filter((l: string) => /banned|never|forbidden/i.test(l)).slice(0, 3);
-    if (banned.length) parts.push(`Banned: ${banned.map((b: string) => b.replace(/^-\s*/, "").trim()).join(", ")}`);
-  } catch { parts.push("Pillars: Human first > Calm > Rigor > Radical Truth > Deep Clarity"); }
+    const banned = soul
+      .split("\n")
+      .filter((l: string) => /banned|never|forbidden/i.test(l))
+      .slice(0, 3);
+    if (banned.length)
+      parts.push(`Banned: ${banned.map((b: string) => b.replace(/^-\s*/, "").trim()).join(", ")}`);
+  } catch {
+    parts.push("Pillars: Human first > Calm > Rigor > Radical Truth > Deep Clarity");
+  }
 
   // Deep mode extras: wiki decisions, Mem0
   if (S.wbmDeep) {
     const wiki = await wbExec(["wiki", "search", "tag:decision", "--limit", "3", "--format", "json"]);
     if (wiki?.results?.length) {
-      parts.push(`Recent wiki decisions:\n${wiki.results.map((r: any) => `- ${r.title || r.path}`).join("\n")}`);
+      parts.push(
+        `Recent wiki decisions:\n${wiki.results.map((r: any) => `- ${r.title || r.path}`).join("\n")}`
+      );
     }
     const mem = await wbExec(["memory", "recent", "--limit", "3", "--format", "json"]);
     if (mem?.memories?.length) {
-      parts.push(`Recent memories:\n${mem.memories.map((m: any) => `- ${m.text?.slice(0, 100)}`).join("\n")}`);
+      parts.push(
+        `Recent memories:\n${mem.memories.map((m: any) => `- ${m.text?.slice(0, 100)}`).join("\n")}`
+      );
     }
   }
 
@@ -118,9 +145,15 @@ export async function catalogueFromMessages(messages: any[]): Promise<number> {
           }),
         });
         if (r?.items?.length) {
-          extracted.push(...r.items.map((i: any) => ({ type: i.type || "fact", text: i.text || "" })).filter((i: any) => i.text));
+          extracted.push(
+            ...r.items
+              .map((i: any) => ({ type: i.type || "fact", text: i.text || "" }))
+              .filter((i: any) => i.text)
+          );
         }
-      } catch { /* LLM extraction unavailable — fall through to regex */ }
+      } catch {
+        /* LLM extraction unavailable — fall through to regex */
+      }
     }
   }
 
@@ -129,9 +162,12 @@ export async function catalogueFromMessages(messages: any[]): Promise<number> {
     for (const text of allChunks) {
       for (const line of text.split("\n")) {
         const trimmed = line.trim();
-        if (/^(✓\s*)?Decision recorded:|DECISION:/i.test(trimmed)) extracted.push({ type: "decision", text: trimmed });
-        if (/^(✓\s*)?Constraint recorded:|CONSTRAINT:/i.test(trimmed)) extracted.push({ type: "fact", text: trimmed });
-        if (/^(✓\s*)?Failure recorded:|FAILURE:|ERROR:/i.test(trimmed)) extracted.push({ type: "failure", text: trimmed });
+        if (/^(✓\s*)?Decision recorded:|DECISION:/i.test(trimmed))
+          extracted.push({ type: "decision", text: trimmed });
+        if (/^(✓\s*)?Constraint recorded:|CONSTRAINT:/i.test(trimmed))
+          extracted.push({ type: "fact", text: trimmed });
+        if (/^(✓\s*)?Failure recorded:|FAILURE:|ERROR:/i.test(trimmed))
+          extracted.push({ type: "failure", text: trimmed });
       }
     }
   }
@@ -142,7 +178,7 @@ export async function catalogueFromMessages(messages: any[]): Promise<number> {
     const ok = await wbExec(
       ["memory", "queue", "--source", "pi_session", "--type", item.type, item.text],
       `${sbUrl}/v1/memory/queue`,
-      { memory_text: item.text, source_type: "pi_session", confidence: 0.85, type: item.type },
+      { memory_text: item.text, source_type: "pi_session", confidence: 0.85, type: item.type }
     );
     if (ok) {
       count++;
@@ -164,7 +200,8 @@ export function registerWbm(pi: ExtensionAPI) {
 
       switch (sub) {
         case "on": {
-          S.wbmEnabled = true; S.wbmDeep = false;
+          S.wbmEnabled = true;
+          S.wbmDeep = false;
           // §29: --no-catalogue flag
           S.wbmNoCatalogue = parts.includes("--no-catalogue") || parts.includes("--no-catalog");
           const suffix = S.wbmNoCatalogue ? " (no catalogue)" : "";
@@ -173,8 +210,11 @@ export function registerWbm(pi: ExtensionAPI) {
           break;
         }
         case "off":
-          S.wbmEnabled = false; S.wbmDeep = false; S.wbmNoCatalogue = false;
-          S.cataloguedDecisions = []; S.cataloguedFacts = [];
+          S.wbmEnabled = false;
+          S.wbmDeep = false;
+          S.wbmNoCatalogue = false;
+          S.cataloguedDecisions = [];
+          S.cataloguedFacts = [];
           ctx.ui.notify("Wirebot Mode: OFF", "info");
           ctx.ui.setStatus("focusa", "🧭 Focusa");
           break;
@@ -182,14 +222,15 @@ export function registerWbm(pi: ExtensionAPI) {
         case "status":
           ctx.ui.notify(
             `WBM: ${S.wbmEnabled ? (S.wbmDeep ? "DEEP" : "ON") : "OFF"}` +
-            `${S.wbmNoCatalogue ? " (no-catalogue)" : ""}\n` +
-            `Catalogued: ${S.cataloguedDecisions.length} decisions, ${S.cataloguedFacts.length} facts`,
-            "info",
+              `${S.wbmNoCatalogue ? " (no-catalogue)" : ""}\n` +
+              `Catalogued: ${S.cataloguedDecisions.length} decisions, ${S.cataloguedFacts.length} facts`,
+            "info"
           );
           break;
 
         case "deep":
-          S.wbmEnabled = true; S.wbmDeep = true;
+          S.wbmEnabled = true;
+          S.wbmDeep = true;
           const wbmCtx = await fetchWbmContext();
           ctx.ui.notify(`WBM Deep: context loaded (${wbmCtx.length} chars)`, "info");
           ctx.ui.setStatus("focusa", "⚡ Focusa WBM deep");
@@ -198,28 +239,46 @@ export function registerWbm(pi: ExtensionAPI) {
         case "flush": {
           const total = S.cataloguedDecisions.length + S.cataloguedFacts.length;
           for (const d of S.cataloguedDecisions) {
-            await wbExec(["memory", "queue", "--source", "pi_session", "--type", "decision", d],
-              `${sbUrl}/v1/memory/queue`, { memory_text: d, source_type: "pi_session", confidence: 0.85, type: "decision" });
+            await wbExec(
+              ["memory", "queue", "--source", "pi_session", "--type", "decision", d],
+              `${sbUrl}/v1/memory/queue`,
+              { memory_text: d, source_type: "pi_session", confidence: 0.85, type: "decision" }
+            );
           }
           for (const f of S.cataloguedFacts) {
-            await wbExec(["memory", "queue", "--source", "pi_session", "--type", "fact", f],
-              `${sbUrl}/v1/memory/queue`, { memory_text: f, source_type: "pi_session", confidence: 0.85, type: "fact" });
+            await wbExec(
+              ["memory", "queue", "--source", "pi_session", "--type", "fact", f],
+              `${sbUrl}/v1/memory/queue`,
+              { memory_text: f, source_type: "pi_session", confidence: 0.85, type: "fact" }
+            );
           }
-          S.cataloguedDecisions = []; S.cataloguedFacts = [];
+          S.cataloguedDecisions = [];
+          S.cataloguedFacts = [];
           ctx.ui.notify(`Flushed ${total} items to WINS queue`, "info");
           break;
         }
 
         case "decisions":
-          if (!S.cataloguedDecisions.length) { ctx.ui.notify("No decisions catalogued this session", "info"); break; }
+          if (!S.cataloguedDecisions.length) {
+            ctx.ui.notify("No decisions catalogued this session", "info");
+            break;
+          }
           ctx.ui.notify(S.cataloguedDecisions.map((d, i) => `${i + 1}. ${d}`).join("\n"), "info");
           break;
 
         case "ships": {
-          const r = await wbExec(["score", "ships", "--format", "json", "--limit", "5"], `${sbUrl}/v1/ships?limit=5`);
+          const r = await wbExec(
+            ["score", "ships", "--format", "json", "--limit", "5"],
+            `${sbUrl}/v1/ships?limit=5`
+          );
           if (r?.ships?.length) {
-            ctx.ui.notify(r.ships.map((s: any) => `🚀 ${s.summary || s.commit?.slice(0, 8)}`).join("\n"), "info");
-          } else { ctx.ui.notify("No ships detected", "info"); }
+            ctx.ui.notify(
+              r.ships.map((s: any) => `🚀 ${s.summary || s.commit?.slice(0, 8)}`).join("\n"),
+              "info"
+            );
+          } else {
+            ctx.ui.notify("No ships detected", "info");
+          }
           break;
         }
 

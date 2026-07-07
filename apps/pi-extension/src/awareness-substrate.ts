@@ -15,15 +15,7 @@ import {
 export type AwarenessMode = "minimal" | "standard" | "rich" | "onboarding";
 export type AwarenessSurface = "reload" | "post_compaction" | "warning" | "tool_guidance" | "uiai_bridge";
 export type AwarenessLayer =
-  | "identity"
-  | "authority"
-  | "mission"
-  | "goal"
-  | "risk"
-  | "proof"
-  | "recovery"
-  | "learning"
-  | "tool";
+  "identity" | "authority" | "mission" | "goal" | "risk" | "proof" | "recovery" | "learning" | "tool";
 
 export interface AwarenessInput {
   // Authority layer
@@ -210,12 +202,15 @@ export async function gatherAwarenessInput(surface: AwarenessSurface): Promise<A
           desiredEndState: tv.desired_end_state || tv.desiredEndState || null,
           activeGap: tv.active_gap || tv.activeGap || null,
           waypoints: Array.isArray(tv.waypoints) ? tv.waypoints : [],
-          clarityGate: (tv.clarity_gate || tv.clarityGate || "provisional") as "clear" | "unclear" | "provisional",
-          nextTools: Array.isArray(tv.next_tools || tv.nextTools) ? (tv.next_tools || tv.nextTools) : [],
+          clarityGate: (tv.clarity_gate || tv.clarityGate || "provisional") as
+            "clear" | "unclear" | "provisional",
+          nextTools: Array.isArray(tv.next_tools || tv.nextTools) ? tv.next_tools || tv.nextTools : [],
         };
       }
     }
-  } catch { /* non-blocking */ }
+  } catch {
+    /* non-blocking */
+  }
 
   // Tool graph from tool-contracts
   const toolGraph = await gatherToolGraph();
@@ -224,20 +219,36 @@ export async function gatherAwarenessInput(surface: AwarenessSurface): Promise<A
   const currentAsk = S.currentAsk?.text || "";
 
   // Select mode
-  const mode = selectMode({ projectRootSafety: { safe: authoritySafe }, workpointResume: scopedPacket ? {
-    workpointId: String(scopedPacket.workpoint_id || ""),
-    canonical: Boolean(scopedPacket.canonical),
-    degraded: Boolean(scopedPacket.degraded),
-    mission: String(scopedPacket.mission || ""),
-    nextAction: String(scopedPacket.next_slice || scopedPacket.next_action || ""),
-    targetObjects: Array.isArray(scopedPacket.target_objects) ? scopedPacket.target_objects : [],
-    verifiedEvidence: Array.isArray(scopedPacket.verified_evidence) ? scopedPacket.verified_evidence : [],
-    blockers: Array.isArray(scopedPacket.blockers) ? scopedPacket.blockers : [],
-    doNotDrift: [],
-    actionAuthority: Boolean(scopedPacket.action_authority_for_current_ask ?? true),
-    continuityId,
-    sessionId,
-  } : null, trajectoryView, surface, currentAsk, contextPressure: { percentage: S.currentContextPct ?? 0, tier: contextTierFromString(S.currentTier), compactionPending: false, compactionCount: S.compactsThisHour } });
+  const mode = selectMode({
+    projectRootSafety: { safe: authoritySafe },
+    workpointResume: scopedPacket
+      ? {
+          workpointId: String(scopedPacket.workpoint_id || ""),
+          canonical: Boolean(scopedPacket.canonical),
+          degraded: Boolean(scopedPacket.degraded),
+          mission: String(scopedPacket.mission || ""),
+          nextAction: String(scopedPacket.next_slice || scopedPacket.next_action || ""),
+          targetObjects: Array.isArray(scopedPacket.target_objects) ? scopedPacket.target_objects : [],
+          verifiedEvidence: Array.isArray(scopedPacket.verified_evidence)
+            ? scopedPacket.verified_evidence
+            : [],
+          blockers: Array.isArray(scopedPacket.blockers) ? scopedPacket.blockers : [],
+          doNotDrift: [],
+          actionAuthority: Boolean(scopedPacket.action_authority_for_current_ask ?? true),
+          continuityId,
+          sessionId,
+        }
+      : null,
+    trajectoryView,
+    surface,
+    currentAsk,
+    contextPressure: {
+      percentage: S.currentContextPct ?? 0,
+      tier: contextTierFromString(S.currentTier),
+      compactionPending: false,
+      compactionCount: S.compactsThisHour,
+    },
+  });
 
   return {
     projectIdentity: {
@@ -253,22 +264,32 @@ export async function gatherAwarenessInput(surface: AwarenessSurface): Promise<A
       path: projectRoot,
       reason: authoritySafe ? undefined : "unsafe root path",
     },
-    workpointResume: scopedPacket ? {
-      workpointId: String(scopedPacket.workpoint_id || ""),
-      canonical: Boolean(scopedPacket.canonical),
-      degraded: Boolean(scopedPacket.degraded),
-      mission: String(scopedPacket.mission || ""),
-      nextAction: String(scopedPacket.next_slice || scopedPacket.next_action || ""),
-      targetObjects: Array.isArray(scopedPacket.target_objects) ? scopedPacket.target_objects : [],
-      verifiedEvidence: Array.isArray(scopedPacket.verified_evidence) ? scopedPacket.verified_evidence : [],
-      blockers: Array.isArray(scopedPacket.blockers) ? scopedPacket.blockers : [],
-      doNotDrift: [],
-      actionAuthority: Boolean(scopedPacket.action_authority_for_current_ask ?? true),
-      continuityId,
-      sessionId,
-    } : null,
+    workpointResume: scopedPacket
+      ? {
+          workpointId: String(scopedPacket.workpoint_id || ""),
+          canonical: Boolean(scopedPacket.canonical),
+          degraded: Boolean(scopedPacket.degraded),
+          mission: String(scopedPacket.mission || ""),
+          nextAction: String(scopedPacket.next_slice || scopedPacket.next_action || ""),
+          targetObjects: Array.isArray(scopedPacket.target_objects) ? scopedPacket.target_objects : [],
+          verifiedEvidence: Array.isArray(scopedPacket.verified_evidence)
+            ? scopedPacket.verified_evidence
+            : [],
+          blockers: Array.isArray(scopedPacket.blockers) ? scopedPacket.blockers : [],
+          doNotDrift: [],
+          actionAuthority: Boolean(scopedPacket.action_authority_for_current_ask ?? true),
+          continuityId,
+          sessionId,
+        }
+      : null,
     trajectoryView,
-    contextPressure: { percentage: S.currentContextPct ?? 0, tier: contextTierFromString(S.currentTier), compactionPending: false, compactionCount: S.compactsThisHour, lastCompactionAt: S.lastCompactTime || undefined },
+    contextPressure: {
+      percentage: S.currentContextPct ?? 0,
+      tier: contextTierFromString(S.currentTier),
+      compactionPending: false,
+      compactionCount: S.compactsThisHour,
+      lastCompactionAt: S.lastCompactTime || undefined,
+    },
     operatorSteering: { currentAsk },
     toolGraph,
     cadenceState: S.awarenessCadenceState || null,
@@ -309,10 +330,12 @@ async function gatherToolGraph(): Promise<AwarenessInput["toolGraph"]> {
         }
       }
     }
-  } catch { /* non-blocking */ }
+  } catch {
+    /* non-blocking */
+  }
 
   return {
-    totalTools: Object.keys(families).filter(k => k.startsWith("focusa_")).length || 96,
+    totalTools: Object.keys(families).filter((k) => k.startsWith("focusa_")).length || 96,
     families,
     topNextTools: allNextTools.slice(0, 8),
     topRecoveryTools: allRecoveryTools.slice(0, 8),
@@ -353,140 +376,154 @@ export function generateCandidateLines(input: AwarenessInput): AwarenessCandidat
   const wpStaleMs = 5 * 60 * 1000; // 5 min
 
   // ── Identity layer ────────────────────────────────────────────────────────
-  lines.push(makeLine({
-    id: String(++id),
-    layer: "identity",
-    category: "authority",
-    text: `project_root=${input.projectIdentity.projectRoot}`,
-    authorityValue: input.projectIdentity.verified ? 9 : 0,
-    actionability: 5,
-    riskReduction: input.projectRootSafety.safe ? 5 : 8,
-    novelty: 5,
-    proofValue: 3,
-    redundancyPenalty: 0,
-    stalenessPenalty: 0,
-    modeAllowed: ["minimal", "standard", "rich", "onboarding"],
-    surfaceAllowed: ["reload", "post_compaction", "warning", "tool_guidance", "uiai_bridge"],
-    sourceRef: "state.getScopedWorkpointPacket + normalizeProjectRoot",
-  }));
-
-  if (!input.projectRootSafety.safe) {
-    lines.push(makeLine({
+  lines.push(
+    makeLine({
       id: String(++id),
-      layer: "risk",
-      category: "safety",
-      text: `⚠️ Unsafe root: ${input.projectRootSafety.path} — ${input.projectRootSafety.reason || "not a verified workspace"}`,
-      authorityValue: 0,
-      actionability: 9,
-      riskReduction: 9,
-      novelty: 9,
-      proofValue: 5,
+      layer: "identity",
+      category: "authority",
+      text: `project_root=${input.projectIdentity.projectRoot}`,
+      authorityValue: input.projectIdentity.verified ? 9 : 0,
+      actionability: 5,
+      riskReduction: input.projectRootSafety.safe ? 5 : 8,
+      novelty: 5,
+      proofValue: 3,
       redundancyPenalty: 0,
       stalenessPenalty: 0,
-      modeAllowed: ["standard", "rich", "onboarding"],
-      surfaceAllowed: ["reload", "warning"],
-      sourceRef: "state.isProjectRootAuthoritySafe",
-    }));
+      modeAllowed: ["minimal", "standard", "rich", "onboarding"],
+      surfaceAllowed: ["reload", "post_compaction", "warning", "tool_guidance", "uiai_bridge"],
+      sourceRef: "state.getScopedWorkpointPacket + normalizeProjectRoot",
+    })
+  );
+
+  if (!input.projectRootSafety.safe) {
+    lines.push(
+      makeLine({
+        id: String(++id),
+        layer: "risk",
+        category: "safety",
+        text: `⚠️ Unsafe root: ${input.projectRootSafety.path} — ${input.projectRootSafety.reason || "not a verified workspace"}`,
+        authorityValue: 0,
+        actionability: 9,
+        riskReduction: 9,
+        novelty: 9,
+        proofValue: 5,
+        redundancyPenalty: 0,
+        stalenessPenalty: 0,
+        modeAllowed: ["standard", "rich", "onboarding"],
+        surfaceAllowed: ["reload", "warning"],
+        sourceRef: "state.isProjectRootAuthoritySafe",
+      })
+    );
   }
 
   // ── Authority layer ────────────────────────────────────────────────────────
   if (input.workpointResume) {
     const wp = input.workpointResume;
-    const isStale = wp.canonical && (now - (S.lastWorkpointUpdate || 0)) > wpStaleMs;
+    const isStale = wp.canonical && now - (S.lastWorkpointUpdate || 0) > wpStaleMs;
 
-    lines.push(makeLine({
-      id: String(++id),
-      layer: "authority",
-      category: "workpoint",
-      text: `Workpoint ${wp.workpointId} ${wp.canonical ? "✓ canonical" : "○ non-canonical"}${wp.degraded ? " [degraded]" : ""}`,
-      authorityValue: wp.canonical ? 9 : 4,
-      actionability: wp.actionAuthority ? 8 : 3,
-      riskReduction: wp.degraded ? 7 : 0,
-      novelty: 5,
-      proofValue: 5,
-      redundancyPenalty: 0,
-      stalenessPenalty: isStale ? 4 : 0,
-      modeAllowed: ["minimal", "standard", "rich"],
-      surfaceAllowed: ["reload", "post_compaction"],
-      sourceRef: "state.getScopedWorkpointPacket",
-    }));
-
-    if (wp.nextAction) {
-      lines.push(makeLine({
+    lines.push(
+      makeLine({
         id: String(++id),
-        layer: "mission",
-        category: "next_action",
-        text: `next: ${trunc(wp.nextAction, 200)}`,
-        authorityValue: wp.canonical ? 8 : 3,
-        actionability: 9,
-        riskReduction: 4,
+        layer: "authority",
+        category: "workpoint",
+        text: `Workpoint ${wp.workpointId} ${wp.canonical ? "✓ canonical" : "○ non-canonical"}${wp.degraded ? " [degraded]" : ""}`,
+        authorityValue: wp.canonical ? 9 : 4,
+        actionability: wp.actionAuthority ? 8 : 3,
+        riskReduction: wp.degraded ? 7 : 0,
         novelty: 5,
-        proofValue: 3,
+        proofValue: 5,
         redundancyPenalty: 0,
-        stalenessPenalty: isStale ? 3 : 0,
+        stalenessPenalty: isStale ? 4 : 0,
         modeAllowed: ["minimal", "standard", "rich"],
         surfaceAllowed: ["reload", "post_compaction"],
-        sourceRef: "state.getScopedWorkpointPacket.next_slice",
-      }));
+        sourceRef: "state.getScopedWorkpointPacket",
+      })
+    );
+
+    if (wp.nextAction) {
+      lines.push(
+        makeLine({
+          id: String(++id),
+          layer: "mission",
+          category: "next_action",
+          text: `next: ${trunc(wp.nextAction, 200)}`,
+          authorityValue: wp.canonical ? 8 : 3,
+          actionability: 9,
+          riskReduction: 4,
+          novelty: 5,
+          proofValue: 3,
+          redundancyPenalty: 0,
+          stalenessPenalty: isStale ? 3 : 0,
+          modeAllowed: ["minimal", "standard", "rich"],
+          surfaceAllowed: ["reload", "post_compaction"],
+          sourceRef: "state.getScopedWorkpointPacket.next_slice",
+        })
+      );
     }
 
     if (wp.mission) {
-      lines.push(makeLine({
-        id: String(++id),
-        layer: "mission",
-        category: "mission",
-        text: `mission: ${trunc(wp.mission, 300)}`,
-        authorityValue: wp.canonical ? 7 : 2,
-        actionability: 6,
-        riskReduction: 3,
-        novelty: 3,
-        proofValue: 3,
-        redundancyPenalty: 0,
-        stalenessPenalty: isStale ? 2 : 0,
-        modeAllowed: ["standard", "rich"],
-        surfaceAllowed: ["reload", "post_compaction"],
-        sourceRef: "state.getScopedWorkpointPacket.mission",
-      }));
+      lines.push(
+        makeLine({
+          id: String(++id),
+          layer: "mission",
+          category: "mission",
+          text: `mission: ${trunc(wp.mission, 300)}`,
+          authorityValue: wp.canonical ? 7 : 2,
+          actionability: 6,
+          riskReduction: 3,
+          novelty: 3,
+          proofValue: 3,
+          redundancyPenalty: 0,
+          stalenessPenalty: isStale ? 2 : 0,
+          modeAllowed: ["standard", "rich"],
+          surfaceAllowed: ["reload", "post_compaction"],
+          sourceRef: "state.getScopedWorkpointPacket.mission",
+        })
+      );
     }
 
     if (wp.blockers.length > 0) {
       for (const blocker of wp.blockers.slice(0, 3)) {
-        lines.push(makeLine({
-          id: String(++id),
-          layer: "risk",
-          category: "blocker",
-          text: `blocker: ${trunc(blocker, 200)}`,
-          authorityValue: wp.canonical ? 7 : 2,
-          actionability: 8,
-          riskReduction: 9,
-          novelty: 6,
-          proofValue: 5,
-          redundancyPenalty: 0,
-          stalenessPenalty: 0,
-          modeAllowed: ["minimal", "standard", "rich"],
-          surfaceAllowed: ["reload", "post_compaction", "warning"],
-          sourceRef: "state.getScopedWorkpointPacket.blockers",
-        }));
+        lines.push(
+          makeLine({
+            id: String(++id),
+            layer: "risk",
+            category: "blocker",
+            text: `blocker: ${trunc(blocker, 200)}`,
+            authorityValue: wp.canonical ? 7 : 2,
+            actionability: 8,
+            riskReduction: 9,
+            novelty: 6,
+            proofValue: 5,
+            redundancyPenalty: 0,
+            stalenessPenalty: 0,
+            modeAllowed: ["minimal", "standard", "rich"],
+            surfaceAllowed: ["reload", "post_compaction", "warning"],
+            sourceRef: "state.getScopedWorkpointPacket.blockers",
+          })
+        );
       }
     }
 
     if (wp.targetObjects.length > 0) {
-      lines.push(makeLine({
-        id: String(++id),
-        layer: "authority",
-        category: "targets",
-        text: `active objects: ${wp.targetObjects.slice(0, 5).join(", ")}`,
-        authorityValue: wp.canonical ? 6 : 2,
-        actionability: 7,
-        riskReduction: 3,
-        novelty: 4,
-        proofValue: 3,
-        redundancyPenalty: 0,
-        stalenessPenalty: 0,
-        modeAllowed: ["standard", "rich"],
-        surfaceAllowed: ["reload", "post_compaction"],
-        sourceRef: "state.getScopedWorkpointPacket.target_objects",
-      }));
+      lines.push(
+        makeLine({
+          id: String(++id),
+          layer: "authority",
+          category: "targets",
+          text: `active objects: ${wp.targetObjects.slice(0, 5).join(", ")}`,
+          authorityValue: wp.canonical ? 6 : 2,
+          actionability: 7,
+          riskReduction: 3,
+          novelty: 4,
+          proofValue: 3,
+          redundancyPenalty: 0,
+          stalenessPenalty: 0,
+          modeAllowed: ["standard", "rich"],
+          surfaceAllowed: ["reload", "post_compaction"],
+          sourceRef: "state.getScopedWorkpointPacket.target_objects",
+        })
+      );
     }
   }
 
@@ -494,107 +531,119 @@ export function generateCandidateLines(input: AwarenessInput): AwarenessCandidat
   if (input.trajectoryView) {
     const tv = input.trajectoryView;
     if (tv.hlt) {
-      lines.push(makeLine({
-        id: String(++id),
-        layer: "goal",
-        category: "hlt",
-        text: `HLT: ${trunc(tv.hlt, 200)}`,
-        authorityValue: 5,
-        actionability: 4,
-        riskReduction: 3,
-        novelty: 3,
-        proofValue: 3,
-        redundancyPenalty: 0,
-        stalenessPenalty: 2,
-        modeAllowed: ["rich"],
-        surfaceAllowed: ["reload", "post_compaction"],
-        sourceRef: "/trajectory/view.hlt",
-      }));
+      lines.push(
+        makeLine({
+          id: String(++id),
+          layer: "goal",
+          category: "hlt",
+          text: `HLT: ${trunc(tv.hlt, 200)}`,
+          authorityValue: 5,
+          actionability: 4,
+          riskReduction: 3,
+          novelty: 3,
+          proofValue: 3,
+          redundancyPenalty: 0,
+          stalenessPenalty: 2,
+          modeAllowed: ["rich"],
+          surfaceAllowed: ["reload", "post_compaction"],
+          sourceRef: "/trajectory/view.hlt",
+        })
+      );
     }
     if (tv.activeGap) {
-      lines.push(makeLine({
-        id: String(++id),
-        layer: "goal",
-        category: "gap",
-        text: `active gap: ${trunc(tv.activeGap, 200)}`,
-        authorityValue: 6,
-        actionability: 7,
-        riskReduction: 6,
-        novelty: 5,
-        proofValue: 4,
-        redundancyPenalty: 0,
-        stalenessPenalty: 2,
-        modeAllowed: ["standard", "rich"],
-        surfaceAllowed: ["reload", "post_compaction"],
-        sourceRef: "/trajectory/view.active_gap",
-      }));
+      lines.push(
+        makeLine({
+          id: String(++id),
+          layer: "goal",
+          category: "gap",
+          text: `active gap: ${trunc(tv.activeGap, 200)}`,
+          authorityValue: 6,
+          actionability: 7,
+          riskReduction: 6,
+          novelty: 5,
+          proofValue: 4,
+          redundancyPenalty: 0,
+          stalenessPenalty: 2,
+          modeAllowed: ["standard", "rich"],
+          surfaceAllowed: ["reload", "post_compaction"],
+          sourceRef: "/trajectory/view.active_gap",
+        })
+      );
     }
     if (tv.stg) {
-      lines.push(makeLine({
-        id: String(++id),
-        layer: "goal",
-        category: "stg",
-        text: `STG: ${trunc(tv.stg, 200)}`,
-        authorityValue: 5,
-        actionability: 5,
-        riskReduction: 4,
-        novelty: 3,
-        proofValue: 3,
-        redundancyPenalty: 0,
-        stalenessPenalty: 2,
-        modeAllowed: ["rich"],
-        surfaceAllowed: ["reload", "post_compaction"],
-        sourceRef: "/trajectory/view.stg",
-      }));
+      lines.push(
+        makeLine({
+          id: String(++id),
+          layer: "goal",
+          category: "stg",
+          text: `STG: ${trunc(tv.stg, 200)}`,
+          authorityValue: 5,
+          actionability: 5,
+          riskReduction: 4,
+          novelty: 3,
+          proofValue: 3,
+          redundancyPenalty: 0,
+          stalenessPenalty: 2,
+          modeAllowed: ["rich"],
+          surfaceAllowed: ["reload", "post_compaction"],
+          sourceRef: "/trajectory/view.stg",
+        })
+      );
     }
   }
 
   // ── Context pressure layer ────────────────────────────────────────────────
   const cp = input.contextPressure;
   if (cp.tier === "high" || cp.tier === "critical") {
-    lines.push(makeLine({
-      id: String(++id),
-      layer: "risk",
-      category: "pressure",
-      text: `context pressure: ${cp.percentage.toFixed(0)}% (${cp.tier}) — ${cp.compactionPending ? "compaction pending" : "compaction available"}`,
-      authorityValue: 0,
-      actionability: cp.compactionPending ? 8 : 5,
-      riskReduction: 8,
-      novelty: 5,
-      proofValue: 4,
-      redundancyPenalty: 0,
-      stalenessPenalty: 0,
-      modeAllowed: ["minimal", "standard", "rich"],
-      surfaceAllowed: ["warning", "reload"],
-      sourceRef: "state.contextPressure",
-    }));
+    lines.push(
+      makeLine({
+        id: String(++id),
+        layer: "risk",
+        category: "pressure",
+        text: `context pressure: ${cp.percentage.toFixed(0)}% (${cp.tier}) — ${cp.compactionPending ? "compaction pending" : "compaction available"}`,
+        authorityValue: 0,
+        actionability: cp.compactionPending ? 8 : 5,
+        riskReduction: 8,
+        novelty: 5,
+        proofValue: 4,
+        redundancyPenalty: 0,
+        stalenessPenalty: 0,
+        modeAllowed: ["minimal", "standard", "rich"],
+        surfaceAllowed: ["warning", "reload"],
+        sourceRef: "state.contextPressure",
+      })
+    );
   }
 
   // ── Recovery / tool layer ─────────────────────────────────────────────────
   const topTools = input.toolGraph.topNextTools.slice(0, 3);
   if (topTools.length > 0 && (input.mode === "standard" || input.mode === "rich")) {
-    lines.push(makeLine({
-      id: String(++id),
-      layer: "tool",
-      category: "next_tools",
-      text: `next tools: ${topTools.join(", ")}`,
-      authorityValue: 4,
-      actionability: 6,
-      riskReduction: 3,
-      novelty: 4,
-      proofValue: 2,
-      redundancyPenalty: 0,
-      stalenessPenalty: 1,
-      modeAllowed: ["standard", "rich"],
-      surfaceAllowed: ["reload", "tool_guidance"],
-      sourceRef: "tool-contracts.top_next_tools",
-    }));
+    lines.push(
+      makeLine({
+        id: String(++id),
+        layer: "tool",
+        category: "next_tools",
+        text: `next tools: ${topTools.join(", ")}`,
+        authorityValue: 4,
+        actionability: 6,
+        riskReduction: 3,
+        novelty: 4,
+        proofValue: 2,
+        redundancyPenalty: 0,
+        stalenessPenalty: 1,
+        modeAllowed: ["standard", "rich"],
+        surfaceAllowed: ["reload", "tool_guidance"],
+        sourceRef: "tool-contracts.top_next_tools",
+      })
+    );
   }
 
   return lines;
 }
 
-function makeLine(partial: Partial<AwarenessCandidateLine> & { id: string; text: string }): AwarenessCandidateLine {
+function makeLine(
+  partial: Partial<AwarenessCandidateLine> & { id: string; text: string }
+): AwarenessCandidateLine {
   const authorityValue = partial.authorityValue ?? 0;
   const actionability = partial.actionability ?? 0;
   const riskReduction = partial.riskReduction ?? 0;
@@ -602,16 +651,13 @@ function makeLine(partial: Partial<AwarenessCandidateLine> & { id: string; text:
   const proofValue = partial.proofValue ?? 0;
   const redundancyPenalty = partial.redundancyPenalty ?? 0;
   const stalenessPenalty = partial.stalenessPenalty ?? 0;
-  const dvs = (
+  const dvs =
     authorityValue * DVS_WEIGHTS.authorityValue +
     actionability * DVS_WEIGHTS.actionability +
     riskReduction * DVS_WEIGHTS.riskReduction +
     novelty * DVS_WEIGHTS.novelty +
-    proofValue * DVS_WEIGHTS.proofValue
-  ) - (
-    redundancyPenalty * DVS_WEIGHTS.redundancyPenalty +
-    stalenessPenalty * DVS_WEIGHTS.stalenessPenalty
-  );
+    proofValue * DVS_WEIGHTS.proofValue -
+    (redundancyPenalty * DVS_WEIGHTS.redundancyPenalty + stalenessPenalty * DVS_WEIGHTS.stalenessPenalty);
   return {
     layer: partial.layer ?? "recovery",
     category: partial.category ?? "general",
@@ -634,11 +680,15 @@ function makeLine(partial: Partial<AwarenessCandidateLine> & { id: string; text:
 
 // ─── Line scorer ─────────────────────────────────────────────────────────────
 
-function scoreLines(lines: AwarenessCandidateLine[], mode: AwarenessMode, surface: AwarenessSurface): AwarenessCandidateLine[] {
+function scoreLines(
+  lines: AwarenessCandidateLine[],
+  mode: AwarenessMode,
+  surface: AwarenessSurface
+): AwarenessCandidateLine[] {
   const cutoff = DVS_CUTOFF[mode] ?? 4.0;
   return lines
-    .filter(line => line.modeAllowed.includes(mode) && line.surfaceAllowed.includes(surface))
-    .filter(line => {
+    .filter((line) => line.modeAllowed.includes(mode) && line.surfaceAllowed.includes(surface))
+    .filter((line) => {
       // Authority gate: show if authorityValue is very high even if DVS is low
       if (line.authorityValue >= 8) return true;
       return line.dvs >= cutoff;
@@ -647,24 +697,21 @@ function scoreLines(lines: AwarenessCandidateLine[], mode: AwarenessMode, surfac
 
 // ─── Tool-family selector ────────────────────────────────────────────────────
 
-export function selectTopTools(
-  input: AwarenessInput,
-  count = 3
-): ToolGuidance[] {
+export function selectTopTools(input: AwarenessInput, count = 3): ToolGuidance[] {
   const candidates: ToolGuidance[] = [];
   const blockers = input.workpointResume?.blockers ?? [];
 
   // Iterate over tool names from topNextTools, keyed by tool name in sideEffectProfiles
   for (const toolName of input.toolGraph.topNextTools.slice(0, 12)) {
     const sideEffect = input.toolGraph.sideEffectProfiles[toolName] ?? "read_state";
-    const blockerRelevant = blockers.some(b =>
-      b.toLowerCase().includes(toolName)
-    );
+    const blockerRelevant = blockers.some((b) => b.toLowerCase().includes(toolName));
 
     candidates.push({
       toolName,
       family: "tool",
-      whyIncluded: blockerRelevant ? "directly relevant to current blocker" : "top next tool from choreography",
+      whyIncluded: blockerRelevant
+        ? "directly relevant to current blocker"
+        : "top next tool from choreography",
       authorityValue: blockerRelevant ? 8 : 5,
       actionability: blockerRelevant ? 9 : 6,
       sideEffectRisk: sideEffectToRisk(sideEffect),
@@ -681,7 +728,7 @@ export function selectTopTools(
     const byFamily = input.toolGraph.nextToolsByFamily[family];
     if (byFamily && byFamily.length > 0) {
       const toolName = byFamily[0];
-      if (!candidates.find(c => c.toolName === toolName)) {
+      if (!candidates.find((c) => c.toolName === toolName)) {
         const sideEffect = input.toolGraph.sideEffectProfiles[toolName] ?? "read_state";
         candidates.push({
           toolName,
@@ -697,8 +744,8 @@ export function selectTopTools(
   }
 
   return candidates
-    .filter(t => input.mode !== "minimal" || t.sideEffectRisk !== "risky")
-    .sort((a, b) => (b.authorityValue + b.actionability) - (a.authorityValue + a.actionability))
+    .filter((t) => input.mode !== "minimal" || t.sideEffectRisk !== "risky")
+    .sort((a, b) => b.authorityValue + b.actionability - (a.authorityValue + a.actionability))
     .slice(0, count);
 }
 
@@ -776,7 +823,9 @@ export function updateCadenceState(
     lastPct: input.contextPressure.percentage,
     lastTier: input.contextPressure.tier,
     lastAnchorState: input.workpointResume?.workpointId ?? state.lastAnchorState,
-    compactionCountAtLastShown: showed ? input.contextPressure.compactionCount : state.compactionCountAtLastShown,
+    compactionCountAtLastShown: showed
+      ? input.contextPressure.compactionCount
+      : state.compactionCountAtLastShown,
     transitionCount: showed ? state.transitionCount + 1 : state.transitionCount,
     suppressionCount: showed ? 0 : state.suppressionCount + 1,
   };
@@ -788,9 +837,9 @@ export async function buildAwarenessPacket(surface: AwarenessSurface): Promise<A
   const input = await gatherAwarenessInput(surface);
   const candidates = generateCandidateLines(input);
   const scored = scoreLines(candidates, input.mode, surface);
-  const suppressed = candidates.filter(c => !scored.includes(c));
+  const suppressed = candidates.filter((c) => !scored.includes(c));
   const nextTools = selectTopTools(input, 3);
-  const recoveryTools = selectTopTools(input, 5).filter(t => t.sideEffectRisk !== "risky");
+  const recoveryTools = selectTopTools(input, 5).filter((t) => t.sideEffectRisk !== "risky");
 
   const modeReason = `mode=${input.mode}; safety=${input.projectRootSafety.safe}; canonical=${input.workpointResume?.canonical ?? false}; pressure=${input.contextPressure.tier}`;
   const surfaceReason = `surface=${surface}`;
@@ -814,13 +863,17 @@ export async function buildAwarenessPacket(surface: AwarenessSurface): Promise<A
     generatedAt: Date.now(),
     mode: input.mode,
     surface,
-    status: input.projectRootSafety.safe && input.workpointResume?.canonical ? "fresh" :
-             input.workpointResume?.degraded ? "partial" : "degraded",
+    status:
+      input.projectRootSafety.safe && input.workpointResume?.canonical
+        ? "fresh"
+        : input.workpointResume?.degraded
+          ? "partial"
+          : "degraded",
     visibleLines: scored,
-    systemLines: scored.filter(l => l.layer !== "tool" || input.mode === "rich"),
+    systemLines: scored.filter((l) => l.layer !== "tool" || input.mode === "rich"),
     nextTools,
     recoveryTools,
-    suppressedLines: suppressed.map(line => ({
+    suppressedLines: suppressed.map((line) => ({
       line,
       suppressReason: line.suppressReason ?? `DVS below cutoff (${DVS_CUTOFF[input.mode]})`,
       dvs: line.dvs,
@@ -846,47 +899,51 @@ export function renderAwarenessPacketText(packet: AwarenessPacket): string {
   const lines: string[] = [];
 
   // Authority header
-  const wpLine = packet.visibleLines.find(l => l.category === "workpoint");
+  const wpLine = packet.visibleLines.find((l) => l.category === "workpoint");
   if (wpLine) {
     lines.push(`## Authority\n${wpLine.text}`);
   }
 
   // Mission / next action
-  const nextLine = packet.visibleLines.find(l => l.category === "next_action");
+  const nextLine = packet.visibleLines.find((l) => l.category === "next_action");
   if (nextLine) {
     lines.push(`## Next\n${nextLine.text}`);
   }
 
-  const missionLine = packet.visibleLines.find(l => l.category === "mission");
+  const missionLine = packet.visibleLines.find((l) => l.category === "mission");
   if (missionLine && (packet.mode === "standard" || packet.mode === "rich")) {
     lines.push(`## Mission\n${missionLine.text}`);
   }
 
   // Blockers
-  const blockerLines = packet.visibleLines.filter(l => l.category === "blocker");
+  const blockerLines = packet.visibleLines.filter((l) => l.category === "blocker");
   if (blockerLines.length > 0) {
-    lines.push(`## Blockers\n${blockerLines.map(l => `- ${l.text}`).join("\n")}`);
+    lines.push(`## Blockers\n${blockerLines.map((l) => `- ${l.text}`).join("\n")}`);
   }
 
   // Risk
-  const riskLines = packet.visibleLines.filter(l => l.layer === "risk" && l.category !== "blocker");
+  const riskLines = packet.visibleLines.filter((l) => l.layer === "risk" && l.category !== "blocker");
   if (riskLines.length > 0) {
-    lines.push(`## Risk\n${riskLines.map(l => `- ${l.text}`).join("\n")}`);
+    lines.push(`## Risk\n${riskLines.map((l) => `- ${l.text}`).join("\n")}`);
   }
 
   // Goal
-  const goalLines = packet.visibleLines.filter(l => l.layer === "goal");
+  const goalLines = packet.visibleLines.filter((l) => l.layer === "goal");
   if (goalLines.length > 0 && (packet.mode === "rich" || packet.surface === "post_compaction")) {
-    lines.push(`## Goal\n${goalLines.map(l => `- ${l.text}`).join("\n")}`);
+    lines.push(`## Goal\n${goalLines.map((l) => `- ${l.text}`).join("\n")}`);
   }
 
   // Tools
   if (packet.nextTools.length > 0 && (packet.mode === "standard" || packet.mode === "rich")) {
-    lines.push(`## Next Tools\n${packet.nextTools.map(t => `- ${t.toolName}: ${t.whyIncluded}`).join("\n")}`);
+    lines.push(
+      `## Next Tools\n${packet.nextTools.map((t) => `- ${t.toolName}: ${t.whyIncluded}`).join("\n")}`
+    );
   }
 
   // Confidence
-  lines.push(`---\n*awareness_packet v1 | mode=${packet.mode} | surface=${packet.surface} | confidence=${packet.metadata.confidence} | ${packet.visibleLines.length} lines shown*`);
+  lines.push(
+    `---\n*awareness_packet v1 | mode=${packet.mode} | surface=${packet.surface} | confidence=${packet.metadata.confidence} | ${packet.visibleLines.length} lines shown*`
+  );
 
   return lines.join("\n");
 }
@@ -894,6 +951,8 @@ export function renderAwarenessPacketText(packet: AwarenessPacket): string {
 // ─── Utility ─────────────────────────────────────────────────────────────────
 
 function trunc(text: string, max: number): string {
-  const t = String(text || "").replace(/\s+/g, " ").trim();
+  const t = String(text || "")
+    .replace(/\s+/g, " ")
+    .trim();
   return t.length > max ? `${t.slice(0, Math.max(0, max - 1))}…` : t;
 }

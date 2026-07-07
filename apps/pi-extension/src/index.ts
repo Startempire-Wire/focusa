@@ -76,7 +76,10 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
       const goal = S.activeFrameGoal ? ` | ${S.activeFrameGoal}` : "";
       const mission = snapshot.intent ? ` | Mission: ${snapshot.intent}` : "";
       const focus = snapshot.currentFocus ? ` | Focus: ${snapshot.currentFocus}` : "";
-      ctx.ui.notify(`Focusa: ${up}${title}${goal}${mission}${focus} | Frame: ${getActiveFrameId() ?? "none"} | D:${snapshot.decisions.length} C:${snapshot.constraints.length} F:${snapshot.failures.length}${tier}`, "info");
+      ctx.ui.notify(
+        `Focusa: ${up}${title}${goal}${mission}${focus} | Frame: ${getActiveFrameId() ?? "none"} | D:${snapshot.decisions.length} C:${snapshot.constraints.length} F:${snapshot.failures.length}${tier}`,
+        "info"
+      );
     },
   });
 

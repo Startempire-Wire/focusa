@@ -14,7 +14,11 @@ function boundText(value: unknown, max = MAX_TEXT): string {
 }
 
 function safeJsonSize(value: unknown): number {
-  try { return JSON.stringify(value ?? null).length; } catch { return 0; }
+  try {
+    return JSON.stringify(value ?? null).length;
+  } catch {
+    return 0;
+  }
 }
 
 function simpleHash(value: string): string {
@@ -33,13 +37,15 @@ function estimateTokensFromChars(chars: number): number {
 function recordHookTelemetry(record: Record<string, unknown>): void {
   const entry = { ts: nowIso(), ...record };
   S.spec92HookTelemetry.push(entry);
-  if (S.spec92HookTelemetry.length > MAX_RECORDS) S.spec92HookTelemetry.splice(0, S.spec92HookTelemetry.length - MAX_RECORDS);
+  if (S.spec92HookTelemetry.length > MAX_RECORDS)
+    S.spec92HookTelemetry.splice(0, S.spec92HookTelemetry.length - MAX_RECORDS);
 }
 
 function recordTokenTelemetry(record: Record<string, unknown>): void {
   const entry = { ts: nowIso(), ...record };
   S.spec92TokenTelemetry.push(entry);
-  if (S.spec92TokenTelemetry.length > MAX_RECORDS) S.spec92TokenTelemetry.splice(0, S.spec92TokenTelemetry.length - MAX_RECORDS);
+  if (S.spec92TokenTelemetry.length > MAX_RECORDS)
+    S.spec92TokenTelemetry.splice(0, S.spec92TokenTelemetry.length - MAX_RECORDS);
 }
 
 function bestEffortTelemetry(kind: string, payload: Record<string, unknown>): void {
@@ -72,7 +78,14 @@ function payloadSummary(payload: any): Record<string, unknown> {
   const tokenEstimate = estimateTokensFromChars(size);
   const messageCount = Array.isArray(payload?.messages) ? payload.messages.length : 0;
   const toolSchemaBytes = safeJsonSize(payload?.tools || payload?.tool_choice || payload?.toolConfig);
-  const budgetClass = tokenEstimate > 120_000 ? "critical" : tokenEstimate > 80_000 ? "high" : tokenEstimate > 40_000 ? "watch" : "ok";
+  const budgetClass =
+    tokenEstimate > 120_000
+      ? "critical"
+      : tokenEstimate > 80_000
+        ? "high"
+        : tokenEstimate > 40_000
+          ? "watch"
+          : "ok";
   return {
     payload_hash: simpleHash(text),
     prefix_hash: simpleHash(text.slice(0, 12_000)),
@@ -86,13 +99,10 @@ function payloadSummary(payload: any): Record<string, unknown> {
 }
 
 function skillPaths(): string[] {
-  const homeSkills = process.env.PI_SKILLS_DIR
-    || (process.env.HOME ? `${process.env.HOME}/.pi/skills` : "");
-  return [
-    `${process.cwd()}/.pi/skills`,
-    `${process.cwd()}/apps/pi-extension/skills`,
-    homeSkills,
-  ].filter(Boolean);
+  const homeSkills = process.env.PI_SKILLS_DIR || (process.env.HOME ? `${process.env.HOME}/.pi/skills` : "");
+  return [`${process.cwd()}/.pi/skills`, `${process.cwd()}/apps/pi-extension/skills`, homeSkills].filter(
+    Boolean
+  );
 }
 
 export function registerPolishHooks(pi: ExtensionAPI) {
@@ -107,7 +117,10 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     const record = {
       hook: "agent_start",
       event_keys: Object.keys(event || {}).slice(0, 20),
-      workpoint_id: (() => { const wp = getActiveWorkpointPacket(); return wp?.workpoint_id || wp?.id || null; })(),
+      workpoint_id: (() => {
+        const wp = getActiveWorkpointPacket();
+        return wp?.workpoint_id || wp?.id || null;
+      })(),
       current_ask: boundText(S.currentAsk?.text || ""),
     };
     recordHookTelemetry(record);
