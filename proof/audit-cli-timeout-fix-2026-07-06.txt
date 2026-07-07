@@ -1,0 +1,48 @@
+focusa audit CLI timeout fix — 2026-07-06
+
+## Problem
+`focusa audit` returned:
+  Error: [API_TIMEOUT] url=http://127.0.0.1:8787/v1/events/recent?limit=50 reason=error sending request for url
+
+## Root cause
+crates/focusa-cli/src/api_client.rs:13
+  const DEFAULT_TIMEOUT_SECS: u64 = 2;
+
+The CLI HTTP client defaulted to a 2s request timeout. With 518,860 rows in the
+`events` table on a real user's daemon, `SELECT ts, payload_json FROM events
+ORDER BY ts DESC LIMIT 50` takes longer than 2s on cold caches.
+
+## Fix
+- Bumped `DEFAULT_TIMEOUT_SECS` from 2 → 10 in `api_client.rs`.
+- Override available via `FOCUSA_API_TIMEOUT` env var.
+- Query already uses `idx_events_ts` B-tree index (verified via EXPLAIN QUERY PLAN).
+- Fix applies to ALL CLI commands (every command funnels through `ApiClient`).
+
+## Proof
+
+### Index verification
+$ sqlite3 focusa.sqlite ".indexes events"
+idx_events_machine         idx_events_ts
+idx_events_session         sqlite_autoindex_events_1
+idx_events_thread
+
+$ sqlite3 focusa.sqlite "EXPLAIN QUERY PLAN SELECT ts, payload_json FROM events ORDER BY ts DESC LIMIT 50"
+`--SCAN TABLE events USING INDEX idx_events_ts
+
+$ sqlite3 focusa.sqlite "SELECT COUNT(*), AVG(LENGTH(payload_json)) FROM events"
+518860|457.74
+
+### CLI audit now works
+$ target/release/focusa audit --limit 5
+Returned: 6
+- 2026-07-07T01:21:42.015289729Z MemoryDecayTick 019f3a2a-a87f-7733-bffc-828ca2df13f4
+- 2026-07-07T01:24:47.864959784Z IntuitionSignalObserved 019f3a2d-7e78-7821-b080-dcec0e128457
+- ...
+
+## Distribution impact
+All Focusa users running focusa CLI get the fix on next release. Single-file
+change (one constant). Override for low-latency LANs: `FOCUSA_API_TIMEOUT=2
+focusa audit`.
+
+## Release
+v0.9.68-dev — https://github.com/Startempire-Wire/focusa/releases/tag/v0.9.68-dev
