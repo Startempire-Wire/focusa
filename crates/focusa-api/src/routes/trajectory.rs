@@ -2303,7 +2303,7 @@ async fn define_goal(
                             .unwrap_or(Value::Null),
                     );
                     obj.insert("advisory_only".to_string(), Value::Bool(true));
-                    obj.insert("persisted".to_string(), Value::Bool(false));
+                    obj.insert("persisted".to_string(), payload.get("persisted").cloned().unwrap_or(Value::Bool(false)));
                     obj.insert("mutates_canonical_state".to_string(), Value::Bool(false));
                     obj.insert("pending_candidate_preserved".to_string(), Value::Bool(true));
                 }
