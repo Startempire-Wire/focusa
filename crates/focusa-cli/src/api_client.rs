@@ -9,7 +9,7 @@ use std::process::{Command, Stdio};
 use std::time::Duration;
 
 const DEFAULT_BASE: &str = "http://127.0.0.1:8787";
-const DEFAULT_TIMEOUT_SECS: u64 = 2;
+const DEFAULT_TIMEOUT_SECS: u64 = 10;
 
 fn classify_reqwest_error(err: reqwest::Error, url: &str) -> anyhow::Error {
     if err.is_timeout() {

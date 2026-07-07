@@ -1,0 +1,42 @@
+/usr/local/bin/focusa-tui --no-intro
+[root][host]~ [ master][!]
+[⬢ [OpenVZ]]❯ /usr/local/bin/focusa-tui --no-intro
+?^[/#
+[root][host]~ [ master][!][⏱ 2s]
+[⬢ [OpenVZ]]❯ /
+[root][host]/
+[⬢ [OpenVZ]]❯ /234567
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
