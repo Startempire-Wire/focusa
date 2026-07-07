@@ -53,8 +53,11 @@ async fn run_pairing(cmd: PairingCmd) -> anyhow::Result<()> {
 
 #[derive(Parser)]
 #[command(name = "focusa", about = "Focusa cognitive governance CLI")]
-#[command(version, propagate_version = true)]
+#[command(propagate_version = true)]
 struct Cli {
+    /// Print version.
+    #[arg(short = 'v', long = "version", global = true)]
+    version: bool,
     /// Output in JSON format.
     #[arg(long, global = true)]
     json: bool,
