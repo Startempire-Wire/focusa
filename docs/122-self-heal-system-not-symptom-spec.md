@@ -199,7 +199,7 @@ Operator review: NOT required (3rd occurrence, no escalation)
 
 10.1. **Today (before signoff):** the current self-heal behavior remains. No code change.
 10.2. **Spec signoff:** operator signs off this spec. Implementation beads are filed under §13.
-10.3. **Phase 1 (foundation):** write `scripts/propose-system-fix.py` that selects the deliverable.type based on the failure_class. Also write the de-dup logic.
+10.3. **Phase 1 (foundation):** rewrite `scripts/auto-heal-audit.py` in place so behavior is proactive: de-dup, deliverable-first synthesis, and failure_class-based action selection. Also write the de-dup logic.
 10.4. **Phase 2 (top-class coverage):** produce the 6 deliverables from §7 (one per top failure class). Each is a separate PR that closes its class.
 10.5. **Phase 3 (workflow change):** update `audit-recorder.yml` to use the new logic. The cron reduces to daily.
 10.6. **Phase 4 (rate tracking):** add the `intervention_rate` event to the audit ledger. The metric is now measurable.
@@ -219,22 +219,32 @@ Operator review: NOT required (3rd occurrence, no escalation)
 3. Should the cron reduction (hourly → daily) be paired with a "rebuild from git events" trigger that re-emits heals when a workflow_run fails more than 3 times in an hour? (This is the safety net for missing-daily-run scenarios.)
 4. Should the rate-tracking event (`intervention_rate`) be visible in the menubar's RuntimeView (Spec 121 §3)?
 
-## 13. Implementation beads (filed only after operator signoff)
+## 13. Implementation beads (filed; IDs below)
 
-These are placeholder IDs, to be created with `br create` after operator signs this spec:
+These beads are tracked in `.beads/` and linked to the spec. Phase 1 is `in_progress`; Phase 2 deliverables are `open`; Phases 3-5 are `open`.
 
-- `dualserver-v0j.B1` — `scripts/propose-system-fix.py` + dedup logic
-- `dualserver-v0j.B2` — clippy lint deliverable for `ci_clippy_failure` (closes the 21% of failures)
-- `dualserver-v0j.B3` — type deliverable for `rust_compile_failure` (closes the 6%)
-- `dualserver-v0j.B4` — ci_gate deliverable for `unknown_process_failure` (closes the 9%)
-- `dualserver-v0j.B5` — retry deliverable for `transient_github_or_network_failure` (closes the 4%)
-- `dualserver-v0j.B6` — test deliverable for `ci_test_failure` (closes the 4%)
-- `dualserver-v0j.B7` — workflow change to `audit-recorder.yml` (de-dup + cron + reject passive)
-- `dualserver-v0j.B8` — `intervention_rate` event + menubar surfacing per Spec 121 §3
+| Phase | Bead ID | Title | Status | Depends on |
+|---|---|---|---|---|
+| Phase 1 | `focusa-focusa-ssh-phase1-hjarh` | Rewrite `scripts/auto-heal-audit.py` proactive foundation (no rename) | `in_progress` | — |
+| Phase 2 | `focusa-focusa-ssh-clippy-7e8e9` | Clippy lint deliverable | `open` | Phase 1 |
+| Phase 2 | `focusa-focusa-ssh-process-9kb2o` | Unknown process CI gate deliverable | `open` | Phase 1 |
+| Phase 2 | `focusa-focusa-ssh-rustcompile-0ky0t` | Rust compile type guard deliverable | `open` | Phase 1 |
+| Phase 2 | `focusa-focusa-ssh-retry-aqi33` | Network retry helper deliverable | `open` | Phase 1 |
+| Phase 2 | `focusa-focusa-ssh-test-of4jn` | Test failure regression test deliverable | `open` | Phase 1 |
+| Phase 2 | `focusa-focusa-ssh-deploy-hxp3o` | Deploy health pre-deploy gate deliverable | `open` | Phase 1 |
+| Phase 3 | `focusa-focusa-ssh-workflow-90hke` | Workflow changes (cron + commit conditions) | `open` | Phase 1 |
+| Phase 4 | `focusa-focusa-ssh-rate-xxb9m` | Intervention rate tracking | `open` | Phase 3 |
+| Phase 5 | `focusa-focusa-ssh-close-ld0yp` | 90-day close loop | `open` | Phase 4 |
+
+**Decomposition rule:** Each bead is a system fix, not a symptom fix. Each deliverable is verified by the next 3 CI runs before the bead is closed.
+
 
 ## 14. Diff against prior drafts
 
-This is the first draft. No prior diffs. The document is iterable — operator-revised versions will appear as `122-...-v2.md` etc., with explicit diff sections at the bottom of each.
+- **v1 → v2:** added the "both initially, never twice" rule; split §4 and §7 into immediate fix + system fix framing; updated PR example.
+- **v2 → v3:** added full implementation phase decomposition (Phases 1–5), real bead IDs in §13, and clarified that file rename is unnecessary (proactive behavior remains in `scripts/auto-heal-audit.py`).
+
+The document is iterable — operator-revised versions appear as `122-...-v2.md` etc., with explicit diff sections at the bottom of each.
 
 ---
 
