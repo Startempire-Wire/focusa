@@ -93,6 +93,13 @@ pub enum UninstallStepKind {
     RemoveLicense,
     RevertPath,
     PurgeAgentSkills,
+    RemoveLaunchAgentPlist,
+    RemoveMenuBarApp,
+    RemoveMenuBarPrefs,
+    RemoveDaemonData,
+    RemoveDaemonLogs,
+    RemoveLicenseConfig,
+    RemoveWebKitCaches,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -273,6 +280,92 @@ fn plan_steps(
         });
     }
 
+    // Additional macOS-side cleanup (applies regardless of platform target).
+    let daemon_data_dir = install_root.parent().unwrap_or(install_root).join(".local/share/focusa");
+    // Fall back to ~/.local/share/focusa when install_root resolution above isn't usable.
+    let daemon_data = std::path::PathBuf::from(std::env::var("HOME").unwrap_or_default())
+        .join(".local/share/focusa");
+
+    // LaunchAgent plist (macOS) — removed after stop+service step.
+    if target == crate::commands::install::InstallTarget::Darwin
+        || target == crate::commands::install::InstallTarget::Auto
+    {
+        if let Ok(home_str) = std::env::var("HOME") {
+            let plist = std::path::PathBuf::from(&home_str).join("Library/LaunchAgents/com.startempire.focusa-daemon.plist");
+            steps.push(UninstallStep {
+                name: "remove_launch_agent_plist".to_string(),
+                kind: UninstallStepKind::RemoveLaunchAgentPlist,
+                target_path: Some(plist.display().to_string()),
+                status: UninstallStepStatus::Planned,
+                detail: None,
+            });
+        }
+    }
+
+    // Menu bar app (Focusa.app) — detected in /Applications and ~/Applications.
+    if let Ok(home_str) = std::env::var("HOME") {
+        for app_dir in &["/Applications", &format!("{home_str}/Applications")] {
+            let app_path = std::path::PathBuf::from(app_dir).join("Focusa.app");
+            steps.push(UninstallStep {
+                name: format!("remove_menubar_app_at_{}", app_dir.replace('/', "_")),
+                kind: UninstallStepKind::RemoveMenuBarApp,
+                target_path: Some(app_path.display().to_string()),
+                status: UninstallStepStatus::Planned,
+                detail: None,
+            });
+        }
+        // Menu bar preferences
+        let menubar_prefs = std::path::PathBuf::from(&home_str).join("Library/Preferences/com.focusa.menubar.plist");
+        steps.push(UninstallStep {
+            name: "remove_menubar_prefs".to_string(),
+            kind: UninstallStepKind::RemoveMenuBarPrefs,
+            target_path: Some(menubar_prefs.display().to_string()),
+            status: UninstallStepStatus::Planned,
+            detail: None,
+        });
+        // Daemon logs
+        let logs_dir = std::path::PathBuf::from(&home_str).join("Library/Logs");
+        steps.push(UninstallStep {
+            name: "remove_daemon_logs".to_string(),
+            kind: UninstallStepKind::RemoveDaemonLogs,
+            target_path: Some(logs_dir.display().to_string()),
+            status: UninstallStepStatus::Planned,
+            detail: None,
+        });
+        // License config dir (license_authority.json + license_receipt.json left behind by old versions)
+        if !args.keep_license {
+            let license_dir = std::path::PathBuf::from(&home_str).join(".config/focusa");
+            steps.push(UninstallStep {
+                name: "remove_license_config_dir".to_string(),
+                kind: UninstallStepKind::RemoveLicenseConfig,
+                target_path: Some(license_dir.display().to_string()),
+                status: UninstallStepStatus::Planned,
+                detail: None,
+            });
+        }
+    }
+
+    // Daemon data dir (~/.local/share/focusa)
+    if !args.keep_data {
+        steps.push(UninstallStep {
+            name: "remove_daemon_data".to_string(),
+            kind: UninstallStepKind::RemoveDaemonData,
+            target_path: Some(daemon_data.display().to_string()),
+            status: UninstallStepStatus::Planned,
+            detail: None,
+        });
+    }
+
+    // WebKit / Metal cache dirs for the menu bar app (best-effort)
+    let _ = daemon_data_dir;
+    steps.push(UninstallStep {
+        name: "remove_webkit_caches".to_string(),
+        kind: UninstallStepKind::RemoveWebKitCaches,
+        target_path: Some("/var/folders/.../com.focusa.menubar/".to_string()),
+        status: UninstallStepStatus::Planned,
+        detail: Some("best-effort scan of /var/folders for com.focusa.menubar".to_string()),
+    });
+
     let _ = target;
     let _ = install_root;
     let _ = local_bin;
@@ -338,25 +431,49 @@ fn execute_step(
             Ok(StepOutcome::Executed)
         }
         RevertPath => {
-            // Reverse of install's path-automation: read rc file, remove any
-            // line containing `/.local/bin` paired with `export PATH=`.
+            // Reverse of install's path-automation: delete only the marker block
+            // (`# focusa-install: begin PATH` ... `# focusa-install: end PATH`).
+            // Falls back to legacy line-filter when no markers are present.
             if let Some(p) = &step.target_path {
                 let expanded = p.replace("$HOME", &std::env::var("HOME").unwrap_or_default());
                 let path = std::path::PathBuf::from(&expanded);
                 if path.exists() {
                     let content =
                         std::fs::read_to_string(&path).with_context(|| format!("read {p}"))?;
-                    let new_content: String = content
-                        .lines()
-                        .filter(|line| !(line.contains(".local/bin") && line.contains("PATH")))
-                        .collect::<Vec<_>>()
-                        .join("\n");
+                    let marker_begin = "# focusa-install: begin PATH";
+                    let marker_end = "# focusa-install: end PATH";
+                    let new_content = if content.contains(marker_begin) && content.contains(marker_end) {
+                        // Delete lines from begin marker (inclusive) through end marker (inclusive).
+                        let mut out = Vec::new();
+                        let mut in_block = false;
+                        for line in content.lines() {
+                            if line.contains(marker_begin) {
+                                in_block = true;
+                                continue;
+                            }
+                            if line.contains(marker_end) {
+                                in_block = false;
+                                continue;
+                            }
+                            if !in_block {
+                                out.push(line);
+                            }
+                        }
+                        out.join("\n")
+                    } else {
+                        // Legacy fallback: filter any line with .local/bin + PATH.
+                        content
+                            .lines()
+                            .filter(|line| !(line.contains(".local/bin") && line.contains("PATH")))
+                            .collect::<Vec<_>>()
+                            .join("\n")
+                    };
                     if new_content != content {
                         std::fs::write(&path, &new_content)
                             .with_context(|| format!("write {p}"))?;
-                        step.detail = Some("removed focusa PATH line".to_string());
+                        step.detail = Some("removed focusa PATH marker block".to_string());
                     } else {
-                        step.detail = Some("no focusa PATH line present".to_string());
+                        step.detail = Some("no focusa PATH block present".to_string());
                         return Ok(StepOutcome::Skipped);
                     }
                 } else {
@@ -377,6 +494,139 @@ fn execute_step(
                     return Ok(StepOutcome::Skipped);
                 }
             }
+            Ok(StepOutcome::Executed)
+        }
+        RemoveLaunchAgentPlist => {
+            if let Some(p) = &step.target_path {
+                let path = std::path::PathBuf::from(p);
+                if path.exists() {
+                    // Try launchctl unload first (best-effort); then remove the file.
+                    let _ = std::process::Command::new("launchctl")
+                        .args(["unload", &path.display().to_string()])
+                        .status();
+                    std::fs::remove_file(&path)
+                        .with_context(|| format!("remove launch agent plist {p}"))?;
+                } else {
+                    step.detail = Some("not present (idempotent skip)".to_string());
+                    return Ok(StepOutcome::Skipped);
+                }
+            }
+            Ok(StepOutcome::Executed)
+        }
+        RemoveMenuBarApp => {
+            if let Some(p) = &step.target_path {
+                let path = std::path::PathBuf::from(p);
+                if path.exists() {
+                    // /Applications/Focusa.app may be owned by admin and require sudo.
+                    // Try direct remove first; on PermissionDenied, instruct user.
+                    match std::fs::remove_dir_all(&path) {
+                        Ok(()) => {}
+                        Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+                            step.detail = Some(format!(
+                                "permission denied; run 'sudo rm -rf {p}' manually to remove the menu bar app"
+                            ));
+                            return Err(anyhow!("remove {} failed: permission denied", p));
+                        }
+                        Err(e) => return Err(e.into()),
+                    }
+                } else {
+                    step.detail = Some("not present (idempotent skip)".to_string());
+                    return Ok(StepOutcome::Skipped);
+                }
+            }
+            Ok(StepOutcome::Executed)
+        }
+        RemoveMenuBarPrefs => {
+            if let Some(p) = &step.target_path {
+                let path = std::path::PathBuf::from(p);
+                if path.exists() {
+                    std::fs::remove_file(&path)
+                        .with_context(|| format!("remove menubar prefs {p}"))?;
+                } else {
+                    step.detail = Some("not present (idempotent skip)".to_string());
+                    return Ok(StepOutcome::Skipped);
+                }
+            }
+            Ok(StepOutcome::Executed)
+        }
+        RemoveDaemonData => {
+            if let Some(p) = &step.target_path {
+                let path = std::path::PathBuf::from(p);
+                if path.exists() {
+                    // Daemon may still be running and hold SQLite WAL locks.
+                    // Best-effort: try to stop the daemon process, then remove.
+                    let _ = std::process::Command::new("pkill")
+                        .args(["-f", "focusa-daemon"])
+                        .status();
+                    std::fs::remove_dir_all(&path)
+                        .with_context(|| format!("remove daemon data {p}"))?;
+                } else {
+                    step.detail = Some("not present (idempotent skip)".to_string());
+                    return Ok(StepOutcome::Skipped);
+                }
+            }
+            Ok(StepOutcome::Executed)
+        }
+        RemoveDaemonLogs => {
+            if let Some(dir_p) = &step.target_path {
+                let dir = std::path::PathBuf::from(dir_p);
+                for stem in &["focusa-daemon.out.log", "focusa-daemon.err.log"] {
+                    let log_path = dir.join(stem);
+                    if log_path.exists() {
+                        let _ = std::fs::remove_file(&log_path);
+                    }
+                }
+                step.detail = Some("removed focusa-daemon.*.log".to_string());
+            }
+            Ok(StepOutcome::Executed)
+        }
+        RemoveLicenseConfig => {
+            if let Some(dir_p) = &step.target_path {
+                let dir = std::path::PathBuf::from(dir_p);
+                if dir.exists() {
+                    std::fs::remove_dir_all(&dir)
+                        .with_context(|| format!("remove license config dir {dir_p}"))?;
+                } else {
+                    step.detail = Some("not present (idempotent skip)".to_string());
+                    return Ok(StepOutcome::Skipped);
+                }
+            }
+            Ok(StepOutcome::Executed)
+        }
+        RemoveWebKitCaches => {
+            // Best-effort scan /var/folders for com.focusa.menubar tags.
+            let var_folders = std::path::PathBuf::from("/var/folders");
+            if !var_folders.exists() {
+                step.detail = Some("no /var/folders (linux/other platform)".to_string());
+                return Ok(StepOutcome::Skipped);
+            }
+            let mut removed = 0;
+            if let Ok(entries) = std::fs::read_dir(&var_folders) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if let Some(name) = entry.file_name().to_str() {
+                        // macOS per-user temp dirs have randomized names;
+                        // walk one level deep to find com.focusa.menubar subdirs.
+                        if path.is_dir() {
+                            if let Ok(subentries) = std::fs::read_dir(&path) {
+                                for subentry in subentries.flatten() {
+                                    if let Some(subname) = subentry.file_name().to_str() {
+                                        if subname.contains("focusa.menubar") || subname.contains("com.focusa") {
+                                            let p = subentry.path();
+                                            if p.exists() {
+                                                let _ = std::fs::remove_dir_all(&p);
+                                                removed += 1;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        let _ = name; // silence unused warning
+                    }
+                }
+            }
+            step.detail = Some(format!("removed {removed} webkit/system cache entries"));
             Ok(StepOutcome::Executed)
         }
     }

@@ -530,29 +530,35 @@ fn atty_stdout_is_terminal() -> bool {
     std::io::IsTerminal::is_terminal(&std::io::stdout())
 }
 
-/// Idempotently persist the PATH line to an rc file. Never duplicates:
-/// if the exact line is already present, no-op. If a similar line is
-/// present, also no-op (idempotency over cleverness).
+/// Marker block delimiters for idempotent PATH edits. The uninstaller deletes
+/// only lines between these markers, so we never clobber unrelated PATH
+/// changes the operator has made.
+pub(crate) const PATH_MARKER_BEGIN: &str = "# focusa-install: begin PATH";
+pub(crate) const PATH_MARKER_END: &str = "# focusa-install: end PATH";
+
+/// Idempotently persist the PATH line to an rc file wrapped in markers.
+/// The uninstaller can safely delete just the marker block without
+/// touching unrelated lines. Never duplicates: if the markers are
+/// already present, no-op.
 pub fn persist_path_to_rc(rc: &std::path::Path, path_line: &str) -> Result<()> {
     if let Some(parent) = rc.parent() {
         std::fs::create_dir_all(parent).ok();
     }
+    let block = format!("{PATH_MARKER_BEGIN}\n{path_line}\n{PATH_MARKER_END}\n");
     if !rc.exists() {
-        std::fs::write(rc, format!("{path_line}\n"))
-            .with_context(|| format!("write {}", rc.display()))?;
+        std::fs::write(rc, &block).with_context(|| format!("write {}", rc.display()))?;
         return Ok(());
     }
     let content = std::fs::read_to_string(rc).with_context(|| format!("read {}", rc.display()))?;
-    if content.contains(".local/bin") && content.contains("PATH") {
-        // Already there in some form; don't duplicate.
+    if content.contains(PATH_MARKER_BEGIN) && content.contains(PATH_MARKER_END) {
+        // Markers already present; leave the block alone.
         return Ok(());
     }
     let mut new_content = content;
     if !new_content.ends_with('\n') {
         new_content.push('\n');
     }
-    new_content.push_str(path_line);
-    new_content.push('\n');
+    new_content.push_str(&block);
     std::fs::write(rc, &new_content).with_context(|| format!("write {}", rc.display()))?;
     Ok(())
 }

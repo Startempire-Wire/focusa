@@ -292,6 +292,13 @@ PY
 # Pre-flight: platform detection → target triple.
 # ----------------------------------------------------------------------------
 HOST_OS=$(uname -s); HOST_ARCH=$(uname -m)
+# Rosetta 2 correction: if running x86_64 on an Apple Silicon host, prefer arm64.
+if [ "$HOST_OS" = "Darwin" ] && [ "$HOST_ARCH" = "x86_64" ]; then
+  if sysctl -n hw.optional.arm64 2>/dev/null | grep -q '^1$'; then
+    HOST_ARCH="aarch64"
+    log "detected native arm64 host via sysctl (Rosetta corrected x86_64 -> aarch64)"
+  fi
+fi
 case "$HOST_OS" in
   Linux|Darwin) ;;
   MINGW*|MSYS*|CYGWIN*)
@@ -697,4 +704,9 @@ ARGS=(install --target="$RUST_TARGET" --github-repo="$GITHUB_REPO")
 [ "$ACCEPT_LICENSE" = 1 ] && ARGS+=(--accept-license)
 [ "$CHANNEL" != "stable" ] && ARGS+=(--channel="$CHANNEL")
 [ -n "$LICENSE_KEY" ] && ARGS+=(--license-key="$LICENSE_KEY")
+# Bootstrapper temp dir cleanup: the EXIT trap is unreliable across `exec`
+# and external kills (SIGKILL). Clean it up explicitly before exec, and
+# disable the trap so it doesn't fire on the now-replaced process.
+rm -rf "$TMP"
+trap - EXIT
 exec "$BIN_DIR/focusa" "${ARGS[@]}"
