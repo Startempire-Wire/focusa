@@ -11,16 +11,17 @@
 
 ## 0. One-line definition
 
-Self-heal must progressively make it impossible for the same failure class to occur again by changing the system that produced the error, never by patching the error.
+Self-heal must progressively make it impossible for the same failure class to occur again by changing the system that produced the error. The immediate error may be patched initially, but the same failure class must never be patched twice — every heal must also add a system fix so the class doesn't recur, and output quality improves over time as system fixes accumulate.
 
 ## 1. Normative basis
 
-1.1. **System-not-symptom rule.** A self-heal that touches the failing code, the failing test, or the failing log line is INVALID. A self-heal that adds a new gate, new type, new hook, new script, new retry, new lint, new doc, or new test is VALID.
-1.2. **No manual intervention goal.** Every self-heal exists to reduce the long-run operator intervention rate on CI failures. A self-heal that does not reduce that rate is INVALID.
-1.3. **Fail-class-first.** Self-heal does not begin with "this specific error". It begins with "this class of error". If 3 clippy failures of the same class appear in 7 days, the heal is the lint configuration that catches the class — not 3 patches.
-1.4. **Heal must produce a deliverable.** Every self-heal row in `release-proof/audit/audit.jsonl` is paired with a `deliverable` reference — a PR number, a script path, a CI gate definition, a hook file, a type file. Passive rows are INVALID.
-1.5. **Verifiable close.** A self-heal's `closed: true` requires the failure class to no longer reproduce in the next 3 CI runs. A self-heal whose failure class still reproduces is marked `closed: false` and the next self-heal is escalated.
-1.6. **No code in this spec.** Per operator directive ("we never go directly to code. SPECS AREN'T FINAL UNTIL I SAY"), this spec is the contract. Implementation beads are filed under §13 only after operator signoff.
+1.1. **Both-initially rule.** A self-heal for an unseen failure class has TWO actions in the SAME commit: (a) patch the immediate error so CI is up, AND (b) add a system fix (new CI gate, new lint, new type, new hook, new test, new doc, or new script) so the failure class doesn't recur. The patch alone is not enough; the system fix alone is not enough. The heal is **both**.
+1.2. **Never patch the same error class twice.** A self-heal that has been done correctly adds a system fix. The next time the class appears, the system fix should catch it. A second manual patch for the same class is a system-fix failure: it means the previous self-heal's deliverable was not effective. The system fix is escalated.
+1.3. **No manual intervention goal.** Every self-heal exists to reduce the long-run operator intervention rate on CI failures. A self-heal that does not reduce that rate is INVALID.
+1.4. **Fail-class-first.** Self-heal does not begin with "this specific error". It begins with "this class of error". If 3 clippy failures of the same class appear in 7 days, the heal is the lint configuration that catches the class — not 3 patches.
+1.5. **Heal must produce a deliverable.** Every self-heal row in `release-proof/audit/audit.jsonl` is paired with a `deliverable` reference — a PR number, a script path, a CI gate definition, a hook file, a type file. Passive rows are INVALID.
+1.6. **Verifiable close.** A self-heal's `closed: true` requires the failure class to no longer reproduce in the next 3 CI runs. A self-heal whose failure class still reproduces is marked `closed: false` and the next self-heal is escalated.
+1.7. **No code in this spec.** Per operator directive ("we never go directly to code. SPECS AREN'T FINAL UNTIL I SAY"), this spec is the contract. Implementation beads are filed under §13 only after operator signoff.
 
 ## 2. The current self-heal — diagnosis
 
@@ -107,9 +108,11 @@ Every entry in `release-proof/audit/audit.jsonl` of `event: "self_heal"` MUST co
    - ❌ Adding `continue` to a loop to skip bad data
    - ❌ Lowering a clippy lint from `deny` to `warn`
    - ❌ Pinning a dependency to dodge an upstream bug
-   - ❌ Touching the failing file at all (unless adding a type/guard/hook to a related non-failing file)
+   - ❌ Patching the same failure class a second time (the system fix from the first heal should have caught it)
+   - ❌ Touching the failing file without also adding a system fix from §4.2 in the same PR
 
 4.2. **Required actions in a self-heal deliverable (at least one):**
+   - ✅ **Patch the immediate error** (only when the failure class is first seen; never again)
    - ✅ Add a failing CI gate BEFORE the step that produced the failure
    - ✅ Add a clippy lint or rustc linter that catches the class
    - ✅ Add a retry helper that is reusable by other workflows
@@ -118,6 +121,7 @@ Every entry in `release-proof/audit/audit.jsonl` of `event: "self_heal"` MUST co
    - ✅ Add a test file under `tests/` that fails when the class reproduces
    - ✅ Add a doc spec that defines the failure class and the prevention strategy
    - ✅ Add a script under `scripts/` that performs the work and is referenced from the workflow
+   - ✅ When the failure class is first seen, the same PR must contain BOTH an immediate patch AND one of the system fixes above.
 
 4.3. **The deliverable must be in the same PR as the self-heal audit row.** A self-heal commit that says "I added a script" but does not include the script is INVALID.
 
@@ -148,16 +152,16 @@ operator_intervention_rate = (manual_interventions_required / total_CI_runs) × 
 
 **Cadence:** measured daily. Tracked as a new line in the audit ledger (`event: "intervention_rate"`).
 
-## 7. The 4 current top failure classes — what system fix each should produce
+## 7. The 4 current top failure classes — what to do in each heal
 
-| Failure class | Count (30d) | Current behavior | System fix (Spec 122 deliverable) |
-|---|---|---|---|
-| `ci_clippy_failure` | 35 | manual fix | `lint` deliverable: extend `clippy.toml` to deny the warning class as a hard error. **Never** fix the clippy hit by changing the source file. |
-| `unknown_process_failure` | 15 | passive row | `ci_gate` deliverable: add a step before the failing step that runs `process-health-check.py`. |
-| `rust_compile_failure` | 11 | passive row | `type` deliverable: add a runtime type in `crates/focusa-core/src/types/` that the failing module would have used. **Never** add `#[allow(...)]`. |
-| `transient_github_or_network_failure` | 6 | manual retry | `retry` deliverable: replace the ad-hoc retry block in the failing workflow with `scripts/retry.sh` that is shared across all workflows. |
-| `ci_test_failure` | 6 | manual fix | `test` deliverable: add a NEW test under `tests/` that fails when the failure class reproduces. The original failing test stays as-is. |
-| `deploy_health_failure` | 6 | manual fix | `ci_gate` deliverable: add a pre-deploy gate that pings the health endpoint with a circuit breaker. |
+| Failure class | Count (30d) | Current behavior | Immediate fix (allowed ONCE per class) | System fix (Spec 122 deliverable) |
+|---|---|---|---|---|
+| `ci_clippy_failure` | 35 | manual fix | Run `cargo clippy --fix` on the failing files (one time). | `lint` deliverable: extend `clippy.toml` to deny the warning class as a hard error. The same warning is never patched in source again. |
+| `unknown_process_failure` | 15 | passive row | Add a one-time logging statement to identify which process died. | `ci_gate` deliverable: add a step before the failing step that runs `process-health-check.py`. |
+| `rust_compile_failure` | 11 | passive row | Fix the immediate compiler error (one time). | `type` deliverable: add a runtime type in `crates/focusa-core/src/types/` that the failing module would have used. **Never** add `#[allow(...)]`. |
+| `transient_github_or_network_failure` | 6 | manual retry | Retry the failed step (one time). | `retry` deliverable: replace the ad-hoc retry block in the failing workflow with `scripts/retry.sh` that is shared across all workflows. |
+| `ci_test_failure` | 6 | manual fix | Make the test pass for the current input (one time). | `test` deliverable: add a NEW test under `tests/` that fails when the failure class reproduces. The original failing test stays as-is. |
+| `deploy_health_failure` | 6 | manual fix | Manually verify the deploy succeeded and health endpoint is up (one time). | `ci_gate` deliverable: add a pre-deploy gate that pings the health endpoint with a circuit breaker. |
 
 ## 8. The de-dup / escalation rules
 
@@ -176,12 +180,17 @@ What the failure was:
   35 occurrences of `ci_clippy_failure` in the last 7 days.
   Each one was a manual patch of a source file.
 
+Immediate fix (allowed once for this class):
+  Ran `cargo clippy --fix` on the files reported by CI.
+  This unblocks the current run only.
+
 What the system fix is:
   Extended `clippy.toml` to deny the warning class as a hard error.
-  No source file was touched.
+  The same clippy warning will fail CI before it can reach the test suite.
+  No source file is manually patched again for this warning class.
 
 Closed: true (3 consecutive CI runs, no clippy failures of this class)
-Deliverable: type=lint, ref=clippy.toml, change_summary="deny <name>"
+Deliverable: type=lint, ref=clippy.toml, change_summary="deny <warning-name>"
 
 Operator review: NOT required (3rd occurrence, no escalation)
 ```
