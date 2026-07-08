@@ -6,12 +6,12 @@
 use crate::routes::predictions::read_predictions;
 use crate::scope::ScopeContext;
 use crate::server::AppState;
-use focusa_core::scope_safety::classify_project_root;
 use axum::{
     Json, Router,
     extract::{Query, State},
     routing::{get, post},
 };
+use focusa_core::scope_safety::classify_project_root;
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -1618,42 +1618,48 @@ fn discover_identity(
         beads_prefix.clone().unwrap_or_default(),
     ]);
 
-    if let Some(persisted_fingerprint) = clean(remote_hint.persisted_project_fingerprint.as_deref())
-        && persisted_fingerprint != fingerprint
-    {
-        mismatches.push(json!({
-            "source": "persisted_session_identity_fingerprint",
-            "expected": fingerprint.clone(),
-            "actual": persisted_fingerprint,
-            "severity": "high",
-        }));
+    if let Some(raw_fingerprint) = remote_hint.persisted_project_fingerprint.as_ref() {
+        if let Some(persisted_fingerprint) = clean(Some(raw_fingerprint.as_str())) {
+            if persisted_fingerprint != fingerprint {
+                mismatches.push(json!({
+                    "source": "persisted_session_identity_fingerprint",
+                    "expected": fingerprint.clone(),
+                    "actual": persisted_fingerprint,
+                    "severity": "high",
+                }));
+            }
+        }
     }
-    if let Some(persisted_project_id) = clean(remote_hint.persisted_project_id.as_deref())
-        && persisted_project_id != project_id
-    {
-        mismatches.push(json!({
-            "source": "persisted_session_identity_project_id",
-            "expected": project_id.clone(),
-            "actual": persisted_project_id,
-            "severity": "high",
-        }));
+    if let Some(raw_project_id) = remote_hint.persisted_project_id.as_ref() {
+        if let Some(persisted_project_id) = clean(Some(raw_project_id.as_str())) {
+            if persisted_project_id != project_id {
+                mismatches.push(json!({
+                    "source": "persisted_session_identity_project_id",
+                    "expected": project_id.clone(),
+                    "actual": persisted_project_id,
+                    "severity": "high",
+                }));
+            }
+        }
     }
-    if let Some(persisted_name) = clean(remote_hint.persisted_canonical_name.as_deref())
-        && !identity_name_matches(
-            &persisted_name,
-            &canonical_name,
-            &project_id,
-            &aliases,
-            project_root,
-            remote_hint.persisted_project_root.as_deref(),
-        )
-    {
-        mismatches.push(json!({
-            "source": "persisted_session_identity_canonical_name",
-            "expected": canonical_name.clone(),
-            "actual": persisted_name,
-            "severity": "medium",
-        }));
+    if let Some(raw_name) = remote_hint.persisted_canonical_name.as_ref() {
+        if let Some(persisted_name) = clean(Some(raw_name.as_str())) {
+            if !identity_name_matches(
+                &persisted_name,
+                &canonical_name,
+                &project_id,
+                &aliases,
+                project_root,
+                remote_hint.persisted_project_root.as_deref(),
+            ) {
+                mismatches.push(json!({
+                    "source": "persisted_session_identity_canonical_name",
+                    "expected": canonical_name.clone(),
+                    "actual": persisted_name,
+                    "severity": "medium",
+                }));
+            }
+        }
     }
 
     let matching_independent = signals

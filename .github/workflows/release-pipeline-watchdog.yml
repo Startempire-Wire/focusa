@@ -90,6 +90,8 @@ jobs:
               esac
             done < <(bash .github/scripts/classify-release-failure.sh "$log_file")
             SELF_HEAL_SURFACE="Release Pipeline Watchdog"             SELF_HEAL_WORKFLOW="$wf"             SELF_HEAL_RUN_ID="$id"             SELF_HEAL_HEAD_SHA="$(jq -r '.headSha // "unknown"' <<<"$run")"             failure_class="$failure_class"             retry_policy="$retry_policy"             deterministic="$deterministic"             safe_to_rerun_unchanged="$safe_to_rerun_unchanged"             plain_language_error="$plain_language_error"             likely_root_cause="$likely_root_cause"             remediation_template="$remediation_template"             source_refs="$source_refs"             signals="$signals"             bash scripts/render-self-heal-decision-summary.sh
+            echo "failure_class=${failure_class} run=$id workflow=$wf attempt=$attempt" >> "$GITHUB_STEP_SUMMARY"
+
             if [[ "$retry_policy" == "hard_failure_no_rerun" ]]; then
               echo "skip id=$id: deterministic failure requires patch, not another full-matrix rerun"
               continue

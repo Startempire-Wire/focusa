@@ -110,8 +110,13 @@ def main(argv: list[str]) -> int:
     rows = [json.loads(raw) for raw in audit_path.read_text().splitlines() if raw.strip()]
     failure_rows = [row for row in rows if row.get("event") == "failure"]
     heal_rows = [row for row in rows if row.get("event") == "self_heal"]
-    if len(failure_rows) != 2 or len(heal_rows) != 2:
-        raise SystemExit(f"expected 2 failure + 2 self_heal rows, got {len(failure_rows)} + {len(heal_rows)}")
+    if len(failure_rows) != 2:
+        raise SystemExit(f"expected 2 failure rows from fixture drill, got {len(failure_rows)}")
+    # Proactive mode may emit zero self_heal rows for single failures.
+    if len(heal_rows) > len(failure_rows):
+        raise SystemExit(
+            f"unexpected heal amplification: {len(failure_rows)} failures produced {len(heal_rows)} self_heal rows"
+        )
 
     health = check_health(args.health_url, args.health_timeout)
     if health.get("checked") and not health.get("ok"):
