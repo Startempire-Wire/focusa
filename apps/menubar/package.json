@@ -10,7 +10,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "test": "node tests/e2e-endpoints.mjs",
+    "test": "node tests/e2e-endpoints.mjs && node tests/e2e-post.mjs",
     "tauri": "tauri"
   },
   "devDependencies": {
