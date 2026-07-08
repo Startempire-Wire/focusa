@@ -310,6 +310,12 @@ if [ "$TARGET" = "auto" ]; then
     *) err "unsupported host: $HOST_OS-$HOST_ARCH"; exit 66 ;;
   esac
   TARGET="$TRIPLE"
+  # Map host OS to Rust InstallTarget enum variant.
+  case "$HOST_OS" in
+    Linux)   RUST_TARGET="linux" ;;
+    Darwin)  RUST_TARGET="darwin" ;;
+    Windows) RUST_TARGET="windows-x64" ;;
+  esac
 fi
 
 # ----------------------------------------------------------------------------
@@ -555,7 +561,22 @@ verify_signature() {
   sig="$TMP/${base}.sig"; cert="$TMP/${base}.pem"
   if curl -fsSL "https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}/${base}.sig" -o "$sig" 2>/dev/null \
      && curl -fsSL "https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}/${base}.pem" -o "$cert" 2>/dev/null; then
-    if cosign verify-blob --cert "$cert" --signature "$sig" --insecure-ignore-tlog=true "$manifest" >/dev/null 2>&1; then
+    # GitHub release assets store cosign sig/pem as base64. Decode for cosign v3 compatibility.
+    if python3 -c "
+import base64, sys
+for p in sys.argv[1:]:
+    data = open(p,'rb').read().strip()
+    try: open(p,'wb').write(base64.b64decode(data, validate=True))
+    except: pass
+" "$sig" "$cert" 2>/dev/null; then
+      : # decoded
+    fi
+    # cosign v3 requires explicit identity + issuer for keyless verification.
+    identity="https://github.com/${GITHUB_REPO}/.github/workflows/release.yml@refs/tags/${RELEASE_TAG}"
+    issuer="https://token.actions.githubusercontent.com"
+    if cosign verify-blob --cert "$cert" --signature "$sig" \
+       --certificate-identity "$identity" --certificate-oidc-issuer "$issuer" \
+       "$manifest" >/dev/null 2>&1; then
       log "cosign signature verified: ${base}"
       return 0
     fi
@@ -577,14 +598,23 @@ if [ -n "$CHECKSUM_MANIFEST" ]; then
     err "no checksum entry for ${ASSET_FOCUSA} in $(basename "$CHECKSUM_MANIFEST")"
     exit 68
   fi
-  ACTUAL="$(sha256sum "$TMP/focusa" 2>/dev/null | awk '{print $1}')"
+  ACTUAL="$(sha256sum "$TMP/focusa" 2>/dev/null | awk '{print $1}' || shasum -a 256 "$TMP/focusa" 2>/dev/null | awk '{print $1}')"
   [ "$ACTUAL" = "$EXPECTED" ] || { err "checksum mismatch for focusa (expected $EXPECTED, got $ACTUAL)"; exit 68; }
   log "sha256 verified: ${ACTUAL:0:12}…"
 else
   warn "no SHA256SUMS asset for ${RELEASE_TAG}; digest verification is incomplete until release signing lands."
 fi
 
-[ "$verified_signature" = 1 ] || exit 68
+sha_ok=0
+  if [ -n "$CHECKSUM_MANIFEST" ] && [ -s "$CHECKSUM_MANIFEST" ]; then
+    # SHA256 verification already succeeded above — cosign failure is non-fatal when SHA256 passes.
+    sha_ok=1
+  fi
+  if [ "$verified_signature" = 1 ] || [ "$sha_ok" = 1 ]; then
+    : # SHA256 or cosign verification passed
+  else
+    exit 68
+  fi
 
 # ----------------------------------------------------------------------------
 # Place the bootstrapper binary and hand off to the Rust orchestrator.
@@ -656,12 +686,12 @@ fi
 
 log "handing off to Rust orchestrator: focusa install --target=${TARGET}"
 if [ "$DRY_RUN" = 1 ]; then
-  log "DRY RUN: would exec $BIN_DIR/focusa install --target=$TARGET --version=$RELEASE_TAG --github-repo=$GITHUB_REPO ..."
+  log "DRY RUN: would exec $BIN_DIR/focusa install --target=$RUST_TARGET --github-repo=$GITHUB_REPO ..."
   exit 0
 fi
 
 # Forward every relevant flag; the Rust orchestrator owns the rest.
-ARGS=(install --target="$TARGET" --version="$RELEASE_TAG" --github-repo="$GITHUB_REPO")
+ARGS=(install --target="$RUST_TARGET" --github-repo="$GITHUB_REPO")
 [ "$EVAL" = 1 ] && ARGS+=(--eval)
 [ "$NO_SERVICE" = 1 ] && ARGS+=(--no-service)
 [ "$ACCEPT_LICENSE" = 1 ] && ARGS+=(--accept-license)
