@@ -30,6 +30,7 @@ REQUIRED_CLASSES = {
     "runner_resource_failure",
     "auto_heal_process_error",
     "transient_github_or_network_failure",
+    "unknown_process_failure",
 }
 
 

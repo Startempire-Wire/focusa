@@ -1,0 +1,10 @@
+{
+  "failure_class": "unknown_process_failure",
+  "retry_policy": "rerun_once",
+  "deterministic": false,
+  "safe_to_rerun_unchanged": true,
+  "likely_root_cause": "unknown release-path failure",
+  "remediation_template": "Rerun once; if repeated, classify with source logs and add a taxonomy case.",
+  "source_refs": [],
+  "signals": ["unknown"]
+}

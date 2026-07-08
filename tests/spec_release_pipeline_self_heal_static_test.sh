@@ -29,7 +29,7 @@ pass "CI/Release self-heal reruns failed jobs once"
 
 # Shared classifier must encode learned hard/transient release failure classes.
 [ -f "$CLASSIFIER" ] || fail "missing shared release failure classifier"
-for class in ci_clippy_failure ci_test_failure release_cross_target_compile_failure release_static_proof_failure deploy_health_failure runner_resource_failure auto_heal_process_error transient_github_or_network_failure; do
+for class in ci_clippy_failure ci_test_failure release_cross_target_compile_failure release_static_proof_failure deploy_health_failure runner_resource_failure auto_heal_process_error transient_github_or_network_failure unknown_process_failure; do
   grep -q "$class" "$CLASSIFIER" || fail "classifier missing failure class: $class"
 done
 grep -q 'hard_failure_no_rerun' "$CLASSIFIER" || fail "classifier must distinguish deterministic hard failures"
@@ -42,7 +42,12 @@ grep -q 'timeout-minutes:' "$RELEASE" || fail "Release jobs must have timeouts"
 grep -q 'dispatch-deploy-live-daemon' "$RELEASE" || fail "Release must explicitly dispatch deploy after assets/checksums"
 grep -q "gh workflow run 'Deploy Live Daemon'" "$RELEASE" || fail "Release dispatch must use gh workflow run Deploy Live Daemon"
 grep -q 'needs: checksums' "$RELEASE" || fail "Deploy dispatch must wait for the actual checksums job id"
+grep -q 'process-health-check.py' "$RELEASE" || fail "Release should include process health wrapper for rust gates"
 pass "Release is bounded and dispatches deploy after green artifacts"
+
+if ! grep -q 'process-health-check.py' "$ROOT_DIR/.github/workflows/ci.yml"; then
+  fail "CI should include process health checkpoints for Rust gates"
+fi
 
 # Deploy self-heal remains deploy-specific redispatch with release tag and asset suffix.
 grep -q 'maybe-retry-deploy' "$HEAL" || fail "missing deploy retry job"

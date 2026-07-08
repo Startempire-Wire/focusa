@@ -16,12 +16,12 @@ jobs:
         with:
           toolchain: nightly-2026-01-08
           components: clippy
-      - name: Run unit/integration tests
+      - name: Process-health check + unit/integration tests
         env:
           FOCUSA_TEST_MODE: "1"
-        run: cargo test --workspace
-      - name: Clippy
-        run: cargo clippy --workspace -- -D warnings
+        run: python3 scripts/process-health-check.py --label "CI unit/integration tests" --command "cargo test --workspace"
+      - name: Process-health check + Clippy
+        run: python3 scripts/process-health-check.py --label "CI clippy" --command "cargo clippy --workspace -- -D warnings"
 
   menubar:
     name: Menubar

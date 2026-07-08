@@ -26,10 +26,12 @@ jobs:
         with:
           toolchain: nightly-2026-01-08
           components: clippy
-      - run: cargo test --workspace
+      - name: Process-health check + cargo test
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
-      - run: cargo clippy --workspace -- -D warnings
+        run: python3 scripts/process-health-check.py --label "Release cargo test" --command "cargo test --workspace"
+      - name: Process-health check + clippy
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        run: python3 scripts/process-health-check.py --label "Release clippy" --command "cargo clippy --workspace -- -D warnings"
       - name: Spec104 static audit
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         run: python3 scripts/audit-schema.py spec104 release-proof/audit/audit.jsonl
