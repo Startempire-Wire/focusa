@@ -5,9 +5,8 @@ on:
     workflows: ["CI", "Release", "Deploy Live Daemon", "Auto Heal Release Pipeline", "Release Pipeline Watchdog"]
     types: [completed]
   schedule:
-    # Hourly drift check; auto-heal will keep the trail synchronized even
-    # if a workflow did not run.
-    - cron: "17 * * * *"
+    # Daily drift check; proactive self-heal only acts on recurring class thresholds.
+    - cron: "17 0 * * *"
 
 permissions:
   contents: write
