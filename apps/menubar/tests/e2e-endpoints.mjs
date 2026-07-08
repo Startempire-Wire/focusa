@@ -1,0 +1,146 @@
+#!/usr/bin/env node
+// E2E endpoint test for the menubar app against the live Focusa daemon.
+//
+// Uses only Node 20+ built-ins (node:test, node:assert, node:fetch).
+// No new dependencies.
+//
+// Run: node tests/e2e-endpoints.mjs
+//      or: npm test
+//
+// Verifies that the 33 endpoints the menubar polls (apps/menubar/src/)
+// still resolve against the live daemon. Catches:
+//   - the /v1/lineage/head → /v1/clt/nodes fix
+//   - silent 5xx from dropped routes
+//   - regressions after backend refactors
+//
+// Output: a one-line PASS/FAIL summary plus per-endpoint latency.
+
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const DAEMON = process.env.FOCUSA_DAEMON_URL || 'http://127.0.0.1:8787';
+
+// Extract the 33 endpoints the menubar actually polls.
+// We read the source rather than hardcode so a future menubar edit
+// doesn't silently drift from this test.
+async function extractEndpoints() {
+  const srcDir = join(__dirname, '..', 'src');
+  // Match /v1/... in quoted or template strings, AND paths that
+  // appear before a ${...} substitution in a template literal
+  // (e.g. `/v1/sync/status/${peerId}`).
+  const pattern = /['"`](\/v1\/[a-zA-Z0-9/_-]+)(?=\$\{|['"`]|\b)/g;
+  const found = new Set();
+  const { readdirSync, readFileSync: read } = await import('node:fs');
+  for (const entry of readdirSync(srcDir, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    if (!/\.(ts|svelte|js)$/.test(entry.name)) continue;
+    if (entry.name.endsWith('.d.ts')) continue;
+    const path = join(entry.path || entry.parentPath, entry.name);
+    let text;
+    try { text = read(path, 'utf8'); } catch { continue; }
+    let m;
+    while ((m = pattern.exec(text)) !== null) found.add(m[1]);
+  }
+  return [...found].sort();
+}
+
+const ENDPOINTS = await extractEndpoints();
+
+// Per-endpoint expected behavior. Anything not listed here defaults to
+// "200 for GET, 405 for POST". 4xx is treated as success when the menubar
+// intentionally calls an endpoint with missing/required params
+// (e.g. /v1/sync/pull/{peer_id} called without peer_id).
+const EXPECTED = {
+  // 24 endpoints that should return 200 when called as the menubar calls them
+  '/v1/bloatgaurd/domain/':      { expect: 404, note: 'needs {name} param' },
+  '/v1/connect/room/':           { expect: 404, note: 'needs {room_id}/status path' },
+  '/v1/connect/rooms':           { expect: 200 },
+  '/v1/context-cognition':       { expect: 422, note: 'needs agent/cwd params' },
+  '/v1/device/pair/start':       { expect: 405, note: 'POST endpoint, GET returns method-not-allowed' },
+  '/v1/doctor':                  { expect: 200 },
+  '/v1/events/recent':            { expect: 200 },
+  '/v1/focus/frame/current':      { expect: 200 },
+  '/v1/focus/snapshots/recent':   { expect: 200 },
+  '/v1/health':                   { expect: 200 },
+  '/v1/lineage/head':             { expect: 200, critical: true, note: 'was broken, fixed 2026-07-07' },
+  '/v1/metacognition/evaluations/recent': { expect: 200, note: 'rehydrate hint — endpoint may 200 with rehydrate ref' },
+  '/v1/metacognition/status':     { expect: 200 },
+  '/v1/ontology/tool-contracts':  { expect: 200 },
+  '/v1/predictions/recent':       { expect: 200 },
+  '/v1/predictions/stats':        { expect: 200 },
+  '/v1/project/identity':         { expect: 200 },
+  '/v1/release/proof/status':      { expect: 200 },
+  '/v1/state/dump':               { expect: 200 },
+  '/v1/sync/peers':               { expect: 200 },
+  '/v1/sync/pull/':               { expect: 404, note: 'needs {peer_id} param' },
+  '/v1/sync/status/':              { expect: 404, note: 'needs {peer_id} param' },
+  '/v1/telemetry/cache-metadata/status': { expect: 200 },
+  '/v1/telemetry/memory':          { expect: 200 },
+  '/v1/telemetry/token-budget/status': { expect: 200 },
+  '/v1/trajectory/view':          { expect: 200 },
+  '/v1/work-loop/checkpoints':    { expect: 200 },
+  '/v1/work-loop/health':         { expect: 200 },
+  '/v1/work-loop/status':         { expect: 200 },
+  '/v1/workpoint/checkpoint':     { expect: 405, note: 'POST endpoint' },
+  '/v1/workpoint/current':        { expect: 200 },
+  '/v1/workpoint/evidence/link':  { expect: 405, note: 'POST endpoint' },
+  '/v1/workpoint/resume':         { expect: 405, note: 'POST endpoint' },
+};
+
+let pass = 0, fail = 0, criticalFail = 0;
+const results = [];
+
+async function check(ep) {
+  const url = `${DAEMON}${ep}`;
+  const expected = EXPECTED[ep]?.expect ?? 200;
+  const isCritical = EXPECTED[ep]?.critical === true;
+  const note = EXPECTED[ep]?.note ?? '';
+  const t0 = performance.now();
+  let actual, ok = false;
+  try {
+    const r = await fetch(url, { method: 'GET' });
+    actual = r.status;
+    ok = actual === expected;
+  } catch (e) {
+    actual = `ERR: ${e.message?.split('\n')[0] ?? e}`;
+  }
+  const dt = Math.round(performance.now() - t0);
+  results.push({ ep, expected, actual, ok, dt, note, critical: isCritical });
+  if (ok) pass++; else { fail++; if (isCritical) criticalFail++; }
+}
+
+await Promise.all(ENDPOINTS.map(check));
+
+// Sort by status (fail first) then path
+results.sort((a, b) => (a.ok === b.ok ? a.ep.localeCompare(b.ep) : a.ok ? 1 : -1));
+
+const W = (s, n) => String(s).padEnd(n);
+console.log('');
+for (const r of results) {
+  const tag = r.ok ? 'OK  ' : 'FAIL';
+  const crit = r.critical ? ' [CRITICAL]' : '';
+  const n = r.note ? ` — ${r.note}` : '';
+  console.log(
+    `  ${tag}  ${W(r.actual, 3)}  (${W(r.expected + ' expect', 8)})  ${W(r.dt + 'ms', 7)}  ${r.ep}${crit}${n}`,
+  );
+}
+
+console.log('');
+console.log(`  ${pass}/${ENDPOINTS.length} endpoints OK`);
+if (fail) {
+  console.log(`  ${fail} failed (${criticalFail} critical)`);
+}
+
+if (criticalFail > 0) {
+  console.error('\n  CRITICAL: a fix-verified endpoint regressed. Bail.');
+  process.exit(2);
+}
+if (fail > 0) {
+  console.error('\n  Some endpoints failed expected status. Investigate.');
+  process.exit(1);
+}
+console.log('\n  All endpoints pass. ✓\n');
