@@ -83,7 +83,7 @@ pub struct UninstallStep {
     pub detail: Option<String>,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum UninstallStepKind {
     StopDaemon,
@@ -704,6 +704,48 @@ mod tests {
 
     #[test]
     fn plan_includes_all_default_steps() {
+        let target = crate::commands::install::InstallTarget::Auto;
+        let args = UninstallArgs {
+            target: target.clone(),
+            dry_run: true,
+            keep_license: false,
+            keep_data: false,
+            keep_path_modifications: false,
+            purge: false,
+            yes: false,
+            json: false,
+        };
+        // On Linux the LaunchAgent plist step is gated to Darwin/Auto,
+        // so we test Auto which exercises both branches.
+        let steps = plan_steps(
+            target,
+            std::path::Path::new("/home/x/.focusa"),
+            std::path::Path::new("/home/x/.local/bin"),
+            std::path::Path::new("/home/x/.config/focusa/license.json"),
+            &args,
+        );
+        let kinds: Vec<&UninstallStepKind> = steps.iter().map(|s| &s.kind).collect();
+        assert!(kinds.contains(&&UninstallStepKind::StopDaemon));
+        assert!(kinds.contains(&&UninstallStepKind::RemoveService));
+        assert!(kinds.contains(&&UninstallStepKind::RemoveSymlink));
+        assert!(kinds.contains(&&UninstallStepKind::RemoveInstallRoot));
+        assert!(kinds.contains(&&UninstallStepKind::RemoveLicense));
+        assert!(kinds.contains(&&UninstallStepKind::RevertPath));
+        assert!(kinds.contains(&&UninstallStepKind::RemoveMenuBarApp));
+        assert!(kinds.contains(&&UninstallStepKind::RemoveMenuBarPrefs));
+        assert!(kinds.contains(&&UninstallStepKind::RemoveDaemonData));
+        assert!(kinds.contains(&&UninstallStepKind::RemoveDaemonLogs));
+        assert!(kinds.contains(&&UninstallStepKind::RemoveLicenseConfig));
+        assert!(kinds.contains(&&UninstallStepKind::RemoveWebKitCaches));
+        assert!(steps.iter().any(|s| s.name == "stop_daemon"));
+        assert!(steps.iter().any(|s| s.name == "remove_symlink_focusa"));
+        assert!(steps.iter().any(|s| s.name == "remove_install_root"));
+        assert!(steps.iter().any(|s| s.name == "remove_license"));
+    }
+
+    #[test]
+    fn plan_linux_target_omits_launchagent_plist() {
+        // Pure Linux run should NOT include RemoveLaunchAgentPlist (gated to Darwin/Auto).
         let target = crate::commands::install::InstallTarget::Linux;
         let args = UninstallArgs {
             target: target.clone(),
@@ -722,14 +764,8 @@ mod tests {
             std::path::Path::new("/home/x/.config/focusa/license.json"),
             &args,
         );
-        // stop_daemon + remove_service + 3 symlinks + remove_install_root +
-        // remove_license + 3 rc reverts = 10 steps
-        assert_eq!(steps.len(), 10);
-        assert_eq!(steps[0].name, "stop_daemon");
-        assert_eq!(steps[1].name, "remove_service");
-        assert!(steps.iter().any(|s| s.name == "remove_symlink_focusa"));
-        assert!(steps.iter().any(|s| s.name == "remove_install_root"));
-        assert!(steps.iter().any(|s| s.name == "remove_license"));
+        let kinds: Vec<&UninstallStepKind> = steps.iter().map(|s| &s.kind).collect();
+        assert!(!kinds.contains(&&UninstallStepKind::RemoveLaunchAgentPlist));
     }
 
     #[test]

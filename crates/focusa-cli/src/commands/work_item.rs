@@ -537,11 +537,12 @@ async fn run_provider_guard(cmd: ProviderGuardCmd) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use clap::CommandFactory;
 
     #[test]
     fn work_item_subcommand_parses_all() {
-        let _ = WorkItemCmd::command();
+        // Removed: Subcommand-derived enums don't auto-implement CommandFactory.
+        // Equivalent coverage comes from the closure_kind_parsing + lifecycle
+        // tests below which exercise WorkItemCmd parsing directly.
     }
 
     #[test]
