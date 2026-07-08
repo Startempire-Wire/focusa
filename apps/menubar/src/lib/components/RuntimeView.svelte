@@ -177,6 +177,38 @@
     <code>focusa release prove --tag &lt;tag&gt;</code>
   </article>
 
+  <article class="card">
+    <div class="label">PREDICTIONS</div>
+    <div class="value">{text(s.predictionsStats?.count ?? s.predictionsRecent?.length ?? s.predictionsStats?.total, 'none')}</div>
+    <div class="meta">{text(s.predictionsStats?.accuracy_pct ?? s.predictionsStats?.summary, 'No prediction stats yet')}</div>
+    <div class="chips"><span class="chip" class:ok={!s.predictionsStats?.degraded}>{text(s.predictionsStats?.status ?? 'ok', 'ok')}</span></div>
+    <code>GET /v1/predictions/recent · /v1/predictions/stats</code>
+  </article>
+
+  <article class="card">
+    <div class="label">METACOG</div>
+    <div class="value">{text(s.metacogStatus?.total_evaluations ?? s.metacogStatus?.evaluation_count ?? s.metacogEvaluations?.length, 'none')}</div>
+    <div class="meta">{text(s.metacogStatus?.last_status ?? s.metacogStatus?.status ?? s.metacogEvaluations?.[0]?.outcome, 'No evaluations yet')}</div>
+    <div class="chips"><span class="chip" class:ok={s.metacogStatus?.status !== 'degraded' && s.metacogStatus?.status !== 'error'}>{text(s.metacogStatus?.status, 'unknown')}</span></div>
+    <code>GET /v1/metacognition/status · /v1/metacognition/evaluations/recent</code>
+  </article>
+
+  <article class="card">
+    <div class="label">SNAPSHOTS</div>
+    <div class="value">{text(s.snapshotsRecent?.length ?? s.snapshotsRecent?.count, 'none')}</div>
+    <div class="meta">{text(s.snapshotsRecent?.[0]?.created_at ?? s.snapshotsRecent?.[0]?.ts, 'No snapshots')}</div>
+    <div class="chips"><span class="chip">{text(s.snapshotsRecent?.[0]?.kind ?? s.snapshotsRecent?.[0]?.type, 'none')}</span></div>
+    <code>GET /v1/focus/snapshots/recent</code>
+  </article>
+
+  <article class="card">
+    <div class="label">LINEAGE</div>
+    <div class="value">{text(s.lineageHead?.id ?? s.lineageHead?.node_id ?? s.lineageHead?.head, 'none')}</div>
+    <div class="meta">{text(s.lineageHead?.summary ?? s.lineageHead?.description ?? s.lineageHead?.updated_at, 'No lineage head')}</div>
+    <div class="chips"><span class="chip">{text(s.lineageHead?.type ?? s.lineageHead?.kind, '—')}</span></div>
+    <code>GET /v1/clt/nodes</code>
+  </article>
+
   <article class="card" class:bad={!!runtimeStore.errorMsg || doctor.status === 'degraded'}>
     <div class="label">RECOVERY</div>
     <div class="value">{runtimeStore.errorMsg ? 'Holdover' : text(doctor.status, 'Ready')}</div>
