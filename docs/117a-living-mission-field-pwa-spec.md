@@ -3,7 +3,8 @@
 **Status:** draft, iterable, NOT FINAL — operator has not yet signed off.  
 **Owner:** Focusa / Verious Smith  
 **Created:** 2026-07-08  
-**Scope:** Focusa PWA / Mission Deck direction, future `apps/deck/`, daemon-served `/deck`, chat/agent interaction posture, proof/receipt/action flows, and visual product language.  
+**Updated:** 2026-07-08 — integration pass after operator feedback: PWA must integrate the Omnigent comparison, chat-as-transcript-river, Focusa action cards around transcript turns, SaaS boundary, and living-field metaphor.  
+**Scope:** Focusa PWA / Mission Deck direction, future `apps/deck/`, daemon-served `/deck`, chat/agent interaction posture, proof/receipt/action flows, SaaS connection, and visual product language.  
 **Relationship to Spec 117:** this spec does **not** replace Spec 117. It refines Spec 117 with the 121A principle: keep the discipline, restore the soul.  
 **Relationship to Spec 121A:** Spec 121A governs the menubar's living-field restoration. Spec 117A expands that philosophy into the PWA, where interaction can be richer without collapsing into a dashboard or chat clone.
 
@@ -11,7 +12,7 @@
 
 ## 0. One-line definition
 
-Focusa Mission Deck PWA is an expanded living mission field where operators can observe, converse, steer, prove, and publish AI-agent work through Focusa's typed runtime, without making chat or dashboards the center of the product.
+Focusa Mission Deck PWA is an expanded living mission field where operators can observe, converse, steer, prove, publish, and coordinate AI-agent work through Focusa's typed runtime, without making chat, dashboards, or raw terminal control the center of the product.
 
 ---
 
@@ -19,12 +20,13 @@ Focusa Mission Deck PWA is an expanded living mission field where operators can 
 
 Spec 117 correctly introduced Mission Deck, guided onboarding, Recall, proof/no-proof education, PWA routes, and read-first safety.
 
-But the PWA direction needs a stronger product soul:
+But the PWA direction needs a stronger product soul and a stronger integration story.
 
 ```text
 Focusa is not merely a dashboard.
 Focusa is not merely a chat UI.
 Focusa is not merely observation.
+Focusa is not merely a remote terminal.
 Focusa is a living mission environment.
 ```
 
@@ -37,7 +39,9 @@ Focusa has matured. The PWA should allow the operator to interact with agents an
 - local-first ownership;
 - gated mutation;
 - proof/no-proof separation;
-- human operator control.
+- human operator control;
+- private-node canonical state;
+- cloud/SaaS coordination without cloud becoming the canonical brain.
 
 ---
 
@@ -48,9 +52,14 @@ This spec inherits and reconciles:
 - `docs/117-mission-deck-onboarding-recall-pwa-spec.md` — Mission Deck, first-run, guided walkthroughs, PWA safety, Recall labeling.
 - `docs/121a-menubar-discipline-and-living-field-spec.md` — living field grammar, action rituals, discipline + soul posture.
 - `docs/121-menubar-rearchitecture-spec.md` — typed envelopes, receipts, topology/license dependencies, runtime data discipline.
+- `docs/11-menubar-ui-spec.md` — original focus cloud, background thought clouds, intuition pulses, ambient cognitive awareness.
+- `docs/42-menubar-ux-improvements.md` — calm technology, ambient display, progressive disclosure.
 - `docs/current/AUTHORITY_MODEL.md` — Context Authority, project/continuity/workpoint scope.
 - `docs/current/GOLDEN_WORKFLOW.md` — canonical workflow and proof-backed continuation.
+- `docs/53-focusa-device-pairing-spec.md` — local-first device trust, pairing, revocation, scopes.
+- `docs/115-*` cloud/control-plane surfaces — cloud coordinates, private node decides.
 - `docs/119-*` surfaces where receipts/governance ledger are defined.
+- Omnigent comparison notes from operator iteration — multi-surface continuity, web/phone session access, session snapshot + live stream, agent room, approval cards, host registration, collaboration/fork patterns. Focusa may learn the interaction patterns without becoming an Omnigent-style meta-harness.
 
 If these disagree:
 
@@ -58,8 +67,10 @@ If these disagree:
 Daemon state is canonical.
 Context Authority gates mutation.
 Receipts prove side effects.
-PWA is the expanded living field.
+The private Focusa node owns project truth.
+The PWA is the expanded living field.
 Chat is a river inside the field, not the field itself.
+Cloud coordinates; node decides.
 ```
 
 ---
@@ -74,17 +85,118 @@ The PWA should not become a generic dashboard.
 
 The PWA should not become a generic agent-chat clone.
 
+The PWA should not default to browser shell control.
+
 The correct product shape is:
 
 ```text
-A living mission field with conversation, proof, recall, authority, and agent action woven through it.
+A living mission field with conversation, proof, recall, authority, receipts, cloud coordination, and agent action woven through it.
+```
+
+The operator must feel that Focusa is both:
+
+```text
+Typed enough to trust.
+Alive enough to feel.
 ```
 
 ---
 
-## 4. Primary metaphor
+## 4. Required integration from current product discussion
 
-### 4.1 Living Mission Field
+This section records the things the PWA must integrate from the current iteration.
+
+### 4.1 From the Omnigent comparison
+
+Focusa should learn these patterns:
+
+- same work accessible from terminal, browser, phone, native wrapper, and future SaaS;
+- session snapshot + live event stream reconnect contract;
+- host/node registration so work can run on trusted machines;
+- mobile-friendly PWA for supervising and continuing work;
+- agent room/sub-agent visibility;
+- approval cards for risky actions;
+- fork/handoff patterns;
+- shareable but controlled session views;
+- model/agent switching as explicit route, not hidden magic.
+
+Focusa should **not** copy these as-is:
+
+- chat-first product shape;
+- generic meta-harness identity;
+- browser terminal as default;
+- raw agent session as the primary truth.
+
+Focusa's adaptation:
+
+```text
+Omnigent shows agents working.
+Focusa shows whether the mission is scoped, proven, safe, resumable, and ready for the next move.
+```
+
+### 4.2 From the chat correction
+
+Chat must not be stripped.
+
+The PWA must allow users to interact with:
+
+- their Focusa environment;
+- active agents;
+- Workpoints;
+- proof/evidence;
+- Recall;
+- SaaS/team/public receipt surfaces.
+
+But chat becomes Transcript River, not the product center.
+
+```text
+Chat is the river.
+Focusa is the map, weather, proof field, guardrail, and mission memory around it.
+```
+
+### 4.3 From the original menubar soul
+
+The PWA must preserve the original cloud/focus metaphor in expanded form:
+
+- Focus Cloud;
+- Thought Clouds;
+- Intuition Pulses;
+- Evidence Particles;
+- Drift Wind;
+- Authority Ring;
+- Topology Horizon.
+
+The PWA may be denser and more interactive than the menubar, but it must still breathe.
+
+### 4.4 From Spec 121 drift correction
+
+Spec 121's discipline is needed, but its tab-first cockpit posture should not dominate the PWA.
+
+The PWA can have many capabilities, but they must be framed as lenses over the living mission field.
+
+### 4.5 From bootstrapped monetization/open ecosystem discussion
+
+The PWA must support monetizable SaaS paths without turning Focusa into cloud memory by default.
+
+Paid/team/cloud surfaces should enhance:
+
+- node registry;
+- cloud relay;
+- public receipt hosting;
+- shared team mission views;
+- shared receipt ledger;
+- collaboration links;
+- policy packs;
+- advanced Recall;
+- publish/GTM proof workflows.
+
+But canonical project truth remains local/private-node first unless the operator explicitly opts into a hosted/team model.
+
+---
+
+## 5. Primary metaphor
+
+### 5.1 Living Mission Field
 
 The default PWA home is a living mission field.
 
@@ -100,9 +212,11 @@ It visualizes:
 - Recall context;
 - transcript river;
 - receipts;
-- next safe action.
+- next safe action;
+- topology/cloud horizon;
+- license/team context only where relevant.
 
-### 4.2 Transcript River
+### 5.2 Transcript River
 
 Chat exists, but it is not central by default.
 
@@ -118,7 +232,9 @@ It contains:
 - receipt events;
 - authority gates;
 - drift warnings;
-- handoff packets.
+- handoff packets;
+- action intent cards;
+- agent stream events.
 
 Preferred framing:
 
@@ -127,17 +243,19 @@ Chat is where conversation happens.
 Focusa is where the mission lives.
 ```
 
-### 4.3 Mission Clouds
+### 5.3 Mission Clouds
 
 Workpoints, Focus Frames, Recall results, and active mission objects appear as living clouds / nodes / constellations.
 
 The PWA can use richer visuals than the menubar, but it should preserve calm motion, progressive disclosure, and organic hierarchy.
 
-### 4.4 Evidence Anchors
+### 5.4 Evidence Anchors
 
 Evidence appears as proof particles or anchors attached to the relevant Workpoint, claim, file, test, release step, or receipt.
 
-### 4.5 Authority Lens
+Evidence should visibly stabilize a mission cloud.
+
+### 5.5 Authority Lens
 
 Context Authority appears as a lens or ring around any action-capable object.
 
@@ -147,19 +265,41 @@ Every mutation-capable card must show:
 authority: ok | ask | blocked | advisory | stale | proof_missing
 ```
 
-### 4.6 Drift Weather
+### 5.6 Drift Weather
 
 Drift is shown as pressure, wind, haze, or displacement rather than only red error text.
 
 Drift should be visible before it becomes catastrophic.
 
+### 5.7 Agent Streams
+
+Agents appear as activity streams entering or orbiting the mission field.
+
+Each agent stream should show:
+
+- agent/harness;
+- host/node;
+- purpose: implement | review | explore | search | proof | handoff;
+- active object;
+- Workpoint binding;
+- proof requirement;
+- current status;
+- last receipt/evidence;
+- drift or blocked posture.
+
+### 5.8 Receipt Glimmers and Ledger
+
+Receipts appear as glimmers on the mission field and as durable rows in the Receipt Ledger.
+
+A receipt should be rehydratable, linkable to evidence, and usable for public/team proof workflows when redaction allows.
+
 ---
 
-## 5. PWA modes
+## 6. PWA modes
 
 The PWA has five primary modes. These are lenses over the same living field, not isolated product modules.
 
-### 5.1 Observe
+### 6.1 Observe
 
 Purpose: understand the current mission state.
 
@@ -173,9 +313,10 @@ Shows:
 - recent receipts;
 - daemon/node health;
 - work-loop posture;
-- Recall advisory context.
+- Recall advisory context;
+- topology horizon.
 
-### 5.2 Converse
+### 6.2 Converse
 
 Purpose: interact with Focusa and agents through a transcript river.
 
@@ -191,7 +332,7 @@ Publish
 
 The composer must make the target explicit before sending when ambiguity matters.
 
-### 5.3 Steer
+### 6.3 Steer
 
 Purpose: safely influence mission direction.
 
@@ -204,11 +345,13 @@ Actions:
 - prepare handoff packet;
 - route to an agent;
 - propose next safe action;
-- resume mission.
+- resume mission;
+- fork a mission path;
+- switch agent/model/harness with visible consequences.
 
-All steering actions use action rituals (§8).
+All steering actions use action rituals (§11).
 
-### 5.4 Prove
+### 6.4 Prove
 
 Purpose: attach, evaluate, and rehydrate proof.
 
@@ -217,12 +360,14 @@ Actions:
 - link evidence;
 - attach command output;
 - attach screenshot/browser proof;
+- attach test/API proof;
 - rehydrate receipt;
 - mark proof gap;
 - verify no-proof/no-done;
-- view proof meter.
+- view proof meter;
+- compare claim vs evidence.
 
-### 5.5 Publish
+### 6.5 Publish
 
 Purpose: transform private proof into redacted public/team receipts.
 
@@ -233,19 +378,20 @@ Actions:
 - publish receipt;
 - share with team;
 - export GTM proof;
-- create buyer/evaluator demo artifact.
+- create buyer/evaluator demo artifact;
+- generate a public project progress receipt.
 
 Publish mode must always require explicit operator approval.
 
 ---
 
-## 6. Layout direction
+## 7. Layout direction
 
-### 6.1 Default field layout
+### 7.1 Default field layout
 
 ```text
 ┌────────────────────────────────────────────────────────────────────┐
-│ Topology / license / node horizon                                  │
+│ Topology / node / relay horizon                                    │
 ├────────────────────────────────────────────────────────────────────┤
 │                                                                    │
 │   Recall fog          Evidence anchors           Agent streams      │
@@ -260,7 +406,7 @@ Publish mode must always require explicit operator approval.
 └────────────────────────────────────────────────────────────────────┘
 ```
 
-### 6.2 Traditional panels are allowed as lenses
+### 7.2 Traditional panels are allowed as lenses
 
 The PWA may include panes for efficiency, but they should be framed as lenses:
 
@@ -274,8 +420,9 @@ The PWA may include panes for efficiency, but they should be framed as lenses:
 | Action Lens | command palette |
 | Publish Lens | receipts/public cards |
 | Node Lens | cloud/topology/settings |
+| Data Lattice | advanced raw runtime |
 
-### 6.3 Raw dashboard fallback
+### 7.3 Raw dashboard fallback
 
 An advanced operator may open a dense data view, but it is not the default product posture.
 
@@ -291,13 +438,118 @@ Avoid making this the emotional center.
 
 ---
 
-## 7. Chat/conversation rules
+## 8. Specific UI primitives from this iteration
 
-### 7.1 Chat is allowed and important
+### 8.1 Turn Halos
+
+Each transcript turn can have a small status halo:
+
+```text
+grounded
+advisory
+proof_missing
+drift_risk
+receipt_linked
+blocked
+```
+
+### 8.2 Proof Shadows
+
+Agent claims can show whether proof exists.
+
+Example:
+
+```text
+Agent claim: install path fixed
+Proof shadow: missing
+Actions: attach proof | run doctor | mark unverified
+```
+
+### 8.3 Mission Lens
+
+Toggle over transcript:
+
+```text
+Raw Transcript | Mission Lens
+```
+
+Mission Lens compresses transcript into:
+
+- decisions;
+- claims;
+- evidence;
+- open questions;
+- next steps;
+- drift risks;
+- Workpoint changes;
+- receipts.
+
+### 8.4 Handoff Capsule
+
+A portable packet for Pi, Claude Code, Codex, Cursor, OpenCode, UIAI Engine, or another harness.
+
+```yaml
+HandoffCapsule:
+  mission:
+  project_identity:
+  continuity_id:
+  workpoint:
+  active_object:
+  evidence_refs:
+  do_not_drift:
+  next_action:
+  proof_required:
+  target_agent:
+  target_host:
+```
+
+### 8.5 Conversation-to-Workpoint Promotion
+
+The operator can select a transcript span and say:
+
+```text
+Make this a Workpoint candidate.
+```
+
+Focusa responds with a candidate card and requires verification before canonical checkpoint.
+
+### 8.6 Agent Room
+
+A lens showing:
+
+- active agents;
+- host/node;
+- agent purpose;
+- Workpoint binding;
+- current status;
+- terminal/stream availability;
+- proof requirements;
+- inbox/results;
+- handoff/fork/switch controls.
+
+### 8.7 Public Receipt Preview
+
+A publish lens that shows exactly what can leave the private node.
+
+It must show:
+
+- redacted fields;
+- private fields omitted;
+- evidence class;
+- receipt id;
+- public claim text;
+- allowed destination;
+- approval button.
+
+---
+
+## 9. Chat/conversation rules
+
+### 9.1 Chat is allowed and important
 
 The PWA must let the user interact with agents and the Focusa environment through chat-like input.
 
-### 7.2 Chat cannot be naked transcript
+### 9.2 Chat cannot be naked transcript
 
 The transcript must be annotated with Focusa state:
 
@@ -309,9 +561,11 @@ The transcript must be annotated with Focusa state:
 - active object;
 - receipt;
 - next safe action;
-- handoff capsule.
+- handoff capsule;
+- action intent card;
+- agent stream state.
 
-### 7.3 Message targets
+### 9.3 Message targets
 
 The composer must distinguish at least:
 
@@ -323,7 +577,7 @@ Handoff       → package Workpoint/context for agent continuation
 Publish       → create receipt/public-card intent
 ```
 
-### 7.4 Focusa annotations are first-class
+### 9.4 Focusa annotations are first-class
 
 A Focusa event may appear between transcript turns, but it should not look like a normal chat message.
 
@@ -337,11 +591,105 @@ Recall result promoted to candidate
 Receipt rehydrated
 Proof gap detected
 Drift warning resolved
+Agent handoff prepared
+Mission fork created
 ```
+
+### 9.5 Focusa actions happen around the transcript
+
+The PWA should support the operator's insight:
+
+```text
+Focusa actions happen all around the transcript.
+```
+
+This means the transcript is surrounded by:
+
+- side-attached proof shadows;
+- top-level mission context;
+- inline action cards;
+- hover/click rehydration;
+- Workpoint promotion handles;
+- agent handoff capsules;
+- receipt glimmers;
+- authority gates;
+- next-safe-action prompts.
 
 ---
 
-## 8. Action ritual model
+## 10. Multi-surface continuity model
+
+The PWA should share state concepts with CLI, TUI, menubar, Pi tools, and SaaS.
+
+### 10.1 Snapshot + live event stream
+
+Preferred reconnect model:
+
+```text
+1. Open /v1/deck/events stream.
+2. Fetch /v1/deck/mission-field snapshot.
+3. Dedupe by event_id / receipt_id / workpoint_id.
+4. Render current state.
+5. Continue streaming field changes.
+```
+
+### 10.2 Same mission across surfaces
+
+A mission may be viewed or continued from:
+
+- CLI;
+- TUI;
+- menubar;
+- PWA;
+- phone PWA;
+- future Focusa SaaS surface;
+- Pi/agent tool calls.
+
+All surfaces should speak in the same concepts:
+
+```text
+ProjectIdentity
+Continuity ID
+Workpoint
+Evidence Ref
+Receipt
+Context Authority
+Next Safe Action
+Drift posture
+```
+
+### 10.3 Host/node registration
+
+The PWA should understand nodes without becoming host-specific.
+
+User-facing node states:
+
+```text
+local
+private remote
+cloud relay
+degraded
+unknown
+```
+
+Private infra labels like KH/OVH may appear in debug/agent-kb views only, not core product UI.
+
+### 10.4 Collaboration/share/fork
+
+Future collaboration should be expressed as Focusa-native mission actions:
+
+- Share Mission View;
+- Fork Mission Path;
+- Handoff to Agent;
+- Invite Reviewer;
+- Publish Receipt;
+- Team Proof Review.
+
+Do not expose generic shared chat as the primary model.
+
+---
+
+## 11. Action ritual model
 
 Every mutation-capable PWA action follows this sequence:
 
@@ -357,7 +705,7 @@ operator intent
 → field updates
 ```
 
-### 8.1 ActionIntentCard
+### 11.1 ActionIntentCard
 
 Every action preview should include:
 
@@ -376,17 +724,29 @@ ActionIntentCard:
   expected_receipt:
 ```
 
-### 8.2 No invisible mutation
+### 11.2 No invisible mutation
 
 No PWA click may silently mutate canonical Focusa state.
 
-### 8.3 Degraded state is visible
+### 11.3 Degraded state is visible
 
 If the action result is degraded or non-canonical, the UI must show that visibly and offer recovery or CLI fallback.
 
+### 11.4 Approval cards
+
+Risky actions use approval cards rather than generic confirmation modals.
+
+The approval card should explain:
+
+- what changes;
+- why authority allows/blocks/asks;
+- what proof is required;
+- what receipt will exist;
+- how to recover.
+
 ---
 
-## 9. Core PWA packets
+## 12. Core PWA packets
 
 The PWA should consume daemon packets rather than reconstruct product truth in Svelte.
 
@@ -407,6 +767,7 @@ MissionFieldPacket:
   recent_receipts:
   topology_horizon:
   license_context:
+  surface_permissions:
 
 TranscriptRiverPacket:
   session_id:
@@ -415,6 +776,8 @@ TranscriptRiverPacket:
   claim_proof_links:
   workpoint_events:
   authority_events:
+  action_cards:
+  agent_streams:
 
 ActionIntentPacket:
   action:
@@ -423,6 +786,7 @@ ActionIntentPacket:
   side_effects:
   confirmation_required:
   cli_equivalent:
+  expected_receipt:
 
 ReceiptPacket:
   receipt_id:
@@ -433,11 +797,26 @@ ReceiptPacket:
   evidence_refs:
   rehydratable:
   next_tools:
+  public_safe_projection:
+
+AgentRoomPacket:
+  agents:
+    - agent_id:
+      harness:
+      host_node:
+      purpose:
+      status:
+      workpoint_id:
+      active_object:
+      proof_required:
+      latest_receipt:
+      terminal_available:
+      stream_available:
 ```
 
 ---
 
-## 10. API route direction
+## 13. API route direction
 
 Spec 117 already listed initial Deck routes. 117A refines them around living-field packets.
 
@@ -472,11 +851,49 @@ POST /v1/deck/publish/preview-redaction
 POST /v1/deck/publish/confirm
 ```
 
+Agent routes:
+
+```text
+GET  /v1/deck/agents
+POST /v1/deck/agents/handoff/prepare
+POST /v1/deck/agents/handoff/confirm
+POST /v1/deck/agents/fork/prepare
+POST /v1/deck/agents/fork/confirm
+```
+
 ---
 
-## 11. Safety and monetization posture
+## 14. SaaS and local-first boundary
 
-The PWA can expose monetizable value without making cloud canonical.
+The PWA must integrate the SaaS layer without betraying local-first trust.
+
+### 14.1 Cloud coordinates; node decides
+
+Focusa Cloud / SaaS may provide:
+
+- login/license;
+- billing;
+- node registry;
+- cloud relay;
+- shared receipt hosting;
+- public proof pages;
+- team views;
+- collaboration links;
+- upgrade flows;
+- policy packs;
+- marketplace/ecosystem primitives later.
+
+The private Focusa node / daemon owns:
+
+- canonical project state;
+- Workpoint state;
+- Evidence refs;
+- Context Authority;
+- local agent bridge;
+- local/private transcripts unless explicitly published;
+- mutation decisions.
+
+### 14.2 Monetization posture
 
 Free/local:
 
@@ -485,7 +902,8 @@ Free/local:
 - proof/no-proof education;
 - local transcript annotations;
 - basic receipts;
-- local PWA install.
+- local PWA install;
+- local pairing.
 
 Paid/pro/team candidates:
 
@@ -493,6 +911,7 @@ Paid/pro/team candidates:
 - shared receipt ledger;
 - public receipt hosting;
 - team mission views;
+- shared Workpoint review;
 - advanced Recall;
 - cross-device sync;
 - managed node registry;
@@ -502,15 +921,60 @@ Paid/pro/team candidates:
 
 Commercial state should appear when relevant, not dominate the core field.
 
+### 14.3 Open ecosystem path
+
+The PWA should be compatible with a future open `focusa-primitives` layer:
+
+- Workpoint schema;
+- EvidenceRef schema;
+- MissionContractCard schema;
+- RecallDeckCard schema;
+- AuthorityBadge schema;
+- ReceiptPacket schema;
+- HandoffCapsule schema.
+
+The product can spread primitives while monetizing hosted coordination, advanced proof, team workflows, and trusted Focusa runtime.
+
 ---
 
-## 12. Implementation phases
+## 15. Terminal and raw shell posture
+
+The PWA must not expose raw terminal/shell by default.
+
+Allowed early:
+
+- read-only command/result surfaces;
+- CLI equivalent copy buttons;
+- agent stream/status;
+- proof command suggestions;
+- safe action cards.
+
+Future terminal bridge, if implemented, starts as:
+
+```text
+read-only terminal mirror
+```
+
+Write access requires a later approved spec with:
+
+- paired device;
+- short-lived token;
+- explicit operator approval;
+- scope boundary;
+- Context Authority gate;
+- visible audit event;
+- revocation path.
+
+---
+
+## 16. Implementation phases
 
 ### Phase 0 — Sign-off and split from Spec 117
 
 - Review 117A.
 - Decide whether it becomes `117a` companion or a direct amendment to 117.
 - Confirm that PWA is allowed to be interactive, not observation-only.
+- Confirm the PWA must integrate Omnigent-derived interaction patterns without becoming a meta-harness.
 
 ### Phase 1 — Mission Field packet
 
@@ -531,15 +995,23 @@ Commercial state should appear when relevant, not dominate the core field.
 - Add Focusa annotations.
 - Add composer modes.
 - Allow agent and Focusa interaction without centering generic chat.
+- Add Turn Halos, Proof Shadows, Mission Lens, and Handoff Capsule.
 
-### Phase 4 — Action rituals
+### Phase 4 — Agent Room + multi-surface continuity
+
+- Add Agent Room packet/lens.
+- Add host/node awareness.
+- Add handoff/fork preparation.
+- Add snapshot + event-stream reconnect model.
+
+### Phase 5 — Action rituals
 
 - Implement action interpretation.
 - Implement preflight card.
 - Implement confirm path.
 - Show receipts and field updates.
 
-### Phase 5 — Proof and Publish
+### Phase 6 — Proof and Publish
 
 - Evidence anchors.
 - Proof Lens.
@@ -547,45 +1019,50 @@ Commercial state should appear when relevant, not dominate the core field.
 - Public receipt preview.
 - Redaction review.
 
-### Phase 6 — Cloud/team expansion
+### Phase 7 — Cloud/team expansion
 
 - Pairing.
 - Cloud relay.
 - Team mission view.
 - Shared receipts.
 - Node registry.
+- License/upgrade flows surfaced contextually.
 
 ---
 
-## 13. Acceptance criteria
+## 17. Acceptance criteria
 
 117A is accepted when:
 
 1. PWA is explicitly interactive, not observation-only.
 2. Chat is included as Transcript River, not generic product center.
-3. Living Mission Field metaphor governs default UI.
-4. Workpoints, Evidence, Recall, Authority, Drift, Agents, and Receipts have living-field visual equivalents.
-5. Every mutation follows the action ritual model.
-6. Daemon remains canonical.
-7. Cloud/paid/team surfaces enhance the product without becoming the product's soul.
-8. Raw terminal/shell is absent by default unless a later approved spec gates it.
-9. Public launch claims distinguish planned vs proven PWA features.
-10. Operator signs off before implementation is claimed.
+3. The PWA integrates Omnigent-derived multi-surface patterns in a Focusa-native way.
+4. Living Mission Field metaphor governs default UI.
+5. Workpoints, Evidence, Recall, Authority, Drift, Agents, Receipts, and SaaS state have living-field visual equivalents.
+6. Every mutation follows the action ritual model.
+7. Daemon remains canonical.
+8. Cloud/paid/team surfaces enhance the product without becoming the product's soul.
+9. Raw terminal/shell is absent by default unless a later approved spec gates it.
+10. Public launch claims distinguish planned vs proven PWA features.
+11. The PWA supports the principle: Focusa actions happen around the transcript.
+12. Operator signs off before implementation is claimed.
 
 ---
 
-## 14. Open operator questions
+## 18. Open operator questions
 
-1. Should the PWA use `Mission Field` or `Living Mission Field` as the visible product language?
+1. Should the PWA use `Mission Field`, `Living Mission Field`, or `Mission Deck` as visible product language?
 2. Should the transcript river be collapsible by default or always partially visible?
-3. Should the composer default to `Ask Focusa` or `Ask Agent`?
+3. Should the composer default to `Ask Focusa`, `Ask Agent`, or remember last mode?
 4. Should `Command` be a visible composer mode or hidden behind natural-language interpretation?
 5. Should Publish mode be available in local-first PWA before Focusa Cloud receipt hosting exists?
 6. Should the first PWA release include visual motion immediately, or start with static living-field layout and animate later?
+7. Should Agent Room launch with Pi-only support first, or support provider-neutral agent stream packets from the start?
+8. Should the first SaaS-connected PWA path require Tailscale/private relay before public relay?
 
 ---
 
-## 15. Summary
+## 19. Summary
 
 Spec 117 made Mission Deck useful.
 
