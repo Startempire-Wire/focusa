@@ -939,6 +939,7 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 
 #### Route families
 
+- `crates/focusa-api/src/routes/agent_capabilities.rs`
 - `crates/focusa-api/src/routes/agent_reminder.rs`
 - `crates/focusa-api/src/routes/ascc.rs`
 - `crates/focusa-api/src/routes/attachments.rs`
@@ -968,6 +969,7 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-api/src/routes/info.rs`
 - `crates/focusa-api/src/routes/instances.rs`
 - `crates/focusa-api/src/routes/llms_txt.rs`
+- `crates/focusa-api/src/routes/license.rs`
 - `crates/focusa-api/src/routes/memory.rs`
 - `crates/focusa-api/src/routes/metacognition.rs`
 - `crates/focusa-api/src/routes/mcp.rs`
@@ -1005,6 +1007,7 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-api/src/routes/uxp.rs`
 - `crates/focusa-api/src/routes/visual_workflow.rs`
 - `crates/focusa-api/src/routes/work_loop.rs`
+- `crates/focusa-api/src/routes/work_items.rs`
 - `crates/focusa-api/src/routes/workpoint.rs`
 - `crates/focusa-api/src/routes/mod.rs`
 
