@@ -1085,6 +1085,7 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-cli/src/commands/uninstall.rs`
 - `crates/focusa-cli/src/commands/upgrade.rs`
 - `crates/focusa-cli/src/commands/walkthrough.rs`
+- `crates/focusa-cli/src/commands/work_item.rs`
 - `crates/focusa-cli/src/commands/workflow.rs`
 - `crates/focusa-cli/src/commands/workpoint.rs`
 - `crates/focusa-cli/src/commands/wrap.rs`
@@ -1138,6 +1139,7 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-core/src/reference/mod.rs`
 - `crates/focusa-core/src/reference/store.rs`
 - `crates/focusa-core/src/replay/mod.rs`
+- `crates/focusa-core/src/scope_safety.rs`
 - `crates/focusa-core/src/rfm/mod.rs`
 - `crates/focusa-core/src/runtime/daemon.rs`
 - `crates/focusa-core/src/runtime/event_bus.rs`
@@ -1154,6 +1156,18 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-core/src/training/mod.rs`
 - `crates/focusa-core/src/types.rs`
 - `crates/focusa-core/src/utility_card.rs`
+- `crates/focusa-core/src/work_item/mod.rs`
+- `crates/focusa-core/src/work_item/adapter.rs`
+- `crates/focusa-core/src/work_item/adapters/bd.rs`
+- `crates/focusa-core/src/work_item/adapters/mod.rs`
+- `crates/focusa-core/src/work_item/adapters/none.rs`
+- `crates/focusa-core/src/work_item/audit.rs`
+- `crates/focusa-core/src/work_item/evidence.rs`
+- `crates/focusa-core/src/work_item/lifecycle.rs`
+- `crates/focusa-core/src/work_item/policy.rs`
+- `crates/focusa-core/src/work_item/scope_safety.rs`
+- `crates/focusa-core/src/work_item/storage.rs`
+- `crates/focusa-core/src/work_item/types.rs`
 - `crates/focusa-core/src/uxp/mod.rs`
 - `crates/focusa-core/src/workers/executor.rs`
 - `crates/focusa-core/src/workers/mod.rs`

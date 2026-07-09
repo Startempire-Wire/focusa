@@ -323,7 +323,7 @@ def static_audit() -> None:
     rust_files = [f for f in rust_files if "target" not in f.parts and "node_modules" not in f.parts]
     new_globals: list[str] = []
     known_global_files = {
-        "bounded.rs", "device_pairing.rs", "metacognition.rs", "ontology.rs",
+        "bounded.rs", "device_pairing.rs", "license.rs", "metacognition.rs", "ontology.rs",
         "predictions.rs", "project.rs", "proxy.rs", "rate_limit.rs", "snapshots.rs",
         "turn.rs", "workpoint.rs", "server.rs", "main.rs", "state.ts", "tools.ts",
     }
