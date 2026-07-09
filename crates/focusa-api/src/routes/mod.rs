@@ -1,3 +1,4 @@
+pub mod agent_capabilities;
 pub mod ascc;
 pub mod attachments;
 pub mod autonomy;
@@ -63,5 +64,6 @@ pub mod turn;
 pub mod utility;
 pub mod uxp;
 pub mod visual_workflow;
+pub mod work_items;
 pub mod work_loop;
 pub mod workpoint;

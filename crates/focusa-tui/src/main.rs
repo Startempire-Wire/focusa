@@ -80,9 +80,21 @@ async fn main() -> Result<()> {
     }
 
     // Terminal setup.
-    enable_raw_mode()?;
+    // Defensive: enable_raw_mode can still fail on some SSH/tmux setups where
+    // is_terminal() returns true but the underlying device doesn't support raw
+    // mode (ENXIO/os error 6). Catch and convert to a clean exit instead of panic.
+    if let Err(e) = enable_raw_mode() {
+        eprintln!("focusa-tui: failed to enable raw mode: {e}");
+        eprintln!("Run with --headless-self-test for structured output, or use a real terminal.");
+        std::process::exit(65);
+    }
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen)?;
+    if let Err(e) = execute!(stdout, EnterAlternateScreen) {
+        let _ = disable_raw_mode();
+        eprintln!("focusa-tui: failed to enter alternate screen: {e}");
+        eprintln!("Run with --headless-self-test for structured output, or use a real terminal.");
+        std::process::exit(66);
+    }
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 

@@ -248,7 +248,7 @@ fn fs_check(name: &str, path: &str) -> Value {
                     #[cfg(unix)]
                     {
                         use std::os::unix::fs::PermissionsExt;
-                        return m.permissions().mode() & 0o111 != 0;
+                        m.permissions().mode() & 0o111 != 0
                     }
                     #[cfg(not(unix))]
                     {

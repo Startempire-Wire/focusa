@@ -283,6 +283,9 @@ export const S = {
   spec92HookTelemetry: [] as Array<Record<string, unknown>>,
   spec92TokenTelemetry: [] as Array<Record<string, unknown>>,
   spec92ToolStartTimes: {} as Record<string, number>,
+  // FOCUSA_FIX-a52s: shell-tool reminder frequency gate state.
+  lastShellReminderAt: 0 as number,
+  lastShellReminderTurn: 0 as number,
   // compilationErrors/fileEditCounts migrated to scope store (PI-07, removed from singleton)
   // Session/task timing + token accounting
   sessionStartTime: Date.now(),

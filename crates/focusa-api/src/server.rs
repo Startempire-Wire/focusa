@@ -467,6 +467,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     set_app_state(state.clone());
 
     Router::new()
+        .merge(routes::agent_capabilities::routes())
         .merge(routes::health::router())
         .merge(routes::info::router())
         .merge(routes::llms_txt::router())
@@ -479,6 +480,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::sync::router())
         .merge(routes::bloatgaurd::router())
         .merge(routes::focus::router())
+        .merge(routes::work_items::router())
         .merge(routes::gate::router())
         .merge(routes::ecs::router())
         .merge(routes::memory::router())

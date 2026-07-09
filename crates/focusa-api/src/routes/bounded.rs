@@ -188,6 +188,8 @@ pub struct BoundedReadMetadata {
     pub returned: usize,
     pub omitted: usize,
     pub truncated: bool,
+    pub more_available: bool,
+    pub pagination_hint: String,
     pub limit: usize,
     pub requested_limit: Option<usize>,
     pub default_limit: usize,
@@ -953,11 +955,22 @@ pub fn bounded_metadata(
     let limit = options.resolved_limit();
     let omitted = total.saturating_sub(returned);
     let truncated = omitted > 0;
+    let more_available = options.next_cursor.is_some();
+    let pagination_hint = if more_available {
+        format!(
+            "more items remain beyond this window (next_cursor={}); pass cursor=<value> to fetch the next page",
+            options.next_cursor.as_deref().unwrap_or("?")
+        )
+    } else {
+        "no more items; window covers the full result set".to_string()
+    };
     BoundedReadMetadata {
         total,
         returned,
         omitted,
         truncated,
+        more_available,
+        pagination_hint,
         limit,
         requested_limit: options.requested_limit,
         default_limit: options.default_limit.max(1),

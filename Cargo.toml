@@ -6,6 +6,7 @@ members = [
     "crates/focusa-api",
     "crates/focusa-license",
     "crates/focusa-tui",
+    "crates/focusa-bench",
 ]
 exclude = [
     "apps/menubar/src-tauri",

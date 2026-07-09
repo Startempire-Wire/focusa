@@ -183,6 +183,34 @@ export async function requestJson<T = any>(path: string, options: ApiRequestOpti
       (err as any).failure_class = data?.failure_class || `http_${resp.status}`;
       (err as any).body = data;
       diagnosticsStore.record({ area: 'api', phase: 'http_response', error: err, url, method, status: resp.status, body: data });
+      // FOCUSA_FIX-1vfz/67ud: Handle 401 auth failures from daemon.
+      if (resp.status === 401) {
+        const fullClass = String(data?.failure_class || '');
+        if (fullClass === 'pairing_revoked') {
+          // Token was valid but the device was revoked on the daemon side.
+          // Clear the cached token so subsequent calls start unauthenticated.
+          try {
+            // @ts-ignore: clearCurrentAuthToken is exported from pairing store
+            const { clearCurrentAuthToken } = await import('$lib/stores/pairing.svelte');
+            if (typeof clearCurrentAuthToken === 'function') clearCurrentAuthToken();
+          } catch { /* best effort */ }
+          // Surface a revocation notification to the operator.
+          try {
+            const { default: { notify } } = await import('@tauri-apps/plugin-notification');
+            if (typeof notify === 'function') notify({ title: 'Focusa: Pairing Revoked', body: `Your device was revoked from daemon at ${base}. Re-pair from Settings > Pairing.` });
+          } catch { /* Tauri notify not available in web preview */ }
+        } else if (fullClass === 'token_expired') {
+          // Token has expired; clear it and let the operator re-pair.
+          try {
+            const { clearCurrentAuthToken } = await import('$lib/stores/pairing.svelte');
+            if (typeof clearCurrentAuthToken === 'function') clearCurrentAuthToken();
+          } catch { /* best effort */ }
+          try {
+            const { default: { notify } } = await import('@tauri-apps/plugin-notification');
+            if (typeof notify === 'function') notify({ title: 'Focusa: Token Expired', body: 'Your device pairing token has expired. Re-pair from Settings > Pairing.' });
+          } catch { /* Tauri notify not available in web preview */ }
+        }
+      }
       throw err;
     }
     return data as T;

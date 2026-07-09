@@ -200,16 +200,44 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     const id = String(event?.toolCallId || event?.id || "unknown");
     const started = S.spec92ToolStartTimes[id];
     if (started) delete S.spec92ToolStartTimes[id];
+    const toolName = (event?.toolName || event?.name || "unknown").toLowerCase();
     const record = {
       hook: "tool_execution_end",
       tool_call_id: id,
-      tool_name: event?.toolName || event?.name || "unknown",
+      tool_name: toolName,
       duration_ms: started ? Date.now() - started : null,
       result_size_bytes: safeJsonSize(event?.result || event),
       status: event?.status || "completed",
     };
     recordHookTelemetry(record);
     bestEffortTelemetry("spec92.tool_execution_end", record);
+    // FOCUSA_FIX-tgij: shell-tool reminder — when the agent uses a shell-like
+    // tool that could touch the Focusa daemon, emit a visible reminder to
+    // prefer focusa_* tools for governed interactions.
+    // FOCUSA_FIX-a52s: frequency gate — limit reminders to once per turn
+    // (per-turn) and at most once per 30 seconds (per-minute equivalent).
+    const SHELL_TOOLS = ["bash", "sh", "fish", "zsh", "csh", "dash"];
+    if (SHELL_TOOLS.includes(toolName) && getFocusaAvailable()) {
+      const now = Date.now();
+      const lastReminder = S.lastShellReminderAt || 0;
+      const turnCount = getTurnCount();
+      const lastReminderTurn = S.lastShellReminderTurn || 0;
+      // Gate: per-turn (same turn = skip) + per-minute (30s debounce)
+      if (turnCount !== lastReminderTurn && (now - lastReminder) > 30000) {
+        S.lastShellReminderAt = now;
+        S.lastShellReminderTurn = turnCount;
+        const reminder = {
+          customType: "focusa_agent_prompt",
+          content: "For Focusa daemon/state interactions, prefer focusa_* Pi tools over shell/bash — they handle scope, authority, recovery, and evidence automatically.",
+          display: true,
+        };
+        try {
+          S.pi?.sendMessage(reminder);
+        } catch {
+          /* best-effort */
+        }
+      }
+    }
   });
 
   hookApi.on("session_tree", async (event: any, _ctx: any) => {

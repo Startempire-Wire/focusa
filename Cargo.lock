@@ -950,6 +950,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "focusa-bench"
+version = "0.9.74-dev"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "uuid",
+]
+
+[[package]]
 name = "focusa-cli"
 version = "0.9.74-dev"
 dependencies = [

@@ -1,0 +1,43 @@
+//! Focusa Benchmark Suite (Spec 113/114).
+//!
+//! Provides:
+//! - model_matrix: pinned LLM provider/version/class/pricing metadata
+//! - arms: no_focusa | passive_focusa | tool_only_focusa | full_focusa
+//! - task: 150-task public/private benchmark suite
+//! - metrics: Agent Power Index, Focusa Uplift Score, groundedness, etc.
+//! - eval ledger API: append-only runs/events/complete/read/compare
+//! - public-safe snapshots with redaction, hash chain, claim generation
+//!
+//! Design spec: docs/113-focusa-agent-performance-benchmark-spec.md
+//! Design spec: docs/114-public-benchmark-flywheel-spec.md
+
+pub mod model_matrix;
+pub mod arms;
+pub mod task_suite;
+pub mod metrics;
+pub mod ledger;
+pub mod reports;
+pub mod snapshot;
+
+#[cfg(test)]
+mod tests;
+
+// Re-exports
+pub use model_matrix::{ModelMatrix, ModelEntry, ModelClass};
+pub use arms::{Arm, ArmConfig};
+pub use task_suite::{Task, TaskKind, TaskPool};
+pub use metrics::{
+    AgentPowerIndex, FocusaUpliftScore, OperatorBurdenReduction,
+    GroundednessScore, HallucinationRate, ToolCallAccuracy, PassAtN, TimeHorizon,
+};
+pub use ledger::{EvalLedger, LedgerEntry, LedgerKind};
+pub use reports::{BenchmarkReport, MeasuredClaim, ReportArtifact};
+pub use snapshot::{PublicSnapshot, RedactionRule, HashChain};
+
+pub const BENCH_SCHEMA: &str = "focusa.bench.v1";
+pub const PUBLIC_TASK_COUNT: usize = 75;
+pub const PRIVATE_TASK_COUNT: usize = 75;
+pub const TOTAL_TASK_COUNT: usize = PUBLIC_TASK_COUNT + PRIVATE_TASK_COUNT;
+
+/// Library version: aligns with focusa workspace.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");

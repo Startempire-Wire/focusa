@@ -1,0 +1,16 @@
+[package]
+name = "focusa-bench"
+version.workspace = true
+edition.workspace = true
+description = "Focusa benchmark suite — Spec 113/114"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+thiserror = { workspace = true }
+
+[lib]
+name = "focusa_bench"
+path = "src/lib.rs"

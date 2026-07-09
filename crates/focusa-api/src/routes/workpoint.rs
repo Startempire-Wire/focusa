@@ -933,6 +933,19 @@ fn workpoint_packet(record: &WorkpointRecord) -> Value {
         "checkpoint_reason": record.checkpoint_reason,
         "confidence": record.confidence,
         "canonical": record.canonical,
+        // FOCUSA_FIX-nzru: annotate freshness so the agent knows next_slice
+        // may be stale (items closed since checkpoint).
+        "stale_note": match record.updated_at.as_ref() {
+            Some(ts) => {
+                let age_secs = chrono::Utc::now().signed_duration_since(*ts).num_seconds().max(0);
+                if age_secs > 3600 {
+                    Some(format!("packet age={}min — next_slice may reference items closed since checkpoint. Re-checkpoint if mission changed.", age_secs / 60))
+                } else {
+                    None
+                }
+            }
+            None => None,
+        },
         "mission": record.mission,
         "active_object_refs": active_object_refs,
         "active_object_refs_metadata": workpoint_array_bounds(record.active_object_refs.len(), active_object_refs.len(), object_default, object_full),

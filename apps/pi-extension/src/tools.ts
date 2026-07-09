@@ -94,6 +94,26 @@ function emitWriteTelemetry(event: string, body: Record<string, any>): void {
   });
 }
 
+function truncateForSummary(s: string, max: number): string {
+  if (s.length <= max) return s;
+  return s.slice(0, max - 1) + "…";
+}
+
+// FOCUSA_FIX-vuop: register a model_select listener that invalidates the
+// session frame on model switch so subsequent Focusa daemon requests use
+// the correct Pi session identity.
+function registerVuopFix(pi: ExtensionAPI): void {
+  pi.on("model_select", () => {
+    // Model changed; invalidate the cached session frame key and project root
+    // so the next tool call refreshes against the new Pi frame.
+    S.sessionFrameKey = "";
+  });
+  // Also refresh on session start/reload
+  pi.on("session_start", () => {
+    S.sessionFrameKey = "";
+  });
+}
+
 function stableJson(value: any): string {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
   if (value && typeof value === "object") {
@@ -1125,11 +1145,17 @@ function ensureVisibleToolTemplate(
   return { ...result, content, details: { ...details, visible_tool_template_v1: true } };
 }
 
-function timeoutPreservedText(surface: string, noun = "fallback"): string {
-  return `${surface} preserved cached advisory ${noun}; cause=timeout; next=resource_mode/doctor/retry`.slice(
-    0,
-    160
-  );
+function timeoutPreservedText(
+  surface: string,
+  noun = "fallback",
+  timeoutMs: number | null = null,
+  recoveryHint: string | null = null
+): string {
+  const parts = [`${surface} preserved cached advisory ${noun}`, "cause=timeout"];
+  if (timeoutMs) parts.push(`timeout_ms=${timeoutMs}`);
+  parts.push("next=resource_mode/doctor/retry");
+  if (recoveryHint) parts.push(`recovery_hint=${recoveryHint}`);
+  return parts.join("; ").slice(0, 240);
 }
 
 function resolveActiveWorkpointContext(): {
@@ -1978,6 +2004,9 @@ export async function pushDelta(delta: {
 }
 
 export function registerTools(pi: ExtensionAPI) {
+  // FOCUSA_FIX-vuop: register model_select + session_start listeners that
+  // invalidate sessionFrameKey on model switch or session reload.
+  registerVuopFix(pi);
   const registerTool = pi.registerTool.bind(pi);
   pi.registerTool = ((tool: any) => registerTool(withToolResultEnvelope(tool))) as typeof pi.registerTool;
   // ── focusa_scratch ──────────────────────────────────────────────────────
@@ -3502,6 +3531,18 @@ export function registerTools(pi: ExtensionAPI) {
         body?.workpoint?.next_slice ||
         "resume from typed workpoint packet"
     );
+    // FOCUSA_FIX-9q5l: include mission + next_slice + action so the operator sees
+    // what was checkpointed, not just the next= resume pointer.
+    const mission = String(
+      body?.mission || body?.resume_packet?.mission || body?.workpoint?.mission || ""
+    );
+    const action = String(
+      body?.action_intent || body?.resume_packet?.action_intent || body?.workpoint?.action_intent || ""
+    );
+    let summary = `status=${status} id=${id} canonical=${canonical}`;
+    if (mission) summary += ` mission="${truncateForSummary(mission, 80)}"`;
+    if (action) summary += ` action="${truncateForSummary(action, 80)}"`;
+    summary += ` next=${truncateForSummary(next, 80)}`;
     // FOCUSA_FIX-nzru: Annotate freshness when workpoint packet has age metadata
     const updatedAt = String(
       body?.resume_packet?.updated_at || body?.workpoint?.updated_at || body?.updated_at || ""
@@ -6979,7 +7020,19 @@ export function registerTools(pi: ExtensionAPI) {
             .map(String)
         )
       );
-      const text = `active object resolve → count=${refs.length} verified=false refs=${refs.slice(0, 5).join(",") || "none"}`;
+      // FOCUSA_FIX-i4fg: emit active_object_source hint so the agent knows WHY
+      // count is 0 (no Workpoint, no hint, or no refs in packet).
+      let source: string;
+      if (refs.length > 0) {
+        source = "refs_collected";
+      } else if (!ctx.workpoint_id) {
+        source = "no_active_workpoint";
+      } else if (!p.hint) {
+        source = "no_hint_provided";
+      } else {
+        source = "workpoint_has_no_object_refs";
+      }
+      const text = `active object resolve → count=${refs.length} verified=false source=${source} refs=${refs.slice(0, 5).join(",") || "none"}`;
       return {
         content: [{ type: "text", text }],
         details: { ok: true, status: "completed", workpoint_id: ctx.workpoint_id, refs, verified: false },
@@ -9023,6 +9076,14 @@ export function registerTools(pi: ExtensionAPI) {
         "no lesson content",
         120
       );
+      // FOCUSA_FIX-63jd: when the lesson would be truncated, surface the
+      // rehydrate_ref instead so the agent can fetch the full content via
+      // focusa_metacog_rehydrate rather than seeing a mid-sentence cutoff.
+      const fullLesson = String(top?.summary || top?.content || top?.signal || "");
+      const rehydrateHint = fullLesson.length > 120
+        ? `rehydrate_full=true (lesson ${fullLesson.length} chars; truncated inline)` +
+          ` rehydrate_ref=${topCapture}`
+        : null;
       const topWhy = compactText(
         top?.rationale ||
           top?.why_relevant ||
@@ -9042,7 +9103,8 @@ export function registerTools(pi: ExtensionAPI) {
         },
         res,
         total > 0
-          ? `metacog retrieve: candidates=${total} top_lesson="${topLesson}" why="${topWhy}" rehydrate_id=${topCapture}`
+          ? `metacog retrieve: candidates=${total} top_lesson="${topLesson}" why="${topWhy}" rehydrate_id=${topCapture}` +
+            (rehydrateHint ? ` ${rehydrateHint}` : "")
           : `metacog retrieve: candidates=0 lesson="none" why="no prior signals matched" rehydrate_id=none`,
         "metacog retrieve",
         {
@@ -12855,14 +12917,19 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       // Guard against null/empty result from focusaFetch — previously crashed with
       // "Cannot read properties of null (reading 'value')" when the daemon is
       // unreachable or returns a falsy result envelope.
-      const body = (result && (result as any).value) as any;
-      const packet = body || {};
+      // Guard: if focusaFetch returns null, undefined, or a non-object result,
+      // build an empty fallback so downstream code never reads properties of null.
+      // Previously crashed with 'Cannot read properties of null (reading value)'.
+      const raw = (result && (result as any).value) as any;
+      const packet = raw && typeof raw === 'object' ? raw : {};
       const visibleCount = Array.isArray(packet.visibleLines) ? packet.visibleLines.length : 0;
       const textLines = [
         `awareness_packet | surface=${packet.surface || surface} | mode=${packet.mode || "?"} | visible=${visibleCount}`,
       ];
       if (Array.isArray(packet.visibleLines)) {
-        for (const line of packet.visibleLines.slice(0, 5)) {
+        const lines = packet.visibleLines.slice(0, 5);
+        for (const line of lines) {
+          if (!line) continue; // guard against null entries in array
           textLines.push(
             `  ${line.layer || "?"} | ${line.category || "?"} | ${String(line.text || "").slice(0, 80)}`
           );
@@ -13200,15 +13267,47 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
         );
       const predictions = Array.isArray(body.predictions) ? body.predictions : [];
       const count = predictions.length;
-      const actionable =
-        predictions
-          .slice()
-          .reverse()
-          .find((item: any) => item && !item.evaluated_at && item.prediction_id) ||
-        predictions.at(-1) ||
-        null;
+      // FOCUSA_FIX-cu5o: find the best un-evaluated prediction to evaluate.
+      // Try: (1) highest-confidence un-evaluated, (2) oldest un-evaluated
+      // (age decay — old predictions lose relevance), (3) most recent.
+      const unevaluated = predictions.filter(
+        (item: any) => item && !item.evaluated_at && item.prediction_id
+      );
+      let actionable: any = null;
+      if (unevaluated.length > 0) {
+        // Prefer highest-confidence un-evaluated prediction
+        const sorted = [...unevaluated].sort(
+          (a: any, b: any) => (b.confidence ?? 0) - (a.confidence ?? 0)
+        );
+        actionable = sorted[0];
+        // If there's an older one with similar confidence, prefer the older
+        // (age decay — older predictions are more actionable to evaluate).
+        const withAge = unevaluated.filter(
+          (item: any) => item.created_at && Math.abs((item.confidence ?? 0) - (actionable.confidence ?? 0)) < 0.15
+        );
+        if (withAge.length > 1) {
+          withAge.sort((a: any, b: any) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
+          actionable = withAge[0];
+        }
+      }
+      if (!actionable) {
+        actionable = predictions.at(-1) || null;
+      }
+      const ageStr = actionable?.created_at
+        ? (() => {
+            const ageH = Math.round(
+              (Date.now() - new Date(actionable.created_at).getTime()) / 3600000
+            );
+            return ageH > 0 ? `age=${ageH}h` : `age=fresh`;
+          })()
+        : "";
+      const evalHint = actionable
+        ? `${actionable.evaluated_at ? "already_evaluated" : "focusa_predict_evaluate prediction_id=" + String(actionable.prediction_id)}`
+        : "record_prediction_first";
       const actionLine = actionable
-        ? ` next_id=${String(actionable.prediction_id)} confidence=${String(actionable.confidence ?? "unknown")} scope=(project=${String(actionable.project_root || "unknown")} continuity=${String(actionable.continuity_id || "unknown")}) eval_hint="focusa_predict_evaluate prediction_id=${String(actionable.prediction_id)}"`
+        ? ` next_id=${String(actionable.prediction_id)} confidence=${String(actionable.confidence ?? "unknown")} ${ageStr} scope=(project=${String(actionable.project_root || "unknown")} continuity=${String(actionable.continuity_id || "unknown")}) eval_hint="${evalHint}"`
         : " next_id=none eval_hint=record_prediction_first";
       const toolResult =
         body.details?.tool_result_v1 ||

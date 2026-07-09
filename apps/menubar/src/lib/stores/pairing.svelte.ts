@@ -44,6 +44,12 @@ const STORAGE_KEY = 'focusa_paired_device_meta';
 let currentAuthToken: string | null = null;
 export function getCurrentAuthToken(): string | null { return currentAuthToken; }
 
+// FOCUSA_FIX-1vfz/67ud: expose clearCurrentAuthToken so the api module can
+// clear the in-memory token on 401 pairing_revoked or token_expired.
+export function clearCurrentAuthToken(): void {
+  currentAuthToken = null;
+}
+
 function daemonRoot(): string {
   return getApiUrl().replace(/\/$/, '');
 }
