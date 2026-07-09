@@ -2669,7 +2669,30 @@ mod tests {
         );
     }
 
+    fn setup_test_project_fixture(project_root: &str) {
+        let _ = std::fs::create_dir_all(project_root);
+        let git_dir = std::path::PathBuf::from(project_root).join(".git");
+        let _ = std::fs::create_dir(&git_dir);
+        let _ = std::fs::write(git_dir.join("HEAD"), b"ref: refs/heads/main\n");
+        let _ = std::fs::write(
+            std::path::PathBuf::from(project_root).join(".focusa-project.json"),
+            format!(r#"{{"schema":"focusa.project_marker.v1","project_id":"focusa","canonical_name":"focusa","project_root":"{}"}}"#, project_root),
+        );
+    }
+
     fn state_with_workpoint(project_root: &str) -> FocusaState {
+        // FOCUSA_FIX: create a self-contained test fixture so CI machines
+        // get a .git repo + .focusa-project.json marker at the test root.
+        let _ = std::fs::create_dir_all(project_root);
+        // Bare git repo: write HEAD + config minimal stub so find_upwards finds .git.
+        let git_dir = std::path::PathBuf::from(project_root).join(".git");
+        let _ = std::fs::create_dir(&git_dir);
+        let _ = std::fs::write(git_dir.join("HEAD"), b"ref: refs/heads/main\n");
+        // Marker file for root_marker signal
+        let _ = std::fs::write(
+            std::path::PathBuf::from(project_root).join(".focusa-project.json"),
+            format!(r#"{{"schema":"focusa.project_marker.v1","project_id":"focusa","canonical_name":"focusa","project_root":"{}"}}"#, project_root),
+        );
         // FOCUSA_FIX: ensure cwd is the project marker dir so discover_identity
         // finds the root_marker + git_root signals and reports verified status.
         let _ = std::env::set_current_dir(project_root);
@@ -2998,6 +3021,8 @@ mod tests {
 
     #[test]
     fn trajectory_view_ignores_global_workpoint_and_frame_for_explicit_project_scope() {
+        setup_test_project_fixture("/tmp/focusa-other");
+        let _ = std::env::set_current_dir("/tmp/focusa-other");
         let mut state = state_with_workpoint("/tmp/focusa-test");
         add_active_frame(
             &mut state,
