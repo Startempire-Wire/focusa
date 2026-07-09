@@ -691,7 +691,76 @@ async fn main() -> anyhow::Result<()> {
                     println!("Docs: docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md");
                 }
             } else if cli.json {
-                println!("{}", serde_json::to_string_pretty(&resp)?);
+                // Agent JSON status: enrich with additional fields from /v1/health,
+                // /v1/project/identity, /v1/focus/frame/current, and /v1/license/status.
+                let health = api.get("/v1/health").await.unwrap_or_else(
+                    |err| serde_json::json!({"status":"blocked","ok":false,"error":err.to_string()}),
+                );
+                let project = api.get("/v1/project/identity").await.unwrap_or_else(
+                    |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
+                );
+                let frame = api
+                    .get("/v1/focus/frame/current")
+                    .await
+                    .unwrap_or_else(|err| serde_json::json!({"status":"blocked","error":err.to_string()}));
+                let license = api
+                    .get("/v1/license/status")
+                    .await
+                    .unwrap_or_else(|err| serde_json::json!({"status":"blocked","error":err.to_string()}));
+                let events = api
+                    .get("/v1/events/recent?limit=5")
+                    .await
+                    .unwrap_or_else(|err| serde_json::json!({"status":"blocked","error":err.to_string()}));
+
+                let uptime_secs = health.get("uptime_ms")
+                    .and_then(|v| v.as_u64())
+                    .map(|ms| ms / 1000)
+                    .unwrap_or(0);
+                let current_frame = frame.get("frame_id")
+                    .or_else(|| frame.get("active_frame_id"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("none");
+                let license_status = license.get("status")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown");
+                let scope_status = project.get("status")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown");
+                let last_5_events: Vec<String> = events
+                    .get("events")
+                    .and_then(|e| e.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .take(5)
+                            .filter_map(|e| {
+                                e.get("kind")
+                                    .and_then(|k| k.as_str())
+                                    .map(|s| s.to_string())
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                let envelope = serde_json::json!({
+                    "status": resp.get("status").cloned().unwrap_or(serde_json::json!("unknown")),
+                    "summary": "Focusa agent status (enriched)",
+                    "daemon": {
+                        "version": resp.get("app_version").and_then(|v| v.as_str()).unwrap_or(""),
+                        "reducer": resp.get("version").and_then(|v| v.as_u64()).unwrap_or(0),
+                        "uptime_secs": uptime_secs,
+                        "pid": resp.get("runtime_process").and_then(|r| r.get("current_pid")).and_then(|p| p.as_u64()).unwrap_or(0),
+                        "daemon_count": resp.get("runtime_process").and_then(|r| r.get("daemon_count")).and_then(|p| p.as_u64()).unwrap_or(0),
+                        "duplicate_daemon_count": resp.get("runtime_process").and_then(|r| r.get("duplicate_daemon_count")).and_then(|p| p.as_u64()).unwrap_or(0),
+                        "session_id": if resp["session"].is_null() { "none" } else { resp["session"]["session_id"].as_str().unwrap_or("unknown") },
+                        "stack_depth": resp.get("stack_depth").and_then(|v| v.as_u64()).unwrap_or(0),
+                        "ok": health.get("ok").and_then(|v| v.as_bool()).unwrap_or(false),
+                    },
+                    "current_frame": current_frame,
+                    "license_status": license_status,
+                    "scope_status": scope_status,
+                    "last_5_events": last_5_events,
+                    "details": {"status": resp, "health": health, "project": project, "frame": frame, "license": license, "events": events}
+                });
+                println!("{}", serde_json::to_string_pretty(&envelope)?);
             } else {
                 let app_version = resp["app_version"].as_str().unwrap_or("");
                 let reducer_version = resp["version"].as_u64().unwrap_or(0);
@@ -712,6 +781,52 @@ async fn main() -> anyhow::Result<()> {
                     .unwrap_or(0);
                 let current_pid = resp["runtime_process"]["current_pid"].as_u64().unwrap_or(0);
 
+                // Enrichment calls: current_frame, license_status, scope_status, uptime, last_5_events.
+                let health = api.get("/v1/health").await.ok();
+                let project = api.get("/v1/project/identity").await.ok();
+                let frame = api.get("/v1/focus/frame/current").await.ok();
+                let license = api.get("/v1/license/status").await.ok();
+                let events = api.get("/v1/events/recent?limit=5").await.ok();
+                let uptime_secs = health
+                    .as_ref()
+                    .and_then(|h| h.get("uptime_ms"))
+                    .and_then(|v| v.as_u64())
+                    .map(|ms| ms / 1000)
+                    .unwrap_or(0);
+                let current_frame = frame
+                    .as_ref()
+                    .and_then(|f| f.get("frame_id").or_else(|| f.get("active_frame_id")))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("none")
+                    .to_string();
+                let license_status = license
+                    .as_ref()
+                    .and_then(|l| l.get("status"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown")
+                    .to_string();
+                let scope_status = project
+                    .as_ref()
+                    .and_then(|p| p.get("status"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown")
+                    .to_string();
+                let last_5_events: Vec<String> = events
+                    .as_ref()
+                    .and_then(|e| e.get("events"))
+                    .and_then(|e| e.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .take(5)
+                            .filter_map(|e| {
+                                e.get("kind")
+                                    .and_then(|k| k.as_str())
+                                    .map(|s| s.to_string())
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default();
+
                 println!("Focusa daemon: running");
                 println!("  session:     {}", session);
                 println!("  stack depth: {}", depth);
@@ -723,6 +838,13 @@ async fn main() -> anyhow::Result<()> {
                 }
                 println!("  pid:         {}", current_pid);
                 println!("  daemons:     {}", daemon_count);
+                println!("  uptime_secs: {}", uptime_secs);
+                println!("  current_frame: {}", current_frame);
+                println!("  license_status: {}", license_status);
+                println!("  scope_status: {}", scope_status);
+                if !last_5_events.is_empty() {
+                    println!("  last_5_events: {}", last_5_events.join(", "));
+                }
                 if duplicate_count > 0 {
                     println!(
                         "  warning:     duplicate daemons detected ({})",

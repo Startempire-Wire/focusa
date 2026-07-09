@@ -13175,10 +13175,19 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     description: "List recent bounded Focusa prediction records.",
     parameters: Type.Object({
       limit: Type.Optional(Type.Number({ description: "Recent prediction count, max 100." })),
+      project_root: Type.Optional(
+        Type.String({ description: "Optional expected project root; defaults to Pi session cwd." })
+      ),
     }),
     async execute(_id, params) {
       const limit = Math.max(1, Math.min(100, Number((params as any).limit || 20)));
-      const res = await focusaFetchDetailed(`/predictions/recent?limit=${limit}`);
+      const projectRoot = await resolveFocusaToolProjectRoot((params as any).project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, (params as any).project_root);
+      if (projectRootGate) return projectRootGate;
+      const query = new URLSearchParams();
+      query.set("limit", String(limit));
+      query.set("project_root", projectRoot);
+      const res = await focusaFetchDetailed(`/predictions/recent?${query.toString()}`);
       const body = res.body || {};
       if (!res.ok)
         return blockedToolResponse(

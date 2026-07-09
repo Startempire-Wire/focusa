@@ -407,13 +407,28 @@ async fn recent(Query(params): Query<HashMap<String, String>>) -> Json<Value> {
         .and_then(|v| v.parse::<usize>().ok())
         .unwrap_or(20)
         .min(100);
+    let project_root_filter = params.get("project_root").map(|s| s.as_str());
     let mut predictions = read_predictions();
+    if let Some(pr) = project_root_filter {
+        predictions.retain(|p| {
+            p.get("project_root")
+                .and_then(|v| v.as_str())
+                .map(|s| s == pr)
+                .unwrap_or(true)
+        });
+    }
     if predictions.len() > limit {
         predictions = predictions.split_off(predictions.len() - limit);
     }
     Json(json!({
         "status": "completed",
-        "summary": format!("{} prediction record(s)", predictions.len()),
+        "summary": format!(
+            "{} prediction record(s){}",
+            predictions.len(),
+            project_root_filter
+                .map(|p| format!(" (project_root={})", p))
+                .unwrap_or_default()
+        ),
         "predictions": predictions,
     }))
 }
