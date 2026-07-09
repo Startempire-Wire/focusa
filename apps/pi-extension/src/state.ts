@@ -1,7 +1,7 @@
 // Shared state, helpers, types for focusa-pi-bridge
 // Spec: docs/44-pi-focusa-integration-spec.md
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { homedir } from "os";
 import { dirname, join, resolve } from "path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
@@ -2395,7 +2395,41 @@ export function selectExistingBeadsIssueIdForFocusFrame(projectRoot: string): st
       /* try next path */
     }
   }
-  return null;
+  // Fallback: project has no Beads issues at all. Auto-create a single
+  // open P0 issue to anchor the focus frame, so focusa_decide/constraint
+  // can write to Focus State instead of being rejected with
+  // "Attentive and awaiting operator direction" (bead focusa-oh7t).
+  return ensureAutocreatedBeadsIssueForProject(projectRoot);
+}
+
+function ensureAutocreatedBeadsIssueForProject(projectRoot: string): string | null {
+  try {
+    const beadsDir = `${projectRoot.replace(/\/+$/, "")}/.beads`;
+    const issuesFile = `${beadsDir}/issues.jsonl`;
+    if (!existsSync(beadsDir)) {
+      // No .beads directory at all — refuse to create one; the operator
+      // must opt in. This avoids polluting unrelated project directories.
+      return null;
+    }
+    if (!existsSync(issuesFile)) {
+      // Empty .beads directory is acceptable; the JSONL will be created on first write.
+    }
+    const stamp = new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 14);
+    const id = `pi-auto-${stamp}-${process.pid}`;
+    const issue = {
+      id,
+      title: "Pi focus frame anchor (auto-created)",
+      status: "open",
+      priority: 0,
+      type: "task",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    appendFileSync(issuesFile, JSON.stringify(issue) + "\n", "utf8");
+    return id;
+  } catch {
+    return null;
+  }
 }
 
 export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<string | null> {

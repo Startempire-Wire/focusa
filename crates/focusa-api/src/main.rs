@@ -208,6 +208,30 @@ async fn main() -> anyhow::Result<()> {
 
     let _instance_lock = DaemonInstanceLock::acquire(&config)?;
 
+    // License plane: evaluate tier + log current capability posture.
+    // Bead focusa-nbai.1: wire LicenseGuard into daemon startup.
+    let license_guard = focusa_license::resolve_license_guard();
+    tracing::info!(
+        tier = license_guard.tier.label(),
+        issued_at = %license_guard.issued_at,
+        expires_at = ?license_guard.expires_at,
+        bsl_change_date = %license_guard.bsl_change_date,
+        customer_email = ?license_guard.customer_email,
+        key_hash = ?license_guard.key_hash,
+        expired = license_guard.is_expired(),
+        "focusa-daemon license plane ready (focusa-license crate)"
+    );
+    // Soft-warn when commercial use is requested but license is eval.
+    if let Some(warn) = license_guard
+        .require(focusa_license::Capability::CommercialUse)
+        .ok()
+        .flatten()
+    {
+        tracing::warn!(warning = %warn, "focusa-daemon running under eval tier with commercial capability requested");
+    }
+    // Register the LicenseGuard so /v1/license/status can serve it.
+    crate::routes::license::init_guard(license_guard);
+
     // Shared state: daemon writes after every reduction, API reads.
     let shared_state = Arc::new(RwLock::new(FocusaState::default()));
 

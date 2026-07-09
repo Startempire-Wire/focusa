@@ -930,6 +930,7 @@ dependencies = [
  "base64",
  "chrono",
  "focusa-core",
+ "focusa-license",
  "futures-core",
  "hex",
  "mdns-sd",
@@ -996,6 +997,18 @@ dependencies = [
  "toml",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "focusa-license"
+version = "0.9.74-dev"
+dependencies = [
+ "chrono",
+ "focusa-core",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "toml",
 ]
 
 [[package]]
