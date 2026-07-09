@@ -204,7 +204,6 @@ jobs:
           prerelease: false
           tauriScript: bunx tauri
           args: ${{ matrix.args }}
-          uploadArtifact: true
 
       - name: Codesign + notarize + staple (.app + .dmg)
         if: ${{ contains(matrix.platform, 'macos') }}
