@@ -181,9 +181,35 @@ fn repo_root() -> PathBuf {
 }
 
 fn daemon_exe_path() -> PathBuf {
-    std::env::var_os("FOCUSA_DAEMON_BIN")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| repo_root().join("target/release/focusa-daemon"))
+    // Resolution order:
+    //   1. FOCUSA_DAEMON_BIN env var (operator override)
+    //   2. ~/.focusa/bin/focusa-daemon (system install via bootstrapper)
+    //   3. `which focusa-daemon` (PATH lookup)
+    //   4. repo_root()/target/release/focusa-daemon (dev build)
+    //   5. repo_root()/target/debug/focusa-daemon (dev build, debug)
+    if let Some(p) = std::env::var_os("FOCUSA_DAEMON_BIN").map(PathBuf::from) {
+        return p;
+    }
+    if let Some(home) = std::env::var_os("HOME").map(PathBuf::from) {
+        let p = home.join(".focusa/bin/focusa-daemon");
+        if p.exists() {
+            return p;
+        }
+    }
+    if let Ok(out) = std::process::Command::new("which").arg("focusa-daemon").output() {
+        if out.status.success() {
+            let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if !s.is_empty() {
+                return PathBuf::from(s);
+            }
+        }
+    }
+    let rr = repo_root();
+    let release = rr.join("target/release/focusa-daemon");
+    if release.exists() {
+        return release;
+    }
+    rr.join("target/debug/focusa-daemon")
 }
 
 fn pi_skills_path() -> Option<PathBuf> {
@@ -210,11 +236,41 @@ fn bin_check(name: &str, bin: &str) -> Value {
 }
 
 fn fs_check(name: &str, path: &str) -> Value {
-    let exists = Path::new(path).exists();
+    let p = Path::new(path);
+    let exists = p.exists();
+    let (is_file, is_dir, executable, size_bytes) = if exists {
+        let md = std::fs::metadata(p).ok();
+        (
+            md.as_ref().map(|m| m.is_file()).unwrap_or(false),
+            md.as_ref().map(|m| m.is_dir()).unwrap_or(false),
+            md.as_ref()
+                .map(|m| {
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::PermissionsExt;
+                        return m.permissions().mode() & 0o111 != 0;
+                    }
+                    #[cfg(not(unix))]
+                    {
+                        let _ = m;
+                        false
+                    }
+                })
+                .unwrap_or(false),
+            md.as_ref().map(|m| m.len()).unwrap_or(0),
+        )
+    } else {
+        (false, false, false, 0)
+    };
     json!({
         "name": name,
         "status": if exists { "completed" } else { "blocked" },
         "path": path,
+        "exists": exists,
+        "is_file": is_file,
+        "is_dir": is_dir,
+        "executable": executable,
+        "size_bytes": size_bytes,
         "what_failed": if exists { Value::Null } else { json!("required file/path missing") },
         "safe_recovery": if exists { Value::Null } else { json!(format!("restore or generate {path}")) },
     })

@@ -143,6 +143,14 @@ impl Daemon {
         external_mutation_epoch: Arc<AtomicU64>,
     ) -> anyhow::Result<Self> {
         let persistence = Persistence::new(&config)?;
+        // Privacy: purge expired, unpaired connect_sessions at startup so
+        // partial MAC keys (mac_nonce/mac_pubkey/mac_callback) don't accumulate
+        // across daemon runs.
+        match persistence.cleanup_expired_connect_sessions() {
+            Ok(n) if n > 0 => tracing::info!(removed = n, "startup: purged expired unpaired connect_sessions"),
+            Ok(_) => {}
+            Err(e) => tracing::warn!(error = %e, "startup: connect_sessions cleanup failed"),
+        }
         let ecs_root = persistence.data_dir.join("ecs");
         let ecs = ReferenceStore::new(ecs_root)?;
 
@@ -315,6 +323,13 @@ impl Daemon {
             });
         }
 
+        let decay_enabled = std::env::var("FOCUSA_NO_DECAY_TICK")
+            .ok()
+            .map(|v| !matches!(v.as_str(), "1" | "true" | "yes"))
+            .unwrap_or(true);
+        if !decay_enabled {
+            tracing::info!("focusa-daemon: FOCUSA_NO_DECAY_TICK set; memory decay tick disabled");
+        }
         let mut decay_interval = tokio::time::interval(std::time::Duration::from_secs(30));
         // Don't fire immediately on startup — first tick is a no-op.
         decay_interval.tick().await;
@@ -348,8 +363,11 @@ impl Daemon {
                 }
                 _ = decay_interval.tick() => {
                     // Periodic decay tick — reduces candidate pressure and rule weights.
-                    if let Err(e) = self.process_action(Action::DecayTick).await {
-                        tracing::debug!("Decay tick failed: {}", e);
+                    // Gated by FOCUSA_NO_DECAY_TICK (set early in main loop so this matches).
+                    if decay_enabled {
+                        if let Err(e) = self.process_action(Action::DecayTick).await {
+                            tracing::debug!("Decay tick failed: {}", e);
+                        }
                     }
 
                     // Emit temporal signals per G1-detail-06 UPDATE §Time as First-Class Signal.

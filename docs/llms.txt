@@ -95,6 +95,30 @@ When something fails:
 3. `focusa state dump` — full cognitive state as JSON
 4. `focusa workpoint resume --project-root "$(pwd)"` — recover prior state
 
+## HTTP API: streaming turn payload schemas
+
+The daemon accepts streaming turn chunks via `POST /v1/turn/append` and
+turn completion via `POST /v1/turn/complete`. Both return `422` on schema
+violation. Required fields (all required, types are JSON Schema 2020-12):
+
+- `POST /v1/turn/append` — append a streaming chunk during a turn
+  - `turn_id: string` (required) — unique id of the active turn
+  - `chunk: string` (required) — text chunk to append to the assembled prompt
+  - Response: `{"status":"accepted"}` on success
+
+- `POST /v1/turn/complete` — mark a turn as finished
+  - `turn_id: string` (required) — unique id of the completed turn
+  - `assistant_output: string` (required) — final assistant message
+  - `artifacts: array` (optional, default `[]`) — artifact refs produced
+  - `errors: array` (optional, default `[]`) — error records
+  - Response: `{"status":"accepted","turn_id":"..."}` on success
+
+- `POST /v1/workpoint/resume` — requires JSON body
+  - `project_root: string` (required) — project root
+  - `continuity_id: string|null` (optional) — continuity id
+  - `current_ask: string` (optional) — current operator ask
+  - Response: `{"workpoint_id":"...","trajectory_id":"...","next":"..."}`
+
 ## Anti-patterns
 
 - Don't treat focusa as a coding agent. It manages state.

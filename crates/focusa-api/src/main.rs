@@ -163,6 +163,49 @@ async fn main() -> anyhow::Result<()> {
     config.data_dir = resolved_data_dir(&config).to_string_lossy().into_owned();
     enforce_bind_auth_guard(&config)?;
 
+    // Startup banner: distinguish crash restart from intentional restart by
+    // inspecting the previous lock file before we overwrite it.
+    let pid = std::process::id();
+    let lock_path = std::path::PathBuf::from(&config.data_dir).join("focusa-daemon.lock");
+    let previous = std::fs::read_to_string(&lock_path).ok();
+    let started_at = chrono::Utc::now().to_rfc3339();
+    match previous.as_deref() {
+        Some(prev) if prev.lines().any(|l| l.starts_with("pid=")) => {
+            let prev_pid = prev
+                .lines()
+                .find_map(|l| l.strip_prefix("pid=").and_then(|s| s.trim().parse::<u32>().ok()));
+            let prev_started = prev
+                .lines()
+                .find_map(|l| l.strip_prefix("started_at=").map(|s| s.trim().to_string()));
+            tracing::warn!(
+                pid,
+                prev_pid = ?prev_pid,
+                prev_started_at = ?prev_started,
+                new_started_at = %started_at,
+                "focusa-daemon startup: replacing prior lock file (was the previous instance an intentional shutdown or a crash?)"
+            );
+        }
+        Some(prev) => {
+            // Lock file existed but no pid line — unparseable, treat as suspect.
+            tracing::warn!(
+                pid,
+                prev_contents = %prev.lines().next().unwrap_or(""),
+                "focusa-daemon startup: prior lock file was unparseable; replacing"
+            );
+        }
+        None => {
+            tracing::info!(pid, "focusa-daemon startup: no prior lock file (fresh install)");
+        }
+    }
+    tracing::info!(
+        pid,
+        version = env!("CARGO_PKG_VERSION"),
+        bind = %config.api_bind,
+        data_dir = %config.data_dir,
+        started_at = %started_at,
+        "focusa-daemon starting",
+    );
+
     let _instance_lock = DaemonInstanceLock::acquire(&config)?;
 
     // Shared state: daemon writes after every reduction, API reads.

@@ -4,11 +4,34 @@ use anyhow::{Context, Result};
 use clap::Args;
 use std::process::Command;
 
+fn urlencode(s: &str) -> String {
+    // Minimal RFC3986 percent-encoding for path-query values: encode any byte
+    // outside the unreserved set (ALPHA / DIGIT / "-" / "." / "_" / "~") and
+    // "/" so that arbitrary project_root paths survive in the URL.
+    let mut out = String::with_capacity(s.len());
+    for b in s.bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => {
+                out.push(b as char);
+            }
+            _ => {
+                out.push('%');
+                out.push_str(&format!("{:02X}", b));
+            }
+        }
+    }
+    out
+}
+
 #[derive(Args)]
 pub struct TuiArgs {
     /// Override the Focusa API URL for the TUI (defaults to FOCUSA_API_URL then http://127.0.0.1:8787).
     #[arg(long)]
     pub api_url: Option<String>,
+    /// Project root to scope API requests. Falls back to the daemon's
+    /// `/v1/project/identity` (no-op if the daemon can't resolve one).
+    #[arg(long)]
+    pub project_root: Option<String>,
     /// Run the headless TUI self-test instead of launching the interactive TUI.
     /// Prints initial daemon, health, focus-stack, workpoint, and lineage snapshot.
     #[arg(long)]
@@ -22,8 +45,27 @@ pub async fn run(args: TuiArgs, _json: bool) -> Result<()> {
         .or_else(|| std::env::var("FOCUSA_API_URL").ok())
         .unwrap_or_else(|| "http://127.0.0.1:8787".into());
 
+    // Resolve project_root: CLI flag > env > daemon's own identity.
+    let project_root = match args
+        .project_root
+        .clone()
+        .or_else(|| std::env::var("FOCUSA_PROJECT_ROOT").ok())
+    {
+        Some(r) => Some(r),
+        None => match reqwest::get(format!("{api}/v1/project/identity")).await {
+            Ok(resp) if resp.status().is_success() => {
+                let body: serde_json::Value = resp.json().await.ok().unwrap_or_default();
+                body.get("project_identity")
+                    .and_then(|p| p.get("root"))
+                    .and_then(|r| r.as_str())
+                    .map(|s| s.to_string())
+            }
+            _ => None,
+        },
+    };
+
     if args.headless_self_test {
-        return run_headless_self_test(&api).await;
+        return run_headless_self_test(&api, project_root.as_deref()).await;
     }
 
     let bin =
@@ -71,13 +113,13 @@ fn which(name: &str) -> Result<std::path::PathBuf, ()> {
     Err(())
 }
 
-async fn run_headless_self_test(api: &str) -> Result<()> {
+async fn run_headless_self_test(api: &str, project_root: Option<&str>) -> Result<()> {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(5))
         .build()
         .context("reqwest client init failed")?;
 
-    async fn fetch(client: &reqwest::Client, api: &str, path: &str) -> serde_json::Value {
+    async fn fetch_get(client: &reqwest::Client, api: &str, path: &str) -> serde_json::Value {
         let url = format!("{}{}", api.trim_end_matches('/'), path);
         match client.get(&url).send().await {
             Ok(resp) if resp.status().is_success() => resp
@@ -89,16 +131,52 @@ async fn run_headless_self_test(api: &str) -> Result<()> {
         }
     }
 
-    let health = fetch(&client, api, "/v1/health").await;
-    let identity = fetch(
+    async fn fetch_post(
+        client: &reqwest::Client,
+        api: &str,
+        path: &str,
+        body: serde_json::Value,
+    ) -> serde_json::Value {
+        let url = format!("{}{}", api.trim_end_matches('/'), path);
+        match client.post(&url).json(&body).send().await {
+            Ok(resp) if resp.status().is_success() => resp
+                .json::<serde_json::Value>()
+                .await
+                .unwrap_or_else(|_| serde_json::json!({"raw_error": "decode_failed"})),
+            Ok(resp) => serde_json::json!({"status": resp.status().as_u16(), "url": url}),
+            Err(err) => serde_json::json!({"error": err.to_string(), "url": url}),
+        }
+    }
+
+    let health = fetch_get(&client, api, "/v1/health").await;
+    let identity_path = project_root
+        .map(|r| format!("/v1/project/identity?project_root={}", urlencode(r)))
+        .unwrap_or_else(|| "/v1/project/identity".to_string());
+    let identity = fetch_get(&client, api, &identity_path).await;
+    let focus_stack = fetch_get(&client, api, "/v1/focus/stack").await;
+    // /v1/workpoint/resume requires POST with a JSON body.
+    let workpoint = fetch_post(
         &client,
         api,
-        "/v1/project/identity?project_root=/home/wirebot/focusa",
+        "/v1/workpoint/resume",
+        serde_json::json!({
+            "project_root": project_root,
+            "continuity_id": null,
+            "current_ask": "headless self-test"
+        }),
     )
     .await;
-    let focus_stack = fetch(&client, api, "/v1/focus/stack").await;
-    let workpoint = fetch(&client, api, "/v1/workpoint/resume").await;
-    let telemetry = fetch(&client, api, "/v1/telemetry/snapshot").await;
+    // /v1/telemetry/snapshot doesn't exist; record status only when non-404.
+    let telemetry_url = format!("{}/v1/telemetry/snapshot", api.trim_end_matches('/'));
+    let telemetry = match client.get(&telemetry_url).send().await {
+        Ok(r) if r.status().as_u16() == 404 => serde_json::json!({"status": "absent", "url": telemetry_url}),
+        Ok(r) if r.status().is_success() => r
+            .json::<serde_json::Value>()
+            .await
+            .unwrap_or_else(|_| serde_json::json!({"raw_error": "decode_failed"})),
+        Ok(r) => serde_json::json!({"status": r.status().as_u16(), "url": telemetry_url}),
+        Err(e) => serde_json::json!({"error": e.to_string(), "url": telemetry_url}),
+    };
 
     let payload = serde_json::json!({
         "schema": "focusa.tui_headless_self_test.v1",

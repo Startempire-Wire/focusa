@@ -1556,6 +1556,30 @@ impl SqlitePersistence {
         Ok(())
     }
 
+    /// V2 (privacy): Delete connect_session rows where the room expired
+    /// without being completed AND the row is not currently bound to an
+    /// active device. Returns the count of rows removed. Wipes any
+    /// partial MAC negotiation data (mac_nonce, mac_pubkey, mac_callback).
+    pub fn cleanup_expired_connect_sessions(&self) -> anyhow::Result<usize> {
+        let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
+        let now = chrono::Utc::now().to_rfc3339();
+        // Only delete rows that are expired AND not currently paired (no device_id).
+        let removed = conn.execute(
+            "DELETE FROM connect_sessions \
+             WHERE expires_at < ?1 \
+               AND (device_id IS NULL OR device_id = '') \
+               AND status != 'completed'",
+            params![now],
+        )?;
+        if removed > 0 {
+            tracing::info!(
+                removed,
+                "cleanup_expired_connect_sessions: purged unpaired expired rooms"
+            );
+        }
+        Ok(removed)
+    }
+
     /// V2: Force a WAL checkpoint so all just-committed writes are visible
     /// to readers and the on-disk file is consistent. Called after every
     /// trust transition (room create, room join, room approve, token revoke).

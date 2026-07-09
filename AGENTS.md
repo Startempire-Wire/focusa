@@ -1,5 +1,17 @@
 # Agent Instructions
 
+## Pre-work rule: always check remote first (mandatory)
+
+Before any durable state change (commit, push, branch switch, merge, rebase, tag), or before resuming work after a session reload, agent context drift, or gap in continuity:
+
+1. `git fetch origin` to discover remote commits you do not yet have locally.
+2. `git status` to see local uncommitted work and any rebase-incompatibility risk.
+3. If you have unstaged changes and the remote has moved, **stash first**, then `git pull --rebase`, then `git stash pop`. Resolve any conflicts before continuing.
+4. Only then proceed to the canonical build/deploy chain below.
+
+Why: shipping from a stale local head duplicates or reverts remote work, and creates
+phantom commits in the operator's log. The discipline is: **see the world before you change it.**
+
 ## Canonical build/deploy rule (mandatory)
 
 **Build and deploy ONLY through the full live GitHub release pipeline.**

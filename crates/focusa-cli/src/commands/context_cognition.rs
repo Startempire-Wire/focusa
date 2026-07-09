@@ -111,9 +111,33 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             continuity_id,
             json,
         } => {
+            // Fallback to daemon's own project identity when no --project-root
+            // is supplied (L6 fix). Preserves operator-supplied value if given.
+            let pr = match project_root {
+                Some(p) => Some(p),
+                None => client
+                    .get("/v1/project/identity")
+                    .await
+                    .ok()
+                    .and_then(|v| {
+                        let pi = v.get("project_identity")?;
+                        if let Some(r) = pi.get("root").and_then(|r| r.as_str()) {
+                            return Some(r.to_string());
+                        }
+                        // Some daemon responses nest root inside deployment
+                        if let Some(r) = pi
+                            .get("deployment")
+                            .and_then(|d| d.get("root"))
+                            .and_then(|r| r.as_str())
+                        {
+                            return Some(r.to_string());
+                        }
+                        None
+                    }),
+            };
             let mut path = String::from("/v1/context-cognition");
             let mut sep = "?";
-            if let Some(pr) = project_root.as_deref() {
+            if let Some(pr) = pr.as_deref() {
                 path.push_str(sep);
                 path.push_str("project_root=");
                 path.push_str(&urlencoding_minimal(pr));

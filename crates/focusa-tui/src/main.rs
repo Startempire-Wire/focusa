@@ -61,6 +61,24 @@ async fn main() -> Result<()> {
     // Initial fetch.
     app.refresh().await;
 
+    // TTY guard: crossterm's enable_raw_mode() crashes with ENXIO on macOS
+    // when stdout isn't a terminal (SSH, tmux pane, background job, CI).
+    // Detect non-interactive contexts and route to headless output rather
+    // than crashing. Also gate EnterAlternateScreen — it's only valid for TTYs.
+    let stdout_is_tty = std::io::IsTerminal::is_terminal(&std::io::stdout());
+    let stderr_is_tty = std::io::IsTerminal::is_terminal(&std::io::stderr());
+    if !stdout_is_tty {
+        if stderr_is_tty {
+            eprintln!(
+                "focusa-tui: stdout is not a terminal (TTY required for raw mode).\n\
+                 Run with --headless-self-test for structured output, or run interactively\n\
+                 from a real terminal (SSH/tmux panes and background jobs are not supported\n\
+                 by crossterm raw mode on macOS)."
+            );
+        }
+        std::process::exit(64);
+    }
+
     // Terminal setup.
     enable_raw_mode()?;
     let mut stdout = io::stdout();
