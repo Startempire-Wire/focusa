@@ -1,0 +1,143 @@
+Spec128-00 Current Surface Audit / Gap Matrix
+Bead: focusa-wefzg.1
+Spec: docs/128-focusa-over-the-air-auto-update-and-dev-mode-license-spec.md
+Status: initial audit matrix; implementation code changes not started.
+
+Verified current stale-surface problem
+- /usr/local/bin/focusa reports 0.9.74-dev while repo Cargo packages and daemon health report 0.9.80-dev.
+- Running daemon/API health is 0.9.80-dev.
+- target/debug/focusa is 0.9.80-dev.
+- This proves the exact customer-hostile drift Spec128 is meant to eliminate.
+
+Current implementation surfaces found
+- CLI: crates/focusa-cli/src/commands/upgrade.rs exists but command is `focusa upgrade`, not Spec128 `focusa update ...` hierarchy.
+- CLI install orchestrator: crates/focusa-cli/src/commands/install.rs owns asset download, SHA256SUMS verification, service rendering delegation, rollback/stash comments, dry-run, channel/target flags.
+- CLI command map: crates/focusa-cli/src/main.rs includes Install and Upgrade; no Update command namespace found.
+- API release proof: crates/focusa-api/src/routes/release.rs exposes release proof/manual gate posture; no /v1/update/status/check/plan/apply/rollback/policy routes found.
+- API license: crates/focusa-api/src/routes/license.rs exposes /v1/license/status but capabilities do not yet include OTA/update/dev_mode features.
+- Bash installer: scripts/install-focusa.sh performs OS/arch detection, release asset selection, license/eval behavior, SHA256SUMS/cosign-ish verification fallback, anti-rollback, install event logging, Rust orchestrator handoff.
+- PowerShell installer: scripts/install-focusa.ps1 detects Windows triple and selects complete release assets; delegates to Rust install.
+- Release workflows/scripts exist: .github/workflows/release.yml, .github/workflows/dev-release-tag.yml, scripts/release.sh, scripts/stamp-release-version.
+- Tests exist for legacy installer/update policy, release gates, upgrade command, and installer parity, but no complete Spec128 OTA test suite.
+
+Gap matrix by Spec128 implementation order
+
+1) Spec128-01 release manifest/signing/eligibility/provenance
+Current:
+- Installer selects GitHub releases and SHA256SUMS; release route exposes proof status.
+Missing:
+- Signed release manifest schema focusa.release_manifest.v1/v2 with required per-asset signatures.
+- Mechanical channel eligibility for stable/preview/dev/nightly.
+- Yanked/revoked release/key handling.
+- Trust-root/key-rotation metadata.
+- SLSA/provenance/builder identity fields.
+- Manifest compatibility fields.
+Implementation target:
+- Release manifest generator/validator plus CLI/API resolver used by installer/update check/apply.
+
+2) Spec128-02 read-only update inventory/status/check
+Current:
+- `focusa upgrade --dry-run` reports current/latest at high level and delegates to install.
+- No first-class `focusa update status/check` namespace.
+Missing:
+- Inventory of installed daemon/CLI/TUI/Pi extension/installer/menubar versions/hashes/paths.
+- Latest eligible release based on signed manifest and license policy.
+- Stale part list; current CLI stale condition is not surfaced by command.
+- API routes GET/POST /v1/update/status/check.
+Implementation target:
+- Read-only command/API first; no mutations.
+
+3) Spec128-03 update policy/license/dev_mode defaults
+Current:
+- License status API exposes existing tier/capabilities; installer has eval/commercial behavior and a special registry `status=dev_mode` test-fixture path.
+Missing:
+- First-party dev_mode license level and capabilities: ota_auto_update, official_release_bundle, packaged_installer, developer_channel.
+- update-policy.json read/write.
+- `dev_mode` automatic latest eligible dev build default.
+- Evaluation notify-only and paid prompt/scheduled defaults.
+- Dev override visibility in status.
+Implementation target:
+- License crate/API/CLI policy integration before unattended apply.
+
+4) Spec128-04 installer environment preflight/dependency/intro UX
+Current:
+- Bash/PowerShell detect OS/arch and require curl/python3; installer has dry-run/eval/no-service/force.
+Missing:
+- Full preflight report: distro, libc, shell, terminal, package manager, service manager, privileges, PATH, disk/memory/network/TLS/proxy, existing install, update policy.
+- Offer to install missing dependencies with detected package manager and consent.
+- --doctor/--repair/--portable/uninstall-preserve-data/offline-airgap flows.
+- Interactive intro animation/spinner with --no-animation/--quiet/CI/non-TTY fallback.
+Implementation target:
+- Installer UX layer before download/install.
+
+5) Spec128-05 update planning/compatibility/prompt consent
+Current:
+- Upgrade has dry-run plan envelope but not full part plan.
+Missing:
+- `focusa update plan` with part-by-part plan, daemon restart impact, rollback availability, prompt modes, skip/postpone/details.
+- Compatibility gates for daemon API/Pi tool/data schema/migrations.
+Implementation target:
+- Plan can be shown to CLI/API/Pi/TUI/menubar and reused by apply.
+
+6) Spec128-06 locking/staging/atomic/interrupted recovery
+Current:
+- install.rs comments and upgrade envelope mention atomic stash/rollback; installer uses temp dir.
+Missing:
+- Host-level update lock shared by CLI/daemon/scheduler/installer.
+- Persisted phase state for resume/rollback.
+- fsync/atomic rename/preserve owner/mode/xattrs/capabilities semantics specified in code.
+- No half-written executable invariant tests.
+Implementation target:
+- Shared update transaction module.
+
+7) Spec128-07 guarded apply CLI/TUI first daemon last
+Current:
+- Installer installs focusa and delegates daemon/TUI install to Rust orchestrator.
+Missing:
+- First-class `focusa update apply` guarded by manifest, policy, license, lock, compatibility, rollback.
+- CLI/TUI first then daemon last with health/version proof.
+- Safe daemon restart policy.
+- No data/env/license/Workpoint/evidence overwrite proof.
+Implementation target:
+- dev_mode guarded apply first, generalize later.
+
+8) Spec128-08 rollback/history/observability/admin controls
+Current:
+- Installer logs install event; upgrade has recovery hint.
+Missing:
+- update history JSONL/schema with all Spec128 events.
+- rollback command/API.
+- pin/unpin/skip/pause/resume/force-check/trusted-dev-force-latest.
+Implementation target:
+- Update history and admin policy controls.
+
+9) Spec128-09 scheduler/background notifications
+Current:
+- No scheduler/update routes found.
+Missing:
+- Daemon startup/interval checks, jitter/backoff/offline/maintenance windows.
+- Status surfacing through Pi doctor, TUI, menubar, CLI/API.
+Implementation target:
+- Background updater after safe apply/rollback exists.
+
+10) Spec128-10 tests
+Current:
+- Existing installer/release/upgrade tests are partial and pre-Spec128.
+Missing tests:
+- stale CLI detection;
+- dev_mode automatic default;
+- eval unattended apply denied;
+- bad checksum/signature/revoked key/yanked release blocks before mutation;
+- daemon restart only when changed;
+- rollback on health failure;
+- interrupted update recovery;
+- installer preflight/dependency prompt/intro UX;
+- privacy boundary for update checks;
+- update lock concurrency.
+Implementation target:
+- Static first, then runtime/eval tests.
+
+Immediate implementation recommendation
+- Start with focusa-wefzg.2 only after this audit is accepted/closed: manifest/signing/eligibility primitives.
+- Then focusa-wefzg.3 read-only `focusa update status/check` to make stale local CLI visible before any mutation.
+- Do not implement scheduler/automatic apply until manifest trust, policy/license, lock/atomic, rollback, and tests exist.
