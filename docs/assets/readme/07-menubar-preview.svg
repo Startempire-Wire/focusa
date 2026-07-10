@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-label="07 Menubar cockpit preview">
+  <rect width="1200" height="675" rx="36" fill="#0b1020"/>
+  <rect x="54" y="54" width="1092" height="567" rx="28" fill="#111a2e" stroke="#2b82ff" stroke-width="3"/>
+  <circle cx="99" cy="99" r="12" fill="#ff5f56"/><circle cx="137" cy="99" r="12" fill="#ffbd2e"/><circle cx="175" cy="99" r="12" fill="#27c93f"/>
+  <text x="82" y="182" fill="#8ec5ff" font-size="34" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">focusa</text>
+  <text x="82" y="270" fill="#ffffff" font-size="54" font-weight="700" font-family="Inter, ui-sans-serif, system-ui, sans-serif">07 Menubar cockpit preview</text>
+  <text x="82" y="350" fill="#d7e6ff" font-size="34" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">pairing start · status · workpoint peek</text>
+  <text x="82" y="430" fill="#93a8c8" font-size="28" font-family="Inter, ui-sans-serif, system-ui, sans-serif">Preview surface, not required for CLI proof</text>
+  <rect x="82" y="500" width="1036" height="58" rx="16" fill="#16233d"/>
+  <text x="110" y="538" fill="#7ee787" font-size="24" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">public-safe illustrative visual proof · sanitized output</text>
+</svg>
