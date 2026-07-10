@@ -187,6 +187,7 @@ Lifecycle grouping is documented as planned: `focusa lifecycle start|stop|instal
 - `/v1/telemetry/snapshot` is the route-parity endpoint for TUI/menubar runtime snapshots.
 - Daemon startup removes expired, incomplete pairing rooms before rehydrating active pairing state from SQLite.
 - `FOCUSA_NO_DECAY_TICK=1` is supported as a runtime escape hatch to disable the memory decay tick; prefer ResourceMode/LowMem controls for normal pressure management.
+- Cross-phase CLI regressions are covered by `tests/spec_cli_cross_phase_smoke_test.sh` and the cargo wrapper `cross_phase_smoke_e2e`.
 
 ## Common examples
 

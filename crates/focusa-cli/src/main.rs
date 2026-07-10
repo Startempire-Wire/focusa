@@ -5,7 +5,7 @@
 //! Binary: `focusa`
 //! Thin facade — zero business logic beyond arg parsing + API calls.
 
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 
 mod api_client;
 mod commands;
@@ -83,6 +83,12 @@ struct Cli {
     command: Commands,
 }
 
+#[derive(ValueEnum, Clone, Debug, PartialEq, Eq)]
+enum StatusMode {
+    Agent,
+    Operator,
+}
+
 #[derive(Subcommand)]
 enum Commands {
     /// Curated Focusa help and migration maps.
@@ -128,6 +134,8 @@ enum Commands {
 
     /// Show daemon status.
     Status {
+        /// Optional canonical mode alias: `focusa status agent|operator`.
+        mode: Option<StatusMode>,
         /// Agent-first status envelope with Workpoint, Work-loop, token, and cache details.
         #[arg(long)]
         agent: bool,
@@ -538,7 +546,13 @@ async fn main() -> anyhow::Result<()> {
         Commands::Upgrade(args) => commands::upgrade::run(cli.json, args).await,
         Commands::Uninstall(args) => commands::uninstall::run(args).await,
         Commands::Codesign(args) => commands::codesign::run(args).await,
-        Commands::Status { agent, operator } => {
+        Commands::Status {
+            mode,
+            agent,
+            operator,
+        } => {
+            let agent = agent || mode == Some(StatusMode::Agent);
+            let operator = operator || mode == Some(StatusMode::Operator);
             let api = api_client::ApiClient::new();
             let resp = api.get("/v1/status").await?;
             if operator {
