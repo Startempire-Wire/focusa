@@ -8,10 +8,14 @@ Focusa cognitive governance CLI
 Usage: focusa [OPTIONS] <COMMAND>
 
 Commands:
+  help           Curated Focusa help and migration maps
   start          Start the Focusa daemon
   stop           Stop the Focusa daemon
   status         Show daemon status
-  onboard        First-run Operator Preview setup
+  onboard        Deprecated alias; use `focusa setup wizard`
+  first-mission  Guided project → Workpoint → proof → Mission Deck handoff
+  setup          Setup wizard/init/doctor onboarding paths
+  deck           Launch Focusa Mission Deck
   doctor         Run full agent-first doctor checks
   cleanup        Recoverable cleanup of generated residue
   continue       Resume governed continuous work and refresh state
@@ -128,7 +132,13 @@ Phone Bridge JSON includes `environment_contract`, `runtime_inventory`, and `act
 
 ## Current agent-first command groups
 
-- `onboard` — first-run Operator Preview setup for `pi`, `manual`, and other agent paths.
+- `help all` / `help migration` — curated command inventory and old → new command map.
+- `project` — dashboard, discovery, selected-project convenience, status, creation, templates, and settings.
+- `first-mission` — guided project → Workpoint → proof → Mission Deck handoff; dry-run is non-mutating.
+- `setup wizard` — routes to First Mission; `setup init` / `setup doctor` are migration hints.
+- `deck` — user-facing Mission Deck launcher.
+- `onboard` — deprecated alias; use `focusa setup wizard`.
+- `pairing start` — canonical pairing entry point; `pair` is a deprecated alias.
 - `status --operator` — human session card with project, continuity, trajectory ladder (HLT → MLG → STG → Waypoints → Workpoint), proactive-planning doctrine, active Workpoint, next action, evidence count, drift hint, and health.
 - `doctor` — full agent-first health/readiness check.
 - `continue` — governed continuous-work resume and state refresh.
@@ -150,12 +160,35 @@ Phone Bridge JSON includes `environment_contract`, `runtime_inventory`, and `act
 - `metacognition recent-reflections` / `recent-adjustments` / `recent-evaluations` — read recent learning/evaluation packets.
 - `awareness card --continuity-id` — non-Pi utility card injection with trajectory orientation and logical-session scoping.
 
+## Command hierarchy migration
+
+`focusa help migration` is the canonical old → new map. Current aliases warn when executed instead of silently behaving as separate command families.
+
+| Old command | Canonical command |
+| --- | --- |
+| `focusa init` | `focusa project new` / `focusa setup init` |
+| `focusa onboard` | `focusa setup wizard` |
+| `focusa preflight` | `focusa setup doctor` / future `focusa quality preflight` |
+| `focusa pair` | `focusa pairing start` |
+| `focusa pairing-doctor` | `focusa pairing doctor` |
+| `focusa pairing-transport` | `focusa pairing transport` |
+| `focusa pairing-wizard` | `focusa pairing wizard` |
+| `focusa stack` | `focusa focus stack` |
+
+Lifecycle grouping is documented as planned: `focusa lifecycle start|stop|install|uninstall|upgrade|install-service|codesign|doctor`.
+
 ## Common examples
 
 ```bash
+focusa help all
+focusa help migration
+focusa project
+focusa first-mission --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --dry-run --json
+focusa setup wizard --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --dry-run --json
+focusa pairing start --help
 focusa status --agent
 focusa status --operator
-focusa onboard --agent manual
+focusa onboard --agent manual  # deprecated alias; use focusa setup wizard
 focusa doctor --json
 focusa awareness card --adapter-id openclaw --workspace-id wirebot --agent-id wirebot --operator-id verious.smith --continuity-id cont-1
 focusa continue --json

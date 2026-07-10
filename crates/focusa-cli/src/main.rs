@@ -14,6 +14,8 @@ mod commands;
 /// subcommands under a single `focusa pairing ...` namespace.
 #[derive(Subcommand, Debug)]
 enum PairingCmd {
+    /// Start a Mac/phone pairing flow (canonical replacement for `focusa pair`).
+    Start(commands::pair::PairArgs),
     /// Interactive pairing wizard (Tailscale detect, room create, terminal QR, poll).
     Wizard(commands::pairing_wizard::WizardArgs),
     /// Non-interactive: create a room and print JSON with room_id + pair_url.
@@ -35,6 +37,7 @@ enum PairingCmd {
 
 async fn run_pairing(cmd: PairingCmd) -> anyhow::Result<()> {
     match cmd {
+        PairingCmd::Start(args) => commands::pair::run(args, false).await,
         PairingCmd::Wizard(args) => {
             commands::pairing_wizard::run(commands::pairing_wizard::WizardCmd::Wizard(args)).await
         }
@@ -54,8 +57,9 @@ async fn run_pairing(cmd: PairingCmd) -> anyhow::Result<()> {
 #[derive(Parser)]
 #[command(
     name = "focusa",
-    version = "0.9.74-dev",
-    about = "Focusa cognitive governance CLI"
+    version = env!("CARGO_PKG_VERSION"),
+    about = "Focusa cognitive governance CLI",
+    disable_help_subcommand = true
 )]
 #[command(propagate_version = true)]
 struct Cli {
@@ -81,6 +85,9 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Curated Focusa help and migration maps.
+    Help(commands::help::HelpArgs),
+
     /// Start the Focusa daemon.
     Start,
 
@@ -508,6 +515,7 @@ async fn main() -> anyhow::Result<()> {
             commands::about::run(cli.json)?;
             Ok(())
         }
+        Commands::Help(args) => commands::help::run(args, cli.json),
         Commands::Audit(args) => commands::audit::run(args, cli.json).await,
         Commands::InstallService(args) => commands::service::run(args, false).await,
         Commands::Install(args) => commands::install::run(args).await,
@@ -863,15 +871,33 @@ async fn main() -> anyhow::Result<()> {
             }
             Ok(())
         }
-        Commands::Onboard(args) => commands::onboard::run(args, cli.json).await,
-        Commands::Pair(args) => commands::pair::run(args, cli.json).await,
-        Commands::PairingDoctor(args) => commands::pairing_doctor::run(args).await,
-        Commands::PairingWizard(cmd) => commands::pairing_wizard::run(cmd).await,
+        Commands::Onboard(args) => {
+            commands::help::warn_alias("focusa onboard", "focusa setup wizard");
+            commands::onboard::run(args, cli.json).await
+        }
+        Commands::Pair(args) => {
+            commands::help::warn_alias("focusa pair", "focusa pairing start");
+            commands::pair::run(args, cli.json).await
+        }
+        Commands::PairingDoctor(args) => {
+            commands::help::warn_alias("focusa pairing-doctor", "focusa pairing doctor");
+            commands::pairing_doctor::run(args).await
+        }
+        Commands::PairingWizard(cmd) => {
+            commands::help::warn_alias("focusa pairing-wizard", "focusa pairing wizard");
+            commands::pairing_wizard::run(cmd).await
+        }
         Commands::Pairing(cmd) => run_pairing(cmd).await,
-        Commands::PairingTransport(cmd) => commands::pairing_transport::run(cmd).await,
+        Commands::PairingTransport(cmd) => {
+            commands::help::warn_alias("focusa pairing-transport", "focusa pairing transport");
+            commands::pairing_transport::run(cmd).await
+        }
         Commands::Doctor(args) => commands::doctor::run(cli.json, args).await,
         Commands::License(args) => commands::license::run(cli.json, args).await,
-        Commands::Preflight => commands::dxux::preflight().await,
+        Commands::Preflight => {
+            commands::help::warn_alias("focusa preflight", "focusa setup doctor / focusa quality preflight");
+            commands::dxux::preflight().await
+        }
         Commands::Recover(args) => commands::recover::run(cli.json, args).await,
         Commands::Explain { failure } => commands::dxux::explain(failure).await,
         Commands::Dxux(cmd) => {
@@ -885,12 +911,19 @@ async fn main() -> anyhow::Result<()> {
         Commands::Cleanup(args) => commands::cleanup::run(args, cli.json).await,
         Commands::Continue(args) => commands::continue_work::run(args, cli.json).await,
         Commands::Tui(args) => commands::tui::run(args, cli.json).await,
-        Commands::Init(args) => commands::init::run(args, cli.json).await,
-        Commands::Walkthrough(args) => commands::walkthrough::run(args, cli.json).await,
+        Commands::Init(args) => {
+            commands::help::warn_alias("focusa init", "focusa project new / focusa setup init");
+            commands::init::run(args, cli.json).await
+        }
+        Commands::Walkthrough(args) => {
+            commands::help::warn_alias("focusa walkthrough", "focusa setup walkthrough");
+            commands::walkthrough::run(args, cli.json).await
+        }
         Commands::Preload(args) => commands::preload::run(args, cli.json).await,
         Commands::Deck(args) => commands::deck::run(args, cli.json).await,
         Commands::Workflow(cmd) => commands::workflow::run(cmd, cli.json).await,
         Commands::Stack => {
+            commands::help::warn_alias("focusa stack", "focusa focus stack");
             let api = api_client::ApiClient::new();
             let resp = api.get("/v1/focus/stack").await?;
             if cli.json {

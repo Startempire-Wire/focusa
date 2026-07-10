@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use std::net::{IpAddr, Ipv4Addr};
 use std::path::Path;
 
-#[derive(Args)]
+#[derive(Args, Debug)]
 pub struct PairArgs {
     /// Public URL for this Focusa server/VPS, e.g. https://focusa.example.com.
     #[arg(long)]

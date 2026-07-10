@@ -28,6 +28,7 @@ pub mod first_mission;
 pub mod focus;
 pub mod gate;
 pub mod hlt;
+pub mod help;
 pub mod init;
 pub mod install;
 pub mod intro;
