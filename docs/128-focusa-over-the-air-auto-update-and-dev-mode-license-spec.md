@@ -109,9 +109,13 @@ Recommended server path:
 ```bash
 focusa update status --json
 focusa update check --channel dev --json
-focusa update plan --tag latest --json
-focusa update apply --tag latest --json
-focusa update rollback --json
+focusa update plan --latest-version 0.9.80-dev --json
+focusa update apply --latest-version 0.9.80-dev --json
+focusa update history --json
+focusa update rollback --part all --json
+focusa update admin --pause --force-check --json
+focusa update scheduler --json
+focusa update notifications --latest-version 0.9.80-dev --json
 focusa update policy show --json
 focusa update policy set --enabled true --channel dev --mode automatic
 focusa update policy set --enabled false
@@ -124,6 +128,10 @@ Daemon/API routes:
 - `POST /v1/update/plan`
 - `POST /v1/update/apply`
 - `POST /v1/update/rollback`
+- `GET /v1/update/history`
+- `POST /v1/update/admin`
+- `GET /v1/update/scheduler`
+- `POST /v1/update/notifications`
 - `GET /v1/update/policy`
 - `POST /v1/update/policy`
 
@@ -537,6 +545,35 @@ Update events should be visible in:
 29. Structured update events are visible in daemon API, CLI status, TUI/menubar/Pi doctor where applicable, and update history.
 30. Admin can pin, unpin, skip, pause, resume, force check, and trusted-dev force latest without bypassing trust verification.
 31. Static/runtime tests cover stale CLI detection, dev-mode default auto-update, eval unattended denial, checksum/signature failures, daemon restart only when changed, rollback on health failure, interrupted update recovery, installer preflight/dependency prompt, and privacy boundary.
+
+## Implementation status — 2026-07-10
+
+Implemented MVP-safe scaffolds through `focusa-wefzg.11`:
+
+- release manifest/signing/eligibility primitives in `focusa_core::update`;
+- `focusa update status/check` read-only stale-surface inventory;
+- license/dev-mode update policy defaults with `auto_apply_allowed=false`;
+- `focusa install --preflight` system/dependency/terminal UX report;
+- `focusa update plan` compatibility, prompt, lock, staging, atomic, recovery, and no-half-written-executable safety plan;
+- `focusa update apply` guarded `blocked_read_only` envelope with CLI/TUI/daemon-last execution order and no data/env/license overwrite;
+- `focusa update history`, `rollback`, `admin`, `scheduler`, and `notifications` read-only observability/control envelopes;
+- `tests/spec128_update_runtime_test.sh` plus cargo integration `spec128_update_runtime_e2e` covering the acceptance-critical runtime checks.
+
+Customer safety boundary: these surfaces prove stale detection, planning, policy, and prompts; they intentionally do not download assets, replace binaries, install timers, restart the daemon, execute rollback, or mutate admin policy until the remaining trust/apply gates are wired.
+
+Proof commands:
+
+```bash
+cargo fmt --check
+cargo test -p focusa-cli update::
+cargo test -p focusa-api update::
+bash tests/spec128_update_status_static_test.sh
+bash tests/spec128_installer_preflight_static_test.sh
+bash tests/spec128_update_runtime_test.sh
+cargo test -p focusa-cli --test spec128_update_runtime_e2e
+cargo test -p focusa-cli --test cross_phase_smoke_e2e
+cargo test -p focusa-api trajectory
+```
 
 ## First implementation slice
 

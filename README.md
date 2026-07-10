@@ -31,6 +31,18 @@ focusa setup wizard --dry-run
 focusa doctor
 ```
 
+Safe installer/update checks before changing anything:
+
+```bash
+focusa install --preflight --json
+focusa update status --json
+focusa update plan --json
+focusa update apply --json      # blocked/read-only scaffold today
+focusa update scheduler --json  # planned/read-only; no timer installed
+```
+
+These commands report stale CLI/daemon/TUI surfaces, dependency prompts, update policy, rollback/safety gates, and notification routes without replacing binaries, restarting the daemon, overwriting `.env`/license/project data, or installing a background worker.
+
 Prefer a local build while evaluating from source?
 
 ```bash

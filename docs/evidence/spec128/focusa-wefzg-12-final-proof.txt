@@ -1,0 +1,48 @@
+Spec128 final release/update proof — focusa-wefzg.12
+Date: 2026-07-10
+Project: /home/wirebot/focusa
+
+Scope
+- Customer-safe installer/update surfaces for Spec128 MVP closure.
+- No binary replacement, daemon restart, timer install, rollback execution, or admin policy mutation performed by proof commands.
+
+Implemented surfaces
+- focusa install --preflight --json
+- focusa update status --json
+- focusa update check --json
+- focusa update plan --json
+- focusa update apply --json (blocked_read_only scaffold)
+- focusa update history --json
+- focusa update rollback --json (blocked_read_only scaffold)
+- focusa update admin --json (preview_read_only scaffold)
+- focusa update scheduler --json (planned_read_only scaffold; no worker/timer installed)
+- focusa update notifications --json
+- API mirrors: /v1/update/status, check, plan, apply, history, rollback, admin, scheduler, notifications, policy.
+
+Proof commands run green
+- cargo fmt --check
+- cargo test -p focusa-cli update::
+- cargo test -p focusa-api update::
+- bash tests/spec128_update_status_static_test.sh
+- bash tests/spec128_installer_preflight_static_test.sh
+- bash tests/spec128_update_runtime_test.sh
+- cargo test -p focusa-cli --test spec128_update_runtime_e2e
+- cargo test -p focusa-cli --test cross_phase_smoke_e2e
+- cargo test -p focusa-api trajectory
+
+Runtime proof coverage
+- Installer preflight reports read_only=true and mutations_performed=false.
+- Dependency prompt reports auto_install_performed=false and requires explicit consent.
+- Fake PATH focusa proves stale CLI detection against latest 0.9.80-dev.
+- FOCUSA_DEV_MODE=1 policy defaults to channel=dev, mode=automatic, auto_apply_allowed=false.
+- Evaluation/non-dev posture denies unattended auto-apply.
+- Update plan includes checksum/signature verification requirements and no-half-written executable rule.
+- Update apply reports blocked_read_only, apply_executed=false, daemon_restart.allowed=false, data/env/license overwrite=false.
+- Rollback reports blocked_read_only, rollback_executed=false, health/history proof requirements.
+- History exposes retention and observability counters/events.
+- Admin controls preview pin/skip/pause/resume/force-check/trusted-dev-force-latest with mutations_performed=false.
+- Scheduler reports scheduler_installed=false, background_worker_started=false, automatic_apply.allowed=false, jitter/backoff/offline/maintenance rules.
+- Notifications report stale CLI as warning with CLI/API/Pi routes and TUI/menubar planned routes.
+
+Known safety boundary
+- These are MVP-safe planning/visibility/control surfaces. Actual asset download, binary promotion, daemon restart, rollback execution, timer install, and admin policy mutation remain intentionally blocked until the trust/apply gates are implemented and proven.
