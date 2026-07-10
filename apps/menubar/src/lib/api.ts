@@ -196,8 +196,8 @@ export async function requestJson<T = any>(path: string, options: ApiRequestOpti
           } catch { /* best effort */ }
           // Surface a revocation notification to the operator.
           try {
-            const { default: { notify } } = await import('@tauri-apps/plugin-notification');
-            if (typeof notify === 'function') notify({ title: 'Focusa: Pairing Revoked', body: `Your device was revoked from daemon at ${base}. Re-pair from Settings > Pairing.` });
+            const { sendNotification } = await import('@tauri-apps/plugin-notification');
+            if (typeof sendNotification === 'function') sendNotification({ title: 'Focusa: Pairing Revoked', body: `Your device was revoked from daemon at ${base}. Re-pair from Settings > Pairing.` });
           } catch { /* Tauri notify not available in web preview */ }
         } else if (fullClass === 'token_expired') {
           // Token has expired; clear it and let the operator re-pair.
@@ -206,8 +206,8 @@ export async function requestJson<T = any>(path: string, options: ApiRequestOpti
             if (typeof clearCurrentAuthToken === 'function') clearCurrentAuthToken();
           } catch { /* best effort */ }
           try {
-            const { default: { notify } } = await import('@tauri-apps/plugin-notification');
-            if (typeof notify === 'function') notify({ title: 'Focusa: Token Expired', body: 'Your device pairing token has expired. Re-pair from Settings > Pairing.' });
+            const { sendNotification } = await import('@tauri-apps/plugin-notification');
+            if (typeof sendNotification === 'function') sendNotification({ title: 'Focusa: Token Expired', body: 'Your device pairing token has expired. Re-pair from Settings > Pairing.' });
           } catch { /* Tauri notify not available in web preview */ }
         }
       }

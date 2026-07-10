@@ -8,7 +8,7 @@
   import GatePanel from '$lib/components/GatePanel.svelte';
   import Settings from '$lib/components/Settings.svelte';
   import FirstRunWizard from '$lib/components/FirstRunWizard.svelte';
-  import RuntimeView from '$lib/components/RuntimeView.svelte';
+  import CockpitView from '$lib/components/CockpitView.svelte';
   import TrajectoryPeek from '$lib/components/TrajectoryPeek.svelte';
   import WorkpointPeek from '$lib/components/WorkpointPeek.svelte';
   import ProofPeek from '$lib/components/ProofPeek.svelte';
@@ -211,7 +211,7 @@
   {:else if activeTab === 'focus'}
     <FocusView />
   {:else if activeTab === 'cockpit'}
-    <RuntimeView />
+    <CockpitView />
   {:else if activeTab === 'trajectory'}
     <TrajectoryPeek />
   {:else if activeTab === 'workpoint'}
