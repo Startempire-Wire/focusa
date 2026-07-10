@@ -80,7 +80,11 @@ impl TaskPool {
                     id: id.clone(),
                     kind,
                     public: is_public,
-                    prompt: format!("{} task #{}: implement the requested change.", kind.as_str(), i),
+                    prompt: format!(
+                        "{} task #{}: implement the requested change.",
+                        kind.as_str(),
+                        i
+                    ),
                     reference: if is_public {
                         Some(format!("REFERENCE_OK_{}_{}", kind.as_str(), i))
                     } else {
@@ -95,7 +99,10 @@ impl TaskPool {
                         TaskKind::AgentWorkflow => "task_complete".to_string(),
                     },
                     difficulty,
-                    requires: vec![kind.as_str().to_string(), format!("difficulty_{difficulty}")],
+                    requires: vec![
+                        kind.as_str().to_string(),
+                        format!("difficulty_{difficulty}"),
+                    ],
                     estimated_tokens: 1_000 + (i as u32 * 500),
                 };
                 pool.tasks.insert(id, task);

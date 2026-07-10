@@ -82,17 +82,19 @@ impl ProviderAdapter for BdAdapter {
 
     async fn detect(&self) -> bool {
         // `bd --help` exits 0 when the binary is callable.
-        self.run_bd(&["--help"]).map(|(code, _, _)| code == 0).unwrap_or(false)
+        self.run_bd(&["--help"])
+            .map(|(code, _, _)| code == 0)
+            .unwrap_or(false)
     }
 
     async fn resolve(&self, work_item: &WorkItemRef) -> RegistryResult<WorkItem> {
         let args = ["show", &work_item.provider_item_id, "--json"];
-        let (code, stdout, stderr) = self
-            .run_bd(&args)
-            .ok_or_else(|| RegistryError::ProviderNotInstalled {
-                provider: self.provider(),
-                missing: vec![self.bd_path.clone()],
-            })?;
+        let (code, stdout, stderr) =
+            self.run_bd(&args)
+                .ok_or_else(|| RegistryError::ProviderNotInstalled {
+                    provider: self.provider(),
+                    missing: vec![self.bd_path.clone()],
+                })?;
         if code != 0 {
             return Err(RegistryError::ProviderError {
                 provider: self.provider(),
@@ -102,8 +104,8 @@ impl ProviderAdapter for BdAdapter {
         }
         // bd show --json output shape varies; tolerate both single-object
         // and array-of-objects.
-        let v: serde_json::Value = serde_json::from_str(&stdout)
-            .map_err(|e| RegistryError::ProviderError {
+        let v: serde_json::Value =
+            serde_json::from_str(&stdout).map_err(|e| RegistryError::ProviderError {
                 provider: self.provider(),
                 stage: "resolve",
                 why: format!("bd show returned invalid JSON: {e}"),
@@ -156,9 +158,7 @@ impl ProviderAdapter for BdAdapter {
     }
 
     async fn prepare(&self, _work_item: &WorkItemRef, summary: &str) -> RegistryResult<String> {
-        Ok(format!(
-            "{summary}\n[closed via focusa work-item closure]"
-        ))
+        Ok(format!("{summary}\n[closed via focusa work-item closure]"))
     }
 
     async fn submit(&self, work_item: &WorkItemRef) -> RegistryResult<WorkItem> {
@@ -171,12 +171,12 @@ impl ProviderAdapter for BdAdapter {
             "--reason",
             "closed via focusa work-item closure",
         ];
-        let (code, _stdout, stderr) = self
-            .run_bd(&args)
-            .ok_or_else(|| RegistryError::ProviderNotInstalled {
-                provider: self.provider(),
-                missing: vec![self.bd_path.clone()],
-            })?;
+        let (code, _stdout, stderr) =
+            self.run_bd(&args)
+                .ok_or_else(|| RegistryError::ProviderNotInstalled {
+                    provider: self.provider(),
+                    missing: vec![self.bd_path.clone()],
+                })?;
         if code != 0 {
             return Err(RegistryError::ProviderError {
                 provider: self.provider(),
@@ -210,10 +210,19 @@ mod tests {
     #[test]
     fn bd_status_mapping() {
         assert_eq!(BdAdapter::status_from_string("open"), WorkItemStatus::Open);
-        assert_eq!(BdAdapter::status_from_string("closed"), WorkItemStatus::Closed);
-        assert_eq!(BdAdapter::status_from_string("in_progress"), WorkItemStatus::InProgress);
+        assert_eq!(
+            BdAdapter::status_from_string("closed"),
+            WorkItemStatus::Closed
+        );
+        assert_eq!(
+            BdAdapter::status_from_string("in_progress"),
+            WorkItemStatus::InProgress
+        );
         assert_eq!(BdAdapter::status_from_string("DONE"), WorkItemStatus::Done);
-        assert_eq!(BdAdapter::status_from_string("weird"), WorkItemStatus::Unknown);
+        assert_eq!(
+            BdAdapter::status_from_string("weird"),
+            WorkItemStatus::Unknown
+        );
     }
 
     #[tokio::test]

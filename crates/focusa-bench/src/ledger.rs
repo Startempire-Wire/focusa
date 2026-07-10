@@ -76,10 +76,24 @@ fn fnv1a_64(s: &str) -> u64 {
     h
 }
 
-fn compute_entry_hash(prev_hash: &str, kind: LedgerKind, run_id: &str, arm: &str, model: &str, payload: &serde_json::Value) -> String {
+fn compute_entry_hash(
+    prev_hash: &str,
+    kind: LedgerKind,
+    run_id: &str,
+    arm: &str,
+    model: &str,
+    payload: &serde_json::Value,
+) -> String {
     let payload_str = serde_json::to_string(payload).unwrap_or_default();
-    let composite = format!("{}|{}|{}|{}|{}|{}",
-        prev_hash, kind_str(kind), run_id, arm, model, payload_str);
+    let composite = format!(
+        "{}|{}|{}|{}|{}|{}",
+        prev_hash,
+        kind_str(kind),
+        run_id,
+        arm,
+        model,
+        payload_str
+    );
     let h1 = fnv1a_64(&composite);
     let h2 = fnv1a_64(&format!("{}::{}", composite, h1));
     format!("fnv1a:{:016x}{:016x}", h1, h2)
@@ -96,8 +110,18 @@ impl EvalLedger {
     }
 
     /// Append a new entry to the ledger. Maintains hash chain.
-    pub fn append(&mut self, kind: LedgerKind, run_id: &str, arm: &str, model: &str, payload: serde_json::Value) -> LedgerEntry {
-        let prev_hash = self.entries.values().next_back()
+    pub fn append(
+        &mut self,
+        kind: LedgerKind,
+        run_id: &str,
+        arm: &str,
+        model: &str,
+        payload: serde_json::Value,
+    ) -> LedgerEntry {
+        let prev_hash = self
+            .entries
+            .values()
+            .next_back()
             .map(|e| e.entry_hash.clone())
             .unwrap_or_else(|| "genesis".to_string());
         let id = Uuid::new_v7(uuid::Timestamp::now(uuid::NoContext)).to_string();

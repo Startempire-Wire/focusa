@@ -11,28 +11,28 @@
 //! Design spec: docs/113-focusa-agent-performance-benchmark-spec.md
 //! Design spec: docs/114-public-benchmark-flywheel-spec.md
 
-pub mod model_matrix;
 pub mod arms;
-pub mod task_suite;
-pub mod metrics;
 pub mod ledger;
+pub mod metrics;
+pub mod model_matrix;
 pub mod reports;
 pub mod snapshot;
+pub mod task_suite;
 
 #[cfg(test)]
 mod tests;
 
 // Re-exports
-pub use model_matrix::{ModelMatrix, ModelEntry, ModelClass};
 pub use arms::{Arm, ArmConfig};
-pub use task_suite::{Task, TaskKind, TaskPool};
-pub use metrics::{
-    AgentPowerIndex, FocusaUpliftScore, OperatorBurdenReduction,
-    GroundednessScore, HallucinationRate, ToolCallAccuracy, PassAtN, TimeHorizon,
-};
 pub use ledger::{EvalLedger, LedgerEntry, LedgerKind};
+pub use metrics::{
+    AgentPowerIndex, FocusaUpliftScore, GroundednessScore, HallucinationRate,
+    OperatorBurdenReduction, PassAtN, TimeHorizon, ToolCallAccuracy,
+};
+pub use model_matrix::{ModelClass, ModelEntry, ModelMatrix};
 pub use reports::{BenchmarkReport, MeasuredClaim, ReportArtifact};
-pub use snapshot::{PublicSnapshot, RedactionRule, HashChain};
+pub use snapshot::{HashChain, PublicSnapshot, RedactionRule};
+pub use task_suite::{Task, TaskKind, TaskPool};
 
 pub const BENCH_SCHEMA: &str = "focusa.bench.v1";
 pub const PUBLIC_TASK_COUNT: usize = 75;

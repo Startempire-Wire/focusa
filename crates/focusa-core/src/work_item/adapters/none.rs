@@ -67,14 +67,17 @@ impl ProviderAdapter for NoneAdapter {
 
     async fn resolve(&self, work_item: &WorkItemRef) -> RegistryResult<WorkItem> {
         let map = self.states.read().await;
-        Ok(map.get(&work_item.provider_item_id).cloned().unwrap_or_else(|| WorkItem {
-            provider: self.provider(),
-            provider_item_id: work_item.provider_item_id.clone(),
-            provider_status: WorkItemStatus::Open,
-            title: format!("local-only: {}", work_item.provider_item_id),
-            url: work_item.external_url.clone(),
-            revision: None,
-        }))
+        Ok(map
+            .get(&work_item.provider_item_id)
+            .cloned()
+            .unwrap_or_else(|| WorkItem {
+                provider: self.provider(),
+                provider_item_id: work_item.provider_item_id.clone(),
+                provider_status: WorkItemStatus::Open,
+                title: format!("local-only: {}", work_item.provider_item_id),
+                url: work_item.external_url.clone(),
+                revision: None,
+            }))
     }
 
     async fn validate_ref(&self, work_item: &WorkItemRef) -> RegistryResult<()> {

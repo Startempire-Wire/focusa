@@ -1,0 +1,17 @@
+{
+  "status": "operator_preview",
+  "version": "0.9.75-dev",
+  "summary": "Focusa Operator Preview public proof.",
+  "gates": [
+    { "name": "cargo test --workspace", "status": "passed" },
+    { "name": "cargo clippy --workspace -- -D warnings", "status": "passed" },
+    { "name": "focusa preflight", "status": "passed" },
+    { "name": "static spec audit", "status": "passed" },
+    { "name": "public docs scan", "status": "passed" },
+    { "name": "daemon health", "status": "passed" }
+  ],
+  "public_limitations": [
+    "Mac menubar is preview, not the primary launch surface.",
+    "Operator Preview focuses on daemon, CLI/TUI, Workpoints, Evidence, and proof-backed continuation."
+  ]
+}

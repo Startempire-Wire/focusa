@@ -8,9 +8,7 @@ use async_trait::async_trait;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use crate::work_item::types::{
-    ProviderCapabilities, WorkItem, WorkItemProvider, WorkItemRef,
-};
+use crate::work_item::types::{ProviderCapabilities, WorkItem, WorkItemProvider, WorkItemRef};
 
 /// Behaviors shared by all provider adapters.
 pub type RegistryResult<T> = Result<T, RegistryError>;
@@ -59,11 +57,18 @@ impl std::fmt::Display for RegistryError {
             Self::CredentialsInvalid { provider, why } => {
                 write!(f, "provider {provider} credentials invalid: {why}")
             }
-            Self::CapabilityUnsupported { provider, capability } => write!(
+            Self::CapabilityUnsupported {
+                provider,
+                capability,
+            } => write!(
                 f,
                 "provider {provider} does not support capability: {capability}"
             ),
-            Self::ProviderError { provider, stage, why } => {
+            Self::ProviderError {
+                provider,
+                stage,
+                why,
+            } => {
                 write!(f, "provider {provider} error in {stage}: {why}")
             }
         }

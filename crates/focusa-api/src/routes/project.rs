@@ -84,6 +84,63 @@ pub struct ProjectCardOutcomeRequest {
     pub token_usage: Value,
 }
 
+#[derive(Debug, Deserialize, Default)]
+pub struct ProjectListQuery {
+    pub project_root: Option<String>,
+    pub from: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct ProjectDiscoverQuery {
+    pub from: Option<String>,
+    pub max_depth: Option<u32>,
+    pub max_results: Option<usize>,
+    pub include_git_only: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct ProjectSelectionRequest {
+    pub project_root: String,
+    pub selected_by: Option<String>,
+    pub note: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct ProjectRemoveRequest {
+    pub clear: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct ProjectCreateRequest {
+    pub project_root: String,
+    pub project_id: String,
+    pub canonical_name: String,
+    pub template: Option<String>,
+    pub workspace_kind: Option<String>,
+    pub create_git: Option<bool>,
+    pub use_selected: Option<bool>,
+    pub force: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct ProjectTemplatesQuery {
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct ProjectSettingsQuery {
+    pub project_root: Option<String>,
+    pub key: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct ProjectSettingsRequest {
+    pub action: String,
+    pub project_root: Option<String>,
+    pub key: Option<String>,
+    pub value: Option<String>,
+}
+
 #[derive(Debug, Clone)]
 struct ProjectSignal {
     source: &'static str,
@@ -2088,6 +2145,575 @@ pub(crate) fn project_identity_payload_for_scope(
     )
 }
 
+fn project_config_home() -> PathBuf {
+    std::env::var("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join(".config")
+        .join("focusa")
+}
+
+fn selected_profile_path() -> PathBuf {
+    project_config_home().join("selected-project.json")
+}
+
+fn project_profiles_dir() -> PathBuf {
+    project_config_home().join("projects")
+}
+
+fn project_templates_dir() -> PathBuf {
+    project_config_home().join("project-templates")
+}
+
+fn builtin_templates_dir() -> PathBuf {
+    project_root().join("templates").join("project")
+}
+
+fn project_settings_dir() -> PathBuf {
+    project_config_home().join("project-settings")
+}
+
+fn project_root() -> PathBuf {
+    std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+}
+
+fn read_json_value(path: &Path) -> Option<Value> {
+    let body = fs::read_to_string(path).ok()?;
+    serde_json::from_str(&body).ok()
+}
+
+fn write_json_file<T: serde::Serialize>(path: &Path, value: &T) -> Result<(), String> {
+    let serialized = serde_json::to_string_pretty(value)
+        .map_err(|err| format!("json-serialize failed: {err}"))?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|err| err.to_string())?;
+    }
+    fs::write(path, serialized).map_err(|err| err.to_string())?;
+    Ok(())
+}
+
+fn clean_root(path: &str) -> Option<String> {
+    let expanded = path.trim();
+    if expanded.is_empty() {
+        None
+    } else {
+        Some(expanded.to_string())
+    }
+}
+
+fn project_fingerprint_for_root(root: &str) -> String {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    use std::hash::{Hash, Hasher};
+    root.to_string().hash(&mut hasher);
+    format!("project-fnv1a64:{:016x}", hasher.finish())
+}
+
+fn selected_project_payload(root: &str) -> Option<Value> {
+    let profile_path = selected_profile_path();
+    let profile = read_json_value(&profile_path)?;
+    let fingerprint = profile.get("selected_project_fingerprint")?.as_str()?;
+    let selected_path = project_profiles_dir().join(format!("{fingerprint}.json"));
+    let mut payload = json!({
+        "schema": "focusa.cli.selected_project.v1",
+        "fingerprint": fingerprint,
+        "selected_by": profile.get("selected_by").and_then(Value::as_str).unwrap_or("cli"),
+        "note": profile.get("note").and_then(Value::as_str).unwrap_or("").to_string(),
+        "selected_at": profile.get("selected_at").and_then(Value::as_str).unwrap_or(""),
+        "project_root": root,
+    });
+    if let Some(details) = read_json_value(&selected_path) {
+        if let Some(obj) = payload.as_object_mut() {
+            obj.insert("project_profile".to_string(), details);
+        }
+    }
+    Some(payload)
+}
+
+fn selected_project_profile(root: &str) -> Option<Value> {
+    let fingerprint = project_fingerprint_for_root(root);
+    read_json_value(&project_profiles_dir().join(format!("{fingerprint}.json")))
+}
+
+fn store_selected_project(
+    project_root: &str,
+    selected_by: Option<String>,
+    note: Option<String>,
+) -> Result<Value, String> {
+    let selected_root = Path::new(project_root);
+    if let Some(reason) = classify_project_root(project_root).reason() {
+        return Err(format!("unsafe project root: {reason}"));
+    }
+    if !selected_root.exists() {
+        return Err("project root does not exist".to_string());
+    }
+    if !selected_root.join(".focusa-project.json").exists() {
+        return Err("project root missing .focusa-project.json".to_string());
+    }
+    let fingerprint = project_fingerprint_for_root(project_root);
+    let payload = json!({
+        "schema": "focusa.cli.selected_project.v1",
+        "selected_project_fingerprint": fingerprint,
+        "selected_at": chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+        "selected_by": selected_by.unwrap_or_else(|| "focusa project".to_string()),
+        "note": note.unwrap_or_else(|| "CLI convenience profile only; not canonical daemon authority".to_string()),
+    });
+    write_json_file(&selected_profile_path(), &payload).map_err(|err| err.to_string())?;
+
+    if let Some(details) = read_json_value(&selected_root.join(".focusa-project.json")) {
+        let mut profile = json!({
+            "schema": "focusa.cli.project_profile.v1",
+            "project_root": project_root,
+            "fingerprint": fingerprint,
+            "marker_path": selected_root.join(".focusa-project.json").to_string_lossy(),
+            "scope_safety": if classify_project_root(project_root).is_safe() {"safe"} else {"unsafe"},
+            "last_verified_at": chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+            "created_at": chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+        });
+        if let Some(obj) = profile.as_object_mut() {
+            if let Some(id) = details.get("project_id").and_then(Value::as_str) {
+                obj.insert("project_id".to_string(), Value::String(id.to_string()));
+            }
+            if let Some(name) = details.get("canonical_name").and_then(Value::as_str) {
+                obj.insert(
+                    "canonical_name".to_string(),
+                    Value::String(name.to_string()),
+                );
+            }
+            if let Some(v) = details.get("workspace_kind").cloned() {
+                obj.insert("workspace_kind".to_string(), v);
+            }
+            if let Some(v) = details.get("aliases").cloned() {
+                obj.insert("aliases".to_string(), v);
+            }
+        }
+        let _ = write_json_file(
+            &project_profiles_dir().join(format!("{fingerprint}.json")),
+            &profile,
+        );
+    }
+
+    Ok(payload)
+}
+
+fn read_dashboard_settings(project_root: &Path) -> Value {
+    let settings = read_json_value(&project_root.join(".focusa").join("settings.json"));
+    if let Some(value) = settings {
+        value
+    } else {
+        json!({
+            "schema": "focusa.project_settings.v1",
+            "project_id": "",
+            "proof_policy": "proof_or_explicit_gap",
+            "default_continuity_id": "focusa-main",
+            "created_by": "focusa project settings",
+            "authority": "local_project_preferences_only"
+        })
+    }
+}
+
+fn current_project_identity(project_root: &str) -> Value {
+    project_identity_payload_for_scope(Some(project_root), Some(project_root), None)
+}
+
+fn collect_project_candidate(root: &Path) -> Option<Value> {
+    if !root.is_dir() {
+        return None;
+    }
+    let marker_path = root.join(".focusa-project.json");
+    let has_marker = marker_path.exists();
+    let marker = marker_path
+        .exists()
+        .then(|| read_json_value(&marker_path))
+        .flatten();
+    let has_git = root.join(".git").exists();
+    if !has_marker && !(has_git && root.join("Cargo.toml").exists()) {
+        return None;
+    }
+    Some(json!({
+        "schema": "focusa.project_summary.v1",
+        "project_root": root.to_string_lossy(),
+        "has_marker": has_marker,
+        "has_git": has_git,
+        "project_id": marker.as_ref().and_then(|m| m.get("project_id")).and_then(Value::as_str).unwrap_or("unknown").to_string(),
+        "canonical_name": marker.as_ref().and_then(|m| m.get("canonical_name")).and_then(Value::as_str).unwrap_or(root.file_name().unwrap_or_default().to_string_lossy().as_ref()).to_string(),
+        "status": if has_marker {"project-root-marker"} else {"git-root"},
+        "stack": workspace_kind(root).unwrap_or("unknown"),
+    }))
+}
+
+fn discover_project_candidates(from: &Path, max_depth: u32, max_results: usize) -> Vec<Value> {
+    let mut candidates = Vec::new();
+    let mut queue: Vec<(PathBuf, u32)> = vec![(from.to_path_buf(), 0)];
+    let mut seen: std::collections::HashSet<String> = Default::default();
+    while let Some((dir, depth)) = queue.pop() {
+        if candidates.len() >= max_results {
+            break;
+        }
+        if let Some(norm) = dir.to_str() {
+            if !seen.insert(norm.to_string()) {
+                continue;
+            }
+        }
+        if let Ok(entries) = fs::read_dir(&dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    if let Some(name) = path.file_name().and_then(|v| v.to_str()) {
+                        if name == ".git"
+                            || name == "target"
+                            || name == "node_modules"
+                            || name == ".cache"
+                        {
+                            continue;
+                        }
+                    }
+                    if let Some(child) = collect_project_candidate(&path) {
+                        candidates.push(child);
+                        if candidates.len() >= max_results {
+                            break;
+                        }
+                    }
+                    if depth < max_depth {
+                        queue.push((path, depth + 1));
+                    }
+                }
+            }
+        }
+    }
+    candidates
+}
+
+async fn list_projects(Query(query): Query<ProjectListQuery>) -> Json<Value> {
+    let runtime_root = query
+        .project_root
+        .as_deref()
+        .or(query.from.as_deref())
+        .unwrap_or(".");
+    let runtime_payload = if classify_project_root(runtime_root).is_safe() {
+        current_project_identity(runtime_root)
+    } else {
+        json!({"status":"invalid","reason":"runtime root unsafe"})
+    };
+    let selected = query
+        .project_root
+        .as_deref()
+        .and_then(selected_project_payload)
+        .or_else(|| {
+            selected_project_payload(&query.from.clone().unwrap_or_else(|| "/".to_string()))
+        });
+    let mut project_profiles = Vec::new();
+    if let Ok(entries) = fs::read_dir(project_profiles_dir()) {
+        for entry in entries
+            .flatten()
+            .filter(|entry| entry.path().extension().is_some())
+        {
+            if let Some(item) = read_json_value(&entry.path()) {
+                project_profiles.push(item);
+            }
+        }
+    }
+    Json(json!({
+        "schema": "focusa.project_dashboard.v1",
+        "status": "ok",
+        "runtime": runtime_payload,
+        "selected": selected,
+        "projects": project_profiles,
+        "project_count": project_profiles.len(),
+    }))
+}
+
+async fn current_status(Query(query): Query<ProjectListQuery>) -> Json<Value> {
+    list_projects(Query(query)).await
+}
+
+async fn discover_projects(Query(query): Query<ProjectDiscoverQuery>) -> Json<Value> {
+    let from = query.from.as_deref().unwrap_or(".");
+    if classify_project_root(from).reason().is_some() {
+        return Json(json!({"status":"blocked","reason":"unsafe from path"}));
+    }
+    let max_depth = query.max_depth.unwrap_or(3);
+    let max_results = query.max_results.unwrap_or(60);
+    let candidates = discover_project_candidates(Path::new(from), max_depth, max_results);
+    Json(json!({
+        "schema": "focusa.project_discover.v1",
+        "status": "ok",
+        "from": from,
+        "max_depth": max_depth,
+        "max_results": max_results,
+        "projects": candidates,
+        "count": candidates.len(),
+    }))
+}
+
+async fn use_project(
+    Query(_): Query<ProjectListQuery>,
+    Json(body): Json<ProjectSelectionRequest>,
+) -> Json<Value> {
+    let root = body.project_root;
+    match store_selected_project(root.trim(), body.selected_by, body.note) {
+        Ok(payload) => {
+            Json(json!({"status":"ok","schema":"focusa.project_selection.v1","selected":payload}))
+        }
+        Err(reason) => {
+            Json(json!({"status":"blocked","failure_class":"invalid_selection","reason":reason}))
+        }
+    }
+}
+
+async fn remove_selected_project(Json(_body): Json<ProjectRemoveRequest>) -> Json<Value> {
+    let path = selected_profile_path();
+    let _ = fs::remove_file(path);
+    Json(
+        json!({"status":"ok","schema":"focusa.project_selection.v1","selected":null,"note":"selection removed"}),
+    )
+}
+
+async fn current_status_alias(Query(query): Query<ProjectListQuery>) -> Json<Value> {
+    current_status(Query(query)).await
+}
+
+async fn create_project(Json(body): Json<ProjectCreateRequest>) -> Json<Value> {
+    let root = PathBuf::from(body.project_root.trim());
+    if let Some(reason) = classify_project_root(&body.project_root).reason() {
+        return Json(
+            json!({"status":"blocked","failure_class":"unsafe_project_root","reason":reason}),
+        );
+    }
+    if root.exists() {
+        if fs::read_dir(&root).is_err() {
+            return Json(
+                json!({"status":"blocked","failure_class":"invalid_root_state","reason":"project root unreadable"}),
+            );
+        }
+        if !body.force.unwrap_or(false) {
+            if fs::read_dir(&root).map_or(false, |mut rd| rd.next().is_some()) {
+                return Json(
+                    json!({"status":"blocked","failure_class":"project_root_not_empty","reason":"pass --force to create in non-empty path"}),
+                );
+            }
+        }
+    }
+    let focusa_dir = root.join(".focusa");
+    if let Err(err) = fs::create_dir_all(&focusa_dir) {
+        return Json(
+            json!({"status":"blocked","failure_class":"create_failed","reason":err.to_string()}),
+        );
+    }
+    for child in ["evidence", "workpoints", "trajectories", "templates"] {
+        if let Err(err) = fs::create_dir_all(focusa_dir.join(child)) {
+            return Json(
+                json!({"status":"blocked","failure_class":"create_failed","reason":err.to_string()}),
+            );
+        }
+    }
+    let workspace_kind = body
+        .workspace_kind
+        .clone()
+        .unwrap_or_else(|| "rust-monorepo".to_string());
+    let project_id = body.project_id.clone();
+    let canonical_name = body.canonical_name.clone();
+    let marker = json!({
+        "schema": "focusa.project.v1",
+        "project_id": project_id,
+        "canonical_name": canonical_name,
+        "project_root": root.to_string_lossy(),
+        "beads_prefix": "project",
+        "workspace_kind": workspace_kind.clone(),
+        "aliases": [],
+        "created_at": chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+    });
+    if let Err(err) = write_json_file(&root.join(".focusa-project.json"), &marker) {
+        return Json(
+            json!({"status":"blocked","failure_class":"marker_write_failed","reason":err}),
+        );
+    }
+    let settings = json!({
+        "schema": "focusa.project_settings.v1",
+        "project_id": project_id,
+        "proof_policy": "proof_or_explicit_gap",
+        "default_continuity_id": format!("{}-main", project_id),
+        "created_by": "focusa project new",
+        "authority": "local_project_preferences_only",
+        "workspace_kind": workspace_kind,
+        "default_template": body.template.clone().unwrap_or_else(|| "blank".to_string()),
+    });
+    if let Err(err) = write_json_file(&focusa_dir.join("settings.json"), &settings) {
+        return Json(
+            json!({"status":"blocked","failure_class":"settings_write_failed","reason":err}),
+        );
+    }
+    let focusa_readme = focusa_dir.join("README.md");
+    if !focusa_readme.exists() {
+        let _ = fs::write(
+            &focusa_readme,
+            "# Focusa project state\n\nLocal Focusa project preferences, evidence, workpoints, trajectories, and templates live here.\n",
+        );
+    }
+    let readme = root.join("README.md");
+    if !readme.exists() {
+        let _ = fs::write(&readme, format!("# {canonical_name}\n\nFocusa project.\n"));
+    }
+
+    let git_status = if body.create_git.unwrap_or(false) && !root.join(".git").exists() {
+        match Command::new("git").arg("init").current_dir(&root).status() {
+            Ok(status) if status.success() => "created",
+            Ok(_) => "failed",
+            Err(_) => "unavailable",
+        }
+    } else if root.join(".git").exists() {
+        "exists"
+    } else {
+        "skipped"
+    };
+
+    let selected = if body.use_selected.unwrap_or(false) {
+        store_selected_project(
+            root.to_string_lossy().as_ref(),
+            Some("focusa project new".to_string()),
+            Some("CLI convenience profile only; not canonical daemon authority".to_string()),
+        )
+        .ok()
+    } else {
+        None
+    };
+
+    Json(json!({
+        "status":"ok",
+        "schema":"focusa.project_created.v1",
+        "project_root":root.to_string_lossy(),
+        "created": {
+            "marker": root.join(".focusa-project.json").to_string_lossy(),
+            "settings": focusa_dir.join("settings.json").to_string_lossy(),
+            "focusa_dir": focusa_dir.to_string_lossy(),
+            "git": git_status,
+            "selected": selected.is_some(),
+        },
+        "selected": selected,
+        "authority": "created project files are local; selected profile is convenience-only"
+    }))
+}
+
+fn templates_payload(name: Option<String>) -> Vec<Value> {
+    let names: Vec<&str> = vec![
+        "blank",
+        "web-app",
+        "cli-tool",
+        "rust-service",
+        "node-saas",
+        "wordpress-plugin",
+        "agent-workbench",
+    ];
+    names
+        .into_iter()
+        .map(|template| {
+            json!({
+                "name": template,
+                "source": if builtin_templates_dir().join(template).exists() {
+                    "built-in"
+                } else {
+                    "spec-only"
+                },
+                "description": format!("Project template: {template}"),
+                "schema": "focusa.project_template.v1",
+                "files": [],
+                "directories": [],
+                "post_create_hints": []
+            })
+        })
+        .filter(|entry| {
+            name.as_ref()
+                .is_none_or(|n| entry.get("name").and_then(Value::as_str) == Some(n.as_str()))
+        })
+        .collect()
+}
+
+async fn project_templates(Query(query): Query<ProjectTemplatesQuery>) -> Json<Value> {
+    let templates = templates_payload(query.name);
+    Json(json!({
+        "schema": "focusa.project_templates.v1",
+        "status": "ok",
+        "templates": templates,
+        "count": templates.len(),
+    }))
+}
+
+async fn project_settings_get(Query(query): Query<ProjectSettingsQuery>) -> Json<Value> {
+    let root = query
+        .project_root
+        .clone()
+        .unwrap_or_else(|| ".".to_string());
+    let root_path = Path::new(root.as_str());
+    let settings = read_dashboard_settings(root_path);
+    if let Some(key) = query.key {
+        let value = settings.get(&key).cloned();
+        Json(json!({
+            "schema": "focusa.project_settings.v1",
+            "status": if value.is_some() {"ok"} else {"missing"},
+            "project_root": root,
+            "key": key,
+            "value": value,
+        }))
+    } else {
+        Json(json!({
+            "schema": "focusa.project_settings.v1",
+            "status": "ok",
+            "project_root": root,
+            "settings": settings,
+        }))
+    }
+}
+
+async fn project_settings_update(Json(body): Json<ProjectSettingsRequest>) -> Json<Value> {
+    let root = body.project_root.unwrap_or_else(|| ".".to_string());
+    let mut settings = read_dashboard_settings(Path::new(root.as_str()));
+    if settings.get("schema").is_none() {
+        return Json(
+            json!({"status":"blocked","failure_class":"settings_missing","reason":"project root missing .focusa/settings.json"}),
+        );
+    }
+    if body.key.as_deref().is_none() {
+        return Json(
+            json!({"status":"blocked","failure_class":"missing_key","reason":"key required"}),
+        );
+    }
+    let key = body.key.unwrap();
+    match body.action.as_str() {
+        "set" => {
+            if let Some(value) = body.value {
+                if let Some(map) = settings.as_object_mut() {
+                    map.insert(key.clone(), Value::String(value.clone()));
+                }
+            }
+        }
+        "unset" => {
+            if let Some(map) = settings.as_object_mut() {
+                map.remove(&key);
+            }
+        }
+        _ => {
+            return Json(json!({
+                "status": "blocked",
+                "failure_class": "unknown_action",
+                "reason": "action must be set or unset"
+            }));
+        }
+    }
+    if let Some(file_root) = settings.get("schema") {
+        let _ = write_json_file(
+            &Path::new(root.as_str())
+                .join(".focusa")
+                .join("settings.json"),
+            &settings,
+        );
+    }
+    Json(json!({
+        "schema": "focusa.project_settings.v1",
+        "status": "ok",
+        "project_root": root,
+        "updated_key": key,
+    }))
+}
+
 async fn identity(Query(query): Query<ProjectIdentityQuery>) -> Json<Value> {
     let remote_hint = RemoteProjectHint::from_query(&query);
     Json(project_identity_payload_for_scope_with_remote(
@@ -3438,6 +4064,20 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/project/card", get(card))
         .route("/v1/project/card/outcome", post(card_outcome))
         .route("/v1/project/session-transfer", post(session_transfer))
+        .route("/v1/project/list", get(list_projects))
+        .route("/v1/project/discover", get(discover_projects))
+        .route("/v1/project/use", post(use_project))
+        .route("/v1/project/bind", post(use_project))
+        .route("/v1/project/switch", post(use_project))
+        .route("/v1/project/current", get(current_status))
+        .route("/v1/project/status", get(current_status_alias))
+        .route("/v1/project/remove", post(remove_selected_project))
+        .route("/v1/project/new", post(create_project))
+        .route("/v1/project/templates", get(project_templates))
+        .route(
+            "/v1/project/settings",
+            get(project_settings_get).post(project_settings_update),
+        )
 }
 
 #[cfg(test)]
@@ -3904,6 +4544,41 @@ mod tests {
                     .pointer("/details/issue_prefix")
                     .and_then(Value::as_str)
                     == Some("focusa")))
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[tokio::test]
+    async fn create_project_writes_marker_settings_and_focusa_skeleton() {
+        let root = temp_project("project-new-skeleton");
+        let Json(payload) = create_project(Json(ProjectCreateRequest {
+            project_root: root.to_string_lossy().to_string(),
+            project_id: "new-project".to_string(),
+            canonical_name: "New Project".to_string(),
+            template: Some("blank".to_string()),
+            workspace_kind: Some("rust-monorepo".to_string()),
+            create_git: Some(false),
+            use_selected: Some(false),
+            force: Some(false),
+        }))
+        .await;
+        assert_eq!(payload.get("status").and_then(Value::as_str), Some("ok"));
+        assert!(root.join(".focusa-project.json").exists());
+        assert!(root.join(".focusa/settings.json").exists());
+        for child in ["evidence", "workpoints", "trajectories", "templates"] {
+            assert!(root.join(".focusa").join(child).is_dir());
+        }
+        assert!(root.join(".focusa/README.md").exists());
+        assert!(root.join("README.md").exists());
+        assert_eq!(
+            payload.pointer("/created/git").and_then(Value::as_str),
+            Some("skipped")
+        );
+        assert_eq!(
+            payload
+                .pointer("/created/selected")
+                .and_then(Value::as_bool),
+            Some(false)
         );
         let _ = fs::remove_dir_all(root);
     }

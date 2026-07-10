@@ -15,7 +15,10 @@ pub fn init_guard(guard: LicenseGuard) {
 }
 
 fn current_guard() -> LicenseGuard {
-    GUARD.get().cloned().unwrap_or_else(|| LicenseGuard::eval(7))
+    GUARD
+        .get()
+        .cloned()
+        .unwrap_or_else(|| LicenseGuard::eval(7))
 }
 
 pub fn router() -> Router<Arc<crate::server::AppState>> {

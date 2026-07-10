@@ -171,9 +171,10 @@ async fn main() -> anyhow::Result<()> {
     let started_at = chrono::Utc::now().to_rfc3339();
     match previous.as_deref() {
         Some(prev) if prev.lines().any(|l| l.starts_with("pid=")) => {
-            let prev_pid = prev
-                .lines()
-                .find_map(|l| l.strip_prefix("pid=").and_then(|s| s.trim().parse::<u32>().ok()));
+            let prev_pid = prev.lines().find_map(|l| {
+                l.strip_prefix("pid=")
+                    .and_then(|s| s.trim().parse::<u32>().ok())
+            });
             let prev_started = prev
                 .lines()
                 .find_map(|l| l.strip_prefix("started_at=").map(|s| s.trim().to_string()));
@@ -194,7 +195,10 @@ async fn main() -> anyhow::Result<()> {
             );
         }
         None => {
-            tracing::info!(pid, "focusa-daemon startup: no prior lock file (fresh install)");
+            tracing::info!(
+                pid,
+                "focusa-daemon startup: no prior lock file (fresh install)"
+            );
         }
     }
     tracing::info!(

@@ -160,7 +160,9 @@ pub struct ClaimSnapshot {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::work_item::types::{ClaimStatus, ClosureClaim, ClosureKind, WorkItemProvider, WorkItemRef};
+    use crate::work_item::types::{
+        ClaimStatus, ClosureClaim, ClosureKind, WorkItemProvider, WorkItemRef,
+    };
     use chrono::Utc;
     use std::path::PathBuf;
 

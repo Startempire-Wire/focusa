@@ -45,10 +45,7 @@ pub fn citation_path(project_root: &Path, ref_: &str) -> Option<PathBuf> {
         return None;
     }
     // Strip "path:LINE" or "path:LINE-LINE"
-    let path_part = s
-        .split_once(':')
-        .map(|(p, _rest)| p)
-        .unwrap_or(s);
+    let path_part = s.split_once(':').map(|(p, _rest)| p).unwrap_or(s);
     // Strip "path#section"
     let path_part = path_part
         .split_once('#')
@@ -134,8 +131,12 @@ impl EvidenceVerifier for CodeVerifier {
                         evidence_url: None,
                     };
                 }
-                let slice: Vec<&str> =
-                    lines.iter().skip((start - 1) as usize).take(((end - start) + 1) as usize).copied().collect();
+                let slice: Vec<&str> = lines
+                    .iter()
+                    .skip((start - 1) as usize)
+                    .take(((end - start) + 1) as usize)
+                    .copied()
+                    .collect();
                 if slice.is_empty() {
                     return VerifyResult {
                         verified: false,
@@ -210,11 +211,7 @@ impl EvidenceVerifier for SpecVerifier {
         };
         // Section heading check: the citation's ref_ may end with
         // `#section-name` or just be a path; we accept either.
-        let section = citation
-            .ref_
-            .rsplit_once('#')
-            .map(|(_, s)| s)
-            .unwrap_or("");
+        let section = citation.ref_.rsplit_once('#').map(|(_, s)| s).unwrap_or("");
         if !section.is_empty() && !contents.to_lowercase().contains(&section.to_lowercase()) {
             return VerifyResult {
                 verified: false,
@@ -238,7 +235,11 @@ impl EvidenceVerifier for SpecVerifier {
                 path.display(),
                 contents.len(),
                 mtime_str,
-                if section.is_empty() { String::new() } else { format!(" section=`{section}`") }
+                if section.is_empty() {
+                    String::new()
+                } else {
+                    format!(" section=`{section}`")
+                }
             ),
             evidence_url: Some(format!("file://{}", path.display())),
         }
@@ -248,9 +249,7 @@ impl EvidenceVerifier for SpecVerifier {
 fn current_project_root() -> PathBuf {
     std::env::var("FOCUSA_PROJECT_ROOT")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| {
-            std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
-        })
+        .unwrap_or_else(|_| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")))
 }
 
 // ---------------------------------------------------------------------------
@@ -307,7 +306,13 @@ impl EvidenceVerifier for TestVerifier {
         } else {
             "bash"
         };
-        let exit = run_capture(program, &[path.to_str().unwrap_or("")], &current_project_root(), Duration::from_secs(120)).await;
+        let exit = run_capture(
+            program,
+            &[path.to_str().unwrap_or("")],
+            &current_project_root(),
+            Duration::from_secs(120),
+        )
+        .await;
         match exit {
             Some((0, _)) => VerifyResult {
                 verified: true,
@@ -316,7 +321,13 @@ impl EvidenceVerifier for TestVerifier {
             },
             Some((code, tail)) => VerifyResult {
                 verified: false,
-                result: format!("{}: {} exit={} stderr={}", path.display(), program, code, tail),
+                result: format!(
+                    "{}: {} exit={} stderr={}",
+                    path.display(),
+                    program,
+                    code,
+                    tail
+                ),
                 evidence_url: Some(format!("file://{}", path.display())),
             },
             None => VerifyResult {
@@ -365,9 +376,7 @@ impl EvidenceVerifier for EndpointVerifier {
                 evidence_url: None,
             };
         };
-        let client = reqwest::Client::builder()
-            .timeout(self.timeout)
-            .build();
+        let client = reqwest::Client::builder().timeout(self.timeout).build();
         let client = match client {
             Ok(c) => c,
             Err(e) => {
@@ -375,16 +384,12 @@ impl EvidenceVerifier for EndpointVerifier {
                     verified: false,
                     result: format!("client build failed: {e}"),
                     evidence_url: Some(url.clone()),
-                }
+                };
             }
         };
         let resp = client.get(&url).send().await;
         let (verified, status_str, body_preview) = match resp {
-            Err(e) => (
-                false,
-                format!("transport error: {e}"),
-                String::new(),
-            ),
+            Err(e) => (false, format!("transport error: {e}"), String::new()),
             Ok(r) => {
                 let code = r.status().as_u16();
                 let ok = (200..300).contains(&code);
@@ -394,7 +399,11 @@ impl EvidenceVerifier for EndpointVerifier {
                 } else {
                     body
                 };
-                (ok, format!("http {} {code}", if ok { "OK" } else { "FAIL" }), preview_text)
+                (
+                    ok,
+                    format!("http {} {code}", if ok { "OK" } else { "FAIL" }),
+                    preview_text,
+                )
             }
         };
         VerifyResult {
@@ -608,7 +617,7 @@ impl EvidenceVerifier for DeployVerifier {
                     verified: false,
                     result: format!("client build failed: {e}"),
                     evidence_url: Some(url.clone()),
-                }
+                };
             }
         };
         let resp = client.get(&url).send().await;
@@ -621,9 +630,14 @@ impl EvidenceVerifier for DeployVerifier {
             Ok(r) => {
                 let code = r.status().as_u16();
                 let body = r.text().await.unwrap_or_default();
-                let v: serde_json::Value = serde_json::from_str(&body).ok()
+                let v: serde_json::Value = serde_json::from_str(&body)
+                    .ok()
                     .unwrap_or(serde_json::Value::Null);
-                let version = v.get("version").and_then(|x| x.as_str()).unwrap_or("").to_string();
+                let version = v
+                    .get("version")
+                    .and_then(|x| x.as_str())
+                    .unwrap_or("")
+                    .to_string();
                 let ok = v.get("ok").and_then(|x| x.as_bool()).unwrap_or(false);
                 let uptime_ms = v.get("uptime_ms").and_then(|x| x.as_u64()).unwrap_or(0);
                 let version_ok = self
@@ -657,14 +671,17 @@ pub fn run_default_verifier(citation: &EvidenceCitation) -> VerifyResult {
     // paths (the CLI doctor, the closure-audit replay). The
     // production closure lifecycle uses the async verifiers directly
     // through the `EvidenceVerifier` trait to avoid the overhead.
-    let rt = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
+    let rt = match tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+    {
         Ok(r) => r,
         Err(e) => {
             return VerifyResult {
                 verified: false,
                 result: format!("tokio runtime build failed: {e}"),
                 evidence_url: None,
-            }
+            };
         }
     };
     rt.block_on(async move {
@@ -739,7 +756,10 @@ impl EvidenceVerifier for ArtifactStub {
                     } else {
                         VerifyResult {
                             verified: false,
-                            result: format!("{}: sha256 mismatch (expected {sha}, got {actual})", p.display()),
+                            result: format!(
+                                "{}: sha256 mismatch (expected {sha}, got {actual})",
+                                p.display()
+                            ),
                             evidence_url: Some(format!("file://{}", p.display())),
                         }
                     }

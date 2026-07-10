@@ -1,9 +1,10 @@
 //! Spec96 ProjectIdentity CLI parity commands.
 
 use crate::api_client::ApiClient;
-use crate::commands::scope::ensure_project_root_scope_safe;
+use crate::commands::{scope::ensure_project_root_scope_safe, scope_resolver};
 use clap::Subcommand;
 use serde_json::{Value, json};
+use std::path::PathBuf;
 
 #[derive(Subcommand)]
 pub enum ProjectCmd {
@@ -70,6 +71,93 @@ pub enum ProjectCmd {
         #[arg(long)]
         notes: Option<String>,
     },
+    /// Project dashboard: saved profile + observed runtime state.
+    List {
+        #[arg(long)]
+        project_root: Option<String>,
+        #[arg(long)]
+        from: Option<String>,
+    },
+    /// Discover nearby candidate projects.
+    Discover {
+        #[arg(long)]
+        from: Option<String>,
+        #[arg(long, default_value_t = 3)]
+        max_depth: u32,
+        #[arg(long, default_value_t = 40)]
+        max_results: usize,
+        #[arg(long)]
+        include_git_only: Option<bool>,
+    },
+    /// Use/save a project as the selected convenience profile (non-authoritative).
+    Use {
+        project_root: String,
+        #[arg(long)]
+        selected_by: Option<String>,
+        #[arg(long)]
+        note: Option<String>,
+    },
+    /// Alias for use.
+    Bind {
+        project_root: String,
+        #[arg(long)]
+        selected_by: Option<String>,
+        #[arg(long)]
+        note: Option<String>,
+    },
+    /// Alias for use.
+    Switch {
+        project_root: String,
+        #[arg(long)]
+        selected_by: Option<String>,
+        #[arg(long)]
+        note: Option<String>,
+    },
+    /// Show current project dashboard for selected/runtime observed scope.
+    Current {
+        #[arg(long)]
+        project_root: Option<String>,
+    },
+    /// Show current project dashboard for selected/runtime observed scope.
+    Status {
+        #[arg(long)]
+        project_root: Option<String>,
+    },
+    /// Remove selected-project convenience profile (non-authoritative).
+    Remove,
+    /// Create a new project from scratch.
+    New {
+        #[arg(long)]
+        project_root: Option<String>,
+        #[arg(long)]
+        working_dir: Option<String>,
+        #[arg(long)]
+        name: Option<String>,
+        #[arg(long)]
+        project_id: Option<String>,
+        #[arg(long)]
+        canonical_name: Option<String>,
+        #[arg(long)]
+        template: Option<String>,
+        #[arg(long)]
+        workspace_kind: Option<String>,
+        #[arg(long)]
+        git: bool,
+        #[arg(long)]
+        use_selected: bool,
+        #[arg(long)]
+        force: bool,
+    },
+    /// Project template list/show.
+    Templates {
+        #[command(subcommand)]
+        cmd: ProjectTemplateCmd,
+    },
+    /// Per-project settings get/list/set/unset.
+    Settings {
+        #[command(subcommand)]
+        cmd: ProjectSettingsCmd,
+    },
     /// Save or continue a Focusa session-transfer packet.
     SessionTransfer {
         #[arg(long, default_value = "status")]
@@ -122,6 +210,45 @@ pub enum ProjectCmd {
     },
 }
 
+#[derive(Subcommand)]
+pub enum ProjectTemplateCmd {
+    /// List available project templates.
+    List,
+    /// Show one template metadata.
+    Show {
+        #[arg(long)]
+        name: String,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum ProjectSettingsCmd {
+    /// Show all local settings keys.
+    List {
+        #[arg(long)]
+        project_root: Option<String>,
+    },
+    /// Show one local setting key.
+    Get {
+        key: String,
+        #[arg(long)]
+        project_root: Option<String>,
+    },
+    /// Set one local setting key.
+    Set {
+        key: String,
+        value: String,
+        #[arg(long)]
+        project_root: Option<String>,
+    },
+    /// Unset one local setting key.
+    Unset {
+        key: String,
+        #[arg(long)]
+        project_root: Option<String>,
+    },
+}
+
 fn encode(value: &str) -> String {
     value
         .bytes()
@@ -139,6 +266,51 @@ fn push_query(qs: &mut Vec<String>, key: &str, value: Option<&str>) {
     if let Some(value) = value.map(str::trim).filter(|value| !value.is_empty()) {
         qs.push(format!("{key}={}", encode(value)));
     }
+}
+
+fn push_query_bool(qs: &mut Vec<String>, key: &str, value: Option<bool>) {
+    if let Some(value) = value {
+        qs.push(format!("{}={value}", key));
+    }
+}
+
+fn slugify_project_id(value: &str) -> String {
+    let mut out = String::new();
+    let mut last_dash = false;
+    for ch in value.chars().flat_map(char::to_lowercase) {
+        if ch.is_ascii_alphanumeric() {
+            out.push(ch);
+            last_dash = false;
+        } else if !last_dash {
+            out.push('-');
+            last_dash = true;
+        }
+    }
+    let trimmed = out.trim_matches('-').to_string();
+    if trimmed.is_empty() {
+        "focusa-project".to_string()
+    } else {
+        trimmed
+    }
+}
+
+fn project_root_from_new_args(
+    project_root: Option<String>,
+    working_dir: Option<String>,
+    name: Option<&str>,
+) -> anyhow::Result<String> {
+    if let Some(project_root) = project_root {
+        ensure_project_root_scope_safe(Some(project_root.as_str()), "project new: project_root")?;
+        return Ok(project_root);
+    }
+    let Some(name) = name else {
+        anyhow::bail!("project new requires --project-root or --name");
+    };
+    let base = working_dir.unwrap_or_else(|| ".".to_string());
+    let root = PathBuf::from(base).join(slugify_project_id(name));
+    let root = root.to_string_lossy().to_string();
+    ensure_project_root_scope_safe(Some(root.as_str()), "project new: derived project_root")?;
+    Ok(root)
 }
 
 fn print_summary(label: &str, resp: &Value) {
@@ -177,6 +349,34 @@ fn print_summary(label: &str, resp: &Value) {
     }
 }
 
+fn resolve_input_project_root(
+    cwd: Option<&str>,
+    project_root: Option<&str>,
+) -> anyhow::Result<String> {
+    let resolved = scope_resolver::resolve_project_scope(project_root, None, cwd)?;
+    ensure_project_root_scope_safe(
+        Some(resolved.project_root.as_str()),
+        "project resolved project_root",
+    )?;
+    Ok(resolved.project_root)
+}
+
+fn render_response(label: &str, resp: &Value) {
+    if label == "identity"
+        || label == "card"
+        || label == "card-outcome"
+        || label == "session-transfer"
+        || label == "verify"
+    {
+        print_summary(label, resp);
+        return;
+    }
+    println!(
+        "{label}: {}",
+        serde_json::to_string_pretty(resp).unwrap_or_else(|_| "{}".to_string())
+    );
+}
+
 pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
     let api = ApiClient::new();
     let (label, resp) = match cmd {
@@ -195,17 +395,19 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             persisted_canonical_name,
         } => {
             ensure_project_root_scope_safe(cwd.as_deref(), "project identity: cwd")?;
-            ensure_project_root_scope_safe(
-                project_root.as_deref(),
-                "project identity: project_root",
-            )?;
+            let resolved_project_root =
+                resolve_input_project_root(cwd.as_deref(), project_root.as_deref())?;
             ensure_project_root_scope_safe(
                 persisted_project_root.as_deref(),
                 "project identity: persisted_project_root",
             )?;
             let mut qs = Vec::new();
             push_query(&mut qs, "cwd", cwd.as_deref());
-            push_query(&mut qs, "project_root", project_root.as_deref());
+            push_query(
+                &mut qs,
+                "project_root",
+                Some(resolved_project_root.as_str()),
+            );
             push_query(&mut qs, "remote_host", remote_host.as_deref());
             push_query(&mut qs, "remote_user", remote_user.as_deref());
             if let Some(port) = remote_port {
@@ -257,10 +459,15 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             remote_deploy_root,
         } => {
             ensure_project_root_scope_safe(cwd.as_deref(), "project card: cwd")?;
-            ensure_project_root_scope_safe(project_root.as_deref(), "project card: project_root")?;
+            let resolved_project_root =
+                resolve_input_project_root(cwd.as_deref(), project_root.as_deref())?;
             let mut qs = Vec::new();
             push_query(&mut qs, "cwd", cwd.as_deref());
-            push_query(&mut qs, "project_root", project_root.as_deref());
+            push_query(
+                &mut qs,
+                "project_root",
+                Some(resolved_project_root.as_str()),
+            );
             push_query(&mut qs, "current_ask", current_ask.as_deref());
             push_query(&mut qs, "remote_host", remote_host.as_deref());
             push_query(&mut qs, "remote_user", remote_user.as_deref());
@@ -289,15 +496,12 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             evidence_refs,
             notes,
         } => {
-            ensure_project_root_scope_safe(
-                project_root.as_deref(),
-                "project card outcome: project_root",
-            )?;
+            let resolved_project_root = resolve_input_project_root(None, project_root.as_deref())?;
             let body = json!({
                 "algorithm_run_id": algorithm_run_id,
                 "actual_outcome": actual_outcome,
                 "score": score,
-                "project_root": project_root,
+                "project_root": resolved_project_root,
                 "evidence_refs": evidence_refs,
                 "notes": notes,
             });
@@ -306,6 +510,203 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                 api.post("/v1/project/card/outcome", &body).await?,
             )
         }
+        ProjectCmd::List { project_root, from } => {
+            let resolved_project_root = match (project_root, &from) {
+                (Some(root), _) => Some(resolve_input_project_root(None, Some(root.as_str()))?),
+                (None, Some(from_root)) => {
+                    Some(resolve_input_project_root(Some(from_root.as_str()), None)?)
+                }
+                _ => None,
+            };
+            let mut qs = Vec::new();
+            push_query(&mut qs, "project_root", resolved_project_root.as_deref());
+            push_query(&mut qs, "from", from.as_deref());
+            let path = if qs.is_empty() {
+                "/v1/project/list".to_string()
+            } else {
+                format!("/v1/project/list?{}", qs.join("&"))
+            };
+            ("list", api.get(&path).await?)
+        }
+        ProjectCmd::Discover {
+            from,
+            max_depth,
+            max_results,
+            include_git_only,
+        } => {
+            let mut qs = Vec::new();
+            push_query(&mut qs, "from", from.as_deref());
+            push_query(&mut qs, "max_depth", Some(&max_depth.to_string()));
+            push_query(&mut qs, "max_results", Some(&max_results.to_string()));
+            push_query_bool(&mut qs, "include_git_only", include_git_only);
+            let path = if qs.is_empty() {
+                "/v1/project/discover".to_string()
+            } else {
+                format!("/v1/project/discover?{}", qs.join("&"))
+            };
+            ("discover", api.get(&path).await?)
+        }
+        ProjectCmd::Use {
+            project_root,
+            selected_by,
+            note,
+        }
+        | ProjectCmd::Bind {
+            project_root,
+            selected_by,
+            note,
+        }
+        | ProjectCmd::Switch {
+            project_root,
+            selected_by,
+            note,
+        } => {
+            let resolved_project_root =
+                resolve_input_project_root(None, Some(project_root.as_str()))?;
+            let body = json!({
+                "project_root": resolved_project_root,
+                "selected_by": selected_by,
+                "note": note,
+            });
+            ("use", api.post("/v1/project/use", &body).await?)
+        }
+        ProjectCmd::Current { project_root } => {
+            let mut qs = Vec::new();
+            if let Some(root) = project_root {
+                let resolved = resolve_input_project_root(None, Some(root.as_str()))?;
+                push_query(&mut qs, "project_root", Some(resolved.as_str()));
+            }
+            let path = if qs.is_empty() {
+                "/v1/project/current".to_string()
+            } else {
+                format!("/v1/project/current?{}", qs.join("&"))
+            };
+            ("current", api.get(&path).await?)
+        }
+        ProjectCmd::Status { project_root } => {
+            let mut qs = Vec::new();
+            if let Some(root) = project_root {
+                let resolved = resolve_input_project_root(None, Some(root.as_str()))?;
+                push_query(&mut qs, "project_root", Some(resolved.as_str()));
+            }
+            let path = if qs.is_empty() {
+                "/v1/project/status".to_string()
+            } else {
+                format!("/v1/project/status?{}", qs.join("&"))
+            };
+            ("status", api.get(&path).await?)
+        }
+        ProjectCmd::Remove => (
+            "remove",
+            api.post("/v1/project/remove", &json!({"clear": true}))
+                .await?,
+        ),
+        ProjectCmd::New {
+            project_root,
+            working_dir,
+            name,
+            project_id,
+            canonical_name,
+            template,
+            workspace_kind,
+            git,
+            use_selected,
+            force,
+        } => {
+            let resolved_project_root =
+                project_root_from_new_args(project_root, working_dir, name.as_deref())?;
+            let inferred_name = name
+                .or_else(|| {
+                    PathBuf::from(&resolved_project_root)
+                        .file_name()
+                        .map(|value| value.to_string_lossy().to_string())
+                })
+                .unwrap_or_else(|| "Focusa Project".to_string());
+            let project_id = project_id.unwrap_or_else(|| slugify_project_id(&inferred_name));
+            let canonical_name = canonical_name.unwrap_or(inferred_name);
+            let body = json!({
+                "project_root": resolved_project_root,
+                "project_id": project_id,
+                "canonical_name": canonical_name,
+                "template": template,
+                "workspace_kind": workspace_kind,
+                "create_git": git,
+                "use_selected": use_selected,
+                "force": force,
+            });
+            ("new", api.post("/v1/project/new", &body).await?)
+        }
+        ProjectCmd::Templates { cmd } => {
+            let (path, body_opt) = match cmd {
+                ProjectTemplateCmd::List => ("/v1/project/templates".to_string(), None),
+                ProjectTemplateCmd::Show { name } => {
+                    let mut qs = Vec::new();
+                    push_query(&mut qs, "name", Some(name.as_str()));
+                    let path = format!("/v1/project/templates?{}", qs.join("&"));
+                    (path, None)
+                }
+            };
+            match body_opt {
+                Some(body) => ("templates", api.post(&path, &body).await?),
+                None => ("templates", api.get(&path).await?),
+            }
+        }
+        ProjectCmd::Settings { cmd } => match cmd {
+            ProjectSettingsCmd::List { project_root } => {
+                let resolved = project_root
+                    .map(|root| resolve_input_project_root(None, Some(root.as_str())).ok())
+                    .flatten();
+                let mut qs = Vec::new();
+                if let Some(root) = resolved {
+                    push_query(&mut qs, "project_root", Some(root.as_str()));
+                }
+                let path = if qs.is_empty() {
+                    "/v1/project/settings".to_string()
+                } else {
+                    format!("/v1/project/settings?{}", qs.join("&"))
+                };
+                ("settings", api.get(&path).await?)
+            }
+            ProjectSettingsCmd::Get { key, project_root } => {
+                let resolved = if let Some(root) = project_root {
+                    Some(resolve_input_project_root(None, Some(root.as_str()))?)
+                } else {
+                    None
+                };
+                let mut qs = Vec::new();
+                push_query(&mut qs, "project_root", resolved.as_deref());
+                push_query(&mut qs, "key", Some(key.as_str()));
+                let path = if qs.is_empty() {
+                    "/v1/project/settings".to_string()
+                } else {
+                    format!("/v1/project/settings?{}", qs.join("&"))
+                };
+                ("settings", api.get(&path).await?)
+            }
+            ProjectSettingsCmd::Set {
+                key,
+                value,
+                project_root,
+            } => {
+                let resolved = if let Some(root) = project_root {
+                    Some(resolve_input_project_root(None, Some(root.as_str()))?)
+                } else {
+                    None
+                };
+                let body =
+                    json!({"action": "set", "project_root": resolved, "key": key, "value": value});
+                ("settings", api.post("/v1/project/settings", &body).await?)
+            }
+            ProjectSettingsCmd::Unset { key, project_root } => {
+                let resolved = if let Some(root) = project_root {
+                    Some(resolve_input_project_root(None, Some(root.as_str()))?)
+                } else {
+                    None
+                };
+                let body = json!({"action": "unset", "project_root": resolved, "key": key});
+                ("settings", api.post("/v1/project/settings", &body).await?)
+            }
+        },
         ProjectCmd::SessionTransfer {
             action,
             cwd,
@@ -316,14 +717,12 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             next_action,
         } => {
             ensure_project_root_scope_safe(cwd.as_deref(), "project session-transfer: cwd")?;
-            ensure_project_root_scope_safe(
-                project_root.as_deref(),
-                "project session-transfer: project_root",
-            )?;
+            let resolved_project_root =
+                resolve_input_project_root(cwd.as_deref(), project_root.as_deref())?;
             let body = json!({
                 "action": action,
                 "cwd": cwd,
-                "project_root": project_root,
+                "project_root": resolved_project_root,
                 "current_ask": current_ask,
                 "continuity_id": continuity_id,
                 "mission": mission,
@@ -352,17 +751,15 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             persisted_canonical_name,
         } => {
             ensure_project_root_scope_safe(cwd.as_deref(), "project verify: cwd")?;
-            ensure_project_root_scope_safe(
-                project_root.as_deref(),
-                "project verify: project_root",
-            )?;
+            let resolved_project_root =
+                resolve_input_project_root(cwd.as_deref(), project_root.as_deref())?;
             ensure_project_root_scope_safe(
                 persisted_project_root.as_deref(),
                 "project verify: persisted_project_root",
             )?;
             let body = json!({
                 "cwd": cwd,
-                "project_root": project_root,
+                "project_root": resolved_project_root,
                 "project_id": project_id,
                 "canonical_name": canonical_name,
                 "repo_remote": repo_remote,
@@ -380,10 +777,11 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             ("verify", api.post("/v1/project/verify", &body).await?)
         }
     };
+
     if json_output {
         println!("{}", serde_json::to_string_pretty(&resp)?);
     } else {
-        print_summary(label, &resp);
+        render_response(label, &resp);
     }
     Ok(())
 }

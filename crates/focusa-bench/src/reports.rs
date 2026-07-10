@@ -59,7 +59,14 @@ impl BenchmarkReport {
         }
     }
 
-    pub fn add_claim(&mut self, metric: impl Into<String>, value: f64, ci_low: f64, ci_high: f64, n: u32) {
+    pub fn add_claim(
+        &mut self,
+        metric: impl Into<String>,
+        value: f64,
+        ci_low: f64,
+        ci_high: f64,
+        n: u32,
+    ) {
         let claim = MeasuredClaim {
             metric: metric.into(),
             value,

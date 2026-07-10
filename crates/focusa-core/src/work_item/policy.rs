@@ -135,7 +135,8 @@ impl ClosureProfile {
                 required_kinds: vec![EvidenceKind::Deploy, EvidenceKind::Endpoint],
                 endpoint_status_in: vec![200, 201, 202, 204],
                 run_tests: false,
-                description: "Deploy-only change: at least one deploy ref + one endpoint ref.".into(),
+                description: "Deploy-only change: at least one deploy ref + one endpoint ref."
+                    .into(),
             },
             default_for: vec![],
         }
@@ -261,7 +262,9 @@ impl ClosureProfile {
             if p.extension().and_then(|s| s.to_str()) != Some("toml") {
                 continue;
             }
-            let Ok(s) = std::fs::read_to_string(&p) else { continue; };
+            let Ok(s) = std::fs::read_to_string(&p) else {
+                continue;
+            };
             if let Ok(profile) = toml::from_str::<ClosureProfile>(&s) {
                 if let Some(existing) = out.iter_mut().find(|x| x.name == profile.name) {
                     *existing = profile;
@@ -296,7 +299,10 @@ mod tests {
         assert!(p.rule.required_kinds.contains(&EvidenceKind::Endpoint));
         assert_eq!(*p.rule.min_required.get(&EvidenceKind::Code).unwrap(), 1);
         assert_eq!(*p.rule.min_required.get(&EvidenceKind::Test).unwrap(), 1);
-        assert_eq!(*p.rule.min_required.get(&EvidenceKind::Endpoint).unwrap(), 2);
+        assert_eq!(
+            *p.rule.min_required.get(&EvidenceKind::Endpoint).unwrap(),
+            2
+        );
     }
 
     #[test]
@@ -304,7 +310,10 @@ mod tests {
         assert_eq!(default_profile_for(ClosureKind::Code), "release_proof");
         assert_eq!(default_profile_for(ClosureKind::Deploy), "release_proof");
         assert_eq!(default_profile_for(ClosureKind::Docs), "doc_change");
-        assert_eq!(default_profile_for(ClosureKind::Investigation), "doc_change");
+        assert_eq!(
+            default_profile_for(ClosureKind::Investigation),
+            "doc_change"
+        );
     }
 
     #[test]

@@ -11,6 +11,7 @@ on:
 permissions:
   contents: write
   actions: read
+  pull-requests: write
 
 concurrency:
   group: audit-recorder
@@ -49,22 +50,47 @@ jobs:
       - name: Spec104 static surface audit
         run: python3 scripts/audit-schema.py spec104 release-proof/audit/audit.jsonl || echo "(audit result recorded; non-fatal warning)"
 
-      - name: Self-heal audit trail
-        run: python3 scripts/auto-heal-audit.py
+      - name: Propose system-level self-heal
+        run: python3 scripts/propose-system-fix.py
 
       - name: Validate audit schema
         run: python3 scripts/audit-schema.py validate release-proof/audit/audit.jsonl
 
-      - name: Commit audit updates
+      - name: Open actionable self-heal PR only
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          if git diff --quiet -- release-proof/audit/audit.jsonl; then
-            echo "[audit-recorder] no audit changes"
+          if [[ ! -f release-proof/audit/self-heal-result.json ]]; then
+            echo "[audit-recorder] no self-heal result file"
             exit 0
           fi
+          should_commit="$(python3 - <<'PY'
+import json
+from pathlib import Path
+p = Path('release-proof/audit/self-heal-result.json')
+print('true' if json.loads(p.read_text()).get('should_commit') else 'false')
+PY
+)"
+          if [[ "$should_commit" != "true" ]]; then
+            echo "[audit-recorder] no actionable deliverable; suppressing passive audit commit"
+            exit 0
+          fi
+          if git diff --quiet -- release-proof/audit/audit.jsonl release-proof/audit/self-heal-result.json; then
+            echo "[audit-recorder] deliverable requested but no audit changes"
+            exit 0
+          fi
+          branch="self-heal/${{ github.run_id }}"
           git config user.name 'focusa-bot'
           git config user.email 'bot@focusa.local'
-          git add release-proof/audit/audit.jsonl
-          git commit -m "audit: self-heal append from ${{ github.event_name }} @ ${{ github.run_id }}"
-          git push
+          git checkout -B "$branch"
+          git add release-proof/audit/audit.jsonl release-proof/audit/self-heal-result.json
+          git commit -m "audit: actionable self-heal from ${{ github.event_name }} @ ${{ github.run_id }}"
+          git push --set-upstream origin "$branch" --force-with-lease
+          gh pr create \
+            --title "[spec-122] Actionable self-heal from ${{ github.event_name }} @ ${{ github.run_id }}" \
+            --body-file release-proof/audit/self-heal-result.json \
+            --base main \
+            --head "$branch" \
+          || echo "[audit-recorder] PR may already exist for $branch"

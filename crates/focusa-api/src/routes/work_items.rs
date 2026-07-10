@@ -63,20 +63,26 @@ async fn closure_prepare(
     State(_state): State<Arc<AppState>>,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let provider_item_id = body.get("provider_item_id")
+    let provider_item_id = body
+        .get("provider_item_id")
         .and_then(Value::as_str)
         .map(String::from)
-        .ok_or_else(|| (
-            StatusCode::BAD_REQUEST,
-            Json(json!({
-                "status": "validation_rejected",
-                "failure_class": "missing_field",
-                "field": "provider_item_id",
-                "message": "provider_item_id is required",
-            })),
-        ))?;
+        .ok_or_else(|| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(json!({
+                    "status": "validation_rejected",
+                    "failure_class": "missing_field",
+                    "field": "provider_item_id",
+                    "message": "provider_item_id is required",
+                })),
+            )
+        })?;
     let kind = body.get("kind").and_then(Value::as_str).unwrap_or("code");
-    let summary = body.get("summary").and_then(Value::as_str).unwrap_or("closed via focusa");
+    let summary = body
+        .get("summary")
+        .and_then(Value::as_str)
+        .unwrap_or("closed via focusa");
 
     // Delegate to core lifecycle prepare. The full lifecycle runs in-process.
     // For now, return a prep claim stub. Full integration with lifecycle::prepare
@@ -96,18 +102,21 @@ async fn closure_prepare(
 async fn closure_validate(
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let claim_id = body.get("claim_id")
+    let claim_id = body
+        .get("claim_id")
         .and_then(Value::as_str)
         .map(String::from)
-        .ok_or_else(|| (
-            StatusCode::BAD_REQUEST,
-            Json(json!({
-                "status": "validation_rejected",
-                "failure_class": "missing_field",
-                "field": "claim_id",
-                "message": "claim_id is required",
-            })),
-        ))?;
+        .ok_or_else(|| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(json!({
+                    "status": "validation_rejected",
+                    "failure_class": "missing_field",
+                    "field": "claim_id",
+                    "message": "claim_id is required",
+                })),
+            )
+        })?;
     Ok(Json(json!({
         "schema": "focusa.closure.validate.v1",
         "status": "completed",
@@ -118,21 +127,22 @@ async fn closure_validate(
     })))
 }
 
-async fn closure_submit(
-    Json(body): Json<Value>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let claim_id = body.get("claim_id")
+async fn closure_submit(Json(body): Json<Value>) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let claim_id = body
+        .get("claim_id")
         .and_then(Value::as_str)
         .map(String::from)
-        .ok_or_else(|| (
-            StatusCode::BAD_REQUEST,
-            Json(json!({
-                "status": "validation_rejected",
-                "failure_class": "missing_field",
-                "field": "claim_id",
-                "message": "claim_id is required",
-            })),
-        ))?;
+        .ok_or_else(|| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(json!({
+                    "status": "validation_rejected",
+                    "failure_class": "missing_field",
+                    "field": "claim_id",
+                    "message": "claim_id is required",
+                })),
+            )
+        })?;
     Ok(Json(json!({
         "schema": "focusa.closure.submit.v1",
         "status": "completed",

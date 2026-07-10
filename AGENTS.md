@@ -37,6 +37,14 @@ bd close <id>         # Complete work
 bd sync               # Sync with git
 ```
 
+## Public / Private Docs Boundary
+
+Private operator docs may exist locally at `.focusa-private/`.
+
+Agents must read `.focusa-private/INDEX.md` before touching SaaS strategy, SignalOS, commercial pricing/caps, install/purchase backend, raw proof, launch planning, or vendor/license registry work.
+
+Agents must never commit `.focusa-private/`, raw transcripts, runtime objects, local host paths, admin URLs, customer data, or license data.
+
 ## Landing the Plane (Session Completion)
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.

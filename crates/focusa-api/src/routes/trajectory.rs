@@ -2676,7 +2676,10 @@ mod tests {
         let _ = std::fs::write(git_dir.join("HEAD"), b"ref: refs/heads/main\n");
         let _ = std::fs::write(
             std::path::PathBuf::from(project_root).join(".focusa-project.json"),
-            format!(r#"{{"schema":"focusa.project_marker.v1","project_id":"focusa","canonical_name":"focusa","project_root":"{}"}}"#, project_root),
+            format!(
+                r#"{{"schema":"focusa.project_marker.v1","project_id":"focusa","canonical_name":"focusa","project_root":"{}"}}"#,
+                project_root
+            ),
         );
     }
 
@@ -2691,7 +2694,10 @@ mod tests {
         // Marker file for root_marker signal
         let _ = std::fs::write(
             std::path::PathBuf::from(project_root).join(".focusa-project.json"),
-            format!(r#"{{"schema":"focusa.project_marker.v1","project_id":"focusa","canonical_name":"focusa","project_root":"{}"}}"#, project_root),
+            format!(
+                r#"{{"schema":"focusa.project_marker.v1","project_id":"focusa","canonical_name":"focusa","project_root":"{}"}}"#,
+                project_root
+            ),
         );
         // FOCUSA_FIX: ensure cwd is the project marker dir so discover_identity
         // finds the root_marker + git_root signals and reports verified status.
@@ -2928,7 +2934,12 @@ mod tests {
     #[test]
     fn trajectory_view_syncs_focus_current_focus_and_short_term_goal_projection() {
         let mut state = state_with_workpoint("/tmp/focusa-test");
-        add_active_frame(&mut state, "/tmp/focusa-test", "cont-a", "Frame title fallback");
+        add_active_frame(
+            &mut state,
+            "/tmp/focusa-test",
+            "cont-a",
+            "Frame title fallback",
+        );
         if let Some(frame) = state.focus_stack.frames.last_mut() {
             frame.focus_state.current_state =
                 "Focus State current focus drives short term".to_string();

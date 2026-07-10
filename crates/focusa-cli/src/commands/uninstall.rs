@@ -281,7 +281,10 @@ fn plan_steps(
     }
 
     // Additional macOS-side cleanup (applies regardless of platform target).
-    let daemon_data_dir = install_root.parent().unwrap_or(install_root).join(".local/share/focusa");
+    let daemon_data_dir = install_root
+        .parent()
+        .unwrap_or(install_root)
+        .join(".local/share/focusa");
     // Fall back to ~/.local/share/focusa when install_root resolution above isn't usable.
     let daemon_data = std::path::PathBuf::from(std::env::var("HOME").unwrap_or_default())
         .join(".local/share/focusa");
@@ -291,7 +294,8 @@ fn plan_steps(
         || target == crate::commands::install::InstallTarget::Auto
     {
         if let Ok(home_str) = std::env::var("HOME") {
-            let plist = std::path::PathBuf::from(&home_str).join("Library/LaunchAgents/com.startempire.focusa-daemon.plist");
+            let plist = std::path::PathBuf::from(&home_str)
+                .join("Library/LaunchAgents/com.startempire.focusa-daemon.plist");
             steps.push(UninstallStep {
                 name: "remove_launch_agent_plist".to_string(),
                 kind: UninstallStepKind::RemoveLaunchAgentPlist,
@@ -315,7 +319,8 @@ fn plan_steps(
             });
         }
         // Menu bar preferences
-        let menubar_prefs = std::path::PathBuf::from(&home_str).join("Library/Preferences/com.focusa.menubar.plist");
+        let menubar_prefs = std::path::PathBuf::from(&home_str)
+            .join("Library/Preferences/com.focusa.menubar.plist");
         steps.push(UninstallStep {
             name: "remove_menubar_prefs".to_string(),
             kind: UninstallStepKind::RemoveMenuBarPrefs,
@@ -442,7 +447,9 @@ fn execute_step(
                         std::fs::read_to_string(&path).with_context(|| format!("read {p}"))?;
                     let marker_begin = "# focusa-install: begin PATH";
                     let marker_end = "# focusa-install: end PATH";
-                    let new_content = if content.contains(marker_begin) && content.contains(marker_end) {
+                    let new_content = if content.contains(marker_begin)
+                        && content.contains(marker_end)
+                    {
                         // Delete lines from begin marker (inclusive) through end marker (inclusive).
                         let mut out = Vec::new();
                         let mut in_block = false;
@@ -611,7 +618,9 @@ fn execute_step(
                             if let Ok(subentries) = std::fs::read_dir(&path) {
                                 for subentry in subentries.flatten() {
                                     if let Some(subname) = subentry.file_name().to_str() {
-                                        if subname.contains("focusa.menubar") || subname.contains("com.focusa") {
+                                        if subname.contains("focusa.menubar")
+                                            || subname.contains("com.focusa")
+                                        {
                                             let p = subentry.path();
                                             if p.exists() {
                                                 let _ = std::fs::remove_dir_all(&p);

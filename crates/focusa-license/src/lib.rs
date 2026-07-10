@@ -271,11 +271,21 @@ fn read_license_json() -> Option<LicenseGuard> {
     let json: serde_json::Value = serde_json::from_str(&raw).ok()?;
     Some(LicenseGuard {
         tier: parse_tier(json.get("tier")?.as_str()?)?,
-        key_hash: json.get("key_hash").and_then(|v| v.as_str()).map(String::from),
-        customer_email: json.get("customer_email").and_then(|v| v.as_str()).map(String::from),
+        key_hash: json
+            .get("key_hash")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        customer_email: json
+            .get("customer_email")
+            .and_then(|v| v.as_str())
+            .map(String::from),
         issued_at: parse_iso(json.get("issued_at")?.as_str()?)?,
-        expires_at: json.get("expires_at").and_then(|v| v.as_str()).and_then(parse_iso),
-        bsl_change_date: parse_iso(json.get("bsl_change_date")?.as_str()?).unwrap_or_else(bsl_change_date),
+        expires_at: json
+            .get("expires_at")
+            .and_then(|v| v.as_str())
+            .and_then(parse_iso),
+        bsl_change_date: parse_iso(json.get("bsl_change_date")?.as_str()?)
+            .unwrap_or_else(bsl_change_date),
     })
 }
 
@@ -290,11 +300,21 @@ fn read_license_toml() -> Option<LicenseGuard> {
     let table: toml::Value = toml::from_str(&raw).ok()?;
     Some(LicenseGuard {
         tier: parse_tier(table.get("tier")?.as_str()?)?,
-        key_hash: table.get("key_hash").and_then(|v| v.as_str()).map(String::from),
-        customer_email: table.get("customer_email").and_then(|v| v.as_str()).map(String::from),
+        key_hash: table
+            .get("key_hash")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        customer_email: table
+            .get("customer_email")
+            .and_then(|v| v.as_str())
+            .map(String::from),
         issued_at: parse_iso(table.get("issued_at")?.as_str()?)?,
-        expires_at: table.get("expires_at").and_then(|v| v.as_str()).and_then(parse_iso),
-        bsl_change_date: parse_iso(table.get("bsl_change_date")?.as_str()?).unwrap_or_else(bsl_change_date),
+        expires_at: table
+            .get("expires_at")
+            .and_then(|v| v.as_str())
+            .and_then(parse_iso),
+        bsl_change_date: parse_iso(table.get("bsl_change_date")?.as_str()?)
+            .unwrap_or_else(bsl_change_date),
     })
 }
 
@@ -308,7 +328,9 @@ fn parse_tier(s: &str) -> Option<Tier> {
 }
 
 fn parse_iso(s: &str) -> Option<DateTime<Utc>> {
-    DateTime::parse_from_rfc3339(s).ok().map(|dt| dt.with_timezone(&Utc))
+    DateTime::parse_from_rfc3339(s)
+        .ok()
+        .map(|dt| dt.with_timezone(&Utc))
 }
 
 /// Short SHA256 fingerprint (first 16 hex chars) of a license key, for logs.
@@ -365,7 +387,10 @@ mod tests {
     #[test]
     fn licensed_tier_permits_commercial_use() {
         let g = LicenseGuard::licensed("abc123".into(), "v@x.com".into());
-        assert_eq!(g.check(Capability::CommercialUse), CapabilityCheck::Permitted);
+        assert_eq!(
+            g.check(Capability::CommercialUse),
+            CapabilityCheck::Permitted
+        );
     }
 
     #[test]
@@ -384,9 +409,15 @@ mod tests {
             expires_at: None,
             bsl_change_date: bsl_change_date(),
         };
-        assert_eq!(g.check(Capability::CommercialUse), CapabilityCheck::Permitted);
+        assert_eq!(
+            g.check(Capability::CommercialUse),
+            CapabilityCheck::Permitted
+        );
         assert_eq!(g.check(Capability::HostedMode), CapabilityCheck::Permitted);
-        assert_eq!(g.check(Capability::ProductEmbedding), CapabilityCheck::Permitted);
+        assert_eq!(
+            g.check(Capability::ProductEmbedding),
+            CapabilityCheck::Permitted
+        );
     }
 
     #[test]

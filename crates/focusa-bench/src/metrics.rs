@@ -23,12 +23,29 @@ impl AgentPowerIndex {
     pub fn from_outcomes(outcomes: &[(bool, u8)]) -> Self {
         let attempted = outcomes.len() as u32;
         let completed = outcomes.iter().filter(|(s, _)| *s).count() as u32;
-        let success_rate = if attempted == 0 { 0.0 } else { completed as f64 / attempted as f64 };
-        let weight: f64 = outcomes.iter().map(|(s, d)| if *s { *d as f64 } else { 0.0 }).sum();
+        let success_rate = if attempted == 0 {
+            0.0
+        } else {
+            completed as f64 / attempted as f64
+        };
+        let weight: f64 = outcomes
+            .iter()
+            .map(|(s, d)| if *s { *d as f64 } else { 0.0 })
+            .sum();
         let weight_max: f64 = outcomes.iter().map(|(_, d)| *d as f64).sum();
-        let weighted_score = if weight_max == 0.0 { 0.0 } else { weight / weight_max };
+        let weighted_score = if weight_max == 0.0 {
+            0.0
+        } else {
+            weight / weight_max
+        };
         let index = success_rate * 0.6 + weighted_score * 0.4;
-        AgentPowerIndex { success_rate, weighted_score, tasks_attempted: attempted, tasks_completed: completed, index }
+        AgentPowerIndex {
+            success_rate,
+            weighted_score,
+            tasks_attempted: attempted,
+            tasks_completed: completed,
+            index,
+        }
     }
 }
 
@@ -56,20 +73,32 @@ impl FocusaUpliftScore {
         let mut base_pass = 0;
         let n = full.len().min(baseline.len());
         for i in 0..n {
-            if full[i] { full_pass += 1; }
-            if baseline[i] { base_pass += 1; }
+            if full[i] {
+                full_pass += 1;
+            }
+            if baseline[i] {
+                base_pass += 1;
+            }
             match (full[i], baseline[i]) {
                 (true, false) => helped += 1,
                 (false, true) => hurt += 1,
                 (true, true) | (false, false) => neutral += 1,
             }
         }
-        let pass_rate_delta = if n == 0 { 0.0 } else {
+        let pass_rate_delta = if n == 0 {
+            0.0
+        } else {
             (full_pass as f64 - base_pass as f64) / n as f64
         };
         // Normalize to 0..=1
         let uplift = (pass_rate_delta + 1.0) / 2.0;
-        FocusaUpliftScore { uplift, pass_rate_delta, tasks_helped: helped, tasks_hurt: hurt, tasks_neutral: neutral }
+        FocusaUpliftScore {
+            uplift,
+            pass_rate_delta,
+            tasks_helped: helped,
+            tasks_hurt: hurt,
+            tasks_neutral: neutral,
+        }
     }
 }
 
@@ -87,7 +116,11 @@ pub struct OperatorBurdenReduction {
 
 impl OperatorBurdenReduction {
     pub fn from_recovery(baseline: f64, focusa: f64, _tasks: u32) -> Self {
-        let reduction = if baseline == 0.0 { 0.0 } else { 1.0 - focusa / baseline };
+        let reduction = if baseline == 0.0 {
+            0.0
+        } else {
+            1.0 - focusa / baseline
+        };
         OperatorBurdenReduction {
             minutes_saved_per_task: baseline - focusa,
             baseline_recovery_minutes: baseline,
@@ -109,10 +142,16 @@ pub struct GroundednessScore {
 
 impl GroundednessScore {
     pub fn from_observations(claims_total: u32, claims_grounded: u32) -> Self {
-        let score = if claims_total == 0 { 0.0 } else {
+        let score = if claims_total == 0 {
+            0.0
+        } else {
             claims_grounded as f64 / claims_total as f64
         };
-        GroundednessScore { score, claims_total, claims_grounded }
+        GroundednessScore {
+            score,
+            claims_total,
+            claims_grounded,
+        }
     }
 }
 
@@ -128,10 +167,16 @@ pub struct HallucinationRate {
 
 impl HallucinationRate {
     pub fn from_observations(responses_total: u32, hallucinated: u32) -> Self {
-        let rate = if responses_total == 0 { 0.0 } else {
+        let rate = if responses_total == 0 {
+            0.0
+        } else {
             hallucinated as f64 / responses_total as f64
         };
-        HallucinationRate { rate, responses_total, responses_with_hallucination: hallucinated }
+        HallucinationRate {
+            rate,
+            responses_total,
+            responses_with_hallucination: hallucinated,
+        }
     }
 }
 
@@ -147,10 +192,16 @@ pub struct ToolCallAccuracy {
 
 impl ToolCallAccuracy {
     pub fn from_observations(calls_total: u32, calls_correct: u32) -> Self {
-        let accuracy = if calls_total == 0 { 0.0 } else {
+        let accuracy = if calls_total == 0 {
+            0.0
+        } else {
             calls_correct as f64 / calls_total as f64
         };
-        ToolCallAccuracy { accuracy, calls_total, calls_correct }
+        ToolCallAccuracy {
+            accuracy,
+            calls_total,
+            calls_correct,
+        }
     }
 }
 
@@ -179,7 +230,12 @@ impl PassAtN {
         } else {
             1.0
         };
-        PassAtN { pass_at_n, n, k_success, k_total }
+        PassAtN {
+            pass_at_n,
+            n,
+            k_success,
+            k_total,
+        }
     }
 }
 
@@ -196,7 +252,11 @@ pub struct TimeHorizon {
 impl TimeHorizon {
     pub fn from_observations(times_seconds: &[f64]) -> Self {
         if times_seconds.is_empty() {
-            return TimeHorizon { median_seconds: 0.0, p95_seconds: 0.0, tasks_measured: 0 };
+            return TimeHorizon {
+                median_seconds: 0.0,
+                p95_seconds: 0.0,
+                tasks_measured: 0,
+            };
         }
         let mut sorted: Vec<f64> = times_seconds.to_vec();
         sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
@@ -212,7 +272,9 @@ impl TimeHorizon {
 
 /// Compute n choose k using u128 to avoid overflow for our small n.
 fn comb(n: u32, k: u32) -> f64 {
-    if k > n { return 0.0; }
+    if k > n {
+        return 0.0;
+    }
     let k = k.min(n - k);
     let mut num: u128 = 1;
     let mut den: u128 = 1;
@@ -220,5 +282,9 @@ fn comb(n: u32, k: u32) -> f64 {
         num = num.saturating_mul((n - k + i) as u128);
         den = den.saturating_mul(i as u128);
     }
-    if den == 0 { 1.0 } else { num as f64 / den as f64 }
+    if den == 0 {
+        1.0
+    } else {
+        num as f64 / den as f64
+    }
 }

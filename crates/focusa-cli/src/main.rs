@@ -327,6 +327,14 @@ enum Commands {
     #[command(subcommand)]
     Cache(commands::cache::CacheCmd),
 
+    /// Guided evaluator workflow: project selection → Workpoint → proof → Mission Deck handoff.
+    #[command(name = "first-mission")]
+    FirstMission(commands::first_mission::FirstMissionArgs),
+
+    /// Setup namespace: wizard/init/doctor onboarding paths.
+    #[command(subcommand)]
+    Setup(commands::setup::SetupCmd),
+
     /// Project identity discovery and verification (Spec96).
     #[command(subcommand)]
     Project(commands::project::ProjectCmd),
@@ -699,31 +707,32 @@ async fn main() -> anyhow::Result<()> {
                 let project = api.get("/v1/project/identity").await.unwrap_or_else(
                     |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
                 );
-                let frame = api
-                    .get("/v1/focus/frame/current")
-                    .await
-                    .unwrap_or_else(|err| serde_json::json!({"status":"blocked","error":err.to_string()}));
-                let license = api
-                    .get("/v1/license/status")
-                    .await
-                    .unwrap_or_else(|err| serde_json::json!({"status":"blocked","error":err.to_string()}));
-                let events = api
-                    .get("/v1/events/recent?limit=5")
-                    .await
-                    .unwrap_or_else(|err| serde_json::json!({"status":"blocked","error":err.to_string()}));
+                let frame = api.get("/v1/focus/frame/current").await.unwrap_or_else(
+                    |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
+                );
+                let license = api.get("/v1/license/status").await.unwrap_or_else(
+                    |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
+                );
+                let events = api.get("/v1/events/recent?limit=5").await.unwrap_or_else(
+                    |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
+                );
 
-                let uptime_secs = health.get("uptime_ms")
+                let uptime_secs = health
+                    .get("uptime_ms")
                     .and_then(|v| v.as_u64())
                     .map(|ms| ms / 1000)
                     .unwrap_or(0);
-                let current_frame = frame.get("frame_id")
+                let current_frame = frame
+                    .get("frame_id")
                     .or_else(|| frame.get("active_frame_id"))
                     .and_then(|v| v.as_str())
                     .unwrap_or("none");
-                let license_status = license.get("status")
+                let license_status = license
+                    .get("status")
                     .and_then(|v| v.as_str())
                     .unwrap_or("unknown");
-                let scope_status = project.get("status")
+                let scope_status = project
+                    .get("status")
                     .and_then(|v| v.as_str())
                     .unwrap_or("unknown");
                 let last_5_events: Vec<String> = events
@@ -944,6 +953,8 @@ async fn main() -> anyhow::Result<()> {
         Commands::Export(cmd) => commands::export::run(cmd, cli.json).await,
         Commands::Contribute(cmd) => commands::contribute::run(cmd, cli.json).await,
         Commands::Cache(cmd) => commands::cache::run(cmd, cli.json).await,
+        Commands::FirstMission(args) => commands::first_mission::run(args, cli.json).await,
+        Commands::Setup(cmd) => commands::setup::run(cmd, cli.json).await,
         Commands::Project(cmd) => commands::project::run(cmd, cli.json).await,
         Commands::Resource(cmd) => commands::resource::run(cmd, cli.json).await,
         Commands::Trajectory(cmd) => commands::trajectory::run(cmd, cli.json).await,

@@ -57,5 +57,5 @@ pub mod training;
 pub mod types;
 pub mod utility_card;
 pub mod uxp;
-pub mod workers;
 pub mod work_item;
+pub mod workers;

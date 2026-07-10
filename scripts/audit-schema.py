@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Canonical audit-trail schema for `release-proof/audit/audit.jsonl`.
 
-Every row in `audit.jsonl` MUST conform to one of three canonical shapes:
+Every row in `audit.jsonl` MUST conform to one of four canonical shapes:
 
     FailureRow:
       id (str, required, unique): "fail-YYYY-MM-DD-<short>"
@@ -29,20 +29,27 @@ Every row in `audit.jsonl` MUST conform to one of three canonical shapes:
       test (str, optional): which static test asserts it
       linked_run (str, optional): comma-separated run ids
 
-    SelfHealRow (synthesized by scripts/auto-heal-audit.py):
+    SelfHealRow (synthesized by scripts/propose-system-fix.py):
       ts (str, required, ISO 8601 UTC)
       event (str, required, literal): "self_heal"
-      derived_from (str, required): the failure row's id
-      category (str, required)
-      subsystem (str, required)
+      failure_class (str, required)
       scope (str, required)
-      symptom (str, required)
-      root_cause (str, required)
-      fix (str, required)
-      guard (str, required)
-      test (str, required)
+      derived_from (str, required): the failure row's id
+      fail_count_30d (int, required)
+      deliverable (object|null, required)
+      before (object, required)
+      after (object, required)
+      closed (bool, required)
       linked_run (str, required)
-      auto_generated (bool, required): always True
+      escalation_count (int, required)
+      operator_reviewed (bool, required)
+
+    InterventionRateRow:
+      ts (str, required, ISO 8601 UTC)
+      event (str, required, literal): "intervention_rate"
+      total_CI_runs (int, required)
+      manual_interventions_required (int, required)
+      operator_intervention_rate_pct (number, required)
 
 Run from repo root:
 
@@ -83,6 +90,7 @@ VALID_CATEGORIES = {
     "self_test",
     "ci_workflow_failure",
     "self_heal",
+    "intervention_rate",
 }
 
 VALID_SUBSYSTEMS = {
@@ -135,6 +143,37 @@ REQUIRED_SELF_HEAL = {
     "guard",
     "test",
     "linked_run",
+    "failure_class",
+    "fail_count_30d",
+    "deliverable",
+    "before",
+    "after",
+    "closed",
+    "escalation_count",
+    "operator_reviewed",
+}
+
+REQUIRED_INTERVENTION_RATE = {
+    "ts",
+    "event",
+    "total_CI_runs",
+    "manual_interventions_required",
+    "operator_intervention_rate_pct",
+}
+
+REQUIRED_LEGACY_SELF_HEAL = {
+    "ts",
+    "event",
+    "derived_from",
+    "category",
+    "subsystem",
+    "scope",
+    "symptom",
+    "root_cause",
+    "fix",
+    "guard",
+    "test",
+    "linked_run",
     "auto_generated",
 }
 
@@ -159,6 +198,8 @@ def _row_kind(row: dict[str, Any]) -> str | None:
         return "addition"
     if event == "self_heal":
         return "self_heal"
+    if event == "intervention_rate":
+        return "intervention_rate"
     return None
 
 
@@ -186,7 +227,20 @@ def validate(path: str) -> int:
         elif kind == "addition":
             errors.extend(_validate_required(row, REQUIRED_ADDITION, path, ln))
         elif kind == "self_heal":
-            errors.extend(_validate_required(row, REQUIRED_SELF_HEAL, path, ln))
+            if "fail_count_30d" not in row and row.get("auto_generated") is True:
+                errors.extend(_validate_required(row, REQUIRED_LEGACY_SELF_HEAL, path, ln))
+            else:
+                errors.extend(_validate_required(row, REQUIRED_SELF_HEAL, path, ln))
+                deliverable = row.get("deliverable")
+                if deliverable is not None:
+                    if not isinstance(deliverable, dict):
+                        errors.append(f"{path}:{ln}: self_heal deliverable must be object or null")
+                    else:
+                        for key in ("type", "ref", "change_summary"):
+                            if not deliverable.get(key):
+                                errors.append(f"{path}:{ln}: self_heal deliverable missing {key}")
+        elif kind == "intervention_rate":
+            errors.extend(_validate_required(row, REQUIRED_INTERVENTION_RATE, path, ln))
         if row.get("subsystem") and row["subsystem"] not in VALID_SUBSYSTEMS:
             errors.append(f"{path}:{ln}: subsystem '{row['subsystem']}' not in canonical set")
         rid = row.get("id")

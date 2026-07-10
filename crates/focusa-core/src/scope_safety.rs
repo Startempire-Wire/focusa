@@ -73,8 +73,8 @@ pub fn classify_project_root(path: &str) -> ScopeSafety<'_> {
     let root = raw.trim_end_matches('/');
     let normalized = if root.is_empty() { raw } else { root };
     match normalized {
-        "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt" | "/srv"
-        | "/var/tmp" | "/etc" => return ScopeSafety::UnsafeBroadRoot(normalized),
+        "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt" | "/srv" | "/var/tmp"
+        | "/etc" => return ScopeSafety::UnsafeBroadRoot(normalized),
         _ => {}
     }
     // /home/<user> is a user home, not a project
@@ -88,40 +88,40 @@ pub fn classify_project_root(path: &str) -> ScopeSafety<'_> {
     match normalized {
         "/root/pi-mono" => return ScopeSafety::AgentRuntimeDirectory(normalized),
         _ if normalized.starts_with("/root/pi-") => {
-            return ScopeSafety::AgentRuntimeDirectory(normalized)
+            return ScopeSafety::AgentRuntimeDirectory(normalized);
         }
         _ if normalized.starts_with("/opt/node-") => {
-            return ScopeSafety::AgentRuntimeDirectory(normalized)
+            return ScopeSafety::AgentRuntimeDirectory(normalized);
         }
         _ if normalized == "/usr/local/bin" => {
-            return ScopeSafety::AgentRuntimeDirectory(normalized)
+            return ScopeSafety::AgentRuntimeDirectory(normalized);
         }
         _ if normalized.starts_with("/usr/local/lib/node_modules") => {
-            return ScopeSafety::AgentRuntimeDirectory(normalized)
+            return ScopeSafety::AgentRuntimeDirectory(normalized);
         }
         _ if normalized.contains("/.claude") => {
-            return ScopeSafety::AgentRuntimeDirectory(normalized)
+            return ScopeSafety::AgentRuntimeDirectory(normalized);
         }
         _ if normalized.contains("/.opencode") => {
-            return ScopeSafety::AgentRuntimeDirectory(normalized)
+            return ScopeSafety::AgentRuntimeDirectory(normalized);
         }
         _ if normalized.contains("/.letta") => {
-            return ScopeSafety::AgentRuntimeDirectory(normalized)
+            return ScopeSafety::AgentRuntimeDirectory(normalized);
         }
         _ if normalized.contains("/.pi/") || normalized.ends_with("/.pi") => {
-            return ScopeSafety::AgentRuntimeDirectory(normalized)
+            return ScopeSafety::AgentRuntimeDirectory(normalized);
         }
         _ if normalized.contains("/site-packages/letta") => {
-            return ScopeSafety::AgentRuntimeDirectory(normalized)
+            return ScopeSafety::AgentRuntimeDirectory(normalized);
         }
         _ if normalized.contains("/site-packages/open-code") => {
-            return ScopeSafety::AgentRuntimeDirectory(normalized)
+            return ScopeSafety::AgentRuntimeDirectory(normalized);
         }
         _ if normalized.contains("/site-packages/pi-coding-agent") => {
-            return ScopeSafety::AgentRuntimeDirectory(normalized)
+            return ScopeSafety::AgentRuntimeDirectory(normalized);
         }
         _ if normalized.contains("/site-packages/claude") => {
-            return ScopeSafety::AgentRuntimeDirectory(normalized)
+            return ScopeSafety::AgentRuntimeDirectory(normalized);
         }
         _ => {}
     }

@@ -147,7 +147,10 @@ impl Daemon {
         // partial MAC keys (mac_nonce/mac_pubkey/mac_callback) don't accumulate
         // across daemon runs.
         match persistence.cleanup_expired_connect_sessions() {
-            Ok(n) if n > 0 => tracing::info!(removed = n, "startup: purged expired unpaired connect_sessions"),
+            Ok(n) if n > 0 => tracing::info!(
+                removed = n,
+                "startup: purged expired unpaired connect_sessions"
+            ),
             Ok(_) => {}
             Err(e) => tracing::warn!(error = %e, "startup: connect_sessions cleanup failed"),
         }

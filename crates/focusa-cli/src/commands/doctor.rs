@@ -196,7 +196,10 @@ fn daemon_exe_path() -> PathBuf {
             return p;
         }
     }
-    if let Ok(out) = std::process::Command::new("which").arg("focusa-daemon").output() {
+    if let Ok(out) = std::process::Command::new("which")
+        .arg("focusa-daemon")
+        .output()
+    {
         if out.status.success() {
             let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
             if !s.is_empty() {

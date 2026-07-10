@@ -66,7 +66,10 @@ fn work_item_closure_stages_print_help() {
 #[test]
 fn provider_guard_evaluate_shows_help() {
     let (output, stdout) = run(&["work-item", "provider-guard", "evaluate", "--help"]);
-    assert!(output.status.success(), "provider-guard evaluate --help should exit 0");
+    assert!(
+        output.status.success(),
+        "provider-guard evaluate --help should exit 0"
+    );
 }
 
 #[test]
@@ -75,7 +78,9 @@ fn doctor_closure_prints_diagnostics() {
     // May fail if no daemon — check it doesn't crash
     if !output.status.success() {
         assert!(
-            stdout.contains("doctor") || stdout.contains("daemon") || stdout.contains("unavailable"),
+            stdout.contains("doctor")
+                || stdout.contains("daemon")
+                || stdout.contains("unavailable"),
             "doctor closure failure should be graceful, got: {stdout}"
         );
     }

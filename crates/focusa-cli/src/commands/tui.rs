@@ -169,7 +169,9 @@ async fn run_headless_self_test(api: &str, project_root: Option<&str>) -> Result
     // /v1/telemetry/snapshot doesn't exist; record status only when non-404.
     let telemetry_url = format!("{}/v1/telemetry/snapshot", api.trim_end_matches('/'));
     let telemetry = match client.get(&telemetry_url).send().await {
-        Ok(r) if r.status().as_u16() == 404 => serde_json::json!({"status": "absent", "url": telemetry_url}),
+        Ok(r) if r.status().as_u16() == 404 => {
+            serde_json::json!({"status": "absent", "url": telemetry_url})
+        }
         Ok(r) if r.status().is_success() => r
             .json::<serde_json::Value>()
             .await

@@ -63,7 +63,7 @@ impl PublicSnapshot {
             redaction_rules: Vec::new(),
             hash_chain: HashChain {
                 prev_sha256: "genesis".to_string(),
-                sha256: String::new(),  // computed below
+                sha256: String::new(), // computed below
                 sequence: 0,
                 algorithm: "sha256".to_string(),
             },
@@ -80,7 +80,12 @@ impl PublicSnapshot {
     }
 
     /// Generate a measured-claim suitable for public release.
-    pub fn claim(&self, metric: impl Into<String>, value: f64, n: u32) -> super::reports::MeasuredClaim {
+    pub fn claim(
+        &self,
+        metric: impl Into<String>,
+        value: f64,
+        n: u32,
+    ) -> super::reports::MeasuredClaim {
         let mut claim = super::reports::MeasuredClaim {
             metric: metric.into(),
             value,

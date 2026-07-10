@@ -123,7 +123,9 @@ impl ClosureAuditLog {
         let home = std::env::var_os("HOME")
             .map(PathBuf::from)
             .unwrap_or_else(|| PathBuf::from("/root"));
-        home.join(".focusa").join("state").join("closure-audit.jsonl")
+        home.join(".focusa")
+            .join("state")
+            .join("closure-audit.jsonl")
     }
 
     /// Open the default log.
@@ -144,8 +146,9 @@ impl ClosureAuditLog {
     pub fn append(&self, event: ClosureAuditEvent) -> std::io::Result<Option<PathBuf>> {
         let mut guard = self.inner.lock();
         #[allow(clippy::redundant_closure)]
-        let line = serde_json::to_string(&event)
-            .map_err(|e| std::io::Error::other(Box::new(e) as Box<dyn std::error::Error + Send + Sync>))?;
+        let line = serde_json::to_string(&event).map_err(|e| {
+            std::io::Error::other(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
+        })?;
         if let Some(f) = guard.file.as_mut() {
             writeln!(f, "{line}")?;
             f.flush()?;
@@ -180,36 +183,40 @@ mod tests {
 
     #[test]
     fn audit_event_roundtrip_json() {
-        let ev = ClosureAuditEvent::new(LifecycleStage::Validate, "verious.smith@philoveracity.com", "starting validate")
-            .with_claim(&ClosureClaim {
-                schema: "focusa.closure_claim.v1".into(),
-                claim_id: "claim_test_audit".into(),
-                idempotency_key: "idem_test_audit".into(),
-                work_item: crate::work_item::types::WorkItemRef {
-                    provider: WorkItemProvider::Bd,
-                    provider_item_id: "focusa-test".into(),
-                    project_root: "/tmp".into(),
-                    external_url: None,
-                },
+        let ev = ClosureAuditEvent::new(
+            LifecycleStage::Validate,
+            "verious.smith@philoveracity.com",
+            "starting validate",
+        )
+        .with_claim(&ClosureClaim {
+            schema: "focusa.closure_claim.v1".into(),
+            claim_id: "claim_test_audit".into(),
+            idempotency_key: "idem_test_audit".into(),
+            work_item: crate::work_item::types::WorkItemRef {
+                provider: WorkItemProvider::Bd,
+                provider_item_id: "focusa-test".into(),
                 project_root: "/tmp".into(),
-                continuity_id: "focusa-cont-test".into(),
-                workpoint_id: None,
-                actor_id: "verious.smith@philoveracity.com".into(),
-                agent_session_id: None,
-                closure_summary: "audit roundtrip".into(),
-                closure_kind: crate::work_item::types::ClosureKind::Code,
-                code_refs: vec![],
-                spec_refs: vec![],
-                proof_refs: vec![],
-                deploy_refs: vec![],
-                artifact_refs: vec![],
-                policy: "default".into(),
-                created_at: Utc::now(),
-                expires_at: Utc::now(),
-                status: ClaimStatus::Valid,
-                override_reason: None,
-                machine_id: None,
-            });
+                external_url: None,
+            },
+            project_root: "/tmp".into(),
+            continuity_id: "focusa-cont-test".into(),
+            workpoint_id: None,
+            actor_id: "verious.smith@philoveracity.com".into(),
+            agent_session_id: None,
+            closure_summary: "audit roundtrip".into(),
+            closure_kind: crate::work_item::types::ClosureKind::Code,
+            code_refs: vec![],
+            spec_refs: vec![],
+            proof_refs: vec![],
+            deploy_refs: vec![],
+            artifact_refs: vec![],
+            policy: "default".into(),
+            created_at: Utc::now(),
+            expires_at: Utc::now(),
+            status: ClaimStatus::Valid,
+            override_reason: None,
+            machine_id: None,
+        });
         let s = serde_json::to_string(&ev).unwrap();
         let back: ClosureAuditEvent = serde_json::from_str(&s).unwrap();
         assert_eq!(back.detail, "starting validate");

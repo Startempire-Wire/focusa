@@ -30,6 +30,8 @@ Thumbs.db
 *.swp
 *.swo
 *~
+__pycache__/
+*.py[cod]
 
 # Focusa local state (runtime)
 .focusa/
@@ -39,11 +41,25 @@ Thumbs.db
 /focusa.sqlite-wal
 /focusa-daemon.lock
 /.beads/daemon-*.log.gz
+/.beads/.br_history/
+/.beads/.write.lock
 ecs/handles/
 ecs/handles-index/
 ecs/objects/
 device-pairing/
 hlt-ledger/
+
+# Private operator / agent strategy docs
+.focusa-private/
+_private/
+agent-kb/
+docs/private/
+
+# Internal proof / transcript staging
+release-proof/internal/
+docs/evidence/raw/
+docs/evidence/transcripts/
+
 # Large release binaries belong on GitHub Releases, not in git.
 releases/*/focusa-daemon-linux-*
 releases/*/focusa-cli-linux-*

@@ -8,7 +8,7 @@
 
 use anyhow::{Context, Result};
 use clap::Args;
-use focusa_core::scope_safety::{classify_project_root, ScopeSafety};
+use focusa_core::scope_safety::{ScopeSafety, classify_project_root};
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 

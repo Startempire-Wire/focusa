@@ -286,8 +286,7 @@ pub async fn run(cmd: FocusCmd, json_mode: bool) -> anyhow::Result<()> {
 /// silently lost) happened because the CLI sent `null` and the daemon
 /// rejected it; the fix is to never send null when a project root is
 /// discoverable from the working directory.
-fn discover_project_root_from_cwd() -> Option<String> {
-    let mut cur = std::env::current_dir().ok()?;
+fn discover_project_root_from_path(mut cur: std::path::PathBuf) -> Option<String> {
     loop {
         let beads = cur.join(".beads");
         if beads.is_dir() {
@@ -300,17 +299,21 @@ fn discover_project_root_from_cwd() -> Option<String> {
     }
 }
 
+fn discover_project_root_from_cwd() -> Option<String> {
+    discover_project_root_from_path(std::env::current_dir().ok()?)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn discover_finds_beads_walking_up() {
-        // Current dir (focusa repo) has .beads/ — must find this project root.
-        let root = discover_project_root_from_cwd();
+        let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let root = discover_project_root_from_path(manifest_dir);
         assert!(
             root.is_some(),
-            "expected to find .beads walking up from CWD"
+            "expected to find .beads walking up from manifest dir"
         );
         let p = std::path::PathBuf::from(root.unwrap());
         assert!(p.join(".beads").is_dir());
@@ -318,17 +321,9 @@ mod tests {
 
     #[test]
     fn discover_returns_none_for_clean_tmp() {
-        // /tmp is unlikely to contain .beads/ walking up; if it does, skip.
         let tmp = std::env::temp_dir().join("focusa-discover-none-test");
         let _ = std::fs::create_dir_all(&tmp);
-        let prev = std::env::current_dir().ok();
-        if std::env::set_current_dir(&tmp).is_err() {
-            return;
-        }
-        let result = discover_project_root_from_cwd();
-        if let Some(p) = prev {
-            let _ = std::env::set_current_dir(p);
-        }
+        let result = discover_project_root_from_path(tmp);
         // On a hardened CI box /tmp is sometimes a tmpfs and parent walks to /
         // which may or may not have a .beads/ — accept either, just don't panic.
         if let Some(r) = result {

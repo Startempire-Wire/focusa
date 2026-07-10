@@ -18,6 +18,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::work_item::adapter::{ProviderAdapter, ProviderRegistry, RegistryError, RegistryResult};
 use crate::work_item::audit::{ClosureAuditEvent, ClosureAuditLog};
 use crate::work_item::evidence::{
     ArtifactStub, CiVerifier, CodeVerifier, DeployVerifier, EndpointVerifier, EvidenceVerifier,
@@ -29,7 +30,6 @@ use crate::work_item::types::{
     ClaimStatus, ClosureBlock, ClosureClaim, ClosureClaimBuilder, ClosureError, ClosureKind,
     EvidenceCitation, EvidenceKind, LifecycleStage, RECLAIMED_BY_OPERATOR, WorkItem, WorkItemRef,
 };
-use crate::work_item::adapter::{ProviderAdapter, ProviderRegistry, RegistryError, RegistryResult};
 
 /// Result of `prepare`.
 #[derive(Clone, Debug)]
@@ -127,7 +127,8 @@ impl Lifecycle {
             return Err(b);
         }
         let validated = self
-            .validate(prepared.claim.claim_id.clone()).await
+            .validate(prepared.claim.claim_id.clone())
+            .await
             .map_err(|e| e.into_block())?;
         if let Some(b) = validated.block {
             return Err(b);
@@ -139,13 +140,15 @@ impl Lifecycle {
             return Err(b);
         }
         let submitted = self
-            .submit(authorized.claim.claim_id.clone()).await
+            .submit(authorized.claim.claim_id.clone())
+            .await
             .map_err(|e| e.into_block())?;
         if let Some(b) = submitted.block {
             return Err(b);
         }
         let reconciled = self
-            .reconcile(submitted.claim.claim_id.clone()).await
+            .reconcile(submitted.claim.claim_id.clone())
+            .await
             .map_err(|e| e.into_block())?;
         if let Some(b) = reconciled.block {
             return Err(b);
@@ -173,10 +176,7 @@ impl Lifecycle {
             work_item.provider_item_id,
             closure_summary.len()
         );
-        let profile_name = self
-            .policy
-            .active_profile
-            .clone();
+        let profile_name = self.policy.active_profile.clone();
         let now = Utc::now();
         let claim = ClosureClaim {
             schema: "focusa.closure_claim.v1".into(),
@@ -190,11 +190,39 @@ impl Lifecycle {
             agent_session_id: None,
             closure_summary: closure_summary.to_string(),
             closure_kind,
-            code_refs: citations.iter().filter(|c| c.kind == EvidenceKind::Code).cloned().collect(),
-            spec_refs: citations.iter().filter(|c| c.kind == EvidenceKind::Spec).cloned().collect(),
-            proof_refs: citations.iter().filter(|c| matches!(c.kind, EvidenceKind::Test | EvidenceKind::Endpoint | EvidenceKind::Workpoint | EvidenceKind::Ci)).cloned().collect(),
-            deploy_refs: citations.iter().filter(|c| c.kind == EvidenceKind::Deploy).cloned().collect(),
-            artifact_refs: citations.iter().filter(|c| c.kind == EvidenceKind::Artifact).cloned().collect(),
+            code_refs: citations
+                .iter()
+                .filter(|c| c.kind == EvidenceKind::Code)
+                .cloned()
+                .collect(),
+            spec_refs: citations
+                .iter()
+                .filter(|c| c.kind == EvidenceKind::Spec)
+                .cloned()
+                .collect(),
+            proof_refs: citations
+                .iter()
+                .filter(|c| {
+                    matches!(
+                        c.kind,
+                        EvidenceKind::Test
+                            | EvidenceKind::Endpoint
+                            | EvidenceKind::Workpoint
+                            | EvidenceKind::Ci
+                    )
+                })
+                .cloned()
+                .collect(),
+            deploy_refs: citations
+                .iter()
+                .filter(|c| c.kind == EvidenceKind::Deploy)
+                .cloned()
+                .collect(),
+            artifact_refs: citations
+                .iter()
+                .filter(|c| c.kind == EvidenceKind::Artifact)
+                .cloned()
+                .collect(),
             policy: profile_name,
             created_at: now,
             expires_at: now + chrono::Duration::hours(24),
@@ -202,21 +230,22 @@ impl Lifecycle {
             override_reason: None,
             machine_id: None,
         };
-        self.storage
-            .save(&claim)
-            .map_err(|e| ClosureError {
-                stage: LifecycleStage::Prepare,
-                failure_class: "persistence_failed".into(),
-                code: "save_failed".into(),
-                why: format!("claim save failed: {e}"),
-                recovery_hint: "check the data_dir and disk space".into(),
-            })?;
+        self.storage.save(&claim).map_err(|e| ClosureError {
+            stage: LifecycleStage::Prepare,
+            failure_class: "persistence_failed".into(),
+            code: "save_failed".into(),
+            why: format!("claim save failed: {e}"),
+            recovery_hint: "check the data_dir and disk space".into(),
+        })?;
         self.audit
             .append(
                 ClosureAuditEvent::new(
                     LifecycleStage::Prepare,
                     actor,
-                    format!("prepared claim {claim_id} ({} citations)", claim.evidence_count()),
+                    format!(
+                        "prepared claim {claim_id} ({} citations)",
+                        claim.evidence_count()
+                    ),
                 )
                 .with_claim(&claim),
             )
@@ -236,7 +265,9 @@ impl Lifecycle {
         let mut claim = self.load_claim(&claim_id, LifecycleStage::Validate)?;
         let mut verify_results = Vec::new();
         // Run verifier on every citation across every field.
-        for citation in claim.code_refs.iter_mut()
+        for citation in claim
+            .code_refs
+            .iter_mut()
             .chain(claim.spec_refs.iter_mut())
             .chain(claim.proof_refs.iter_mut())
             .chain(claim.deploy_refs.iter_mut())
@@ -263,17 +294,19 @@ impl Lifecycle {
         } else {
             claim.status = ClaimStatus::Blocked;
         }
-        self.storage
-            .save(&claim)
-            .map_err(|e| ClosureError {
-                stage: LifecycleStage::Validate,
-                failure_class: "persistence_failed".into(),
-                code: "save_failed".into(),
-                why: format!("claim save failed: {e}"),
-                recovery_hint: "check the data_dir and disk space".into(),
-            })?;
+        self.storage.save(&claim).map_err(|e| ClosureError {
+            stage: LifecycleStage::Validate,
+            failure_class: "persistence_failed".into(),
+            code: "save_failed".into(),
+            why: format!("claim save failed: {e}"),
+            recovery_hint: "check the data_dir and disk space".into(),
+        })?;
         let detail = if let Some(b) = &block {
-            format!("validate FAILED: {} ({} citations)", b.code, verify_results.len())
+            format!(
+                "validate FAILED: {} ({} citations)",
+                b.code,
+                verify_results.len()
+            )
         } else {
             format!(
                 "validate OK: {}/{} citations verified",
@@ -301,7 +334,11 @@ impl Lifecycle {
     }
 
     /// Stage 3: authorize. Checks the policy.
-    pub fn authorize(&self, actor: &str, claim_id: String) -> Result<AuthorizeResult, ClosureError> {
+    pub fn authorize(
+        &self,
+        actor: &str,
+        claim_id: String,
+    ) -> Result<AuthorizeResult, ClosureError> {
         let mut claim = self.load_claim(&claim_id, LifecycleStage::Authorize)?;
         if claim.status != ClaimStatus::Valid && !claim.is_override() {
             return Err(ClosureError {
@@ -342,23 +379,17 @@ impl Lifecycle {
             }
         }
         claim.status = ClaimStatus::Authorized;
-        self.storage
-            .save(&claim)
-            .map_err(|e| ClosureError {
-                stage: LifecycleStage::Authorize,
-                failure_class: "persistence_failed".into(),
-                code: "save_failed".into(),
-                why: format!("claim save failed: {e}"),
-                recovery_hint: "check the data_dir and disk space".into(),
-            })?;
+        self.storage.save(&claim).map_err(|e| ClosureError {
+            stage: LifecycleStage::Authorize,
+            failure_class: "persistence_failed".into(),
+            code: "save_failed".into(),
+            why: format!("claim save failed: {e}"),
+            recovery_hint: "check the data_dir and disk space".into(),
+        })?;
         self.audit
             .append(
-                ClosureAuditEvent::new(
-                    LifecycleStage::Authorize,
-                    actor,
-                    "authorized",
-                )
-                .with_claim(&claim),
+                ClosureAuditEvent::new(LifecycleStage::Authorize, actor, "authorized")
+                    .with_claim(&claim),
             )
             .map_err(|e| ClosureError {
                 stage: LifecycleStage::Authorize,
@@ -400,19 +431,22 @@ impl Lifecycle {
         }
         let claim_for_audit = claim.clone();
         let work_item_for_call = claim.work_item.clone();
-        let res = adapter
-            .submit(&work_item_for_call)
-            .await;
+        let res = adapter.submit(&work_item_for_call).await;
         let work_item = match res {
             Ok(w) => w,
-            Err(RegistryError::ProviderError { provider, stage: _, why }) => {
+            Err(RegistryError::ProviderError {
+                provider,
+                stage: _,
+                why,
+            }) => {
                 return Err(ClosureError {
                     stage: LifecycleStage::Submit,
                     failure_class: "provider_failed".into(),
                     code: "submit_failed".into(),
                     why: format!("provider {provider} submit failed: {why}"),
-                    recovery_hint: "inspect the provider's CLI / API output; retry the claim".into(),
-                })
+                    recovery_hint: "inspect the provider's CLI / API output; retry the claim"
+                        .into(),
+                });
             }
             Err(e) => {
                 return Err(ClosureError {
@@ -420,19 +454,22 @@ impl Lifecycle {
                     failure_class: "provider_error".into(),
                     code: "submit_error".into(),
                     why: format!("provider error: {e}"),
-                    recovery_hint: "inspect the provider's CLI / API output; retry the claim".into(),
-                })
+                    recovery_hint: "inspect the provider's CLI / API output; retry the claim"
+                        .into(),
+                });
             }
         };
         let mut updated_claim = claim;
         updated_claim.status = ClaimStatus::Submitted;
-        self.storage.save(&updated_claim).map_err(|e| ClosureError {
-            stage: LifecycleStage::Submit,
-            failure_class: "persistence_failed".into(),
-            code: "save_failed".into(),
-            why: format!("claim save failed: {e}"),
-            recovery_hint: "check the data_dir and disk space".into(),
-        })?;
+        self.storage
+            .save(&updated_claim)
+            .map_err(|e| ClosureError {
+                stage: LifecycleStage::Submit,
+                failure_class: "persistence_failed".into(),
+                code: "save_failed".into(),
+                why: format!("claim save failed: {e}"),
+                recovery_hint: "check the data_dir and disk space".into(),
+            })?;
         self.audit
             .append(
                 ClosureAuditEvent::new(
@@ -460,8 +497,10 @@ impl Lifecycle {
     /// provider and verifies the post-submit state.
     pub async fn reconcile(&self, claim_id: String) -> Result<ReconcileResult, ClosureError> {
         let claim = self.load_claim(&claim_id, LifecycleStage::Reconcile)?;
-        let adapter = self.registry.get(claim.work_item.provider).ok_or_else(|| {
-            ClosureError {
+        let adapter = self
+            .registry
+            .get(claim.work_item.provider)
+            .ok_or_else(|| ClosureError {
                 stage: LifecycleStage::Reconcile,
                 failure_class: "provider_unavailable".into(),
                 code: "no_adapter".into(),
@@ -469,21 +508,26 @@ impl Lifecycle {
                     "no adapter registered for provider {}",
                     claim.work_item.provider
                 ),
-                recovery_hint: "register the provider or accept the local reconciliation result".into(),
-            }
-        })?;
+                recovery_hint: "register the provider or accept the local reconciliation result"
+                    .into(),
+            })?;
         let work_item_for_call = claim.work_item.clone();
         let res = adapter.reconcile(&work_item_for_call).await;
         let work_item = match res {
             Ok(w) => w,
-            Err(RegistryError::ProviderError { provider, stage: _, why }) => {
+            Err(RegistryError::ProviderError {
+                provider,
+                stage: _,
+                why,
+            }) => {
                 return Err(ClosureError {
                     stage: LifecycleStage::Reconcile,
                     failure_class: "provider_failed".into(),
                     code: "reconcile_failed".into(),
                     why: format!("provider {provider} reconcile failed: {why}"),
-                    recovery_hint: "inspect the provider's CLI / API output; retry reconcile".into(),
-                })
+                    recovery_hint: "inspect the provider's CLI / API output; retry reconcile"
+                        .into(),
+                });
             }
             Err(e) => {
                 return Err(ClosureError {
@@ -491,8 +535,9 @@ impl Lifecycle {
                     failure_class: "provider_error".into(),
                     code: "reconcile_error".into(),
                     why: format!("provider error: {e}"),
-                    recovery_hint: "inspect the provider's CLI / API output; retry reconcile".into(),
-                })
+                    recovery_hint: "inspect the provider's CLI / API output; retry reconcile"
+                        .into(),
+                });
             }
         };
         let expected_closed = matches!(
@@ -508,7 +553,9 @@ impl Lifecycle {
                     "provider reports status `{}` after submit; expected Closed or Done",
                     work_item.provider_status
                 ),
-                String::from("rerun `focusa work-item closure submit <claim_id>` and inspect the provider"),
+                String::from(
+                    "rerun `focusa work-item closure submit <claim_id>` and inspect the provider",
+                ),
                 LifecycleStage::Reconcile,
             );
             b.claim_id = Some(claim.claim_id.clone());
@@ -594,15 +641,18 @@ impl Lifecycle {
         Ok(claim)
     }
 
-    fn load_claim(&self, claim_id: &str, stage: LifecycleStage) -> Result<ClosureClaim, ClosureError> {
-        self.storage.load(claim_id).map_err(|e| {
-            ClosureError {
-                stage,
-                failure_class: "persistence_failed".into(),
-                code: "load_failed".into(),
-                why: format!("claim load failed: {e}"),
-                recovery_hint: "rerun `focusa work-item closure prepare <id>` to recreate the claim".into(),
-            }
+    fn load_claim(
+        &self,
+        claim_id: &str,
+        stage: LifecycleStage,
+    ) -> Result<ClosureClaim, ClosureError> {
+        self.storage.load(claim_id).map_err(|e| ClosureError {
+            stage,
+            failure_class: "persistence_failed".into(),
+            code: "load_failed".into(),
+            why: format!("claim load failed: {e}"),
+            recovery_hint: "rerun `focusa work-item closure prepare <id>` to recreate the claim"
+                .into(),
         })
     }
 
@@ -655,7 +705,11 @@ pub fn evaluate_profile(
                     "profile `{}` requires at least {min} `{kind}` citation(s); found {count}",
                     profile.name
                 ),
-                format!("add at least {} more `{}` citation(s) to the claim", min - count, kind),
+                format!(
+                    "add at least {} more `{}` citation(s) to the claim",
+                    min - count,
+                    kind
+                ),
                 LifecycleStage::Validate,
             ));
         }
@@ -705,7 +759,10 @@ pub fn evaluate_profile(
 
     // Optional: endpoint status whitelist.
     if !profile.rule.endpoint_status_in.is_empty() {
-        for citation in all_citations.iter().filter(|c| c.kind == EvidenceKind::Endpoint) {
+        for citation in all_citations
+            .iter()
+            .filter(|c| c.kind == EvidenceKind::Endpoint)
+        {
             // The verifier's result string contains "http NNN" — pull
             // out the first number that is between 100 and 599.
             if let Some(code) = parse_http_code(citation.result.as_deref().unwrap_or("")) {
@@ -745,7 +802,10 @@ fn parse_http_code(s: &str) -> Option<u16> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::work_item::types::{ClaimStatus, ClosureClaim, ClosureKind, EvidenceCitation, EvidenceKind, WorkItemProvider, WorkItemRef};
+    use crate::work_item::types::{
+        ClaimStatus, ClosureClaim, ClosureKind, EvidenceCitation, EvidenceKind, WorkItemProvider,
+        WorkItemRef,
+    };
     use chrono::Utc;
     use std::path::PathBuf;
 
@@ -819,7 +879,11 @@ mod tests {
             .iter()
             .chain(claim.proof_refs.iter())
             .chain(claim.deploy_refs.iter())
-            .map(|c| VerifyResult { verified: c.verified, result: c.result.clone().unwrap_or_default(), evidence_url: None })
+            .map(|c| VerifyResult {
+                verified: c.verified,
+                result: c.result.clone().unwrap_or_default(),
+                evidence_url: None,
+            })
             .collect();
         let block = evaluate_profile(&profile, &claim, &results);
         assert!(block.is_none(), "block should be None, got {:?}", block);
@@ -845,7 +909,10 @@ mod tests {
 
     #[test]
     fn parse_http_code_extracts_status() {
-        assert_eq!(parse_http_code("GET /v1/health -> http OK 200 body=`...`"), Some(200));
+        assert_eq!(
+            parse_http_code("GET /v1/health -> http OK 200 body=`...`"),
+            Some(200)
+        );
         assert_eq!(parse_http_code("http FAIL 500"), Some(500));
         assert_eq!(parse_http_code("no http here"), None);
     }

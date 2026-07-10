@@ -13,6 +13,7 @@
 use anyhow::Result;
 use clap::{Args, Subcommand};
 use focusa_core::work_item::{
+    ProviderRegistry,
     adapters::{BdAdapter, NoneAdapter},
     audit::ClosureAuditLog,
     lifecycle::Lifecycle,
@@ -22,7 +23,6 @@ use focusa_core::work_item::{
         ClaimStatus, ClosureBlock, ClosureClaim, ClosureKind, EvidenceCitation, EvidenceKind,
         LifecycleStage, WorkItemProvider, WorkItemRef,
     },
-    ProviderRegistry,
 };
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -58,7 +58,13 @@ fn print_claim(claim: &ClosureClaim) {
     print_status("completed");
     print_kv("claim_id", &claim.claim_id);
     print_kv("idempotency_key", &claim.idempotency_key);
-    print_kv("work_item", &format!("{}:{}", claim.work_item.provider, claim.work_item.provider_item_id));
+    print_kv(
+        "work_item",
+        &format!(
+            "{}:{}",
+            claim.work_item.provider, claim.work_item.provider_item_id
+        ),
+    );
     print_kv("closure_kind", &claim.closure_kind.to_string());
     print_kv("policy", &claim.policy);
     print_kv("status", &claim.status.to_string());
@@ -192,7 +198,8 @@ fn default_lifecycle() -> Lifecycle {
     let storage = ClaimStorage::open_default();
     let audit = ClosureAuditLog::open_default();
     let policy = ClosurePolicy::load();
-    let profiles = ClosureProfile::load_all(&focusa_core::work_item::policy::default_profiles_dir());
+    let profiles =
+        ClosureProfile::load_all(&focusa_core::work_item::policy::default_profiles_dir());
 
     Lifecycle::new(storage, audit, policy, profiles, registry)
 }
@@ -324,11 +331,17 @@ async fn run_close(args: CloseArgs) -> Result<()> {
     print_kv("citations", &citations.len().to_string());
     eprintln!();
 
-    match lifecycle.run(&actor, work_item, &summary, kind, citations).await {
+    match lifecycle
+        .run(&actor, work_item, &summary, kind, citations)
+        .await
+    {
         Ok(claim) => {
             print_claim(&claim);
             // Also print the audit location
-            eprintln!("  audit_log:      {}", ClosureAuditLog::default_path().display());
+            eprintln!(
+                "  audit_log:      {}",
+                ClosureAuditLog::default_path().display()
+            );
             eprintln!();
             Ok(())
         }
@@ -364,63 +377,58 @@ async fn run_closure(cmd: ClosureCmd) -> Result<()> {
                 Err(e) => print_block(&e.into_block()),
             }
         }
-        ClosureCmd::Validate(args) => {
-            match lifecycle.validate(args.claim_id.clone()).await {
-                Ok(result) => {
-                    if let Some(blk) = result.block {
-                        print_block(&blk);
-                    } else {
-                        print_status("completed");
-                        print_kv("action", &format!("validate claim {}", args.claim_id));
-                        print_kv("claim_status", &result.claim.status.to_string());
-                        for (i, citation) in result.verify_results.iter().enumerate() {
-                            let mark = if citation.verified { "✓" } else { "✗" };
-                            eprintln!("    {mark} citation[{i}]: {}", citation.result);
-                        }
-                        eprintln!();
+        ClosureCmd::Validate(args) => match lifecycle.validate(args.claim_id.clone()).await {
+            Ok(result) => {
+                if let Some(blk) = result.block {
+                    print_block(&blk);
+                } else {
+                    print_status("completed");
+                    print_kv("action", &format!("validate claim {}", args.claim_id));
+                    print_kv("claim_status", &result.claim.status.to_string());
+                    for (i, citation) in result.verify_results.iter().enumerate() {
+                        let mark = if citation.verified { "✓" } else { "✗" };
+                        eprintln!("    {mark} citation[{i}]: {}", citation.result);
                     }
+                    eprintln!();
                 }
-                Err(e) => print_block(&e.into_block()),
             }
-        }
-        ClosureCmd::Authorize(args) => {
-            match lifecycle.authorize(&actor, args.claim_id.clone()) {
-                Ok(result) => {
-                    if let Some(blk) = result.block {
-                        print_block(&blk);
-                    } else {
-                        print_claim(&result.claim);
-                    }
+            Err(e) => print_block(&e.into_block()),
+        },
+        ClosureCmd::Authorize(args) => match lifecycle.authorize(&actor, args.claim_id.clone()) {
+            Ok(result) => {
+                if let Some(blk) = result.block {
+                    print_block(&blk);
+                } else {
+                    print_claim(&result.claim);
                 }
-                Err(e) => print_block(&e.into_block()),
             }
-        }
-        ClosureCmd::Submit(args) => {
-            match lifecycle.submit(args.claim_id.clone()).await {
-                Ok(result) => {
-                    if let Some(blk) = result.block {
-                        print_block(&blk);
-                    } else {
-                        print_claim(&result.claim);
-                        print_kv("provider_status", &result.work_item.provider_status.to_string());
-                        eprintln!();
-                    }
+            Err(e) => print_block(&e.into_block()),
+        },
+        ClosureCmd::Submit(args) => match lifecycle.submit(args.claim_id.clone()).await {
+            Ok(result) => {
+                if let Some(blk) = result.block {
+                    print_block(&blk);
+                } else {
+                    print_claim(&result.claim);
+                    print_kv(
+                        "provider_status",
+                        &result.work_item.provider_status.to_string(),
+                    );
+                    eprintln!();
                 }
-                Err(e) => print_block(&e.into_block()),
             }
-        }
-        ClosureCmd::Reconcile(args) => {
-            match lifecycle.reconcile(args.claim_id.clone()).await {
-                Ok(result) => {
-                    if let Some(blk) = result.block {
-                        print_block(&blk);
-                    } else {
-                        print_claim(&result.claim);
-                    }
+            Err(e) => print_block(&e.into_block()),
+        },
+        ClosureCmd::Reconcile(args) => match lifecycle.reconcile(args.claim_id.clone()).await {
+            Ok(result) => {
+                if let Some(blk) = result.block {
+                    print_block(&blk);
+                } else {
+                    print_claim(&result.claim);
                 }
-                Err(e) => print_block(&e.into_block()),
             }
-        }
+            Err(e) => print_block(&e.into_block()),
+        },
     }
     Ok(())
 }
@@ -441,8 +449,14 @@ async fn run_providers(cmd: ProvidersCmd) -> Result<()> {
                 let cap = adapter.capabilities();
                 eprintln!("  {kind}");
                 eprintln!("    adapter:     {}", std::any::type_name_of_val(&adapter));
-                eprintln!("    mutable:     {}", if cap.mutable { "yes" } else { "no" });
-                eprintln!("    can_submit:  {}", if cap.can_submit { "yes" } else { "no" });
+                eprintln!(
+                    "    mutable:     {}",
+                    if cap.mutable { "yes" } else { "no" }
+                );
+                eprintln!(
+                    "    can_submit:  {}",
+                    if cap.can_submit { "yes" } else { "no" }
+                );
                 eprintln!();
             }
         }
@@ -451,8 +465,14 @@ async fn run_providers(cmd: ProvidersCmd) -> Result<()> {
             print_kv("failure_class", "provider_unavailable");
             print_kv("action", &format!("add provider {}", args.provider));
             print_kv("code", "add_provider_not_ready");
-            print_kv("why", "Provider credential persistence & registry writes are Phase B work. The bd adapter is the default and requires no setup.");
-            print_kv("recovery_hint", "bd adapter is already registered by default. For other providers, wait for Phase B.");
+            print_kv(
+                "why",
+                "Provider credential persistence & registry writes are Phase B work. The bd adapter is the default and requires no setup.",
+            );
+            print_kv(
+                "recovery_hint",
+                "bd adapter is already registered by default. For other providers, wait for Phase B.",
+            );
             print_kv("next_tools", "focusa work-item providers list");
             eprintln!();
         }
@@ -461,8 +481,14 @@ async fn run_providers(cmd: ProvidersCmd) -> Result<()> {
             print_kv("failure_class", "provider_unavailable");
             print_kv("action", &format!("remove provider {}", args.provider));
             print_kv("code", "remove_provider_not_ready");
-            print_kv("why", "Provider removal needs the credential store + registry write. Postponed to Phase B.");
-            print_kv("recovery_hint", "None available yet. Keep bd as the default.");
+            print_kv(
+                "why",
+                "Provider removal needs the credential store + registry write. Postponed to Phase B.",
+            );
+            print_kv(
+                "recovery_hint",
+                "None available yet. Keep bd as the default.",
+            );
             eprintln!();
         }
         ProvidersCmd::Test(args) => {
@@ -475,7 +501,13 @@ async fn run_providers(cmd: ProvidersCmd) -> Result<()> {
                     print_kv("failure_class", "provider_unavailable");
                     print_kv("action", &format!("test provider {}", args.provider));
                     print_kv("code", "unknown_provider");
-                    print_kv("why", &format!("Provider '{}' is not recognised. Available: bd, none.", args.provider));
+                    print_kv(
+                        "why",
+                        &format!(
+                            "Provider '{}' is not recognised. Available: bd, none.",
+                            args.provider
+                        ),
+                    );
                     return Ok(());
                 }
             };
@@ -490,16 +522,34 @@ async fn run_providers(cmd: ProvidersCmd) -> Result<()> {
                     print_kv("failure_class", "provider_unavailable");
                     print_kv("action", &format!("test provider {}", args.provider));
                     print_kv("code", "detect_failed");
-                    print_kv("why", &format!("{} adapter's detect() returned false. The provider binary or API endpoint may not be reachable.", args.provider));
-                    print_kv("recovery_hint", &format!("Verify the provider CLI is on PATH (\"which {}\") or check credentials.", args.provider));
+                    print_kv(
+                        "why",
+                        &format!(
+                            "{} adapter's detect() returned false. The provider binary or API endpoint may not be reachable.",
+                            args.provider
+                        ),
+                    );
+                    print_kv(
+                        "recovery_hint",
+                        &format!(
+                            "Verify the provider CLI is on PATH (\"which {}\") or check credentials.",
+                            args.provider
+                        ),
+                    );
                 }
             } else {
                 print_status("blocked");
                 print_kv("failure_class", "provider_unavailable");
                 print_kv("action", &format!("test provider {}", args.provider));
                 print_kv("code", "not_registered");
-                print_kv("why", &format!("No adapter registered for provider {}.", args.provider));
-                print_kv("recovery_hint", "Default providers (bd, none) are registered automatically.");
+                print_kv(
+                    "why",
+                    &format!("No adapter registered for provider {}.", args.provider),
+                );
+                print_kv(
+                    "recovery_hint",
+                    "Default providers (bd, none) are registered automatically.",
+                );
             }
             eprintln!();
         }
@@ -520,18 +570,39 @@ async fn run_provider_guard(cmd: ProviderGuardCmd) -> Result<()> {
             if intercepts_close {
                 print_status("blocked");
                 print_kv("failure_class", "guard_would_intercept");
-                print_kv("action", &format!("evaluate --provider {} --command {:?}", args.provider, args.command));
+                print_kv(
+                    "action",
+                    &format!(
+                        "evaluate --provider {} --command {:?}",
+                        args.provider, args.command
+                    ),
+                );
                 print_kv("code", "close_shape_intercepted");
-                print_kv("why", &format!(
-                    "The guard shim for provider `{}` would intercept this command. Raw close bypasses evidence validation.",
-                    args.provider
-                ));
-                print_kv("recovery_hint", &format!("Use `focusa work-item close <id> --from-workpoint <WP>` instead."));
+                print_kv(
+                    "why",
+                    &format!(
+                        "The guard shim for provider `{}` would intercept this command. Raw close bypasses evidence validation.",
+                        args.provider
+                    ),
+                );
+                print_kv(
+                    "recovery_hint",
+                    &format!("Use `focusa work-item close <id> --from-workpoint <WP>` instead."),
+                );
             } else {
                 print_status("completed");
-                print_kv("action", &format!("evaluate --provider {} --command {:?}", args.provider, args.command));
+                print_kv(
+                    "action",
+                    &format!(
+                        "evaluate --provider {} --command {:?}",
+                        args.provider, args.command
+                    ),
+                );
                 print_kv("code", "guard_would_pass");
-                print_kv("why", "No intercepted pattern matched. Command would pass to the real binary.");
+                print_kv(
+                    "why",
+                    "No intercepted pattern matched. Command would pass to the real binary.",
+                );
             }
         }
         ProviderGuardCmd::Install => {
@@ -552,7 +623,10 @@ async fn run_provider_guard(cmd: ProviderGuardCmd) -> Result<()> {
             print_kv("reminder", "focusa_agent_prompt auto-enabled");
             // Step 4: Verify resolution
             print_kv("stage", "verify_resolution");
-            print_kv("result", "provider resolves correctly via focusa work-item providers");
+            print_kv(
+                "result",
+                "provider resolves correctly via focusa work-item providers",
+            );
             // Step 5: Run doctor
             print_kv("stage", "doctor_closure");
             print_kv("result", "closure doctor ran — all checks passed");
@@ -560,7 +634,9 @@ async fn run_provider_guard(cmd: ProviderGuardCmd) -> Result<()> {
             print_kv("stage", "report");
             print_kv("state", "closure guard installed and active");
             println!();
-            println!("  Next: use `focusa work-item close <id> --from-workpoint <WP>` to close items with evidence.");
+            println!(
+                "  Next: use `focusa work-item close <id> --from-workpoint <WP>` to close items with evidence."
+            );
             println!("  Guard shim intercepts: `bd close`, `bd --status closed` commands.");
         }
     }

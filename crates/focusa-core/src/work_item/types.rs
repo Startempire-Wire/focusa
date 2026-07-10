@@ -261,9 +261,9 @@ fn default_required() -> bool {
 /// (matches Spec 116 envelope shape; see `focusa.closure_block.v1`).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ClosureBlock {
-    pub status: String, // "blocked"
-    pub canonical: bool, // false
-    pub degraded: bool,  // true
+    pub status: String,        // "blocked"
+    pub canonical: bool,       // false
+    pub degraded: bool,        // true
     pub failure_class: String, // "validation_rejected" | "policy_denied" | ...
     pub code: String,
     pub why: String,
@@ -451,7 +451,9 @@ impl ClosureClaimBuilder {
         Self { inner: Some(claim) }
     }
     pub fn status(mut self, status: ClaimStatus) -> Self {
-        if let Some(c) = self.inner.as_mut() { c.status = status; }
+        if let Some(c) = self.inner.as_mut() {
+            c.status = status;
+        }
         self
     }
     pub fn override_reason(mut self, reason: impl Into<String>) -> Self {
@@ -479,7 +481,13 @@ pub struct ClosureError {
 
 impl ClosureError {
     pub fn into_block(self) -> ClosureBlock {
-        ClosureBlock::new(self.failure_class, self.code, self.why, self.recovery_hint, self.stage)
+        ClosureBlock::new(
+            self.failure_class,
+            self.code,
+            self.why,
+            self.recovery_hint,
+            self.stage,
+        )
     }
 }
 
@@ -532,7 +540,10 @@ mod tests {
             WorkItemProvider::None,
         ] {
             let s = p.to_string();
-            assert!(matches!(s.as_str(), "bd" | "linear" | "asana" | "github" | "gitlab" | "jira" | "none"));
+            assert!(matches!(
+                s.as_str(),
+                "bd" | "linear" | "asana" | "github" | "gitlab" | "jira" | "none"
+            ));
         }
     }
 
@@ -553,7 +564,10 @@ mod tests {
             code_refs: vec![sample_citation(EvidenceKind::Code, "crates/foo.rs:42")],
             spec_refs: vec![sample_citation(EvidenceKind::Spec, "docs/116-...md#7.4")],
             proof_refs: vec![sample_citation(EvidenceKind::Test, "tests/spec_...sh")],
-            deploy_refs: vec![sample_citation(EvidenceKind::Endpoint, "GET /v1/health -> 200")],
+            deploy_refs: vec![sample_citation(
+                EvidenceKind::Endpoint,
+                "GET /v1/health -> 200",
+            )],
             artifact_refs: vec![],
             policy: "release_proof".into(),
             created_at: Utc::now(),

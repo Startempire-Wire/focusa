@@ -7,14 +7,25 @@ use serde_json::json;
 fn canonical_pool_has_150_tasks() {
     let pool = TaskPool::canonical();
     assert_eq!(pool.count(), 150, "150 tasks expected");
-    assert_eq!(pool.public_count(), 78, "78 public tasks (13 per kind * 6 kinds = 78)");
-    assert_eq!(pool.private_count(), 72, "72 private tasks (12 per kind * 6 kinds = 72)");
+    assert_eq!(
+        pool.public_count(),
+        78,
+        "78 public tasks (13 per kind * 6 kinds = 78)"
+    );
+    assert_eq!(
+        pool.private_count(),
+        72,
+        "72 private tasks (12 per kind * 6 kinds = 72)"
+    );
 }
 
 #[test]
 fn canonical_model_matrix_has_six_models() {
     let matrix = ModelMatrix::canonical();
-    assert!(matrix.count() >= 4, "Expected 4+ models in canonical matrix");
+    assert!(
+        matrix.count() >= 4,
+        "Expected 4+ models in canonical matrix"
+    );
     assert!(matrix.get("claude-sonnet-4").is_some());
     assert!(matrix.get("gpt-4o").is_some());
 }
@@ -48,7 +59,7 @@ fn focusa_uplift_score_detects_helps() {
     let full = vec![true, true, true, false, false];
     let baseline = vec![true, false, false, false, false];
     let uplift = FocusaUpliftScore::from_comparison(&full, &baseline);
-    assert_eq!(uplift.tasks_helped, 2);  // indices 1, 2
+    assert_eq!(uplift.tasks_helped, 2); // indices 1, 2
     assert_eq!(uplift.tasks_hurt, 0);
     assert_eq!(uplift.tasks_neutral, 3);
 }
@@ -72,11 +83,29 @@ fn time_horizon_median_and_p95() {
 #[test]
 fn eval_ledger_hash_chain_works() {
     let mut ledger = EvalLedger::new();
-    let e1 = ledger.append(LedgerKind::Run, "run-1", "full_focusa", "claude-sonnet-4", json!({"task": "t1"}));
+    let e1 = ledger.append(
+        LedgerKind::Run,
+        "run-1",
+        "full_focusa",
+        "claude-sonnet-4",
+        json!({"task": "t1"}),
+    );
     assert_eq!(e1.prev_hash, "genesis");
-    let e2 = ledger.append(LedgerKind::Event, "run-1", "full_focusa", "claude-sonnet-4", json!({"event": "started"}));
+    let e2 = ledger.append(
+        LedgerKind::Event,
+        "run-1",
+        "full_focusa",
+        "claude-sonnet-4",
+        json!({"event": "started"}),
+    );
     assert_eq!(e2.prev_hash, e1.entry_hash, "e2 should chain from e1");
-    let e3 = ledger.append(LedgerKind::Complete, "run-1", "full_focusa", "claude-sonnet-4", json!({"passed": 78}));
+    let e3 = ledger.append(
+        LedgerKind::Complete,
+        "run-1",
+        "full_focusa",
+        "claude-sonnet-4",
+        json!({"passed": 78}),
+    );
     assert_eq!(e3.prev_hash, e2.entry_hash, "e3 should chain from e2");
     assert_eq!(ledger.entry_count(), 3);
     // Verify chain integrity: each entry's prev_hash matches the previous entry's entry_hash.

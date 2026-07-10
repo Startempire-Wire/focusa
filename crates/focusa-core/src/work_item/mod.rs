@@ -33,19 +33,15 @@ pub mod types;
 pub use adapter::{ProviderAdapter, ProviderRegistry, RegistryError, RegistryResult};
 pub use audit::{ClosureAuditEvent, ClosureAuditLog};
 pub use evidence::{
-    CodeVerifier, EndpointVerifier, SpecVerifier, TestVerifier, VerifyResult,
-    WorkpointVerifier,
+    CodeVerifier, EndpointVerifier, SpecVerifier, TestVerifier, VerifyResult, WorkpointVerifier,
 };
 pub use lifecycle::{
-    AuthorizeResult, Lifecycle, PrepareResult, ReconcileResult,
-    SubmitResult, ValidateResult,
+    AuthorizeResult, Lifecycle, PrepareResult, ReconcileResult, SubmitResult, ValidateResult,
 };
-pub use policy::{
-    ClosurePolicy, ClosureProfile, ProfileRule, ACTIVE_PROFILE_RELEASE_PROOF,
-};
+pub use policy::{ACTIVE_PROFILE_RELEASE_PROOF, ClosurePolicy, ClosureProfile, ProfileRule};
 pub use storage::{ClaimStorage, ClaimStorageError, ClaimStorageResult};
 pub use types::{
-    ClaimStatus, ClosureBlock, ClosureClaim, ClosureClaimBuilder, ClosureError,
-    ClosureKind, EvidenceCitation, EvidenceKind, LifecycleStage, ProviderCapabilities,
-    WorkItem, WorkItemProvider, WorkItemRef, WorkItemStatus, RECLAIMED_BY_OPERATOR,
+    ClaimStatus, ClosureBlock, ClosureClaim, ClosureClaimBuilder, ClosureError, ClosureKind,
+    EvidenceCitation, EvidenceKind, LifecycleStage, ProviderCapabilities, RECLAIMED_BY_OPERATOR,
+    WorkItem, WorkItemProvider, WorkItemRef, WorkItemStatus,
 };
