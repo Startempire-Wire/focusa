@@ -1,6 +1,7 @@
 //! Focus stack and Focus State CLI commands.
 
 use crate::api_client::ApiClient;
+use crate::commands::scope::ensure_project_root_scope_safe;
 use clap::Subcommand;
 use serde_json::{Map, Value, json};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -137,6 +138,11 @@ pub async fn run(cmd: FocusCmd, json_mode: bool) -> anyhow::Result<()> {
                 Some(p) if !p.trim().is_empty() => p.clone(),
                 _ => discover_project_root_from_cwd().unwrap_or_default(),
             };
+            ensure_project_root_scope_safe(
+                (!effective_project_root.trim().is_empty())
+                    .then_some(effective_project_root.as_str()),
+                "focus push: project_root",
+            )?;
             let effective_continuity_id = match continuity_id {
                 Some(c) if !c.trim().is_empty() => c.clone(),
                 _ => String::new(),
@@ -216,6 +222,7 @@ pub async fn run(cmd: FocusCmd, json_mode: bool) -> anyhow::Result<()> {
             if delta.is_empty() {
                 anyhow::bail!("[CLI_INPUT_ERROR] focus update requires at least one slot flag");
             }
+            ensure_project_root_scope_safe(project_root.as_deref(), "focus update: project_root")?;
             let resp = api
                 .post(
                     "/v1/focus/update",

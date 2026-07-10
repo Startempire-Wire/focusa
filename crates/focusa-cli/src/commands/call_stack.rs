@@ -1,6 +1,7 @@
 //! Spec103/106 Call Stack CLI — design, verify, list, show.
 
 use crate::api_client::ApiClient;
+use crate::commands::scope::ensure_project_root_scope_safe;
 use clap::Subcommand;
 use serde_json::{Value, json};
 
@@ -77,6 +78,10 @@ pub async fn run(cmd: CallStackCmd, json_out: bool) -> anyhow::Result<()> {
             parent_design_id,
             notes,
         } => {
+            ensure_project_root_scope_safe(
+                Some(project_root.as_str()),
+                "call-stack design: project_root",
+            )?;
             let body = json!({
                 "project_root": project_root,
                 "continuity_id": continuity_id,
@@ -98,6 +103,10 @@ pub async fn run(cmd: CallStackCmd, json_out: bool) -> anyhow::Result<()> {
             design_id,
             entry_name,
         } => {
+            ensure_project_root_scope_safe(
+                Some(project_root.as_str()),
+                "call-stack verify: project_root",
+            )?;
             let body = json!({
                 "project_root": project_root,
                 "continuity_id": continuity_id,
@@ -113,6 +122,10 @@ pub async fn run(cmd: CallStackCmd, json_out: bool) -> anyhow::Result<()> {
             entry_name,
             limit,
         } => {
+            ensure_project_root_scope_safe(
+                Some(project_root.as_str()),
+                "call-stack list: project_root",
+            )?;
             let mut path = format!(
                 "/v1/call-stack/list?project_root={}&limit={}",
                 urlencoding::encode(&project_root),
@@ -132,6 +145,10 @@ pub async fn run(cmd: CallStackCmd, json_out: bool) -> anyhow::Result<()> {
             continuity_id,
             design_id,
         } => {
+            ensure_project_root_scope_safe(
+                Some(project_root.as_str()),
+                "call-stack show: project_root",
+            )?;
             let mut path = format!(
                 "/v1/call-stack/show?project_root={}&design_id={}",
                 urlencoding::encode(&project_root),

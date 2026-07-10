@@ -64,6 +64,9 @@ pub async fn run(args: AuditArgs, json_mode: bool) -> anyhow::Result<()> {
 
     let envelope = json!({
         "status": "completed",
+        "authority": "daemon_global_advisory",
+        "canonical": false,
+        "next_step_hint": "This surface needs Spec104 scoped API work before it can be treated as project-canonical.",
         "source": "/v1/events/recent",
         "query": {
             "since": args.since,
@@ -101,6 +104,13 @@ fn print_human(envelope: &Value) {
     println!(
         "Source: {}",
         envelope["source"].as_str().unwrap_or("/v1/events/recent")
+    );
+    println!(
+        "Authority: {} canonical={}",
+        envelope["authority"]
+            .as_str()
+            .unwrap_or("daemon_global_advisory"),
+        envelope["canonical"].as_bool().unwrap_or(false)
     );
     println!("Returned: {}", envelope["returned"].as_u64().unwrap_or(0));
     if let Some(events) = envelope["events"].as_array() {

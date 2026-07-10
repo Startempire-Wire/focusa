@@ -17,7 +17,10 @@ fn run(args: &[&str]) -> (std::process::Output, String) {
 #[test]
 fn help_all_exposes_target_command_hierarchy() {
     let (output, out) = run(&["help", "all"]);
-    assert!(output.status.success(), "help all should exit 0, got: {out}");
+    assert!(
+        output.status.success(),
+        "help all should exit 0, got: {out}"
+    );
     for needle in [
         "FOCUSA COMMANDS",
         "focusa project",
@@ -29,7 +32,10 @@ fn help_all_exposes_target_command_hierarchy() {
         "focusa pairing",
         "focusa help migration",
     ] {
-        assert!(out.contains(needle), "help all missing {needle}, got: {out}");
+        assert!(
+            out.contains(needle),
+            "help all missing {needle}, got: {out}"
+        );
     }
 }
 
@@ -52,7 +58,10 @@ fn help_migration_exposes_old_to_new_alias_map() {
         "focusa stack",
         "focusa focus stack",
     ] {
-        assert!(out.contains(needle), "migration help missing {needle}, got: {out}");
+        assert!(
+            out.contains(needle),
+            "migration help missing {needle}, got: {out}"
+        );
     }
 }
 
@@ -75,13 +84,18 @@ fn pairing_start_is_canonical_command() {
         output.status.success(),
         "pairing start --help should exit 0, got: {out}"
     );
-    assert!(out.contains("Start a Mac/phone pairing flow") || out.contains("Open a Mac Pairing Room"));
+    assert!(
+        out.contains("Start a Mac/phone pairing flow") || out.contains("Open a Mac Pairing Room")
+    );
 }
 
 #[test]
 fn cli_version_comes_from_package_version() {
     let (output, out) = run(&["--version"]);
-    assert!(output.status.success(), "--version should exit 0, got: {out}");
+    assert!(
+        output.status.success(),
+        "--version should exit 0, got: {out}"
+    );
     assert!(
         out.contains(env!("CARGO_PKG_VERSION")),
         "version should be package version {}, got: {out}",

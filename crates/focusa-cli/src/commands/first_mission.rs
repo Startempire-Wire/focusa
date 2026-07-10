@@ -220,7 +220,10 @@ pub async fn run(args: FirstMissionArgs, json_output: bool) -> anyhow::Result<()
     steps.push(step(
         "Project status shown",
         "ok",
-        format!("focusa project status --project-root {}", resolved.project_root),
+        format!(
+            "focusa project status --project-root {}",
+            resolved.project_root
+        ),
     ));
     steps.push(step(
         "Mission Deck",

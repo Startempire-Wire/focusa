@@ -150,9 +150,13 @@ Phone Bridge JSON includes `environment_contract`, `runtime_inventory`, and `act
 - `trajectory` — Trajectory view/define/assess/propose/checkpoint/resume parity for `/v1/trajectory/*`.
 - `traverse` — bounded surgical traversal and tag verification parity for `/v1/traverse`.
 - `resource` — ResourceMode/LowMem status and override parity for `/v1/resource/mode`.
-- `focus update` — Focus State slot parity for `/v1/focus/update` (`--decision`, `--constraint`, `--failure`, `--intent`, `--current-focus`, `--next-step`, `--open-question`, `--recent-result`, `--note`).
+- `focus update` — Focus State slot parity for `/v1/focus/update` (`--decision`, `--constraint`, `--failure`, `--intent`, `--current-focus`, `--next-step`, `--open-question`, `--recent-result`, `--note`); explicit `--project-root` values are CLI scope-checked before API calls.
 - `workpoint` — scoped checkpoint/current/resume continuity operations; canonical checkpoint/resume accepts `--project-root` and `--continuity-id`; `workpoint resume --copy-prompt` prints a paste-ready continuation packet for non-Pi agents.
 - `state snapshot` — create/recent/restore/diff/compare-latest snapshot parity for `/v1/focus/snapshots*`.
+- `lineage extract` / `clt` / `turns` / `audit` — daemon-global advisory surfaces until Spec104 scoped APIs land; JSON includes `authority=daemon_global_advisory` and `canonical=false`.
+- `memory set|reinforce` and `gate` mutations — blocked with advisory envelopes until scoped APIs exist; read/list surfaces are daemon-global advisory.
+- `cleanup --safe` — resolver-scoped cleanup of generated repo-relative residue plus recoverable `/tmp` Focusa proof/log globs; unsafe roots return `CLI_SCOPE_REJECT` blocked envelopes.
+- `context-cognition`, `hlt`, `call-stack`, `focus`, `workpoint`, `trajectory`, `project`, and `recover` — explicit project roots are checked with `ensure_project_root_scope_safe()` before scoped API calls.
 - `lineage extract` — bounded lineage signal extraction for decision/constraint/risk compounding.
 - `ecs list` / `ecs resolve` — print trajectory summaries for handles when API responses carry bounded trajectory context.
 - Pi Focus Slice `EVIDENCE_HANDLES` lines include STG snippets when ontology evidence-handle context carries trajectory metadata.
@@ -205,6 +209,9 @@ focusa workpoint checkpoint --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --cont
 focusa workpoint current --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --json
 focusa workpoint resume --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --json
 focusa workpoint resume --copy-prompt
+focusa cleanup --safe --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --dry-run --json
+focusa memory set foo=bar --json  # blocked until scoped memory API exists
+focusa gate pin candidate-1 --json # blocked until scoped Focus Gate API exists
 focusa state snapshot recent --limit 5 --json
 focusa state snapshot compare-latest --snapshot-reason "pre-risk check" --json
 focusa lineage extract --max-candidates 12 --json

@@ -65,7 +65,14 @@ fn with_session_query(path: &str, session_id: Option<&str>) -> String {
 }
 
 fn print_json(value: &Value) -> anyhow::Result<()> {
-    println!("{}", serde_json::to_string_pretty(value)?);
+    let envelope = json!({
+        "status": "completed",
+        "authority": "daemon_global_advisory",
+        "canonical": false,
+        "next_step_hint": "This surface needs Spec104 scoped API work before it can be treated as project-canonical.",
+        "data": value,
+    });
+    println!("{}", serde_json::to_string_pretty(&envelope)?);
     Ok(())
 }
 
@@ -105,6 +112,9 @@ fn bounded_unique_signals(nodes: &[Value], keys: &[&str], cap: usize) -> Vec<Str
 
 pub async fn run(cmd: LineageCmd, json: bool) -> anyhow::Result<()> {
     let api = ApiClient::new();
+    if !json {
+        println!("Authority: daemon_global_advisory canonical=false");
+    }
 
     match cmd {
         LineageCmd::Head { session_id } => {

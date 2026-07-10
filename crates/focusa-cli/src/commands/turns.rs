@@ -3,7 +3,7 @@
 use crate::api_client::ApiClient;
 use chrono::{DateTime, Utc};
 use clap::Subcommand;
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::collections::HashMap;
 
 #[derive(Subcommand)]
@@ -225,10 +225,18 @@ pub async fn run(cmd: TurnsCmd, json: bool) -> anyhow::Result<()> {
                         })
                     })
                     .collect();
-                println!("{}", serde_json::to_string_pretty(&out)?);
+                let envelope = json!({
+                    "status": "completed",
+                    "authority": "daemon_global_advisory",
+                    "canonical": false,
+                    "next_step_hint": "This surface needs Spec104 scoped API work before it can be treated as project-canonical.",
+                    "turns": out,
+                });
+                println!("{}", serde_json::to_string_pretty(&envelope)?);
                 return Ok(());
             }
 
+            println!("Authority: daemon_global_advisory canonical=false");
             println!("Turns ({} shown):", turns.len());
             for t in turns.iter().rev() {
                 let status = if t.completed_at.is_some() {
@@ -291,10 +299,18 @@ pub async fn run(cmd: TurnsCmd, json: bool) -> anyhow::Result<()> {
             }
 
             if json || full {
-                println!("{}", serde_json::to_string_pretty(&matches)?);
+                let envelope = json!({
+                    "status": "completed",
+                    "authority": "daemon_global_advisory",
+                    "canonical": false,
+                    "next_step_hint": "This surface needs Spec104 scoped API work before it can be treated as project-canonical.",
+                    "events": matches,
+                });
+                println!("{}", serde_json::to_string_pretty(&envelope)?);
                 return Ok(());
             }
 
+            println!("Authority: daemon_global_advisory canonical=false");
             if matches.is_empty() {
                 println!("No events for turn prefix: {}", turn_id);
                 return Ok(());

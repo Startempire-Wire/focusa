@@ -2,6 +2,7 @@
 //! HLT is the ultimate project direction. All commands are project-scoped.
 
 use crate::api_client::ApiClient;
+use crate::commands::scope::ensure_project_root_scope_safe;
 use clap::Subcommand;
 use serde_json::Value;
 
@@ -390,10 +391,13 @@ pub async fn run(cmd: HltCmd, _json_output: bool) -> anyhow::Result<()> {
     }
 }
 
-fn get_project_root(project_root: Option<&str>, cwd: &str) -> String {
-    project_root
+fn get_project_root(project_root: Option<&str>, cwd: &str) -> anyhow::Result<String> {
+    let resolved = project_root
         .map(String::from)
-        .unwrap_or_else(|| cwd.to_string())
+        .or_else(|| std::env::var("FOCUSA_PROJECT_ROOT").ok())
+        .unwrap_or_else(|| cwd.to_string());
+    ensure_project_root_scope_safe(Some(resolved.as_str()), "hlt: project_root")?;
+    Ok(resolved)
 }
 
 fn build_query(path: &str, project_root: &str, continuity_id: Option<&str>) -> String {
@@ -416,7 +420,7 @@ async fn run_ls(
     mode: &str,
     json_output: bool,
 ) -> anyhow::Result<()> {
-    let project_root = get_project_root(project_root, cwd);
+    let project_root = get_project_root(project_root, cwd)?;
     let path = build_query("/v1/trajectory/view", &project_root, continuity_id);
     let url = format!("{}&mode={}", path, mode);
     let response: Value = api.get(&url).await?;
@@ -502,7 +506,7 @@ async fn run_set(
     evidence_refs: Vec<String>,
     confirm: bool,
 ) -> anyhow::Result<()> {
-    let project_root = get_project_root(project_root, cwd);
+    let project_root = get_project_root(project_root, cwd)?;
 
     if !confirm {
         println!("Setting HLT for: {}", project_root);
@@ -572,7 +576,7 @@ async fn run_reset(
     steps: &str,
     dry_run: bool,
 ) -> anyhow::Result<()> {
-    let project_root = get_project_root(project_root, cwd);
+    let project_root = get_project_root(project_root, cwd)?;
     let steps: usize = steps.parse().unwrap_or(1);
 
     let path = build_query("/v1/hlt/history", &project_root, continuity_id);
@@ -651,7 +655,7 @@ async fn run_history(
     limit: &str,
     json_output: bool,
 ) -> anyhow::Result<()> {
-    let project_root = get_project_root(project_root, cwd);
+    let project_root = get_project_root(project_root, cwd)?;
     let limit: usize = limit.parse().unwrap_or(20);
 
     let path = build_query("/v1/hlt/history", &project_root, continuity_id);
@@ -723,7 +727,7 @@ async fn run_diff(
     from: &str,
     to: &str,
 ) -> anyhow::Result<()> {
-    let project_root = get_project_root(project_root, cwd);
+    let project_root = get_project_root(project_root, cwd)?;
     let from: usize = from.parse().unwrap_or(1);
     let to: usize = to.parse().unwrap_or(0);
 
@@ -791,7 +795,7 @@ async fn run_mlg(
     set: Option<&str>,
     list: bool,
 ) -> anyhow::Result<()> {
-    let project_root = get_project_root(project_root, cwd);
+    let project_root = get_project_root(project_root, cwd)?;
 
     if list {
         let path = build_query("/v1/trajectory/view", &project_root, continuity_id);
@@ -847,7 +851,7 @@ async fn run_stg(
     set: Option<&str>,
     list: bool,
 ) -> anyhow::Result<()> {
-    let project_root = get_project_root(project_root, cwd);
+    let project_root = get_project_root(project_root, cwd)?;
 
     if list {
         let path = build_query("/v1/trajectory/view", &project_root, continuity_id);
@@ -912,7 +916,7 @@ async fn run_waypoint(
     list: bool,
     _complete: Option<&str>,
 ) -> anyhow::Result<()> {
-    let project_root = get_project_root(project_root, cwd);
+    let project_root = get_project_root(project_root, cwd)?;
 
     let path = build_query("/v1/trajectory/view", &project_root, continuity_id);
     let url = format!("{}&mode=summary", path);
@@ -985,7 +989,7 @@ async fn run_assess(
     current_state: &str,
     evidence_refs: Vec<String>,
 ) -> anyhow::Result<()> {
-    let project_root = get_project_root(project_root, cwd);
+    let project_root = get_project_root(project_root, cwd)?;
 
     let mut body = serde_json::json!({
         "project_root": project_root,
@@ -1026,7 +1030,7 @@ async fn run_checkpoint(
     continuity_id: Option<&str>,
     summary: Option<&str>,
 ) -> anyhow::Result<()> {
-    let project_root = get_project_root(project_root, cwd);
+    let project_root = get_project_root(project_root, cwd)?;
 
     let mut body = serde_json::json!({
         "project_root": project_root,
@@ -1055,7 +1059,7 @@ async fn run_supersede(
     reason: &str,
     continuity_id: Option<&str>,
 ) -> anyhow::Result<()> {
-    let project_root = get_project_root(project_root, cwd);
+    let project_root = get_project_root(project_root, cwd)?;
 
     if evidence_refs.is_empty() {
         anyhow::bail!("Supersession requires evidence refs (per §5)");
@@ -1096,7 +1100,7 @@ async fn run_export(
     output: &str,
     format: &str,
 ) -> anyhow::Result<()> {
-    let project_root = get_project_root(project_root, cwd);
+    let project_root = get_project_root(project_root, cwd)?;
 
     let path = build_query("/v1/hlt/history", &project_root, continuity_id);
     let url = format!("{}&limit=500", path);
@@ -1151,7 +1155,7 @@ async fn run_verify(
     project_root: Option<&str>,
     continuity_id: Option<&str>,
 ) -> anyhow::Result<()> {
-    let project_root = get_project_root(project_root, cwd);
+    let project_root = get_project_root(project_root, cwd)?;
 
     println!("Verifying trajectory for: {}", project_root);
     println!();

@@ -23,21 +23,69 @@ pub enum HelpTopic {
 }
 
 const MIGRATIONS: &[(&str, &str, &str)] = &[
-    ("focusa init", "focusa project new / focusa setup init", "deprecated alias"),
+    (
+        "focusa init",
+        "focusa project new / focusa setup init",
+        "deprecated alias",
+    ),
     ("focusa onboard", "focusa setup wizard", "deprecated alias"),
-    ("focusa preflight", "focusa setup doctor / focusa quality preflight", "deprecated alias"),
+    (
+        "focusa preflight",
+        "focusa setup doctor / focusa quality preflight",
+        "deprecated alias",
+    ),
     ("focusa pair", "focusa pairing start", "deprecated alias"),
-    ("focusa pairing-doctor", "focusa pairing doctor", "deprecated alias"),
-    ("focusa pairing-transport", "focusa pairing transport", "deprecated alias"),
-    ("focusa pairing-wizard", "focusa pairing wizard", "deprecated alias"),
+    (
+        "focusa pairing-doctor",
+        "focusa pairing doctor",
+        "deprecated alias",
+    ),
+    (
+        "focusa pairing-transport",
+        "focusa pairing transport",
+        "deprecated alias",
+    ),
+    (
+        "focusa pairing-wizard",
+        "focusa pairing wizard",
+        "deprecated alias",
+    ),
     ("focusa stack", "focusa focus stack", "deprecated alias"),
-    ("focusa start", "focusa lifecycle start", "planned lifecycle grouping"),
-    ("focusa stop", "focusa lifecycle stop", "planned lifecycle grouping"),
-    ("focusa install", "focusa lifecycle install", "planned lifecycle grouping"),
-    ("focusa uninstall", "focusa lifecycle uninstall", "planned lifecycle grouping"),
-    ("focusa upgrade", "focusa lifecycle upgrade", "planned lifecycle grouping"),
-    ("focusa install-service", "focusa lifecycle install-service", "planned lifecycle grouping"),
-    ("focusa codesign", "focusa lifecycle codesign", "planned lifecycle grouping"),
+    (
+        "focusa start",
+        "focusa lifecycle start",
+        "planned lifecycle grouping",
+    ),
+    (
+        "focusa stop",
+        "focusa lifecycle stop",
+        "planned lifecycle grouping",
+    ),
+    (
+        "focusa install",
+        "focusa lifecycle install",
+        "planned lifecycle grouping",
+    ),
+    (
+        "focusa uninstall",
+        "focusa lifecycle uninstall",
+        "planned lifecycle grouping",
+    ),
+    (
+        "focusa upgrade",
+        "focusa lifecycle upgrade",
+        "planned lifecycle grouping",
+    ),
+    (
+        "focusa install-service",
+        "focusa lifecycle install-service",
+        "planned lifecycle grouping",
+    ),
+    (
+        "focusa codesign",
+        "focusa lifecycle codesign",
+        "planned lifecycle grouping",
+    ),
 ];
 
 fn inventory_lines() -> Vec<&'static str> {
@@ -61,7 +109,9 @@ fn inventory_lines() -> Vec<&'static str> {
 
 fn print_migration() {
     println!("FOCUSA COMMAND MIGRATION\n");
-    println!("Deprecated aliases warn for 90 days after their canonical replacement ships in a tagged release.\n");
+    println!(
+        "Deprecated aliases warn for 90 days after their canonical replacement ships in a tagged release.\n"
+    );
     for (old, new, note) in MIGRATIONS {
         println!("{old:<28} → {new:<42} ({note})");
     }
@@ -85,8 +135,12 @@ fn print_all() {
 fn print_project() {
     println!("FOCUSA PROJECT HELP\n");
     println!("  focusa project");
-    println!("  focusa project list|discover|use|bind|switch|current|status|remove|new|templates|settings");
-    println!("\nAuthority: selected CLI project is convenience only; scoped mutations still require verified project_root.");
+    println!(
+        "  focusa project list|discover|use|bind|switch|current|status|remove|new|templates|settings"
+    );
+    println!(
+        "\nAuthority: selected CLI project is convenience only; scoped mutations still require verified project_root."
+    );
 }
 
 fn print_workpoint() {

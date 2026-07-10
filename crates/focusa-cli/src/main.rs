@@ -895,7 +895,10 @@ async fn main() -> anyhow::Result<()> {
         Commands::Doctor(args) => commands::doctor::run(cli.json, args).await,
         Commands::License(args) => commands::license::run(cli.json, args).await,
         Commands::Preflight => {
-            commands::help::warn_alias("focusa preflight", "focusa setup doctor / focusa quality preflight");
+            commands::help::warn_alias(
+                "focusa preflight",
+                "focusa setup doctor / focusa quality preflight",
+            );
             commands::dxux::preflight().await
         }
         Commands::Recover(args) => commands::recover::run(cli.json, args).await,

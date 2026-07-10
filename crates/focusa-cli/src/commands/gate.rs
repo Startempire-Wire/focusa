@@ -2,7 +2,7 @@
 
 use crate::api_client::ApiClient;
 use clap::Subcommand;
-use serde_json::json;
+use serde_json::{Value, json};
 
 #[derive(Subcommand)]
 pub enum GateCmd {
@@ -28,6 +28,42 @@ pub enum GateCmd {
     },
 }
 
+fn advisory_envelope(data: Value) -> Value {
+    json!({
+        "status": "completed",
+        "authority": "daemon_global_advisory",
+        "canonical": false,
+        "next_step_hint": "This surface needs Spec104 scoped API work before it can be treated as project-canonical.",
+        "data": data,
+    })
+}
+
+fn block_global_gate_mutation(
+    json_mode: bool,
+    operation: &str,
+    candidate_id: &str,
+) -> anyhow::Result<()> {
+    let envelope = json!({
+        "status": "blocked",
+        "failure_class": "project_scope_required",
+        "authority": "daemon_global_advisory",
+        "canonical": false,
+        "operation": operation,
+        "candidate_id": candidate_id,
+        "next_step_hint": "This Focus Gate mutation needs Spec104 scoped API work before it can run safely.",
+    });
+    if json_mode {
+        println!("{}", serde_json::to_string_pretty(&envelope)?);
+    } else {
+        println!("Status: blocked");
+        println!("Authority: daemon_global_advisory canonical=false");
+        println!(
+            "Next: This Focus Gate mutation needs Spec104 scoped API work before it can run safely."
+        );
+    }
+    Ok(())
+}
+
 pub async fn run(cmd: GateCmd, json_mode: bool) -> anyhow::Result<()> {
     let api = ApiClient::new();
 
@@ -35,8 +71,12 @@ pub async fn run(cmd: GateCmd, json_mode: bool) -> anyhow::Result<()> {
         GateCmd::List => {
             let resp = api.get("/v1/focus-gate/candidates").await?;
             if json_mode {
-                println!("{}", serde_json::to_string_pretty(&resp)?);
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&advisory_envelope(resp.clone()))?
+                );
             } else {
+                println!("Authority: daemon_global_advisory canonical=false");
                 let candidates = resp["candidates"].as_array();
                 match candidates {
                     Some(c) if c.is_empty() => println!("No candidates"),
@@ -56,91 +96,21 @@ pub async fn run(cmd: GateCmd, json_mode: bool) -> anyhow::Result<()> {
         }
         GateCmd::Suppress {
             candidate_id,
-            duration,
+            duration: _,
         } => {
-            // Map duration to scope (API uses scope internally).
-            let scope = match duration.as_str() {
-                "permanent" | "forever" => "permanent",
-                "session" => "session",
-                _ => &duration, // Pass through duration strings like "10m", "1h"
-            };
-            let resp = api
-                .post(
-                    "/v1/focus-gate/suppress",
-                    &json!({"candidate_id": candidate_id, "scope": scope}),
-                )
-                .await?;
-            if json_mode {
-                println!("{}", serde_json::to_string_pretty(&resp)?);
-            } else {
-                println!("✓ Suppressed {} for {}", candidate_id, duration);
-            }
+            block_global_gate_mutation(json_mode, "gate suppress", &candidate_id)?;
         }
         GateCmd::Pin { candidate_id } => {
-            let resp = api
-                .post("/v1/focus-gate/pin", &json!({"candidate_id": candidate_id}))
-                .await?;
-            if json_mode {
-                println!("{}", serde_json::to_string_pretty(&resp)?);
-            } else {
-                println!("✓ Pinned {}", candidate_id);
-            }
+            block_global_gate_mutation(json_mode, "gate pin", &candidate_id)?;
         }
         GateCmd::Resolve { candidate_id } => {
-            // Resolve = suppress permanently (frame scope).
-            let resp = api
-                .post(
-                    "/v1/focus-gate/suppress",
-                    &json!({"candidate_id": candidate_id, "scope": "permanent"}),
-                )
-                .await?;
-            if json_mode {
-                println!("{}", serde_json::to_string_pretty(&resp)?);
-            } else {
-                println!("✓ Resolved {}", candidate_id);
-            }
+            block_global_gate_mutation(json_mode, "gate resolve", &candidate_id)?;
         }
         GateCmd::Promote {
             candidate_id,
-            beads_issue_id,
+            beads_issue_id: _,
         } => {
-            // Get candidate info first.
-            let candidates_resp = api.get("/v1/focus-gate/candidates").await?;
-            let candidate = candidates_resp["candidates"]
-                .as_array()
-                .and_then(|arr| arr.iter().find(|c| c["id"].as_str() == Some(&candidate_id)))
-                .ok_or_else(|| anyhow::anyhow!("Candidate not found"))?;
-
-            let label = candidate["label"].as_str().unwrap_or("Promoted task");
-            let description = candidate["description"].as_str().unwrap_or(label);
-
-            // Push a new focus frame.
-            let resp = api
-                .post(
-                    "/v1/focus/push",
-                    &json!({
-                        "title": label,
-                        "goal": description,
-                        "beads_issue_id": beads_issue_id,
-                        "constraints": [],
-                        "tags": ["promoted"],
-                    }),
-                )
-                .await?;
-
-            // Resolve the candidate.
-            let _ = api
-                .post(
-                    "/v1/focus-gate/suppress",
-                    &json!({"candidate_id": candidate_id, "scope": "permanent"}),
-                )
-                .await;
-
-            if json_mode {
-                println!("{}", serde_json::to_string_pretty(&resp)?);
-            } else {
-                println!("✓ Promoted {} → new focus frame", candidate_id);
-            }
+            block_global_gate_mutation(json_mode, "gate promote", &candidate_id)?;
         }
     }
     Ok(())

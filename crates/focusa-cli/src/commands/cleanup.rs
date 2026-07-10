@@ -1,5 +1,6 @@
 //! Safe cleanup command — Spec92 §9.
 
+use crate::commands::{scope::ensure_project_root_scope_safe, scope_resolver};
 use clap::Args;
 use serde_json::{Value, json};
 use std::fs;
@@ -10,6 +11,10 @@ pub struct CleanupArgs {
     /// Required safe mode; cleanup refuses to run unless set.
     #[arg(long)]
     pub safe: bool,
+
+    /// Safe project folder/container whose generated residue may be moved.
+    #[arg(long)]
+    pub project_root: Option<String>,
 
     /// Preview actions without moving files.
     #[arg(long)]
@@ -161,10 +166,23 @@ pub async fn run(args: CleanupArgs, json_mode: bool) -> anyhow::Result<()> {
             "[CLI_INPUT_ERROR] cleanup requires --safe; destructive cleanup is not supported"
         );
     }
+    let resolved = scope_resolver::resolve_project_scope(
+        args.project_root.as_deref(),
+        None,
+        std::env::current_dir()
+            .ok()
+            .and_then(|path| path.to_str().map(str::to_string))
+            .as_deref(),
+    )?;
+    ensure_project_root_scope_safe(
+        Some(resolved.project_root.as_str()),
+        "cleanup: project_root",
+    )?;
+    let project_root = PathBuf::from(&resolved.project_root);
     let root = trash_root();
     let mut actions = Vec::new();
     for p in CLEAN_PATHS {
-        actions.push(move_recoverable(Path::new(p), &root, args.dry_run));
+        actions.push(move_recoverable(&project_root.join(p), &root, args.dry_run));
     }
     for pattern in TMP_GLOBS {
         for p in expand_glob(pattern) {
@@ -193,7 +211,12 @@ pub async fn run(args: CleanupArgs, json_mode: bool) -> anyhow::Result<()> {
         "evidence_refs": ["docs/current/PRODUCTION_RELEASE_COMMANDS.md", "docs/current/DAEMON_RESILIENCE.md"],
         "docs": ["docs/92-agent-first-polish-hooks-efficiency-spec.md"],
         "warnings": ["preserves .beads, data, and target"],
-        "details": {"trash_root": root, "actions": actions},
+        "details": {
+            "trash_root": root,
+            "project_root": resolved.project_root,
+            "scope_source": format!("{:?}", resolved.scope_source),
+            "actions": actions
+        },
     });
     if json_mode {
         println!("{}", serde_json::to_string_pretty(&response)?);
@@ -213,6 +236,12 @@ pub async fn run(args: CleanupArgs, json_mode: bool) -> anyhow::Result<()> {
         println!(
             "Why: {}",
             response["why"].as_str().unwrap_or("safe cleanup")
+        );
+        println!(
+            "Project root: {}",
+            response["details"]["project_root"]
+                .as_str()
+                .unwrap_or("unknown")
         );
         println!("Command: focusa cleanup --safe --dry-run");
         println!("Recovery: restore files from the reported trash_root");

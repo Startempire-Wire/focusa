@@ -3,6 +3,7 @@
 //! `focusa context-cognition view --project-root <path> [--continuity-id <id>] [--json]`
 
 use crate::api_client::ApiClient;
+use crate::commands::scope::ensure_project_root_scope_safe;
 use clap::Subcommand;
 use serde_json::Value;
 
@@ -104,6 +105,11 @@ pub enum ContextCognitionCmd {
     },
 }
 
+fn checked_project_root(value: String, operation: &str) -> anyhow::Result<String> {
+    ensure_project_root_scope_safe(Some(value.as_str()), operation)?;
+    Ok(value)
+}
+
 pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow::Result<()> {
     match cmd {
         ContextCognitionCmd::View {
@@ -114,22 +120,28 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             // Fallback to daemon's own project identity when no --project-root
             // is supplied (L6 fix). Preserves operator-supplied value if given.
             let pr = match project_root {
-                Some(p) => Some(p),
-                None => client.get("/v1/project/identity").await.ok().and_then(|v| {
-                    let pi = v.get("project_identity")?;
-                    if let Some(r) = pi.get("root").and_then(|r| r.as_str()) {
-                        return Some(r.to_string());
-                    }
-                    // Some daemon responses nest root inside deployment
-                    if let Some(r) = pi
-                        .get("deployment")
-                        .and_then(|d| d.get("root"))
-                        .and_then(|r| r.as_str())
-                    {
-                        return Some(r.to_string());
-                    }
-                    None
-                }),
+                Some(p) => Some(checked_project_root(p, "context-cognition view")?),
+                None => client
+                    .get("/v1/project/identity")
+                    .await
+                    .ok()
+                    .and_then(|v| {
+                        let pi = v.get("project_identity")?;
+                        if let Some(r) = pi.get("root").and_then(|r| r.as_str()) {
+                            return Some(r.to_string());
+                        }
+                        // Some daemon responses nest root inside deployment
+                        if let Some(r) = pi
+                            .get("deployment")
+                            .and_then(|d| d.get("root"))
+                            .and_then(|r| r.as_str())
+                        {
+                            return Some(r.to_string());
+                        }
+                        None
+                    })
+                    .map(|p| checked_project_root(p, "context-cognition view"))
+                    .transpose()?,
             };
             let mut path = String::from("/v1/context-cognition");
             let mut sep = "?";
@@ -156,6 +168,9 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             project_root,
             continuity_id,
         } => {
+            let project_root = project_root
+                .map(|p| checked_project_root(p, "context-cognition render"))
+                .transpose()?;
             let path = build_query("/v1/context-cognition/render", project_root, continuity_id);
             let resp = client.get(&path).await?;
             if let Some(render) = resp.get("render").and_then(Value::as_str) {
@@ -169,6 +184,9 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             project_root,
             continuity_id,
         } => {
+            let project_root = project_root
+                .map(|p| checked_project_root(p, "context-cognition proof"))
+                .transpose()?;
             let path = build_query("/v1/context-cognition/proof", project_root, continuity_id);
             let resp = client.get(&path).await?;
             if let Some(commands) = resp.get("proof_commands").and_then(Value::as_array) {
@@ -188,8 +206,11 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             token_budget,
             candidates_json,
         } => {
-            let project_root = project_root
-                .ok_or_else(|| anyhow::anyhow!("--project-root is required for curate"))?;
+            let project_root = checked_project_root(
+                project_root
+                    .ok_or_else(|| anyhow::anyhow!("--project-root is required for curate"))?,
+                "context-cognition curate",
+            )?;
             let candidates: Vec<Value> = match candidates_json.as_deref() {
                 Some(s) => serde_json::from_str(s)
                     .map_err(|e| anyhow::anyhow!("invalid --candidates-json: {e}"))?,
@@ -215,8 +236,11 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             score_threshold,
             baseline_f1,
         } => {
-            let project_root = project_root
-                .ok_or_else(|| anyhow::anyhow!("--project-root is required for curate-eval"))?;
+            let project_root = checked_project_root(
+                project_root
+                    .ok_or_else(|| anyhow::anyhow!("--project-root is required for curate-eval"))?,
+                "context-cognition curate-eval",
+            )?;
             let candidates: Vec<Value> = match candidates_json.as_deref() {
                 Some(s) => serde_json::from_str(s)
                     .map_err(|e| anyhow::anyhow!("invalid --candidates-json: {e}"))?,
@@ -248,9 +272,12 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             continuity_id,
             limit,
         } => {
-            let project_root = project_root.ok_or_else(|| {
-                anyhow::anyhow!("--project-root is required for curate-eval-runs")
-            })?;
+            let project_root = checked_project_root(
+                project_root.ok_or_else(|| {
+                    anyhow::anyhow!("--project-root is required for curate-eval-runs")
+                })?,
+                "context-cognition curate-eval-runs",
+            )?;
             let mut path = build_query(
                 "/v1/context-cognition/curate/eval/runs",
                 Some(project_root),
@@ -270,9 +297,12 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             module_name,
             limit,
         } => {
-            let project_root = project_root.ok_or_else(|| {
-                anyhow::anyhow!("--project-root is required for optimizer-artifacts")
-            })?;
+            let project_root = checked_project_root(
+                project_root.ok_or_else(|| {
+                    anyhow::anyhow!("--project-root is required for optimizer-artifacts")
+                })?,
+                "context-cognition optimizer-artifacts",
+            )?;
             let mut path = build_query(
                 "/v1/context-cognition/optimizer/artifacts",
                 Some(project_root),
@@ -297,8 +327,12 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             eval_run_id,
             rollback,
         } => {
-            let project_root = project_root
-                .ok_or_else(|| anyhow::anyhow!("--project-root is required for curate-optimize"))?;
+            let project_root = checked_project_root(
+                project_root.ok_or_else(|| {
+                    anyhow::anyhow!("--project-root is required for curate-optimize")
+                })?,
+                "context-cognition curate-optimize",
+            )?;
             let body = serde_json::json!({
                 "project_root": project_root,
                 "continuity_id": continuity_id,
