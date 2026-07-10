@@ -4,6 +4,10 @@
 
 Draft — operator-directed core Focusa spec. No implementation code changes yet.
 
+Canonical label: Spec 131 Workpoint Item Timing and Velocity  
+Depends on: Spec 88, Spec 96, Spec 98, Spec 100, Spec 101, Spec 104, Spec 119, Spec 125, Spec 130  
+Primary implementation surfaces: Focusa core, API, CLI, Pi extension, Workpoint, beads/tasks, Trajectory, CompactionMissionPacket, Bloatgaurd, Evidence/ECS, Receipts, Closure Authority, project cards, tests, future SaaS timeline.
+
 ## Problem
 
 Focusa has partial elapsed-time and token accounting, but it is not yet accurate enough to measure real implementation speed. Current timing can reset on operator turns and is not reliably bound to Workpoints, beads/tasks, closures, proof, pauses, compactions, handoffs, or scope switches.
@@ -20,6 +24,8 @@ Focusa needs first-class timing, token, velocity, and closure authority data so 
 6. Add closure authority so work cannot be marked done without the required evidence, checks, and authorization.
 7. Use measured history to improve future estimates, velocity reports, and project-card predictions.
 8. Prepare the data model for a future SaaS visual timeline interface.
+9. Preserve Workpoint Item timing and closure state across Spec 130 compaction, model switches, forks, handoffs, and provider overflow.
+10. Include HLT posture, receipt posture, and Bloatgaurd omission/rehydration data in closure and velocity records.
 
 ## Non-goals
 
@@ -28,6 +34,7 @@ Focusa needs first-class timing, token, velocity, and closure authority data so 
 - No rewriting historical timing records in place.
 - No closure automation that overrides operator authority.
 - No visual SaaS timeline implementation in this spec; this spec defines the data substrate.
+- No replacement of Spec 130 compaction authority rules; this spec consumes Spec 130 packets and adds item-level measurement/closure data.
 
 ## Existing partial surfaces
 
@@ -45,6 +52,57 @@ Current gaps:
 - Pauses, blocked time, compaction, handoff, and operator-wait time are not separated.
 - Closure does not consistently require item-level proof.
 - Velocity is not computed from granular completed implementation units.
+
+## Relationship to Spec 130
+
+Spec 130 defines the HLT-aware Compaction Mission Packet and Bloatgaurd Context Firewall. Spec 131 extends that architecture by making Workpoint Items measurable and closeable across compaction boundaries.
+
+Spec 131 imports these Spec 130 rules:
+
+```text
+Compaction packets are not authority.
+Transcript tails are not authority.
+Generic HLT is not authority.
+HLT posture must be visible before durable work.
+Evidence and receipt expectations must survive compaction.
+Raw bulky context belongs behind ECS/Evidence handles.
+Closure claims require receipt/evidence posture.
+```
+
+Spec 131 adds this item-level invariant:
+
+```text
+A Workpoint Item cannot be measured, completed, closed, or used for velocity unless its timing, token usage, evidence refs, HLT posture, receipt posture, and closure authority survive compaction or are explicitly marked degraded.
+```
+
+### Spec 130 data consumed by Spec 131
+
+Workpoint Item and closure records must be able to reference:
+
+- `CompactionMissionPacket.packet_id`;
+- `TrajectoryResumePacketV3.packet_id`;
+- `WorkpointResumePacketV2.workpoint_id`;
+- `HLT_STATUS`;
+- `GENERIC_BOOTSTRAP`;
+- `FALLBACK_SOURCE`;
+- Bloatgaurd omitted-context receipt;
+- ECS/Evidence rehydrate refs;
+- active blocker excerpt/rehydrate handle;
+- receipt expectation;
+- closure authority result.
+
+### Durable-work gate
+
+Workpoint Item closure is durable work. It must obey Spec 130 durable-work rules:
+
+```text
+HLT_STATUS=canonical_explicit
+OR HLT_STATUS=previous_valid_fallback with refreshed session-specific state
+OR explicit degraded-mode receipt posture
+OR operator override with recorded reason where allowed.
+```
+
+Generic HLT can never become canonical closure authority through override alone.
 
 ## Core model
 
@@ -78,6 +136,15 @@ A Workpoint Item is an actionable, measurable slice of work such as audit, desig
   "required_evidence_refs": [],
   "status": "queued|active|paused|blocked|done|closed",
   "closure_authority": "spec_acceptance|bead_done_condition|operator_override",
+  "hlt_status": "canonical_explicit|previous_valid_fallback|supersession_pending|missing_required|generic_degraded|conflicted",
+  "trajectory_packet_ref": null,
+  "compaction_packet_ref": null,
+  "receipt_refs": [],
+  "bloatgaurd": {
+    "omitted_context_refs": [],
+    "rehydrate_refs": [],
+    "raw_context_externalized": false
+  },
   "started_at": null,
   "last_active_at": null,
   "completed_at": null,
@@ -115,9 +182,13 @@ Timing records are append-only. Corrections append superseding records instead o
   "operator_wait_ms": 0,
   "blocked_ms": 0,
   "proof_elapsed_ms": 0,
+  "compaction_elapsed_ms": 0,
+  "handoff_elapsed_ms": 0,
   "compaction_count": 0,
   "scope_switch_count": 0,
-  "reason": "..."
+  "reason": "...",
+  "compaction_packet_ref": null,
+  "trajectory_hlt_status": null
 }
 ```
 
@@ -176,7 +247,12 @@ Closure authority determines whether a Workpoint Item, Workpoint, bead/task, or 
   "provided_evidence_refs": [],
   "required_checks": [],
   "passed_checks": [],
-  "closure_status": "authorized|blocked|premature|operator_override",
+  "closure_status": "authorized|blocked|premature|operator_override|degraded_allowed",
+  "hlt_status": "canonical_explicit|previous_valid_fallback|supersession_pending|missing_required|generic_degraded|conflicted",
+  "receipt_posture": "canonical|advisory|degraded|blocked|stale",
+  "compaction_packet_ref": null,
+  "trajectory_packet_ref": null,
+  "bloatgaurd_rehydrate_refs": [],
   "reason": "...",
   "checked_at": "..."
 }
@@ -189,9 +265,16 @@ Rules:
 - Beads/tasks cannot close until linked Workpoint Items satisfy done conditions.
 - Specs cannot close until required beads/tasks and Workpoint Items have proof.
 - Operator override must be explicit, visible, and auditable.
-- Closure checks must distinguish `blocked`, `premature`, `authorized`, and `operator_override`.
+- Closure checks must distinguish `blocked`, `premature`, `authorized`, `degraded_allowed`, and `operator_override`.
+- Closure checks must include HLT posture from Spec 125/130.
+- Closure checks must include receipt posture from Spec 119/130.
+- Closure checks must preserve Bloatgaurd rehydrate refs when proof/evidence context was omitted from the hot prompt.
 
-## Workpoint resume requirements
+## Compaction and resume requirements
+
+Workpoint Item state must survive Spec 130 compaction. Compaction may elide raw context, but it must preserve item ids, status, timing rollups, HLT posture, closure posture, active blockers, and rehydrate refs.
+
+When `CompactionMissionPacket.status=degraded|blocked`, Workpoint Items may remain active, but closure is blocked unless degraded receipt posture or explicit operator override is recorded.
 
 Workpoint resume packets must expose item state:
 
@@ -203,7 +286,9 @@ Workpoint resume packets must expose item state:
 - wall-clock time;
 - token usage;
 - closure authority status;
-- missing evidence/checks.
+- missing evidence/checks;
+- associated `CompactionMissionPacket` refs;
+- HLT status and receipt posture affecting closure.
 
 ## Velocity metrics
 
@@ -269,7 +354,11 @@ Timeline cards should show:
 - agent handoffs;
 - compactions/session resumes;
 - predictions vs actual outcomes;
-- Workpoint lineage.
+- Workpoint lineage;
+- CompactionMissionPacket boundaries;
+- HLT warning intervals;
+- Bloatgaurd omitted-context/rehydration events;
+- receipt/closure-gate transitions.
 
 Future user questions the SaaS timeline should answer:
 
@@ -320,6 +409,7 @@ Recommended append-only ledgers:
 - `work-token-usage/{project_hash}/token-events.jsonl`
 - `closure-authority/{project_hash}/closure-checks.jsonl`
 - `velocity-summaries/{project_hash}/summaries.jsonl`
+- `work-compaction-links/{project_hash}/item-compaction-links.jsonl`
 
 All records must include:
 
@@ -330,7 +420,10 @@ All records must include:
 - `item_id` where applicable;
 - source route/tool;
 - created timestamp;
-- schema version.
+- schema version;
+- `hlt_status` when closure or durable work is involved;
+- `compaction_packet_ref` when record was created before/after compaction;
+- Bloatgaurd/ECS rehydrate refs for omitted proof/context.
 
 ## Acceptance criteria
 
@@ -349,14 +442,21 @@ All records must include:
 13. End-of-task reports include elapsed, tokens, item rollup, checks, closure authority, and velocity update.
 14. No timing record is silently rewritten; corrections append superseding records.
 15. Static and runtime tests cover compaction/resume, item timing, token rollup, closure blocking, operator override, and velocity rollup.
+16. Workpoint Item closure is blocked when HLT status is missing_required, generic_degraded, conflicted, or stale unless degraded receipt posture or explicit operator override is recorded.
+17. Workpoint Item state survives Spec 130 compaction with item id, timing rollup, HLT posture, active blocker, evidence refs, and rehydrate refs intact.
+18. Bloatgaurd-elided proof/tool context remains reachable by rehydrate refs from item and closure records.
+19. Velocity summaries exclude items whose closure authority is blocked, premature, or missing receipt posture.
+20. Future timeline projection can display compaction boundaries, HLT warnings, omitted-context handles, and closure transitions for each Workpoint Item.
 
 ## Implementation slices
 
 ### Slice 1 — Audit and schema scaffold
 
 - Audit current Workpoint/task/timing/token fields.
+- Audit Spec 130 CompactionMissionPacket, TrajectoryResumePacketV3, Bloatgaurd, ECS/Evidence, and receipt surfaces that must link to Workpoint Items.
 - Add Workpoint Item schema.
 - Add timing/token/closure ledger schemas.
+- Add compaction-link ledger schema.
 - Add static tests for schema fields.
 
 ### Slice 2 — Workpoint Item API/CLI
@@ -376,6 +476,8 @@ All records must include:
 - Add item-level closure checks.
 - Add Workpoint closure checks.
 - Add bead/task closure checks.
+- Include HLT posture and receipt posture in every closure check.
+- Block closure when Spec 130 marks resume degraded/blocked unless degraded receipt posture or operator override permits it.
 - Record operator override explicitly.
 
 ### Slice 5 — Velocity intelligence
@@ -388,4 +490,5 @@ All records must include:
 
 - Add timeline-ready projection API.
 - Include Workpoint lineage, item phases, timing, proof, tokens, and closure authority.
+- Include Spec 130 compaction boundaries, HLT warning intervals, omitted-context handles, rehydrate refs, and receipt posture transitions.
 - Keep rendering/UI out of this spec unless later superseded.
