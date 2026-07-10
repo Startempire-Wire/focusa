@@ -1,0 +1,698 @@
+//! Spec 128 release/update primitives.
+//!
+//! This module is intentionally read-only and side-effect free.  It gives the
+//! future `focusa update check/plan/apply` path a shared release manifest,
+//! trust, provenance, and eligibility substrate before any auto-apply logic
+//! exists.
+
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+
+pub const RELEASE_MANIFEST_SCHEMA_V1: &str = "focusa.release_manifest.v1";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ReleaseChannel {
+    Stable,
+    Preview,
+    Dev,
+    Nightly,
+}
+
+impl ReleaseChannel {
+    pub fn label(self) -> &'static str {
+        match self {
+            ReleaseChannel::Stable => "stable",
+            ReleaseChannel::Preview => "preview",
+            ReleaseChannel::Dev => "dev",
+            ReleaseChannel::Nightly => "nightly",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseManifest {
+    pub schema: String,
+    pub tag: String,
+    pub commit: String,
+    pub channel: ReleaseChannel,
+    #[serde(default)]
+    pub published_at: Option<String>,
+    #[serde(default)]
+    pub yanked: bool,
+    #[serde(default)]
+    pub revoked: bool,
+    #[serde(default)]
+    pub superseded_by: Option<String>,
+    #[serde(default)]
+    pub gates: ReleaseGates,
+    pub trust: ReleaseTrust,
+    #[serde(default)]
+    pub provenance: Option<ReleaseProvenance>,
+    #[serde(default)]
+    pub compatibility: Option<ReleaseCompatibility>,
+    pub assets: BTreeMap<String, ReleaseAsset>,
+    #[serde(default)]
+    pub requires_license_features: Vec<String>,
+    #[serde(default)]
+    pub dev_mode_features: Vec<String>,
+    #[serde(default)]
+    pub rollback_supported: bool,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ReleaseGates {
+    #[serde(default)]
+    pub ci_success: Option<bool>,
+    #[serde(default)]
+    pub release_success: Option<bool>,
+    #[serde(default)]
+    pub deploy_success: Option<bool>,
+    #[serde(default)]
+    pub smoke_success: Option<bool>,
+    #[serde(default)]
+    pub installer_proof_success: Option<bool>,
+    #[serde(default)]
+    pub ci_run_url: Option<String>,
+    #[serde(default)]
+    pub release_run_url: Option<String>,
+    #[serde(default)]
+    pub deploy_run_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseTrust {
+    /// Accepted initial values are `ed25519` and `cosign_keyless`.
+    pub signing_algorithm: String,
+    pub key_id: String,
+    pub public_key_fingerprint: String,
+    #[serde(default)]
+    pub valid_from: Option<String>,
+    #[serde(default)]
+    pub valid_until: Option<String>,
+    #[serde(default)]
+    pub revoked_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseProvenance {
+    pub builder: String,
+    pub workflow: String,
+    pub run_url: String,
+    pub artifact_digest: String,
+    #[serde(default)]
+    pub slsa_attestation: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseCompatibility {
+    #[serde(default)]
+    pub min_installed_version: Option<String>,
+    #[serde(default)]
+    pub daemon_api_contract: Option<String>,
+    #[serde(default)]
+    pub pi_tool_contract: Option<String>,
+    #[serde(default)]
+    pub data_schema: Option<String>,
+    #[serde(default)]
+    pub requires_migration: bool,
+    #[serde(default)]
+    pub downgrade_supported: bool,
+    #[serde(default)]
+    pub requires_restart: Vec<String>,
+    #[serde(default)]
+    pub incompatible_if_features_missing: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseAsset {
+    pub platform: String,
+    pub name: String,
+    pub sha256: String,
+    #[serde(default)]
+    pub size_bytes: Option<u64>,
+    #[serde(default)]
+    pub url: Option<String>,
+    pub signature: AssetSignature,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AssetSignature {
+    pub algorithm: String,
+    pub key_id: String,
+    pub signature: String,
+    #[serde(default)]
+    pub certificate_sha256: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TrustedReleaseKey {
+    pub key_id: String,
+    pub public_key_fingerprint: String,
+    pub signing_algorithm: String,
+    #[serde(default)]
+    pub revoked_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseEligibilityOptions {
+    pub channel: ReleaseChannel,
+    pub platform: String,
+    #[serde(default = "default_true")]
+    pub require_ci_success: bool,
+    #[serde(default = "default_true")]
+    pub require_release_success: bool,
+    #[serde(default)]
+    pub require_deploy_success_for_daemon_hosts: bool,
+    #[serde(default)]
+    pub require_smoke_success: bool,
+    #[serde(default)]
+    pub require_installer_proof_success: bool,
+    #[serde(default)]
+    pub trusted_keys: Vec<TrustedReleaseKey>,
+}
+
+impl ReleaseEligibilityOptions {
+    pub fn dev(platform: impl Into<String>, trusted_keys: Vec<TrustedReleaseKey>) -> Self {
+        Self {
+            channel: ReleaseChannel::Dev,
+            platform: platform.into(),
+            require_ci_success: true,
+            require_release_success: true,
+            require_deploy_success_for_daemon_hosts: false,
+            require_smoke_success: false,
+            require_installer_proof_success: false,
+            trusted_keys,
+        }
+    }
+}
+
+fn default_true() -> bool {
+    true
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseEligibilityReport {
+    pub schema: &'static str,
+    pub status: &'static str,
+    pub eligible: bool,
+    pub tag: String,
+    pub channel: String,
+    pub platform: String,
+    pub matched_assets: Vec<String>,
+    pub errors: Vec<ReleaseEligibilityFinding>,
+    pub warnings: Vec<ReleaseEligibilityFinding>,
+    pub auto_apply_allowed: bool,
+    pub cryptographic_verification_required_for_apply: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReleaseEligibilityFinding {
+    pub code: String,
+    pub message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+}
+
+impl ReleaseEligibilityFinding {
+    fn error(code: impl Into<String>, message: impl Into<String>, path: impl Into<String>) -> Self {
+        Self {
+            code: code.into(),
+            message: message.into(),
+            path: Some(path.into()),
+        }
+    }
+
+    fn warning(
+        code: impl Into<String>,
+        message: impl Into<String>,
+        path: impl Into<String>,
+    ) -> Self {
+        Self::error(code, message, path)
+    }
+}
+
+pub fn parse_release_manifest_json(input: &str) -> Result<ReleaseManifest, serde_json::Error> {
+    serde_json::from_str(input)
+}
+
+pub fn evaluate_release_manifest(
+    manifest: &ReleaseManifest,
+    options: &ReleaseEligibilityOptions,
+) -> ReleaseEligibilityReport {
+    let mut errors = Vec::new();
+    let mut warnings = Vec::new();
+
+    if manifest.schema != RELEASE_MANIFEST_SCHEMA_V1 {
+        errors.push(ReleaseEligibilityFinding::error(
+            "unsupported_manifest_schema",
+            format!(
+                "manifest schema must be {RELEASE_MANIFEST_SCHEMA_V1}, got {}",
+                manifest.schema
+            ),
+            "/schema",
+        ));
+    }
+    if !manifest.tag.starts_with('v') {
+        errors.push(ReleaseEligibilityFinding::error(
+            "invalid_tag",
+            "release tag must start with v",
+            "/tag",
+        ));
+    }
+    if manifest.commit.len() < 7 {
+        errors.push(ReleaseEligibilityFinding::error(
+            "invalid_commit",
+            "commit must contain at least a short git sha",
+            "/commit",
+        ));
+    }
+    if manifest.channel != options.channel {
+        errors.push(ReleaseEligibilityFinding::error(
+            "channel_mismatch",
+            format!(
+                "manifest channel {} does not match requested channel {}",
+                manifest.channel.label(),
+                options.channel.label()
+            ),
+            "/channel",
+        ));
+    }
+    if manifest.yanked {
+        errors.push(ReleaseEligibilityFinding::error(
+            "release_yanked",
+            "yanked releases are ineligible for update",
+            "/yanked",
+        ));
+    }
+    if manifest.revoked {
+        errors.push(ReleaseEligibilityFinding::error(
+            "release_revoked",
+            "revoked releases are ineligible for update",
+            "/revoked",
+        ));
+    }
+    if manifest.assets.is_empty() {
+        errors.push(ReleaseEligibilityFinding::error(
+            "missing_assets",
+            "release manifest must include at least one asset",
+            "/assets",
+        ));
+    }
+
+    require_gate(
+        options.require_ci_success,
+        manifest.gates.ci_success,
+        "ci_success_required",
+        "/gates/ci_success",
+        &mut errors,
+    );
+    require_gate(
+        options.require_release_success,
+        manifest.gates.release_success,
+        "release_success_required",
+        "/gates/release_success",
+        &mut errors,
+    );
+    require_gate(
+        options.require_deploy_success_for_daemon_hosts,
+        manifest.gates.deploy_success,
+        "deploy_success_required",
+        "/gates/deploy_success",
+        &mut errors,
+    );
+    require_gate(
+        options.require_smoke_success,
+        manifest.gates.smoke_success,
+        "smoke_success_required",
+        "/gates/smoke_success",
+        &mut errors,
+    );
+    require_gate(
+        options.require_installer_proof_success,
+        manifest.gates.installer_proof_success,
+        "installer_proof_success_required",
+        "/gates/installer_proof_success",
+        &mut errors,
+    );
+
+    validate_trust(manifest, options, &mut errors, &mut warnings);
+
+    let mut matched_assets = Vec::new();
+    for (kind, asset) in &manifest.assets {
+        let path = format!("/assets/{kind}");
+        validate_asset(kind, asset, manifest, &mut errors);
+        if asset.platform == options.platform {
+            matched_assets.push(kind.clone());
+        } else if asset.platform == "all" {
+            matched_assets.push(kind.clone());
+        } else if asset.platform.trim().is_empty() {
+            errors.push(ReleaseEligibilityFinding::error(
+                "asset_platform_missing",
+                format!("asset {kind} must declare platform"),
+                format!("{path}/platform"),
+            ));
+        }
+    }
+    if matched_assets.is_empty() {
+        errors.push(ReleaseEligibilityFinding::error(
+            "unsupported_platform",
+            format!("manifest has no asset for platform {}", options.platform),
+            "/assets",
+        ));
+    }
+
+    if manifest.provenance.is_none() {
+        errors.push(ReleaseEligibilityFinding::error(
+            "missing_provenance",
+            "release manifest must include builder/workflow/run/digest provenance",
+            "/provenance",
+        ));
+    }
+    if !manifest.rollback_supported {
+        warnings.push(ReleaseEligibilityFinding::warning(
+            "rollback_not_declared",
+            "release does not declare rollback support; apply must remain guarded",
+            "/rollback_supported",
+        ));
+    }
+
+    let eligible = errors.is_empty();
+    ReleaseEligibilityReport {
+        schema: "focusa.release_eligibility_report.v1",
+        status: if eligible { "eligible" } else { "ineligible" },
+        eligible,
+        tag: manifest.tag.clone(),
+        channel: manifest.channel.label().to_string(),
+        platform: options.platform.clone(),
+        matched_assets,
+        errors,
+        warnings,
+        // Spec 128 forbids auto-apply until later policy/locking/rollback gates
+        // exist. This primitive only answers release eligibility.
+        auto_apply_allowed: false,
+        cryptographic_verification_required_for_apply: true,
+    }
+}
+
+fn require_gate(
+    required: bool,
+    actual: Option<bool>,
+    code: &'static str,
+    path: &'static str,
+    errors: &mut Vec<ReleaseEligibilityFinding>,
+) {
+    if required && actual != Some(true) {
+        errors.push(ReleaseEligibilityFinding::error(
+            code,
+            format!("required release gate {path} is not true"),
+            path,
+        ));
+    }
+}
+
+fn validate_trust(
+    manifest: &ReleaseManifest,
+    options: &ReleaseEligibilityOptions,
+    errors: &mut Vec<ReleaseEligibilityFinding>,
+    warnings: &mut Vec<ReleaseEligibilityFinding>,
+) {
+    let algorithm = manifest.trust.signing_algorithm.as_str();
+    if !matches!(algorithm, "ed25519" | "cosign_keyless") {
+        errors.push(ReleaseEligibilityFinding::error(
+            "unsupported_signing_algorithm",
+            format!("unsupported signing algorithm {algorithm}"),
+            "/trust/signing_algorithm",
+        ));
+    }
+    if manifest.trust.revoked_at.is_some() {
+        errors.push(ReleaseEligibilityFinding::error(
+            "manifest_key_revoked",
+            "manifest signing key is revoked",
+            "/trust/revoked_at",
+        ));
+    }
+    if options.trusted_keys.is_empty() {
+        errors.push(ReleaseEligibilityFinding::error(
+            "trust_root_missing",
+            "release eligibility requires a configured trusted key",
+            "/trust",
+        ));
+        return;
+    }
+    let matched = options.trusted_keys.iter().find(|key| {
+        key.key_id == manifest.trust.key_id
+            && key.public_key_fingerprint == manifest.trust.public_key_fingerprint
+            && key.signing_algorithm == manifest.trust.signing_algorithm
+    });
+    match matched {
+        Some(key) if key.revoked_at.is_some() => errors.push(ReleaseEligibilityFinding::error(
+            "trusted_key_revoked",
+            "configured trusted key is revoked",
+            "/trust/key_id",
+        )),
+        Some(_) => {}
+        None => errors.push(ReleaseEligibilityFinding::error(
+            "untrusted_signing_key",
+            "manifest signing key is not in the trusted key set",
+            "/trust/key_id",
+        )),
+    }
+    if manifest.trust.valid_until.is_none() {
+        warnings.push(ReleaseEligibilityFinding::warning(
+            "trust_key_without_expiry",
+            "trusted key has no valid_until metadata; key rotation should be explicit",
+            "/trust/valid_until",
+        ));
+    }
+}
+
+fn validate_asset(
+    kind: &str,
+    asset: &ReleaseAsset,
+    manifest: &ReleaseManifest,
+    errors: &mut Vec<ReleaseEligibilityFinding>,
+) {
+    let path = format!("/assets/{kind}");
+    if asset.name.trim().is_empty() {
+        errors.push(ReleaseEligibilityFinding::error(
+            "asset_name_missing",
+            format!("asset {kind} must have a name"),
+            format!("{path}/name"),
+        ));
+    }
+    if !is_sha256_hex(&asset.sha256) {
+        errors.push(ReleaseEligibilityFinding::error(
+            "asset_sha256_invalid",
+            format!("asset {kind} sha256 must be 64 lowercase/uppercase hex chars"),
+            format!("{path}/sha256"),
+        ));
+    }
+    if asset.size_bytes == Some(0) {
+        errors.push(ReleaseEligibilityFinding::error(
+            "asset_size_zero",
+            format!("asset {kind} size_bytes must be greater than zero"),
+            format!("{path}/size_bytes"),
+        ));
+    }
+    if asset.signature.signature.trim().is_empty() {
+        errors.push(ReleaseEligibilityFinding::error(
+            "asset_signature_missing",
+            format!("asset {kind} must include a signature"),
+            format!("{path}/signature/signature"),
+        ));
+    }
+    if asset.signature.key_id != manifest.trust.key_id {
+        errors.push(ReleaseEligibilityFinding::error(
+            "asset_signature_key_mismatch",
+            format!("asset {kind} signature key must match manifest trust key"),
+            format!("{path}/signature/key_id"),
+        ));
+    }
+    if asset.signature.algorithm != manifest.trust.signing_algorithm {
+        errors.push(ReleaseEligibilityFinding::error(
+            "asset_signature_algorithm_mismatch",
+            format!("asset {kind} signature algorithm must match manifest trust algorithm"),
+            format!("{path}/signature/algorithm"),
+        ));
+    }
+}
+
+fn is_sha256_hex(s: &str) -> bool {
+    s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn trusted_key() -> TrustedReleaseKey {
+        TrustedReleaseKey {
+            key_id: "focusa-dev-2026".into(),
+            public_key_fingerprint: "SHA256:focusadev".into(),
+            signing_algorithm: "ed25519".into(),
+            revoked_at: None,
+        }
+    }
+
+    fn asset(platform: &str) -> ReleaseAsset {
+        ReleaseAsset {
+            platform: platform.into(),
+            name: format!("focusa-v0.9.80-dev-{platform}"),
+            sha256: "a".repeat(64),
+            size_bytes: Some(123),
+            url: Some(
+                "https://github.com/Startempire-Wire/focusa/releases/download/v0.9.80-dev/focusa"
+                    .into(),
+            ),
+            signature: AssetSignature {
+                algorithm: "ed25519".into(),
+                key_id: "focusa-dev-2026".into(),
+                signature: "base64-signature".into(),
+                certificate_sha256: None,
+            },
+        }
+    }
+
+    fn manifest() -> ReleaseManifest {
+        ReleaseManifest {
+            schema: RELEASE_MANIFEST_SCHEMA_V1.into(),
+            tag: "v0.9.80-dev".into(),
+            commit: "8fa6452d".into(),
+            channel: ReleaseChannel::Dev,
+            published_at: Some("2026-07-10T00:00:00Z".into()),
+            yanked: false,
+            revoked: false,
+            superseded_by: None,
+            gates: ReleaseGates {
+                ci_success: Some(true),
+                release_success: Some(true),
+                deploy_success: Some(true),
+                smoke_success: Some(true),
+                installer_proof_success: Some(true),
+                ci_run_url: Some(
+                    "https://github.com/Startempire-Wire/focusa/actions/runs/1".into(),
+                ),
+                release_run_url: Some(
+                    "https://github.com/Startempire-Wire/focusa/actions/runs/2".into(),
+                ),
+                deploy_run_url: Some(
+                    "https://github.com/Startempire-Wire/focusa/actions/runs/3".into(),
+                ),
+            },
+            trust: ReleaseTrust {
+                signing_algorithm: "ed25519".into(),
+                key_id: "focusa-dev-2026".into(),
+                public_key_fingerprint: "SHA256:focusadev".into(),
+                valid_from: Some("2026-01-01T00:00:00Z".into()),
+                valid_until: Some("2027-01-01T00:00:00Z".into()),
+                revoked_at: None,
+            },
+            provenance: Some(ReleaseProvenance {
+                builder: "github-actions".into(),
+                workflow: "release.yml".into(),
+                run_url: "https://github.com/Startempire-Wire/focusa/actions/runs/2".into(),
+                artifact_digest: "sha256:artifact".into(),
+                slsa_attestation: None,
+            }),
+            compatibility: Some(ReleaseCompatibility {
+                min_installed_version: Some("0.9.74-dev".into()),
+                daemon_api_contract: Some("focusa.api.v1".into()),
+                pi_tool_contract: Some("focusa.pi-tools.v1".into()),
+                data_schema: Some("focusa.data.v1".into()),
+                requires_migration: false,
+                downgrade_supported: false,
+                requires_restart: vec!["daemon".into()],
+                incompatible_if_features_missing: vec!["packaged_installer".into()],
+            }),
+            assets: BTreeMap::from([("focusa".into(), asset("x86_64-unknown-linux-gnu"))]),
+            requires_license_features: vec!["packaged_installer".into()],
+            dev_mode_features: vec!["ota_auto_update".into(), "developer_channel".into()],
+            rollback_supported: true,
+        }
+    }
+
+    fn options() -> ReleaseEligibilityOptions {
+        ReleaseEligibilityOptions::dev("x86_64-unknown-linux-gnu", vec![trusted_key()])
+    }
+
+    fn codes(report: &ReleaseEligibilityReport) -> Vec<&str> {
+        report.errors.iter().map(|f| f.code.as_str()).collect()
+    }
+
+    #[test]
+    fn valid_dev_manifest_is_eligible_but_not_auto_apply_allowed() {
+        let report = evaluate_release_manifest(&manifest(), &options());
+        assert!(report.eligible, "{report:?}");
+        assert_eq!(report.status, "eligible");
+        assert!(
+            !report.auto_apply_allowed,
+            "Spec128 gates auto-apply until policy/lock/rollback exist"
+        );
+        assert!(report.cryptographic_verification_required_for_apply);
+        assert_eq!(report.matched_assets, vec!["focusa"]);
+    }
+
+    #[test]
+    fn yanked_release_is_ineligible() {
+        let mut m = manifest();
+        m.yanked = true;
+        let report = evaluate_release_manifest(&m, &options());
+        assert!(!report.eligible);
+        assert!(codes(&report).contains(&"release_yanked"));
+    }
+
+    #[test]
+    fn missing_asset_signature_is_ineligible() {
+        let mut m = manifest();
+        m.assets
+            .get_mut("focusa")
+            .unwrap()
+            .signature
+            .signature
+            .clear();
+        let report = evaluate_release_manifest(&m, &options());
+        assert!(!report.eligible);
+        assert!(codes(&report).contains(&"asset_signature_missing"));
+    }
+
+    #[test]
+    fn revoked_trusted_key_is_ineligible() {
+        let mut key = trusted_key();
+        key.revoked_at = Some("2026-07-10T00:00:00Z".into());
+        let report = evaluate_release_manifest(
+            &manifest(),
+            &ReleaseEligibilityOptions::dev("x86_64-unknown-linux-gnu", vec![key]),
+        );
+        assert!(!report.eligible);
+        assert!(codes(&report).contains(&"trusted_key_revoked"));
+    }
+
+    #[test]
+    fn channel_mismatch_is_ineligible() {
+        let mut opts = options();
+        opts.channel = ReleaseChannel::Stable;
+        let report = evaluate_release_manifest(&manifest(), &opts);
+        assert!(!report.eligible);
+        assert!(codes(&report).contains(&"channel_mismatch"));
+    }
+
+    #[test]
+    fn unsupported_platform_is_ineligible() {
+        let report = evaluate_release_manifest(
+            &manifest(),
+            &ReleaseEligibilityOptions::dev("aarch64-apple-darwin", vec![trusted_key()]),
+        );
+        assert!(!report.eligible);
+        assert!(codes(&report).contains(&"unsupported_platform"));
+    }
+
+    #[test]
+    fn missing_required_gate_is_ineligible() {
+        let mut m = manifest();
+        m.gates.ci_success = Some(false);
+        let report = evaluate_release_manifest(&m, &options());
+        assert!(!report.eligible);
+        assert!(codes(&report).contains(&"ci_success_required"));
+    }
+}

@@ -55,6 +55,7 @@ pub mod telemetry;
 pub mod threads;
 pub mod training;
 pub mod types;
+pub mod update;
 pub mod utility_card;
 pub mod uxp;
 pub mod work_item;
