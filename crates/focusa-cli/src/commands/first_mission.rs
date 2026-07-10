@@ -102,6 +102,7 @@ pub async fn run(args: FirstMissionArgs, json_output: bool) -> anyhow::Result<()
             step("Workpoint created", "planned", "/v1/workpoint/checkpoint"),
             step("Proof linked", "planned", "/v1/workpoint/evidence/link"),
             step("Resume packet ready", "planned", "/v1/workpoint/resume"),
+            step("Project status shown", "planned", "focusa project status"),
             step(
                 "Mission Deck",
                 if args.open_deck { "planned" } else { "skipped" },
@@ -115,8 +116,11 @@ pub async fn run(args: FirstMissionArgs, json_output: bool) -> anyhow::Result<()
             "project_root": resolved.project_root,
             "continuity_id": continuity_id,
             "mutated": false,
+            "open_deck_requested": args.open_deck,
+            "no_animation": args.no_animation,
+            "yes": args.yes,
             "steps": steps,
-            "next": ["focusa deck", "focusa status operator", "focusa workpoint resume"],
+            "next": ["focusa deck", "focusa status operator", "focusa project status", "focusa workpoint resume"],
         });
         if json_output {
             println!("{}", serde_json::to_string_pretty(&payload)?);
@@ -214,6 +218,11 @@ pub async fn run(args: FirstMissionArgs, json_output: bool) -> anyhow::Result<()
             .unwrap_or("active"),
     ));
     steps.push(step(
+        "Project status shown",
+        "ok",
+        format!("focusa project status --project-root {}", resolved.project_root),
+    ));
+    steps.push(step(
         "Mission Deck",
         if args.open_deck { "planned" } else { "skipped" },
         "focusa deck",
@@ -233,7 +242,7 @@ pub async fn run(args: FirstMissionArgs, json_output: bool) -> anyhow::Result<()
         "no_animation": args.no_animation,
         "yes": args.yes,
         "steps": steps,
-        "next": ["focusa deck", "focusa status operator", "focusa workpoint resume"],
+        "next": ["focusa deck", "focusa status operator", "focusa project status", "focusa workpoint resume"],
     });
     if json_output {
         println!("{}", serde_json::to_string_pretty(&payload)?);

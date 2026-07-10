@@ -59,7 +59,10 @@ fn first_mission_dry_run_json_does_not_require_daemon() {
     assert!(out.contains("\"schema\": \"focusa.first_mission.v1\""));
     assert!(out.contains("\"dry_run\": true"));
     assert!(out.contains("\"mutated\": false"));
+    assert!(out.contains("\"no_animation\": true"));
     assert!(out.contains("/v1/workpoint/checkpoint"));
+    assert!(out.contains("Project status shown"));
+    assert!(out.contains("focusa project status"));
 }
 
 #[test]
@@ -81,6 +84,7 @@ fn setup_wizard_routes_to_first_mission_dry_run() {
     assert!(out.contains("\"schema\": \"focusa.first_mission.v1\""));
     assert!(out.contains("\"dry_run\": true"));
     assert!(out.contains("\"mutated\": false"));
+    assert!(out.contains("Project status shown"));
 }
 
 #[test]
