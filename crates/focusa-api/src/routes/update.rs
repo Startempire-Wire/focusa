@@ -1,4 +1,4 @@
-//! Spec 128 read-only update inventory/status/check API routes.
+//! Spec 128 read-only update inventory/status/check/plan/apply guard API routes.
 //!
 //! These routes intentionally do not mutate local state. They inventory local
 //! Focusa surfaces and expose stale-part information for CLI/Pi/TUI/menubar
@@ -24,6 +24,8 @@ pub fn router() -> Router<Arc<crate::server::AppState>> {
     Router::new()
         .route("/v1/update/status", get(update_status))
         .route("/v1/update/check", post(update_check))
+        .route("/v1/update/plan", post(update_plan))
+        .route("/v1/update/apply", post(update_apply))
         .route(
             "/v1/update/policy",
             get(update_policy).post(update_policy_set),
@@ -36,6 +38,22 @@ struct UpdateQuery {
     channel: Option<String>,
     #[serde(default)]
     latest_version: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+struct UpdateApplyBody {
+    #[serde(flatten)]
+    query: UpdateQuery,
+    #[serde(default = "default_true")]
+    dry_run: bool,
+    #[serde(default)]
+    yes: bool,
+    #[serde(default)]
+    allow_apply: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -59,6 +77,17 @@ async fn update_check(Json(body): Json<UpdateQuery>) -> Json<Value> {
 async fn update_plan(Json(body): Json<UpdateQuery>) -> Json<Value> {
     let inventory = build_update_inventory("plan", body).await;
     Json(build_update_plan(inventory))
+}
+
+async fn update_apply(Json(body): Json<UpdateApplyBody>) -> Json<Value> {
+    let inventory = build_update_inventory("apply", body.query).await;
+    let plan = build_update_plan(inventory);
+    Json(build_apply_envelope(
+        plan,
+        body.dry_run,
+        body.yes,
+        body.allow_apply,
+    ))
 }
 
 async fn update_policy() -> Json<Value> {
@@ -254,6 +283,81 @@ fn part_plan(part: &Value, target_version: &str, order: &mut u8) -> Value {
     });
     *order = order.saturating_add(1);
     value
+}
+
+fn build_apply_envelope(plan: Value, dry_run: bool, yes: bool, allow_apply: bool) -> Value {
+    let mut blocked_reason = plan
+        .get("apply_blocked_until")
+        .and_then(Value::as_array)
+        .map(|arr| {
+            arr.iter()
+                .filter_map(Value::as_str)
+                .map(str::to_string)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    blocked_reason.push("apply_executor_not_enabled_in_spec128_07_scaffold".into());
+    if dry_run {
+        blocked_reason.push("dry_run_requested".into());
+    }
+    if !(yes && allow_apply) {
+        blocked_reason.push("explicit_yes_and_allow_apply_required".into());
+    }
+    let daemon_required = plan
+        .get("parts")
+        .and_then(Value::as_array)
+        .map(|parts| {
+            parts.iter().any(|part| {
+                part.get("part").and_then(Value::as_str) == Some("daemon")
+                    && part.get("action").and_then(Value::as_str) == Some("would_update")
+            })
+        })
+        .unwrap_or(false);
+    let preserve = plan
+        .pointer("/safety/preserves")
+        .cloned()
+        .unwrap_or_else(|| json!([]));
+    json!({
+        "schema": "focusa.update_apply.v1",
+        "status": "blocked_read_only",
+        "read_only": true,
+        "mutations_performed": false,
+        "apply_requested": yes || allow_apply || !dry_run,
+        "apply_executed": false,
+        "dry_run": dry_run,
+        "consent": {
+            "yes": yes,
+            "allow_apply": allow_apply,
+            "effective": yes && allow_apply && !dry_run,
+            "note": "consent is recorded only; this scaffold does not mutate binaries"
+        },
+        "plan": plan,
+        "execution_order": ["cli", "tui", "daemon_last", "restart_daemon_only_if_changed_and_allowed"],
+        "daemon_restart": {
+            "allowed": false,
+            "required": daemon_required,
+            "when": "after daemon binary promotion, policy approval, and health/version/contract proof",
+            "health_proof": "GET /v1/health version and API contract must match target release"
+        },
+        "data_safety": {
+            "overwrite_data": false,
+            "overwrite_env": false,
+            "overwrite_license": false,
+            "preserve": preserve
+        },
+        "proof_required": [
+            "release_manifest_signature_verified",
+            "asset_sha256_verified",
+            "cli_version_matches_target",
+            "tui_version_matches_target_or_not_installed",
+            "daemon_health_version_matches_target_when_daemon_changed",
+            "daemon_api_contract_matches_target_when_daemon_changed",
+            "no_data_env_license_overwrite",
+            "rollback_journal_written"
+        ],
+        "blocked_reason": blocked_reason,
+        "recovery_hint": "No update was applied. Use /v1/update/plan to inspect blockers; apply remains disabled until Spec128 apply gates are implemented."
+    })
 }
 
 fn build_safety_plan_json() -> Value {

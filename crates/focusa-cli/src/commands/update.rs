@@ -1,4 +1,4 @@
-//! Spec 128 read-only update inventory/status/check/plan.
+//! Spec 128 read-only update inventory/status/check/plan/apply guard.
 //!
 //! This command intentionally performs no mutation: no downloads, no binary
 //! replacement, no daemon restart. It only inventories local Focusa surfaces
@@ -27,6 +27,8 @@ pub enum UpdateCmd {
     Check(UpdateStatusArgs),
     /// Read-only update plan. Shows what would change, prompts, compatibility gates, and restart impact.
     Plan(UpdateStatusArgs),
+    /// Guarded update apply surface. Defaults to dry-run/blocked; no mutation until all gates are wired.
+    Apply(UpdateApplyArgs),
     /// Show or set the local update policy. Does not apply updates.
     #[command(subcommand)]
     Policy(UpdatePolicyCmd),
@@ -51,6 +53,24 @@ pub struct UpdatePolicySetArgs {
     /// Mode: notify, prompt, scheduled, automatic, manual.
     #[arg(long)]
     pub mode: Option<String>,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct UpdateApplyArgs {
+    #[command(flatten)]
+    pub status: UpdateStatusArgs,
+
+    /// Dry-run apply. Default posture; performs no mutation.
+    #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
+    pub dry_run: bool,
+
+    /// Explicit operator consent for future apply. Still blocked until implementation gates pass.
+    #[arg(long)]
+    pub yes: bool,
+
+    /// Explicitly request mutation when future apply is implemented. Still blocked in this slice.
+    #[arg(long)]
+    pub allow_apply: bool,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -179,6 +199,49 @@ struct PartPlan {
 }
 
 #[derive(Debug, Serialize)]
+struct UpdateApplyEnvelope {
+    schema: &'static str,
+    status: &'static str,
+    read_only: bool,
+    mutations_performed: bool,
+    apply_requested: bool,
+    apply_executed: bool,
+    dry_run: bool,
+    consent: ApplyConsent,
+    plan: UpdatePlanEnvelope,
+    execution_order: Vec<&'static str>,
+    daemon_restart: DaemonRestartPlan,
+    data_safety: DataSafetyPlan,
+    proof_required: Vec<&'static str>,
+    blocked_reason: Vec<String>,
+    recovery_hint: String,
+}
+
+#[derive(Debug, Serialize)]
+struct ApplyConsent {
+    yes: bool,
+    allow_apply: bool,
+    effective: bool,
+    note: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct DaemonRestartPlan {
+    allowed: bool,
+    required: bool,
+    when: &'static str,
+    health_proof: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct DataSafetyPlan {
+    overwrite_data: bool,
+    overwrite_env: bool,
+    overwrite_license: bool,
+    preserve: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
 struct LatestVersion {
     version: String,
     source: String,
@@ -247,6 +310,19 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
                 println!("{}", serde_json::to_string_pretty(&plan)?);
             } else {
                 print_plan_human(&plan);
+            }
+        }
+        UpdateCmd::Apply(args) => {
+            let dry_run = args.dry_run;
+            let yes = args.yes;
+            let allow_apply = args.allow_apply;
+            let envelope = build_inventory("apply", args.status).await?;
+            let plan = build_update_plan(envelope);
+            let apply = build_apply_envelope(plan, dry_run, yes, allow_apply);
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&apply)?);
+            } else {
+                print_apply_human(&apply);
             }
         }
         UpdateCmd::Policy(cmd) => run_policy(cmd, json_mode)?,
@@ -383,6 +459,77 @@ fn build_update_plan(inventory: UpdateInventoryEnvelope) -> UpdatePlanEnvelope {
             "Keep using focusa update status/check/plan as read-only surfaces.".into(),
         ],
     }
+}
+
+fn build_apply_envelope(
+    plan: UpdatePlanEnvelope,
+    dry_run: bool,
+    yes: bool,
+    allow_apply: bool,
+) -> UpdateApplyEnvelope {
+    let mut blocked_reason = plan.apply_blocked_until.clone();
+    blocked_reason.push("apply_executor_not_enabled_in_spec128_07_scaffold".to_string());
+    if dry_run {
+        blocked_reason.push("dry_run_requested".to_string());
+    }
+    if !(yes && allow_apply) {
+        blocked_reason.push("explicit_yes_and_allow_apply_required".to_string());
+    }
+    let daemon_required = plan
+        .parts
+        .iter()
+        .any(|part| part.part == "daemon" && part.action == "would_update");
+    UpdateApplyEnvelope {
+        schema: "focusa.update_apply.v1",
+        status: "blocked_read_only",
+        read_only: true,
+        mutations_performed: false,
+        apply_requested: yes || allow_apply || !dry_run,
+        apply_executed: false,
+        dry_run,
+        consent: ApplyConsent {
+            yes,
+            allow_apply,
+            effective: yes && allow_apply && !dry_run,
+            note: "consent is recorded only; this scaffold does not mutate binaries",
+        },
+        execution_order: vec!["cli", "tui", "daemon_last", "restart_daemon_only_if_changed_and_allowed"],
+        daemon_restart: DaemonRestartPlan {
+            allowed: false,
+            required: daemon_required,
+            when: "after daemon binary promotion, policy approval, and health/version/contract proof",
+            health_proof: "GET /v1/health version and API contract must match target release",
+        },
+        data_safety: DataSafetyPlan {
+            overwrite_data: false,
+            overwrite_env: false,
+            overwrite_license: false,
+            preserve: plan.safety.preserves.clone(),
+        },
+        proof_required: vec![
+            "release_manifest_signature_verified",
+            "asset_sha256_verified",
+            "cli_version_matches_target",
+            "tui_version_matches_target_or_not_installed",
+            "daemon_health_version_matches_target_when_daemon_changed",
+            "daemon_api_contract_matches_target_when_daemon_changed",
+            "no_data_env_license_overwrite",
+            "rollback_journal_written",
+        ],
+        recovery_hint: "No update was applied. Use focusa update plan --json to inspect blockers; apply remains disabled until Spec128 apply gates are implemented.".into(),
+        blocked_reason,
+        plan,
+    }
+}
+
+fn print_apply_human(apply: &UpdateApplyEnvelope) {
+    println!("Focusa update apply: {}", apply.status);
+    println!("read_only: {}", apply.read_only);
+    println!("mutations_performed: {}", apply.mutations_performed);
+    println!("apply_executed: {}", apply.apply_executed);
+    println!("execution_order: {}", apply.execution_order.join(" -> "));
+    println!("blocked_reason: {}", apply.blocked_reason.join(", "));
+    println!("recovery: {}", apply.recovery_hint);
 }
 
 fn build_safety_plan() -> UpdateSafetyPlan {
