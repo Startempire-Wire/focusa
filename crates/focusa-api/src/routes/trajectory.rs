@@ -1897,9 +1897,9 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         },
         // BAD-007 fix: Provide clear next_step_hint for empty/degraded trajectory states
         "next_step_hint": if bootstrap_default_trajectory {
-            "Trajectory is in bootstrap default state. Define a real goal with focusa_trajectory_define_goal (project_root, continuity_id, long_term_goal, desired_end_state) or pass a workpoint via focusa_workpoint_checkpoint to anchor the scope."
+            "Trajectory is in bootstrap default state. Define a real goal with focusa_trajectory_define_goal using project_root, continuity_id, long_term_goal, desired_end_state, current_state, and required_check; then rerun focusa_trajectory_view and verify strong_trajectory.next_tool is no longer focusa_trajectory_define_goal."
         } else if status == "not_found" {
-            "No trajectory exists for this project. Run focusa_trajectory_define_goal to set the long-term goal and desired end state."
+            "No trajectory exists for this project. Run focusa_trajectory_define_goal with project_root, continuity_id, long_term_goal, desired_end_state, current_state, and required_check; then rerun focusa_trajectory_view and verify status is completed/provisional with a concrete strong_trajectory.next_tool."
         } else if using_prior_project_trajectory {
             "Using prior project trajectory as fallback. Refresh with focusa_trajectory_define_goal to confirm the goal applies to this project."
         } else if !canonical {
@@ -1907,6 +1907,14 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         } else {
             "Trajectory is canonical. Continue with focusa_workpoint_resume or focusa_workpoint_checkpoint."
         },
+        "how_to_verify_empty_trajectory_repair": if bootstrap_default_trajectory || status == "not_found" {
+            json!({
+                "define_goal_command": "focusa trajectory define-goal --project-root <project> --continuity-id <id> --long-term-goal '<specific outcome>' --desired-end-state '<verifiable state>' --current-state '<observed state>' --required-check '<test or proof>'",
+                "verify_command": "focusa trajectory view --project-root <project> --continuity-id <id>",
+                "success_condition": "status is completed/provisional and intelligence_view.strong_trajectory.next_tool is concrete rather than focusa_trajectory_define_goal",
+                "fallback": "If the project is already in motion, checkpoint the current Workpoint with project_root+continuity_id, then rerun trajectory view.",
+            })
+        } else { Value::Null },
         "warnings": if canonical {
             Vec::<String>::new()
         } else if bootstrap_default_trajectory {
