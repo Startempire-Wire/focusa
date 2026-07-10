@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BIN="${FOCUSA_BIN:-$ROOT/target/debug/focusa}"
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+fail() { echo "FAIL: $*" >&2; exit 1; }
+pass() { echo "PASS: $*"; }
+
+[[ -x "$BIN" ]] || fail "FOCUSA_BIN not executable: $BIN"
+
+bash "$ROOT/tests/spec128_update_status_static_test.sh"
+bash "$ROOT/tests/spec128_installer_preflight_static_test.sh"
+
+preflight="$($BIN --json install --preflight --no-animation --quiet)"
+jq -e '.schema=="focusa.install_preflight.v1" and .read_only==true and .mutations_performed==false and .dependency_install_offer.auto_install_performed==false and .dependency_install_offer.requires_explicit_consent==true' <<<"$preflight" >/dev/null || fail "installer preflight did not prove safe read-only dependency prompt posture"
+
+mkdir -p "$TMP/bin"
+cat > "$TMP/bin/focusa" <<'FAKE'
+#!/usr/bin/env bash
+echo 'focusa 0.9.74-dev'
+FAKE
+chmod +x "$TMP/bin/focusa"
+
+status="$(PATH="$TMP/bin:$PATH" "$BIN" --json update status --latest-version 0.9.80-dev)"
+jq -e '.schema=="focusa.update_inventory.v1" and .read_only==true and (.parts[] | select(.part=="cli" and .version=="0.9.74-dev" and .stale==true))' <<<"$status" >/dev/null || fail "stale CLI detection failed"
+
+policy_dev="$(FOCUSA_UPDATE_POLICY="$TMP/no-policy.json" FOCUSA_DEV_MODE=1 "$BIN" --json update policy show)"
+jq -e '.schema=="focusa.update_policy_status.v1" and .policy.channel=="dev" and .policy.mode=="automatic" and .auto_apply_allowed==false' <<<"$policy_dev" >/dev/null || fail "dev_mode policy default not automatic/dev with auto apply blocked"
+
+policy_eval="$(FOCUSA_UPDATE_POLICY="$TMP/no-policy.json" FOCUSA_DEV_MODE=0 "$BIN" --json update policy show)"
+jq -e '.schema=="focusa.update_policy_status.v1" and .policy.mode!="automatic" and .auto_apply_allowed==false' <<<"$policy_eval" >/dev/null || fail "eval/unattended auto-apply denial failed"
+
+plan="$(PATH="$TMP/bin:$PATH" "$BIN" --json update plan --latest-version 0.9.80-dev)"
+jq -e '.schema=="focusa.update_plan.v1" and .apply_allowed==false and (.apply_blocked_until | index("release_manifest_signature_verification_not_wired_to_plan")) and (.safety.staging.verify_before_promote | index("asset_sha256")) and (.safety.staging.verify_before_promote | index("release_manifest_signature")) and (.safety.no_half_written_executable_rule | test("never write directly"))' <<<"$plan" >/dev/null || fail "plan missing checksum/signature/no-half-written blocks"
+
+apply_same="$(PATH="$TMP/bin:$PATH" "$BIN" --json update apply --latest-version 0.9.80-dev)"
+jq -e '.schema=="focusa.update_apply.v1" and .status=="blocked_read_only" and .apply_executed==false and .daemon_restart.allowed==false and .data_safety.overwrite_data==false and .data_safety.overwrite_env==false and .data_safety.overwrite_license==false' <<<"$apply_same" >/dev/null || fail "guarded apply failed no-mutation/data-safety assertions"
+
+apply_daemon_changed="$($BIN --json update apply --latest-version 9.9.9-dev)"
+jq -e '.schema=="focusa.update_apply.v1" and .apply_executed==false and .daemon_restart.allowed==false and .daemon_restart.health_proof=="GET /v1/health version and API contract must match target release"' <<<"$apply_daemon_changed" >/dev/null || fail "daemon restart proof/allowance guard missing"
+
+rollback="$($BIN --json update rollback --part all)"
+jq -e '.schema=="focusa.update_rollback.v1" and .rollback_executed==false and (.restore_order | index("health_contract_check")) and (.proof_required | index("history_event_written")) and .data_safety.overwrite_license==false' <<<"$rollback" >/dev/null || fail "rollback/history health proof guard missing"
+
+history="$($BIN --json update history)"
+jq -e '.schema=="focusa.update_history.v1" and .read_only==true and .retention.keep_last_successful_bundles==3 and (.observability.counters | index("update_apply_blocked_total"))' <<<"$history" >/dev/null || fail "history/observability envelope missing"
+
+admin="$($BIN --json update admin --pause --force-check --skip-version 0.9.80-dev)"
+jq -e '.schema=="focusa.update_admin_control.v1" and .read_only==true and .mutations_performed==false and (.requested_controls | index("pause")) and (.requested_controls | index("force_check")) and (.requested_controls | index("skip_version:0.9.80-dev"))' <<<"$admin" >/dev/null || fail "admin control preview missing requested controls"
+
+scheduler="$($BIN --json update scheduler)"
+jq -e '.schema=="focusa.update_scheduler.v1" and .scheduler_installed==false and .background_worker_started==false and .automatic_apply.allowed==false and .interval.jitter_percent==20 and .offline.skip_when_offline==true' <<<"$scheduler" >/dev/null || fail "scheduler/background updater guard missing"
+
+notifications="$(PATH="$TMP/bin:$PATH" "$BIN" --json update notifications --latest-version 0.9.80-dev)"
+jq -e '.schema=="focusa.update_notifications.v1" and .read_only==true and .severity=="warning" and (.stale_parts | index("cli")) and .surfaces.cli==true and .surfaces.api==true and .surfaces.pi_doctor==true' <<<"$notifications" >/dev/null || fail "stale-surface notification proof missing"
+
+# Static manifest/release safety strings cover the release-side block classes until network resolver is wired.
+rg -q 'checksum|signature|revoked|yanked' "$ROOT/crates/focusa-core/src/update.rs" "$ROOT/docs/128-focusa-over-the-air-auto-update-and-dev-mode-license-spec.md" || fail "release checksum/signature/revoked/yanked block references missing"
+
+pass "Spec128 installer/update runtime suite complete"
