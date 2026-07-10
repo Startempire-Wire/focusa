@@ -67,12 +67,12 @@ jobs:
             exit 0
           fi
           should_commit="$(python3 - <<'PY'
-import json
-from pathlib import Path
-p = Path('release-proof/audit/self-heal-result.json')
-print('true' if json.loads(p.read_text()).get('should_commit') else 'false')
-PY
-)"
+          import json
+          from pathlib import Path
+          p = Path('release-proof/audit/self-heal-result.json')
+          print('true' if json.loads(p.read_text()).get('should_commit') else 'false')
+          PY
+          )"
           if [[ "$should_commit" != "true" ]]; then
             echo "[audit-recorder] no actionable deliverable; suppressing passive audit commit"
             exit 0
