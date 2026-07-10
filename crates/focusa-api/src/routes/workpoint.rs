@@ -982,6 +982,39 @@ fn current_workpoint_payload(record: &WorkpointRecord) -> Value {
     })
 }
 
+fn checkpoint_summary(record: &WorkpointRecord) -> Value {
+    let action_type = record
+        .action_intent
+        .as_ref()
+        .map(|intent| intent.action_type.as_str())
+        .unwrap_or("unspecified_action");
+    let target_ref = record
+        .action_intent
+        .as_ref()
+        .and_then(|intent| intent.target_ref.as_deref())
+        .or_else(|| record.active_object_refs.first().map(String::as_str))
+        .unwrap_or("unspecified_target");
+    let mission = record.mission.as_deref().unwrap_or("unspecified mission");
+    let next_slice = record
+        .next_slice
+        .as_deref()
+        .unwrap_or("resume packet next_slice");
+    json!({
+        "one_line": format!(
+            "checkpointed mission={}; action={}; target={}; next={}",
+            mission, action_type, target_ref, next_slice
+        ),
+        "mission": mission,
+        "action_type": action_type,
+        "target_ref": target_ref,
+        "next_slice": next_slice,
+        "work_item_id": record.work_item_id,
+        "project_root": record.project_root,
+        "continuity_id": record.continuity_id,
+        "canonical": record.canonical,
+    })
+}
+
 fn resume_summary(record: &WorkpointRecord) -> String {
     let action = record
         .action_intent
@@ -1682,6 +1715,7 @@ async fn checkpoint(
         ..WorkpointRecord::default()
     };
     let canonical = record.canonical;
+    let checkpoint_summary = checkpoint_summary(&record);
 
     let mut events = vec![FocusaEvent::WorkpointCheckpointProposed { workpoint: record }];
     if promote && canonical {
@@ -1737,6 +1771,8 @@ async fn checkpoint(
         "idempotent_replay": false,
         "idempotency_cache": idempotency_cache_status_payload(),
         "workpoint": promoted_record.as_ref().map(workpoint_packet),
+        "checkpoint_summary": checkpoint_summary.clone(),
+        "rendered_summary": checkpoint_summary.get("one_line").cloned().unwrap_or(Value::Null),
         "rollback_card": rollback_card_payload(
             json!({"snapshot_id": materialized_state.clt.head_id, "source": "current_clt_head"}),
             Some(workpoint_id),
@@ -1746,7 +1782,7 @@ async fn checkpoint(
             "active Workpoint and linked evidence return to the selected safe snapshot scope"
         ),
         "warnings": if promote && !canonical { vec!["non-canonical checkpoint was proposed but not promoted"] } else { vec![] },
-        "next_step_hint": "call /v1/workpoint/resume to render the packet for Pi continuation"
+        "next_step_hint": "checkpointed typed mission/action/next_slice; call /v1/workpoint/resume to render the packet for Pi continuation"
     })))
 }
 

@@ -7716,8 +7716,11 @@ export function registerTools(pi: ExtensionAPI) {
           },
         } as any;
       }
+      const checkpointSummary = String(
+        res.body?.rendered_summary || res.body?.checkpoint_summary?.one_line || ""
+      );
       const text = res.ok
-        ? `workpoint checkpoint → ${summarizeWorkpointResponse(res.body)}`
+        ? `workpoint checkpoint → ${summarizeWorkpointResponse(res.body)}${checkpointSummary ? `; ${checkpointSummary}` : ""}`
         : res.body?.status === "validation_rejected"
           ? `workpoint checkpoint validation_rejected → field=${String(res.body?.field || "unknown")} allowed=${Array.isArray(res.body?.allowed_values) ? res.body.allowed_values.join(",") : "unknown"} retry=${String(res.body?.retry_posture || "do_not_retry_unchanged")}`
           : `workpoint checkpoint blocked → ${explainWorkLoopResult(res, "checkpoint failed")}`;
