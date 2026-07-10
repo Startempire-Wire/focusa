@@ -1,4 +1,4 @@
-//! Spec 128 read-only update inventory/status/check.
+//! Spec 128 read-only update inventory/status/check/plan.
 //!
 //! This command intentionally performs no mutation: no downloads, no binary
 //! replacement, no daemon restart. It only inventories local Focusa surfaces
@@ -25,6 +25,8 @@ pub enum UpdateCmd {
     Status(UpdateStatusArgs),
     /// Read-only update check. Same inventory as status plus channel/latest context.
     Check(UpdateStatusArgs),
+    /// Read-only update plan. Shows what would change, prompts, compatibility gates, and restart impact.
+    Plan(UpdateStatusArgs),
     /// Show or set the local update policy. Does not apply updates.
     #[command(subcommand)]
     Policy(UpdatePolicyCmd),
@@ -82,6 +84,56 @@ struct UpdateInventoryEnvelope {
     stale_parts: Vec<String>,
     warnings: Vec<String>,
     next_actions: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct UpdatePlanEnvelope {
+    schema: &'static str,
+    status: &'static str,
+    read_only: bool,
+    mutations_performed: bool,
+    apply_allowed: bool,
+    apply_blocked_until: Vec<String>,
+    channel: String,
+    latest: LatestVersion,
+    policy: UpdatePolicySummary,
+    license: LicenseSummary,
+    compatibility: CompatibilityPlan,
+    prompt: PromptPlan,
+    install_order: Vec<&'static str>,
+    parts: Vec<PartPlan>,
+    warnings: Vec<String>,
+    next_actions: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct CompatibilityPlan {
+    status: &'static str,
+    daemon_api_contract: &'static str,
+    pi_tool_contract: &'static str,
+    data_schema: &'static str,
+    requires_migration: bool,
+    blockers: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct PromptPlan {
+    mode: String,
+    update_prompt_required: bool,
+    daemon_restart_prompt_required: bool,
+    copy: Vec<&'static str>,
+    choices: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
+struct PartPlan {
+    part: &'static str,
+    current_version: Option<String>,
+    target_version: String,
+    action: &'static str,
+    reason: String,
+    restart_required: bool,
+    order: u8,
 }
 
 #[derive(Debug, Serialize)]
@@ -146,6 +198,15 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
                 print_human(&envelope);
             }
         }
+        UpdateCmd::Plan(args) => {
+            let envelope = build_inventory("plan", args).await?;
+            let plan = build_update_plan(envelope);
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&plan)?);
+            } else {
+                print_plan_human(&plan);
+            }
+        }
         UpdateCmd::Policy(cmd) => run_policy(cmd, json_mode)?,
     }
     Ok(())
@@ -205,6 +266,125 @@ async fn build_inventory(
         warnings,
         next_actions,
     })
+}
+
+fn build_update_plan(inventory: UpdateInventoryEnvelope) -> UpdatePlanEnvelope {
+    let mut blockers = vec![
+        "release_manifest_signature_verification_not_wired_to_plan".to_string(),
+        "update_locking_not_implemented".to_string(),
+        "atomic_install_not_implemented".to_string(),
+        "rollback_apply_not_implemented".to_string(),
+    ];
+    if inventory.latest.source == "current_cli_package_version" {
+        blockers.push("latest_release_manifest_resolver_not_wired".to_string());
+    }
+    let mut order = 1u8;
+    let mut parts = Vec::new();
+    for part in inventory.parts.iter().filter(|p| p.part != "daemon") {
+        parts.push(part_plan(part, &inventory.latest.version, &mut order));
+    }
+    if let Some(daemon) = inventory.parts.iter().find(|p| p.part == "daemon") {
+        parts.push(part_plan(daemon, &inventory.latest.version, &mut order));
+    }
+    let daemon_restart = parts
+        .iter()
+        .any(|p| p.part == "daemon" && p.restart_required);
+    let prompt_mode = inventory.policy.mode.clone();
+    let prompt_required = !matches!(prompt_mode.as_str(), "automatic");
+    UpdatePlanEnvelope {
+        schema: "focusa.update_plan.v1",
+        status: "planned_read_only",
+        read_only: true,
+        mutations_performed: false,
+        apply_allowed: false,
+        apply_blocked_until: blockers.clone(),
+        channel: inventory.channel,
+        latest: inventory.latest,
+        policy: inventory.policy,
+        license: inventory.license,
+        compatibility: CompatibilityPlan {
+            status: if blockers.is_empty() {
+                "ready"
+            } else {
+                "blocked_until_apply_gates"
+            },
+            daemon_api_contract: "focusa.api.v1",
+            pi_tool_contract: "focusa.pi-tools.v1",
+            data_schema: "focusa.data.v1",
+            requires_migration: false,
+            blockers,
+        },
+        prompt: PromptPlan {
+            mode: prompt_mode,
+            update_prompt_required: prompt_required,
+            daemon_restart_prompt_required: daemon_restart,
+            copy: vec![
+                "Your Focusa data, projects, license, Workpoints, evidence, and .env files will not be overwritten by a valid update plan.",
+                "Daemon restart is shown separately because it may interrupt active sessions.",
+                "This command is read-only; it has not downloaded, installed, or restarted anything.",
+            ],
+            choices: vec![
+                "show_details",
+                "later",
+                "skip_version",
+                "disable_auto_update",
+                "apply_when_available",
+            ],
+        },
+        install_order: vec!["cli", "tui", "daemon_last"],
+        parts,
+        warnings: inventory.warnings,
+        next_actions: vec![
+            "Implement Spec128 locking/staging/atomic install before update apply.".into(),
+            "Implement Spec128 rollback/history before update apply.".into(),
+            "Keep using focusa update status/check/plan as read-only surfaces.".into(),
+        ],
+    }
+}
+
+fn part_plan(part: &InstalledPart, target_version: &str, order: &mut u8) -> PartPlan {
+    let action = match part.stale {
+        Some(true) => "would_update",
+        Some(false) => "no_op",
+        None => "probe_required",
+    };
+    let restart_required = part.part == "daemon" && part.stale == Some(true);
+    let plan = PartPlan {
+        part: part.part,
+        current_version: part.version.clone(),
+        target_version: target_version.to_string(),
+        action,
+        reason: part.stale_reason.clone(),
+        restart_required,
+        order: *order,
+    };
+    *order = order.saturating_add(1);
+    plan
+}
+
+fn print_plan_human(plan: &UpdatePlanEnvelope) {
+    println!("Focusa update plan (read-only)");
+    println!("channel: {} target: {}", plan.channel, plan.latest.version);
+    println!("apply_allowed: false");
+    println!("compatibility: {}", plan.compatibility.status);
+    if !plan.apply_blocked_until.is_empty() {
+        println!("blocked_until: {}", plan.apply_blocked_until.join(", "));
+    }
+    for part in &plan.parts {
+        println!(
+            "  {}. {}: {} current={} target={} restart_required={}",
+            part.order,
+            part.part,
+            part.action,
+            part.current_version.as_deref().unwrap_or("unknown"),
+            part.target_version,
+            part.restart_required
+        );
+    }
+    println!("prompt_mode: {}", plan.prompt.mode);
+    for line in &plan.prompt.copy {
+        println!("note: {line}");
+    }
 }
 
 fn resolve_latest(override_value: Option<&str>) -> LatestVersion {
@@ -523,6 +703,9 @@ async fn probe_daemon_health(url: &str) -> Option<String> {
     if let Some(version) = probe_daemon_health_reqwest(url).await {
         return Some(version);
     }
+    if let Some(version) = probe_daemon_health_curl(url) {
+        return Some(version);
+    }
     probe_local_http_health(url)
 }
 
@@ -534,6 +717,20 @@ async fn probe_daemon_health_reqwest(url: &str) -> Option<String> {
         .ok()?;
     let body: serde_json::Value = client.get(url).send().await.ok()?.json().await.ok()?;
     body.get("version")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+}
+
+fn probe_daemon_health_curl(url: &str) -> Option<String> {
+    let output = std::process::Command::new("curl")
+        .args(["-fsS", "--max-time", "3", url])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).ok()?;
+    json.get("version")
         .and_then(|v| v.as_str())
         .map(|s| s.to_string())
 }

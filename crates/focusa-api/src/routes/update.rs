@@ -56,6 +56,11 @@ async fn update_check(Json(body): Json<UpdateQuery>) -> Json<Value> {
     Json(build_update_inventory("check", body).await)
 }
 
+async fn update_plan(Json(body): Json<UpdateQuery>) -> Json<Value> {
+    let inventory = build_update_inventory("plan", body).await;
+    Json(build_update_plan(inventory))
+}
+
 async fn update_policy() -> Json<Value> {
     let path = update_policy_path();
     let exists = path.exists();
@@ -152,6 +157,102 @@ async fn build_update_inventory(command: &'static str, query: UpdateQuery) -> Va
         ],
         "next_tools": ["focusa update status --json", "focusa update check --channel dev --json"]
     })
+}
+
+fn build_update_plan(inventory: Value) -> Value {
+    let latest_version = inventory
+        .pointer("/latest/version")
+        .and_then(Value::as_str)
+        .unwrap_or(env!("CARGO_PKG_VERSION"));
+    let policy_mode = inventory
+        .pointer("/policy/mode")
+        .and_then(Value::as_str)
+        .unwrap_or("manual");
+    let mut parts = Vec::new();
+    let mut order = 1u8;
+    if let Some(arr) = inventory.get("parts").and_then(Value::as_array) {
+        for part in arr
+            .iter()
+            .filter(|p| p.get("part").and_then(Value::as_str) != Some("daemon"))
+        {
+            parts.push(part_plan(part, latest_version, &mut order));
+        }
+        for part in arr
+            .iter()
+            .filter(|p| p.get("part").and_then(Value::as_str) == Some("daemon"))
+        {
+            parts.push(part_plan(part, latest_version, &mut order));
+        }
+    }
+    let daemon_restart = parts.iter().any(|p| {
+        p.get("part").and_then(Value::as_str) == Some("daemon")
+            && p.get("restart_required").and_then(Value::as_bool) == Some(true)
+    });
+    let blockers = vec![
+        "release_manifest_signature_verification_not_wired_to_plan",
+        "update_locking_not_implemented",
+        "atomic_install_not_implemented",
+        "rollback_apply_not_implemented",
+    ];
+    json!({
+        "schema": "focusa.update_plan.v1",
+        "status": "planned_read_only",
+        "read_only": true,
+        "mutations_performed": false,
+        "apply_allowed": false,
+        "apply_blocked_until": blockers,
+        "channel": inventory.get("channel").cloned().unwrap_or_else(|| json!("dev")),
+        "latest": inventory.get("latest").cloned().unwrap_or_else(|| json!({"version": latest_version})),
+        "policy": inventory.get("policy").cloned().unwrap_or_else(|| json!({"mode":"manual"})),
+        "license": inventory.get("license").cloned().unwrap_or_else(|| json!({"level":"unknown"})),
+        "compatibility": {
+            "status": "blocked_until_apply_gates",
+            "daemon_api_contract": "focusa.api.v1",
+            "pi_tool_contract": "focusa.pi-tools.v1",
+            "data_schema": "focusa.data.v1",
+            "requires_migration": false,
+            "blockers": blockers,
+        },
+        "prompt": {
+            "mode": policy_mode,
+            "update_prompt_required": policy_mode != "automatic",
+            "daemon_restart_prompt_required": daemon_restart,
+            "copy": [
+                "Your Focusa data, projects, license, Workpoints, evidence, and .env files will not be overwritten by a valid update plan.",
+                "Daemon restart is shown separately because it may interrupt active sessions.",
+                "This route is read-only; it has not downloaded, installed, or restarted anything."
+            ],
+            "choices": ["show_details", "later", "skip_version", "disable_auto_update", "apply_when_available"]
+        },
+        "install_order": ["cli", "tui", "daemon_last"],
+        "parts": parts,
+        "warnings": inventory.get("warnings").cloned().unwrap_or_else(|| json!([])),
+        "next_tools": ["focusa update status --json", "focusa update plan --json"]
+    })
+}
+
+fn part_plan(part: &Value, target_version: &str, order: &mut u8) -> Value {
+    let part_name = part
+        .get("part")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let stale = part.get("stale").and_then(Value::as_bool);
+    let action = match stale {
+        Some(true) => "would_update",
+        Some(false) => "no_op",
+        None => "probe_required",
+    };
+    let value = json!({
+        "part": part_name,
+        "current_version": part.get("version").cloned().unwrap_or(Value::Null),
+        "target_version": target_version,
+        "action": action,
+        "reason": part.get("stale_reason").and_then(Value::as_str).unwrap_or("unknown"),
+        "restart_required": part_name == "daemon" && stale == Some(true),
+        "order": *order,
+    });
+    *order = order.saturating_add(1);
+    value
 }
 
 fn update_policy_path() -> std::path::PathBuf {
