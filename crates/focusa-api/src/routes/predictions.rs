@@ -193,6 +193,70 @@ fn compact_prediction_result(prediction: &Value) -> Value {
     })
 }
 
+fn prediction_age_hours(prediction: &Value) -> Option<i64> {
+    let ts = prediction
+        .get("ts")
+        .or_else(|| prediction.get("created_at"))
+        .and_then(Value::as_str)?;
+    let parsed = chrono::DateTime::parse_from_rfc3339(ts).ok()?;
+    Some((Utc::now() - parsed.with_timezone(&Utc)).num_hours().max(0))
+}
+
+fn prediction_evaluate_hint(predictions: &[Value]) -> Value {
+    let mut unevaluated = predictions
+        .iter()
+        .filter(|prediction| {
+            prediction
+                .get("prediction_id")
+                .and_then(Value::as_str)
+                .is_some()
+                && prediction
+                    .get("evaluated_at")
+                    .and_then(Value::as_str)
+                    .is_none()
+        })
+        .collect::<Vec<_>>();
+    unevaluated.sort_by(|a, b| {
+        let bc = b.get("confidence").and_then(Value::as_f64).unwrap_or(0.0);
+        let ac = a.get("confidence").and_then(Value::as_f64).unwrap_or(0.0);
+        bc.partial_cmp(&ac).unwrap_or(std::cmp::Ordering::Equal)
+    });
+    let Some(candidate) = unevaluated.first().copied() else {
+        return json!({
+            "action": "record_new_prediction",
+            "reason": "no unevaluated prediction in the bounded recent window",
+            "next_tool": "focusa_predict_record",
+        });
+    };
+    let confidence = candidate
+        .get("confidence")
+        .and_then(Value::as_f64)
+        .unwrap_or(0.0);
+    let age_hours = prediction_age_hours(candidate);
+    let old_enough = age_hours.unwrap_or(0) >= 24;
+    let action = if confidence >= 0.75 || old_enough {
+        "evaluate_prediction"
+    } else {
+        "wait_or_record_new_when_outcome_known"
+    };
+    let reason = if confidence >= 0.75 {
+        "high confidence unevaluated prediction should be checked against outcome"
+    } else if old_enough {
+        "prediction is old enough that evaluating calibration is useful"
+    } else {
+        "prediction is recent/low-confidence; evaluate only when the outcome is known"
+    };
+    json!({
+        "action": action,
+        "prediction_id": candidate.get("prediction_id").cloned().unwrap_or(Value::Null),
+        "confidence": confidence,
+        "age_hours": age_hours,
+        "reason": reason,
+        "next_tool": if action == "evaluate_prediction" { "focusa_predict_evaluate" } else { "focusa_predict_record" },
+        "command": if action == "evaluate_prediction" { format!("focusa predict evaluate {} --actual-outcome '<observed outcome>' --score <0..1>", candidate.get("prediction_id").and_then(Value::as_str).unwrap_or("<prediction_id>")) } else { "focusa predict record --prediction-type <type> --predicted-outcome '<outcome>' --confidence <0..1>".to_string() },
+    })
+}
+
 fn ontology_context_summary(value: &Value) -> String {
     if !value.is_object() {
         return "none".to_string();
@@ -420,6 +484,7 @@ async fn recent(Query(params): Query<HashMap<String, String>>) -> Json<Value> {
     if predictions.len() > limit {
         predictions = predictions.split_off(predictions.len() - limit);
     }
+    let evaluate_hint = prediction_evaluate_hint(&predictions);
     Json(json!({
         "status": "completed",
         "summary": format!(
@@ -429,6 +494,8 @@ async fn recent(Query(params): Query<HashMap<String, String>>) -> Json<Value> {
                 .map(|p| format!(" (project_root={})", p))
                 .unwrap_or_default()
         ),
+        "next_prediction_id": evaluate_hint.get("prediction_id").cloned().unwrap_or(Value::Null),
+        "evaluate_hint": evaluate_hint,
         "predictions": predictions,
     }))
 }
@@ -697,6 +764,30 @@ mod tests {
                 .and_then(|v| v.get("prediction_id"))
                 .and_then(|v| v.as_i64()),
             Some(1004)
+        );
+    }
+
+    #[test]
+    fn prediction_recent_evaluate_hint_prefers_high_confidence_unevaluated() {
+        let hint = prediction_evaluate_hint(&[json!({
+            "prediction_id": "pred-high",
+            "confidence": 0.91,
+            "ts": Utc::now().to_rfc3339(),
+            "evaluated_at": null,
+        })]);
+        assert_eq!(
+            hint.get("action").and_then(Value::as_str),
+            Some("evaluate_prediction")
+        );
+        assert_eq!(
+            hint.get("prediction_id").and_then(Value::as_str),
+            Some("pred-high")
+        );
+        assert!(
+            hint.get("command")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .contains("focusa predict evaluate pred-high")
         );
     }
 

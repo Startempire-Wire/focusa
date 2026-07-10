@@ -13303,20 +13303,26 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       if (!actionable) {
         actionable = predictions.at(-1) || null;
       }
-      const ageStr = actionable?.created_at
-        ? (() => {
-            const ageH = Math.round(
-              (Date.now() - new Date(actionable.created_at).getTime()) / 3600000
-            );
-            return ageH > 0 ? `age=${ageH}h` : `age=fresh`;
-          })()
-        : "";
-      const evalHint = actionable
-        ? `${actionable.evaluated_at ? "already_evaluated" : "focusa_predict_evaluate prediction_id=" + String(actionable.prediction_id)}`
-        : "record_prediction_first";
+      const apiEvaluateHint = body.evaluate_hint || null;
+      const ageStr =
+        apiEvaluateHint?.age_hours !== undefined && apiEvaluateHint?.age_hours !== null
+          ? `age=${String(apiEvaluateHint.age_hours)}h`
+          : actionable?.created_at || actionable?.ts
+            ? (() => {
+                const ageH = Math.round(
+                  (Date.now() - new Date(actionable.created_at || actionable.ts).getTime()) / 3600000
+                );
+                return ageH > 0 ? `age=${ageH}h` : `age=fresh`;
+              })()
+            : "";
+      const evalHint = apiEvaluateHint?.command
+        ? `${String(apiEvaluateHint.action || "evaluate_hint")}: ${String(apiEvaluateHint.command)}`
+        : actionable
+          ? `${actionable.evaluated_at ? "already_evaluated" : "focusa_predict_evaluate prediction_id=" + String(actionable.prediction_id)}`
+          : "record_prediction_first";
       const actionLine = actionable
         ? ` next_id=${String(actionable.prediction_id)} confidence=${String(actionable.confidence ?? "unknown")} ${ageStr} scope=(project=${String(actionable.project_root || "unknown")} continuity=${String(actionable.continuity_id || "unknown")}) eval_hint="${evalHint}"`
-        : " next_id=none eval_hint=record_prediction_first";
+        : ` next_id=none eval_hint=${String(apiEvaluateHint?.action || "record_prediction_first")}`;
       const toolResult =
         body.details?.tool_result_v1 ||
         focusaToolResult({
@@ -13356,9 +13362,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
                 },
                 {
                   label: "evaluation_hint",
-                  value: actionable
-                    ? `focusa_predict_evaluate prediction_id=${String(actionable.prediction_id)}`
-                    : "record_prediction_first",
+                  value: evalHint,
                 },
               ],
               nextTools: ["focusa_predict_record", "focusa_predict_evaluate"],
@@ -13373,9 +13377,11 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
                 confidence: actionable.confidence ?? null,
                 project_root: actionable.project_root || null,
                 continuity_id: actionable.continuity_id || null,
-                evaluation_hint: `focusa_predict_evaluate prediction_id=${String(actionable.prediction_id)}`,
+                age: ageStr || null,
+                evaluation_hint: evalHint,
+                evaluate_hint: apiEvaluateHint || null,
               }
-            : null,
+            : apiEvaluateHint || null,
           tool_result_v1: toolResult,
           next_tools: toolResult.next_tools,
         },
