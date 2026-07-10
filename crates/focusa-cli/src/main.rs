@@ -119,6 +119,10 @@ enum Commands {
     /// bootstrappers that `exec focusa install --target=auto` after detecting platform.
     Install(commands::install::InstallArgs),
 
+    /// Read-only update inventory/status/check surfaces (Spec 128).
+    #[command(subcommand)]
+    Update(commands::update::UpdateCmd),
+
     /// Upgrade an existing Focusa install via the atomic installer path.
     Upgrade(commands::upgrade::UpgradeArgs),
 
@@ -543,6 +547,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Audit(args) => commands::audit::run(args, cli.json).await,
         Commands::InstallService(args) => commands::service::run(args, false).await,
         Commands::Install(args) => commands::install::run(args).await,
+        Commands::Update(cmd) => commands::update::run(cmd, cli.json).await,
         Commands::Upgrade(args) => commands::upgrade::run(cli.json, args).await,
         Commands::Uninstall(args) => commands::uninstall::run(args).await,
         Commands::Codesign(args) => commands::codesign::run(args).await,

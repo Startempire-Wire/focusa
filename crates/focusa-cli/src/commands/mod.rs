@@ -68,6 +68,7 @@ pub mod traverse;
 pub mod tui;
 pub mod turns;
 pub mod uninstall;
+pub mod update;
 pub mod upgrade;
 pub mod utility;
 pub mod walkthrough;

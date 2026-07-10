@@ -516,6 +516,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::reflection::router())
         .merge(routes::reflex::router())
         .merge(routes::release::router())
+        .merge(routes::update::router())
         .merge(routes::skills::router())
         .merge(routes::snapshots::router())
         .merge(routes::training::router())
