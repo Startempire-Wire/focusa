@@ -29,6 +29,12 @@ pub enum UpdateCmd {
     Plan(UpdateStatusArgs),
     /// Guarded update apply surface. Defaults to dry-run/blocked; no mutation until all gates are wired.
     Apply(UpdateApplyArgs),
+    /// Read-only update history/observability view.
+    History(UpdateHistoryArgs),
+    /// Read-only rollback plan. Does not restore binaries unless future gates are wired.
+    Rollback(UpdateRollbackArgs),
+    /// Read-only admin control preview: pin/skip/pause/resume/force-check/trusted-dev-force-latest.
+    Admin(UpdateAdminArgs),
     /// Show or set the local update policy. Does not apply updates.
     #[command(subcommand)]
     Policy(UpdatePolicyCmd),
@@ -56,6 +62,59 @@ pub struct UpdatePolicySetArgs {
 }
 
 #[derive(Args, Debug, Clone)]
+pub struct UpdateHistoryArgs {
+    /// Maximum history event lines to show.
+    #[arg(long, default_value_t = 20)]
+    pub limit: usize,
+}
+
+#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum RollbackPart {
+    Cli,
+    Tui,
+    Daemon,
+    All,
+}
+
+#[derive(Args, Debug)]
+pub struct UpdateRollbackArgs {
+    /// Part to rollback.
+    #[arg(long, value_enum, default_value_t = RollbackPart::All)]
+    pub part: RollbackPart,
+
+    /// Dry-run rollback plan. Default posture; performs no mutation.
+    #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
+    pub dry_run: bool,
+
+    /// Explicit operator consent for future rollback. Still blocked in this scaffold.
+    #[arg(long)]
+    pub yes: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct UpdateAdminArgs {
+    #[arg(long, value_name = "VERSION")]
+    pub pin_version: Option<String>,
+    #[arg(long)]
+    pub unpin: bool,
+    #[arg(long, value_name = "VERSION")]
+    pub skip_version: Option<String>,
+    #[arg(long)]
+    pub pause: bool,
+    #[arg(long)]
+    pub resume: bool,
+    #[arg(long)]
+    pub force_check: bool,
+    #[arg(long)]
+    pub trusted_dev_force_latest: bool,
+    #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
+    pub dry_run: bool,
+    #[arg(long)]
+    pub yes: bool,
+}
+
+#[derive(Args, Debug)]
 pub struct UpdateApplyArgs {
     #[command(flatten)]
     pub status: UpdateStatusArgs,
@@ -199,6 +258,66 @@ struct PartPlan {
 }
 
 #[derive(Debug, Serialize)]
+struct UpdateHistoryEnvelope {
+    schema: &'static str,
+    status: &'static str,
+    read_only: bool,
+    mutations_performed: bool,
+    history_path: String,
+    journal_path: String,
+    retention: RetentionPolicy,
+    observability: UpdateObservability,
+    events: Vec<String>,
+    next_tools: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
+struct RetentionPolicy {
+    keep_last_successful_bundles: u8,
+    keep_days: u16,
+    prune_requires_admin_confirmation: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct UpdateObservability {
+    counters: Vec<&'static str>,
+    events: Vec<&'static str>,
+    log_paths: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct UpdateRollbackEnvelope {
+    schema: &'static str,
+    status: &'static str,
+    read_only: bool,
+    mutations_performed: bool,
+    rollback_executed: bool,
+    part: RollbackPart,
+    dry_run: bool,
+    consent_yes: bool,
+    blocked_reason: Vec<&'static str>,
+    restore_order: Vec<&'static str>,
+    proof_required: Vec<&'static str>,
+    data_safety: DataSafetyPlan,
+    recovery_hint: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct UpdateAdminEnvelope {
+    schema: &'static str,
+    status: &'static str,
+    read_only: bool,
+    mutations_performed: bool,
+    dry_run: bool,
+    consent_yes: bool,
+    requested_controls: Vec<String>,
+    policy_patch_preview: serde_json::Value,
+    force_check_preview: bool,
+    trusted_dev_force_latest_allowed: bool,
+    blocked_reason: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
 struct UpdateApplyEnvelope {
     schema: &'static str,
     status: &'static str,
@@ -323,6 +442,30 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
                 println!("{}", serde_json::to_string_pretty(&apply)?);
             } else {
                 print_apply_human(&apply);
+            }
+        }
+        UpdateCmd::History(args) => {
+            let history = build_history_envelope(args.limit);
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&history)?);
+            } else {
+                print_history_human(&history);
+            }
+        }
+        UpdateCmd::Rollback(args) => {
+            let rollback = build_rollback_envelope(args);
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&rollback)?);
+            } else {
+                print_rollback_human(&rollback);
+            }
+        }
+        UpdateCmd::Admin(args) => {
+            let admin = build_admin_envelope(args);
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&admin)?);
+            } else {
+                print_admin_human(&admin);
             }
         }
         UpdateCmd::Policy(cmd) => run_policy(cmd, json_mode)?,
@@ -459,6 +602,170 @@ fn build_update_plan(inventory: UpdateInventoryEnvelope) -> UpdatePlanEnvelope {
             "Keep using focusa update status/check/plan as read-only surfaces.".into(),
         ],
     }
+}
+
+fn build_history_envelope(limit: usize) -> UpdateHistoryEnvelope {
+    let base = update_state_root();
+    let history_path = base.join("update-history.jsonl");
+    let journal_path = base.join("update-journal.json");
+    let events = std::fs::read_to_string(&history_path)
+        .ok()
+        .map(|raw| raw.lines().rev().take(limit).map(str::to_string).collect())
+        .unwrap_or_default();
+    UpdateHistoryEnvelope {
+        schema: "focusa.update_history.v1",
+        status: "completed",
+        read_only: true,
+        mutations_performed: false,
+        history_path: history_path.display().to_string(),
+        journal_path: journal_path.display().to_string(),
+        retention: RetentionPolicy {
+            keep_last_successful_bundles: 3,
+            keep_days: 30,
+            prune_requires_admin_confirmation: true,
+        },
+        observability: UpdateObservability {
+            counters: vec![
+                "update_check_total",
+                "update_plan_total",
+                "update_apply_blocked_total",
+                "update_apply_success_total",
+                "update_rollback_total",
+            ],
+            events: vec![
+                "check_started",
+                "plan_created",
+                "apply_blocked",
+                "stage_verified",
+                "promote_started",
+                "daemon_restart_prompted",
+                "rollback_started",
+                "rollback_completed",
+            ],
+            log_paths: vec![
+                base.join("update.log").display().to_string(),
+                history_path.display().to_string(),
+                journal_path.display().to_string(),
+            ],
+        },
+        events,
+        next_tools: vec![
+            "focusa update plan --json",
+            "focusa update rollback --dry-run --json",
+        ],
+    }
+}
+
+fn build_rollback_envelope(args: UpdateRollbackArgs) -> UpdateRollbackEnvelope {
+    UpdateRollbackEnvelope {
+        schema: "focusa.update_rollback.v1",
+        status: "blocked_read_only",
+        read_only: true,
+        mutations_performed: false,
+        rollback_executed: false,
+        part: args.part,
+        dry_run: args.dry_run,
+        consent_yes: args.yes,
+        blocked_reason: vec![
+            "rollback_executor_not_enabled_in_spec128_08_scaffold",
+            "snapshot_integrity_verification_required",
+            "admin_confirmation_required",
+        ],
+        restore_order: match args.part {
+            RollbackPart::Daemon => vec!["daemon", "restart_daemon_after_health_contract_check"],
+            RollbackPart::All => vec!["daemon", "tui", "cli", "health_contract_check"],
+            RollbackPart::Cli => vec!["cli"],
+            RollbackPart::Tui => vec!["tui"],
+        },
+        proof_required: vec![
+            "snapshot_sha256_verified",
+            "same_filesystem_atomic_rename_available",
+            "post_rollback_version_matches_snapshot",
+            "no_data_env_license_overwrite",
+            "history_event_written",
+        ],
+        data_safety: DataSafetyPlan {
+            overwrite_data: false,
+            overwrite_env: false,
+            overwrite_license: false,
+            preserve: build_safety_plan().preserves,
+        },
+        recovery_hint: "No rollback was executed. Inspect update history/journal and rerun with future rollback gates when implemented.",
+    }
+}
+
+fn build_admin_envelope(args: UpdateAdminArgs) -> UpdateAdminEnvelope {
+    let mut requested = Vec::new();
+    if let Some(version) = &args.pin_version {
+        requested.push(format!("pin_version:{version}"));
+    }
+    if args.unpin {
+        requested.push("unpin".into());
+    }
+    if let Some(version) = &args.skip_version {
+        requested.push(format!("skip_version:{version}"));
+    }
+    if args.pause {
+        requested.push("pause".into());
+    }
+    if args.resume {
+        requested.push("resume".into());
+    }
+    if args.force_check {
+        requested.push("force_check".into());
+    }
+    if args.trusted_dev_force_latest {
+        requested.push("trusted_dev_force_latest".into());
+    }
+    let dev_mode = std::env::var("FOCUSA_DEV_MODE")
+        .map(|v| matches!(v.as_str(), "1" | "true" | "yes"))
+        .unwrap_or(false);
+    UpdateAdminEnvelope {
+        schema: "focusa.update_admin_control.v1",
+        status: "preview_read_only",
+        read_only: true,
+        mutations_performed: false,
+        dry_run: args.dry_run,
+        consent_yes: args.yes,
+        requested_controls: requested,
+        policy_patch_preview: json!({
+            "pin_version": args.pin_version,
+            "unpin": args.unpin,
+            "skip_version": args.skip_version,
+            "pause": args.pause,
+            "resume": args.resume,
+            "trusted_dev_force_latest": args.trusted_dev_force_latest,
+        }),
+        force_check_preview: args.force_check,
+        trusted_dev_force_latest_allowed: args.trusted_dev_force_latest && dev_mode,
+        blocked_reason: vec![
+            "admin_control_write_executor_not_enabled_in_spec128_08_scaffold",
+            "dry_run_preview_only",
+        ],
+    }
+}
+
+fn print_history_human(history: &UpdateHistoryEnvelope) {
+    println!("Focusa update history: {}", history.status);
+    println!("history: {}", history.history_path);
+    println!("journal: {}", history.journal_path);
+    println!("events: {}", history.events.len());
+}
+
+fn print_rollback_human(rollback: &UpdateRollbackEnvelope) {
+    println!("Focusa update rollback: {}", rollback.status);
+    println!(
+        "part: {:?} dry_run: {} executed: {}",
+        rollback.part, rollback.dry_run, rollback.rollback_executed
+    );
+    println!("restore_order: {}", rollback.restore_order.join(" -> "));
+    println!("blocked_reason: {}", rollback.blocked_reason.join(", "));
+}
+
+fn print_admin_human(admin: &UpdateAdminEnvelope) {
+    println!("Focusa update admin: {}", admin.status);
+    println!("requested: {}", admin.requested_controls.join(", "));
+    println!("mutations_performed: {}", admin.mutations_performed);
 }
 
 fn build_apply_envelope(
