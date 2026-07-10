@@ -1537,6 +1537,17 @@ impl SqlitePersistence {
         Ok(out)
     }
 
+    /// Delete expired, incomplete connect-session rooms during daemon startup.
+    pub fn cleanup_expired_pairing_rooms(&self) -> anyhow::Result<usize> {
+        let conn = self.conn.lock().unwrap_or_else(|p| p.into_inner());
+        let now = chrono::Utc::now().to_rfc3339();
+        let deleted = conn.execute(
+            "DELETE FROM connect_sessions WHERE expires_at <= ?1 AND status != 'completed'",
+            params![now],
+        )?;
+        Ok(deleted)
+    }
+
     /// V2: Mark a connect_session as completed in the SQLite ledger. Used by
     /// /v1/connect/room/approve after the token is minted, so the durable
     /// record reflects the transition (and so the room is no longer

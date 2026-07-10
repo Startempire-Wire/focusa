@@ -94,13 +94,19 @@ pub async fn start() -> anyhow::Result<bool> {
     anyhow::bail!("Daemon started but health check failed")
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StopOutcome {
+    Stopped,
+    AlreadyStopped,
+}
+
 /// Stop the Focusa daemon.
-pub async fn stop() -> anyhow::Result<()> {
+pub async fn stop() -> anyhow::Result<StopOutcome> {
     let client = ApiClient::new();
 
     // Check if running.
     if client.get("/v1/health").await.is_err() {
-        anyhow::bail!("Focusa daemon is not running");
+        return Ok(StopOutcome::AlreadyStopped);
     }
 
     // Send shutdown request (if endpoint exists).
@@ -114,15 +120,11 @@ pub async fn stop() -> anyhow::Result<()> {
         kill_daemon_processes();
     }
 
-    // Wait for daemon to stop (max 5s).
-    for _ in 0..50 {
-        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-        if client.get("/v1/health").await.is_err() {
-            return Ok(());
-        }
+    if wait_until_stopped(&client).await {
+        return Ok(StopOutcome::Stopped);
     }
 
-    anyhow::bail!("Daemon did not stop within timeout")
+    anyhow::bail!("Focusa daemon stop failed: health endpoint still responds after timeout")
 }
 
 /// Find the daemon binary.

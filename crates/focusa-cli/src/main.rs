@@ -505,9 +505,25 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
         Commands::Stop => {
-            commands::daemon::stop().await?;
-            if !cli.json {
+            let outcome = commands::daemon::stop().await?;
+            let status = match outcome {
+                commands::daemon::StopOutcome::Stopped => "stopped",
+                commands::daemon::StopOutcome::AlreadyStopped => "already_stopped",
+            };
+            if cli.json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "status": status,
+                        "ok": true,
+                        "command": "focusa stop",
+                        "next_step_hint": if status == "stopped" { "Run focusa start when ready" } else { "Daemon is already stopped; run focusa start when ready" }
+                    }))?
+                );
+            } else if outcome == commands::daemon::StopOutcome::Stopped {
                 println!("Focusa daemon stopped");
+            } else {
+                println!("Focusa daemon already stopped (no-op)");
             }
             Ok(())
         }

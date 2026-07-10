@@ -225,6 +225,19 @@ fn path_string(path: PathBuf) -> String {
     path.to_string_lossy().to_string()
 }
 
+fn daemon_exe_check() -> Value {
+    let path = daemon_exe_path();
+    let exists = path.exists();
+    json!({
+        "name": "daemon exe path",
+        "status": if exists { "completed" } else { "degraded" },
+        "path": path_string(path),
+        "what_failed": if exists { Value::Null } else { json!("focusa-daemon executable was not found at the resolved helper path") },
+        "safe_recovery": if exists { Value::Null } else { json!("Run focusa start, install focusa-daemon, or set FOCUSA_DAEMON_BIN to an explicit daemon binary") },
+        "why": "Doctor host readiness should not be blocked by a missing dev/release helper path when daemon/API checks are reported separately."
+    })
+}
+
 fn bin_check(name: &str, bin: &str) -> Value {
     let exists = std::env::var_os("PATH")
         .map(|paths| std::env::split_paths(&paths).any(|dir| dir.join(bin).exists()))
@@ -356,7 +369,7 @@ pub async fn run(json_mode: bool, args: DoctorArgs) -> anyhow::Result<()> {
         .await,
     );
 
-    checks.push(fs_check("daemon exe path", &path_string(daemon_exe_path())));
+    checks.push(daemon_exe_check());
 
     // Transcript gap fix: only run project-shape + repo-shape checks when
     // --scope=project or --scope=repo is requested. Default --scope=host

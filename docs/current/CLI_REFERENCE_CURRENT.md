@@ -181,6 +181,13 @@ Phone Bridge JSON includes `environment_contract`, `runtime_inventory`, and `act
 
 Lifecycle grouping is documented as planned: `focusa lifecycle start|stop|install|uninstall|upgrade|install-service|codesign|doctor`.
 
+## Launch-hardening notes
+
+- `focusa stop` distinguishes `stopped`, `already_stopped`, and failed timeout states; `--json` returns a structured status envelope.
+- `/v1/telemetry/snapshot` is the route-parity endpoint for TUI/menubar runtime snapshots.
+- Daemon startup removes expired, incomplete pairing rooms before rehydrating active pairing state from SQLite.
+- `FOCUSA_NO_DECAY_TICK=1` is supported as a runtime escape hatch to disable the memory decay tick; prefer ResourceMode/LowMem controls for normal pressure management.
+
 ## Common examples
 
 ```bash

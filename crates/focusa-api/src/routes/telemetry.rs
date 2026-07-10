@@ -188,6 +188,26 @@ async fn memory_status(State(state): State<Arc<AppState>>) -> Json<Value> {
     Json(memory_payload(&state).await)
 }
 
+/// GET /v1/telemetry/snapshot — route-parity snapshot for TUI/menubar consumers.
+async fn telemetry_snapshot(State(state): State<Arc<AppState>>) -> Json<Value> {
+    let memory = memory_payload(&state).await;
+    let focusa = state.focusa.read().await;
+    let payload = json!({
+        "schema": "focusa.telemetry_snapshot.v1",
+        "status": "completed",
+        "memory": memory,
+        "events_total": focusa.telemetry.total_events,
+        "trace_event_count": focusa.telemetry.trace_events.len(),
+        "cost": focusa.telemetry.cost,
+        "token_budget": focusa.telemetry.token_budget,
+        "cache_metadata": focusa.telemetry.cache_metadata,
+        "workpoint_resume_event_count": focusa.workpoint.resume_events.len(),
+    });
+    drop(focusa);
+    record_json_response_size("/v1/telemetry/snapshot", &payload);
+    Json(payload)
+}
+
 fn telemetry_debug_disabled() -> (StatusCode, Json<Value>) {
     (
         StatusCode::NOT_FOUND,
@@ -575,6 +595,7 @@ async fn record_tool_usage(
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/telemetry/memory", get(memory_status))
+        .route("/v1/telemetry/snapshot", get(telemetry_snapshot))
         .route(
             "/v1/debug/set-pressure-threshold",
             get(debug_set_pressure_threshold),

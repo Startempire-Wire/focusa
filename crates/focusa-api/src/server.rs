@@ -339,6 +339,16 @@ pub async fn rehydrate_pairing_state_from_ledger(
 ) -> anyhow::Result<(usize, usize)> {
     use crate::routes::device_pairing::shared_state;
     let persistence = &state.persistence;
+    let expired_pairing_rooms_cleaned = persistence.cleanup_expired_pairing_rooms().unwrap_or_else(|err| {
+        tracing::warn!(error = %err, "V2: expired pairing room cleanup failed during startup rehydrate");
+        0
+    });
+    if expired_pairing_rooms_cleaned > 0 {
+        tracing::info!(
+            expired_pairing_rooms_cleaned = expired_pairing_rooms_cleaned,
+            "V2: expired pairing rooms cleaned during startup rehydrate"
+        );
+    }
     let shared = shared_state();
     let mut s = shared.write().await;
     // Load all non-expired connect_sessions.
