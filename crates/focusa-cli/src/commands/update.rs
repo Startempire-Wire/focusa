@@ -35,6 +35,10 @@ pub enum UpdateCmd {
     Rollback(UpdateRollbackArgs),
     /// Read-only admin control preview: pin/skip/pause/resume/force-check/trusted-dev-force-latest.
     Admin(UpdateAdminArgs),
+    /// Read-only scheduler/background updater status and plan.
+    Scheduler(UpdateSchedulerArgs),
+    /// Read-only stale/update notification payload for CLI/API/Pi/TUI/menubar.
+    Notifications(UpdateStatusArgs),
     /// Show or set the local update policy. Does not apply updates.
     #[command(subcommand)]
     Policy(UpdatePolicyCmd),
@@ -62,6 +66,13 @@ pub struct UpdatePolicySetArgs {
 }
 
 #[derive(Args, Debug, Clone)]
+pub struct UpdateSchedulerArgs {
+    /// Show scheduler plan for this channel.
+    #[arg(long, default_value = "dev")]
+    pub channel: String,
+}
+
+#[derive(Args, Debug)]
 pub struct UpdateHistoryArgs {
     /// Maximum history event lines to show.
     #[arg(long, default_value_t = 20)]
@@ -255,6 +266,90 @@ struct PartPlan {
     reason: String,
     restart_required: bool,
     order: u8,
+}
+
+#[derive(Debug, Serialize)]
+struct UpdateSchedulerEnvelope {
+    schema: &'static str,
+    status: &'static str,
+    read_only: bool,
+    mutations_performed: bool,
+    scheduler_installed: bool,
+    background_worker_started: bool,
+    channel: String,
+    policy: UpdatePolicySummary,
+    startup_check: SchedulerStartupCheck,
+    interval: SchedulerInterval,
+    offline: SchedulerOfflineRules,
+    maintenance: SchedulerMaintenanceWindow,
+    automatic_apply: SchedulerAutomaticApply,
+    notifications: NotificationRoutes,
+    next_actions: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
+struct SchedulerStartupCheck {
+    enabled: bool,
+    delay_seconds: u64,
+    reason: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct SchedulerInterval {
+    base_seconds: u64,
+    jitter_percent: u8,
+    backoff: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
+struct SchedulerOfflineRules {
+    skip_when_offline: bool,
+    retry_backoff: Vec<&'static str>,
+    max_silent_failures_before_notice: u8,
+}
+
+#[derive(Debug, Serialize)]
+struct SchedulerMaintenanceWindow {
+    respected: bool,
+    default_window: &'static str,
+    user_override_path: String,
+}
+
+#[derive(Debug, Serialize)]
+struct SchedulerAutomaticApply {
+    allowed: bool,
+    reason: &'static str,
+    requires: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
+struct NotificationRoutes {
+    cli: bool,
+    api: bool,
+    pi_doctor: bool,
+    tui: &'static str,
+    menubar: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct UpdateNotificationsEnvelope {
+    schema: &'static str,
+    status: &'static str,
+    read_only: bool,
+    mutations_performed: bool,
+    stale_parts: Vec<String>,
+    severity: &'static str,
+    surfaces: NotificationRoutes,
+    messages: Vec<NotificationMessage>,
+    suppress_if: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
+struct NotificationMessage {
+    surface: &'static str,
+    title: &'static str,
+    body: String,
+    action: &'static str,
 }
 
 #[derive(Debug, Serialize)]
@@ -468,6 +563,23 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
                 print_admin_human(&admin);
             }
         }
+        UpdateCmd::Scheduler(args) => {
+            let scheduler = build_scheduler_envelope(args.channel);
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&scheduler)?);
+            } else {
+                print_scheduler_human(&scheduler);
+            }
+        }
+        UpdateCmd::Notifications(args) => {
+            let inventory = build_inventory("notifications", args).await?;
+            let notifications = build_notifications_envelope(inventory);
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&notifications)?);
+            } else {
+                print_notifications_human(&notifications);
+            }
+        }
         UpdateCmd::Policy(cmd) => run_policy(cmd, json_mode)?,
     }
     Ok(())
@@ -601,6 +713,140 @@ fn build_update_plan(inventory: UpdateInventoryEnvelope) -> UpdatePlanEnvelope {
             "Implement Spec128 rollback/history before update apply.".into(),
             "Keep using focusa update status/check/plan as read-only surfaces.".into(),
         ],
+    }
+}
+
+fn build_scheduler_envelope(channel: String) -> UpdateSchedulerEnvelope {
+    let policy = update_policy_summary();
+    UpdateSchedulerEnvelope {
+        schema: "focusa.update_scheduler.v1",
+        status: "planned_read_only",
+        read_only: true,
+        mutations_performed: false,
+        scheduler_installed: false,
+        background_worker_started: false,
+        channel,
+        startup_check: SchedulerStartupCheck {
+            enabled: true,
+            delay_seconds: 45,
+            reason: "avoid slowing interactive daemon startup",
+        },
+        interval: SchedulerInterval {
+            base_seconds: 21_600,
+            jitter_percent: 20,
+            backoff: vec!["5m", "15m", "1h", "6h"],
+        },
+        offline: SchedulerOfflineRules {
+            skip_when_offline: true,
+            retry_backoff: vec!["network_error", "dns_error", "release_host_timeout"],
+            max_silent_failures_before_notice: 3,
+        },
+        maintenance: SchedulerMaintenanceWindow {
+            respected: true,
+            default_window: "02:00-05:00 local time",
+            user_override_path: update_state_root()
+                .join("maintenance-window.json")
+                .display()
+                .to_string(),
+        },
+        automatic_apply: SchedulerAutomaticApply {
+            allowed: false,
+            reason: "auto apply remains disabled until manifest/signature/lock/rollback/apply gates are implemented",
+            requires: vec![
+                "trusted_release_manifest",
+                "update_lock_acquired",
+                "rollback_snapshot_ready",
+                "policy_allows_automatic_apply",
+                "daemon_restart_policy_approved",
+            ],
+        },
+        notifications: notification_routes(),
+        next_actions: vec![
+            "wire daemon startup check after runtime tests",
+            "wire interval worker after scheduler proof",
+            "keep apply disabled until Spec128 gates pass",
+        ],
+        policy,
+    }
+}
+
+fn build_notifications_envelope(inventory: UpdateInventoryEnvelope) -> UpdateNotificationsEnvelope {
+    let stale_parts = inventory.stale_parts;
+    let severity = if stale_parts.is_empty() {
+        "none"
+    } else {
+        "warning"
+    };
+    let body = if stale_parts.is_empty() {
+        "Focusa surfaces are current or unknown; no update warning is required.".to_string()
+    } else {
+        format!(
+            "Focusa update available for: {}. Run focusa update plan --json before applying.",
+            stale_parts.join(", ")
+        )
+    };
+    UpdateNotificationsEnvelope {
+        schema: "focusa.update_notifications.v1",
+        status: "completed",
+        read_only: true,
+        mutations_performed: false,
+        stale_parts,
+        severity,
+        surfaces: notification_routes(),
+        messages: vec![
+            NotificationMessage {
+                surface: "cli",
+                title: "Focusa update status",
+                body: body.clone(),
+                action: "focusa update plan",
+            },
+            NotificationMessage {
+                surface: "api",
+                title: "Focusa update status",
+                body: body.clone(),
+                action: "POST /v1/update/plan",
+            },
+            NotificationMessage {
+                surface: "pi_doctor",
+                title: "Focusa update status",
+                body,
+                action: "focusa update status --json",
+            },
+        ],
+        suppress_if: vec![
+            "version_pinned",
+            "version_skipped",
+            "updates_paused",
+            "offline_without_prior_success",
+        ],
+    }
+}
+
+fn notification_routes() -> NotificationRoutes {
+    NotificationRoutes {
+        cli: true,
+        api: true,
+        pi_doctor: true,
+        tui: "planned_when_tui_update_banner_available",
+        menubar: "planned_when_menubar_update_badge_available",
+    }
+}
+
+fn print_scheduler_human(scheduler: &UpdateSchedulerEnvelope) {
+    println!("Focusa update scheduler: {}", scheduler.status);
+    println!("installed: {}", scheduler.scheduler_installed);
+    println!("worker_started: {}", scheduler.background_worker_started);
+    println!(
+        "interval: {}s ±{}%",
+        scheduler.interval.base_seconds, scheduler.interval.jitter_percent
+    );
+    println!("auto_apply_allowed: {}", scheduler.automatic_apply.allowed);
+}
+
+fn print_notifications_human(notifications: &UpdateNotificationsEnvelope) {
+    println!("Focusa update notifications: {}", notifications.severity);
+    for message in &notifications.messages {
+        println!("{}: {} — {}", message.surface, message.title, message.body);
     }
 }
 

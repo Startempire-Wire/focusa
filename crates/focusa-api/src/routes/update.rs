@@ -29,6 +29,8 @@ pub fn router() -> Router<Arc<crate::server::AppState>> {
         .route("/v1/update/history", get(update_history))
         .route("/v1/update/rollback", post(update_rollback))
         .route("/v1/update/admin", post(update_admin))
+        .route("/v1/update/scheduler", get(update_scheduler))
+        .route("/v1/update/notifications", post(update_notifications))
         .route(
             "/v1/update/policy",
             get(update_policy).post(update_policy_set),
@@ -149,6 +151,17 @@ async fn update_rollback(Json(body): Json<UpdateRollbackBody>) -> Json<Value> {
 
 async fn update_admin(Json(body): Json<UpdateAdminBody>) -> Json<Value> {
     Json(build_admin_envelope(body))
+}
+
+async fn update_scheduler(Query(query): Query<UpdateQuery>) -> Json<Value> {
+    Json(build_scheduler_envelope(
+        query.channel.unwrap_or_else(|| "dev".into()),
+    ))
+}
+
+async fn update_notifications(Json(body): Json<UpdateQuery>) -> Json<Value> {
+    let inventory = build_update_inventory("notifications", body).await;
+    Json(build_notifications_envelope(inventory))
 }
 
 async fn update_policy() -> Json<Value> {
@@ -344,6 +357,80 @@ fn part_plan(part: &Value, target_version: &str, order: &mut u8) -> Value {
     });
     *order = order.saturating_add(1);
     value
+}
+
+fn build_scheduler_envelope(channel: String) -> Value {
+    json!({
+        "schema": "focusa.update_scheduler.v1",
+        "status": "planned_read_only",
+        "read_only": true,
+        "mutations_performed": false,
+        "scheduler_installed": false,
+        "background_worker_started": false,
+        "channel": channel,
+        "policy": policy_summary_json(),
+        "startup_check": {"enabled": true, "delay_seconds": 45, "reason": "avoid slowing interactive daemon startup"},
+        "interval": {"base_seconds": 21600, "jitter_percent": 20, "backoff": ["5m", "15m", "1h", "6h"]},
+        "offline": {"skip_when_offline": true, "retry_backoff": ["network_error", "dns_error", "release_host_timeout"], "max_silent_failures_before_notice": 3},
+        "maintenance": {"respected": true, "default_window": "02:00-05:00 local time", "user_override_path": update_state_root().join("maintenance-window.json").display().to_string()},
+        "automatic_apply": {
+            "allowed": false,
+            "reason": "auto apply remains disabled until manifest/signature/lock/rollback/apply gates are implemented",
+            "requires": ["trusted_release_manifest", "update_lock_acquired", "rollback_snapshot_ready", "policy_allows_automatic_apply", "daemon_restart_policy_approved"]
+        },
+        "notifications": notification_routes_json(),
+        "next_actions": ["wire daemon startup check after runtime tests", "wire interval worker after scheduler proof", "keep apply disabled until Spec128 gates pass"]
+    })
+}
+
+fn build_notifications_envelope(inventory: Value) -> Value {
+    let stale_parts = inventory
+        .get("stale_parts")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let stale_names = stale_parts
+        .iter()
+        .filter_map(Value::as_str)
+        .collect::<Vec<_>>();
+    let severity = if stale_names.is_empty() {
+        "none"
+    } else {
+        "warning"
+    };
+    let body = if stale_names.is_empty() {
+        "Focusa surfaces are current or unknown; no update warning is required.".to_string()
+    } else {
+        format!(
+            "Focusa update available for: {}. Run focusa update plan --json before applying.",
+            stale_names.join(", ")
+        )
+    };
+    json!({
+        "schema": "focusa.update_notifications.v1",
+        "status": "completed",
+        "read_only": true,
+        "mutations_performed": false,
+        "stale_parts": stale_parts,
+        "severity": severity,
+        "surfaces": notification_routes_json(),
+        "messages": [
+            {"surface": "cli", "title": "Focusa update status", "body": body, "action": "focusa update plan"},
+            {"surface": "api", "title": "Focusa update status", "body": body, "action": "POST /v1/update/plan"},
+            {"surface": "pi_doctor", "title": "Focusa update status", "body": body, "action": "focusa update status --json"}
+        ],
+        "suppress_if": ["version_pinned", "version_skipped", "updates_paused", "offline_without_prior_success"]
+    })
+}
+
+fn notification_routes_json() -> Value {
+    json!({
+        "cli": true,
+        "api": true,
+        "pi_doctor": true,
+        "tui": "planned_when_tui_update_banner_available",
+        "menubar": "planned_when_menubar_update_badge_available"
+    })
 }
 
 fn build_history_envelope(limit: usize) -> Value {
