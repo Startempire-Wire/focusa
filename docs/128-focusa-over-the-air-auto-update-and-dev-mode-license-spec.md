@@ -1,8 +1,8 @@
-# Spec 125 — Focusa Over-the-Air Auto-Update and Dev Mode License
+# Spec 128 — Focusa Over-the-Air Auto-Update, Installer Intelligence, and Dev Mode License
 
 ## Status
 
-Draft — operator-directed after `v0.9.80-dev` release showed server daemon was current but local CLI/TUI were stale.
+Draft v2 — expanded with OTA best-practice, installer intelligence, and customer-friendly auto-update requirements after `v0.9.80-dev` showed daemon current but local CLI/TUI stale.
 
 ## Problem
 
@@ -16,6 +16,10 @@ A Focusa host can have multiple installed parts at different versions. The daemo
 4. Let `dev_mode` installs track the cutting edge by default.
 5. Update every Focusa part from tagged releases that passed required CI/proof gates.
 6. Preserve rollback, checksums, Context Authority, local data ownership, and license boundaries.
+7. Detect the host system and dependency gaps before install or update.
+8. Offer to install missing system dependencies with a clear, reversible prompt.
+9. Make the installer feel polished and beginner-friendly, including a short terminal intro animation when the terminal supports it.
+10. Eliminate the customer-hostile stale-surface problem where daemon, CLI, TUI, Pi extension, installer, or menubar are on different effective releases.
 
 ## Non-goals
 
@@ -55,7 +59,7 @@ A Focusa host can have multiple installed parts at different versions. The daemo
 
 ### `dev_mode` clarification
 
-Current installer code treats registry `status=dev_mode` as a test fixture. Spec 125 changes the product model:
+Current installer code treats registry `status=dev_mode` as a test fixture. Spec 128 changes the product model:
 
 - `dev_mode` becomes a real first-party developer license level.
 - Test fixtures must use a different internal status such as `fixture_dev_key` or `test_mode`.
@@ -219,6 +223,276 @@ The release workflow should publish a machine-readable manifest:
 - Public installer updates require separate release proof and static installer tests.
 - Auto-update must not overwrite installer scripts without release approval.
 
+## Release eligibility and channel policy
+
+`latest approved release` must be mechanically defined. The updater must not infer eligibility from tag recency alone.
+
+| Channel | Intended users | Eligible tags | Default policy | Notes |
+| --- | --- | --- | --- | --- |
+| `stable` | paying customers | non-prerelease SemVer tags with required CI/proof/release/deploy green | prompt or scheduled auto-update when licensed | safest default |
+| `preview` | early adopters | prerelease tags marked preview with required gates green | prompt unless policy enables scheduled | customer-visible but not default |
+| `dev` | Focusa developers | `*-dev` tags or release-candidate dev bundles with required gates green | automatic for `dev_mode` | operator wants always latest |
+| `nightly` | internal only | signed nightly manifest from trusted builder | automatic only for explicit `dev_mode` opt-in | may be disabled until infra exists |
+
+A release is ineligible when any condition is true:
+
+- release or manifest is yanked, revoked, superseded-with-blocker, or missing;
+- required CI, release, deploy, smoke, or installer proof failed;
+- required assets, manifest, checksum, signature, or provenance are missing;
+- manifest schema is unsupported;
+- license does not include required update features;
+- target platform is not supported;
+- compatibility gate says current data/API/tool contracts cannot safely update;
+- release is older than the currently installed pinned version unless rollback was explicitly requested.
+
+## Cryptographic trust and supply-chain provenance
+
+Checksums alone are not enough. Every release bundle must have a signed manifest and per-asset digest.
+
+Required trust fields:
+
+- `manifest_schema_version`;
+- `tag`, `commit`, `channel`, `published_at`;
+- per-asset `name`, `platform`, `size_bytes`, `sha256`, `signature`;
+- signing algorithm, currently `ed25519` unless superseded;
+- signing key id and trusted public key fingerprint;
+- key-rotation metadata: `valid_from`, `valid_until`, `revoked_at`;
+- builder identity, GitHub workflow/run URL, artifact digest, and optional SLSA-style attestation;
+- yanked/revoked release status.
+
+Trust rules:
+
+- updater ships or fetches trusted Focusa public keys from a pinned trust root;
+- revoked keys and yanked releases are rejected even if checksums match;
+- unknown signing keys require explicit operator approval and are never accepted silently;
+- asset URLs must use HTTPS, except explicit localhost/dev fixture mode;
+- archives must reject path traversal, symlinks outside staging, executable surprises, and oversized assets;
+- manifests are data only: no shell, eval, or remote commands from manifest content.
+
+## Prompting, consent, and background update UX
+
+Update policy modes:
+
+| Mode | Behavior | Restart behavior |
+| --- | --- | --- |
+| `notify` | check and show update only | never restart |
+| `prompt` | ask before download/apply | ask again before daemon restart |
+| `scheduled` | apply inside maintenance window | restart inside window if allowed |
+| `automatic` | apply in background when safe | restart only when policy/license allows |
+| `manual` | no automatic checks/apply | operator runs commands |
+
+Prompt requirements:
+
+- explain current version, target version, channel, license level, affected parts, daemon restart impact, and rollback availability;
+- use beginner-friendly language: "Your data, projects, license, Workpoints, evidence, and .env files will not be overwritten";
+- offer `Update now`, `Later`, `Skip this version`, `Disable auto-update`, and `Show details`;
+- warn loudly when daemon restart may interrupt active sessions;
+- `dev_mode` on the operator's development host defaults to `automatic` and latest eligible dev build;
+- evaluation installs default to `notify`;
+- paid non-dev installs default to `prompt` or `scheduled` only after license features allow unattended update.
+
+## Locking, atomic install, and interrupted update recovery
+
+The updater must use a single host-level update lock, for example `/usr/local/lib/focusa/updates/update.lock`.
+
+Locking and recovery rules:
+
+- only one CLI, daemon, scheduler, installer, or cron update can run at a time;
+- lock includes PID, started_at, target tag, staged path, and current phase;
+- stale lock recovery must verify whether a staged or partial update exists;
+- interrupted updates resume from a safe verified phase or roll back;
+- no half-written binary may remain executable.
+
+Atomic replacement rules:
+
+1. download into staging;
+2. verify size, checksum, signature, manifest, compatibility, and license;
+3. snapshot existing binary, permissions, owner/group, xattrs, capabilities, and service metadata;
+4. write replacement to a temp file in the destination filesystem;
+5. fsync file and directory where supported;
+6. atomically rename/swap;
+7. preserve executable mode, ownership, SELinux context/xattrs where applicable;
+8. verify installed binary hash/version;
+9. restart/reload only after all affected local parts are consistent;
+10. rollback on health, version, permission, or compatibility proof failure.
+
+Rollback retention:
+
+- keep at least three successful rollback snapshots by default;
+- allow policy-controlled retention count/age;
+- support part-level rollback and full-bundle rollback;
+- record rollback proof and reason in update history.
+
+## Compatibility gates and contract alignment
+
+The manifest must declare compatibility boundaries:
+
+```json
+{
+  "compatibility": {
+    "min_installed_version": "0.9.74-dev",
+    "max_skip_minor_versions": 3,
+    "daemon_api_contract": "focusa.api.v1",
+    "pi_tool_contract": "focusa.pi-tools.v1",
+    "data_schema": "focusa.data.v1",
+    "requires_migration": false,
+    "downgrade_supported": false,
+    "requires_restart": ["daemon"],
+    "incompatible_if_features_missing": ["packaged_installer"]
+  }
+}
+```
+
+Rules:
+
+- incompatible daemon/CLI/Pi tool contracts block automatic apply;
+- required migrations must have dry-run, backup, rollback, and proof;
+- downgrade is blocked unless the manifest explicitly supports it;
+- Pi sessions must be notified when daemon tool contracts changed;
+- menubar/TUI must surface "update required" when API contract is too old/new.
+
+## Scheduler, backoff, and offline behavior
+
+Auto-check policy must define:
+
+- check interval;
+- jitter to avoid thundering herd;
+- exponential backoff after failures;
+- run-on-daemon-startup behavior;
+- maintenance window;
+- metered-network behavior when detectable;
+- offline behavior and cached license grace period;
+- maximum consecutive failed update attempts before disabling automatic apply and prompting.
+
+Recommended defaults:
+
+- `dev_mode`: check on daemon startup and every 30 minutes with jitter; automatic apply latest eligible dev build;
+- `stable` paid: check daily with jitter; prompt or scheduled apply;
+- `evaluation`: check daily; notify only;
+- offline: use cached license/update metadata for status, never apply newly downloaded assets until signatures and license are verified.
+
+## License, dev override, and privacy boundary
+
+License checks must be explicit and auditable.
+
+Inputs:
+
+- local signed license file;
+- cached entitlement state and expiry/grace period;
+- optional online license refresh;
+- dev override file or environment variable allowed only on trusted developer hosts;
+- policy file selected channel/mode/parts.
+
+`dev_mode` rules:
+
+- `dev_mode` is a first-party developer entitlement, not a public tier;
+- dev override must be visible in `focusa update status --json`;
+- dev override must not leak into customer/eval installs;
+- dev override enables automatic latest eligible dev build by default;
+- expired or invalid dev override falls back to normal license behavior.
+
+Privacy rules:
+
+- update checks must not send project names, Workpoints, evidence, file paths, prompts, or local secrets;
+- allowed outbound metadata: product version, platform/arch, channel, license tier/feature flags, anonymous install id if enabled, and manifest schema support;
+- users can view exactly what metadata is sent;
+- enterprise can disable telemetry/update pings and use airgap bundles.
+
+## Platform and service-manager matrix
+
+| Platform | Service manager | Binary install | Notes |
+| --- | --- | --- | --- |
+| Linux | systemd or user service | `/usr/local/bin` or user-local bin | preserve units/drop-ins; SELinux/xattrs when present |
+| macOS | launchd LaunchAgent/LaunchDaemon | `/usr/local/bin`, Homebrew prefix, or app bundle | codesign/notarization/Gatekeeper checks mandatory |
+| Windows | Windows service or user task | `%ProgramFiles%` or user-local app data | Authenticode/signature checks; service restart rules |
+| source checkout | none or developer service | repo target dir/local symlink | dev mode can build/install from local release policy |
+
+The updater must detect package managers and service managers but must not assume root/admin access. It should offer user-local mode when privileged install is unavailable.
+
+## Installer first-run and system environment preflight
+
+The installer must feel like a trustworthy product, not a raw script. It must run a preflight before download/install.
+
+Preflight detection:
+
+- OS, distro/version, kernel, architecture, libc, shell, terminal capability, package manager, service manager, CPU, memory, disk, network, TLS/cert store, proxy environment, PATH write targets, privilege level, existing Focusa install, existing daemon health, existing CLI/TUI versions, license/dev override, and update policy;
+- platform compatibility: supported, supported-with-warning, unsupported-with-reason;
+- install mode recommendation: system service, user service, portable/local, source checkout, or airgap bundle.
+
+Missing dependency handling:
+
+- detect missing dependencies before downloading large assets;
+- show exact packages/commands for the detected package manager;
+- ask before installing dependencies unless noninteractive flags explicitly allow it;
+- support dry-run;
+- support `--assume-yes` only with clear summary and safety checks;
+- never install unrelated packages;
+- if dependency install fails, print copy/paste commands and recovery hints.
+
+Common dependency categories:
+
+- TLS/certificates (`ca-certificates`, `openssl` or platform equivalent);
+- download tool (`curl` or bundled downloader fallback);
+- archive tool (`tar`, `unzip`, platform equivalent);
+- service manager (`systemd`, `launchd`, Windows service support) when installing daemon service;
+- shell support (`bash`, `sh`, PowerShell) and terminal capability;
+- optional build/dev dependencies only when source/dev channel requires local build.
+
+Intro and terminal UX:
+
+- show a short Focusa intro animation/spinner when stdout is an interactive TTY and `NO_COLOR`/`CI` are not set;
+- animation must have `--no-animation`, `--quiet`, and non-TTY fallback;
+- first screen explains what Focusa will install, where, and what data it will not touch;
+- progress phases: preflight, license, release selection, download, verify, install, service, smoke test, update policy, next steps;
+- errors should be plain-language with exact recovery commands.
+
+Additional installer best practices:
+
+- `--dry-run` prints full plan with no mutations;
+- `--doctor` checks existing install;
+- `--repair` fixes missing pieces without overwriting user data;
+- `--uninstall` removes binaries/services only after confirmation and preserves data by default;
+- `--portable` or user-local install mode for no-root environments;
+- proxy/offline/airgap support;
+- idempotent re-run: rerunning installer upgrades or repairs, not duplicates;
+- shell-profile changes require explicit consent and are reversible;
+- installer writes initial update policy: `dev_mode` automatic latest, evaluation notify-only, paid prompt/scheduled according to license;
+- installer verifies installed CLI/daemon/TUI immediately and prints a one-command next step.
+
+## Observability, history, and admin controls
+
+Structured events must be visible in update history, daemon API, CLI, TUI, Pi doctor, and menubar where applicable:
+
+- `update_check_started`;
+- `update_available`;
+- `update_not_needed`;
+- `update_plan_created`;
+- `update_download_started`;
+- `update_verify_failed`;
+- `update_apply_started`;
+- `update_part_installed`;
+- `daemon_restart_planned`;
+- `daemon_restart_completed`;
+- `update_applied`;
+- `update_failed`;
+- `rollback_started`;
+- `rollback_succeeded`;
+- `rollback_failed`.
+
+Admin controls:
+
+```bash
+focusa update policy pin --tag v0.9.80-dev
+focusa update policy unpin
+focusa update policy skip --tag v0.9.81-dev
+focusa update policy pause --reason "customer demo"
+focusa update policy resume
+focusa update check --force
+focusa update apply --force-dev-latest
+```
+
+`--force-dev-latest` is allowed only for trusted `dev_mode` installs and must still verify release trust and compatibility.
+
 ## Notifications
 
 Update events should be visible in:
@@ -237,13 +511,32 @@ Update events should be visible in:
 3. `dev_mode` license enables default automatic updates for local developer installs.
 4. Non-dev licenses require explicit opt-in and license features before unattended update.
 5. Update apply verifies CI/release/deploy status before binary replacement.
-6. Update apply verifies checksums/signatures before install.
-7. Update apply snapshots rollback binaries before replacement.
-8. Daemon restart happens only when daemon binary changed and policy allows restart.
-9. Failed health/version proof triggers rollback.
-10. Update history records old version, new version, assets, checksums, workflow proof, and rollback location.
-11. No update writes over `.env`, license files, Workpoints, Evidence, or runtime data.
-12. All Focusa local server parts can be brought to the latest approved tag without manual binary copying.
+6. Update apply verifies signed release manifest, checksums, trusted signing key, and asset signatures before install.
+7. Update apply rejects yanked releases, revoked keys, unsupported manifest schemas, missing provenance, and failed required gates.
+8. Update apply snapshots rollback binaries, permissions, owner/group, xattrs/capabilities, and service metadata before replacement.
+9. Daemon restart happens only when daemon binary changed and policy allows restart.
+10. Failed health/version/contract proof triggers rollback.
+11. Update history records old version, new version, assets, checksums, signatures, workflow proof, policy, license posture, and rollback location.
+12. No update writes over `.env`, license files, Workpoints, Evidence, project data, or runtime state.
+13. All Focusa local server parts can be brought to the latest approved tag without manual binary copying.
+14. Stale CLI with current daemon is detected and reported as a first-class stale-surface condition.
+15. `dev_mode` default policy is automatic latest eligible dev build, including the operator's development host override.
+16. Evaluation license cannot perform unattended binary replacement.
+17. Bad checksum, bad signature, revoked key, yanked release, or unsupported platform blocks install before mutation.
+18. Update lock prevents concurrent CLI/daemon/scheduler/installer updates.
+19. Interrupted update resumes safely or rolls back; no half-written executable remains.
+20. Atomic install preserves permissions, ownership, xattrs/capabilities, and service metadata.
+21. Compatibility gates block automatic apply when daemon API, Pi tool contracts, data schema, or migration constraints are unsafe.
+22. Scheduler obeys check intervals, jitter, backoff, maintenance windows, offline rules, and maximum failed-attempt policy.
+23. Update checks do not send project names, Workpoints, evidence, prompts, local file paths, `.env`, or secrets.
+24. Installer preflight detects OS/distro, arch, shell, terminal, package manager, service manager, privileges, PATH, existing install, license/dev override, and update policy.
+25. Installer offers to install missing system dependencies with exact commands, dry-run, assume-yes guardrails, and recovery hints.
+26. Installer intro animation appears only on interactive terminals and is disabled by `--no-animation`, `--quiet`, CI, non-TTY, or `NO_COLOR`.
+27. Installer supports dry-run, doctor, repair, uninstall-preserve-data, portable/user-local, proxy/offline/airgap, and idempotent rerun flows.
+28. Installer writes initial update policy based on license: dev mode automatic latest, evaluation notify-only, paid prompt/scheduled according to entitlement.
+29. Structured update events are visible in daemon API, CLI status, TUI/menubar/Pi doctor where applicable, and update history.
+30. Admin can pin, unpin, skip, pause, resume, force check, and trusted-dev force latest without bypassing trust verification.
+31. Static/runtime tests cover stale CLI detection, dev-mode default auto-update, eval unattended denial, checksum/signature failures, daemon restart only when changed, rollback on health failure, interrupted update recovery, installer preflight/dependency prompt, and privacy boundary.
 
 ## First implementation slice
 
