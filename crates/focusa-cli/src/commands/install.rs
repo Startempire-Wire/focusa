@@ -35,6 +35,22 @@ pub struct InstallArgs {
     #[arg(long)]
     pub dry_run: bool,
 
+    /// Run installer system/dependency preflight only; no downloads or writes.
+    #[arg(long)]
+    pub preflight: bool,
+
+    /// Disable terminal intro animation/spinner.
+    #[arg(long)]
+    pub no_animation: bool,
+
+    /// Suppress decorative output.
+    #[arg(long)]
+    pub quiet: bool,
+
+    /// Reserved for future dependency installer; currently reported only.
+    #[arg(long)]
+    pub assume_yes: bool,
+
     /// License key (commercial install). Eval mode is selected by absence.
     #[arg(long, value_name = "KEY")]
     pub license_key: Option<String>,
@@ -91,6 +107,266 @@ pub enum ShellFamily {
     Zsh,
     Fish,
     Pwsh,
+}
+
+#[derive(Debug, Serialize)]
+pub struct InstallPreflightReport {
+    pub schema: &'static str,
+    pub status: &'static str,
+    pub read_only: bool,
+    pub mutations_performed: bool,
+    pub target: InstallTarget,
+    pub channel: Channel,
+    pub install_root: String,
+    pub system: PreflightSystem,
+    pub dependencies: Vec<PreflightDependency>,
+    pub missing_dependencies: Vec<String>,
+    pub dependency_install_offer: DependencyInstallOffer,
+    pub terminal_ux: TerminalUxPreflight,
+    pub recommendation: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PreflightSystem {
+    pub os: String,
+    pub arch: String,
+    pub shell: String,
+    pub terminal: String,
+    pub package_manager: Option<String>,
+    pub service_manager: Option<String>,
+    pub privileged: bool,
+    pub path_target: String,
+    pub path_target_writable: bool,
+    pub existing_focusa: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PreflightDependency {
+    pub name: String,
+    pub present: bool,
+    pub install_hint: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct DependencyInstallOffer {
+    pub can_offer: bool,
+    pub auto_install_performed: bool,
+    pub requires_explicit_consent: bool,
+    pub assume_yes_requested: bool,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TerminalUxPreflight {
+    pub interactive_tty: bool,
+    pub no_color: bool,
+    pub ci: bool,
+    pub intro_animation_enabled: bool,
+    pub disabled_reason: Option<String>,
+}
+
+fn build_preflight_report(
+    args: &InstallArgs,
+    target: InstallTarget,
+    install_root: &std::path::Path,
+) -> InstallPreflightReport {
+    let system = detect_preflight_system();
+    let dependencies = detect_dependencies(system.package_manager.as_deref());
+    let missing_dependencies = dependencies
+        .iter()
+        .filter(|dep| !dep.present)
+        .map(|dep| dep.name.clone())
+        .collect::<Vec<_>>();
+    let terminal_ux = terminal_ux_preflight(args.no_animation);
+    InstallPreflightReport {
+        schema: "focusa.install_preflight.v1",
+        status: if missing_dependencies.is_empty() {
+            "ready"
+        } else {
+            "missing_dependencies"
+        },
+        read_only: true,
+        mutations_performed: false,
+        target,
+        channel: args.channel,
+        install_root: install_root.display().to_string(),
+        system,
+        dependencies,
+        missing_dependencies: missing_dependencies.clone(),
+        dependency_install_offer: DependencyInstallOffer {
+            can_offer: !missing_dependencies.is_empty(),
+            auto_install_performed: false,
+            requires_explicit_consent: true,
+            assume_yes_requested: args.assume_yes,
+            message: if missing_dependencies.is_empty() {
+                "all required bootstrap dependencies found".into()
+            } else {
+                "missing dependencies detected; install hints are printed, but this preflight does not install packages".into()
+            },
+        },
+        terminal_ux,
+        recommendation: if missing_dependencies.is_empty() {
+            "run focusa install --dry-run, then focusa install when ready".into()
+        } else {
+            "install the missing dependencies using the hints, then rerun focusa install --preflight".into()
+        },
+    }
+}
+
+fn detect_preflight_system() -> PreflightSystem {
+    let package_manager = first_command(&[
+        "dnf", "yum", "apt-get", "brew", "pacman", "zypper", "choco", "winget",
+    ]);
+    let service_manager = if have_cmd("systemctl") {
+        Some("systemd".into())
+    } else if have_cmd("launchctl") {
+        Some("launchd".into())
+    } else if cfg!(windows) {
+        Some("windows-service".into())
+    } else {
+        None
+    };
+    let path_target = "/usr/local/bin".to_string();
+    PreflightSystem {
+        os: std::env::consts::OS.into(),
+        arch: std::env::consts::ARCH.into(),
+        shell: std::env::var("SHELL").unwrap_or_else(|_| "unknown".into()),
+        terminal: std::env::var("TERM").unwrap_or_else(|_| "unknown".into()),
+        package_manager,
+        service_manager,
+        privileged: is_root(),
+        path_target: path_target.clone(),
+        path_target_writable: std::fs::OpenOptions::new()
+            .write(true)
+            .open(&path_target)
+            .is_ok(),
+        existing_focusa: which::which("focusa").ok().map(|p| p.display().to_string()),
+    }
+}
+
+fn detect_dependencies(package_manager: Option<&str>) -> Vec<PreflightDependency> {
+    ["curl", "python3", "sha256sum", "tar"]
+        .into_iter()
+        .map(|name| PreflightDependency {
+            name: name.into(),
+            present: have_cmd(name) || (name == "sha256sum" && have_cmd("shasum")),
+            install_hint: install_hint(package_manager, name),
+        })
+        .collect()
+}
+
+fn install_hint(package_manager: Option<&str>, name: &str) -> Option<String> {
+    let package = match name {
+        "python3" => "python3",
+        "sha256sum" => "coreutils",
+        other => other,
+    };
+    match package_manager {
+        Some("dnf") => Some(format!("sudo dnf install -y {package}")),
+        Some("yum") => Some(format!("sudo yum install -y {package}")),
+        Some("apt-get") => Some(format!(
+            "sudo apt-get update && sudo apt-get install -y {package}"
+        )),
+        Some("brew") => Some(format!("brew install {package}")),
+        Some("pacman") => Some(format!("sudo pacman -S --needed {package}")),
+        Some("zypper") => Some(format!("sudo zypper install -y {package}")),
+        Some("choco") => Some(format!("choco install {package} -y")),
+        Some("winget") => Some(format!("winget install {package}")),
+        _ => Some(format!("install dependency manually: {package}")),
+    }
+}
+
+fn terminal_ux_preflight(no_animation: bool) -> TerminalUxPreflight {
+    let ci = std::env::var_os("CI").is_some();
+    let no_color = std::env::var_os("NO_COLOR").is_some();
+    let interactive_tty = std::env::var("TERM")
+        .map(|term| !term.is_empty() && term != "dumb")
+        .unwrap_or(false)
+        && !ci;
+    let disabled_reason = if no_animation {
+        Some("--no-animation".into())
+    } else if ci {
+        Some("CI".into())
+    } else if no_color {
+        Some("NO_COLOR".into())
+    } else if !interactive_tty {
+        Some("non_interactive_terminal".into())
+    } else {
+        None
+    };
+    TerminalUxPreflight {
+        interactive_tty,
+        no_color,
+        ci,
+        intro_animation_enabled: disabled_reason.is_none(),
+        disabled_reason,
+    }
+}
+
+fn first_command(names: &[&str]) -> Option<String> {
+    names
+        .iter()
+        .copied()
+        .find(|name| have_cmd(name))
+        .map(str::to_string)
+}
+
+fn have_cmd(name: &str) -> bool {
+    which::which(name).is_ok()
+}
+
+fn is_root() -> bool {
+    std::process::Command::new("id")
+        .arg("-u")
+        .output()
+        .ok()
+        .and_then(|out| String::from_utf8(out.stdout).ok())
+        .map(|s| s.trim() == "0")
+        .unwrap_or(false)
+}
+
+fn print_preflight_human(report: &InstallPreflightReport, quiet: bool, no_animation: bool) {
+    if !quiet && report.terminal_ux.intro_animation_enabled && !no_animation {
+        println!("✦ Focusa installer preflight");
+    }
+    println!("Focusa install preflight: {}", report.status);
+    println!("target: {:?} channel: {:?}", report.target, report.channel);
+    println!("os: {} arch: {}", report.system.os, report.system.arch);
+    println!(
+        "package_manager: {}",
+        report
+            .system
+            .package_manager
+            .as_deref()
+            .unwrap_or("unknown")
+    );
+    println!(
+        "service_manager: {}",
+        report
+            .system
+            .service_manager
+            .as_deref()
+            .unwrap_or("unknown")
+    );
+    if report.missing_dependencies.is_empty() {
+        println!("dependencies: ok");
+    } else {
+        println!(
+            "missing dependencies: {}",
+            report.missing_dependencies.join(", ")
+        );
+        for dep in &report.dependencies {
+            if !dep.present {
+                println!(
+                    "  - {}: {}",
+                    dep.name,
+                    dep.install_hint.as_deref().unwrap_or("install manually")
+                );
+            }
+        }
+    }
+    println!("read_only: true mutations_performed: false");
+    println!("next: {}", report.recommendation);
 }
 
 /// Result envelope for `focusa install --json`.
@@ -196,6 +472,16 @@ pub async fn run(args: InstallArgs) -> Result<()> {
     let install_root = std::env::var_os("HOME")
         .map(|h| std::path::PathBuf::from(h).join(".focusa"))
         .unwrap_or_else(|| std::path::PathBuf::from("/opt/focusa"));
+
+    if args.preflight {
+        let report = build_preflight_report(&args, target, &install_root);
+        if args.json {
+            println!("{}", serde_json::to_string_pretty(&report)?);
+        } else {
+            print_preflight_human(&report, args.quiet, args.no_animation);
+        }
+        return Ok(());
+    }
 
     if dry_run {
         let plan = build_plan(&args, target, &install_root)?;
@@ -1015,6 +1301,10 @@ mod tests {
             target: InstallTarget::Linux,
             channel: Channel::Stable,
             dry_run: true,
+            preflight: false,
+            no_animation: false,
+            quiet: false,
+            assume_yes: false,
             license_key: None,
             eval: false,
             persist_path: false,
@@ -1046,6 +1336,10 @@ mod tests {
             target: InstallTarget::Darwin,
             channel: Channel::Stable,
             dry_run: true,
+            preflight: false,
+            no_animation: false,
+            quiet: false,
+            assume_yes: false,
             license_key: None,
             eval: true,
             persist_path: false,
@@ -1070,6 +1364,10 @@ mod tests {
             target: InstallTarget::Linux,
             channel: Channel::Stable,
             dry_run: true,
+            preflight: false,
+            no_animation: false,
+            quiet: false,
+            assume_yes: false,
             license_key: Some("focusa_live_xxxxx".to_string()),
             eval: false,
             persist_path: false,
