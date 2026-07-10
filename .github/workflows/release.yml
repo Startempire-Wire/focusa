@@ -251,7 +251,50 @@ jobs:
           done
           echo "codesign complete (mode: ad-hoc if no identity, else ${APPLE_SIGNING_IDENTITY%%:*})"
 
+      - name: Package signed macOS app bundles
+        if: ${{ contains(matrix.platform, 'macos') }}
+        env:
+          TARGET: ${{ matrix.rust_target }}
+          TAG: ${{ github.ref_name }}
+        working-directory: apps/menubar
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          mkdir -p ../../dist/menubar
+          packaged=0
+          for app in src-tauri/target/${TARGET}/release/bundle/macos/*.app; do
+            base="$(basename "${app}" .app)"
+            out="../../dist/menubar/${base}-${TAG}-${TARGET}.app.zip"
+            ditto -c -k --keepParent "${app}" "${out}"
+            packaged=$((packaged + 1))
+          done
+          for dmg in src-tauri/target/${TARGET}/release/bundle/dmg/*.dmg; do
+            base="$(basename "${dmg}" .dmg)"
+            cp "${dmg}" "../../dist/menubar/${base}-${TAG}-${TARGET}.dmg"
+            packaged=$((packaged + 1))
+          done
+          if [ "${packaged}" -eq 0 ]; then
+            echo "No Tauri .app or .dmg bundles found for ${TARGET}" >&2
+            find src-tauri/target/${TARGET}/release/bundle -maxdepth 3 -type f -print || true
+            exit 1
+          fi
+          ls -la ../../dist/menubar
 
+      - name: Upload signed menubar artifacts to workflow
+        if: ${{ contains(matrix.platform, 'macos') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: focusa-menubar-${{ github.ref_name }}-${{ matrix.rust_target }}
+          path: dist/menubar/*
+          if-no-files-found: error
+
+      - name: Upload signed menubar artifacts to release
+        if: ${{ contains(matrix.platform, 'macos') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/menubar/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Publish Rust binaries for tester platforms.
   rust-release:
