@@ -1,37 +1,32 @@
-# Security
+# Security Policy
 
-## Reporting a vulnerability
+Please report security issues to `security@focusa.dev`.
 
-Please report security issues **privately** to `security@focusa.dev` (placeholder until public launch). Do **not** open a public GitHub issue for suspected vulnerabilities.
+Do not open public issues for suspected vulnerabilities.
+
+Include:
+
+- affected version or commit
+- affected command/API surface
+- reproduction steps
+- impact
+- suggested mitigation, if known
 
 ## Disclosure window
 
-Focusa follows a **90-day coordinated disclosure** policy. We aim to acknowledge within 3 business days and ship a fix within 90 days, depending on severity.
+Focusa follows coordinated disclosure. We aim to acknowledge reports within 3 business days and provide status updates as investigation proceeds.
 
 ## Supported versions
 
 | Version | Supported |
 |---|---|
-| Latest dev tag (e.g. `v0.9.x-dev`) | yes |
 | Latest tagged release | yes |
+| Latest dev tag | best-effort |
 | Older releases | best-effort |
 
-## Severity scale
+## Security expectations
 
-- **Critical** — unauthenticated RCE, daemon takeover, keychain exfiltration.
-- **High** — privilege escalation, signed-binary bypass, persistent pairing bypass.
-- **Medium** — local DoS, info disclosure of non-secret debug data, daemon repair-loop bypass.
-- **Low** — UI glitches, non-security warnings.
-
-## Hardening checklist (for operators)
-
-- Run `focusa codesign inspect` on macOS; do not ship unsigned `.app` to Apple Silicon users.
-- Run `focusa pairing transport setup` only with verified phone-reachable transports; do not rely on account-less quick tunnels for production.
-- Use `FOCUSA_REQUIRE_COSIGN=1` when installing from release assets.
-- Verify the daemon version matches the CLI version before pairing (`focusa pair` blocks mismatched versions).
-
-## Hardening checklist (for contributors)
-
-- Run `cargo deny check licenses` before submitting PRs.
-- Do not introduce GPL/AGPL/LGPL dependencies (see `deny.toml`).
-- Pairing/transport code changes must pass `tests/spec_pairing_*_static_test.sh`.
+- Keep the daemon bound to loopback or a trusted private network unless you intentionally expose it.
+- Treat pairing links, device tokens, license keys, and proof exports as sensitive.
+- Use signed release assets where available and verify the CLI/daemon versions match.
+- Do not include secrets, private paths, customer data, or full chat logs in public bug reports.

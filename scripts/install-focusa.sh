@@ -39,11 +39,11 @@ LICENSE_REGISTRY="${LICENSE_REGISTRY:-https://wpuiai.com}"
 LICENSE_VALIDATE_PATH="${LICENSE_VALIDATE_PATH:-/wp-json/wpuiai-ai-cloud/v1/license/validate}"
 # License authority — the operator of record for Focusa licenses.
 # Source of truth: docs/SPEC_118_LICENSING.md + docs/SPEC_119_LIFETIME_TO_RECURRING_TRANSITION.md.
-# Operator-facing page: https://wpuiai.com/buy
+# Operator-facing page: https://install.focusa.dev/license
 LICENSE_AUTHORITY_NAME="Wirebot / Phil Overacity LLC"
 LICENSE_AUTHORITY_URL="https://wpuiai.com"
 LICENSE_AUTHORITY_DOC="https://install.focusa.dev/license"
-LICENSE_AUTHORITY_SUPPORT="https://wpuiai.com/wp-admin"
+LICENSE_AUTHORITY_SUPPORT="https://focusa.dev/support"
 CHANNEL="${CHANNEL:-stable}"
 DRY_RUN="${DRY_RUN:-0}"
 EVAL="${EVAL:-0}"
@@ -160,7 +160,7 @@ Focusa is source-available under the Business Source License 1.1 (BSL 1.1).
     - Redistribution or resale
 
   Full terms:  https://focusa.dev/LICENSE  (BSL 1.1)
-  Pricing:     https://wpuiai.com/buy      (Operator Lifetime $697)
+  Pricing:     https://install.focusa.dev/license      (Operator Lifetime $697)
   Authority:   ${LICENSE_AUTHORITY_NAME}  (${LICENSE_AUTHORITY_URL})
 BSL
 }

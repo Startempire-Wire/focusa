@@ -205,8 +205,12 @@ impl RegistryError {
 
     pub fn recovery_hint(&self) -> &'static str {
         match self {
-            Self::NotFound | Self::Invalid => "Purchase or check key at https://wpuiai.com/buy",
-            Self::Revoked => "Contact https://wpuiai.com/wp-admin for reissue",
+            Self::NotFound | Self::Invalid => {
+                "Purchase or check key at https://install.focusa.dev/license"
+            }
+            Self::Revoked => {
+                "Email support@focusa.dev or visit https://focusa.dev/support for reissue"
+            }
             Self::Expired(_) => "Renew at https://install.focusa.dev/renew",
             Self::Malformed(_) => "Verify the key was copied correctly (no spaces or line wraps)",
             Self::RateLimited { .. } => "Wait 60s and retry; --eval mode avoids registry calls",
@@ -685,7 +689,7 @@ async fn run_check_feature(json_output: bool, args: CheckFeatureArgs) -> anyhow:
         }
         Err(err) => {
             let purchase = "https://focusa.dev";
-            let docs_url = "https://wpuiai.com/wp-admin";
+            let docs_url = "https://focusa.dev/support";
             let out = json!({
                 "error": "license_required",
                 "feature": feature,
@@ -890,7 +894,7 @@ async fn run_refresh(json_output: bool, args: RefreshArgs) -> anyhow::Result<()>
             "step": "registry_post",
             "registry_status": status,
             "error": "dev_mode response with FOCUSA_REQUIRE_REAL_LICENSE=1",
-            "recovery_hint": "unset FOCUSA_REQUIRE_REAL_LICENSE to allow dev_mode downgrades, or purchase a real license at https://wpuiai.com/buy",
+            "recovery_hint": "unset FOCUSA_REQUIRE_REAL_LICENSE to allow dev_mode downgrades, or purchase a real license at https://install.focusa.dev/license",
         });
         if json_output {
             println!("{}", serde_json::to_string_pretty(&payload)?);
@@ -925,7 +929,7 @@ async fn run_refresh(json_output: bool, args: RefreshArgs) -> anyhow::Result<()>
             "machine_id": machine_id,
             "recovery_hint": format!(
                 "registry reports license state '{}'. Run `focusa license activate <KEY>` with a current key, or contact {} for reissue.",
-                status, "https://wpuiai.com/wp-admin"
+                status, "https://focusa.dev/support"
             ),
         });
         if json_output {
@@ -1292,7 +1296,7 @@ async fn run_devmode_full(json_output: bool, args: DevmodeFullArgs) -> anyhow::R
         "name": "Wirebot / Phil Overacity LLC",
         "url": registry.clone(),
         "doc": "https://install.focusa.dev/license",
-        "support": "https://wpuiai.com/wp-admin",
+        "support": "https://focusa.dev/support",
         "registry_url": registry.clone(),
         "validate_path": REGISTRY_VALIDATE_PATH,
         "spec_refs": [
@@ -1500,7 +1504,8 @@ mod tests {
             assert!(!hint.is_empty(), "empty hint for {:?}", v.code());
             assert!(
                 hint.contains("https://install.focusa.dev")
-                    || hint.contains("https://wpuiai.com")
+                    || hint.contains("https://focusa.dev/support")
+                    || hint.contains("support@focusa.dev")
                     || hint.contains("60s")
                     || hint.contains("verify")
                     || hint.contains("Wait")

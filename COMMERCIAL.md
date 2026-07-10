@@ -14,4 +14,4 @@ A paid commercial license is required for:
 
 Commercial licenses may include support, private deployment terms, team/enterprise rights, and custom adapter rights. See `SUPPORT_TERMS.md` for support expectations and `legal/COMMERCIAL_LICENSE_TEMPLATE.md` for the draft agreement structure.
 
-To request commercial licensing, contact Startempire Wire / Verious Smith.
+To request commercial licensing, use `https://install.focusa.dev/license` or contact `support@focusa.dev`.
