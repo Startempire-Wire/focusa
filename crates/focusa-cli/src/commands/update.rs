@@ -99,6 +99,7 @@ struct UpdatePlanEnvelope {
     policy: UpdatePolicySummary,
     license: LicenseSummary,
     compatibility: CompatibilityPlan,
+    safety: UpdateSafetyPlan,
     prompt: PromptPlan,
     install_order: Vec<&'static str>,
     parts: Vec<PartPlan>,
@@ -114,6 +115,47 @@ struct CompatibilityPlan {
     data_schema: &'static str,
     requires_migration: bool,
     blockers: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct UpdateSafetyPlan {
+    lock: LockPlan,
+    staging: StagingPlan,
+    atomic_install: AtomicInstallPlan,
+    recovery: RecoveryPlan,
+    preserves: Vec<&'static str>,
+    no_half_written_executable_rule: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct LockPlan {
+    path: String,
+    mode: &'static str,
+    stale_after_seconds: u64,
+    behavior: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
+struct StagingPlan {
+    root: String,
+    manifest_path: String,
+    download_dir: String,
+    verify_before_promote: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
+struct AtomicInstallPlan {
+    strategy: &'static str,
+    sequence: Vec<&'static str>,
+    daemon_policy: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct RecoveryPlan {
+    journal_path: String,
+    interrupted_states: Vec<&'static str>,
+    recovery_actions: Vec<&'static str>,
+    rollback_available: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -314,6 +356,7 @@ fn build_update_plan(inventory: UpdateInventoryEnvelope) -> UpdatePlanEnvelope {
             requires_migration: false,
             blockers,
         },
+        safety: build_safety_plan(),
         prompt: PromptPlan {
             mode: prompt_mode,
             update_prompt_required: prompt_required,
@@ -340,6 +383,96 @@ fn build_update_plan(inventory: UpdateInventoryEnvelope) -> UpdatePlanEnvelope {
             "Keep using focusa update status/check/plan as read-only surfaces.".into(),
         ],
     }
+}
+
+fn build_safety_plan() -> UpdateSafetyPlan {
+    let base = update_state_root();
+    let staging_root = base.join("staging");
+    UpdateSafetyPlan {
+        lock: LockPlan {
+            path: base.join("update.lock").display().to_string(),
+            mode: "exclusive_create_new_with_pid_and_started_at",
+            stale_after_seconds: 1800,
+            behavior: vec![
+                "only one update may stage or apply on a host at a time",
+                "stale locks require process liveness check before takeover",
+                "lock release happens after journaled success or rollback decision",
+            ],
+        },
+        staging: StagingPlan {
+            root: staging_root.display().to_string(),
+            manifest_path: staging_root
+                .join("release-manifest.json")
+                .display()
+                .to_string(),
+            download_dir: staging_root.join("downloads").display().to_string(),
+            verify_before_promote: vec![
+                "release_manifest_signature",
+                "asset_sha256",
+                "asset_size",
+                "version_eligibility",
+                "platform_triple_match",
+                "executable_smoke_test",
+            ],
+        },
+        atomic_install: AtomicInstallPlan {
+            strategy: "write_temp_fsync_rename_then_smoke_test",
+            sequence: vec![
+                "snapshot_existing_binary_metadata",
+                "write_new_binary_to_same_filesystem_temp_path",
+                "fsync_temp_file_and_parent_directory",
+                "preserve_permissions_owner_xattrs_capabilities_when_supported",
+                "rename_temp_over_target_atomically",
+                "fsync_parent_directory_after_rename",
+                "run_post_promote_smoke_test",
+                "rollback_from_snapshot_on_smoke_failure",
+            ],
+            daemon_policy: "daemon binary is promoted last; restart is a separate explicit/policy-gated step",
+        },
+        recovery: RecoveryPlan {
+            journal_path: base.join("update-journal.json").display().to_string(),
+            interrupted_states: vec![
+                "lock_acquired",
+                "assets_staged",
+                "verified",
+                "promoting_cli",
+                "promoting_tui",
+                "promoting_daemon",
+                "smoke_testing",
+                "rollback_required",
+            ],
+            recovery_actions: vec![
+                "resume_verification_for_fully_staged_assets",
+                "rollback_promoted_part_from_snapshot_when_journal_marks_incomplete",
+                "discard_unverified_stage_on_checksum_or_signature_mismatch",
+                "preserve_user_data_license_env_projects_workpoints_evidence",
+                "print_manual_recovery_commands_without_running_destructive_actions",
+            ],
+            rollback_available: true,
+        },
+        preserves: vec![
+            "license.json",
+            ".env",
+            "projects",
+            "workpoints",
+            "evidence",
+            "logs",
+            "permissions",
+            "owner",
+            "xattrs_when_supported",
+            "capabilities_when_supported",
+        ],
+        no_half_written_executable_rule: "never write directly to an executable target path; promote only by same-filesystem atomic rename after verification",
+    }
+}
+
+fn update_state_root() -> PathBuf {
+    std::env::var_os("XDG_STATE_HOME")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".local/state")))
+        .unwrap_or_else(|| PathBuf::from("/tmp"))
+        .join("focusa")
+        .join("update")
 }
 
 fn part_plan(part: &InstalledPart, target_version: &str, order: &mut u8) -> PartPlan {
@@ -381,6 +514,10 @@ fn print_plan_human(plan: &UpdatePlanEnvelope) {
             part.restart_required
         );
     }
+    println!("lock: {}", plan.safety.lock.path);
+    println!("staging: {}", plan.safety.staging.root);
+    println!("atomic_install: {}", plan.safety.atomic_install.strategy);
+    println!("recovery_journal: {}", plan.safety.recovery.journal_path);
     println!("prompt_mode: {}", plan.prompt.mode);
     for line in &plan.prompt.copy {
         println!("note: {line}");

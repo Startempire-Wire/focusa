@@ -213,6 +213,7 @@ fn build_update_plan(inventory: Value) -> Value {
             "requires_migration": false,
             "blockers": blockers,
         },
+        "safety": build_safety_plan_json(),
         "prompt": {
             "mode": policy_mode,
             "update_prompt_required": policy_mode != "automatic",
@@ -253,6 +254,95 @@ fn part_plan(part: &Value, target_version: &str, order: &mut u8) -> Value {
     });
     *order = order.saturating_add(1);
     value
+}
+
+fn build_safety_plan_json() -> Value {
+    let base = update_state_root();
+    let staging_root = base.join("staging");
+    json!({
+        "lock": {
+            "path": base.join("update.lock").display().to_string(),
+            "mode": "exclusive_create_new_with_pid_and_started_at",
+            "stale_after_seconds": 1800,
+            "behavior": [
+                "only one update may stage or apply on a host at a time",
+                "stale locks require process liveness check before takeover",
+                "lock release happens after journaled success or rollback decision"
+            ]
+        },
+        "staging": {
+            "root": staging_root.display().to_string(),
+            "manifest_path": staging_root.join("release-manifest.json").display().to_string(),
+            "download_dir": staging_root.join("downloads").display().to_string(),
+            "verify_before_promote": [
+                "release_manifest_signature",
+                "asset_sha256",
+                "asset_size",
+                "version_eligibility",
+                "platform_triple_match",
+                "executable_smoke_test"
+            ]
+        },
+        "atomic_install": {
+            "strategy": "write_temp_fsync_rename_then_smoke_test",
+            "sequence": [
+                "snapshot_existing_binary_metadata",
+                "write_new_binary_to_same_filesystem_temp_path",
+                "fsync_temp_file_and_parent_directory",
+                "preserve_permissions_owner_xattrs_capabilities_when_supported",
+                "rename_temp_over_target_atomically",
+                "fsync_parent_directory_after_rename",
+                "run_post_promote_smoke_test",
+                "rollback_from_snapshot_on_smoke_failure"
+            ],
+            "daemon_policy": "daemon binary is promoted last; restart is a separate explicit/policy-gated step"
+        },
+        "recovery": {
+            "journal_path": base.join("update-journal.json").display().to_string(),
+            "interrupted_states": [
+                "lock_acquired",
+                "assets_staged",
+                "verified",
+                "promoting_cli",
+                "promoting_tui",
+                "promoting_daemon",
+                "smoke_testing",
+                "rollback_required"
+            ],
+            "recovery_actions": [
+                "resume_verification_for_fully_staged_assets",
+                "rollback_promoted_part_from_snapshot_when_journal_marks_incomplete",
+                "discard_unverified_stage_on_checksum_or_signature_mismatch",
+                "preserve_user_data_license_env_projects_workpoints_evidence",
+                "print_manual_recovery_commands_without_running_destructive_actions"
+            ],
+            "rollback_available": true
+        },
+        "preserves": [
+            "license.json",
+            ".env",
+            "projects",
+            "workpoints",
+            "evidence",
+            "logs",
+            "permissions",
+            "owner",
+            "xattrs_when_supported",
+            "capabilities_when_supported"
+        ],
+        "no_half_written_executable_rule": "never write directly to an executable target path; promote only by same-filesystem atomic rename after verification"
+    })
+}
+
+fn update_state_root() -> std::path::PathBuf {
+    std::env::var_os("XDG_STATE_HOME")
+        .map(std::path::PathBuf::from)
+        .or_else(|| {
+            std::env::var_os("HOME").map(|home| std::path::PathBuf::from(home).join(".local/state"))
+        })
+        .unwrap_or_else(|| std::path::PathBuf::from("/tmp"))
+        .join("focusa")
+        .join("update")
 }
 
 fn update_policy_path() -> std::path::PathBuf {
