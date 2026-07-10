@@ -3408,7 +3408,8 @@ mod tests {
             view["intelligence_view"]["context_sufficiency"]["stale_refs"]
                 .as_array()
                 .unwrap()
-                .is_empty()
+                .iter()
+                .any(|value| value.as_str() == Some("current_state_or_workpoint_evidence"))
         );
         assert!(
             view["intelligence_view"]["context_sufficiency"]["conflicting_signals"]

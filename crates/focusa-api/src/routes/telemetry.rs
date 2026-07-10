@@ -192,15 +192,48 @@ async fn memory_status(State(state): State<Arc<AppState>>) -> Json<Value> {
 async fn telemetry_snapshot(State(state): State<Arc<AppState>>) -> Json<Value> {
     let memory = memory_payload(&state).await;
     let focusa = state.focusa.read().await;
+    let estimated_cost = focusa_core::telemetry::estimate_cost(&focusa.telemetry, 0.003, 0.015);
+    let latest_token_budget = focusa
+        .telemetry
+        .trace_events
+        .iter()
+        .rev()
+        .find(|event| {
+            event.get("event_type").and_then(|v| v.as_str()) == Some("spec92_token_budget")
+        })
+        .cloned()
+        .unwrap_or(Value::Null);
+    let latest_cache_metadata = focusa
+        .telemetry
+        .trace_events
+        .iter()
+        .rev()
+        .find(|event| {
+            event.get("event_type").and_then(|v| v.as_str()) == Some("spec92_cache_metadata")
+        })
+        .cloned()
+        .unwrap_or(Value::Null);
+    let ontology_cache_metadata = ontology_read_index_cache_metadata(&focusa, None);
     let payload = json!({
         "schema": "focusa.telemetry_snapshot.v1",
         "status": "completed",
         "memory": memory,
         "events_total": focusa.telemetry.total_events,
         "trace_event_count": focusa.telemetry.trace_events.len(),
-        "cost": focusa.telemetry.cost,
-        "token_budget": focusa.telemetry.token_budget,
-        "cache_metadata": focusa.telemetry.cache_metadata,
+        "cost": {
+            "estimated_cost_usd": estimated_cost,
+            "prompt_tokens": focusa.telemetry.total_prompt_tokens,
+            "completion_tokens": focusa.telemetry.total_completion_tokens,
+        },
+        "token_budget": {
+            "latest": latest_token_budget,
+            "source": "telemetry_trace_events",
+        },
+        "cache_metadata": {
+            "latest": latest_cache_metadata,
+            "ontology_read_index": ontology_cache_metadata,
+            "source": "telemetry_trace_events_plus_ontology_read_index",
+        },
         "workpoint_resume_event_count": focusa.workpoint.resume_events.len(),
     });
     drop(focusa);
