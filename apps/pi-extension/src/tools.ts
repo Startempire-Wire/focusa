@@ -3536,9 +3536,13 @@ export function registerTools(pi: ExtensionAPI) {
     const mission = String(
       body?.mission || body?.resume_packet?.mission || body?.workpoint?.mission || ""
     );
-    const action = String(
-      body?.action_intent || body?.resume_packet?.action_intent || body?.workpoint?.action_intent || ""
-    );
+    const actionRaw = body?.action_intent || body?.resume_packet?.action_intent || body?.workpoint?.action_intent || "";
+    const action =
+      typeof actionRaw === "string"
+        ? actionRaw
+        : actionRaw
+          ? JSON.stringify(actionRaw)
+          : "";
     let summary = `status=${status} id=${id} canonical=${canonical}`;
     if (mission) summary += ` mission="${truncateForSummary(mission, 80)}"`;
     if (action) summary += ` action="${truncateForSummary(action, 80)}"`;
@@ -3557,7 +3561,7 @@ export function registerTools(pi: ExtensionAPI) {
         else if (ageMin > 0) freshnessMarker = ` packet_age=${ageMin}min`;
       }
     }
-    return `status=${status} id=${id} canonical=${canonical}${freshnessMarker} next=${next}`;
+    return `${summary}${freshnessMarker}`;
   }
 
   function buildStateHygieneReport(stackBody: any): any {
