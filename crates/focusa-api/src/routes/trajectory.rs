@@ -1615,7 +1615,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         }));
     }
 
-    let next_workpoint_candidate = workpoint.map(|record| {
+    let next_workpoint_candidate = if let Some(record) = workpoint {
         json!({
             "workpoint_id": record.workpoint_id,
             "work_item_id": record.work_item_id,
@@ -1627,7 +1627,25 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             "next_slice": record.next_slice.as_deref().map(|value| bounded(value, 240)),
             "advisory_only": true,
         })
-    });
+    } else if let Some(gap) = active_gap.as_deref() {
+        json!({
+            "status": "proposed",
+            "canonical": false,
+            "mission": bounded(gap, 240),
+            "action_intent": {
+                "action_type": "trajectory_gap_followup",
+                "target_ref": "trajectory_gap",
+                "verification_hooks": ["checkpoint accepted candidate before execution", "link evidence after proof"],
+                "status": "advisory",
+            },
+            "active_object_refs": ["trajectory_gap"],
+            "next_slice": bounded(gap, 240),
+            "advisory_only": true,
+            "checkpoint_required": true,
+        })
+    } else {
+        Value::Null
+    };
 
     let status = if !scope_match {
         "degraded"
@@ -2958,6 +2976,56 @@ mod tests {
     }
 
     #[test]
+    fn trajectory_view_strong_guidance_and_candidate_follow_gap_state() {
+        let mut state = FocusaState::default();
+        setup_test_project_fixture("/tmp/focusa-test");
+        add_defined_trajectory(&mut state, "/tmp/focusa-test", "cont-a");
+        let work_needed = trajectory_view_payload(
+            &state,
+            &TrajectoryViewQuery {
+                project_root: Some("/tmp/focusa-test".to_string()),
+                continuity_id: Some("cont-a".to_string()),
+                ..TrajectoryViewQuery::default()
+            },
+        );
+        assert!(
+            work_needed["intelligence_view"]["strong_trajectory"]["gap_description"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("Next: call")
+        );
+        assert_eq!(
+            work_needed["intelligence_view"]["next_workpoint_candidate"]["status"].as_str(),
+            Some("proposed")
+        );
+
+        let mut done_state = FocusaState::default();
+        setup_test_project_fixture("/tmp/focusa-done");
+        let body = TrajectoryDefineGoalRequest {
+            long_term_goal: "Ship completed trajectory route".to_string(),
+            desired_end_state: "Completed trajectory state verified".to_string(),
+            current_state: Some("Completed trajectory state verified".to_string()),
+            project_root: Some("/tmp/focusa-done".to_string()),
+            continuity_id: Some("cont-done".to_string()),
+            operator_confirmed: Some(true),
+            ..TrajectoryDefineGoalRequest::default()
+        };
+        let payload = define_goal_payload(&done_state, &body);
+        let record = trajectory_record_from_define_payload(&payload, &body).unwrap();
+        done_state.trajectory.active_trajectory_id = Some(record.trajectory_id.clone());
+        done_state.trajectory.records.push(record);
+        let no_work = trajectory_view_payload(
+            &done_state,
+            &TrajectoryViewQuery {
+                project_root: Some("/tmp/focusa-done".to_string()),
+                continuity_id: Some("cont-done".to_string()),
+                ..TrajectoryViewQuery::default()
+            },
+        );
+        assert!(no_work["intelligence_view"]["next_workpoint_candidate"].is_null());
+    }
+
+    #[test]
     fn trajectory_view_is_project_scoped_and_bounded() {
         let mut state = state_with_workpoint("/tmp/focusa-test");
         add_defined_trajectory(&mut state, "/tmp/focusa-test", "cont-a");
@@ -3748,6 +3816,79 @@ mod tests {
                 .get("must_not_merge_sessions")
                 .and_then(Value::as_bool),
             Some(true)
+        );
+    }
+
+    #[test]
+    fn assess_returns_exact_next_call_guidance() {
+        let mut state = state_with_workpoint("/tmp/focusa-test");
+        add_defined_trajectory(&mut state, "/tmp/focusa-test", "cont-a");
+        let payload = assess_payload(
+            &state,
+            &TrajectoryAssessRequest {
+                project_root: Some("/tmp/focusa-test".to_string()),
+                continuity_id: Some("cont-a".to_string()),
+                observed_state: Some("Project current state verified".to_string()),
+                evidence_refs: Some(vec!["test:trajectory-assess-proof".to_string()]),
+                ..TrajectoryAssessRequest::default()
+            },
+        );
+        assert_eq!(
+            payload["next_tool"].as_str(),
+            Some("focusa_trajectory_propose_workpoint")
+        );
+        assert!(
+            payload["next_command"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("focusa trajectory propose-workpoint")
+        );
+        assert_eq!(
+            payload["proof_needed"].as_array().unwrap()[0].as_str(),
+            Some("test:trajectory-assess-proof")
+        );
+    }
+
+    #[test]
+    fn propose_workpoint_blocks_candidate_without_concrete_target_and_action() {
+        let mut state = FocusaState::default();
+        setup_test_project_fixture("/tmp/focusa-no-proposal-target");
+        let body = TrajectoryDefineGoalRequest {
+            long_term_goal: "Ship completed proposal route".to_string(),
+            desired_end_state: "Completed proposal state verified".to_string(),
+            current_state: Some("Completed proposal state verified".to_string()),
+            project_root: Some("/tmp/focusa-no-proposal-target".to_string()),
+            continuity_id: Some("cont-no-target".to_string()),
+            operator_confirmed: Some(true),
+            ..TrajectoryDefineGoalRequest::default()
+        };
+        let define_payload = define_goal_payload(&state, &body);
+        let record = trajectory_record_from_define_payload(&define_payload, &body).unwrap();
+        state.trajectory.active_trajectory_id = Some(record.trajectory_id.clone());
+        state.trajectory.records.push(record);
+        let payload = propose_workpoint_payload(
+            &state,
+            &TrajectoryProposeWorkpointRequest {
+                project_root: Some("/tmp/focusa-no-proposal-target".to_string()),
+                continuity_id: Some("cont-no-target".to_string()),
+                ..TrajectoryProposeWorkpointRequest::default()
+            },
+        );
+        assert_eq!(
+            payload["workpoint_candidate"]["action_intent"]["status"].as_str(),
+            Some("blocked")
+        );
+        assert!(
+            payload["workpoint_candidate"]["blockers"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value["reason"].as_str()
+                    == Some("workpoint_candidate_missing_target_ref"))
+        );
+        assert_eq!(
+            payload["strong_trajectory"]["workpoint_relation"].as_str(),
+            Some("proposal_blocked_until_concrete_target_and_action")
         );
     }
 
