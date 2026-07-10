@@ -38,7 +38,7 @@ echo ""
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 TOOLS_TS="${ROOT_DIR}/apps/pi-extension/src/tools.ts"
 
-if rg -n 'type PushDeltaFailureReason = ' "$TOOLS_TS" >/dev/null 2>&1 \
+if rg -n '(^|[[:space:]])(export[[:space:]]+)?type[[:space:]]+PushDeltaFailureReason[[:space:]]*=' "$TOOLS_TS" >/dev/null 2>&1 \
   && rg -n '"offline"' "$TOOLS_TS" >/dev/null 2>&1 \
   && rg -n '"no_active_frame"' "$TOOLS_TS" >/dev/null 2>&1 \
   && rg -n '"validation_rejected"' "$TOOLS_TS" >/dev/null 2>&1 \

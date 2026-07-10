@@ -46,7 +46,7 @@ fn home_dir() -> PathBuf {
     std::env::var("FOCUSA_TEST_HOME").map_or_else(
         |_| {
             std::env::var("HOME")
-                .map_or_else(|_| ".".to_string(), |v| v)
+                .unwrap_or_else(|_| ".".to_string())
                 .into()
         },
         PathBuf::from,
@@ -246,7 +246,7 @@ pub fn resolve_project_scope(
         if let Some(profile) =
             selected_fingerprint_from_profile()?.filter(|value| !value.is_empty())
         {
-            if let Some(fallback_root) = std::env::var("FOCUSA_PROJECT_ROOT").ok() {
+            if let Ok(fallback_root) = std::env::var("FOCUSA_PROJECT_ROOT") {
                 if root_path_is_project_candidate(Path::new(&fallback_root)) {
                     return Ok(ResolvedProjectScope {
                         project_root: fallback_root,

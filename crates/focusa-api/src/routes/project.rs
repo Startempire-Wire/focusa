@@ -2321,12 +2321,13 @@ fn collect_project_candidate(root: &Path) -> Option<Value> {
     }
     let marker_path = root.join(".focusa-project.json");
     let has_marker = marker_path.exists();
-    let marker = marker_path
-        .exists()
-        .then(|| read_json_value(&marker_path))
-        .flatten();
+    let marker = if marker_path.exists() {
+        read_json_value(&marker_path)
+    } else {
+        None
+    };
     let has_git = root.join(".git").exists();
-    if !has_marker && !(has_git && root.join("Cargo.toml").exists()) {
+    if !(has_marker || has_git && root.join("Cargo.toml").exists()) {
         return None;
     }
     Some(json!({
@@ -2486,7 +2487,7 @@ async fn create_project(Json(body): Json<ProjectCreateRequest>) -> Json<Value> {
             );
         }
         if !body.force.unwrap_or(false) {
-            if fs::read_dir(&root).map_or(false, |mut rd| rd.next().is_some()) {
+            if fs::read_dir(&root).is_ok_and(|mut rd| rd.next().is_some()) {
                 return Json(
                     json!({"status":"blocked","failure_class":"project_root_not_empty","reason":"pass --force to create in non-empty path"}),
                 );

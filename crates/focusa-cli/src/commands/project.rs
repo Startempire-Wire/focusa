@@ -654,8 +654,7 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
         ProjectCmd::Settings { cmd } => match cmd {
             ProjectSettingsCmd::List { project_root } => {
                 let resolved = project_root
-                    .map(|root| resolve_input_project_root(None, Some(root.as_str())).ok())
-                    .flatten();
+                    .and_then(|root| resolve_input_project_root(None, Some(root.as_str())).ok());
                 let mut qs = Vec::new();
                 if let Some(root) = resolved {
                     push_query(&mut qs, "project_root", Some(root.as_str()));
