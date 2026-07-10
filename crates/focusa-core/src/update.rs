@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 pub const RELEASE_MANIFEST_SCHEMA_V1: &str = "focusa.release_manifest.v1";
+pub const UPDATE_POLICY_SCHEMA_V1: &str = "focusa.update_policy.v1";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -26,6 +27,184 @@ impl ReleaseChannel {
             ReleaseChannel::Preview => "preview",
             ReleaseChannel::Dev => "dev",
             ReleaseChannel::Nightly => "nightly",
+        }
+    }
+}
+
+impl std::str::FromStr for ReleaseChannel {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "stable" => Ok(ReleaseChannel::Stable),
+            "preview" => Ok(ReleaseChannel::Preview),
+            "dev" => Ok(ReleaseChannel::Dev),
+            "nightly" => Ok(ReleaseChannel::Nightly),
+            other => Err(format!("unsupported release channel: {other}")),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum UpdateMode {
+    Notify,
+    Prompt,
+    Scheduled,
+    Automatic,
+    Manual,
+}
+
+impl UpdateMode {
+    pub fn label(self) -> &'static str {
+        match self {
+            UpdateMode::Notify => "notify",
+            UpdateMode::Prompt => "prompt",
+            UpdateMode::Scheduled => "scheduled",
+            UpdateMode::Automatic => "automatic",
+            UpdateMode::Manual => "manual",
+        }
+    }
+}
+
+impl std::str::FromStr for UpdateMode {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "notify" => Ok(UpdateMode::Notify),
+            "prompt" => Ok(UpdateMode::Prompt),
+            "scheduled" => Ok(UpdateMode::Scheduled),
+            "automatic" => Ok(UpdateMode::Automatic),
+            "manual" => Ok(UpdateMode::Manual),
+            other => Err(format!("unsupported update mode: {other}")),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UpdatePolicyParts {
+    pub cli: bool,
+    pub daemon: bool,
+    pub tui: bool,
+    pub pi_extension: bool,
+    pub menubar: bool,
+    pub installer: bool,
+}
+
+impl UpdatePolicyParts {
+    pub fn local_server_parts(enabled: bool) -> Self {
+        Self {
+            cli: enabled,
+            daemon: enabled,
+            tui: enabled,
+            pi_extension: enabled,
+            menubar: false,
+            installer: false,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdatePolicy {
+    pub schema: String,
+    pub enabled: bool,
+    pub channel: ReleaseChannel,
+    pub mode: UpdateMode,
+    pub license_level: String,
+    pub parts: UpdatePolicyParts,
+    pub maintenance_window: String,
+    pub require_ci_success: bool,
+    pub require_release_success: bool,
+    pub require_deploy_success_for_daemon_hosts: bool,
+    pub require_checksums: bool,
+    pub require_signatures: bool,
+    pub rollback: bool,
+    pub notify_before_restart: bool,
+    pub auto_apply_allowed: bool,
+    pub auto_apply_blocked_until: Vec<String>,
+}
+
+impl UpdatePolicy {
+    pub fn default_for_license(
+        license_level: impl Into<String>,
+        features: &[String],
+        dev_override: bool,
+    ) -> Self {
+        let license_level = license_level.into();
+        let has = |feature: &str| features.iter().any(|f| f == feature);
+        let is_dev_mode = dev_override
+            || license_level == "dev_mode"
+            || (has("developer_channel") && has("ota_auto_update"));
+        let is_evaluation = license_level == "evaluation" || license_level == "eval";
+        if is_dev_mode {
+            Self {
+                schema: UPDATE_POLICY_SCHEMA_V1.into(),
+                enabled: true,
+                channel: ReleaseChannel::Dev,
+                mode: UpdateMode::Automatic,
+                license_level: "dev_mode".into(),
+                parts: UpdatePolicyParts::local_server_parts(true),
+                maintenance_window: "always".into(),
+                require_ci_success: true,
+                require_release_success: true,
+                require_deploy_success_for_daemon_hosts: true,
+                require_checksums: true,
+                require_signatures: true,
+                rollback: true,
+                notify_before_restart: false,
+                // Auto-apply is still blocked at this implementation slice;
+                // later locking/apply/rollback gates must promote it.
+                auto_apply_allowed: false,
+                auto_apply_blocked_until: vec![
+                    "update_locking".into(),
+                    "atomic_install".into(),
+                    "rollback_apply".into(),
+                    "health_proof".into(),
+                ],
+            }
+        } else if is_evaluation {
+            Self {
+                schema: UPDATE_POLICY_SCHEMA_V1.into(),
+                enabled: true,
+                channel: ReleaseChannel::Stable,
+                mode: UpdateMode::Notify,
+                license_level: "evaluation".into(),
+                parts: UpdatePolicyParts::local_server_parts(false),
+                maintenance_window: "manual".into(),
+                require_ci_success: true,
+                require_release_success: true,
+                require_deploy_success_for_daemon_hosts: true,
+                require_checksums: true,
+                require_signatures: true,
+                rollback: true,
+                notify_before_restart: true,
+                auto_apply_allowed: false,
+                auto_apply_blocked_until: vec!["license_disallows_unattended_apply".into()],
+            }
+        } else {
+            Self {
+                schema: UPDATE_POLICY_SCHEMA_V1.into(),
+                enabled: true,
+                channel: ReleaseChannel::Stable,
+                mode: UpdateMode::Prompt,
+                license_level,
+                parts: UpdatePolicyParts::local_server_parts(true),
+                maintenance_window: "prompt".into(),
+                require_ci_success: true,
+                require_release_success: true,
+                require_deploy_success_for_daemon_hosts: true,
+                require_checksums: true,
+                require_signatures: true,
+                rollback: true,
+                notify_before_restart: true,
+                auto_apply_allowed: false,
+                auto_apply_blocked_until: vec![
+                    "explicit_policy_opt_in".into(),
+                    "update_locking".into(),
+                    "rollback_apply".into(),
+                ],
+            }
         }
     }
 }
@@ -618,6 +797,59 @@ mod tests {
 
     fn codes(report: &ReleaseEligibilityReport) -> Vec<&str> {
         report.errors.iter().map(|f| f.code.as_str()).collect()
+    }
+
+    #[test]
+    fn dev_mode_policy_defaults_to_automatic_dev_without_apply_permission_yet() {
+        let policy = UpdatePolicy::default_for_license(
+            "dev_mode",
+            &["developer_channel".into(), "ota_auto_update".into()],
+            false,
+        );
+        assert!(policy.enabled);
+        assert_eq!(policy.channel, ReleaseChannel::Dev);
+        assert_eq!(policy.mode, UpdateMode::Automatic);
+        assert!(policy.parts.cli);
+        assert!(policy.parts.daemon);
+        assert!(policy.parts.tui);
+        assert!(policy.parts.pi_extension);
+        assert!(!policy.parts.menubar);
+        assert!(!policy.parts.installer);
+        assert!(!policy.auto_apply_allowed);
+        assert!(
+            policy
+                .auto_apply_blocked_until
+                .contains(&"update_locking".to_string())
+        );
+    }
+
+    #[test]
+    fn evaluation_policy_defaults_to_notify_only() {
+        let policy = UpdatePolicy::default_for_license("evaluation", &[], false);
+        assert!(policy.enabled);
+        assert_eq!(policy.channel, ReleaseChannel::Stable);
+        assert_eq!(policy.mode, UpdateMode::Notify);
+        assert!(!policy.parts.cli);
+        assert!(!policy.auto_apply_allowed);
+        assert!(
+            policy
+                .auto_apply_blocked_until
+                .contains(&"license_disallows_unattended_apply".to_string())
+        );
+    }
+
+    #[test]
+    fn paid_policy_defaults_to_prompt_not_automatic() {
+        let policy = UpdatePolicy::default_for_license(
+            "operator",
+            &["packaged_installer".into(), "ota_apply_manual".into()],
+            false,
+        );
+        assert!(policy.enabled);
+        assert_eq!(policy.channel, ReleaseChannel::Stable);
+        assert_eq!(policy.mode, UpdateMode::Prompt);
+        assert!(policy.parts.cli);
+        assert!(!policy.auto_apply_allowed);
     }
 
     #[test]

@@ -7,6 +7,8 @@
 
 use anyhow::Context;
 use clap::{Args, Subcommand};
+use focusa_core::license::load_license_status;
+use focusa_core::update::{ReleaseChannel, UPDATE_POLICY_SCHEMA_V1, UpdateMode, UpdatePolicy};
 use serde::Serialize;
 use serde_json::json;
 use sha2::{Digest, Sha256};
@@ -23,6 +25,30 @@ pub enum UpdateCmd {
     Status(UpdateStatusArgs),
     /// Read-only update check. Same inventory as status plus channel/latest context.
     Check(UpdateStatusArgs),
+    /// Show or set the local update policy. Does not apply updates.
+    #[command(subcommand)]
+    Policy(UpdatePolicyCmd),
+}
+
+#[derive(Subcommand, Debug)]
+pub enum UpdatePolicyCmd {
+    /// Show effective policy, using license-derived defaults when no file exists.
+    Show,
+    /// Write update policy fields without applying updates.
+    Set(UpdatePolicySetArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct UpdatePolicySetArgs {
+    /// Enable/disable update checks/policy.
+    #[arg(long)]
+    pub enabled: Option<bool>,
+    /// Channel: stable, preview, dev, nightly.
+    #[arg(long)]
+    pub channel: Option<String>,
+    /// Mode: notify, prompt, scheduled, automatic, manual.
+    #[arg(long)]
+    pub mode: Option<String>,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -71,14 +97,18 @@ struct UpdatePolicySummary {
     path: String,
     exists: bool,
     enabled: bool,
-    mode: &'static str,
-    note: &'static str,
+    channel: String,
+    mode: String,
+    auto_apply_allowed: bool,
+    auto_apply_blocked_until: Vec<String>,
+    note: String,
 }
 
 #[derive(Debug, Serialize)]
 struct LicenseSummary {
-    level: &'static str,
+    level: String,
     dev_mode: bool,
+    features: Vec<String>,
     source: &'static str,
     note: &'static str,
 }
@@ -99,15 +129,24 @@ struct InstalledPart {
 }
 
 pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
-    let (command_name, args) = match cmd {
-        UpdateCmd::Status(args) => ("status", args),
-        UpdateCmd::Check(args) => ("check", args),
-    };
-    let envelope = build_inventory(command_name, args).await?;
-    if json_mode {
-        println!("{}", serde_json::to_string_pretty(&envelope)?);
-    } else {
-        print_human(&envelope);
+    match cmd {
+        UpdateCmd::Status(args) => {
+            let envelope = build_inventory("status", args).await?;
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&envelope)?);
+            } else {
+                print_human(&envelope);
+            }
+        }
+        UpdateCmd::Check(args) => {
+            let envelope = build_inventory("check", args).await?;
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&envelope)?);
+            } else {
+                print_human(&envelope);
+            }
+        }
+        UpdateCmd::Policy(cmd) => run_policy(cmd, json_mode)?,
     }
     Ok(())
 }
@@ -198,24 +237,178 @@ fn resolve_latest(override_value: Option<&str>) -> LatestVersion {
 }
 
 fn update_policy_summary() -> UpdatePolicySummary {
-    let path = "/usr/local/lib/focusa/update-policy.json";
-    let exists = Path::new(path).exists();
+    let path = update_policy_path();
+    let exists = path.exists();
+    let policy = read_update_policy().unwrap_or_else(|_| default_policy_from_license());
     UpdatePolicySummary {
-        path: path.into(),
+        path: path.display().to_string(),
         exists,
-        enabled: false,
-        mode: "manual",
-        note: "Spec128 policy read/write is not implemented yet; auto-apply remains disabled",
+        enabled: policy.enabled,
+        channel: policy.channel.label().to_string(),
+        mode: policy.mode.label().to_string(),
+        auto_apply_allowed: policy.auto_apply_allowed,
+        auto_apply_blocked_until: policy.auto_apply_blocked_until,
+        note: if exists {
+            "policy file loaded; auto-apply still requires later locking/rollback/apply gates"
+                .into()
+        } else {
+            "license-derived default policy; no policy file exists yet".into()
+        },
     }
 }
 
 fn license_summary() -> LicenseSummary {
-    LicenseSummary {
-        level: "unknown",
-        dev_mode: false,
-        source: "not_wired_in_update_status_yet",
-        note: "Spec128 license/dev_mode policy integration is next; this command does not grant auto-update authority",
+    match load_license_status() {
+        Ok(status) => {
+            let dev_mode = status.tier == "dev_mode"
+                || (status.features.iter().any(|f| f == "developer_channel")
+                    && status.features.iter().any(|f| f == "ota_auto_update"));
+            LicenseSummary {
+                level: if dev_mode {
+                    "dev_mode".into()
+                } else {
+                    status.tier
+                },
+                dev_mode,
+                features: status.features,
+                source: "local_license_file",
+                note: "policy defaults are derived from license, but update apply remains disabled until safety gates exist",
+            }
+        }
+        Err(_) => LicenseSummary {
+            level: "evaluation".into(),
+            dev_mode: false,
+            features: vec![],
+            source: "fallback_evaluation",
+            note: "license unreadable; defaulting update policy posture to evaluation notify-only",
+        },
     }
+}
+
+fn update_policy_path() -> PathBuf {
+    std::env::var_os("FOCUSA_UPDATE_POLICY")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("/usr/local/lib/focusa/update-policy.json"))
+}
+
+fn default_policy_from_license() -> UpdatePolicy {
+    match load_license_status() {
+        Ok(status) => {
+            let dev_override = std::env::var("FOCUSA_DEV_MODE")
+                .map(|v| matches!(v.as_str(), "1" | "true" | "yes"))
+                .unwrap_or(false);
+            UpdatePolicy::default_for_license(status.tier, &status.features, dev_override)
+        }
+        Err(_) => UpdatePolicy::default_for_license("evaluation", &[], false),
+    }
+}
+
+fn read_update_policy() -> anyhow::Result<UpdatePolicy> {
+    let path = update_policy_path();
+    let raw = std::fs::read_to_string(&path)
+        .with_context(|| format!("read update policy {}", path.display()))?;
+    let policy: UpdatePolicy = serde_json::from_str(&raw)
+        .with_context(|| format!("parse update policy {}", path.display()))?;
+    if policy.schema != UPDATE_POLICY_SCHEMA_V1 {
+        anyhow::bail!(
+            "unsupported update policy schema: expected {}, got {}",
+            UPDATE_POLICY_SCHEMA_V1,
+            policy.schema
+        );
+    }
+    Ok(policy)
+}
+
+fn write_update_policy(policy: &UpdatePolicy) -> anyhow::Result<PathBuf> {
+    let path = update_policy_path();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .with_context(|| format!("create update policy dir {}", parent.display()))?;
+    }
+    let body = serde_json::to_string_pretty(policy)?;
+    std::fs::write(&path, format!("{body}\n"))
+        .with_context(|| format!("write update policy {}", path.display()))?;
+    Ok(path)
+}
+
+fn run_policy(cmd: UpdatePolicyCmd, json_mode: bool) -> anyhow::Result<()> {
+    match cmd {
+        UpdatePolicyCmd::Show => {
+            let path = update_policy_path();
+            let exists = path.exists();
+            let policy = read_update_policy().unwrap_or_else(|_| default_policy_from_license());
+            let out = serde_json::json!({
+                "schema": "focusa.update_policy_status.v1",
+                "status": "completed",
+                "path": path,
+                "exists": exists,
+                "policy": policy,
+                "mutations_performed": false,
+                "auto_apply_allowed": false,
+            });
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&out)?);
+            } else {
+                println!("Focusa update policy");
+                println!("path: {}", out["path"].as_str().unwrap_or("unknown"));
+                println!("exists: {exists}");
+                println!(
+                    "mode: {}",
+                    out["policy"]["mode"].as_str().unwrap_or("unknown")
+                );
+                println!(
+                    "channel: {}",
+                    out["policy"]["channel"].as_str().unwrap_or("unknown")
+                );
+                println!("auto_apply_allowed: false");
+            }
+        }
+        UpdatePolicyCmd::Set(args) => {
+            let mut policy = read_update_policy().unwrap_or_else(|_| default_policy_from_license());
+            if let Some(enabled) = args.enabled {
+                policy.enabled = enabled;
+            }
+            if let Some(channel) = args.channel {
+                policy.channel = channel
+                    .parse::<ReleaseChannel>()
+                    .map_err(anyhow::Error::msg)?;
+            }
+            if let Some(mode) = args.mode {
+                policy.mode = mode.parse::<UpdateMode>().map_err(anyhow::Error::msg)?;
+            }
+            // Setting policy still cannot unlock auto-apply in this slice.
+            policy.auto_apply_allowed = false;
+            if policy.auto_apply_blocked_until.is_empty() {
+                policy.auto_apply_blocked_until = vec![
+                    "update_locking".into(),
+                    "atomic_install".into(),
+                    "rollback_apply".into(),
+                    "health_proof".into(),
+                ];
+            }
+            let path = write_update_policy(&policy)?;
+            let out = serde_json::json!({
+                "schema": "focusa.update_policy_write.v1",
+                "status": "completed",
+                "path": path,
+                "policy": policy,
+                "mutations_performed": true,
+                "mutation_scope": "update_policy_file_only",
+                "auto_apply_allowed": false,
+                "next_action": "focusa update status --json"
+            });
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&out)?);
+            } else {
+                println!(
+                    "updated policy: {}",
+                    out["path"].as_str().unwrap_or("unknown")
+                );
+                println!("auto_apply_allowed: false");
+            }
+        }
+    }
+    Ok(())
 }
 
 async fn inspect_cli(latest: &str) -> anyhow::Result<InstalledPart> {
