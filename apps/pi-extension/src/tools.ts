@@ -6279,11 +6279,6 @@ export function registerTools(pi: ExtensionAPI) {
               String(p.continuity_id || getContinuityId() || ""),
               "trajectory_view"
             );
-      const emptyRepair = body.how_to_verify_empty_trajectory_repair || null;
-      const emptyTrajectoryHowTo =
-        trajectoryUnset || trajectoryBootstrapDefault
-          ? `how_to_verify: define_goal=${String(emptyRepair?.define_goal_command || "focusa trajectory define-goal --project-root <project> --continuity-id <id> --long-term-goal '<specific outcome>' --desired-end-state '<verifiable state>' --current-state '<observed state>' --required-check '<test or proof>'")}; verify=${String(emptyRepair?.verify_command || "focusa trajectory view --project-root <project> --continuity-id <id>")}; success=${String(emptyRepair?.success_condition || "strong_trajectory.next_tool is concrete")}`
-          : null;
       const trajectoryText = trajectoryBootstrapDefault
         ? `trajectory view → BOOTSTRAP DEFAULT project=${String(project.project_root || projectRoot)} long_term=${String(trajectory.long_term_goal || "missing")} desired=${String(trajectory.desired_end_state || "missing")} posture=${posture}; needs=focusa_trajectory_define_goal`
         : trajectoryUnset
@@ -6294,7 +6289,7 @@ export function registerTools(pi: ExtensionAPI) {
               ? `trajectory view → SET long_term=${String(trajectory.long_term_goal || "missing")} desired=${String(trajectory.desired_end_state || "missing")} current=${String(trajectory.current_state || "missing")} gap=${String(trajectory.active_gap || "none")} posture=${posture}`
               : `trajectory view → status=${String(body.status || "unknown")} canonical=${body.canonical === true} project=${String(project.status || "unknown")} definition=${String(trajectory.definition_status || "unknown")} posture=${posture}`;
       const text = result.ok
-        ? [trajectoryText, emptyTrajectoryHowTo, recovery?.text].filter(Boolean).join("\n")
+        ? [trajectoryText, recovery?.text].filter(Boolean).join("\n")
         : `trajectory view blocked → ${explainWorkLoopResult(result, "trajectory unavailable")}`;
       const toolResult = body.details?.tool_result_v1 || {
         ok: result.ok && body.status !== "degraded" && body.status !== "not_found",

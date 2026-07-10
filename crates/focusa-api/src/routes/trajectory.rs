@@ -876,7 +876,7 @@ fn trajectory_clarity_gate_payload(
         .any(|fact| *fact == "long_term_goal" || *fact == "desired_end_state")
         || definition_status == "unclear"
     {
-        "blocked"
+        "unclear"
     } else if !missing_facts.is_empty() || evidence_count == 0 || definition_status == "provisional"
     {
         "provisional"
@@ -885,21 +885,9 @@ fn trajectory_clarity_gate_payload(
     };
     let recommended_action = match status {
         "clear" => "proceed",
-        "blocked" => "repair_trajectory_definition",
+        "unclear" => "operator_input",
         "conflicted" => "verify_first",
         _ => "verify_first",
-    };
-    let recovery_hint = match status {
-        "blocked" => {
-            "Define missing long_term_goal/desired_end_state or assess current state before using Trajectory for work routing."
-        }
-        "conflicted" => {
-            "Run focusa_project_verify and focusa_project_identity before trusting this Trajectory."
-        }
-        "provisional" => {
-            "Attach evidence/current state or checkpoint a canonical Workpoint before execution."
-        }
-        _ => "Proceed through canonical Workpoint authority.",
     };
     json!({
         "status": status,
@@ -909,7 +897,6 @@ fn trajectory_clarity_gate_payload(
         "root_goal_change_policy": "operator_confirmed_or_durable_supersession_evidence_only",
         "refresh_triggers": lifecycle_refresh_triggers(),
         "operator_confirm_path": "ask for missing long_term_goal/desired_end_state or explicit supersession confirmation only",
-        "recovery_hint": recovery_hint,
     })
 }
 
@@ -964,48 +951,6 @@ fn status_from_validation(valid: bool) -> &'static str {
     } else {
         "validation_rejected"
     }
-}
-
-fn trajectory_text_is_vague(value: &str) -> bool {
-    let normalized = value
-        .trim()
-        .to_ascii_lowercase()
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ");
-    if normalized.is_empty() {
-        return true;
-    }
-    matches!(
-        normalized.as_str(),
-        "continue"
-            | "keep going"
-            | "make it better"
-            | "fix stuff"
-            | "fix things"
-            | "improve it"
-            | "pre-compaction work"
-            | "keep fulfilling till we are complete"
-    )
-}
-
-fn trajectory_goal_quality_errors(body: &TrajectoryDefineGoalRequest) -> Vec<String> {
-    let mut errors = Vec::new();
-    let long_term_goal = body.long_term_goal.trim();
-    let desired_end_state = body.desired_end_state.trim();
-    if trajectory_text_is_vague(long_term_goal) || long_term_goal.split_whitespace().count() < 3 {
-        errors.push("long_term_goal_vague_or_unverifiable".to_string());
-    }
-    if trajectory_text_is_vague(desired_end_state)
-        || desired_end_state.split_whitespace().count() < 4
-    {
-        errors.push("desired_end_state_vague_or_unverifiable".to_string());
-    }
-    errors
-}
-
-fn trajectory_goal_recovery_hint() -> &'static str {
-    "Define a concrete project outcome, desired end state, current state, and proof check. Example: focusa trajectory define-goal --long-term-goal '<specific outcome>' --desired-end-state '<verifiable state>' --current-state '<observed state>' --required-check '<test or proof>'"
 }
 
 fn trajectory_group_key(value: Option<&str>) -> Option<String> {
@@ -1404,6 +1349,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         ("long_term_goal", effective_long_term_goal_present),
         ("desired_end_state", desired_end_state.is_some()),
         ("current_verified_state", current_state.is_some()),
+        ("next_workpoint", workpoint.is_some()),
     ]
     .into_iter()
     .filter_map(|(name, present)| (!present).then_some(name))
@@ -1490,57 +1436,10 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
     let proceed_posture = match clarity_recommended_action {
         "proceed" => "proceed",
         "verify_first" => "verify_first",
-        "repair_trajectory_definition" | "operator_input" | "operator_required" => {
-            "operator_required"
-        }
+        "operator_input" | "operator_required" => "operator_required",
         _ => "verify_first",
     };
-    let strong_next_tool = if !scope_match {
-        "focusa_project_verify"
-    } else if missing_facts
-        .iter()
-        .any(|fact| *fact == "long_term_goal" || *fact == "desired_end_state")
-    {
-        "focusa_trajectory_define_goal"
-    } else if missing_facts
-        .iter()
-        .any(|fact| *fact == "current_verified_state")
-    {
-        "focusa_trajectory_assess"
-    } else if workpoint.is_none() {
-        "focusa_trajectory_propose_workpoint"
-    } else {
-        "focusa_workpoint_resume"
-    };
-    let strong_next_command = match strong_next_tool {
-        "focusa_project_verify" => {
-            "focusa project verify --project-root <project> --continuity-id <id>"
-        }
-        "focusa_trajectory_define_goal" => {
-            "focusa trajectory define-goal --project-root <project> --continuity-id <id> --long-term-goal '<specific outcome>' --desired-end-state '<verifiable state>' --current-state '<observed state>' --required-check '<test or proof>'"
-        }
-        "focusa_trajectory_assess" => {
-            "focusa trajectory assess --project-root <project> --continuity-id <id> --observed-state '<verified state>' --evidence-ref '<proof>'"
-        }
-        "focusa_trajectory_propose_workpoint" => {
-            "focusa trajectory propose-workpoint --project-root <project> --continuity-id <id> --target-ref '<object>' --action-type '<verb>'"
-        }
-        _ => "focusa workpoint resume --project-root <project> --continuity-id <id>",
-    };
-    let strong_gap_description = active_gap
-        .as_deref()
-        .map(|gap| format!("{} Next: call {}.", bounded(gap, 180), strong_next_tool))
-        .unwrap_or_else(|| format!("No active delta; next authority is {}.", strong_next_tool));
-    let strong_workpoint_relation = match workpoint {
-        Some(record) if record.canonical => "canonical_workpoint_controls_immediate_action",
-        Some(_) => "noncanonical_workpoint_requires_checkpoint_before_execution",
-        None => "missing_workpoint_requires_trajectory_propose_workpoint_or_checkpoint",
-    };
-    let stale_refs = if evidence_refs.is_empty() {
-        vec!["current_state_or_workpoint_evidence".to_string()]
-    } else {
-        Vec::<String>::new()
-    };
+    let stale_refs = Vec::<String>::new();
     let conflicting_signals = mismatches
         .iter()
         .map(|mismatch| {
@@ -1615,7 +1514,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         }));
     }
 
-    let next_workpoint_candidate = if let Some(record) = workpoint {
+    let next_workpoint_candidate = workpoint.map(|record| {
         json!({
             "workpoint_id": record.workpoint_id,
             "work_item_id": record.work_item_id,
@@ -1627,25 +1526,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             "next_slice": record.next_slice.as_deref().map(|value| bounded(value, 240)),
             "advisory_only": true,
         })
-    } else if let Some(gap) = active_gap.as_deref() {
-        json!({
-            "status": "proposed",
-            "canonical": false,
-            "mission": bounded(gap, 240),
-            "action_intent": {
-                "action_type": "trajectory_gap_followup",
-                "target_ref": "trajectory_gap",
-                "verification_hooks": ["checkpoint accepted candidate before execution", "link evidence after proof"],
-                "status": "advisory",
-            },
-            "active_object_refs": ["trajectory_gap"],
-            "next_slice": bounded(gap, 240),
-            "advisory_only": true,
-            "checkpoint_required": true,
-        })
-    } else {
-        Value::Null
-    };
+    });
 
     let status = if !scope_match {
         "degraded"
@@ -1859,14 +1740,6 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
                 "conflicting_signals": conflicting_signals,
                 "recommended_action": clarity_recommended_action,
             },
-            "strong_trajectory": {
-                "gap_description": strong_gap_description,
-                "next_tool": strong_next_tool,
-                "next_command": strong_next_command,
-                "proof_needed": if evidence_refs.is_empty() { vec!["evidence-backed current state or Workpoint verification required".to_string()] } else { evidence_refs.iter().filter_map(|value| value.get("evidence_ref").and_then(Value::as_str).map(str::to_string)).collect::<Vec<_>>() },
-                "workpoint_relation": strong_workpoint_relation,
-                "status": proceed_posture,
-            },
             "similarity_group": similarity_group,
             "clarity_gate": clarity_gate,
             "relevance_rationale": relevance_rationale,
@@ -1893,13 +1766,13 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         } else if status == "not_found" {
             json!(["focusa_trajectory_define_goal", "focusa_project_identity"])
         } else {
-            json!([strong_next_tool, "focusa_trajectory_view", "focusa_workpoint_resume", "focusa_active_object_resolve"])
+            json!(["focusa_trajectory_view", "focusa_workpoint_resume", "focusa_active_object_resolve"])
         },
         // BAD-007 fix: Provide clear next_step_hint for empty/degraded trajectory states
         "next_step_hint": if bootstrap_default_trajectory {
-            "Trajectory is in bootstrap default state. Define a real goal with focusa_trajectory_define_goal using project_root, continuity_id, long_term_goal, desired_end_state, current_state, and required_check; then rerun focusa_trajectory_view and verify strong_trajectory.next_tool is no longer focusa_trajectory_define_goal."
+            "Trajectory is in bootstrap default state. Define a real goal with focusa_trajectory_define_goal (project_root, continuity_id, long_term_goal, desired_end_state) or pass a workpoint via focusa_workpoint_checkpoint to anchor the scope."
         } else if status == "not_found" {
-            "No trajectory exists for this project. Run focusa_trajectory_define_goal with project_root, continuity_id, long_term_goal, desired_end_state, current_state, and required_check; then rerun focusa_trajectory_view and verify status is completed/provisional with a concrete strong_trajectory.next_tool."
+            "No trajectory exists for this project. Run focusa_trajectory_define_goal to set the long-term goal and desired end state."
         } else if using_prior_project_trajectory {
             "Using prior project trajectory as fallback. Refresh with focusa_trajectory_define_goal to confirm the goal applies to this project."
         } else if !canonical {
@@ -1907,14 +1780,6 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         } else {
             "Trajectory is canonical. Continue with focusa_workpoint_resume or focusa_workpoint_checkpoint."
         },
-        "how_to_verify_empty_trajectory_repair": if bootstrap_default_trajectory || status == "not_found" {
-            json!({
-                "define_goal_command": "focusa trajectory define-goal --project-root <project> --continuity-id <id> --long-term-goal '<specific outcome>' --desired-end-state '<verifiable state>' --current-state '<observed state>' --required-check '<test or proof>'",
-                "verify_command": "focusa trajectory view --project-root <project> --continuity-id <id>",
-                "success_condition": "status is completed/provisional and intelligence_view.strong_trajectory.next_tool is concrete rather than focusa_trajectory_define_goal",
-                "fallback": "If the project is already in motion, checkpoint the current Workpoint with project_root+continuity_id, then rerun trajectory view.",
-            })
-        } else { Value::Null },
         "warnings": if canonical {
             Vec::<String>::new()
         } else if bootstrap_default_trajectory {
@@ -1942,15 +1807,9 @@ fn define_goal_payload(state: &FocusaState, body: &TrajectoryDefineGoalRequest) 
     let session_id = view_continuity_id(&view).or_else(|| view_session_id(&view));
     let basic_valid =
         !body.long_term_goal.trim().is_empty() && !body.desired_end_state.trim().is_empty();
-    let (lifecycle_status, root_goal_change_allowed, mut validation_errors) =
+    let (lifecycle_status, root_goal_change_allowed, validation_errors) =
         define_goal_lifecycle_status(body, basic_valid);
-    let quality_errors = if basic_valid {
-        trajectory_goal_quality_errors(body)
-    } else {
-        Vec::new()
-    };
-    validation_errors.extend(quality_errors.iter().cloned());
-    let valid = basic_valid && root_goal_change_allowed && quality_errors.is_empty();
+    let valid = basic_valid && root_goal_change_allowed;
     let trajectory_id = trajectory_id_for(
         &project_root,
         session_id.as_deref(),
@@ -1987,17 +1846,8 @@ fn define_goal_payload(state: &FocusaState, body: &TrajectoryDefineGoalRequest) 
             },
         },
         "validation_errors": validation_errors,
-        "failure_class": if !quality_errors.is_empty() { "vague_or_unverifiable_trajectory_goal" } else if !valid { "trajectory_definition_rejected" } else { "not_applicable" },
-        "recovery_hint": if !valid { trajectory_goal_recovery_hint() } else { "Assess the current state, then propose/checkpoint a Workpoint only if the gap is actionable." },
-        "strong_trajectory": {
-            "gap_description": if valid { "Assess current state against desired end state before proposing work." } else { "Trajectory definition is not strong enough to compute a gap." },
-            "next_tool": if valid { "focusa_trajectory_assess" } else { "focusa_trajectory_define_goal" },
-            "next_command": if valid { "focusa trajectory assess --project-root <project> --continuity-id <id> --observed-state '<verified state>' --evidence-ref '<proof>'" } else { trajectory_goal_recovery_hint() },
-            "proof_needed": ["current_state evidence", "required_check or Workpoint verification before done"],
-            "workpoint_relation": "Trajectory may propose a Workpoint; canonical Workpoint still controls execution"
-        },
-        "next_step_hint": if valid { "use focusa_trajectory_assess, then propose a Workpoint candidate if the gap is actionable" } else { trajectory_goal_recovery_hint() },
-        "next_tools": if valid { vec!["focusa_trajectory_assess", "focusa_trajectory_propose_workpoint"] } else { vec!["focusa_trajectory_define_goal"] },
+        "next_step_hint": if valid { "use focusa_trajectory_assess, then propose a Workpoint candidate if the gap is actionable" } else { "provide missing goals or operator confirmation/durable supersession evidence" },
+        "next_tools": ["focusa_trajectory_assess", "focusa_trajectory_propose_workpoint"],
     })
 }
 
@@ -2059,11 +1909,8 @@ fn assess_payload(state: &FocusaState, body: &TrajectoryAssessRequest) -> Value 
     let clarity_action = clarity_gate
         .get("recommended_action")
         .and_then(Value::as_str);
-    let recommended_action = if matches!(
-        clarity_action,
-        Some("repair_trajectory_definition") | Some("operator_input")
-    ) {
-        "define_goal"
+    let recommended_action = if matches!(clarity_action, Some("operator_input")) {
+        "operator_input"
     } else if matches!(clarity_action, Some("verify_first")) && gaps.is_empty() {
         "verify_first"
     } else if gaps
@@ -2074,31 +1921,11 @@ fn assess_payload(state: &FocusaState, body: &TrajectoryAssessRequest) -> Value 
     } else if gaps.iter().any(|gap| {
         gap.get("recommended_action").and_then(Value::as_str) == Some("verify_current_state")
     }) {
-        "verify_current_state"
+        "verify_first"
     } else if gaps.is_empty() {
         "proceed"
     } else {
         "propose_workpoint"
-    };
-    let next_tool = match recommended_action {
-        "define_goal" => "focusa_trajectory_define_goal",
-        "verify_first" => "focusa_project_verify",
-        "verify_current_state" => "focusa_trajectory_assess",
-        "propose_workpoint" => "focusa_trajectory_propose_workpoint",
-        _ => "focusa_workpoint_resume",
-    };
-    let next_command = match next_tool {
-        "focusa_trajectory_define_goal" => trajectory_goal_recovery_hint(),
-        "focusa_project_verify" => {
-            "focusa project verify --project-root <project> --continuity-id <id>"
-        }
-        "focusa_trajectory_assess" => {
-            "focusa trajectory assess --project-root <project> --continuity-id <id> --observed-state '<verified state>' --evidence-ref '<proof>'"
-        }
-        "focusa_trajectory_propose_workpoint" => {
-            "focusa trajectory propose-workpoint --project-root <project> --continuity-id <id> --target-ref '<object>' --action-type '<verb>'"
-        }
-        _ => "focusa workpoint resume --project-root <project> --continuity-id <id>",
     };
     json!({
         "status": "completed",
@@ -2113,10 +1940,7 @@ fn assess_payload(state: &FocusaState, body: &TrajectoryAssessRequest) -> Value 
         "context_sufficiency": view.pointer("/intelligence_view/context_sufficiency").cloned().unwrap_or(Value::Null),
         "clarity_gate": clarity_gate,
         "recommended_action": recommended_action,
-        "next_tool": next_tool,
-        "next_command": next_command,
-        "proof_needed": if body.evidence_refs.as_ref().is_some_and(|refs| !refs.is_empty()) { body.evidence_refs.clone().unwrap_or_default().into_iter().take(8).collect::<Vec<_>>() } else { vec!["evidence-backed observed_state or Workpoint verification required".to_string()] },
-        "next_tools": vec![next_tool],
+        "next_tools": if recommended_action == "propose_workpoint" { vec!["focusa_trajectory_propose_workpoint"] } else { vec!["focusa_trajectory_view"] },
     })
 }
 
@@ -2194,35 +2018,16 @@ fn propose_workpoint_payload(
             .and_then(Value::as_str)
             .map(str::to_string)
     });
-    let action_type = body.action_type.clone().or_else(|| {
-        view.pointer("/intelligence_view/next_workpoint_candidate/action_intent/action_type")
-            .and_then(Value::as_str)
-            .map(str::to_string)
-    });
-    let mut blockers = trajectory_candidate_blockers(&view);
-    if target_ref
-        .as_deref()
-        .is_none_or(|value| value.trim().is_empty())
-    {
-        blockers.push(json!({
-            "reason": "workpoint_candidate_missing_target_ref",
-            "severity": "high",
-            "status": "open",
-            "target_ref": "trajectory_propose_workpoint",
-        }));
-    }
-    if action_type
-        .as_deref()
-        .is_none_or(|value| value.trim().is_empty())
-    {
-        blockers.push(json!({
-            "reason": "workpoint_candidate_missing_action_type",
-            "severity": "high",
-            "status": "open",
-            "target_ref": "trajectory_propose_workpoint",
-        }));
-    }
-    let blockers = blockers.into_iter().take(8).collect::<Vec<_>>();
+    let action_type = body
+        .action_type
+        .clone()
+        .or_else(|| {
+            view.pointer("/intelligence_view/next_workpoint_candidate/action_intent/action_type")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
+        .unwrap_or_else(|| "trajectory_gap_followup".to_string());
+    let blockers = trajectory_candidate_blockers(&view);
     let do_not_drift = trajectory_candidate_do_not_drift(&view);
     let checkpoint_ready = blockers.is_empty();
     json!({
@@ -2260,16 +2065,7 @@ fn propose_workpoint_payload(
                 "forbidden_side_effects": ["work_loop_select_next", "execute_action", "mutate_focus_state"],
             }
         },
-        "strong_trajectory": {
-            "gap_description": format!("{} Next: checkpoint only after verb, target, and proof hook are concrete.", bounded(active_gap, 180)),
-            "next_tool": if checkpoint_ready { "focusa_workpoint_checkpoint" } else { "focusa_trajectory_assess" },
-            "next_command": if checkpoint_ready { "focusa workpoint checkpoint --mission '<gap>' --target-object '<target_ref>' --current-action '<action_type>' --next-action '<proof-producing step>'" } else { "focusa trajectory assess --project-root <project> --continuity-id <id> --observed-state '<verified state>' --evidence-ref '<proof>'; then retry propose-workpoint with --target-ref and --action-type" },
-            "proof_needed": ["verb + target + verification hook before Workpoint checkpoint", "Workpoint evidence link after execution"],
-            "workpoint_relation": if checkpoint_ready { "candidate_ready_for_canonical_workpoint_checkpoint" } else { "proposal_blocked_until_concrete_target_and_action" },
-        },
-        "next_step_hint": if checkpoint_ready { "If accepted, pass this candidate to focusa_workpoint_checkpoint; Trajectory does not auto-promote Workpoints." } else { "Resolve blockers with focusa_trajectory_assess or retry propose-workpoint with explicit target_ref and action_type before checkpointing this candidate." },
-        "next_tool": if checkpoint_ready { "focusa_workpoint_checkpoint" } else { "focusa_trajectory_assess" },
-        "next_command": if checkpoint_ready { "focusa workpoint checkpoint --mission '<gap>' --target-object '<target_ref>' --current-action '<action_type>' --next-action '<proof-producing step>'" } else { "focusa trajectory assess --project-root <project> --continuity-id <id> --observed-state '<verified state>' --evidence-ref '<proof>'" },
+        "next_step_hint": if checkpoint_ready { "If accepted, pass this candidate to focusa_workpoint_checkpoint; Trajectory does not auto-promote Workpoints." } else { "Resolve blockers with focusa_trajectory_assess or operator confirmation before checkpointing this candidate." },
         "next_tools": if checkpoint_ready { vec!["focusa_workpoint_checkpoint"] } else { vec!["focusa_trajectory_assess", "focusa_active_object_resolve"] },
     })
 }
@@ -2984,56 +2780,6 @@ mod tests {
     }
 
     #[test]
-    fn trajectory_view_strong_guidance_and_candidate_follow_gap_state() {
-        let mut state = FocusaState::default();
-        setup_test_project_fixture("/tmp/focusa-test");
-        add_defined_trajectory(&mut state, "/tmp/focusa-test", "cont-a");
-        let work_needed = trajectory_view_payload(
-            &state,
-            &TrajectoryViewQuery {
-                project_root: Some("/tmp/focusa-test".to_string()),
-                continuity_id: Some("cont-a".to_string()),
-                ..TrajectoryViewQuery::default()
-            },
-        );
-        assert!(
-            work_needed["intelligence_view"]["strong_trajectory"]["gap_description"]
-                .as_str()
-                .unwrap_or_default()
-                .contains("Next: call")
-        );
-        assert_eq!(
-            work_needed["intelligence_view"]["next_workpoint_candidate"]["status"].as_str(),
-            Some("proposed")
-        );
-
-        let mut done_state = FocusaState::default();
-        setup_test_project_fixture("/tmp/focusa-done");
-        let body = TrajectoryDefineGoalRequest {
-            long_term_goal: "Ship completed trajectory route".to_string(),
-            desired_end_state: "Completed trajectory state verified".to_string(),
-            current_state: Some("Completed trajectory state verified".to_string()),
-            project_root: Some("/tmp/focusa-done".to_string()),
-            continuity_id: Some("cont-done".to_string()),
-            operator_confirmed: Some(true),
-            ..TrajectoryDefineGoalRequest::default()
-        };
-        let payload = define_goal_payload(&done_state, &body);
-        let record = trajectory_record_from_define_payload(&payload, &body).unwrap();
-        done_state.trajectory.active_trajectory_id = Some(record.trajectory_id.clone());
-        done_state.trajectory.records.push(record);
-        let no_work = trajectory_view_payload(
-            &done_state,
-            &TrajectoryViewQuery {
-                project_root: Some("/tmp/focusa-done".to_string()),
-                continuity_id: Some("cont-done".to_string()),
-                ..TrajectoryViewQuery::default()
-            },
-        );
-        assert!(no_work["intelligence_view"]["next_workpoint_candidate"].is_null());
-    }
-
-    #[test]
     fn trajectory_view_is_project_scoped_and_bounded() {
         let mut state = state_with_workpoint("/tmp/focusa-test");
         add_defined_trajectory(&mut state, "/tmp/focusa-test", "cont-a");
@@ -3416,8 +3162,7 @@ mod tests {
             view["intelligence_view"]["context_sufficiency"]["stale_refs"]
                 .as_array()
                 .unwrap()
-                .iter()
-                .any(|value| value.as_str() == Some("current_state_or_workpoint_evidence"))
+                .is_empty()
         );
         assert!(
             view["intelligence_view"]["context_sufficiency"]["conflicting_signals"]
@@ -3531,10 +3276,10 @@ mod tests {
             0,
             0,
         );
-        assert_eq!(unclear["status"].as_str(), Some("blocked"));
+        assert_eq!(unclear["status"].as_str(), Some("unclear"));
         assert_eq!(
             unclear["recommended_action"].as_str(),
-            Some("repair_trajectory_definition")
+            Some("operator_input")
         );
 
         let conflicted = trajectory_clarity_gate_payload("clear", "mismatch", &[], 1, 2);
@@ -3549,31 +3294,6 @@ mod tests {
                 .unwrap()
                 .iter()
                 .any(|value| value.as_str() == Some("operator_confirmed"))
-        );
-    }
-
-    #[test]
-    fn define_goal_rejects_vague_unverifiable_goal() {
-        let state = state_with_workpoint("/tmp/focusa-test");
-        let rejected = define_goal_payload(
-            &state,
-            &TrajectoryDefineGoalRequest {
-                long_term_goal: "make it better".to_string(),
-                desired_end_state: "fix stuff".to_string(),
-                project_root: Some("/tmp/focusa-test".to_string()),
-                session_id: Some("session-a".to_string()),
-                continuity_id: Some("cont-a".to_string()),
-                ..TrajectoryDefineGoalRequest::default()
-            },
-        );
-        assert_eq!(rejected["status"].as_str(), Some("validation_rejected"));
-        assert_eq!(
-            rejected["failure_class"].as_str(),
-            Some("vague_or_unverifiable_trajectory_goal")
-        );
-        assert_eq!(
-            rejected["strong_trajectory"]["next_tool"].as_str(),
-            Some("focusa_trajectory_define_goal")
         );
     }
 
@@ -3825,79 +3545,6 @@ mod tests {
                 .get("must_not_merge_sessions")
                 .and_then(Value::as_bool),
             Some(true)
-        );
-    }
-
-    #[test]
-    fn assess_returns_exact_next_call_guidance() {
-        let mut state = state_with_workpoint("/tmp/focusa-test");
-        add_defined_trajectory(&mut state, "/tmp/focusa-test", "cont-a");
-        let payload = assess_payload(
-            &state,
-            &TrajectoryAssessRequest {
-                project_root: Some("/tmp/focusa-test".to_string()),
-                continuity_id: Some("cont-a".to_string()),
-                observed_state: Some("Project current state verified".to_string()),
-                evidence_refs: Some(vec!["test:trajectory-assess-proof".to_string()]),
-                ..TrajectoryAssessRequest::default()
-            },
-        );
-        assert_eq!(
-            payload["next_tool"].as_str(),
-            Some("focusa_trajectory_propose_workpoint")
-        );
-        assert!(
-            payload["next_command"]
-                .as_str()
-                .unwrap_or_default()
-                .contains("focusa trajectory propose-workpoint")
-        );
-        assert_eq!(
-            payload["proof_needed"].as_array().unwrap()[0].as_str(),
-            Some("test:trajectory-assess-proof")
-        );
-    }
-
-    #[test]
-    fn propose_workpoint_blocks_candidate_without_concrete_target_and_action() {
-        let mut state = FocusaState::default();
-        setup_test_project_fixture("/tmp/focusa-no-proposal-target");
-        let body = TrajectoryDefineGoalRequest {
-            long_term_goal: "Ship completed proposal route".to_string(),
-            desired_end_state: "Completed proposal state verified".to_string(),
-            current_state: Some("Completed proposal state verified".to_string()),
-            project_root: Some("/tmp/focusa-no-proposal-target".to_string()),
-            continuity_id: Some("cont-no-target".to_string()),
-            operator_confirmed: Some(true),
-            ..TrajectoryDefineGoalRequest::default()
-        };
-        let define_payload = define_goal_payload(&state, &body);
-        let record = trajectory_record_from_define_payload(&define_payload, &body).unwrap();
-        state.trajectory.active_trajectory_id = Some(record.trajectory_id.clone());
-        state.trajectory.records.push(record);
-        let payload = propose_workpoint_payload(
-            &state,
-            &TrajectoryProposeWorkpointRequest {
-                project_root: Some("/tmp/focusa-no-proposal-target".to_string()),
-                continuity_id: Some("cont-no-target".to_string()),
-                ..TrajectoryProposeWorkpointRequest::default()
-            },
-        );
-        assert_eq!(
-            payload["workpoint_candidate"]["action_intent"]["status"].as_str(),
-            Some("blocked")
-        );
-        assert!(
-            payload["workpoint_candidate"]["blockers"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|value| value["reason"].as_str()
-                    == Some("workpoint_candidate_missing_target_ref"))
-        );
-        assert_eq!(
-            payload["strong_trajectory"]["workpoint_relation"].as_str(),
-            Some("proposal_blocked_until_concrete_target_and_action")
         );
     }
 
