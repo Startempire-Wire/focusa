@@ -1,5 +1,9 @@
 # Agent Instructions
 
+## Focusa agent docs entry point
+
+Before broad Focusa code changes or after context loss, read `docs/agent/01-focusa-agent-docs-index.md`. It is the bounded, public-safe architecture/commands/API/Workpoint/Trajectory/private-boundary guide for agents.
+
 ## Pre-work rule: always check remote first (mandatory)
 
 Before any durable state change (commit, push, branch switch, merge, rebase, tag), or before resuming work after a session reload, agent context drift, or gap in continuity:

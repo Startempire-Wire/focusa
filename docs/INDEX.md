@@ -22,6 +22,7 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | [README.md](README.md)           | Project overview                                        |
 | [PRD.md](PRD.md)                 | Product Requirements Document (final)                   |
 | [AGENTS.md](AGENTS.md)           | Agent protocol (Beads-centered)                         |
+| [agent/01-focusa-agent-docs-index.md](agent/01-focusa-agent-docs-index.md) | Public-safe agent architecture, commands, API, Workpoints, Trajectory, and boundary guide |
 | [00-glossary.md](00-glossary.md) | **LOCKED** canonical glossary — all terms authoritative |
 
 ---

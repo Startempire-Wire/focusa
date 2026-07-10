@@ -37,6 +37,7 @@ TARGETS=(
   COMMERCIAL.md
   SUPPORT_TERMS.md
   docs/118-focusa-license-tiers-spec.md
+  docs/agent/01-focusa-agent-docs-index.md
   docs/current/CLI_REFERENCE_CURRENT.md
   docs/current/PRODUCTION_RELEASE_COMMANDS.md
   docs/current/TROUBLESHOOTING_CURRENT.md
