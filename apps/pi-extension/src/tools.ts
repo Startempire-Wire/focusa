@@ -12876,8 +12876,8 @@ export function registerTools(pi: ExtensionAPI) {
         endpoint === "/traverse" ? "/v1/traverse" : "/v1/traverse/verify-tags",
         req,
         res,
-        `traverse: surface=${req.surface} selector=${selector} returned=${items.length}/${String(traversal.total ?? items.length)} truncated=${Boolean(traversal.truncated)}
-next_cursor=${String(traversal.next_cursor ?? "none")} tags=${Array.isArray(res.body?.tags) ? res.body.tags.length : 0} verified=${Array.isArray(res.body?.verified_tags) ? res.body.verified_tags.length : 0} stale=${Array.isArray(res.body?.stale_tags) ? res.body.stale_tags.length : 0}
+        `traverse: surface=${req.surface} selector=${selector} returned=${items.length}/${String(traversal.total ?? items.length)} truncated=${Boolean(traversal.truncated)} more_available=${Boolean(traversal.more_available ?? res.body?.more_available)}
+next_cursor=${String(traversal.next_cursor ?? "none")} guidance=${String(traversal.pagination_guidance || res.body?.pagination_guidance || "No pagination guidance returned.")} tags=${Array.isArray(res.body?.tags) ? res.body.tags.length : 0} verified=${Array.isArray(res.body?.verified_tags) ? res.body.verified_tags.length : 0} stale=${Array.isArray(res.body?.stale_tags) ? res.body.stale_tags.length : 0}
 ${summarizeTraverseItems(items, 8)}
 next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
         "traverse"

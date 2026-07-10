@@ -1821,6 +1821,18 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
         .and_then(Value::as_bool)
         .unwrap_or(false);
     let limit_value = metadata.get("limit").cloned().unwrap_or(Value::Null);
+    let next_cursor_value = metadata.get("next_cursor").cloned().unwrap_or(Value::Null);
+    let more_available = truncated && !next_cursor_value.is_null();
+    let pagination_guidance = if more_available {
+        format!(
+            "More {surface}/{sel} items are available. Re-run focusa_traverse with cursor={} and the same surface/selector/query/limit to fetch the next bounded page.",
+            next_cursor_value.as_str().unwrap_or("<next_cursor>")
+        )
+    } else if truncated {
+        "Traversal was truncated but no next_cursor is available; narrow selector/query or lower payload scope before retrying.".to_string()
+    } else {
+        "No additional page is available for this bounded traversal window.".to_string()
+    };
     let omitted_count = metadata.get("omitted").and_then(Value::as_u64).unwrap_or(0);
     let omitted = if omitted_count > 0 {
         vec![format!("items_omitted:{omitted_count}")]
@@ -1964,7 +1976,9 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
         "anchor": req.anchor,
         "query": req.query,
         "cursor": metadata.get("cursor").cloned().unwrap_or(Value::Null),
-        "next_cursor": metadata.get("next_cursor").cloned().unwrap_or(Value::Null),
+        "next_cursor": next_cursor_value.clone(),
+        "more_available": more_available,
+        "pagination_guidance": pagination_guidance.clone(),
         "returned": returned,
         "total": total,
         "total_known": total,
@@ -2022,7 +2036,9 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
         "anchor": req.anchor,
         "project_identity": req.session_identity.as_ref().and_then(|value| value.get("project_identity")).cloned().unwrap_or(Value::Null),
         "items": response_items,
-        "summary": format!("traverse surface={} selector={} returned={} truncated={}", surface, sel, returned, truncated),
+        "summary": format!("traverse surface={} selector={} returned={} truncated={} more_available={}", surface, sel, returned, truncated, more_available),
+        "more_available": more_available,
+        "pagination_guidance": pagination_guidance,
         "do_not_use": if full_payload_blocked { vec!["full_payload_without_budget"] } else { Vec::<&str>::new() },
         "verified_tags": verified_tags,
         "stale_tags": stale_tags,
@@ -2456,6 +2472,47 @@ mod tests {
                 .unwrap()
                 .len(),
             1
+        );
+    }
+
+    #[test]
+    fn traverse_truncated_window_explains_pagination() {
+        let mut state = FocusaState::new();
+        for id in ["n1", "n2"] {
+            state.clt.nodes.push(focusa_core::types::CltNode {
+                node_id: id.to_string(),
+                parent_id: None,
+                node_type: CltNodeType::Interaction,
+                created_at: chrono::Utc::now(),
+                session_id: None,
+                payload: focusa_core::types::CltPayload::Interaction {
+                    role: "user".to_string(),
+                    content_ref: Some(id.to_string()),
+                },
+                metadata: focusa_core::types::CltMetadata::default(),
+            });
+        }
+        state.clt.head_id = Some("n2".to_string());
+        let res = traverse_response(
+            &state,
+            TraverseRequest {
+                surface: "lineage".to_string(),
+                selector: Some("window".to_string()),
+                limit: Some(1),
+                ..TraverseRequest::default()
+            },
+            false,
+        );
+        assert_eq!(
+            res.pointer("/traversal/more_available")
+                .and_then(Value::as_bool),
+            Some(true)
+        );
+        assert!(
+            res.pointer("/traversal/pagination_guidance")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .contains("Re-run focusa_traverse with cursor=")
         );
     }
 
