@@ -26,15 +26,18 @@ else
   fail "Verbose Focus State slot rejection still lacks scratch fallback/suggestion"
 fi
 
-if rg -n "Project-bound frame/continuity is stale; use latest operator instruction, checkpoint a fresh Workpoint" "$TOOLS" >/dev/null; then
-  pass "Stale frame write failures explain continuity recovery instead of generic retry"
+if rg -n "Focus State frame unavailable|Use scratchpad for this note; checkpoint/resume a project-bound Workpoint" "$TOOLS" >/dev/null \
+  && ! rg -n "decision NOT recorded in Focus State|constraint NOT recorded in Focus State|failure NOT recorded in Focus State|Attentive and awaiting operator direction.*decision" "$TOOLS" >/dev/null; then
+  pass "Stale frame write failures use concise scratchpad/workpoint recovery copy"
 else
-  fail "Stale frame write feedback lacks continuity recovery guidance"
+  fail "Stale frame write feedback is noisy or lacks continuity recovery guidance"
 fi
 
-if rg -n 'project_root: Type.Optional\(Type.String\(\{ description: "Explicit safe project folder/root; use after compaction if Pi cwd is broad like /root\."' "$TOOLS" >/dev/null \
-  && rg -n 'enforceTrajectoryClarityPrecondition\(projectRoot, "workpoint evidence link", \{ blockOperatorInput: false, continuityId: p\.continuity_id, sessionId: p\.session_id \}\)' "$TOOLS" >/dev/null \
-  && rg -n 'buildFocusaSessionIdentity\(projectRoot, "manual", \{ continuityId: p\.continuity_id, sessionId: p\.session_id \}\)' "$TOOLS" >/dev/null \
+if rg -n 'Explicit safe project folder/root; use after compaction if Pi cwd is broad like /root\.' "$TOOLS" >/dev/null \
+  && rg -n 'enforceTrajectoryClarityPrecondition\(projectRoot, "workpoint evidence link", \{' "$TOOLS" >/dev/null \
+  && rg -n 'continuityId: p\.continuity_id' "$TOOLS" >/dev/null \
+  && rg -n 'sessionId: p\.session_id' "$TOOLS" >/dev/null \
+  && rg -n 'buildFocusaSessionIdentity\(projectRoot, "manual", \{' "$TOOLS" >/dev/null \
   && rg -n 'cwdForIdentity = safe && !ambientInsideProject \? projectRoot : ambientCwd' "$STATE" >/dev/null; then
   pass "Evidence tools carry explicit project/continuity context through clarity gate and session identity"
 else

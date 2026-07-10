@@ -1475,7 +1475,7 @@ function formatPushDeltaFailure(reason: PushDeltaFailureReason): string {
       return "Focusa offline";
     case "no_active_frame":
     case "frame_unavailable":
-      return "Attentive and awaiting operator direction";
+      return "Focus State frame unavailable";
     case "scope_mismatch":
       return "Focus State scope mismatch";
     case "read_model_lag":
@@ -1514,7 +1514,7 @@ function pushDeltaFailureRecovery(
         failure_class: "frame_unavailable",
         retry_posture: "safe_retry",
         recovery_hint:
-          "Project-bound frame/continuity is stale; use latest operator instruction, checkpoint a fresh Workpoint, then retry the Focus State write from a reloaded Pi session.",
+          "Use scratchpad for this note; checkpoint/resume a project-bound Workpoint before retrying Focus State writes.",
         next_tools: [
           "focusa_project_identity",
           "focusa_workpoint_checkpoint",
@@ -2117,7 +2117,7 @@ export function registerTools(pi: ExtensionAPI) {
           content: [
             {
               type: "text" as const,
-              text: `⚠️ ${formatPushDeltaFailure(result.reason)} — decision NOT recorded in Focus State. ${fallbackText} Next: ${recovery.recovery_hint}`,
+              text: `⚠️ Decision not recorded in Focus State: ${formatPushDeltaFailure(result.reason)}. ${fallbackText} Next: ${recovery.recovery_hint}`,
             },
           ],
           details: {
@@ -2210,7 +2210,7 @@ export function registerTools(pi: ExtensionAPI) {
           content: [
             {
               type: "text" as const,
-              text: `⚠️ ${formatPushDeltaFailure(result.reason)} — constraint NOT recorded in Focus State. ${fallbackText} Next: ${recovery.recovery_hint}`,
+              text: `⚠️ Constraint not recorded in Focus State: ${formatPushDeltaFailure(result.reason)}. ${fallbackText} Next: ${recovery.recovery_hint}`,
             },
           ],
           details: {
@@ -2285,7 +2285,7 @@ export function registerTools(pi: ExtensionAPI) {
           content: [
             {
               type: "text" as const,
-              text: `⚠️ ${formatPushDeltaFailure(result.reason)} — failure NOT recorded in Focus State. ${fallbackText} Next: ${recoveryPlan.recovery_hint}`,
+              text: `⚠️ Failure not recorded in Focus State: ${formatPushDeltaFailure(result.reason)}. ${fallbackText} Next: ${recoveryPlan.recovery_hint}`,
             },
           ],
           details: {
