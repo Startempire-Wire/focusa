@@ -9079,18 +9079,15 @@ export function registerTools(pi: ExtensionAPI) {
       const total = candidates.length;
       const top = candidates[0];
       const topCapture = String(top?.capture_id || "none");
-      const topLesson = compactText(
-        top?.summary || top?.content || top?.signal || "no lesson content",
-        "no lesson content",
-        120
-      );
-      // FOCUSA_FIX-63jd: when the lesson would be truncated, surface the
-      // rehydrate_ref instead so the agent can fetch the full content via
-      // focusa_metacog_rehydrate rather than seeing a mid-sentence cutoff.
       const fullLesson = String(top?.summary || top?.content || top?.signal || "");
-      const rehydrateHint = fullLesson.length > 120
-        ? `rehydrate_full=true (lesson ${fullLesson.length} chars; truncated inline)` +
-          ` rehydrate_ref=${topCapture}`
+      const lessonRequiresRehydrate = fullLesson.length > 120;
+      // FOCUSA_FIX-63jd/BAD-AX: never show a mid-sentence truncated lesson.
+      // Long lessons render only a rehydrate pointer; compact content remains in details.
+      const topLesson = lessonRequiresRehydrate
+        ? `see_rehydrate_ref:${topCapture}`
+        : compactText(fullLesson || "no lesson content", "no lesson content", 120);
+      const rehydrateHint = lessonRequiresRehydrate
+        ? `rehydrate_full=true lesson_chars=${fullLesson.length} rehydrate_ref=${topCapture}`
         : null;
       const topWhy = compactText(
         top?.rationale ||
@@ -9107,7 +9104,15 @@ export function registerTools(pi: ExtensionAPI) {
         {
           ...req,
           compact_top_lesson:
-            total > 0 ? { lesson: topLesson, why_relevant: topWhy, rehydrate_id: topCapture } : null,
+            total > 0
+              ? {
+                  lesson: topLesson,
+                  why_relevant: topWhy,
+                  rehydrate_id: topCapture,
+                  lesson_inline_omitted: lessonRequiresRehydrate,
+                  full_lesson_chars: fullLesson.length,
+                }
+              : null,
         },
         res,
         total > 0
