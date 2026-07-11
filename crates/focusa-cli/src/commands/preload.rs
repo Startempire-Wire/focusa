@@ -47,6 +47,21 @@ pub async fn run(args: PreloadArgs, _json_mode: bool) -> Result<()> {
         "verify" => curl_get(&daemon_url, "/v1/preload/verify").await,
         "doctor" => curl_get(&daemon_url, "/v1/preload/doctor").await,
         "receipt-preview" => curl_get(&daemon_url, "/v1/preload/receipt-preview").await,
+        "receipt-commit" => {
+            let key = args
+                .idempotency_key
+                .clone()
+                .context("--idempotency-key is required for receipt-commit")?;
+            curl_post(
+                &daemon_url,
+                "/v1/preload/receipt-commit",
+                json!({
+                    "profile": args.profile.unwrap_or_else(|| "rules_and_context".to_string()),
+                    "idempotency_key": key,
+                }),
+            )
+            .await
+        }
         "write" => {
             let profile = args
                 .profile
@@ -74,7 +89,7 @@ pub async fn run(args: PreloadArgs, _json_mode: bool) -> Result<()> {
         }
         other => {
             anyhow::bail!(
-                "unknown preload action {other:?}; expected one of profiles | build | render | verify | doctor | receipt-preview | write"
+                "unknown preload action {other:?}; expected one of profiles | build | render | verify | doctor | receipt-preview | receipt-commit | write"
             );
         }
     }
