@@ -11,7 +11,8 @@ export type FocusaToolFamily =
   | "project_identity"
   | "traversal"
   | "session_transfer"
-  | "awareness";
+  | "awareness"
+  | "preload";
 
 export type FocusaToolParityStatus =
   "full" | "domain" | "pi_only" | "local_only" | "degraded_known" | "api_only";
@@ -71,6 +72,42 @@ export interface FocusSliceToolAffordanceOptions {
   hasWorkpoint: boolean;
   hasOntologyAmbiguity: boolean;
 }
+
+const PRELOAD_TOOL_CONTRACTS: FocusaToolContract[] = [
+  ["profiles", "Preload Profiles", "List bounded agent bootstrap profiles.", "read_state", "GET"],
+  ["build", "Build Preload Packet", "Build a scoped agent bootstrap packet without writing it.", "read_state", "POST"],
+  ["render", "Render Preload Packet", "Render a scoped agent bootstrap packet.", "read_state", "POST"],
+  ["write", "Write Preload Packet", "Write an agent bootstrap packet to an allowlisted target.", "write_project_files", "POST"],
+  ["verify", "Verify Preload Packet", "Verify bootstrap packet scope and integrity.", "read_state", "POST"],
+  ["doctor", "Preload Doctor", "Diagnose bootstrap delivery readiness and recovery steps.", "read_state", "POST"],
+  ["receipt_preview", "Preview Preload Receipt", "Preview a bootstrap delivery receipt without committing it.", "read_state", "POST"],
+  ["receipt_commit", "Commit Preload Receipt", "Commit an idempotent bootstrap delivery receipt.", "write_receipt", "POST"],
+].map(([suffix, label, purpose, sideEffect, method]) => {
+  const action = suffix.replace("_", "-");
+  const write = sideEffect.startsWith("write");
+  return {
+    name: `focusa_preload_${suffix}`,
+    family: "preload",
+    label,
+    purpose,
+    ontology_action: `preload.${suffix}`,
+    ontology_objects: suffix.startsWith("receipt") ? ["AgentBootstrapReceipt"] : ["AgentBootstrapPacket"],
+    api_routes: [`${method} /v1/preload/${action}`],
+    cli_commands: [`focusa preload ${action}`],
+    core_surface: "Spec111 agent context bootstrap and delivery",
+    doc_path: `docs/focusa-tools/tools/focusa_preload_${suffix}.md`,
+    spec_path: "docs/111-agent-context-bootstrap-and-delivery-spec.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: sideEffect,
+    parity_status: "full",
+    exemptions: [],
+    live_check: "contract_static plus scoped preload route verification",
+    scope_requirement: { kind: write ? "write" : "read", route_family: "preload" },
+    authority_requirement: write
+      ? { kind: "canonical", path: `/v1/preload/${action}` }
+      : { kind: "advisory_only" },
+  } as FocusaToolContract;
+});
 
 export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   {
@@ -2094,6 +2131,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     scope_requirement: { kind: "read", route_family: "auto" },
     authority_requirement: { kind: "advisory_only" },
   },
+  ...PRELOAD_TOOL_CONTRACTS,
   {
     name: "focusa_awareness_packet",
     label: "Awareness Packet",
@@ -2145,6 +2183,7 @@ const FAMILY_NEXT_TOOLS: Record<FocusaToolFamily, string[]> = {
   traversal: ["focusa_active_object_resolve", "focusa_evidence_capture", "focusa_workpoint_resume"],
   session_transfer: ["focusa_workpoint_resume", "focusa_device_pair_status", "focusa_trajectory_view"],
   awareness: ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_tool_doctor"],
+  preload: ["focusa_preload_build", "focusa_preload_verify", "focusa_preload_doctor"],
 };
 
 const TOOL_NEXT_TOOLS: Record<string, string[]> = {
@@ -2458,6 +2497,7 @@ const FAMILY_DEFAULT_INPUTS: Record<FocusaToolFamily, string[]> = {
     "surface=reload|post_compaction|warning|tool_guidance|uiai_bridge",
     "mode=minimal|standard|rich|onboarding",
   ],
+  preload: ["profile", "project_root and continuity_id when scoped", "idempotency_key for writes"],
 };
 
 const FAMILY_WHEN_NOT_TO_USE: Record<FocusaToolFamily, string[]> = {
@@ -2478,6 +2518,7 @@ const FAMILY_WHEN_NOT_TO_USE: Record<FocusaToolFamily, string[]> = {
     "treating awareness as canonical authority",
     "ignoring suppressed lines when debugging degraded awareness",
   ],
+  preload: ["writing outside allowlisted paths", "committing receipts without an idempotency key"],
 };
 
 function invocationFor(contract: FocusaToolContract): string {

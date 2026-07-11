@@ -13471,6 +13471,111 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     },
   });
 
+  const preloadProfile = Type.Optional(
+    Type.Union([
+      Type.Literal("rules_only"),
+      Type.Literal("rules_and_context"),
+      Type.Literal("budget_light"),
+      Type.Literal("budget_deep"),
+    ], { description: "Agent bootstrap profile; defaults to rules_and_context." })
+  );
+  const preloadScopeParams = {
+    profile: preloadProfile,
+    target: Type.Optional(Type.String({ maxLength: 80 })),
+    mode: Type.Optional(Type.String({ maxLength: 80 })),
+    project_root: Type.Optional(Type.String({ maxLength: 4096 })),
+    continuity_id: Type.Optional(Type.String({ maxLength: 256 })),
+    session_id: Type.Optional(Type.String({ maxLength: 256 })),
+    current_ask: Type.Optional(Type.String({ maxLength: 1000 })),
+  };
+  const preloadReadTools = [
+    ["focusa_preload_build", "Build Preload Packet", "build", ["focusa_preload_render", "focusa_preload_write", "focusa_preload_verify", "focusa_preload_receipt_preview"]],
+    ["focusa_preload_render", "Render Preload Packet", "render", ["focusa_preload_write", "focusa_preload_verify", "focusa_preload_receipt_preview"]],
+    ["focusa_preload_verify", "Verify Preload Packet", "verify", ["focusa_preload_receipt_preview", "focusa_preload_doctor", "focusa_workpoint_resume"]],
+    ["focusa_preload_doctor", "Preload Doctor", "doctor", ["focusa_project_identity", "focusa_workpoint_resume", "focusa_context_cognition"]],
+  ] as const;
+
+  pi.registerTool({
+    name: "focusa_preload_profiles",
+    label: "Preload Profiles",
+    description: "List bounded Spec 111 agent bootstrap profiles.",
+    parameters: strictObject({}),
+    async execute() {
+      const res = await callSpec80Tool("focusa_preload_profiles", "/preload/profiles", {}, { method: "GET" });
+      return spec80Result("focusa_preload_profiles", "/v1/preload/profiles", {}, res,
+        `preload profiles → ${res.body?.profiles?.length || 0} available`, "preload profiles unavailable",
+        { kind: res.ok ? "ok" : "blocked", nextTools: ["focusa_preload_build"] });
+    },
+  });
+
+  for (const [name, label, action, nextTools] of preloadReadTools) {
+    pi.registerTool({
+      name,
+      label,
+      description: `${label} through the scoped Spec 111 preload API.`,
+      parameters: strictObject(preloadScopeParams),
+      async execute(_id, params) {
+        const request = params as Record<string, any>;
+        const res = await callSpec80Tool(name, `/preload/${action}`, request, { method: "POST" });
+        return spec80Result(name, `/v1/preload/${action}`, request, res,
+          `${action} preload → ${res.body?.status || "completed"}`, `${action} preload unavailable`,
+          { kind: res.ok ? "ok" : "blocked", nextTools: [...nextTools] });
+      },
+    });
+  }
+
+  pi.registerTool({
+    name: "focusa_preload_write",
+    label: "Write Preload Packet",
+    description: "Write a Spec 111 preload packet to an allowlisted target with an idempotency key.",
+    parameters: strictObject({
+      profile: preloadProfile,
+      target: Type.String({ minLength: 1, maxLength: 4096 }),
+      idempotency_key: Type.String({ minLength: 1, maxLength: 256 }),
+      overwrite: Type.Optional(Type.Boolean()),
+    }),
+    async execute(_id, params) {
+      const p = params as Record<string, any>;
+      const request = { profile_id: p.profile || "rules_and_context", target_path: p.target, idempotency_key: p.idempotency_key, overwrite: p.overwrite || false };
+      const res = await callSpec80Tool("focusa_preload_write", "/preload/write", request, { method: "POST", writer: true });
+      return spec80Result("focusa_preload_write", "/v1/preload/write", request, res,
+        `preload write → ${res.body?.target_path || p.target}`, "preload write blocked",
+        { kind: res.ok ? "ok" : "blocked", nextTools: ["focusa_preload_verify", "focusa_preload_receipt_preview", "focusa_preload_doctor"] });
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_preload_receipt_preview",
+    label: "Preview Preload Receipt",
+    description: "Preview a Spec 111 bootstrap delivery receipt without committing it.",
+    parameters: strictObject({ profile: preloadProfile }),
+    async execute(_id, params) {
+      const request = params as Record<string, any>;
+      const res = await callSpec80Tool("focusa_preload_receipt_preview", "/preload/receipt-preview", request, { method: "POST" });
+      return spec80Result("focusa_preload_receipt_preview", "/v1/preload/receipt-preview", request, res,
+        `preload receipt preview → ${res.body?.status || "completed"}`, "preload receipt preview unavailable",
+        { kind: res.ok ? "ok" : "blocked", nextTools: ["focusa_preload_receipt_commit", "focusa_preload_doctor"] });
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_preload_receipt_commit",
+    label: "Commit Preload Receipt",
+    description: "Commit an idempotent Spec 111 bootstrap delivery receipt.",
+    parameters: strictObject({
+      profile: preloadProfile,
+      idempotency_key: Type.String({ minLength: 1, maxLength: 256 }),
+    }),
+    async execute(_id, params) {
+      const p = params as Record<string, any>;
+      const request = { profile: p.profile || "rules_and_context", idempotency_key: p.idempotency_key };
+      const res = await callSpec80Tool("focusa_preload_receipt_commit", "/preload/receipt-commit", request, { method: "POST", writer: true });
+      return spec80Result("focusa_preload_receipt_commit", "/v1/preload/receipt-commit", request, res,
+        `preload receipt commit → ${res.body?.status || "completed"}`, "preload receipt commit blocked",
+        { kind: res.ok ? "ok" : "blocked", nextTools: ["focusa_receipt_verify", "focusa_preload_doctor"] });
+    },
+  });
+
   pi.registerTool({
     name: "focusa_predict_stats",
     label: "Prediction Stats",

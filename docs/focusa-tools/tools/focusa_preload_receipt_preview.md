@@ -5,18 +5,20 @@ Render the bootstrap_delivery Focusa Receipt preview for a given profile.
 ## CLI
 
 ```
-focusa preload receipt-preview
+focusa preload receipt-preview --profile rules_and_context
 ```
 
 ## API
 
 ```
-GET /v1/preload/receipt-preview
+POST /v1/preload/receipt-preview
 ```
 
 ## Arguments
 
-[]
+[
+  "profile?"
+]
 
 ## Output
 

@@ -41,7 +41,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/preload/doctor", get(doctor).post(doctor_post))
         .route(
             "/v1/preload/receipt-preview",
-            get(receipt_preview).post(receipt_preview),
+            get(receipt_preview).post(receipt_preview_post),
         )
         .route("/v1/preload/receipt-commit", post(receipt_commit))
         .route("/v1/preload/write", post(write_packet))
@@ -126,8 +126,9 @@ pub fn build_packet_for_profile(profile_id: &str) -> Result<Value, String> {
     }))
 }
 
-async fn receipt_preview() -> Json<Value> {
-    match receipt_preview_for(PROFILE_RULES_AND_CONTEXT) {
+fn receipt_preview_response(profile: Option<String>) -> Json<Value> {
+    let profile = profile.unwrap_or_else(default_profile);
+    match receipt_preview_for(&profile) {
         Ok(receipt) => Json(
             json!({"schema":PRELOAD_SCHEMA,"step":"receipt_preview","read_only":true,"status":"completed","receipt":receipt}),
         ),
@@ -135,6 +136,14 @@ async fn receipt_preview() -> Json<Value> {
             json!({"schema":PRELOAD_SCHEMA,"step":"receipt_preview","status":"failed","error":{"code":FAIL_CODE_PRELOAD,"message":error}}),
         ),
     }
+}
+
+async fn receipt_preview(Query(query): Query<ProfileQuery>) -> Json<Value> {
+    receipt_preview_response(query.profile)
+}
+
+async fn receipt_preview_post(Json(query): Json<ProfileQuery>) -> Json<Value> {
+    receipt_preview_response(query.profile)
 }
 
 #[derive(serde::Deserialize)]

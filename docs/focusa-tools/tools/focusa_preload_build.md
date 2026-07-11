@@ -11,7 +11,7 @@ focusa preload build --profile rules_and_context
 ## API
 
 ```
-GET /v1/preload/build
+POST /v1/preload/build
 ```
 
 ## Arguments

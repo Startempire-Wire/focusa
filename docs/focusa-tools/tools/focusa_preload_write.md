@@ -11,7 +11,7 @@ focusa preload write --profile rules_and_context --target /tmp/focusa-preload/pa
 ## API
 
 ```
-GET /v1/preload/write
+POST /v1/preload/write
 ```
 
 ## Arguments

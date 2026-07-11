@@ -1,6 +1,6 @@
 //! Spec 111 §9 — `focusa preload` CLI surface.
 //!
-//! Subcommands: profiles | build | render | verify | doctor | write | receipt-preview
+//! Subcommands: profiles | build | render | verify | doctor | write | receipt-preview | receipt-commit
 //! These call the daemon /v1/preload/* API routes and print human-readable results.
 
 use anyhow::{Context, Result};
@@ -10,7 +10,7 @@ use std::process::Command;
 
 #[derive(Args)]
 pub struct PreloadArgs {
-    /// Sub-action: profiles | build | render | verify | doctor | write | receipt-preview.
+    /// Sub-action: profiles | build | render | verify | doctor | write | receipt-preview | receipt-commit.
     #[arg(value_name = "ACTION", default_value = "profiles")]
     pub action: String,
 
@@ -26,7 +26,7 @@ pub struct PreloadArgs {
     #[arg(long)]
     pub target: Option<String>,
 
-    /// Idempotency key for the write action.
+    /// Idempotency key for write and receipt-commit actions.
     #[arg(long)]
     pub idempotency_key: Option<String>,
 
@@ -46,7 +46,14 @@ pub async fn run(args: PreloadArgs, _json_mode: bool) -> Result<()> {
         "render" => curl_get(&daemon_url, "/v1/preload/render").await,
         "verify" => curl_get(&daemon_url, "/v1/preload/verify").await,
         "doctor" => curl_get(&daemon_url, "/v1/preload/doctor").await,
-        "receipt-preview" => curl_get(&daemon_url, "/v1/preload/receipt-preview").await,
+        "receipt-preview" => {
+            curl_post(
+                &daemon_url,
+                "/v1/preload/receipt-preview",
+                json!({"profile": args.profile.unwrap_or_else(|| "rules_and_context".to_string())}),
+            )
+            .await
+        }
         "receipt-commit" => {
             let key = args
                 .idempotency_key
