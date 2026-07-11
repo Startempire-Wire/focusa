@@ -6359,12 +6359,15 @@ export function registerTools(pi: ExtensionAPI) {
     name: "focusa_hlt_history",
     label: "HLT History",
     description:
-      "Read append-only HLT ledger entries with old/new values, source, and evidence refs for a project.",
+      "Read append-only HLT ledger entries with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6.",
     promptSnippet:
-      "Use when reconstructing trajectory wording across sessions or verifying exact HLT history.",
+      "Use when reconstructing trajectory wording, checking previous-valid fallback, or verifying exact HLT history across sessions.",
     parameters: Type.Object({
       project_root: Type.Optional(Type.String({ description: "Project root for HLT history scope." })),
       continuity_id: Type.Optional(Type.String({ description: "Optional continuity_id filter." })),
+      session_id: Type.Optional(Type.String({ description: "Spec 125 §7.6: filter by session. 'current' resolves to active session." })),
+      include_cross_session_fallbacks: Type.Optional(Type.Boolean({ description: "Include cross-session fallback candidates (default false)." })),
+      include_generic: Type.Optional(Type.Boolean({ description: "Include generic HLT entries (default false)." })),
       limit: Type.Optional(
         Type.Integer({ minimum: 1, maximum: 500, description: "Max entries to return (defaults to 50)." })
       ),
@@ -6377,6 +6380,9 @@ export function registerTools(pi: ExtensionAPI) {
       const query = new URLSearchParams();
       query.set("project_root", String(projectRoot));
       if (p.continuity_id) query.set("continuity_id", String(p.continuity_id));
+      if (p.session_id) query.set("session_id", String(p.session_id));
+      if (p.include_cross_session_fallbacks) query.set("include_cross_session_fallbacks", "true");
+      if (p.include_generic) query.set("include_generic", "true");
       if (typeof p.limit === "number")
         query.set("limit", String(Math.min(Math.max(Math.trunc(p.limit), 1), 500)));
       const result = await focusaFetchDetailed(`/hlt/history?${query.toString()}`);
@@ -6398,7 +6404,7 @@ export function registerTools(pi: ExtensionAPI) {
           status: "completed",
           canonical: body.canonical === true,
           degraded: body.degraded === true,
-          summary: `hlt history → project=${projectRoot} continuity=${String(p.continuity_id || "all")} count=${String(body.count || 0)}`,
+          summary: `hlt history → project=${projectRoot} continuity=${String(p.continuity_id || "all")} session=${String(p.session_id || "all")} count=${String(body.count || 0)} generic_skipped=${String(body.generic_skipped || 0)} fallbacks=${String(body.fallback_candidates?.length || 0)}`,
           tool: "focusa_hlt_history",
           family: "trajectory",
           side_effects: [],
@@ -6410,7 +6416,7 @@ export function registerTools(pi: ExtensionAPI) {
         content: [
           {
             type: "text",
-            text: `hlt history → ${projectRoot} continuity=${String(p.continuity_id || "all")} entries=${String(body.count || 0)} ledger=${String(body.ledger_file || "unknown")}`,
+            text: `hlt history → ${projectRoot} continuity=${String(p.continuity_id || "all")} session=${String(p.session_id || "all")} entries=${String(body.count || 0)} generic_skipped=${String(body.generic_skipped || 0)} fallbacks=${String(body.fallback_candidates?.length || 0)} ledger=${String(body.ledger_file || "unknown")}`,
           },
         ],
         details: {
