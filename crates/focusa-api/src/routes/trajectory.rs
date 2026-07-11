@@ -1654,11 +1654,44 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         "next_repair_tool": if reconciliation_aligned { "none" } else if workpoint_status == "canonical" { "focusa_trajectory_define_goal" } else { "focusa_workpoint_checkpoint" },
     });
 
+    // Spec 125 §3.3/3.4/6.3: compute loud warning and mandatory HLT fields.
+    let loud_warning = match hlt_status {
+        HltStatus::MissingRequired => Some("HLT_REQUIRED: no valid High-Level Trajectory is set for this verified scope.".to_string()),
+        HltStatus::GenericDegraded => Some("GENERIC_HLT_DEGRADED: this is a placeholder, not a real project trajectory.".to_string()),
+        HltStatus::Conflicted => Some("HLT_CONFLICTED: multiple conflicting HLT sources detected.".to_string()),
+        _ => None,
+    };
+    let trajectory_required = !hlt_status.is_action_ready();
+    let hlt_required = trajectory_required;
+    let action_authority_from_trajectory = hlt_status.has_route_authority();
+    let generic_bootstrap = matches!(hlt_status, HltStatus::GenericDegraded);
+
+    // Spec 125 §6.3: build warnings list with loud_warning appended.
+    let mut trajectory_warnings = if canonical {
+        Vec::<String>::new()
+    } else if bootstrap_default_trajectory {
+        vec!["trajectory bootstrap default is advisory; define or confirm the project goal before treating it as canonical".to_string()]
+    } else if using_prior_project_trajectory {
+        vec!["using prior project trajectory as reload fallback; refresh short-term goal/current state when needed".to_string()]
+    } else if status == "not_found" {
+        vec!["trajectory is not set for this project folder; define or confirm the goal".to_string()]
+    } else {
+        vec!["trajectory projection is degraded or provisional; verify before treating as canonical".to_string()]
+    };
+    if let Some(ref lw) = loud_warning {
+        trajectory_warnings.push(lw.clone());
+    }
+
     json!({
         "status": status,
         "canonical": canonical,
         "degraded": status == "degraded" || hlt_degraded_placeholder || !hlt_status.has_route_authority(),
         "source": "per_project_trajectory_projection_v1",
+        "trajectory_required": trajectory_required,
+        "hlt_required": hlt_required,
+        "hlt_status": serde_json::to_value(&hlt_status).unwrap_or_default(),
+        "generic_bootstrap": generic_bootstrap,
+        "action_authority_from_trajectory": action_authority_from_trajectory,
         "mode": query.mode.as_deref().unwrap_or("summary"),
         "trajectory_workpoint_reconciliation": trajectory_workpoint_reconciliation.clone(),
         "project_identity": {
@@ -1791,17 +1824,8 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         } else {
             "Trajectory is canonical. Continue with focusa_workpoint_resume or focusa_workpoint_checkpoint."
         },
-        "warnings": if canonical {
-            Vec::<String>::new()
-        } else if bootstrap_default_trajectory {
-            vec!["trajectory bootstrap default is advisory; define or confirm the project goal before treating it as canonical".to_string()]
-        } else if using_prior_project_trajectory {
-            vec!["using prior project trajectory as reload fallback; refresh short-term goal/current state when needed".to_string()]
-        } else if status == "not_found" {
-            vec!["trajectory is not set for this project folder; define or confirm the goal".to_string()]
-        } else {
-            vec!["trajectory projection is degraded or provisional; verify before treating as canonical".to_string()]
-        },
+        "warnings": trajectory_warnings,
+        "loud_warning": loud_warning,
     })
 }
 
