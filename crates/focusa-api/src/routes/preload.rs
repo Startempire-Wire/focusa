@@ -148,6 +148,18 @@ fn default_profile() -> String {
     PROFILE_RULES_AND_CONTEXT.to_string()
 }
 
+fn receipt_ledger_path(key: &str) -> std::path::PathBuf {
+    let safe = key
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+        .collect::<String>();
+    std::env::var_os("HOME")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(std::env::temp_dir)
+        .join(".local/state/focusa/preload-receipts")
+        .join(format!("{safe}.json"))
+}
+
 async fn receipt_commit(Json(req): Json<ReceiptCommitRequest>) -> (StatusCode, Json<Value>) {
     if req.idempotency_key.trim().is_empty() {
         return (
@@ -157,13 +169,41 @@ async fn receipt_commit(Json(req): Json<ReceiptCommitRequest>) -> (StatusCode, J
             ),
         );
     }
+    let path = receipt_ledger_path(&req.idempotency_key);
+    if let Ok(body) = std::fs::read(&path) {
+        if let Ok(receipt) = serde_json::from_slice::<Value>(&body) {
+            return (
+                StatusCode::OK,
+                Json(
+                    json!({"schema":PRELOAD_SCHEMA,"step":"receipt_commit","status":"completed","idempotent_replay":true,"receipt":receipt}),
+                ),
+            );
+        }
+    }
     match receipt_preview_for(&req.profile) {
-        Ok(receipt) => (
-            StatusCode::OK,
-            Json(
-                json!({"schema":PRELOAD_SCHEMA,"step":"receipt_commit","status":"completed","receipt_kind":BOOTSTRAP_RECEIPT_KIND,"idempotency_key":req.idempotency_key,"receipt":receipt}),
-            ),
-        ),
+        Ok(receipt) => {
+            if let Some(parent) = path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            let committed = json!({"receipt_kind":BOOTSTRAP_RECEIPT_KIND,"idempotency_key":req.idempotency_key,"receipt":receipt});
+            if let Err(error) = std::fs::write(
+                &path,
+                serde_json::to_vec_pretty(&committed).unwrap_or_default(),
+            ) {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(
+                        json!({"schema":PRELOAD_SCHEMA,"step":"receipt_commit","status":"failed","error":{"code":FAIL_CODE_PRELOAD,"message":error.to_string()}}),
+                    ),
+                );
+            }
+            (
+                StatusCode::OK,
+                Json(
+                    json!({"schema":PRELOAD_SCHEMA,"step":"receipt_commit","status":"completed","idempotent_replay":false,"receipt":committed}),
+                ),
+            )
+        }
         Err(error) => (
             StatusCode::BAD_REQUEST,
             Json(
