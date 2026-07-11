@@ -401,11 +401,11 @@ struct UpdateRollbackEnvelope {
     part: RollbackPart,
     dry_run: bool,
     consent_yes: bool,
-    blocked_reason: Vec<&'static str>,
+    blocked_reason: Vec<String>,
     restore_order: Vec<&'static str>,
     proof_required: Vec<&'static str>,
     data_safety: DataSafetyPlan,
-    recovery_hint: &'static str,
+    recovery_hint: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -627,7 +627,27 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
             }
         }
         UpdateCmd::Rollback(args) => {
-            let rollback = build_rollback_envelope(args);
+            let execute = !args.dry_run && args.yes;
+            let part = args.part;
+            let mut rollback = build_rollback_envelope(args);
+            if execute {
+                match execute_verified_rollback(part) {
+                    Ok(restored) => {
+                        rollback.status = "completed";
+                        rollback.read_only = false;
+                        rollback.mutations_performed = !restored.is_empty();
+                        rollback.rollback_executed = true;
+                        rollback.blocked_reason.clear();
+                        rollback.recovery_hint =
+                            "Rollback completed from SHA-verified backup manifest.".to_string();
+                    }
+                    Err(error) => {
+                        rollback.status = "failed";
+                        rollback.blocked_reason = vec!["rollback_failed".to_string()];
+                        eprintln!("focusa update rollback failed: {error}");
+                    }
+                }
+            }
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&rollback)?);
             } else {
@@ -1076,6 +1096,85 @@ fn build_history_envelope(limit: usize) -> UpdateHistoryEnvelope {
     }
 }
 
+#[derive(Deserialize)]
+struct RollbackManifestEntry {
+    part: String,
+    target: PathBuf,
+    backup: PathBuf,
+    sha256: String,
+}
+
+#[derive(Deserialize)]
+struct RollbackManifest {
+    entries: Vec<RollbackManifestEntry>,
+}
+
+fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<String>> {
+    let backups = update_state_root().join("backups");
+    let manifest = std::fs::read_dir(&backups)?
+        .filter_map(Result::ok)
+        .filter_map(|entry| {
+            let path = entry.path().join("rollback-manifest.json");
+            path.exists().then_some(path)
+        })
+        .max_by_key(|path| path.metadata().and_then(|m| m.modified()).ok())
+        .context("no rollback manifest available")?;
+    let manifest: RollbackManifest = serde_json::from_slice(&std::fs::read(&manifest)?)?;
+    let wanted = |name: &str| match part {
+        RollbackPart::All => true,
+        RollbackPart::Cli => name == "cli",
+        RollbackPart::Tui => name == "tui",
+        RollbackPart::Daemon => name == "daemon",
+    };
+    let mut restored = Vec::new();
+    for entry in manifest
+        .entries
+        .into_iter()
+        .filter(|entry| wanted(&entry.part))
+    {
+        if sha256_file(&entry.backup)? != entry.sha256 {
+            anyhow::bail!("backup checksum mismatch for {}", entry.part);
+        }
+        let failed = entry.target.with_extension("focusa-pre-rollback");
+        if entry.target.exists() {
+            std::fs::rename(&entry.target, &failed)?;
+        }
+        if let Err(error) = std::fs::rename(&entry.backup, &entry.target) {
+            if failed.exists() {
+                let _ = std::fs::rename(&failed, &entry.target);
+            }
+            return Err(error.into());
+        }
+        let _ = std::fs::remove_file(&failed);
+        restored.push(entry.part);
+    }
+    if restored.is_empty() {
+        anyhow::bail!("no matching verified backup entries");
+    }
+    let state = update_state_root();
+    let journal = state.join("update-journal.json");
+    std::fs::write(
+        &journal,
+        serde_json::to_vec_pretty(&json!({
+            "schema":"focusa.update_journal.v1",
+            "state":"rollback_completed",
+            "restored":restored,
+        }))?,
+    )?;
+    let history = state.join("update-history.jsonl");
+    use std::io::Write as _;
+    let mut history_file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(history)?;
+    writeln!(
+        history_file,
+        "{}",
+        serde_json::to_string(&json!({"event":"rollback_completed","restored":restored}))?
+    )?;
+    Ok(restored)
+}
+
 fn build_rollback_envelope(args: UpdateRollbackArgs) -> UpdateRollbackEnvelope {
     UpdateRollbackEnvelope {
         schema: "focusa.update_rollback.v1",
@@ -1087,9 +1186,9 @@ fn build_rollback_envelope(args: UpdateRollbackArgs) -> UpdateRollbackEnvelope {
         dry_run: args.dry_run,
         consent_yes: args.yes,
         blocked_reason: vec![
-            "rollback_executor_not_enabled_in_spec128_08_scaffold",
-            "snapshot_integrity_verification_required",
-            "admin_confirmation_required",
+            "rollback_executor_not_enabled_in_spec128_08_scaffold".to_string(),
+            "snapshot_integrity_verification_required".to_string(),
+            "admin_confirmation_required".to_string(),
         ],
         restore_order: match args.part {
             RollbackPart::Daemon => vec!["daemon", "restart_daemon_after_health_contract_check"],
@@ -1110,7 +1209,7 @@ fn build_rollback_envelope(args: UpdateRollbackArgs) -> UpdateRollbackEnvelope {
             overwrite_license: false,
             preserve: build_safety_plan().preserves,
         },
-        recovery_hint: "No rollback was executed. Inspect update history/journal and rerun with future rollback gates when implemented.",
+        recovery_hint: "No rollback was executed. Inspect update history/journal and rerun with future rollback gates when implemented.".to_string(),
     }
 }
 
