@@ -521,9 +521,7 @@ pub fn evaluate_release_manifest(
     for (kind, asset) in &manifest.assets {
         let path = format!("/assets/{kind}");
         validate_asset(kind, asset, manifest, &mut errors);
-        if asset.platform == options.platform {
-            matched_assets.push(kind.clone());
-        } else if asset.platform == "all" {
+        if asset.platform == options.platform || asset.platform == "all" {
             matched_assets.push(kind.clone());
         } else if asset.platform.trim().is_empty() {
             errors.push(ReleaseEligibilityFinding::error(
