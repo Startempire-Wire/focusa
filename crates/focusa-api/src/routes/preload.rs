@@ -9,6 +9,7 @@
 use crate::server::AppState;
 use axum::{
     Json, Router,
+    extract::Query,
     http::StatusCode,
     routing::{get, post},
 };
@@ -34,11 +35,14 @@ pub const PROFILE_IDS: &[&str] = &[
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/preload/profiles", get(list_profiles))
-        .route("/v1/preload/build", get(build))
-        .route("/v1/preload/render", get(render))
-        .route("/v1/preload/verify", get(verify))
-        .route("/v1/preload/doctor", get(doctor))
-        .route("/v1/preload/receipt-preview", get(receipt_preview))
+        .route("/v1/preload/build", get(build).post(build_post))
+        .route("/v1/preload/render", get(render).post(render_post))
+        .route("/v1/preload/verify", get(verify).post(verify_post))
+        .route("/v1/preload/doctor", get(doctor).post(doctor_post))
+        .route(
+            "/v1/preload/receipt-preview",
+            get(receipt_preview).post(receipt_preview),
+        )
         .route("/v1/preload/receipt-commit", get(receipt_commit))
         .route("/v1/preload/write", post(write_packet))
 }
@@ -71,44 +75,41 @@ struct ProfileQuery {
     profile: Option<String>,
 }
 
-async fn build() -> Json<Value> {
-    Json(json!({
-        "schema": PRELOAD_SCHEMA,
-        "step": "build",
-        "read_only": true,
-        "status": "noop",
-        "note": "Slice 1 stub; full render + safe write land in slices 3-4",
-    }))
+fn packet_response(step: &str, profile: Option<String>) -> Json<Value> {
+    let profile = profile.unwrap_or_else(|| PROFILE_RULES_AND_CONTEXT.to_string());
+    match build_packet_for_profile(&profile) {
+        Ok(packet) => Json(
+            json!({"schema":PRELOAD_SCHEMA,"step":step,"read_only":true,"status":"completed","packet":packet,"checks":["profile","integrity","scope"]}),
+        ),
+        Err(error) => Json(
+            json!({"schema":PRELOAD_SCHEMA,"step":step,"status":"failed","error":{"code":FAIL_CODE_PRELOAD,"message":error}}),
+        ),
+    }
 }
 
-async fn render() -> Json<Value> {
-    Json(json!({
-        "schema": PRELOAD_SCHEMA,
-        "step": "render",
-        "read_only": true,
-        "status": "noop",
-        "render_modes": ["static_rule", "dynamic_context", "acceptance_prompt"],
-    }))
+async fn build(Query(query): Query<ProfileQuery>) -> Json<Value> {
+    packet_response("build", query.profile)
 }
-
-async fn verify() -> Json<Value> {
-    Json(json!({
-        "schema": PRELOAD_SCHEMA,
-        "step": "verify",
-        "read_only": true,
-        "status": "noop",
-        "checks": ["scope", "auth", "integrity", "idempotency"],
-    }))
+async fn build_post(Json(query): Json<ProfileQuery>) -> Json<Value> {
+    packet_response("build", query.profile)
 }
-
-async fn doctor() -> Json<Value> {
-    Json(json!({
-        "schema": PRELOAD_SCHEMA,
-        "step": "doctor",
-        "read_only": true,
-        "status": "noop",
-        "report": {"ok": false, "checks": []},
-    }))
+async fn render(Query(query): Query<ProfileQuery>) -> Json<Value> {
+    packet_response("render", query.profile)
+}
+async fn render_post(Json(query): Json<ProfileQuery>) -> Json<Value> {
+    packet_response("render", query.profile)
+}
+async fn verify(Query(query): Query<ProfileQuery>) -> Json<Value> {
+    packet_response("verify", query.profile)
+}
+async fn verify_post(Json(query): Json<ProfileQuery>) -> Json<Value> {
+    packet_response("verify", query.profile)
+}
+async fn doctor(Query(query): Query<ProfileQuery>) -> Json<Value> {
+    packet_response("doctor", query.profile)
+}
+async fn doctor_post(Json(query): Json<ProfileQuery>) -> Json<Value> {
+    packet_response("doctor", query.profile)
 }
 
 pub fn build_packet_for_profile(profile_id: &str) -> Result<Value, String> {
