@@ -6,6 +6,10 @@ BIN="${FOCUSA_BIN:-$ROOT/target/debug/focusa}"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
+if ! command -v rg >/dev/null 2>&1; then
+  rg() { grep -E "$@"; }
+fi
+
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
 
