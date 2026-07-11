@@ -2075,7 +2075,13 @@ async fn inspect_tui(latest: &str) -> anyhow::Result<InstalledPart> {
         Some(path) => probe_tui_version(path).await,
         None => None,
     };
-    let stale = version.as_ref().map(|version| version != latest);
+    // An installed TUI that cannot produce a safe version is refreshable:
+    // trusted atomic promotion verifies the staged replacement and preserves
+    // the old binary for rollback, avoiding a permanent probe_required state.
+    let stale = version
+        .as_ref()
+        .map(|version| version != latest)
+        .or_else(|| sha256.as_ref().map(|_| true));
     let stale_reason = match (&version, stale, &path) {
         (_, _, None) => "tui binary not found".into(),
         (Some(version), Some(true), _) => {

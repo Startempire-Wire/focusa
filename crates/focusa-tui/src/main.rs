@@ -32,6 +32,10 @@ async fn main() -> Result<()> {
         match arg.as_str() {
             "--headless-self-test" => headless = true,
             "--no-intro" => no_intro = true,
+            "--version" | "-V" => {
+                println!("focusa-tui {}", env!("CARGO_PKG_VERSION"));
+                return Ok(());
+            }
             "--help" | "-h" => {
                 println!("focusa-tui — Focusa Mission Deck");
                 println!("Usage: focusa-tui [--headless-self-test]");
