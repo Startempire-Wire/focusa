@@ -65,6 +65,15 @@ LICENSE_RECEIPT_FILE="${LICENSE_DIR}/license_receipt.json"
 INSTALL_LOG_FILE="${STATE_DIR}/installs.jsonl"
 MAX_CANDIDATES="${MAX_CANDIDATES:-20}"
 
+# Preserve pre-existing installations/configuration. The bootstrapper may
+# create these paths before handing off to Rust; on a failed clean install
+# they must not be left behind as misleading partial state.
+PREEXISTING_INSTALL_ROOT=0
+PREEXISTING_LICENSE_DIR=0
+[ -e "${HOME}/.focusa" ] && PREEXISTING_INSTALL_ROOT=1
+[ -e "$LICENSE_DIR" ] && PREEXISTING_LICENSE_DIR=1
+BOOTSTRAP_SUCCESS=0
+
 usage() {
   cat <<USAGE
 Usage: install-focusa.sh [options]
@@ -339,7 +348,16 @@ esac
 # Scratch tmpdir for the install transaction. Cleaned up on exit.
 # ----------------------------------------------------------------------------
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/focusa-install.XXXXXX")"
-trap 'rm -rf "$TMP"' EXIT
+cleanup_bootstrap_failure() {
+  local status=$?
+  rm -rf "$TMP"
+  if [ "$status" -ne 0 ] && [ "$BOOTSTRAP_SUCCESS" != 1 ]; then
+    [ "$PREEXISTING_INSTALL_ROOT" = 1 ] || rm -rf "${HOME}/.focusa"
+    [ "$PREEXISTING_LICENSE_DIR" = 1 ] || rm -rf "$LICENSE_DIR"
+    err "install failed; removed bootstrapper-created partial state"
+  fi
+}
+trap cleanup_bootstrap_failure EXIT
 
 # ----------------------------------------------------------------------------
 # Discover the latest COMPLETE release for this target. A complete release
@@ -704,9 +722,12 @@ ARGS=(install --target="$RUST_TARGET" --github-repo="$GITHUB_REPO")
 [ "$ACCEPT_LICENSE" = 1 ] && ARGS+=(--accept-license)
 [ "$CHANNEL" != "stable" ] && ARGS+=(--channel="$CHANNEL")
 [ -n "$LICENSE_KEY" ] && ARGS+=(--license-key="$LICENSE_KEY")
-# Bootstrapper temp dir cleanup: the EXIT trap is unreliable across `exec`
-# and external kills (SIGKILL). Clean it up explicitly before exec, and
-# disable the trap so it doesn't fire on the now-replaced process.
-rm -rf "$TMP"
-trap - EXIT
-exec "$BIN_DIR/focusa" "${ARGS[@]}"
+# Run rather than exec so an orchestrator failure reaches the EXIT trap.
+# The trap removes only clean-state paths created by this bootstrapper.
+if "$BIN_DIR/focusa" "${ARGS[@]}"; then
+  BOOTSTRAP_SUCCESS=1
+  exit 0
+fi
+status=$?
+err "Rust install orchestrator failed (exit ${status})"
+exit "$status"

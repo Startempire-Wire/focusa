@@ -59,6 +59,16 @@ pub struct InstallArgs {
     #[arg(long)]
     pub eval: bool,
 
+    /// Record that the public bootstrapper collected BSL acceptance.
+    /// The Rust orchestrator accepts this handoff flag so shell and CLI
+    /// contracts stay aligned; license validation remains authoritative.
+    #[arg(long)]
+    pub accept_license: bool,
+
+    /// Skip systemd user unit or launchd registration.
+    #[arg(long)]
+    pub no_service: bool,
+
     /// Persist PATH addition to shell rc file when interactive.
     #[arg(long)]
     pub persist_path: bool,
@@ -1064,7 +1074,9 @@ async fn execute_real_install(
         verify_macos_codesign(target, asset)?;
     }
     place_symlinks(&bin_dir, install_root)?;
-    delegate_service_render(target, &bin_dir, args.dry_run).await?;
+    if !args.no_service {
+        delegate_service_render(target, &bin_dir, args.dry_run).await?;
+    }
 
     // Path automation (focusa-112-path-automation). Idempotent: detects
     // shell, persists export PATH line to rc file, never duplicates.
@@ -1307,6 +1319,8 @@ mod tests {
             assume_yes: false,
             license_key: None,
             eval: false,
+            accept_license: false,
+            no_service: false,
             persist_path: false,
             no_persist_path: false,
             on_shell: ShellFamily::Auto,
@@ -1342,6 +1356,8 @@ mod tests {
             assume_yes: false,
             license_key: None,
             eval: true,
+            accept_license: false,
+            no_service: false,
             persist_path: false,
             no_persist_path: false,
             on_shell: ShellFamily::Auto,
@@ -1370,6 +1386,8 @@ mod tests {
             assume_yes: false,
             license_key: Some("focusa_live_xxxxx".to_string()),
             eval: false,
+            accept_license: false,
+            no_service: false,
             persist_path: false,
             no_persist_path: false,
             on_shell: ShellFamily::Auto,

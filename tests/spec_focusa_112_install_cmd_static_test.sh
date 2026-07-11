@@ -36,11 +36,11 @@ grep -q 'Commands::Install(args) => commands::install::run(args).await' "$MAIN_R
 pass "main.rs dispatches Commands::Install to commands::install::run"
 
 # InstallArgs flag surface
-for flag in "target:" "channel:" "dry_run:" "license_key:" "eval:" "persist_path:" "on_shell:" "json:"; do
+for flag in "target:" "channel:" "dry_run:" "license_key:" "eval:" "accept_license:" "no_service:" "persist_path:" "on_shell:" "json:"; do
   grep -q "pub $flag" "$MOD" \
     || fail "InstallArgs missing field: $flag"
 done
-pass "InstallArgs exposes --target, --dry-run, --channel, --license-key, --eval, --persist-path, --on-shell, --json"
+pass "InstallArgs exposes bootstrapper contract flags plus target/channel/license/PATH/JSON controls"
 
 # InstallTarget enum
 for variant in Auto Linux Darwin WindowsX64 WindowsArm64; do
