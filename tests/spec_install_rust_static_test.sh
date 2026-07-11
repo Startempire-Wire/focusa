@@ -64,13 +64,13 @@ grep -qi 'checksum mismatch' "$PS1" \
 pass "checksum verification failure paths retained in Rust + thin scripts"
 
 # Thin bootstrapper contract: scripts download focusa, then delegate to Rust install
-for marker in 'ARGS=(install --target="$TARGET")' 'exec "$BIN_DIR/focusa" "${ARGS[@]}"'; do
+for marker in 'ARGS=(install --target="$RUST_TARGET"' 'exec "$BIN_DIR/focusa" "${ARGS[@]}"'; do
   grep -qF "$marker" "$SH" \
     || fail "install-focusa.sh missing thin-delegate marker: $marker"
 done
-grep -q '@("install", "--target=$Target")' "$PS1" \
+grep -q '@("install", "--target=$ResolvedTarget"' "$PS1" \
   || fail "install-focusa.ps1 missing thin-delegate install args"
-grep -q '& (Join-Path $BinDir "focusa.exe") @Args' "$PS1" \
+grep -q '& $Focusa @Args' "$PS1" \
   || fail "install-focusa.ps1 missing focusa install execution"
 pass "shell/PowerShell installers delegate to focusa install"
 
