@@ -1946,6 +1946,13 @@ fn trajectory_resume_projection(
             "similarity_grouping": "advisory_only",
             "must_not_merge_on_similarity": true,
         },
+        // Spec 125 §6.2/9.2: Workpoint carries trajectory warning when HLT is invalid.
+        // Workpoint remains immediate authority but cannot hide invalid HLT.
+        "trajectory_warning": {
+            "hlt_status": "unknown_from_workpoint",
+            "note": "Workpoint is immediate action authority; trajectory HLT status must be verified via focusa_trajectory_view",
+            "recommended_verification": ["focusa_trajectory_view", "focusa_hlt_history"],
+        },
         "active_gap": record.next_slice,
         "workpoint_candidate": {
             "workpoint_id": record.workpoint_id,
