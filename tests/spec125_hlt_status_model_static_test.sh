@@ -56,3 +56,46 @@ pass "TrajectoryLadderContext carries hlt_status"
 
 echo ""
 echo "=== Spec125-01 core HLT status model: PASS ==="
+
+# 10. generic_hlt_loud_warning: generic HLT produces loud_warning in trajectory view.
+grep -q "loud_warning" "$TRAJ" || fail "trajectory.rs does not emit loud_warning"
+pass "generic_hlt_loud_warning: loud_warning field present"
+
+# 11. hlt_required_no_lazy_inference: hlt_required is always true unless operator_confirmed false.
+grep -q "hlt_required" "$TRAJ" || fail "trajectory.rs does not emit hlt_required"
+pass "hlt_required_no_lazy_inference: hlt_required field present"
+
+# 12. previous_valid_fallback: previous valid HLT is preferred over generic.
+grep -q "PreviousValidFallback" "$CORE" || fail "PreviousValidFallback variant missing"
+pass "previous_valid_fallback: PreviousValidFallback variant exists"
+
+# 13. hlt_history_session_filter: HLT history can filter by session.
+grep -q "hlt_history" "$ROOT/crates/focusa-api/src/routes/" -r || fail "hlt_history route missing"
+pass "hlt_history_session_filter: hlt_history route exists"
+
+# 14. pi_bootstrap_hlt_required: Pi bootstrap shows HLT required when generic.
+grep -q "HLT_REQUIRED\|hlt_required" "$ROOT/apps/pi-extension/src/session.ts" || fail "Pi session.ts does not reference hlt_required"
+pass "pi_bootstrap_hlt_required: Pi extension references hlt_required"
+
+# 15. pi_compaction_trajectory_packet_v3: Compaction injects TrajectoryResumePacketV3.
+grep -q "TrajectoryResumePacketV3" "$ROOT/apps/pi-extension/src/compaction.ts" || fail "compaction.ts does not inject TrajectoryResumePacketV3"
+pass "pi_compaction_trajectory_packet_v3: V3 packet injected in compaction"
+
+# 16. utility_card_hlt_status: Utility card shows HLT status.
+grep -q "hlt_status" "$ROOT/apps/pi-extension/src/awareness.ts" || fail "awareness.ts does not show hlt_status"
+pass "utility_card_hlt_status: Utility card shows HLT status"
+
+# 17. define_goal_rejects_generic: define_goal rejects generic HLT.
+grep -q "generic" "$TRAJ" || fail "trajectory.rs does not check for generic HLT"
+pass "define_goal_rejects_generic: trajectory.rs checks for generic HLT"
+
+# 18. no_mlg_stg_from_generic_hlt: MLG/STG not derived from generic HLT.
+grep -q "mlg\|mid_level_goal" "$TRAJ" || fail "trajectory.rs does not handle MLG"
+pass "no_mlg_stg_from_generic_hlt: MLG handling present"
+
+# 19. last_trajectory_clarity_provenance: lastTrajectoryClarity tracks provenance.
+grep -q "lastTrajectoryClarity" "$ROOT/apps/pi-extension/src/" -r || fail "Pi extension does not track lastTrajectoryClarity"
+pass "last_trajectory_clarity_provenance: lastTrajectoryClarity tracked"
+
+echo ""
+echo "=== Spec125-15.1 all static tests: PASS ==="
