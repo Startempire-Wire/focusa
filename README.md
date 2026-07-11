@@ -37,11 +37,11 @@ Safe installer/update checks before changing anything:
 focusa install --preflight --json
 focusa update status --json
 focusa update plan --json
-focusa update apply --json      # blocked/read-only scaffold today
-focusa update scheduler --json  # planned/read-only; no timer installed
+focusa update apply --yes --allow-apply --dry-run false --json
+focusa update scheduler --install --json  # Linux/root: verified two-minute timer
 ```
 
-These commands report stale CLI/daemon/TUI surfaces, dependency prompts, update policy, rollback/safety gates, and notification routes without replacing binaries, restarting the daemon, overwriting `.env`/license/project data, or installing a background worker.
+These commands report stale CLI/daemon/TUI surfaces, dependency prompts, update policy, rollback/safety gates, and notification routes. `update apply` promotes only checksum + Sigstore signature verified assets using an atomic staged rename and rollback journal; `scheduler --install` enables persistent two-minute verified refresh checks. Neither overwrites `.env`, license, or project data; daemon restart remains separately gated.
 
 Prefer a local build while evaluating from source?
 

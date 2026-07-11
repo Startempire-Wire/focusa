@@ -46,3 +46,17 @@ Runtime proof coverage
 
 Known safety boundary
 - These are MVP-safe planning/visibility/control surfaces. Actual asset download, binary promotion, daemon restart, rollback execution, timer install, and admin policy mutation remain intentionally blocked until the trust/apply gates are implemented and proven.
+
+Actual OTA closure proof — 2026-07-11
+- Corrected source release resolver discovers latest complete GitHub release, parses SHA256SUMS.txt, and verifies the published SHA256SUMS.txt.sig against the Sigstore-issued certificate with openssl.
+- Initial v0.9.80-dev release assets were rejected: tagged CLI assets reported 0.9.74-dev and GNU assets required unavailable newer glibc. The updater smoke probe restored the backup; v0.9.80 was not trusted for promotion.
+- Clean signed release v0.9.87-dev passed the GitHub Release workflow.
+- `focusa-update.timer` is enabled and active, running `/usr/local/bin/focusa update apply --channel dev --yes --allow-apply --dry-run false --json` every two minutes with startup/persistent semantics.
+- Forced service runs promoted CLI then installed/validated the missing TUI through `--headless-self-test`.
+- Final host proof:
+  - `/usr/local/bin/focusa --version` => `focusa 0.9.87-dev`
+  - daemon `/v1/health` => `version: 0.9.87-dev`
+  - `/usr/local/bin/focusa-tui --headless-self-test` => `about_version: 0.9.87-dev`
+  - `focusa update status --json` => `stale_parts: []`
+  - `systemctl is-enabled focusa-update.timer` => `enabled`; active; last service result `success`
+  - `scripts/sync-install-bootstrapper.sh --check` => canonical/live installer byte parity OK.
