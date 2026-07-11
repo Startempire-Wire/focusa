@@ -601,7 +601,9 @@ async fn push_frame(
             "failure_class": "scope_mismatch",
             "missing": "continuity_id",
             "retry_posture": "do_not_retry_unchanged",
-            "safe_recovery": "pass continuity_id so the Focus frame is bound to a project workstream"
+            "safe_recovery": "pass continuity_id so the Focus frame is bound to a project workstream",
+            "human_message": "Missing continuity_id. Run: bd ready → select a bead → pass its continuity_id",
+            "next_tools": ["focusa_project_identity", "focusa_workpoint_resume"],
         })));
     };
 
@@ -614,6 +616,8 @@ async fn push_frame(
             "failure_class": "validation_rejected",
             "reason": "missing_beads_issue_id",
             "safe_recovery": "pass a real Beads issue id from the project .beads workspace before creating a canonical Focus frame",
+            "human_message": "Missing beads_issue_id. Run: bd ready → copy the bead ID → pass it as beads_issue_id",
+            "next_tools": ["bd"],
         })));
     }
     if !beads_issue_exists(&project_root, &beads_issue_id) {
@@ -626,6 +630,8 @@ async fn push_frame(
             "project_root": project_root,
             "safe_recovery": "create or select a real Beads issue in this project, or keep proposal/demo frames noncanonical outside FocusFramePushed",
             "retry_posture": "do_not_retry_unchanged",
+            "human_message": format!("Bead '{}' not found in {}. Run: bd show {} → verify it exists, or bd create to create one", beads_issue_id, project_root, beads_issue_id),
+            "next_tools": ["bd"],
         })));
     }
 
