@@ -15,7 +15,9 @@ for needle in \
   'pub struct TuiArgs' \
   'Commands::Tui(args)' \
   'headless_self_test' \
-  'locate_tui_binary'; do
+  'locate_tui_binary' \
+  'std::env::current_exe()' \
+  'parent.join("focusa-tui")'; do
   if [ "$needle" = 'pub mod tui;' ]; then
     grep -nF -- "$needle" "$COMMANDS" >/dev/null || fail "commands mod missing: $needle"
   else
@@ -33,6 +35,12 @@ for needle in \
 done
 pass "focusa-tui binary supports --headless-self-test and snapshot JSON"
 
+grep -nF -- 'FOCUSA_TUI_NON_TTY' "$TUI_BIN" >/dev/null \
+  || fail "focusa-tui missing stable non-TTY failure code"
+grep -nF -- 'focusa tui --headless-self-test' "$TUI_BIN" >/dev/null \
+  || fail "focusa-tui missing actionable non-TTY recovery command"
+pass "focusa-tui non-TTY diagnostics are stable and actionable"
+
 python3 - <<'PY'
 import json, urllib.request, pathlib
 text = pathlib.Path('crates/focusa-cli/src/commands/tui.rs').read_text()
@@ -44,6 +52,20 @@ assert 'focus_stack' in text
 assert 'workpoint' in text
 PY
 pass "headless snapshot payload schema fields present"
+
+# Functional proof: redirected stdout must fail cleanly with an actionable stderr message.
+cargo build -q -p focusa-tui --bin focusa-tui
+set +e
+non_tty_output="$("$ROOT_DIR/target/debug/focusa-tui" --no-intro </dev/null 2>&1)"
+non_tty_status=$?
+set -e
+[[ $non_tty_status -eq 64 ]] \
+  || fail "non-TTY run exited $non_tty_status, expected 64"
+printf '%s\n' "$non_tty_output" | grep -qF 'FOCUSA_TUI_NON_TTY' \
+  || fail "non-TTY output missing stable diagnostic code"
+printf '%s\n' "$non_tty_output" | grep -qF 'focusa tui --headless-self-test' \
+  || fail "non-TTY output missing recovery command"
+pass "redirected TUI output fails cleanly with actionable recovery"
 
 # Functional proof: hit Focusa locally and prove API + TUI surface coverage.
 if command -v curl >/dev/null 2>&1; then

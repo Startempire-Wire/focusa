@@ -31,12 +31,16 @@ for marker in '.bashrc' '.zshrc' 'config/fish/config.fish'; do
 done
 pass "shell rc detection covers bash/zsh/fish"
 
-# PATH write is idempotent: existing PATH/.local/bin marker returns without duplicate append
-grep -q 'content.contains(".local/bin") && content.contains("PATH")' "$INSTALL" \
-  || fail "persist_path_to_rc missing idempotency guard"
+# PATH write is marker-idempotent: an existing Focusa-owned block is never duplicated,
+# and unrelated operator PATH lines are never mistaken for installer ownership.
+for marker in 'PATH_MARKER_BEGIN' 'PATH_MARKER_END' \
+  'content.contains(PATH_MARKER_BEGIN) && content.contains(PATH_MARKER_END)'; do
+  grep -qF "$marker" "$INSTALL" \
+    || fail "persist_path_to_rc missing marker idempotency contract: $marker"
+done
 grep -q 'std::fs::write(rc,' "$INSTALL" \
   || fail "persist_path_to_rc missing explicit rc write"
-pass "PATH persistence is idempotent and writes only selected rc file"
+pass "PATH persistence is marker-idempotent and writes only selected rc file"
 
 # Walkthrough envelope exists and has six-step card markers
 grep -q 'pub struct FirstInstallWalkthrough' "$INSTALL" \

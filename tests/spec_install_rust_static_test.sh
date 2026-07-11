@@ -63,10 +63,12 @@ grep -qi 'checksum mismatch' "$PS1" \
   || fail "install-focusa.ps1 missing checksum mismatch failure path"
 pass "checksum verification failure paths retained in Rust + thin scripts"
 
-# Thin bootstrapper contract: scripts download focusa, then delegate to Rust install
-for marker in 'ARGS=(install --target="$RUST_TARGET"' 'exec "$BIN_DIR/focusa" "${ARGS[@]}"'; do
+# Thin bootstrapper contract: scripts download focusa, then delegate to Rust install.
+# Bash invokes directly (not exec) so its EXIT trap can roll back partial clean installs.
+for marker in 'ARGS=(install --target="$RUST_TARGET"' 'if "$BIN_DIR/focusa" "${ARGS[@]}"; then' \
+  'Rust install orchestrator failed (exit ${status})'; do
   grep -qF "$marker" "$SH" \
-    || fail "install-focusa.sh missing thin-delegate marker: $marker"
+    || fail "install-focusa.sh missing rollback-aware delegate marker: $marker"
 done
 grep -q '@("install", "--target=$ResolvedTarget"' "$PS1" \
   || fail "install-focusa.ps1 missing thin-delegate install args"

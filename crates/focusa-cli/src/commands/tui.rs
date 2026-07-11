@@ -68,8 +68,9 @@ pub async fn run(args: TuiArgs, _json: bool) -> Result<()> {
         return run_headless_self_test(&api, project_root.as_deref()).await;
     }
 
-    let bin =
-        locate_tui_binary().context("focusa-tui binary not found in PATH or target/*/build")?;
+    let bin = locate_tui_binary().context(
+        "focusa-tui binary not found; checked FOCUSA_TUI_BIN, the installed focusa CLI directory, ~/.focusa/bin, PATH, and target/{release,debug}. Run `focusa install --dry-run`, then reinstall Focusa or set FOCUSA_TUI_BIN.",
+    )?;
     let status = Command::new(&bin)
         .env("FOCUSA_API_URL", &api)
         .status()
@@ -81,42 +82,44 @@ pub async fn run(args: TuiArgs, _json: bool) -> Result<()> {
 }
 
 fn locate_tui_binary() -> Option<std::path::PathBuf> {
-    if let Some(path) = std::env::var_os("FOCUSA_TUI_BIN") {
-        let p = std::path::PathBuf::from(path);
-        if p.exists() {
-            return Some(p);
-        }
-    }
-    if let Some(home) = std::env::var_os("HOME") {
-        let installed = std::path::PathBuf::from(home).join(".focusa/bin/focusa-tui");
-        if installed.is_file() {
-            return Some(installed);
-        }
-    }
-    for name in ["focusa-tui"] {
-        if let Ok(found) = which(name) {
-            return Some(found);
-        }
-    }
-    let cwd = std::env::current_dir().ok()?;
-    for profile in ["release", "debug"] {
-        let candidate = cwd.join("target").join(profile).join("focusa-tui");
-        if candidate.exists() {
-            return Some(candidate);
-        }
-    }
-    None
+    locate_tui_binary_from(
+        std::env::var_os("FOCUSA_TUI_BIN").map(std::path::PathBuf::from),
+        std::env::current_exe().ok(),
+        std::env::var_os("HOME").map(std::path::PathBuf::from),
+        std::env::var_os("PATH"),
+        std::env::current_dir().ok(),
+    )
 }
 
-fn which(name: &str) -> Result<std::path::PathBuf, ()> {
-    let path = std::env::var_os("PATH").ok_or(())?;
-    for dir in std::env::split_paths(&path) {
-        let candidate = dir.join(name);
-        if candidate.is_file() {
-            return Ok(candidate);
+fn locate_tui_binary_from(
+    override_path: Option<std::path::PathBuf>,
+    current_exe: Option<std::path::PathBuf>,
+    home: Option<std::path::PathBuf>,
+    path: Option<std::ffi::OsString>,
+    cwd: Option<std::path::PathBuf>,
+) -> Option<std::path::PathBuf> {
+    let mut candidates = Vec::new();
+    if let Some(candidate) = override_path {
+        candidates.push(candidate);
+    }
+    if let Some(exe) = current_exe
+        && let Some(parent) = exe.parent()
+    {
+        candidates.push(parent.join("focusa-tui"));
+    }
+    if let Some(home) = home {
+        candidates.push(home.join(".focusa/bin/focusa-tui"));
+    }
+    if let Some(path) = path {
+        candidates
+            .extend(std::env::split_paths(&path).map(|directory| directory.join("focusa-tui")));
+    }
+    if let Some(cwd) = cwd {
+        for profile in ["release", "debug"] {
+            candidates.push(cwd.join("target").join(profile).join("focusa-tui"));
         }
     }
-    Err(())
+    candidates.into_iter().find(|candidate| candidate.is_file())
 }
 
 async fn run_headless_self_test(api: &str, project_root: Option<&str>) -> Result<()> {
@@ -211,4 +214,47 @@ async fn run_headless_self_test(api: &str, project_root: Option<&str>) -> Result
     });
     println!("{}", serde_json::to_string_pretty(&payload)?);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fixture(name: &str) -> std::path::PathBuf {
+        let path =
+            std::env::temp_dir().join(format!("focusa-tui-locate-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&path);
+        std::fs::create_dir_all(&path).expect("create fixture");
+        path
+    }
+
+    #[test]
+    fn locate_tui_finds_sibling_of_installed_cli() {
+        let root = fixture("sibling");
+        let cli = root.join("focusa");
+        let tui = root.join("focusa-tui");
+        std::fs::write(&cli, "cli").unwrap();
+        std::fs::write(&tui, "tui").unwrap();
+        let found = locate_tui_binary_from(None, Some(cli), None, None, None);
+        assert_eq!(found.as_deref(), Some(tui.as_path()));
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn locate_tui_honors_explicit_override_first() {
+        let root = fixture("override");
+        let override_path = root.join("custom-tui");
+        let sibling = root.join("focusa-tui");
+        std::fs::write(&override_path, "custom").unwrap();
+        std::fs::write(&sibling, "sibling").unwrap();
+        let found = locate_tui_binary_from(
+            Some(override_path.clone()),
+            Some(root.join("focusa")),
+            None,
+            None,
+            None,
+        );
+        assert_eq!(found.as_deref(), Some(override_path.as_path()));
+        let _ = std::fs::remove_dir_all(root);
+    }
 }

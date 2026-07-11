@@ -722,26 +722,66 @@ if [ "$DRY_RUN" != 1 ]; then
 fi
 
 # When Pi is installed, install the matching bundled extension beside its
-# other extensions. This is best-effort so Focusa CLI installation never fails
-# solely because Pi or npm is unavailable.
-if command -v pi >/dev/null 2>&1; then
+# other extensions. Extension failure never corrupts an existing extension or
+# aborts the CLI install, but an unverified/broken extension is never activated.
+# BEGIN PI_EXTENSION_INSTALL_FUNCTION
+install_pi_extension() {
   PI_EXT_ROOT="${FOCUSA_PI_EXT_DIR:-${HOME}/.pi/agent/extensions}"
   PI_ARCHIVE="focusa-pi-extension-${RELEASE_TAG}.tar.gz"
-  if curl -fsSL "https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}/${PI_ARCHIVE}" -o "$TMP/$PI_ARCHIVE"; then
-    mkdir -p "$PI_EXT_ROOT"
-    rm -rf "$TMP/pi-extension"
-    tar -xzf "$TMP/$PI_ARCHIVE" -C "$TMP"
-    if [ -d "$TMP/pi-extension" ]; then
-      rm -rf "$PI_EXT_ROOT/focusa"
-      mv "$TMP/pi-extension" "$PI_EXT_ROOT/focusa"
-      if command -v npm >/dev/null 2>&1; then
-        (cd "$PI_EXT_ROOT/focusa" && npm install --omit=dev) || warn "Pi extension dependencies need npm install in $PI_EXT_ROOT/focusa"
-      fi
-      log "installed Focusa Pi extension: $PI_EXT_ROOT/focusa"
-    fi
+  PI_ARCHIVE_PATH="$TMP/$PI_ARCHIVE"
+  PI_STAGE_ROOT="$TMP/pi-extension-stage"
+  PI_STAGE="$PI_STAGE_ROOT/pi-extension"
+  PI_DEST="$PI_EXT_ROOT/focusa"
+  PI_BACKUP="$TMP/pi-extension-backup"
+
+  if [ "$DRY_RUN" = 1 ]; then
+    log "DRY RUN: would verify and atomically install Focusa Pi extension to $PI_DEST"
+  elif ! command -v npm >/dev/null 2>&1; then
+    warn "Pi detected but npm is unavailable; existing Pi extension left unchanged"
+  elif ! curl -fsSL "https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}/${PI_ARCHIVE}" -o "$PI_ARCHIVE_PATH"; then
+    warn "Pi detected but matching extension archive is unavailable; existing Pi extension left unchanged"
   else
-    warn "Pi detected but matching extension archive is unavailable; install Focusa Pi extension after release publication"
+    PI_EXPECTED=""
+    if [ -n "$CHECKSUM_MANIFEST" ]; then
+      PI_EXPECTED="$(awk -v n="$PI_ARCHIVE" '$2 == n {print $1; exit}' "$CHECKSUM_MANIFEST")"
+    fi
+    PI_ACTUAL="$(sha256sum "$PI_ARCHIVE_PATH" 2>/dev/null | awk '{print $1}' || shasum -a 256 "$PI_ARCHIVE_PATH" 2>/dev/null | awk '{print $1}')"
+    if [ -z "$PI_EXPECTED" ] || [ "$PI_ACTUAL" != "$PI_EXPECTED" ]; then
+      warn "Focusa Pi extension archive checksum missing or mismatched; existing extension left unchanged"
+    elif ! tar -tzf "$PI_ARCHIVE_PATH" | awk '
+      BEGIN { ok=1; seen=0 }
+      /^\// || /(^|\/)\.\.($|\/)/ { ok=0 }
+      !/^pi-extension(\/|$)/ { ok=0 }
+      { seen=1 }
+      END { exit !(ok && seen) }
+    '; then
+      warn "Focusa Pi extension archive contains unsafe or unexpected paths; existing extension left unchanged"
+    else
+      mkdir -p "$PI_STAGE_ROOT"
+      if ! tar -xzf "$PI_ARCHIVE_PATH" -C "$PI_STAGE_ROOT" || [ ! -f "$PI_STAGE/package.json" ]; then
+        warn "Focusa Pi extension archive extraction failed; existing extension left unchanged"
+      elif ! (cd "$PI_STAGE" && npm install --omit=dev --ignore-scripts); then
+        warn "Focusa Pi extension dependency staging failed; existing extension left unchanged"
+      else
+        mkdir -p "$PI_EXT_ROOT"
+        if [ -e "$PI_DEST" ]; then
+          mv "$PI_DEST" "$PI_BACKUP"
+        fi
+        if mv "$PI_STAGE" "$PI_DEST"; then
+          log "installed verified Focusa Pi extension: $PI_DEST"
+        else
+          warn "Focusa Pi extension activation failed; restoring prior extension"
+          [ ! -e "$PI_DEST" ] || rm -rf "$PI_DEST"
+          [ ! -e "$PI_BACKUP" ] || mv "$PI_BACKUP" "$PI_DEST"
+        fi
+      fi
+    fi
   fi
+}
+# END PI_EXTENSION_INSTALL_FUNCTION
+
+if command -v pi >/dev/null 2>&1; then
+  install_pi_extension
 fi
 
 log "handing off to Rust orchestrator: focusa install --target=${TARGET}"

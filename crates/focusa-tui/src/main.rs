@@ -70,16 +70,13 @@ async fn main() -> Result<()> {
     // Detect non-interactive contexts and route to headless output rather
     // than crashing. Also gate EnterAlternateScreen — it's only valid for TTYs.
     let stdout_is_tty = std::io::IsTerminal::is_terminal(&std::io::stdout());
-    let stderr_is_tty = std::io::IsTerminal::is_terminal(&std::io::stderr());
     if !stdout_is_tty {
-        if stderr_is_tty {
-            eprintln!(
-                "focusa-tui: stdout is not a terminal (TTY required for raw mode).\n\
-                 Run with --headless-self-test for structured output, or run interactively\n\
-                 from a real terminal (SSH/tmux panes and background jobs are not supported\n\
-                 by crossterm raw mode on macOS)."
-            );
-        }
+        eprintln!(
+            "FOCUSA_TUI_NON_TTY: stdout is not a terminal; interactive raw mode is unavailable.\n\
+             Recovery: run `focusa tui --headless-self-test` for structured diagnostics,\n\
+             or launch `focusa tui` from a real terminal. If installed discovery fails,\n\
+             run `focusa install --dry-run`, reinstall, or set FOCUSA_TUI_BIN."
+        );
         std::process::exit(64);
     }
 
