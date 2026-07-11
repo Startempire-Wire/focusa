@@ -87,6 +87,12 @@ fn locate_tui_binary() -> Option<std::path::PathBuf> {
             return Some(p);
         }
     }
+    if let Some(home) = std::env::var_os("HOME") {
+        let installed = std::path::PathBuf::from(home).join(".focusa/bin/focusa-tui");
+        if installed.is_file() {
+            return Some(installed);
+        }
+    }
     for name in ["focusa-tui"] {
         if let Ok(found) = which(name) {
             return Some(found);
