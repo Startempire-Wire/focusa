@@ -10,6 +10,10 @@ API_MOD="$ROOT/crates/focusa-api/src/routes/mod.rs"
 API_SERVER="$ROOT/crates/focusa-api/src/server.rs"
 SPEC="$ROOT/docs/128-focusa-over-the-air-auto-update-and-dev-mode-license-spec.md"
 
+if ! command -v rg >/dev/null 2>&1; then
+  rg() { grep -E "$@"; }
+fi
+
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
 
