@@ -367,14 +367,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Package bundled Pi extension
+      - name: Package bundled Pi extension and agent context
         run: |
+          set -euo pipefail
           TAG="${{ github.ref_name }}"
           tar -C apps -czf "focusa-pi-extension-${TAG}.tar.gz" pi-extension
-      - name: Upload Pi extension archive
+          mkdir -p bundle/focusa-agent-context/skills
+          cp AGENTS.md bundle/focusa-agent-context/AGENTS.md
+          cp -R .pi/skills/. bundle/focusa-agent-context/skills/
+          test -f bundle/focusa-agent-context/AGENTS.md
+          find bundle/focusa-agent-context/skills -name SKILL.md -type f | grep -q .
+          tar -C bundle -czf "focusa-agent-context-${TAG}.tar.gz" focusa-agent-context
+      - name: Upload Pi extension and agent context archives
         uses: softprops/action-gh-release@v2
         with:
-          files: focusa-pi-extension-*.tar.gz
+          files: |
+            focusa-pi-extension-*.tar.gz
+            focusa-agent-context-*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

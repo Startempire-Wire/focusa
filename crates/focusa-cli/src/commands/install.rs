@@ -628,6 +628,14 @@ fn dry_run_summary(
     None
 }
 
+fn release_tag(channel: Channel) -> &'static str {
+    match channel {
+        Channel::Stable => "v0.9.54-dev",
+        Channel::Preview => "v0.9.55-dev-preview",
+        Channel::Nightly => "v0.9.55-dev-nightly",
+    }
+}
+
 // ----- Phase 2: Asset download (focusa-112-asset-download) -----
 async fn phase_asset_download(
     target: InstallTarget,
@@ -636,11 +644,7 @@ async fn phase_asset_download(
 ) -> Result<Vec<InstalledAsset>> {
     // GitHub releases API: GET /repos/{owner}/{repo}/releases/tags/{tag}
     let repo = github_repo.unwrap_or("Startempire-Wire/focusa");
-    let tag = match channel {
-        Channel::Stable => "v0.9.54-dev",
-        Channel::Preview => "v0.9.55-dev-preview",
-        Channel::Nightly => "v0.9.55-dev-nightly",
-    };
+    let tag = release_tag(channel);
     let triple = triple_for(target);
     let assets = ["focusa", "focusa-daemon", "focusa-tui"];
     let url = format!("https://api.github.com/repos/{repo}/releases/tags/{tag}");
@@ -700,6 +704,114 @@ async fn phase_asset_download(
     Ok(out)
 }
 
+async fn phase_agent_context_download(
+    channel: Channel,
+    github_repo: Option<&str>,
+    install_root: &std::path::Path,
+) -> Result<InstalledAsset> {
+    let repo = github_repo.unwrap_or("Startempire-Wire/focusa");
+    let tag = release_tag(channel);
+    let name = format!("focusa-agent-context-{tag}.tar.gz");
+    let share = install_root.join("share");
+    std::fs::create_dir_all(&share)?;
+    let install_path = share.join(&name);
+    let staged = install_path.with_extension("download");
+    let url = format!("https://github.com/{repo}/releases/download/{tag}/{name}");
+    let client = reqwest::Client::builder()
+        .user_agent("focusa-install/agent-context")
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|error| anyhow!("agent context client build failed: {error}"))?;
+    let bytes = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|error| anyhow!("download {name}: {error}"))?
+        .error_for_status()
+        .map_err(|error| anyhow!("download {name}: {error}"))?
+        .bytes()
+        .await
+        .map_err(|error| anyhow!("read {name}: {error}"))?;
+    std::fs::write(&staged, &bytes)?;
+    std::fs::rename(&staged, &install_path)?;
+    Ok(InstalledAsset {
+        name,
+        version: tag.to_string(),
+        triple: "all".to_string(),
+        sha256: String::new(),
+        install_path: install_path.display().to_string(),
+    })
+}
+
+fn install_agent_context_archive(
+    asset: &InstalledAsset,
+    install_root: &std::path::Path,
+) -> Result<std::path::PathBuf> {
+    let archive = std::path::Path::new(&asset.install_path);
+    let listing = std::process::Command::new("tar")
+        .args(["-tzf"])
+        .arg(archive)
+        .output()
+        .with_context(|| "inspect agent context archive with tar")?;
+    if !listing.status.success() {
+        bail!("agent context archive listing failed");
+    }
+    let listing = String::from_utf8(listing.stdout)
+        .map_err(|error| anyhow!("agent context archive listing is not UTF-8: {error}"))?;
+    let mut has_agents = false;
+    let mut has_skill = false;
+    for entry in listing.lines().filter(|line| !line.trim().is_empty()) {
+        let entry = entry.trim_end_matches('/');
+        if entry.starts_with('/')
+            || entry.split('/').any(|component| component == "..")
+            || !(entry == "focusa-agent-context" || entry.starts_with("focusa-agent-context/"))
+        {
+            bail!("unsafe agent context archive path: {entry}");
+        }
+        has_agents |= entry == "focusa-agent-context/AGENTS.md";
+        has_skill |=
+            entry.starts_with("focusa-agent-context/skills/") && entry.ends_with("/SKILL.md");
+    }
+    if !has_agents || !has_skill {
+        bail!("agent context archive must contain AGENTS.md and at least one skills/*/SKILL.md");
+    }
+
+    let stage_parent = install_root.join(format!(".agent-context-stage-{}", uuid::Uuid::now_v7()));
+    std::fs::create_dir_all(&stage_parent)?;
+    let extraction = std::process::Command::new("tar")
+        .args(["-xzf"])
+        .arg(archive)
+        .arg("-C")
+        .arg(&stage_parent)
+        .status()
+        .with_context(|| "extract verified agent context archive")?;
+    if !extraction.success() {
+        let _ = std::fs::remove_dir_all(&stage_parent);
+        bail!("agent context archive extraction failed");
+    }
+    let staged = stage_parent.join("focusa-agent-context");
+    if !staged.join("AGENTS.md").is_file() || !staged.join("skills").is_dir() {
+        let _ = std::fs::remove_dir_all(&stage_parent);
+        bail!("agent context extraction missing required files");
+    }
+
+    let destination = install_root.join("agent-context");
+    let backup = install_root.join(format!(".agent-context-backup-{}", uuid::Uuid::now_v7()));
+    if destination.exists() {
+        std::fs::rename(&destination, &backup)?;
+    }
+    if let Err(error) = std::fs::rename(&staged, &destination) {
+        if backup.exists() {
+            let _ = std::fs::rename(&backup, &destination);
+        }
+        let _ = std::fs::remove_dir_all(&stage_parent);
+        return Err(error).context("activate agent context bundle");
+    }
+    let _ = std::fs::remove_dir_all(&backup);
+    let _ = std::fs::remove_dir_all(&stage_parent);
+    Ok(destination)
+}
+
 fn install_root_for(target: InstallTarget) -> std::path::PathBuf {
     let home = std::env::var_os("HOME")
         .map(std::path::PathBuf::from)
@@ -729,23 +841,28 @@ async fn verify_checksum(asset: &InstalledAsset) -> Result<()> {
         .map_err(|e| anyhow!("checksum client build failed: {e}"))?;
     let resp = client.get(&sha256sums_url).send().await;
     let body = match resp {
-        Ok(r) if r.status().is_success() => r.text().await.unwrap_or_default(),
-        _ => {
-            // Recovery: many preview releases don't ship SHA256SUMS yet.
-            // Surface a clear hint so the operator knows it's an upstream gap.
-            eprintln!(
-                "warning: SHA256SUMS.txt not found for {tag}; skipping verify. recovery_hint: contact the release publisher.",
-                tag = asset.version,
-            );
-            return Ok(());
+        Ok(r) if r.status().is_success() => {
+            r.text().await.context("read SHA256SUMS response body")?
         }
+        Ok(r) => bail!(
+            "SHA256SUMS.txt unavailable for {}: HTTP {}; refusing unverified install",
+            asset.version,
+            r.status()
+        ),
+        Err(error) => bail!(
+            "SHA256SUMS.txt request failed for {}: {}; refusing unverified install",
+            asset.version,
+            error
+        ),
     };
     let expected_line = body
         .lines()
         .find(|l| l.ends_with(&asset.name) || l.contains(&asset.name));
     let Some(expected_line) = expected_line else {
-        eprintln!("warning: no SHA256SUMS entry for {}", asset.name);
-        return Ok(());
+        bail!(
+            "no SHA256SUMS entry for {}; refusing unverified install",
+            asset.name
+        );
     };
     let expected = expected_line
         .split_whitespace()
@@ -957,7 +1074,30 @@ pub fn build_first_install_walkthrough(
         version: env!("CARGO_PKG_VERSION").to_string(),
         environment_summary: summary,
         next_steps,
-        agent_integrations: Vec::new(),
+        agent_integrations: vec![{
+            let context_root = install_root.join("agent-context");
+            let integrated =
+                context_root.join("AGENTS.md").is_file() && context_root.join("skills").is_dir();
+            AgentIntegration {
+                agent: "focusa-agent-context".to_string(),
+                detected: true,
+                integrated,
+                config_path: Some(context_root.display().to_string()),
+                next_step: Some(format!(
+                    "Read {} and load the relevant skill from {}/skills",
+                    context_root.join("AGENTS.md").display(),
+                    context_root.display()
+                )),
+                expected_outcome: Some(
+                    "First agent session starts with Focusa rules and task-specific skills"
+                        .to_string(),
+                ),
+                recovery_hint: Some(
+                    "Re-run focusa install after confirming the release agent-context checksum"
+                        .to_string(),
+                ),
+            }
+        }],
     }
 }
 
@@ -1087,12 +1227,22 @@ async fn execute_real_install(
     install_root: &std::path::Path,
 ) -> Result<()> {
     let phase = phase_license(args).await?;
-    let assets = phase_asset_download(target, channel, args.github_repo.as_deref()).await?;
+    let mut assets = phase_asset_download(target, channel, args.github_repo.as_deref()).await?;
+    let agent_context =
+        phase_agent_context_download(channel, args.github_repo.as_deref(), install_root).await?;
+    assets.push(agent_context);
     let bin_dir = install_root.join("bin");
     for asset in &assets {
         verify_checksum(asset).await?;
-        verify_macos_codesign(target, asset)?;
+        if asset.triple != "all" {
+            verify_macos_codesign(target, asset)?;
+        }
     }
+    let agent_context_asset = assets
+        .iter()
+        .find(|asset| asset.triple == "all")
+        .ok_or_else(|| anyhow!("verified agent context asset missing"))?;
+    install_agent_context_archive(agent_context_asset, install_root)?;
     place_symlinks(&bin_dir, install_root)?;
     if !args.no_service {
         delegate_service_render(target, &bin_dir, args.dry_run).await?;
@@ -1223,6 +1373,16 @@ fn build_plan(
                 triple: triple_for(target),
                 install_path: root.join("bin").join("focusa-tui").display().to_string(),
             },
+            AssetPlan {
+                name: "focusa-agent-context".to_string(),
+                version: "<detected>".to_string(),
+                triple: "all".to_string(),
+                install_path: root
+                    .join("share")
+                    .join("focusa-agent-context-<version>.tar.gz")
+                    .display()
+                    .to_string(),
+            },
         ],
         symlink_planned: format!(
             "{}/.local/bin/focusa",
@@ -1258,7 +1418,7 @@ fn build_plan(
             args.channel,
             &root.join("bin"),
             root,
-            /* asset_count */ 3,
+            /* asset_count */ 4,
         )),
     })
 }
@@ -1353,7 +1513,7 @@ mod tests {
             std::path::Path::new("/tmp/.focusa"),
         )
         .unwrap();
-        assert_eq!(plan.assets_planned.len(), 3);
+        assert_eq!(plan.assets_planned.len(), 4);
         assert!(plan.assets_planned.iter().any(|a| a.name == "focusa"));
         assert!(
             plan.assets_planned
@@ -1361,6 +1521,11 @@ mod tests {
                 .any(|a| a.name == "focusa-daemon")
         );
         assert!(plan.assets_planned.iter().any(|a| a.name == "focusa-tui"));
+        assert!(
+            plan.assets_planned
+                .iter()
+                .any(|a| a.name == "focusa-agent-context" && a.triple == "all")
+        );
         assert_eq!(plan.license_mode, "missing");
     }
 
@@ -1392,6 +1557,79 @@ mod tests {
         .unwrap();
         assert_eq!(plan.license_mode, "eval");
         assert!(plan.service_manager_planned.contains("launchd"));
+    }
+
+    #[test]
+    fn agent_context_archive_installs_required_files_atomically() {
+        let fixture = std::env::temp_dir().join(format!(
+            "focusa-agent-context-install-{}",
+            uuid::Uuid::now_v7()
+        ));
+        let package = fixture.join("package/focusa-agent-context");
+        std::fs::create_dir_all(package.join("skills/focusa")).unwrap();
+        std::fs::write(package.join("AGENTS.md"), "# Focusa agents\n").unwrap();
+        std::fs::write(
+            package.join("skills/focusa/SKILL.md"),
+            "---\nname: focusa\n---\n",
+        )
+        .unwrap();
+        let archive = fixture.join("focusa-agent-context-vtest.tar.gz");
+        let status = std::process::Command::new("tar")
+            .args(["-czf"])
+            .arg(&archive)
+            .arg("-C")
+            .arg(fixture.join("package"))
+            .arg("focusa-agent-context")
+            .status()
+            .unwrap();
+        assert!(status.success());
+        let install_root = fixture.join("install");
+        std::fs::create_dir_all(install_root.join("agent-context")).unwrap();
+        std::fs::write(install_root.join("agent-context/old-marker"), "old").unwrap();
+        let asset = InstalledAsset {
+            name: "focusa-agent-context-vtest.tar.gz".to_string(),
+            version: "vtest".to_string(),
+            triple: "all".to_string(),
+            sha256: String::new(),
+            install_path: archive.display().to_string(),
+        };
+        let installed = install_agent_context_archive(&asset, &install_root).unwrap();
+        assert!(installed.join("AGENTS.md").is_file());
+        assert!(installed.join("skills/focusa/SKILL.md").is_file());
+        assert!(!installed.join("old-marker").exists());
+        let _ = std::fs::remove_dir_all(fixture);
+    }
+
+    #[test]
+    fn agent_context_archive_rejects_missing_skills() {
+        let fixture = std::env::temp_dir().join(format!(
+            "focusa-agent-context-invalid-{}",
+            uuid::Uuid::now_v7()
+        ));
+        let package = fixture.join("package/focusa-agent-context");
+        std::fs::create_dir_all(&package).unwrap();
+        std::fs::write(package.join("AGENTS.md"), "# Focusa agents\n").unwrap();
+        let archive = fixture.join("focusa-agent-context-vtest.tar.gz");
+        let status = std::process::Command::new("tar")
+            .args(["-czf"])
+            .arg(&archive)
+            .arg("-C")
+            .arg(fixture.join("package"))
+            .arg("focusa-agent-context")
+            .status()
+            .unwrap();
+        assert!(status.success());
+        let asset = InstalledAsset {
+            name: "focusa-agent-context-vtest.tar.gz".to_string(),
+            version: "vtest".to_string(),
+            triple: "all".to_string(),
+            sha256: String::new(),
+            install_path: archive.display().to_string(),
+        };
+        let error = install_agent_context_archive(&asset, &fixture.join("install"))
+            .expect_err("missing skills must fail");
+        assert!(error.to_string().contains("at least one skills/*/SKILL.md"));
+        let _ = std::fs::remove_dir_all(fixture);
     }
 
     #[test]
