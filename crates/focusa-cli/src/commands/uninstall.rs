@@ -36,7 +36,8 @@ pub struct UninstallArgs {
     #[arg(long)]
     pub dry_run: bool,
 
-    /// Preserve the license file (don't delete ~/.config/focusa/license.json).
+    /// Preserve all Focusa license records in ~/.config/focusa/ (license.json,
+    /// license_authority.json, and license_receipt.json).
     #[arg(long)]
     pub keep_license: bool,
 
@@ -150,6 +151,7 @@ pub async fn run(args: UninstallArgs) -> Result<()> {
         let result = execute_step(step, &home, &args);
         match result {
             Ok(StepOutcome::Executed) => {
+                step.status = UninstallStepStatus::Executed;
                 report.steps_executed.push(step.clone());
             }
             Ok(StepOutcome::Skipped) => {
@@ -333,9 +335,11 @@ fn plan_steps(
         steps.push(UninstallStep {
             name: "remove_daemon_logs".to_string(),
             kind: UninstallStepKind::RemoveDaemonLogs,
-            target_path: Some(logs_dir.display().to_string()),
+            target_path: Some(logs_dir.join("focusa-daemon.*.log").display().to_string()),
             status: UninstallStepStatus::Planned,
-            detail: None,
+            detail: Some(
+                "removes only focusa-daemon.out.log and focusa-daemon.err.log".to_string(),
+            ),
         });
         // License config dir (license_authority.json + license_receipt.json left behind by old versions)
         if !args.keep_license {
@@ -576,7 +580,10 @@ fn execute_step(
         }
         RemoveDaemonLogs => {
             if let Some(dir_p) = &step.target_path {
-                let dir = std::path::PathBuf::from(dir_p);
+                let dir = std::path::Path::new(dir_p)
+                    .parent()
+                    .map(std::path::PathBuf::from)
+                    .unwrap_or_else(|| std::path::PathBuf::from(dir_p));
                 for stem in &["focusa-daemon.out.log", "focusa-daemon.err.log"] {
                     let log_path = dir.join(stem);
                     if log_path.exists() {

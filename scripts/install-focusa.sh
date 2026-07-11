@@ -50,6 +50,7 @@ EVAL="${EVAL:-0}"
 ACCEPT_LICENSE="${ACCEPT_LICENSE:-0}"
 NO_SERVICE="${NO_SERVICE:-0}"
 FORCE="${FORCE:-0}"
+UNINSTALL="${UNINSTALL:-0}"
 LICENSE_KEY="${FOCUSA_LICENSE_KEY:-${LICENSE_KEY:-${WPUIAI_LICENSE_KEY:-}}}"
 # Customer email for receipt and reissue contact (Spec 118 §6).
 LICENSE_EMAIL="${FOCUSA_LICENSE_EMAIL:-${LICENSE_EMAIL:-}}"
@@ -90,6 +91,7 @@ Options:
   --accept-license         accept BSL 1.1 terms without prompting
   --no-service             skip systemd user unit / launchd registration
   --force                  allow downgrade or overwriting an existing install
+  --uninstall              remove an existing install; succeeds if already removed
   --help                   print this help
 
 Environment overrides (lower precedence than flags):
@@ -120,6 +122,7 @@ for arg in "$@"; do
     --accept-license)     ACCEPT_LICENSE=1 ;;
     --no-service)         NO_SERVICE=1 ;;
     --force)              FORCE=1 ;;
+    --uninstall)          UNINSTALL=1 ;;
     --target=*)           TARGET="${arg#--target=}" ;;
     --channel=*)          CHANNEL="${arg#--channel=}" ;;
     --github-repo=*)      GITHUB_REPO="${arg#--github-repo=}" ;;
@@ -146,6 +149,15 @@ have() { command -v "$1" >/dev/null 2>&1; }
 have curl   || { err "curl is required. recovery_hint: install curl, then retry."; exit 65; }
 have python3 || { err "python3 is required. recovery_hint: install python3, then retry."; exit 65; }
 have sha256sum || have shasum || { err "sha256sum (or shasum) is required."; exit 65; }
+
+# Idempotent public uninstall entrypoint. Never creates install/license state.
+if [ "$UNINSTALL" = 1 ]; then
+  if [ -x "$BIN_DIR/focusa" ]; then
+    exec "$BIN_DIR/focusa" uninstall --yes
+  fi
+  log "Focusa is already removed; no uninstall action required."
+  exit 0
+fi
 
 # ----------------------------------------------------------------------------
 # Pre-flight: BSL 1.1 acceptance gate. Commercial installs must accept
