@@ -176,9 +176,14 @@ fn run_launchd_user(
 ) -> Result<(bool, Vec<String>)> {
     let mut notes = Vec::new();
     if !dry_run {
+        // A missing/not-yet-loaded agent returns a nonzero unload status.
+        // Replacement remains safe; suppress that benign launchctl noise.
         let _ = std::process::Command::new("launchctl")
             .args(["unload", &plist_path.to_string_lossy()])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
             .status();
+        notes.push("replaced existing LaunchAgent when present".to_string());
     }
     if dry_run || no_enable {
         notes.push("LaunchAgent written but not loaded (dry-run or --no-enable)".to_string());
