@@ -2216,7 +2216,7 @@ fn project_fingerprint_for_root(root: &str) -> String {
     format!("project-fnv1a64:{:016x}", hasher.finish())
 }
 
-fn selected_project_payload() -> Option<Value> {
+pub fn selected_project_payload() -> Option<Value> {
     let profile = read_json_value(&selected_profile_path())?;
     let fingerprint = profile.get("selected_project_fingerprint")?.as_str()?;
     let selected_path = project_profiles_dir().join(format!("{fingerprint}.json"));
