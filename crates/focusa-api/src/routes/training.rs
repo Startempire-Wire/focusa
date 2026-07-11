@@ -364,6 +364,36 @@ async fn export_run(
     State(state): State<Arc<AppState>>,
     Json(body): Json<ExportRunBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    // Spec 125-style: license gate with actionable guidance.
+    let guard = crate::routes::license::current_guard();
+    if let focusa_license::CapabilityCheck::Denied { reason } =
+        guard.check(focusa_license::Capability::CommercialUse)
+    {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(json!({
+                "status": "denied",
+                "canonical": false,
+                "failure_class": "entitlement_denied",
+                "error": "export_not_permitted_on_eval_tier",
+                "reason": reason,
+                "tier": guard.tier.label(),
+                "human_message": format!(
+                    "Export is not available on {} tier ({}). To export training data, upgrade to a commercial license or use eval-safe alternatives: (1) GET /v1/export/status for pipeline metadata, (2) POST /v1/context-cognition/curate for bounded context selection, (3) POST /v1/preload/build for agent bootstrap packets.",
+                    guard.tier.label(), reason
+                ),
+                "safe_recovery": "upgrade to commercial license or use eval-safe alternatives",
+                "eval_safe_alternatives": [
+                    "GET /v1/export/status — pipeline metadata without data",
+                    "POST /v1/context-cognition/curate — bounded context selection",
+                    "POST /v1/preload/build — agent bootstrap packets"
+                ],
+                "upgrade_path": "contact sales@focusa.dev or renew license key",
+                "next_tools": ["focusa_license_status"],
+            })),
+        ));
+    }
+
     if body.format != "jsonl" && body.format != "parquet" {
         return Err((
             StatusCode::BAD_REQUEST,

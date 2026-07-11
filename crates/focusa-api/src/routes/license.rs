@@ -14,7 +14,7 @@ pub fn init_guard(guard: LicenseGuard) {
     let _ = GUARD.set(guard);
 }
 
-fn current_guard() -> LicenseGuard {
+pub fn current_guard() -> LicenseGuard {
     GUARD
         .get()
         .cloned()
