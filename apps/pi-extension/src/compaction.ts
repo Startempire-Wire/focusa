@@ -457,12 +457,34 @@ function formatTrajectoryPacketForPrompt(packet: any): string {
         .filter(Boolean)
     : [];
   if (hlt === "missing" && mlg === "missing" && stg === "missing" && desired === "missing") return "";
+  // Spec 125 §9.1-9.4: v3 packet fields.
+  const hltStatus = packet?.hlt_status || view?.hlt_status || "missing_required";
+  const trajectoryRequired = packet?.trajectory_required ?? view?.trajectory_required ?? true;
+  const hltRequired = packet?.hlt_required ?? view?.hlt_required ?? true;
+  const actionAuthority = packet?.action_authority_from_trajectory ?? view?.action_authority_from_trajectory ?? false;
+  const genericBootstrap = packet?.generic_bootstrap ?? view?.generic_bootstrap ?? false;
+  const loudWarning = packet?.loud_warning || view?.loud_warning || null;
+  const fallbackLevel = packet?.fallback_level || view?.fallback_level || "none";
+  const fallbackSourceScope = packet?.fallback_source_scope || view?.fallback_source_scope || null;
+  const warnings = Array.isArray(packet?.warnings || view?.warnings) ? (packet?.warnings || view?.warnings) : [];
+
   return [
     "## TrajectoryResumePacket",
+    "## TrajectoryResumePacketV3",
+    `SCHEMA_VERSION: focusa.trajectory_resume_packet.v3`,
     `STATUS: ${String(packet?.status || view?.status || trajectory.definition_status || "unknown")}`,
     `CANONICAL: ${packet?.canonical === true || view?.canonical === true}`,
     `DEGRADED: ${packet?.degraded === true || view?.degraded === true}`,
     `TRAJECTORY_ID: ${compactText(trajectory.trajectory_id || packet?.trajectory_id, "unknown", 120)}`,
+    // Spec 125 §9.3: v3 HLT status fields.
+    `HLT_STATUS: ${hltStatus}`,
+    `TRAJECTORY_REQUIRED: ${trajectoryRequired}`,
+    `HLT_REQUIRED: ${hltRequired}`,
+    `ACTION_AUTHORITY_FROM_TRAJECTORY: ${actionAuthority}`,
+    `GENERIC_BOOTSTRAP: ${genericBootstrap}`,
+    `FALLBACK_LEVEL: ${fallbackLevel}`,
+    `FALLBACK_SOURCE_SCOPE: ${fallbackSourceScope || "none"}`,
+    // Deprecated aliases.
     `FALLBACK_PRIOR_PROJECT_TRAJECTORY: ${trajectory.fallback_prior_project_trajectory === true || packet?.fallback_prior_project_trajectory === true}`,
     `FALLBACK_SOURCE_CONTINUITY_ID: ${compactText(trajectory.fallback_source_continuity_id || packet?.fallback_source_continuity_id, "none", 120)}`,
     `HLT: ${hlt}`,
@@ -472,7 +494,10 @@ function formatTrajectoryPacketForPrompt(packet: any): string {
     `ACTIVE_GAP: ${gap}`,
     `WAYPOINTS: ${waypoints.join(" → ") || "derive_next"}`,
     "AUTHORITY: TL is north-star route context; Workpoint remains immediate action authority.",
-    "NEXT_TOOLS: focusa_workpoint_resume, focusa_trajectory_view, focusa_active_object_resolve",
+    "NEXT_TOOLS: focusa_workpoint_resume, focusa_trajectory_view, focusa_active_object_resolve, focusa_trajectory_define_goal",
+    // Spec 125 §9.3: loud warning above ordinary guidance.
+    ...(loudWarning ? [`LOUD_WARNING: ${loudWarning}`] : []),
+    ...(warnings.length > 0 ? [`WARNINGS: ${warnings.join(" | ")}`] : []),
     "STRUCTURED_PACKET_JSON:",
     JSON.stringify(view || packet, null, 2).slice(0, 3500),
   ].join("\n");
