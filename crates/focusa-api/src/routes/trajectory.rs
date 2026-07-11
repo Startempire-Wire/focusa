@@ -1718,7 +1718,26 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             "trajectory_id": active_trajectory_id,
             "definition_status": definition_status,
             "hlt_status": serde_json::to_value(&hlt_status).unwrap_or_default(),
+            // Spec 125 §11.5: new field names.
+            "allow_previous_valid_trajectory": using_prior_project_trajectory,
+            "previous_valid_trajectory_fallback": using_prior_project_trajectory,
+            "fallback_level": if using_prior_project_trajectory {
+                if persisted_trajectory.map(|r| r.continuity_id.as_deref() == Some(continuity_id.as_deref().unwrap_or(""))).unwrap_or(false) {
+                    "cross_session"
+                } else {
+                    "cross_continuity"
+                }
+            } else {
+                "none"
+            },
+            "fallback_source_scope": if using_prior_project_trajectory {
+                persisted_trajectory.and_then(|r| r.continuity_id.clone()).map(|cid| if cid == continuity_id.as_deref().unwrap_or("") { "same_continuity".to_string() } else { format!("continuity:{}", cid) })
+            } else {
+                None
+            },
+            // Deprecated aliases — kept for backcompat, will be removed in future.
             "fallback_prior_project_trajectory": using_prior_project_trajectory,
+            "_deprecated_fallback_prior_project_trajectory": "use allow_previous_valid_trajectory or previous_valid_trajectory_fallback instead",
             "fallback_source_continuity_id": persisted_trajectory.and_then(|record| record.continuity_id.clone()),
             "long_term_goal": long_term_goal.as_deref().map(|value| bounded(value, 240)),
             "desired_end_state": desired_end_state.as_deref().map(|value| bounded(value, 240)),
