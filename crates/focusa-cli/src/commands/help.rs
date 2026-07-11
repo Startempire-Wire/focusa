@@ -121,6 +121,25 @@ fn print_migration() {
     println!("  focusa first-mission --dry-run --json");
 }
 
+pub fn print_root_help() {
+    println!("FOCUSA QUICK HELP\n");
+    println!("Start here:");
+    println!("  focusa about               What Focusa does and the core concepts");
+    println!("  focusa project             Select or create the active project");
+    println!("  focusa first-mission       Guided project → Workpoint → proof flow");
+    println!("  focusa status              Current daemon, project, and work status");
+    println!("  focusa deck                Open the Mission Deck");
+    println!("  focusa doctor              Diagnose setup and recovery issues");
+    println!("\nInstall:");
+    println!("  focusa install --preflight --json");
+    println!("  focusa install --dry-run --json");
+    println!("\nMore:");
+    println!("  focusa help all            Curated command inventory");
+    println!("  focusa help migration      Deprecated → canonical commands");
+    println!("  focusa <command> --help    Command-specific options");
+    println!("\nGlobal options: --json --config <PATH> --verbose --quiet --version");
+}
+
 fn print_all() {
     println!("FOCUSA COMMANDS\n");
     for line in inventory_lines() {

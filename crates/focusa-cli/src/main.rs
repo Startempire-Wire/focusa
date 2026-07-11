@@ -472,18 +472,25 @@ fn classify_cli_error(message: &str) -> (&'static str, &'static str, &'static st
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let raw_args: Vec<String> = std::env::args().collect();
     // Handle -v (lowercase) as version before clap parsing.
     // Clap 4 auto-assigns -V for version but not -v.
-    if std::env::args().any(|a| a == "-v") {
+    if raw_args.iter().any(|arg| arg == "-v") {
         println!("focusa {}", env!("CARGO_PKG_VERSION"));
         return Ok(());
     }
-    // Render the Focusa wordmark before clap parses --help. eprintln so it
-    // never pollutes JSON output.
-    if std::env::args().any(|a| a == "--help" || a == "-h") {
+    // Root help is intentionally concise for newcomers. Subcommand help still
+    // routes through Clap and preserves complete command-specific options.
+    if raw_args.len() == 2 && matches!(raw_args[1].as_str(), "--help" | "-h") {
+        eprintln!("{}", commands::intro::render_help_banner());
+        commands::help::print_root_help();
+        return Ok(());
+    }
+    // Render the wordmark before subcommand help; stderr never pollutes JSON.
+    if raw_args.iter().any(|arg| arg == "--help" || arg == "-h") {
         eprintln!("{}", commands::intro::render_help_banner());
     }
-    let cli = Cli::parse();
+    let cli = Cli::parse_from(raw_args);
 
     // Initialize tracing with basic formatting
     let subscriber = tracing_subscriber::fmt()
