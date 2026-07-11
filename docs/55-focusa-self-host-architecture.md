@@ -8,7 +8,7 @@
 
 ## 1. The one-paragraph summary
 
-A self-hoster runs `curl install.focusa.dev/focusa | bash` on a VPS, then runs `focusa pairing wizard` on that VPS. The wizard detects Tailscale MagicDNS, creates a pairing room on the VPS, and prints a scannable terminal QR. The operator's phone camera opens that QR in the browser; the Focusa Connect Page (a PWA served by the VPS) loads, requests browser-camera permission, and scans a static `mac_offer` QR displayed by the Mac menubar app. The PWA posts the offer to the VPS, asks the operator to tap Approve, and the VPS mints a token. The Mac, which discovered the VPS via Tailscale MagicDNS and was already polling the room, receives the token and stores it in the Keychain. The whole flow uses zero URL paste and zero operator typing after install.
+A self-hoster runs `curl -fsS https://install.focusa.dev/focusa | bash -s -- --eval` on a VPS, then runs `focusa pairing wizard` on that VPS. The wizard detects Tailscale MagicDNS, creates a pairing room on the VPS, and prints a scannable terminal QR. The operator's phone camera opens that QR in the browser; the Focusa Connect Page (a PWA served by the VPS) loads, requests browser-camera permission, and scans a static `mac_offer` QR displayed by the Mac menubar app. The PWA posts the offer to the VPS, asks the operator to tap Approve, and the VPS mints a token. The Mac, which discovered the VPS via Tailscale MagicDNS and was already polling the room, receives the token and stores it in the Keychain. The whole flow uses zero URL paste and zero operator typing after install.
 
 ## 2. The three actors and what each owns
 
@@ -251,7 +251,7 @@ From v0.9.34-dev:
 **First-time self-host:**
 ```bash
 # On the VPS:
-curl install.focusa.dev/focusa | bash
+curl -fsS https://install.focusa.dev/focusa | bash -s -- --eval
 # (bash script is a thin bootstrapper; it downloads `focusa` and execs `focusa install --target=linux`
 #  which performs all real install work in Rust per docs/112-install-binary-architecture-spec.md §15A)
 focusa pairing wizard
