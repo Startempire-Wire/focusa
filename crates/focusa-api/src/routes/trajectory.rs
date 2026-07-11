@@ -2151,13 +2151,75 @@ fn resume_payload(state: &FocusaState, body: &TrajectoryResumeRequest) -> Value 
         return rejection;
     }
     let view = trajectory_view_payload(state, &query);
+
+    // Spec 125 §9.3-9.4: extract HLT status and loud warnings from trajectory view.
+    let hlt_status = view
+        .get("hlt_status")
+        .cloned()
+        .unwrap_or_else(|| json!("missing_required"));
+    let trajectory_required = view
+        .get("trajectory_required")
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+    let hlt_required = view
+        .get("hlt_required")
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+    let action_authority = view
+        .get("action_authority_from_trajectory")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let generic_bootstrap = view
+        .get("generic_bootstrap")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let loud_warning = view
+        .get("loud_warning")
+        .and_then(Value::as_str)
+        .map(|s| s.to_string());
+    let warnings: Vec<String> = view
+        .get("warnings")
+        .and_then(Value::as_array)
+        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        .unwrap_or_default();
+
+    // Spec 125 §9.3: if trajectory is generic or missing, check for previous-valid fallback.
+    let fallback_source = if generic_bootstrap || hlt_status.as_str() == Some("missing_required") {
+        // Look in trajectory history for a previous valid HLT.
+        let history = &state.trajectory;
+        history.records.iter().rev().find(|r| {
+            !r.long_term_goal.trim().is_empty() && !is_generic_bootstrap_hlt(&r.long_term_goal)
+        }).map(|r| json!({
+            "hlt": r.long_term_goal,
+            "source": "previous_valid_fallback",
+            "continuity_id": r.continuity_id,
+        }))
+    } else {
+        None
+    };
+
     json!({
         "status": view.get("status").cloned().unwrap_or_else(|| json!("completed")),
         "canonical": view.get("canonical").cloned().unwrap_or(Value::Bool(false)),
         "degraded": view.get("degraded").cloned().unwrap_or(Value::Bool(true)),
         "resume_packet": view,
+        // Spec 125 §9.3: v3 fields.
+        "schema_version": "focusa.trajectory_resume_packet.v3",
+        "hlt_status": hlt_status,
+        "trajectory_required": trajectory_required,
+        "hlt_required": hlt_required,
+        "action_authority_from_trajectory": action_authority,
+        "generic_bootstrap": generic_bootstrap,
+        "fallback_source": fallback_source,
+        "loud_warning": loud_warning,
+        "warnings": warnings,
         "next_step_hint": "Inject trajectory resume packet plus Workpoint resume before the next agent turn.",
-        "next_tools": ["focusa_workpoint_resume", "focusa_active_object_resolve"],
+        "next_tools": [
+            "focusa_workpoint_resume",
+            "focusa_active_object_resolve",
+            "focusa_trajectory_view",
+            "focusa_trajectory_define_goal",
+        ],
     })
 }
 
