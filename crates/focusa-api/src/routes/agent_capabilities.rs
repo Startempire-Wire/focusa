@@ -1011,6 +1011,169 @@ fn build_operations() -> Vec<OperationEntry> {
             "docs/focusa-api/routes/call_stack.md",
             None,
         ),
+        // ── turn lifecycle ──────────────────────────────────────────────────
+        op(
+            "focusa.turn.start",
+            "Start Turn",
+            "turn",
+            "POST",
+            "/v1/turn/start",
+            true,
+            None,
+            "write_turn",
+            "daemon_dispatch",
+            vec!["commit"],
+            false,
+            false,
+            false,
+            vec!["turn:write"],
+            false,
+            "standard_mutation",
+            vec!["compact", "standard"],
+            "focusa.turn_start.request.v1",
+            "focusa.turn_start.response.v1",
+            "docs/G1-detail-04-proxy-adapter.md",
+            None,
+        ),
+        op(
+            "focusa.turn.append",
+            "Append Turn Chunk",
+            "turn",
+            "POST",
+            "/v1/turn/append",
+            true,
+            None,
+            "write_turn_chunk",
+            "daemon_dispatch",
+            vec!["commit"],
+            false,
+            false,
+            false,
+            vec!["turn:write"],
+            false,
+            "standard_mutation",
+            vec!["compact", "standard"],
+            "focusa.turn_append.request.v1",
+            "focusa.turn_append.response.v1",
+            "docs/G1-detail-04-proxy-adapter.md",
+            None,
+        ),
+        op(
+            "focusa.turn.complete",
+            "Complete Turn",
+            "turn",
+            "POST",
+            "/v1/turn/complete",
+            true,
+            None,
+            "write_turn_completion",
+            "daemon_dispatch",
+            vec!["commit"],
+            false,
+            false,
+            false,
+            vec!["turn:write"],
+            false,
+            "standard_mutation",
+            vec!["compact", "standard"],
+            "focusa.turn_complete.request.v1",
+            "focusa.turn_complete.response.v1",
+            "docs/G1-detail-04-proxy-adapter.md",
+            None,
+        ),
+        // ── memory ──────────────────────────────────────────────────────────
+        op(
+            "focusa.memory.semantic.read",
+            "Read Semantic Memory",
+            "memory",
+            "GET",
+            "/v1/memory/semantic",
+            true,
+            None,
+            "read_memory",
+            "advisory_read",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec!["memory:read"],
+            false,
+            "standard_read",
+            vec!["compact", "standard"],
+            "focusa.memory_semantic_read.request.v1",
+            "focusa.memory_semantic_read.response.v1",
+            "docs/G1-detail-04-proxy-adapter.md",
+            None,
+        ),
+        op(
+            "focusa.memory.semantic.upsert",
+            "Upsert Semantic Memory",
+            "memory",
+            "POST",
+            "/v1/memory/semantic/upsert",
+            true,
+            None,
+            "write_memory",
+            "daemon_dispatch",
+            vec!["commit"],
+            false,
+            false,
+            false,
+            vec!["memory:write"],
+            false,
+            "standard_mutation",
+            vec!["compact", "standard"],
+            "focusa.memory_semantic_upsert.request.v1",
+            "focusa.memory_semantic_upsert.response.v1",
+            "docs/G1-detail-04-proxy-adapter.md",
+            None,
+        ),
+        op(
+            "focusa.memory.procedural.read",
+            "Read Procedural Memory",
+            "memory",
+            "GET",
+            "/v1/memory/procedural",
+            true,
+            None,
+            "read_memory",
+            "advisory_read",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec!["memory:read"],
+            false,
+            "standard_read",
+            vec!["compact", "standard"],
+            "focusa.memory_procedural_read.request.v1",
+            "focusa.memory_procedural_read.response.v1",
+            "docs/G1-detail-04-proxy-adapter.md",
+            None,
+        ),
+        op(
+            "focusa.memory.procedural.reinforce",
+            "Reinforce Procedural Rule",
+            "memory",
+            "POST",
+            "/v1/memory/procedural/reinforce",
+            true,
+            None,
+            "write_memory",
+            "daemon_dispatch",
+            vec!["commit"],
+            false,
+            false,
+            false,
+            vec!["memory:write"],
+            false,
+            "standard_mutation",
+            vec!["compact", "standard"],
+            "focusa.memory_procedural_reinforce.request.v1",
+            "focusa.memory_procedural_reinforce.response.v1",
+            "docs/G1-detail-04-proxy-adapter.md",
+            None,
+        ),
     ]
 }
 
@@ -1036,6 +1199,8 @@ fn build_families() -> Vec<&'static str> {
         "license",
         "dxux",
         "call_stack",
+        "turn",
+        "memory",
     ]
 }
 
@@ -1185,7 +1350,56 @@ pub async fn openapi_export(State(_state): State<Arc<AppState>>) -> Json<Value> 
 pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/agent/capabilities", get(capabilities_index_handler))
+        .route("/v1/agent/tools", get(capabilities_index_handler))
         .route("/v1/agent/schemas", get(list_schemas))
         .route("/v1/agent/schemas/{schema_id}", get(get_schema))
         .route("/v1/openapi.json", get(openapi_export))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn operation_catalog_includes_turn_and_memory_routes() {
+        let operations = build_operations();
+        let paths: std::collections::BTreeSet<_> =
+            operations.iter().map(|operation| operation.path).collect();
+        for path in [
+            "/v1/turn/start",
+            "/v1/turn/append",
+            "/v1/turn/complete",
+            "/v1/memory/semantic",
+            "/v1/memory/semantic/upsert",
+            "/v1/memory/procedural",
+            "/v1/memory/procedural/reinforce",
+        ] {
+            assert!(paths.contains(path), "missing operation path {path}");
+        }
+    }
+
+    #[test]
+    fn operation_catalog_exposes_turn_schema_ids() {
+        let schemas: std::collections::BTreeSet<_> = build_operations()
+            .iter()
+            .flat_map(|operation| [operation.request_schema_ref, operation.response_schema_ref])
+            .collect();
+        for schema in [
+            "focusa.turn_start.request.v1",
+            "focusa.turn_start.response.v1",
+            "focusa.turn_append.request.v1",
+            "focusa.turn_append.response.v1",
+            "focusa.turn_complete.request.v1",
+            "focusa.turn_complete.response.v1",
+        ] {
+            assert!(schemas.contains(schema), "missing schema {schema}");
+        }
+    }
+
+    #[test]
+    fn turn_and_memory_families_are_advertised() {
+        let families = build_families();
+        assert!(families.contains(&"turn"));
+        assert!(families.contains(&"memory"));
+    }
 }
