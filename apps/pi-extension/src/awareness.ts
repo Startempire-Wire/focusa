@@ -101,13 +101,26 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     .filter(Boolean)
     .join("; ");
 
+  // Spec 125 §10: HLT status fields for MISSION_PACKET.
+  const hltStatus = trajectory.hlt_status || "missing_required";
+  const trajectoryRequired = trajectory.trajectory_required ?? true;
+  const hltRequired = trajectory.hlt_required ?? true;
+  const actionAuthority = trajectory.action_authority_from_trajectory ?? false;
+  const genericBootstrap = trajectory.generic_bootstrap ?? false;
+  const loudWarning = trajectory.loud_warning || null;
+  const fallbackLevel = trajectory.fallback_level || "none";
+  const fallbackSourceScope = trajectory.fallback_source_scope || null;
+
   const missionPacket = [
     "MISSION_PACKET:",
     `- project=${safeScope ? compact(projectIdentity.canonical_name || projectIdentity.project_id, "unknown", 80) : "UNBOUND_UNSAFE_ROOT"} root=${projectRoot || "unknown"}${confidence}`,
+    `- hlt_status=${hltStatus}; trajectory_required=${trajectoryRequired}; hlt_required=${hltRequired}; action_authority=${actionAuthority}`,
+    `- generic_bootstrap=${genericBootstrap}; fallback_level=${fallbackLevel}; fallback_source=${fallbackSourceScope || "none"}`,
     `- trajectory=${trajectoryFallback ? "prior_project_fallback_advisory" : trajectorySet ? "set" : "not_hydrated"}; high=${compact(trajectory.long_term_goal, "unknown")}; desired=${compact(trajectory.desired_end_state, "unknown")}`,
     `- current=${compact(trajectory.current_state, "unknown")}; gap=${compact(trajectory.active_gap || trajectory.short_term_goal, "unknown")}; recommended=${compact(trajectory.recommended_action, "unknown", 120)}`,
     `- workpoint=${workpointStatus}; ${scopedPacket ? "canonical packet matches project_root+continuity_id" : "resume/checkpoint required before treating Workpoint as canonical"}`,
-    `- next=${!safeScope || needsConfirm ? "auto-bootstrap project identity with focusa_project_identity before durable work" : next ? compact(next) : compact(trajectory.active_gap || trajectory.short_term_goal || mission || "refresh trajectory then checkpoint mission")}`,
+    ...(loudWarning ? [`- LOUD_WARNING: ${loudWarning}`] : []),
+    `- next=${!safeScope || needsConfirm ? "auto-bootstrap project identity with focusa_project_identity before durable work" : (hltRequired ? "focusa_trajectory_define_goal (HLT required)" : (next ? compact(next) : compact(trajectory.active_gap || trajectory.short_term_goal || mission || "refresh trajectory then checkpoint mission")))}`,
     `- environment=${envParts || "unknown; call focusa_project_identity/trajectory_view for URL/deploy facts"}`,
     `- boundary=operator steering wins; project_root+continuity_id are authority; trajectory similarity/fallback is advisory only`,
   ];
