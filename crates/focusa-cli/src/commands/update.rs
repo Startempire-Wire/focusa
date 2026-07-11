@@ -586,15 +586,24 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
             if apply.consent.effective && apply.plan.apply_allowed {
                 match execute_verified_apply(&apply.plan).await {
                     Ok(promoted) => {
-                        apply.status = "completed";
-                        apply.read_only = false;
-                        apply.mutations_performed = !promoted.is_empty();
-                        apply.apply_executed = !promoted.is_empty();
+                        let changed = !promoted.is_empty();
+                        apply.status = if changed {
+                            "completed"
+                        } else {
+                            "already_current"
+                        };
+                        apply.read_only = !changed;
+                        apply.mutations_performed = changed;
+                        apply.apply_executed = changed;
                         apply.blocked_reason.clear();
-                        apply.recovery_hint = format!(
-                            "Promoted: {}. Use focusa update status --json to verify all surfaces.",
-                            promoted.join(", ")
-                        );
+                        apply.recovery_hint = if changed {
+                            format!(
+                                "Promoted: {}. Use focusa update status --json to verify all surfaces.",
+                                promoted.join(", ")
+                            )
+                        } else {
+                            "No stale verified assets; all installed update-managed parts are current.".into()
+                        };
                     }
                     Err(error) => {
                         apply.status = "failed_rolled_back";
@@ -2127,6 +2136,16 @@ async fn inspect_executable_part(
 }
 
 fn resolve_path(command: &str, canonical: &str) -> Option<String> {
+    let override_key = format!(
+        "FOCUSA_{}_PATH",
+        command.to_ascii_uppercase().replace('-', "_")
+    );
+    if let Some(path) = std::env::var_os(override_key) {
+        let path = PathBuf::from(path);
+        if path.exists() {
+            return Some(path.to_string_lossy().to_string());
+        }
+    }
     if Path::new(canonical).exists() {
         return Some(canonical.into());
     }

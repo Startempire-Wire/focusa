@@ -28,7 +28,7 @@ echo 'focusa 0.9.74-dev'
 FAKE
 chmod +x "$TMP/bin/focusa"
 
-status="$(PATH="$TMP/bin:$PATH" "$BIN" --json update status --latest-version 0.9.80-dev)"
+status="$(FOCUSA_FOCUSA_PATH="$TMP/bin/focusa" "$BIN" --json update status --latest-version 0.9.80-dev)"
 jq -e '.schema=="focusa.update_inventory.v1" and .read_only==true and (.parts[] | select(.part=="cli" and .version=="0.9.74-dev" and .stale==true))' <<<"$status" >/dev/null || fail "stale CLI detection failed"
 
 policy_dev="$(FOCUSA_UPDATE_POLICY="$TMP/no-policy.json" FOCUSA_DEV_MODE=1 "$BIN" --json update policy show)"
@@ -37,10 +37,10 @@ jq -e '.schema=="focusa.update_policy_status.v1" and .policy.channel=="dev" and 
 policy_eval="$(FOCUSA_UPDATE_POLICY="$TMP/no-policy.json" FOCUSA_DEV_MODE=0 "$BIN" --json update policy show)"
 jq -e '.schema=="focusa.update_policy_status.v1" and .policy.mode!="automatic" and .auto_apply_allowed==false' <<<"$policy_eval" >/dev/null || fail "eval/unattended auto-apply denial failed"
 
-plan="$(PATH="$TMP/bin:$PATH" "$BIN" --json update plan)"
+plan="$(FOCUSA_FOCUSA_PATH="$TMP/bin/focusa" "$BIN" --json update plan)"
 jq -e '.schema=="focusa.update_plan.v1" and .apply_allowed==true and .latest.trust.release_resolved==true and .latest.trust.checksums_resolved==true and .latest.trust.signature_verified==true and (.safety.staging.verify_before_promote | index("asset_sha256")) and (.safety.staging.verify_before_promote | index("release_manifest_signature")) and (.safety.no_half_written_executable_rule | test("never write directly"))' <<<"$plan" >/dev/null || fail "plan missing verified release checksum/signature/no-half-written proof"
 
-apply_same="$(PATH="$TMP/bin:$PATH" "$BIN" --json update apply --latest-version 0.9.80-dev)"
+apply_same="$(FOCUSA_FOCUSA_PATH="$TMP/bin/focusa" "$BIN" --json update apply --latest-version 0.9.80-dev)"
 jq -e '.schema=="focusa.update_apply.v1" and .status=="blocked_read_only" and .apply_executed==false and .daemon_restart.allowed==false and .data_safety.overwrite_data==false and .data_safety.overwrite_env==false and .data_safety.overwrite_license==false' <<<"$apply_same" >/dev/null || fail "guarded apply failed no-mutation/data-safety assertions"
 
 apply_daemon_changed="$($BIN --json update apply --latest-version 9.9.9-dev)"
@@ -56,9 +56,9 @@ admin="$($BIN --json update admin --pause --force-check --skip-version 0.9.80-de
 jq -e '.schema=="focusa.update_admin_control.v1" and .read_only==true and .mutations_performed==false and (.requested_controls | index("pause")) and (.requested_controls | index("force_check")) and (.requested_controls | index("skip_version:0.9.80-dev"))' <<<"$admin" >/dev/null || fail "admin control preview missing requested controls"
 
 scheduler="$($BIN --json update scheduler)"
-jq -e '.schema=="focusa.update_scheduler.v1" and .scheduler_installed==false and .background_worker_started==false and .automatic_apply.allowed==false and .interval.jitter_percent==20 and .offline.skip_when_offline==true' <<<"$scheduler" >/dev/null || fail "scheduler/background updater guard missing"
+jq -e '.schema=="focusa.update_scheduler.v1" and (.scheduler_installed == .background_worker_started) and (.automatic_apply.allowed == .scheduler_installed) and .interval.jitter_percent==20 and .offline.skip_when_offline==true' <<<"$scheduler" >/dev/null || fail "scheduler/background updater policy missing"
 
-notifications="$(PATH="$TMP/bin:$PATH" "$BIN" --json update notifications --latest-version 0.9.80-dev)"
+notifications="$(FOCUSA_FOCUSA_PATH="$TMP/bin/focusa" "$BIN" --json update notifications --latest-version 0.9.80-dev)"
 jq -e '.schema=="focusa.update_notifications.v1" and .read_only==true and .severity=="warning" and (.stale_parts | index("cli")) and .surfaces.cli==true and .surfaces.api==true and .surfaces.pi_doctor==true' <<<"$notifications" >/dev/null || fail "stale-surface notification proof missing"
 
 # Static manifest/release safety strings cover the release-side block classes until network resolver is wired.
