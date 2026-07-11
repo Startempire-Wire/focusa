@@ -575,12 +575,10 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             if let Some(root) = project_root {
                 let resolved = resolve_input_project_root(None, Some(root.as_str()))?;
                 push_query(&mut qs, "project_root", Some(resolved.as_str()));
+            } else if let Ok(cwd) = std::env::current_dir() {
+                push_query(&mut qs, "from", cwd.to_str());
             }
-            let path = if qs.is_empty() {
-                "/v1/project/current".to_string()
-            } else {
-                format!("/v1/project/current?{}", qs.join("&"))
-            };
+            let path = format!("/v1/project/current?{}", qs.join("&"));
             ("current", api.get(&path).await?)
         }
         ProjectCmd::Status { project_root } => {
@@ -588,12 +586,10 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             if let Some(root) = project_root {
                 let resolved = resolve_input_project_root(None, Some(root.as_str()))?;
                 push_query(&mut qs, "project_root", Some(resolved.as_str()));
+            } else if let Ok(cwd) = std::env::current_dir() {
+                push_query(&mut qs, "from", cwd.to_str());
             }
-            let path = if qs.is_empty() {
-                "/v1/project/status".to_string()
-            } else {
-                format!("/v1/project/status?{}", qs.join("&"))
-            };
+            let path = format!("/v1/project/status?{}", qs.join("&"));
             ("status", api.get(&path).await?)
         }
         ProjectCmd::Remove => (

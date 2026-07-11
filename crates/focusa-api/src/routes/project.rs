@@ -2216,25 +2216,29 @@ fn project_fingerprint_for_root(root: &str) -> String {
     format!("project-fnv1a64:{:016x}", hasher.finish())
 }
 
-fn selected_project_payload(root: &str) -> Option<Value> {
-    let profile_path = selected_profile_path();
-    let profile = read_json_value(&profile_path)?;
+fn selected_project_payload() -> Option<Value> {
+    let profile = read_json_value(&selected_profile_path())?;
     let fingerprint = profile.get("selected_project_fingerprint")?.as_str()?;
     let selected_path = project_profiles_dir().join(format!("{fingerprint}.json"));
-    let mut payload = json!({
+    let details = read_json_value(&selected_path)?;
+    let selected_root = details.get("project_root")?.as_str()?;
+    if classify_project_root(selected_root).reason().is_some() {
+        return None;
+    }
+    let selected_root_path = Path::new(selected_root);
+    if !selected_root_path.is_dir() || !selected_root_path.join(".focusa-project.json").is_file() {
+        return None;
+    }
+    Some(json!({
         "schema": "focusa.cli.selected_project.v1",
+        "status": "selected",
         "fingerprint": fingerprint,
         "selected_by": profile.get("selected_by").and_then(Value::as_str).unwrap_or("cli"),
         "note": profile.get("note").and_then(Value::as_str).unwrap_or("").to_string(),
         "selected_at": profile.get("selected_at").and_then(Value::as_str).unwrap_or(""),
-        "project_root": root,
-    });
-    if let Some(details) = read_json_value(&selected_path) {
-        if let Some(obj) = payload.as_object_mut() {
-            obj.insert("project_profile".to_string(), details);
-        }
-    }
-    Some(payload)
+        "project_root": selected_root,
+        "project_profile": details,
+    }))
 }
 
 fn selected_project_profile(root: &str) -> Option<Value> {
@@ -2261,6 +2265,7 @@ fn store_selected_project(
     let payload = json!({
         "schema": "focusa.cli.selected_project.v1",
         "selected_project_fingerprint": fingerprint,
+        "project_root": project_root,
         "selected_at": chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
         "selected_by": selected_by.unwrap_or_else(|| "focusa project".to_string()),
         "note": note.unwrap_or_else(|| "CLI convenience profile only; not canonical daemon authority".to_string()),
@@ -2392,6 +2397,36 @@ fn discover_project_candidates(from: &Path, max_depth: u32, max_results: usize) 
     candidates
 }
 
+fn build_project_dashboard(
+    runtime_payload: Value,
+    selected: Option<Value>,
+    project_profiles: Vec<Value>,
+) -> Value {
+    let runtime_verified = runtime_payload
+        .pointer("/project_identity/status")
+        .and_then(Value::as_str)
+        == Some("verified");
+    let effective_project = selected
+        .clone()
+        .or_else(|| runtime_verified.then(|| runtime_payload.clone()));
+    let status = if effective_project.is_some() {
+        "ok"
+    } else {
+        "degraded"
+    };
+    json!({
+        "schema": "focusa.project_dashboard.v1",
+        "status": status,
+        "failure_class": if effective_project.is_some() { Value::Null } else { json!("project_root_selection_required") },
+        "runtime": runtime_payload,
+        "selected": selected,
+        "effective_project": effective_project,
+        "project_count": project_profiles.len(),
+        "projects": project_profiles,
+        "next_tools": if status == "ok" { vec!["focusa_project_verify", "focusa_trajectory_view"] } else { vec!["focusa_project_list", "focusa_project_discover", "focusa_project_use"] },
+    })
+}
+
 async fn list_projects(Query(query): Query<ProjectListQuery>) -> Json<Value> {
     let runtime_root = query
         .project_root
@@ -2403,13 +2438,7 @@ async fn list_projects(Query(query): Query<ProjectListQuery>) -> Json<Value> {
     } else {
         json!({"status":"invalid","reason":"runtime root unsafe"})
     };
-    let selected = query
-        .project_root
-        .as_deref()
-        .and_then(selected_project_payload)
-        .or_else(|| {
-            selected_project_payload(&query.from.clone().unwrap_or_else(|| "/".to_string()))
-        });
+    let selected = selected_project_payload();
     let mut project_profiles = Vec::new();
     if let Ok(entries) = fs::read_dir(project_profiles_dir()) {
         for entry in entries
@@ -2421,14 +2450,11 @@ async fn list_projects(Query(query): Query<ProjectListQuery>) -> Json<Value> {
             }
         }
     }
-    Json(json!({
-        "schema": "focusa.project_dashboard.v1",
-        "status": "ok",
-        "runtime": runtime_payload,
-        "selected": selected,
-        "projects": project_profiles,
-        "project_count": project_profiles.len(),
-    }))
+    Json(build_project_dashboard(
+        runtime_payload,
+        selected,
+        project_profiles,
+    ))
 }
 
 async fn current_status(Query(query): Query<ProjectListQuery>) -> Json<Value> {
@@ -4784,6 +4810,46 @@ mod tests {
         assert_eq!(bundle["write"]["performed"], false);
         assert_eq!(bundle["receipt_preview"]["packet_available"], true);
         assert!(bundle["receipt_commit"].is_null());
+    }
+
+    #[test]
+    fn dashboard_requires_selection_when_runtime_scope_is_unverified() {
+        let dashboard = build_project_dashboard(
+            json!({"status":"invalid","project_identity":{"status":"mismatch"}}),
+            None,
+            vec![],
+        );
+        assert_eq!(dashboard["status"], "degraded");
+        assert_eq!(
+            dashboard["failure_class"],
+            "project_root_selection_required"
+        );
+        assert!(dashboard["effective_project"].is_null());
+    }
+
+    #[test]
+    fn dashboard_prefers_safe_selected_project_over_runtime_mismatch() {
+        let selected = json!({
+            "status":"selected",
+            "project_root":"/tmp/safe-project",
+            "fingerprint":"project:test"
+        });
+        let dashboard = build_project_dashboard(
+            json!({"project_identity":{"status":"mismatch","root":"/usr/local/lib/focusa"}}),
+            Some(selected.clone()),
+            vec![selected.clone()],
+        );
+        assert_eq!(dashboard["status"], "ok");
+        assert_eq!(dashboard["effective_project"], selected);
+        assert_eq!(dashboard["project_count"], 1);
+    }
+
+    #[test]
+    fn dashboard_accepts_verified_runtime_without_saved_selection() {
+        let runtime = json!({"project_identity":{"status":"verified","root":"/tmp/project"}});
+        let dashboard = build_project_dashboard(runtime.clone(), None, vec![]);
+        assert_eq!(dashboard["status"], "ok");
+        assert_eq!(dashboard["effective_project"], runtime);
     }
 
     #[test]
