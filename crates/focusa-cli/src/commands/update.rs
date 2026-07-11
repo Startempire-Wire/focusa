@@ -1281,10 +1281,17 @@ async fn execute_verified_apply_locked(
             // failure enters the outer rollback path.
             promoted.push((part.part.to_string(), target.clone(), backup));
             if part.part != "daemon" {
+                let target_path = target.to_string_lossy();
                 let got = if part.part == "tui" {
-                    probe_tui_version(target.to_string_lossy().as_ref()).await
+                    match probe_version_command(&target_path)
+                        .await
+                        .map(|value| normalize_version(&value))
+                    {
+                        Some(version) => Some(version),
+                        None => probe_tui_version(&target_path).await,
+                    }
                 } else {
-                    probe_version_command(target.to_string_lossy().as_ref())
+                    probe_version_command(&target_path)
                         .await
                         .map(|v| normalize_version(&v))
                 }
@@ -2111,7 +2118,17 @@ async fn inspect_daemon(latest: &str, health: Option<String>) -> anyhow::Result<
     let path = resolve_path("focusa-daemon", "/usr/local/bin/focusa-daemon");
     let sha256 = path.as_deref().and_then(|p| sha256_file(Path::new(p)).ok());
     let exists = path.is_some();
-    let version = health.as_deref().map(normalize_version);
+    // Prefer the running daemon's health version, but fall back to the binary
+    // only after its --version path is guaranteed side-effect-free.
+    let version = match health.as_deref() {
+        Some(version) => Some(normalize_version(version)),
+        None => match path.as_deref() {
+            Some(path) => probe_version_command(path)
+                .await
+                .map(|value| normalize_version(&value)),
+            None => None,
+        },
+    };
     let stale = version.as_ref().map(|v| v != latest);
     let stale_reason = match (&version, stale) {
         (Some(v), Some(true)) => format!("running daemon health version {v} differs from latest {latest}"),
@@ -2124,12 +2141,14 @@ async fn inspect_daemon(latest: &str, health: Option<String>) -> anyhow::Result<
         resolved_path: path,
         exists,
         version,
-        version_source: "daemon_health_endpoint",
+        version_source: "daemon_health_endpoint_or_binary_--version",
         version_probe_safe: true,
         sha256,
         stale,
         stale_reason,
-        notes: vec!["binary --version intentionally not invoked; current daemon binary treats --version as startup input".into()],
+        notes: vec![
+            "daemon --version is a side-effect-free fallback when health is unavailable".into(),
+        ],
     })
 }
 
