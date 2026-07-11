@@ -214,23 +214,25 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     // FOCUSA_FIX-tgij: shell-tool reminder — when the agent uses a shell-like
     // tool that could touch the Focusa daemon, emit a visible reminder to
     // prefer focusa_* tools for governed interactions.
-    // FOCUSA_FIX-a52s: frequency gate — limit reminders to once per turn
-    // (per-turn) and at most once per 30 seconds (per-minute equivalent).
     const SHELL_TOOLS = ["bash", "sh", "fish", "zsh", "csh", "dash"];
-    if (SHELL_TOOLS.includes(toolName) && getFocusaAvailable()) {
+    const reminderCfg = S.cfg;
+    if (reminderCfg?.agentReminderMode === "shell" && SHELL_TOOLS.includes(toolName) && getFocusaAvailable()) {
       const now = Date.now();
       const lastReminder = S.lastShellReminderAt || 0;
       const turnCount = getTurnCount();
       const lastReminderTurn = S.lastShellReminderTurn || 0;
-      // Gate: per-turn (same turn = skip) + per-minute (30s debounce)
-      if (turnCount !== lastReminderTurn && (now - lastReminder) > 30000) {
+      const frequency = Math.max(1, reminderCfg.agentReminderShellFrequency || 1);
+      const cooldownMs = Math.max(0, reminderCfg.agentReminderCooldownMs || 30_000);
+      if (turnCount !== lastReminderTurn && turnCount % frequency === 0 && (now - lastReminder) > cooldownMs) {
         S.lastShellReminderAt = now;
         S.lastShellReminderTurn = turnCount;
+        const prefix = reminderCfg.agentReminderUseEmoji ? "🧭 " : "";
         const reminder = {
           customType: "focusa_agent_prompt",
-          content: "For Focusa daemon/state interactions, prefer focusa_* Pi tools over shell/bash — they handle scope, authority, recovery, and evidence automatically.",
+          content: `${prefix}For Focusa daemon/state interactions, prefer focusa_* Pi tools over shell/bash — they handle scope, authority, recovery, and evidence automatically.`,
           display: true,
         };
+        bestEffortTelemetry("agent_tool_layer_reminder", { tool_name: toolName, turn: turnCount, frequency, cooldown_ms: cooldownMs });
         try {
           S.pi?.sendMessage(reminder);
         } catch {

@@ -31,6 +31,10 @@ export interface FocusaConfig {
   compactPct: number;
   hardPct: number;
   contextStatusMode: "off" | "actionable" | "all";
+  agentReminderMode: "off" | "shell";
+  agentReminderShellFrequency: number;
+  agentReminderCooldownMs: number;
+  agentReminderUseEmoji: boolean;
   vitalInfoPromptMode: "off" | "warn_only" | "notify" | "prompt";
   vitalInfoPromptSurfaces: string;
   cooldownMs: number;
@@ -93,6 +97,10 @@ const DEFAULTS: FocusaConfig = {
   compactPct: 70,
   hardPct: 85,
   contextStatusMode: "actionable",
+  agentReminderMode: "shell",
+  agentReminderShellFrequency: 1,
+  agentReminderCooldownMs: 30_000,
+  agentReminderUseEmoji: false,
   vitalInfoPromptMode: "prompt",
   vitalInfoPromptSurfaces: "project_root,project_verify,workpoint,trajectory",
   cooldownMs: 180_000,
@@ -146,6 +154,10 @@ const ENV_MAP: Record<string, keyof FocusaConfig> = {
   FOCUSA_PI_COMPACT_PCT: "compactPct",
   FOCUSA_PI_HARD_PCT: "hardPct",
   FOCUSA_PI_CONTEXT_STATUS_MODE: "contextStatusMode",
+  FOCUSA_PI_AGENT_REMINDER_MODE: "agentReminderMode",
+  FOCUSA_PI_AGENT_REMINDER_SHELL_FREQUENCY: "agentReminderShellFrequency",
+  FOCUSA_PI_AGENT_REMINDER_COOLDOWN_MS: "agentReminderCooldownMs",
+  FOCUSA_PI_AGENT_REMINDER_USE_EMOJI: "agentReminderUseEmoji",
   FOCUSA_PI_VITAL_INFO_PROMPT_MODE: "vitalInfoPromptMode",
   FOCUSA_PI_VITAL_INFO_PROMPT_SURFACES: "vitalInfoPromptSurfaces",
   FOCUSA_PI_COOLDOWN_MS: "cooldownMs",
