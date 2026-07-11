@@ -3640,6 +3640,7 @@ async fn card(
         project_root: record.project_root.clone(),
         continuity_id: record.continuity_id.clone(),
         hlt: Some(record.long_term_goal.clone()).filter(|value| !value.trim().is_empty()),
+        hlt_status: record.hlt_status,
         mlg: record.mid_level_goal.clone(),
         stg: record.short_term_goal.clone(),
         waypoints: record.waypoints.iter().take(8).cloned().collect(),

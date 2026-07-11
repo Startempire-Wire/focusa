@@ -17,9 +17,10 @@ use chrono::Utc;
 use focusa_core::reducer;
 use focusa_core::types::{
     EventLogEntry, FocusState, FocusaEvent, FocusaSessionIdentity, FocusaState, FrameRecord,
-    HltLedgerEntry, SignalOrigin, TrajectoryConfidence, TrajectoryDefinitionOfDoneRecord,
-    TrajectoryDefinitionStatus, TrajectoryGoalProvenanceRecord, TrajectoryMilestoneRecord,
-    TrajectoryMilestoneStatus, TrajectoryProjectionRecord, WorkpointRecord, WorkpointStatus,
+    HltLedgerEntry, HltStatus, SignalOrigin, TrajectoryConfidence,
+    TrajectoryDefinitionOfDoneRecord, TrajectoryDefinitionStatus,
+    TrajectoryGoalProvenanceRecord, TrajectoryMilestoneRecord, TrajectoryMilestoneStatus,
+    TrajectoryProjectionRecord, WorkpointRecord, WorkpointStatus, classify_hlt,
     trajectory_caps,
 };
 use serde::Deserialize;
@@ -1380,6 +1381,15 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         "unclear"
     };
 
+    // Spec 125 §3.2: classify HLT authority status after definition_status is known.
+    let is_fallback = hlt_source == "hlt_history_fallback";
+    let hlt_status = classify_hlt(
+        long_term_goal.as_deref(),
+        is_fallback,
+        false, // supersession_pending
+        definition_status == "conflicted",
+    );
+
     let do_not_use = mismatches
         .iter()
         .filter_map(|mismatch| mismatch.get("field").and_then(Value::as_str))
@@ -1647,7 +1657,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
     json!({
         "status": status,
         "canonical": canonical,
-        "degraded": status == "degraded" || hlt_degraded_placeholder,
+        "degraded": status == "degraded" || hlt_degraded_placeholder || !hlt_status.has_route_authority(),
         "source": "per_project_trajectory_projection_v1",
         "mode": query.mode.as_deref().unwrap_or("summary"),
         "trajectory_workpoint_reconciliation": trajectory_workpoint_reconciliation.clone(),
@@ -1674,6 +1684,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         "trajectory": {
             "trajectory_id": active_trajectory_id,
             "definition_status": definition_status,
+            "hlt_status": serde_json::to_value(&hlt_status).unwrap_or_default(),
             "fallback_prior_project_trajectory": using_prior_project_trajectory,
             "fallback_source_continuity_id": persisted_trajectory.and_then(|record| record.continuity_id.clone()),
             "long_term_goal": long_term_goal.as_deref().map(|value| bounded(value, 240)),
@@ -1688,7 +1699,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
                 "stg": short_term_goal.as_deref().map(|value| bounded(value, 240)),
                 "waypoints": waypoints.clone(),
                 "source_metadata": {
-                    "hlt": {"source": hlt_source, "degraded": hlt_degraded_placeholder},
+                    "hlt": {"source": hlt_source, "degraded": hlt_degraded_placeholder, "hlt_status": serde_json::to_value(&hlt_status).unwrap_or_default()},
                     "mlg": {"source": if mid_level_goal.is_some() { if persisted_mid_level_goal.is_some() { "trajectory_record" } else { "hlt_compatible_projection" } } else { "none" }, "degraded": !effective_long_term_goal_present},
                     "stg": {"source": if short_term_goal.is_some() { if persisted_short_term_goal.is_some() { "trajectory_record" } else { "hlt_compatible_projection" } } else { "none" }, "degraded": !effective_long_term_goal_present}
                 },

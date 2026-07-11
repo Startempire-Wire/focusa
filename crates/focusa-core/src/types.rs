@@ -733,6 +733,92 @@ pub enum TrajectoryDefinitionStatus {
     Conflicted,
 }
 
+/// Spec 125 §3.2 — Canonical HLT status values.
+///
+/// Only `CanonicalExplicit` and `PreviousValidFallback` count as
+/// action-ready route context. Generic/missing/conflicted HLT must
+/// never silently carry route authority.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum HltStatus {
+    /// Operator-defined HLT present and verified for this scope.
+    CanonicalExplicit,
+    /// Prior valid HLT reused as fallback; MLG/STG must refresh before durable action.
+    PreviousValidFallback,
+    /// Supersession is pending operator confirmation.
+    SupersessionPending,
+    /// No HLT is set for this scope; loud warning required.
+    #[default]
+    MissingRequired,
+    /// Generic/placeholder HLT detected; must never carry route authority.
+    GenericDegraded,
+    /// Multiple conflicting HLT sources detected.
+    Conflicted,
+}
+
+impl HltStatus {
+    /// Returns true when this status counts as action-ready route context.
+    pub fn is_action_ready(&self) -> bool {
+        matches!(self, Self::CanonicalExplicit | Self::PreviousValidFallback)
+    }
+
+    /// Returns true when the status carries route authority.
+    pub fn has_route_authority(&self) -> bool {
+        self.is_action_ready()
+    }
+}
+
+/// Generic/placeholder HLT patterns that must never be treated as canonical.
+/// Spec 125 §3.4: generic bootstrap text is a louder degraded state than missing.
+const GENERIC_HLT_PATTERNS: &[&str] = &[
+    "Maintain and improve",
+    "within verified project scope",
+    "Improve <project>",
+    "Continue <project> work",
+    "Project-level default",
+    "Strengthen project intelligence",
+    "Continue project work",
+    "Maintain and improve <project>",
+];
+
+/// Classify a raw HLT string into an `HltStatus`.
+///
+/// Rules from Spec 125 §3.2–3.4:
+/// - Empty/None → MissingRequired
+/// - Matches generic pattern → GenericDegraded
+/// - Supersession pending → SupersessionPending
+/// - Conflicted sources → Conflicted
+/// - Valid operator-defined HLT → CanonicalExplicit (or PreviousValidFallback if fallback)
+pub fn classify_hlt(
+    hlt: Option<&str>,
+    is_fallback: bool,
+    is_supersession_pending: bool,
+    is_conflicted: bool,
+) -> HltStatus {
+    if is_conflicted {
+        return HltStatus::Conflicted;
+    }
+    if is_supersession_pending {
+        return HltStatus::SupersessionPending;
+    }
+    match hlt {
+        None | Some("") => HltStatus::MissingRequired,
+        Some(text) => {
+            let lower = text.to_lowercase();
+            let is_generic = GENERIC_HLT_PATTERNS
+                .iter()
+                .any(|pat| lower.contains(&pat.to_lowercase()));
+            if is_generic {
+                HltStatus::GenericDegraded
+            } else if is_fallback {
+                HltStatus::PreviousValidFallback
+            } else {
+                HltStatus::CanonicalExplicit
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum TrajectoryRootGoalStability {
@@ -834,6 +920,9 @@ pub struct TrajectoryProjectionRecord {
     #[serde(default)]
     pub open_questions: Vec<String>,
     pub definition_status: TrajectoryDefinitionStatus,
+    /// Spec 125 §3.2 — classified HLT authority status.
+    #[serde(default)]
+    pub hlt_status: HltStatus,
     pub confidence: TrajectoryConfidence,
     #[serde(default)]
     pub goal_provenance: Vec<TrajectoryGoalProvenanceRecord>,
@@ -868,6 +957,7 @@ impl Default for TrajectoryProjectionRecord {
             blockers: vec![],
             open_questions: vec![],
             definition_status: TrajectoryDefinitionStatus::Unclear,
+            hlt_status: HltStatus::MissingRequired,
             confidence: TrajectoryConfidence::Medium,
             goal_provenance: vec![],
             definition_of_done: None,
@@ -1589,6 +1679,7 @@ impl FocusaState {
             project_root: trajectory.project_root.clone(),
             continuity_id: trajectory.continuity_id.clone(),
             hlt: Some(trajectory.long_term_goal.clone()).filter(|value| !value.trim().is_empty()),
+            hlt_status: trajectory.hlt_status,
             mlg: trajectory.mid_level_goal.clone(),
             stg: trajectory.short_term_goal.clone(),
             waypoints: trajectory.waypoints.iter().take(8).cloned().collect(),
@@ -1665,6 +1756,70 @@ mod focusa_state_tests {
         assert_eq!(context.mlg.as_deref(), Some("Active MLG"));
         assert_eq!(context.stg.as_deref(), Some("Active STG"));
         assert_eq!(context.waypoints.len(), 8);
+    }
+
+    #[test]
+    fn hlt_status_action_ready_only_for_explicit_and_fallback() {
+        assert!(HltStatus::CanonicalExplicit.is_action_ready());
+        assert!(HltStatus::PreviousValidFallback.is_action_ready());
+        assert!(!HltStatus::MissingRequired.is_action_ready());
+        assert!(!HltStatus::GenericDegraded.is_action_ready());
+        assert!(!HltStatus::Conflicted.is_action_ready());
+        assert!(!HltStatus::SupersessionPending.is_action_ready());
+    }
+
+    #[test]
+    fn classify_hlt_none_is_missing_required() {
+        assert_eq!(classify_hlt(None, false, false, false), HltStatus::MissingRequired);
+    }
+
+    #[test]
+    fn classify_hlt_empty_is_missing_required() {
+        assert_eq!(classify_hlt(Some(""), false, false, false), HltStatus::MissingRequired);
+    }
+
+    #[test]
+    fn classify_hlt_generic_is_degraded() {
+        assert_eq!(
+            classify_hlt(Some("Maintain and improve focusa within verified project scope"), false, false, false),
+            HltStatus::GenericDegraded
+        );
+        assert_eq!(
+            classify_hlt(Some("Strengthen project intelligence"), false, false, false),
+            HltStatus::GenericDegraded
+        );
+    }
+
+    #[test]
+    fn classify_hlt_real_is_canonical_explicit() {
+        assert_eq!(
+            classify_hlt(Some("Launch Focusa MVP with verified install/update flows"), false, false, false),
+            HltStatus::CanonicalExplicit
+        );
+    }
+
+    #[test]
+    fn classify_hlt_fallback_is_previous_valid() {
+        assert_eq!(
+            classify_hlt(Some("Ship customer onboarding"), true, false, false),
+            HltStatus::PreviousValidFallback
+        );
+    }
+
+    #[test]
+    fn classify_hlt_conflicted_takes_priority() {
+        assert_eq!(
+            classify_hlt(Some("Real HLT"), false, false, true),
+            HltStatus::Conflicted
+        );
+    }
+
+    #[test]
+    fn classify_hlt_supersession_pending_takes_priority_over_generic() {
+        assert_eq!(
+            classify_hlt(Some("Maintain and improve focusa within verified project scope"), false, true, false),
+            HltStatus::SupersessionPending
+        );
     }
 }
 
@@ -1940,6 +2095,8 @@ pub struct TrajectoryLadderContext {
     pub continuity_id: Option<String>,
     #[serde(default)]
     pub hlt: Option<String>,
+    #[serde(default)]
+    pub hlt_status: HltStatus,
     #[serde(default)]
     pub mlg: Option<String>,
     #[serde(default)]
