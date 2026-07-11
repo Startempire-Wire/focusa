@@ -1219,7 +1219,8 @@ async fn execute_verified_apply_locked(
             "schema":"focusa.update_journal.v1", "state":"staging", "tag":plan.latest.tag, "started_at":stamp
         }))?,
     )?;
-    let mut promoted: Vec<(String, PathBuf, PathBuf)> = Vec::new();
+    // part, target path, backup path, SHA-256 of the pre-update target.
+    let mut promoted: Vec<(String, PathBuf, PathBuf, String)> = Vec::new();
     let operation = async {
         for part in plan
             .parts
@@ -1268,9 +1269,13 @@ async fn execute_verified_apply_locked(
                 std::fs::set_permissions(&temp, permissions)?;
             }
             let backup = backup_root.join(target.file_name().context("target filename missing")?);
-            if target.exists() {
+            let backup_sha256 = if target.exists() {
+                let digest = sha256_file(&target)?;
                 std::fs::rename(&target, &backup)?;
-            }
+                digest
+            } else {
+                String::new()
+            };
             if let Err(error) = std::fs::rename(&temp, &target) {
                 if backup.exists() {
                     let _ = std::fs::rename(&backup, &target);
@@ -1279,7 +1284,7 @@ async fn execute_verified_apply_locked(
             }
             // Record immediately after promotion so *every* subsequent probe
             // failure enters the outer rollback path.
-            promoted.push((part.part.to_string(), target.clone(), backup));
+            promoted.push((part.part.to_string(), target.clone(), backup, backup_sha256));
             if part.part != "daemon" {
                 let target_path = target.to_string_lossy();
                 let got = if part.part == "tui" {
@@ -1310,7 +1315,7 @@ async fn execute_verified_apply_locked(
     }
     .await;
     if let Err(error) = operation {
-        for (_, target, backup) in promoted.iter().rev() {
+        for (_, target, backup, _) in promoted.iter().rev() {
             if backup.exists() {
                 let failed = target.with_extension("focusa-failed");
                 let _ = std::fs::rename(target, &failed);
@@ -1328,8 +1333,24 @@ async fn execute_verified_apply_locked(
     }
     let names = promoted
         .iter()
-        .map(|(part, _, _)| part.clone())
+        .map(|(part, _, _, _)| part.clone())
         .collect::<Vec<_>>();
+    let rollback_manifest = backup_root.join("rollback-manifest.json");
+    let manifest_entries = promoted
+        .iter()
+        .filter(|(_, _, backup, digest)| backup.exists() && !digest.is_empty())
+        .map(|(part, target, backup, digest)| {
+            json!({"part":part,"target":target,"backup":backup,"sha256":digest})
+        })
+        .collect::<Vec<_>>();
+    std::fs::write(
+        &rollback_manifest,
+        serde_json::to_vec_pretty(&json!({
+            "schema":"focusa.update_rollback_manifest.v1",
+            "tag":plan.latest.tag,
+            "entries":manifest_entries,
+        }))?,
+    )?;
     if names.is_empty() && plan.parts.iter().any(|part| part.action == "would_update") {
         anyhow::bail!("no stale release parts were promoted");
     }
