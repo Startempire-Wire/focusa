@@ -1,71 +1,110 @@
 #!/usr/bin/env bash
-# Spec 112 §15A.5 — Install smoke integration test.
+# Spec 112 §15A.5 — fail-closed install dry-run integration test.
 #
-# Runs `focusa install --target=linux --dry-run` against a fixture
-# environment, asserts:
-#   - exit code 0
-#   - structured JSON output (install_preview)
-#   - no side effects on host filesystem
-#
-# Evidence: tests/spec_install_smoke_integration_test.sh
+# Verifies the real CLI exits successfully, emits a parseable InstallPlan, and
+# mutates neither the isolated HOME/XDG fixture nor system install paths.
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 echo "=== Spec 112 install smoke test ==="
 
-# 1. Build the CLI if not already present
-if ! command -v target/debug/focusa &>/dev/null && ! command -v target/release/focusa &>/dev/null; then
+if [[ ! -x target/debug/focusa && ! -x target/release/focusa ]]; then
     echo "Building focusa CLI..."
-    cargo build -p focusa-cli --bin focusa 2>&1 | tail -3
+    cargo build -p focusa-cli --bin focusa
 fi
 
-FOCUSA_BIN=""
-if [ -f target/debug/focusa ]; then
-    FOCUSA_BIN=target/debug/focusa
-elif [ -f target/release/focusa ]; then
-    FOCUSA_BIN=target/release/focusa
-elif command -v focusa &>/dev/null; then
-    FOCUSA_BIN=$(which focusa)
+if [[ -x target/debug/focusa ]]; then
+    FOCUSA_BIN="$PWD/target/debug/focusa"
+elif [[ -x target/release/focusa ]]; then
+    FOCUSA_BIN="$PWD/target/release/focusa"
 else
-    echo "FAIL: focusa CLI not found. Build first: cargo build -p focusa-cli"
+    echo "FAIL: focusa CLI build did not produce an executable" >&2
     exit 1
 fi
-echo "Using: $FOCUSA_BIN"
 
-# 2. Create a temp fixture dir with no pre-existing install
-FIXTURE=$(mktemp -d)
+FIXTURE="$(mktemp -d)"
 trap 'rm -rf "$FIXTURE"' EXIT
+mkdir -p "$FIXTURE/home" "$FIXTURE/xdg-config" "$FIXTURE/xdg-data" "$FIXTURE/xdg-state" "$FIXTURE/xdg-cache"
 
-echo "Fixture: $FIXTURE"
+snapshot_system_paths() {
+    for root in /usr/local/bin /usr/local/lib /usr/local/libexec; do
+        [[ -d "$root" ]] || continue
+        find "$root" -maxdepth 2 -type f -name 'focusa*' -print0 2>/dev/null
+    done | sort -z | xargs -0 -r sha256sum
+}
 
-# 3. Run dry-run install
-echo "Running: $FOCUSA_BIN install --target=linux --dry-run"
-OUTPUT=$("$FOCUSA_BIN" install --target=linux --dry-run 2>&1) || true
+SYSTEM_BEFORE="$(snapshot_system_paths)"
+set +e
+OUTPUT="$(
+    env \
+        HOME="$FIXTURE/home" \
+        XDG_CONFIG_HOME="$FIXTURE/xdg-config" \
+        XDG_DATA_HOME="$FIXTURE/xdg-data" \
+        XDG_STATE_HOME="$FIXTURE/xdg-state" \
+        XDG_CACHE_HOME="$FIXTURE/xdg-cache" \
+        "$FOCUSA_BIN" install --target=linux --dry-run --json 2>&1
+)"
+RC=$?
+set -e
 
-echo "Output:"
-echo "$OUTPUT"
-
-# 4. Assert exit code 0
-if [ $? -ne 0 ]; then
-    echo "FAIL: exit code was $? (expected 0)"
+if [[ $RC -ne 0 ]]; then
+    printf 'FAIL: dry-run exited %d\n%s\n' "$RC" "$OUTPUT" >&2
     exit 1
 fi
 
-# 5. Assert structured JSON output or plan text
-if echo "$OUTPUT" | grep -qi "error\|FAIL\|usage:"; then
-    echo "FAIL: output contains error indicator"
+PLAN_JSON="$OUTPUT" python3 - "$FIXTURE/home/.focusa" <<'PY'
+import json
+import os
+import pathlib
+import sys
+
+expected_root = pathlib.Path(sys.argv[1])
+try:
+    plan = json.loads(os.environ["PLAN_JSON"])
+except Exception as exc:
+    raise SystemExit(f"FAIL: dry-run output is not valid JSON: {exc}")
+
+required = {
+    "target",
+    "channel",
+    "install_root",
+    "assets_planned",
+    "symlink_planned",
+    "service_manager_planned",
+    "shell_rc_plan",
+    "license_mode",
+    "notes",
+}
+missing = sorted(required - set(plan))
+if missing:
+    raise SystemExit(f"FAIL: InstallPlan missing fields: {missing}")
+if plan["target"] != "linux":
+    raise SystemExit(f"FAIL: expected linux target, got {plan['target']!r}")
+if pathlib.Path(plan["install_root"]) != expected_root:
+    raise SystemExit(
+        f"FAIL: install_root escaped fixture: {plan['install_root']!r} != {str(expected_root)!r}"
+    )
+if not isinstance(plan["assets_planned"], list) or not plan["assets_planned"]:
+    raise SystemExit("FAIL: InstallPlan has no planned assets")
+PY
+
+SYSTEM_AFTER="$(snapshot_system_paths)"
+if [[ "$SYSTEM_BEFORE" != "$SYSTEM_AFTER" ]]; then
+    echo "FAIL: dry-run mutated a system Focusa install path" >&2
+    diff -u <(printf '%s\n' "$SYSTEM_BEFORE") <(printf '%s\n' "$SYSTEM_AFTER") || true
     exit 1
 fi
 
-# 6. Assert NO side effects on host filesystem
-#    (no files written outside fixture)
-if [ -f /usr/local/bin/focusa-daemon.old ] || [ -f /tmp/focusa-daemon-deploy.lock ]; then
-    echo "WARN: deploy artifacts found from prior run (not a test failure)"
-fi
-if find /usr/local/bin -name "focusa*" -newer /tmp/spec-install-test-floor 2>/dev/null | head -1; then
-    echo "WARN: /usr/local/bin/focusa* may have been modified (not a test failure in dry-run)"
+if find "$FIXTURE" -type f -o -type l | grep -q .; then
+    echo "FAIL: dry-run wrote files or symlinks inside the isolated fixture" >&2
+    find "$FIXTURE" \( -type f -o -type l \) -print >&2
+    exit 1
 fi
 
-echo "PASS: smoke test completed"
-exit 0
+if [[ -e "$FIXTURE/home/.focusa" ]]; then
+    echo "FAIL: dry-run created the planned install root" >&2
+    exit 1
+fi
+
+echo "PASS: isolated install dry-run emitted a valid plan with zero filesystem mutation"
