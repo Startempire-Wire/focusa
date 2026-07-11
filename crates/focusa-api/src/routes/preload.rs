@@ -15,6 +15,9 @@ use axum::{
     http::StatusCode,
     routing::{get, post},
 };
+use focusa_core::awareness::{
+    self, AwarenessInput, PreloadAwarenessInput, SURFACE_AGENT_PRELOAD, SURFACE_PRELOAD_FAIL,
+};
 use serde_json::{Value, json};
 use std::sync::Arc;
 
@@ -91,6 +94,8 @@ struct PreloadBuildRequest {
     current_ask: Option<String>,
     #[serde(default)]
     include_context_cognition: Option<bool>,
+    #[serde(default)]
+    include_awareness: Option<bool>,
 }
 
 fn packet_response(step: &str, profile: Option<String>) -> Json<Value> {
@@ -117,6 +122,30 @@ fn target_dynamic_max_lines(target: &str) -> usize {
         "pi" | "generic" | "opencode" => 120,
         _ => 120,
     }
+}
+
+fn preload_awareness(
+    surface: &str,
+    status: &str,
+    scope_missing: bool,
+    workpoint_missing: bool,
+    evidence_gap: bool,
+    recovery_tool: Option<&str>,
+) -> Value {
+    let input = AwarenessInput {
+        surface: surface.to_string(),
+        preload: Some(PreloadAwarenessInput {
+            status: status.to_string(),
+            verification_status: "pending".to_string(),
+            scope_missing,
+            workpoint_missing,
+            evidence_gap,
+            receipt_status: None,
+            recovery_tool: recovery_tool.map(str::to_string),
+        }),
+        ..Default::default()
+    };
+    json!(awareness::render_packet(&input))
 }
 
 async fn build_post(
@@ -146,10 +175,22 @@ async fn build_post(
         } else {
             "continuity_id_missing"
         };
+        let awareness = if query.include_awareness == Some(false) {
+            Value::Null
+        } else {
+            preload_awareness(
+                SURFACE_PRELOAD_FAIL,
+                "blocked",
+                true,
+                false,
+                true,
+                Some("focusa_project_identity"),
+            )
+        };
         return (
             StatusCode::UNPROCESSABLE_ENTITY,
             Json(
-                json!({"schema":PRELOAD_SCHEMA,"step":"build","status":"blocked","canonical":false,"advisory":true,"failure_class":failure,"error":{"code":FAIL_CODE_PRELOAD,"message":failure}}),
+                json!({"schema":PRELOAD_SCHEMA,"step":"build","status":"blocked","canonical":false,"advisory":true,"failure_class":failure,"awareness":awareness,"error":{"code":FAIL_CODE_PRELOAD,"message":failure}}),
             ),
         );
     }
@@ -159,10 +200,22 @@ async fn build_post(
         .and_then(Value::as_str)
         .unwrap_or("unknown");
     if identity_status != "verified" {
+        let awareness = if query.include_awareness == Some(false) {
+            Value::Null
+        } else {
+            preload_awareness(
+                SURFACE_PRELOAD_FAIL,
+                "blocked",
+                true,
+                false,
+                true,
+                Some("focusa_project_identity"),
+            )
+        };
         return (
             StatusCode::UNPROCESSABLE_ENTITY,
             Json(
-                json!({"schema":PRELOAD_SCHEMA,"step":"build","status":"blocked","canonical":false,"advisory":true,"failure_class":"project_identity_unverified","project_identity":identity,"error":{"code":FAIL_CODE_PRELOAD,"message":"project identity is not verified"}}),
+                json!({"schema":PRELOAD_SCHEMA,"step":"build","status":"blocked","canonical":false,"advisory":true,"failure_class":"project_identity_unverified","project_identity":identity,"awareness":awareness,"error":{"code":FAIL_CODE_PRELOAD,"message":"project identity is not verified"}}),
             ),
         );
     }
@@ -275,10 +328,22 @@ async fn build_post(
     } else {
         "degraded"
     };
+    let awareness = if query.include_awareness == Some(false) {
+        Value::Null
+    } else {
+        preload_awareness(
+            SURFACE_AGENT_PRELOAD,
+            status,
+            false,
+            !workpoint_found,
+            evidence_refs.is_empty(),
+            (!workpoint_found).then_some("focusa_workpoint_resume"),
+        )
+    };
     (
         StatusCode::OK,
         Json(
-            json!({"schema":PRELOAD_SCHEMA,"step":"build","status":status,"canonical":false,"advisory":true,"project_identity":identity,"packet":packet,"context_cognition":selection,"proof_gaps":if workpoint_found{Vec::<&str>::new()}else{vec!["workpoint_missing"]},"next_tools":["focusa_preload_render","focusa_preload_write","focusa_preload_verify","focusa_preload_receipt_preview"]}),
+            json!({"schema":PRELOAD_SCHEMA,"step":"build","status":status,"canonical":false,"advisory":true,"project_identity":identity,"packet":packet,"context_cognition":selection,"awareness":awareness,"proof_gaps":if workpoint_found{Vec::<&str>::new()}else{vec!["workpoint_missing"]},"next_tools":["focusa_preload_render","focusa_preload_write","focusa_preload_verify","focusa_preload_receipt_preview"]}),
         ),
     )
 }
@@ -753,5 +818,23 @@ mod tests {
         assert_eq!(target_dynamic_max_lines("codex"), 180);
         assert_eq!(target_dynamic_max_lines("pi"), 120);
         assert_eq!(target_dynamic_max_lines("generic"), 120);
+    }
+
+    #[test]
+    fn preload_awareness_is_compact_status_not_delivery_artifact() {
+        let packet = preload_awareness(
+            SURFACE_AGENT_PRELOAD,
+            "degraded",
+            false,
+            true,
+            true,
+            Some("focusa_workpoint_resume"),
+        );
+        assert_eq!(packet["surface"], SURFACE_AGENT_PRELOAD);
+        let serialized = packet.to_string();
+        assert!(serialized.contains("preload degraded"));
+        assert!(serialized.contains("Workpoint missing"));
+        assert!(!serialized.contains("static_rule_lines"));
+        assert!(!serialized.contains("dynamic_context_lines"));
     }
 }

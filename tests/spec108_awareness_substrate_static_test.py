@@ -69,7 +69,17 @@ def main() -> None:
             fail(f"missing mode: {mode}")
 
     # Surface types
-    for surface in ["reload", "post_compaction", "warning", "tool_guidance", "uiai_bridge"]:
+    for surface in [
+        "reload",
+        "post_compaction",
+        "warning",
+        "tool_guidance",
+        "uiai_bridge",
+        "agent_preload",
+        "preload_fail",
+        "preload_remediation",
+        "preload_receipt",
+    ]:
         if surface not in src:
             fail(f"missing surface: {surface}")
 
@@ -169,7 +179,7 @@ def main() -> None:
     print(f"  types: AwarenessMode, AwarenessSurface, AwarenessLayer, AwarenessCandidateLine, AwarenessInput, AwarenessPacket, ContextPressureState, ToolGuidance")
     print(f"  functions: gatherAwarenessInput, generateCandidateLines, scoreLines, selectMode, selectTopTools, shouldShowPressureWarning, updateCadenceState, buildAwarenessPacket, renderAwarenessPacketText")
     print(f"  DVS weights: authorityValue={3.0}, actionability={2.5}, riskReduction={2.0}, novelty={1.5}, proofValue={1.5}, redundancyPenalty={2.0}, stalenessPenalty={1.5}")
-    print(f"  modes: minimal/standard/rich/onboarding, surfaces: reload/post_compaction/warning/tool_guidance/uiai_bridge")
+    print(f"  modes: minimal/standard/rich/onboarding, surfaces: reload/post_compaction/warning/tool_guidance/uiai_bridge/agent_preload/preload_fail/preload_remediation/preload_receipt")
     print(f"  layers: identity/authority/mission/goal/risk/proof/recovery/learning/tool")
     print(f"  state: awarenessCadenceState + lastWorkpointUpdate in S, stamped in compaction/session/turns/tools")
     print(f"  cadence: dedupe within 30s, tier escalation, anchor change, stale reminder after 5min")

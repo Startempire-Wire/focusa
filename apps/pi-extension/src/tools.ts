@@ -12895,7 +12895,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     name: "focusa_awareness_packet",
     label: "Focusa Awareness Packet",
     description:
-      "Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed lines, metadata, next_tools, and recovery_tools. Use on reload, post-compaction, tool guidance, warning, or UIAI bridge surfaces.",
+      "Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed lines, metadata, next_tools, and recovery_tools, including Spec 111 preload status surfaces.",
     parameters: strictObject({
       surface: Type.Optional(
         Type.Union(
@@ -12905,6 +12905,10 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
             Type.Literal("warning"),
             Type.Literal("tool_guidance"),
             Type.Literal("uiai_bridge"),
+            Type.Literal("agent_preload"),
+            Type.Literal("preload_fail"),
+            Type.Literal("preload_remediation"),
+            Type.Literal("preload_receipt"),
           ],
           { description: "Awareness surface (default: reload)." }
         )

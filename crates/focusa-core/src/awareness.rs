@@ -24,6 +24,10 @@ pub const SURFACE_POST_COMPACTION: &str = "post_compaction";
 pub const SURFACE_WARNING: &str = "warning";
 pub const SURFACE_TOOL_GUIDANCE: &str = "tool_guidance";
 pub const SURFACE_UIAI_BRIDGE: &str = "uiai_bridge";
+pub const SURFACE_AGENT_PRELOAD: &str = "agent_preload";
+pub const SURFACE_PRELOAD_FAIL: &str = "preload_fail";
+pub const SURFACE_PRELOAD_REMEDIATION: &str = "preload_remediation";
+pub const SURFACE_PRELOAD_RECEIPT: &str = "preload_receipt";
 
 pub const MODE_MINIMAL: &str = "minimal";
 pub const MODE_STANDARD: &str = "standard";
@@ -97,6 +101,7 @@ pub struct AwarenessInput {
     pub workpoint_resume: Option<WorkpointResumeInput>,
     pub trajectory_view: Option<TrajectoryViewInput>,
     pub context_cognition: Option<ContextCognitionInput>,
+    pub preload: Option<PreloadAwarenessInput>,
 
     // Session layer
     pub session_transfer: SessionTransferInput,
@@ -123,6 +128,18 @@ pub struct AwarenessInput {
     // Render controls
     pub mode: String,
     pub surface: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PreloadAwarenessInput {
+    pub status: String,
+    pub verification_status: String,
+    pub scope_missing: bool,
+    pub workpoint_missing: bool,
+    pub evidence_gap: bool,
+    pub receipt_status: Option<String>,
+    pub recovery_tool: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -443,12 +460,22 @@ fn authority_exception_threshold(mode: &str) -> f64 {
 // Candidate line generation
 // ---------------------------------------------------------------------------
 
-static ALL_SURFACES: [&str; 5] = [
+static ALL_SURFACES: [&str; 9] = [
     SURFACE_RELOAD,
     SURFACE_POST_COMPACTION,
     SURFACE_WARNING,
     SURFACE_TOOL_GUIDANCE,
     SURFACE_UIAI_BRIDGE,
+    SURFACE_AGENT_PRELOAD,
+    SURFACE_PRELOAD_FAIL,
+    SURFACE_PRELOAD_REMEDIATION,
+    SURFACE_PRELOAD_RECEIPT,
+];
+static PRELOAD_SURFACES: [&str; 4] = [
+    SURFACE_AGENT_PRELOAD,
+    SURFACE_PRELOAD_FAIL,
+    SURFACE_PRELOAD_REMEDIATION,
+    SURFACE_PRELOAD_RECEIPT,
 ];
 static ALL_MODES: [&str; 4] = [MODE_MINIMAL, MODE_STANDARD, MODE_RICH, MODE_ONBOARDING];
 
@@ -482,6 +509,16 @@ pub fn generate_candidates(input: &AwarenessInput) -> Vec<AwarenessCandidateLine
                 source_ref: Some($src.to_string()),
                 evidence_ref: None,
             });
+        }};
+    }
+    macro_rules! push_preload {
+        ($cat:expr, $text:expr, $av:expr, $ac:expr, $rr:expr, $src:expr) => {{
+            push!(
+                "delivery", $cat, $text, $av, $ac, $rr, 5.0, 4.0, 0.0, 0.0, $src
+            );
+            if let Some(line) = lines.last_mut() {
+                line.surface_allowed = to_string_vec(&PRELOAD_SURFACES);
+            }
         }};
     }
 
@@ -753,6 +790,84 @@ pub fn generate_candidates(input: &AwarenessInput) -> Vec<AwarenessCandidateLine
                 0.0,
                 0.0,
                 "trajectory_view.degraded"
+            );
+        }
+    }
+
+    // --- Preload delivery status layer (Spec 111 §14) ---
+    if let Some(preload) = &input.preload {
+        let status_line = match (
+            preload.status.as_str(),
+            preload.verification_status.as_str(),
+        ) {
+            (_, "failed") => "preload failed verification",
+            ("completed", _) => "preload delivered",
+            ("degraded", _) => "preload degraded",
+            ("failed", _) | ("blocked", _) => "preload failed",
+            _ => "preload status unavailable",
+        };
+        push_preload!(
+            "preload_status",
+            status_line,
+            6.0,
+            8.0,
+            6.0,
+            "preload.status"
+        );
+        if preload.scope_missing {
+            push_preload!(
+                "preload_scope",
+                "project scope missing",
+                9.0,
+                9.0,
+                9.0,
+                "preload.scope_missing"
+            );
+        }
+        if preload.workpoint_missing {
+            push_preload!(
+                "preload_workpoint",
+                "Workpoint missing",
+                9.0,
+                9.0,
+                8.0,
+                "preload.workpoint_missing"
+            );
+        }
+        if preload.evidence_gap {
+            push_preload!(
+                "preload_evidence",
+                "evidence gap declared",
+                6.0,
+                7.0,
+                6.0,
+                "preload.evidence_gap"
+            );
+        }
+        if let Some(receipt_status) = preload.receipt_status.as_deref() {
+            let text = match receipt_status {
+                "preview" => "receipt preview available",
+                "committed" => "receipt committed",
+                "verification_failed" => "receipt verification failed",
+                _ => "receipt status unavailable",
+            };
+            push_preload!(
+                "preload_receipt",
+                text,
+                6.0,
+                7.0,
+                6.0,
+                "preload.receipt_status"
+            );
+        }
+        if let Some(tool) = preload.recovery_tool.as_deref() {
+            push_preload!(
+                "preload_recovery",
+                format!("recovery tool: {tool}"),
+                7.0,
+                9.0,
+                8.0,
+                "preload.recovery_tool"
             );
         }
     }
@@ -1379,6 +1494,10 @@ fn surface_selected_reason(surface: &str) -> String {
         SURFACE_WARNING => "pressure/risk warning surface - standard mode enforced".to_string(),
         SURFACE_TOOL_GUIDANCE => "tool guidance surface - next-tools + recovery".to_string(),
         SURFACE_UIAI_BRIDGE => "UIAI proof/risk bridge - standard mode enforced".to_string(),
+        SURFACE_AGENT_PRELOAD => "agent preload delivery status - compact summary only".to_string(),
+        SURFACE_PRELOAD_FAIL => "preload failure status - recovery guidance".to_string(),
+        SURFACE_PRELOAD_REMEDIATION => "preload remediation status - next safe tool".to_string(),
+        SURFACE_PRELOAD_RECEIPT => "preload receipt status - proof summary only".to_string(),
         _ => "unknown surface".to_string(),
     }
 }
@@ -1452,4 +1571,67 @@ pub fn awareness_as_utility_card(input: &AwarenessInput) -> UtilityCard {
 /// Fallback: when no input is available, return the legacy static card.
 pub fn fallback_card() -> UtilityCard {
     legacy_utility_card()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn preload_candidates_are_compact_and_surface_scoped() {
+        let input = AwarenessInput {
+            surface: SURFACE_AGENT_PRELOAD.to_string(),
+            preload: Some(PreloadAwarenessInput {
+                status: "degraded".to_string(),
+                verification_status: "pending".to_string(),
+                scope_missing: false,
+                workpoint_missing: true,
+                evidence_gap: true,
+                receipt_status: Some("preview".to_string()),
+                recovery_tool: Some("focusa_workpoint_resume".to_string()),
+            }),
+            ..Default::default()
+        };
+        let candidates: Vec<_> = generate_candidates(&input)
+            .into_iter()
+            .filter(|line| {
+                line.source_ref
+                    .as_deref()
+                    .unwrap_or("")
+                    .starts_with("preload.")
+            })
+            .collect();
+        let text: Vec<_> = candidates.iter().map(|line| line.text.as_str()).collect();
+        assert!(text.contains(&"preload degraded"));
+        assert!(text.contains(&"Workpoint missing"));
+        assert!(text.contains(&"evidence gap declared"));
+        assert!(text.contains(&"receipt preview available"));
+        assert!(text.contains(&"recovery tool: focusa_workpoint_resume"));
+        assert!(
+            candidates
+                .iter()
+                .all(|line| line.surface_allowed == to_string_vec(&PRELOAD_SURFACES))
+        );
+        assert!(
+            text.iter()
+                .all(|line| !line.contains("AgentBootstrapPacket"))
+        );
+    }
+
+    #[test]
+    fn preload_verification_failure_has_explicit_status() {
+        let input = AwarenessInput {
+            preload: Some(PreloadAwarenessInput {
+                status: "failed".to_string(),
+                verification_status: "failed".to_string(),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        assert!(
+            generate_candidates(&input)
+                .iter()
+                .any(|line| line.text == "preload failed verification")
+        );
+    }
 }

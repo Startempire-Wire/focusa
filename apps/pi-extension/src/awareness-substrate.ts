@@ -13,7 +13,16 @@ import {
 // ─── Type definitions ───────────────────────────────────────────────────────
 
 export type AwarenessMode = "minimal" | "standard" | "rich" | "onboarding";
-export type AwarenessSurface = "reload" | "post_compaction" | "warning" | "tool_guidance" | "uiai_bridge";
+export type AwarenessSurface =
+  | "reload"
+  | "post_compaction"
+  | "warning"
+  | "tool_guidance"
+  | "uiai_bridge"
+  | "agent_preload"
+  | "preload_fail"
+  | "preload_remediation"
+  | "preload_receipt";
 export type AwarenessLayer =
   "identity" | "authority" | "mission" | "goal" | "risk" | "proof" | "recovery" | "learning" | "tool";
 

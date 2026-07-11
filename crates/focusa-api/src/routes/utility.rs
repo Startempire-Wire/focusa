@@ -1,6 +1,7 @@
 use axum::{Json, Router, routing::get};
 use focusa_core::awareness::{
-    self, AwarenessInput, SURFACE_POST_COMPACTION, SURFACE_RELOAD, SURFACE_TOOL_GUIDANCE,
+    self, AwarenessInput, SURFACE_AGENT_PRELOAD, SURFACE_POST_COMPACTION, SURFACE_PRELOAD_FAIL,
+    SURFACE_PRELOAD_RECEIPT, SURFACE_PRELOAD_REMEDIATION, SURFACE_RELOAD, SURFACE_TOOL_GUIDANCE,
     SURFACE_UIAI_BRIDGE, SURFACE_WARNING,
 };
 use serde_json::json;
@@ -77,10 +78,14 @@ async fn awareness_packet_by_surface(
         "warning" => SURFACE_WARNING.to_string(),
         "tool_guidance" => SURFACE_TOOL_GUIDANCE.to_string(),
         "uiai_bridge" => SURFACE_UIAI_BRIDGE.to_string(),
+        "agent_preload" => SURFACE_AGENT_PRELOAD.to_string(),
+        "preload_fail" => SURFACE_PRELOAD_FAIL.to_string(),
+        "preload_remediation" => SURFACE_PRELOAD_REMEDIATION.to_string(),
+        "preload_receipt" => SURFACE_PRELOAD_RECEIPT.to_string(),
         _ => {
             return Json(json!({
                 "error": "unknown_surface",
-                "allowed": ["reload", "post_compaction", "warning", "tool_guidance", "uiai_bridge"]
+                "allowed": ["reload", "post_compaction", "warning", "tool_guidance", "uiai_bridge", "agent_preload", "preload_fail", "preload_remediation", "preload_receipt"]
             }));
         }
     };
