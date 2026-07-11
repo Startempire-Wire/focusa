@@ -19,6 +19,11 @@ pub struct CleanupArgs {
     /// Preview actions without moving files.
     #[arg(long)]
     pub dry_run: bool,
+
+    /// Also include bounded global /tmp Focusa residue patterns.
+    /// Off by default because /tmp may contain other sessions' evidence.
+    #[arg(long)]
+    pub include_global_tmp: bool,
 }
 
 const PRESERVE: &[&str] = &[".beads", "data", "target"];
@@ -38,7 +43,11 @@ const TMP_GLOBS: &[&str] = &[
 ];
 
 fn trash_root() -> PathBuf {
-    let stamp = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
+    let stamp = format!(
+        "{}-{}",
+        chrono::Utc::now().format("%Y%m%dT%H%M%S%3fZ"),
+        uuid::Uuid::now_v7()
+    );
     let base = std::env::var_os("FOCUSA_TRASH_DIR")
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("XDG_DATA_HOME").map(|p| PathBuf::from(p).join("Trash")))
@@ -50,6 +59,46 @@ fn trash_root() -> PathBuf {
 fn safe_target(path: &Path, root: &Path) -> PathBuf {
     let rel = path.strip_prefix("/").unwrap_or(path);
     root.join(rel)
+}
+
+fn copy_path_no_follow(source: &Path, target: &Path) -> std::io::Result<()> {
+    let metadata = fs::symlink_metadata(source)?;
+    if metadata.file_type().is_symlink() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "cleanup refuses to follow or copy symlinks",
+        ));
+    }
+    if metadata.is_file() {
+        if let Some(parent) = target.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::copy(source, target)?;
+        fs::set_permissions(target, metadata.permissions())?;
+        return Ok(());
+    }
+    if metadata.is_dir() {
+        fs::create_dir_all(target)?;
+        for entry in fs::read_dir(source)? {
+            let entry = entry?;
+            copy_path_no_follow(&entry.path(), &target.join(entry.file_name()))?;
+        }
+        fs::set_permissions(target, metadata.permissions())?;
+        return Ok(());
+    }
+    Err(std::io::Error::new(
+        std::io::ErrorKind::Unsupported,
+        "unsupported cleanup source type",
+    ))
+}
+
+fn remove_source_after_copy(path: &Path) -> std::io::Result<()> {
+    let metadata = fs::symlink_metadata(path)?;
+    if metadata.is_dir() {
+        fs::remove_dir_all(path)
+    } else {
+        fs::remove_file(path)
+    }
 }
 
 fn move_recoverable(path: &Path, root: &Path, dry_run: bool) -> Value {
@@ -67,15 +116,35 @@ fn move_recoverable(path: &Path, root: &Path, dry_run: bool) -> Value {
     if dry_run {
         return json!({"path": path_s, "status": "would_move", "target": target});
     }
+    if target.exists() {
+        return json!({"path": path_s, "status": "blocked", "what_failed": "trash target collision", "likely_why": target.display().to_string(), "safe_recovery": "retry to allocate a fresh trash session"});
+    }
     if let Some(parent) = target.parent()
         && let Err(err) = fs::create_dir_all(parent)
     {
         return json!({"path": path_s, "status": "blocked", "what_failed": "create trash parent", "likely_why": err.to_string(), "safe_recovery": "check trash path permissions"});
     }
     match fs::rename(path, &target) {
-        Ok(_) => json!({"path": path_s, "status": "completed", "target": target}),
+        Ok(_) => {
+            json!({"path": path_s, "status": "completed", "target": target, "move_mode": "rename"})
+        }
+        Err(rename_error) if rename_error.kind() == std::io::ErrorKind::CrossesDevices => {
+            match copy_path_no_follow(path, &target) {
+                Ok(()) => match remove_source_after_copy(path) {
+                    Ok(()) => {
+                        json!({"path": path_s, "status": "completed", "target": target, "move_mode": "copy_then_remove"})
+                    }
+                    Err(remove_error) => {
+                        json!({"path": path_s, "status": "blocked", "what_failed": "source removal after verified copy failed", "likely_why": remove_error.to_string(), "target": target, "safe_recovery": "source remains; inspect both source and trash copy before retrying"})
+                    }
+                },
+                Err(copy_error) => {
+                    json!({"path": path_s, "status": "blocked", "what_failed": "cross-filesystem recoverable copy failed", "likely_why": copy_error.to_string(), "target": target, "safe_recovery": "source remains unchanged; inspect partial trash target before retrying"})
+                }
+            }
+        }
         Err(err) => {
-            json!({"path": path_s, "status": "blocked", "what_failed": "recoverable move failed", "likely_why": err.to_string(), "safe_recovery": format!("manually inspect {path_s}")})
+            json!({"path": path_s, "status": "blocked", "what_failed": "recoverable move failed", "likely_why": err.to_string(), "safe_recovery": format!("source remains; inspect {path_s} and retry")})
         }
     }
 }
@@ -158,6 +227,45 @@ mod tests {
         assert!(target.starts_with(root));
         assert_eq!(target, root.join("tmp/focusa-audit.json"));
     }
+
+    #[test]
+    fn trash_roots_are_unique_per_invocation() {
+        assert_ne!(trash_root(), trash_root());
+    }
+
+    #[test]
+    fn recursive_copy_preserves_source_until_explicit_remove() {
+        let fixture =
+            std::env::temp_dir().join(format!("focusa-cleanup-copy-{}", uuid::Uuid::now_v7()));
+        let source = fixture.join("source");
+        let target = fixture.join("target");
+        fs::create_dir_all(source.join("nested")).unwrap();
+        fs::write(source.join("nested/proof.txt"), "proof").unwrap();
+        copy_path_no_follow(&source, &target).unwrap();
+        assert_eq!(
+            fs::read_to_string(target.join("nested/proof.txt")).unwrap(),
+            "proof"
+        );
+        assert!(source.join("nested/proof.txt").is_file());
+        remove_source_after_copy(&source).unwrap();
+        assert!(!source.exists());
+        let _ = fs::remove_dir_all(fixture);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn recursive_copy_refuses_symlinks() {
+        use std::os::unix::fs::symlink;
+        let fixture =
+            std::env::temp_dir().join(format!("focusa-cleanup-symlink-{}", uuid::Uuid::now_v7()));
+        fs::create_dir_all(&fixture).unwrap();
+        fs::write(fixture.join("real"), "data").unwrap();
+        symlink(fixture.join("real"), fixture.join("link")).unwrap();
+        let error = copy_path_no_follow(&fixture.join("link"), &fixture.join("target"))
+            .expect_err("symlink must be refused");
+        assert_eq!(error.kind(), std::io::ErrorKind::Unsupported);
+        let _ = fs::remove_dir_all(fixture);
+    }
 }
 
 pub async fn run(args: CleanupArgs, json_mode: bool) -> anyhow::Result<()> {
@@ -184,9 +292,11 @@ pub async fn run(args: CleanupArgs, json_mode: bool) -> anyhow::Result<()> {
     for p in CLEAN_PATHS {
         actions.push(move_recoverable(&project_root.join(p), &root, args.dry_run));
     }
-    for pattern in TMP_GLOBS {
-        for p in expand_glob(pattern) {
-            actions.push(move_recoverable(&p, &root, args.dry_run));
+    if args.include_global_tmp {
+        for pattern in TMP_GLOBS {
+            for p in expand_glob(pattern) {
+                actions.push(move_recoverable(&p, &root, args.dry_run));
+            }
         }
     }
     let blocked = actions
@@ -206,11 +316,18 @@ pub async fn run(args: CleanupArgs, json_mode: bool) -> anyhow::Result<()> {
         "summary": if args.dry_run { format!("Safe cleanup preview: {would_move} item(s) would move") } else { format!("Safe cleanup moved {moved} item(s) recoverably") },
         "next_action": if blocked == 0 { "Run focusa doctor or continue release proof" } else { "Inspect blocked cleanup action and rerun focusa cleanup --safe" },
         "why": "Spec92 cleanup must be recoverable and must preserve runtime-critical Focusa state.",
-        "commands": ["focusa cleanup --safe --dry-run", "focusa cleanup --safe"],
+        "commands": if args.include_global_tmp {
+            vec!["focusa cleanup --safe --dry-run --include-global-tmp", "focusa cleanup --safe --include-global-tmp"]
+        } else {
+            vec!["focusa cleanup --safe --dry-run", "focusa cleanup --safe"]
+        },
         "recovery": ["restore files from the reported trash_root", "focusa doctor"],
         "evidence_refs": ["docs/current/PRODUCTION_RELEASE_COMMANDS.md", "docs/current/DAEMON_RESILIENCE.md"],
         "docs": ["docs/92-agent-first-polish-hooks-efficiency-spec.md"],
-        "warnings": ["preserves .beads, data, and target"],
+        "warnings": [
+            "preserves .beads, data, and target",
+            if args.include_global_tmp { "global /tmp cleanup explicitly authorized" } else { "global /tmp cleanup excluded; pass --include-global-tmp explicitly" }
+        ],
         "details": {
             "trash_root": root,
             "project_root": resolved.project_root,
