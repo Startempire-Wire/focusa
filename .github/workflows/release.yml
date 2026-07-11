@@ -223,17 +223,13 @@ jobs:
         working-directory: apps/menubar
         run: |
           for app in src-tauri/target/${TARGET}/release/bundle/macos/*.app; do
-            if [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
-              echo "::notice::No Apple signing identity configured; using ad-hoc signing (free, no Apple ID needed)"
-              codesign --deep --force --sign - "${app}"
-              codesign --verify --deep --strict "${app}"
-              continue
+            if [ -z "${APPLE_SIGNING_IDENTITY:-}" ] || [[ "${APPLE_SIGNING_IDENTITY}" == "Apple Development:"* ]]; then
+              echo "::error::MVP macOS release requires a Developer ID signing identity; ad-hoc and Apple Development signing are not customer-release eligible."
+              exit 1
             fi
-            if [[ "${APPLE_SIGNING_IDENTITY}" == "Apple Development:"* ]] && [ -z "${APPLE_APP_SPECIFIC_PASSWORD:-}" ]; then
-              echo "::notice::Personal Team signing identity detected; signing without notarization (Gatekeeper will require right-click -> Open)"
-              codesign --deep --force --options runtime --sign "${APPLE_SIGNING_IDENTITY}" "${app}"
-              codesign --verify --deep --strict "${app}"
-              continue
+            if [ -z "${APPLE_API_KEY_ID:-}" ] || [ -z "${APPLE_API_ISSUER_ID:-}" ] || [ -z "${APPLE_API_KEY_P8:-}" ] || [ -z "${APPLE_TEAM_ID:-}" ]; then
+              echo "::error::MVP macOS release requires App Store Connect notarization credentials."
+              exit 1
             fi
             # Mode 3: full Developer ID + notarization
             codesign --deep --force --options runtime --sign "${APPLE_SIGNING_IDENTITY}" "${app}"
