@@ -1224,7 +1224,7 @@ async fn execute_verified_apply_locked(
         for part in plan
             .parts
             .iter()
-            .filter(|part| part.action == "would_update")
+            .filter(|part| matches!(part.action, "would_update" | "would_install"))
         {
             let url = part
                 .download_url
@@ -1281,10 +1281,14 @@ async fn execute_verified_apply_locked(
             // failure enters the outer rollback path.
             promoted.push((part.part.to_string(), target.clone(), backup));
             if part.part != "daemon" {
-                let got = probe_version_command(target.to_string_lossy().as_ref())
-                    .await
-                    .map(|v| normalize_version(&v))
-                    .context("post-promotion version probe failed")?;
+                let got = if part.part == "tui" {
+                    probe_tui_version(target.to_string_lossy().as_ref()).await
+                } else {
+                    probe_version_command(target.to_string_lossy().as_ref())
+                        .await
+                        .map(|v| normalize_version(&v))
+                }
+                .context("post-promotion version probe failed")?;
                 if got != plan.latest.version {
                     anyhow::bail!(
                         "{} smoke version mismatch: expected {}, got {}",
@@ -1515,10 +1519,14 @@ fn update_state_root() -> PathBuf {
 }
 
 fn part_plan(part: &InstalledPart, latest: &LatestVersion, order: &mut u8) -> PartPlan {
-    let action = match part.stale {
-        Some(true) => "would_update",
-        Some(false) => "no_op",
-        None => "probe_required",
+    let action = if !part.exists {
+        "would_install"
+    } else {
+        match part.stale {
+            Some(true) => "would_update",
+            Some(false) => "no_op",
+            None => "probe_required",
+        }
     };
     let restart_required = part.part == "daemon" && part.stale == Some(true);
     let plan = PartPlan {
@@ -2062,7 +2070,35 @@ async fn inspect_cli(latest: &str) -> anyhow::Result<InstalledPart> {
 
 async fn inspect_tui(latest: &str) -> anyhow::Result<InstalledPart> {
     let path = resolve_path("focusa-tui", "/usr/local/bin/focusa-tui");
-    inspect_executable_part("tui", "/usr/local/bin/focusa-tui", path, latest, true).await
+    let sha256 = path.as_deref().and_then(|p| sha256_file(Path::new(p)).ok());
+    let version = match path.as_deref() {
+        Some(path) => probe_tui_version(path).await,
+        None => None,
+    };
+    let stale = version.as_ref().map(|version| version != latest);
+    let stale_reason = match (&version, stale, &path) {
+        (_, _, None) => "tui binary not found".into(),
+        (Some(version), Some(true), _) => {
+            format!("installed tui version {version} differs from latest {latest}")
+        }
+        (Some(version), Some(false), _) => {
+            format!("installed tui version {version} matches latest {latest}")
+        }
+        _ => "tui headless version probe unavailable".into(),
+    };
+    Ok(InstalledPart {
+        part: "tui",
+        expected_path: "/usr/local/bin/focusa-tui".into(),
+        resolved_path: path,
+        exists: sha256.is_some(),
+        version,
+        version_source: "tui_headless_self_test",
+        version_probe_safe: true,
+        sha256,
+        stale,
+        stale_reason,
+        notes: vec!["tui version is read from --headless-self-test JSON".into()],
+    })
 }
 
 async fn inspect_daemon(latest: &str, health: Option<String>) -> anyhow::Result<InstalledPart> {
@@ -2152,6 +2188,23 @@ fn resolve_path(command: &str, canonical: &str) -> Option<String> {
     which::which(command)
         .ok()
         .map(|p| p.to_string_lossy().to_string())
+}
+
+async fn probe_tui_version(path: &str) -> Option<String> {
+    let output = timeout(
+        Duration::from_secs(5),
+        Command::new(path).arg("--headless-self-test").output(),
+    )
+    .await
+    .ok()?
+    .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).ok()?;
+    json.get("about_version")
+        .and_then(|value| value.as_str())
+        .map(normalize_version)
 }
 
 async fn probe_version_command(path: &str) -> Option<String> {
