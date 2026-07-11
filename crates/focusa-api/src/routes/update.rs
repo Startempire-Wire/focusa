@@ -23,14 +23,17 @@ use tokio::time::timeout;
 pub fn router() -> Router<Arc<crate::server::AppState>> {
     Router::new()
         .route("/v1/update/status", get(update_status))
-        .route("/v1/update/check", post(update_check))
-        .route("/v1/update/plan", post(update_plan))
+        .route("/v1/update/check", get(update_check_get).post(update_check))
+        .route("/v1/update/plan", get(update_plan_get).post(update_plan))
         .route("/v1/update/apply", post(update_apply))
         .route("/v1/update/history", get(update_history))
         .route("/v1/update/rollback", post(update_rollback))
         .route("/v1/update/admin", post(update_admin))
         .route("/v1/update/scheduler", get(update_scheduler))
-        .route("/v1/update/notifications", post(update_notifications))
+        .route(
+            "/v1/update/notifications",
+            get(update_notifications_get).post(update_notifications),
+        )
         .route(
             "/v1/update/policy",
             get(update_policy).post(update_policy_set),
@@ -121,13 +124,21 @@ async fn update_status(Query(query): Query<UpdateQuery>) -> Json<Value> {
     Json(build_update_inventory("status", query).await)
 }
 
+async fn update_check_get(Query(query): Query<UpdateQuery>) -> Json<Value> {
+    Json(build_update_inventory("check", query).await)
+}
+
 async fn update_check(Json(body): Json<UpdateQuery>) -> Json<Value> {
-    Json(build_update_inventory("check", body).await)
+    update_check_get(Query(body)).await
+}
+
+async fn update_plan_get(Query(query): Query<UpdateQuery>) -> Json<Value> {
+    let inventory = build_update_inventory("plan", query).await;
+    Json(build_update_plan(inventory))
 }
 
 async fn update_plan(Json(body): Json<UpdateQuery>) -> Json<Value> {
-    let inventory = build_update_inventory("plan", body).await;
-    Json(build_update_plan(inventory))
+    update_plan_get(Query(body)).await
 }
 
 async fn update_apply(Json(body): Json<UpdateApplyBody>) -> Json<Value> {
@@ -159,9 +170,13 @@ async fn update_scheduler(Query(query): Query<UpdateQuery>) -> Json<Value> {
     ))
 }
 
-async fn update_notifications(Json(body): Json<UpdateQuery>) -> Json<Value> {
-    let inventory = build_update_inventory("notifications", body).await;
+async fn update_notifications_get(Query(query): Query<UpdateQuery>) -> Json<Value> {
+    let inventory = build_update_inventory("notifications", query).await;
     Json(build_notifications_envelope(inventory))
+}
+
+async fn update_notifications(Json(body): Json<UpdateQuery>) -> Json<Value> {
+    update_notifications_get(Query(body)).await
 }
 
 async fn update_policy() -> Json<Value> {
