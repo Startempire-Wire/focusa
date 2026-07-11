@@ -2563,6 +2563,16 @@ async fn resume(
 pub struct HltHistoryRequest {
     pub project_root: Option<String>,
     pub continuity_id: Option<String>,
+    /// Spec 125 §7.2: optional session filter. `current` resolves to active session.
+    pub session_id: Option<String>,
+    /// Spec 125 §7.2: scope kind filter.
+    pub scope_kind: Option<String>,
+    /// Spec 125 §7.2: typed scope id filter.
+    pub scope_id: Option<String>,
+    /// Spec 125 §7.2: include cross-session fallback candidates (default false).
+    pub include_cross_session_fallbacks: Option<bool>,
+    /// Spec 125 §7.2: include generic HLT entries (default false).
+    pub include_generic: Option<bool>,
     pub limit: Option<usize>,
 }
 
@@ -2594,12 +2604,41 @@ async fn hlt_history(
             Some(r.as_str())
         }
     });
+    // Spec 125 §7.6: session_id="current" resolves to active session, never to "any".
+    let session_filter = query.session_id.as_ref().and_then(|r| {
+        if r.trim().is_empty() || r == "current" {
+            None // "current" is resolved by caller before reaching this API
+        } else {
+            Some(r.as_str())
+        }
+    });
+    let include_generic = query.include_generic.unwrap_or(false);
+    let include_cross_session = query.include_cross_session_fallbacks.unwrap_or(false);
     let entries = state
         .persistence
         .read_hlt_ledger_entries(project_root, continuity_id, limit)
         .unwrap_or_default();
-    let entries_json: Vec<Value> = entries
+    // Spec 125 §7.4: filter by session if provided.
+    let filtered: Vec<_> = entries
         .into_iter()
+        .filter(|e| {
+            session_filter
+                .map(|sid| e.session_id.as_deref() == Some(sid))
+                .unwrap_or(true)
+        })
+        .collect();
+    let mut generic_skipped = 0usize;
+    let mut warnings = Vec::new();
+    let entries_json: Vec<Value> = filtered
+        .iter()
+        .filter(|e| {
+            if !include_generic && is_generic_bootstrap_hlt(e.new_hlt.as_str()) {
+                generic_skipped += 1;
+                false
+            } else {
+                true
+            }
+        })
         .map(|e| {
             json!({
                 "timestamp": e.timestamp.to_rfc3339(),
@@ -2611,18 +2650,84 @@ async fn hlt_history(
                 "new_hlt": e.new_hlt,
                 "source": e.source,
                 "reason": e.reason,
-                "lamport_ts": e.lamport_ts,  // §42: CRDT-grade Lamport clock
+                "lamport_ts": e.lamport_ts,
                 "evidence_refs": e.evidence_refs,
             })
         })
         .collect();
+    // Spec 125 §7.3: compute latest_valid_for_session / continuity / project.
+    let latest_valid_for_session = filtered.iter().find(|e| {
+        session_filter
+            .map(|sid| e.session_id.as_deref() == Some(sid))
+            .unwrap_or(false)
+            && !is_generic_bootstrap_hlt(e.new_hlt.as_str())
+    });
+    let latest_valid_for_continuity = filtered.iter().find(|e| {
+        !is_generic_bootstrap_hlt(e.new_hlt.as_str())
+    });
+    // For project-level, fetch all entries across continuities.
+    let project_entries = state
+        .persistence
+        .read_hlt_ledger_entries(project_root, None, limit)
+        .unwrap_or_default();
+    let latest_valid_for_project = project_entries.iter().find(|e| {
+        !is_generic_bootstrap_hlt(e.new_hlt.as_str())
+    });
+    // Spec 125 §7.3: fallback candidates.
+    let mut fallback_candidates = Vec::new();
+    if let Some(e) = latest_valid_for_session {
+        fallback_candidates.push(json!({
+            "kind": "exact_session",
+            "hlt": e.new_hlt,
+            "session_id": e.session_id,
+            "continuity_id": e.continuity_id,
+        }));
+    }
+    if !include_cross_session {
+        warnings.push("include_cross_session_fallbacks=false; cross-session candidates omitted".to_string());
+    } else if let Some(e) = latest_valid_for_continuity {
+        let same_as_session = latest_valid_for_session
+            .map(|s| s.event_id == e.event_id)
+            .unwrap_or(false);
+        if !same_as_session {
+            fallback_candidates.push(json!({
+                "kind": "cross_session",
+                "hlt": e.new_hlt,
+                "session_id": e.session_id,
+                "continuity_id": e.continuity_id,
+            }));
+        }
+    }
+    if let Some(e) = latest_valid_for_project {
+        let same_as_continuity = latest_valid_for_continuity
+            .map(|c| c.event_id == e.event_id)
+            .unwrap_or(false);
+        if !same_as_continuity {
+            fallback_candidates.push(json!({
+                "kind": "cross_continuity",
+                "hlt": e.new_hlt,
+                "session_id": e.session_id,
+                "continuity_id": e.continuity_id,
+            }));
+        }
+    }
+    if generic_skipped > 0 {
+        warnings.push(format!("{generic_skipped} generic HLT entries skipped"));
+    }
     let ledger_path = state.persistence.hlt_ledger_path_for_project(project_root);
     Json(json!({
         "status": "completed",
         "project_root": project_root,
         "continuity_id": continuity_id,
+        "session_id": session_filter,
         "count": entries_json.len(),
         "entries": entries_json,
+        "fallback_candidates": fallback_candidates,
+        "latest_valid_for_session": latest_valid_for_session.map(|e| e.new_hlt.clone()),
+        "latest_valid_for_continuity": latest_valid_for_continuity.map(|e| e.new_hlt.clone()),
+        "latest_valid_for_project": latest_valid_for_project.map(|e| e.new_hlt.clone()),
+        "generic_skipped": generic_skipped,
+        "warnings": warnings,
         "ledger_file": ledger_path.to_string_lossy(),
     }))
 }
