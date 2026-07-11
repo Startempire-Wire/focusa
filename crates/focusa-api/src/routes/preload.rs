@@ -713,6 +713,13 @@ async fn write_packet(Json(req): Json<WriteRequest>) -> (StatusCode, Json<Value>
 
 pub fn receipt_preview_for(profile_id: &str) -> Result<Value, String> {
     let packet = build_packet(profile_id)?;
+    // Spec 125 §14: receipt includes trajectory HLT posture.
+    let hlt_status = "unknown_from_receipt";
+    let hlt_required = true;
+    let generic_bootstrap = false;
+    let fallback_level = "none";
+    let completion_blocked = false;
+    let completion_degraded = false;
     Ok(json!({
         "schema": PRELOAD_SCHEMA,
         "receipt_kind": BOOTSTRAP_RECEIPT_KIND,
@@ -720,6 +727,16 @@ pub fn receipt_preview_for(profile_id: &str) -> Result<Value, String> {
         "ok": true,
         "profile_id": packet.profile_id,
         "rendered": render_packet(&packet),
+        // Spec 125 §14: HLT posture in receipt.
+        "trajectory_hlt_posture": {
+            "hlt_status": hlt_status,
+            "hlt_required": hlt_required,
+            "generic_bootstrap": generic_bootstrap,
+            "fallback_level": fallback_level,
+            "completion_blocked": completion_blocked,
+            "completion_degraded": completion_degraded,
+            "warning": if hlt_status != "verified" { Some("HLT status not verified; use focusa_trajectory_view to confirm") } else { None },
+        },
     }))
 }
 
