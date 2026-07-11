@@ -6,10 +6,12 @@
 //! that emit static envelopes. Slice 3 will dispatch to renderers; Slice 4 will add
 //! the safe-write route; Slice 5 will integrate with Spec 119 receipts.
 
+use crate::routes::context_cognition::{CurateCandidate, curate_preload_candidates};
+use crate::routes::project::project_identity_payload_for_scope;
 use crate::server::AppState;
 use axum::{
     Json, Router,
-    extract::Query,
+    extract::{Query, State},
     http::StatusCode,
     routing::{get, post},
 };
@@ -75,6 +77,22 @@ struct ProfileQuery {
     profile: Option<String>,
 }
 
+#[derive(serde::Deserialize, Default)]
+struct PreloadBuildRequest {
+    #[serde(default)]
+    profile: Option<String>,
+    #[serde(default)]
+    target: Option<String>,
+    #[serde(default)]
+    project_root: Option<String>,
+    #[serde(default)]
+    continuity_id: Option<String>,
+    #[serde(default)]
+    current_ask: Option<String>,
+    #[serde(default)]
+    include_context_cognition: Option<bool>,
+}
+
 fn packet_response(step: &str, profile: Option<String>) -> Json<Value> {
     let profile = profile.unwrap_or_else(|| PROFILE_RULES_AND_CONTEXT.to_string());
     match build_packet_for_profile(&profile) {
@@ -90,8 +108,179 @@ fn packet_response(step: &str, profile: Option<String>) -> Json<Value> {
 async fn build(Query(query): Query<ProfileQuery>) -> Json<Value> {
     packet_response("build", query.profile)
 }
-async fn build_post(Json(query): Json<ProfileQuery>) -> Json<Value> {
-    packet_response("build", query.profile)
+
+fn target_dynamic_max_lines(target: &str) -> usize {
+    match target {
+        "cursor" => 160,
+        "claude" => 200,
+        "codex" => 180,
+        "pi" | "generic" | "opencode" => 120,
+        _ => 120,
+    }
+}
+
+async fn build_post(
+    State(state): State<Arc<AppState>>,
+    Json(query): Json<PreloadBuildRequest>,
+) -> (StatusCode, Json<Value>) {
+    let profile_id = query
+        .profile
+        .as_deref()
+        .unwrap_or(PROFILE_RULES_AND_CONTEXT);
+    let Some(profile) = profile_by_id(profile_id) else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(
+                json!({"schema":PRELOAD_SCHEMA,"step":"build","status":"failed","error":{"code":FAIL_CODE_PRELOAD,"message":format!("unknown profile {profile_id:?}")}}),
+            ),
+        );
+    };
+    if query.include_context_cognition == Some(false) {
+        return (StatusCode::OK, packet_response("build", query.profile));
+    }
+    let project_root = query.project_root.as_deref().map(str::trim).unwrap_or("");
+    let continuity_id = query.continuity_id.as_deref().map(str::trim).unwrap_or("");
+    if project_root.is_empty() || continuity_id.is_empty() {
+        let failure = if project_root.is_empty() {
+            "project_root_missing"
+        } else {
+            "continuity_id_missing"
+        };
+        return (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(
+                json!({"schema":PRELOAD_SCHEMA,"step":"build","status":"blocked","canonical":false,"advisory":true,"failure_class":failure,"error":{"code":FAIL_CODE_PRELOAD,"message":failure}}),
+            ),
+        );
+    }
+    let identity = project_identity_payload_for_scope(Some(project_root), Some(project_root), None);
+    let identity_status = identity
+        .pointer("/project_identity/status")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    if identity_status != "verified" {
+        return (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(
+                json!({"schema":PRELOAD_SCHEMA,"step":"build","status":"blocked","canonical":false,"advisory":true,"failure_class":"project_identity_unverified","project_identity":identity,"error":{"code":FAIL_CODE_PRELOAD,"message":"project identity is not verified"}}),
+            ),
+        );
+    }
+
+    let focus = state.focusa.read().await;
+    let workpoint = focus.workpoint.records.iter().rev().find(|record| {
+        record.canonical
+            && record.project_root.as_deref() == Some(project_root)
+            && record.continuity_id.as_deref() == Some(continuity_id)
+    });
+    let mut candidates = Vec::new();
+    let mut evidence_refs = Vec::new();
+    let mut selection_target = query.current_ask.clone().unwrap_or_default();
+    if let Some(workpoint) = workpoint {
+        if let Some(next) = workpoint
+            .next_slice
+            .as_deref()
+            .filter(|value| !value.trim().is_empty())
+        {
+            selection_target = next.to_string();
+            candidates.push(CurateCandidate {
+                kind: "snippet".into(),
+                path: "workpoint:next_action".into(),
+                body: Some(next.into()),
+                evidence_ref: None,
+                tokens: None,
+            });
+        }
+        if let Some(mission) = workpoint.mission.as_deref() {
+            candidates.push(CurateCandidate {
+                kind: "snippet".into(),
+                path: "workpoint:mission".into(),
+                body: Some(mission.into()),
+                evidence_ref: None,
+                tokens: None,
+            });
+        }
+        for object in &workpoint.active_object_refs {
+            candidates.push(CurateCandidate {
+                kind: "codemap".into(),
+                path: object.clone(),
+                body: Some(format!("active object: {object}")),
+                evidence_ref: None,
+                tokens: None,
+            });
+        }
+        for blocker in &workpoint.blockers {
+            candidates.push(CurateCandidate {
+                kind: "snippet".into(),
+                path: format!(
+                    "workpoint:blocker:{}",
+                    blocker.target_ref.as_deref().unwrap_or("unknown")
+                ),
+                body: Some(blocker.reason.clone()),
+                evidence_ref: None,
+                tokens: None,
+            });
+        }
+        for verification in &workpoint.verification_records {
+            if let Some(evidence_ref) = verification.evidence_ref.clone() {
+                evidence_refs.push(evidence_ref.clone());
+                candidates.push(CurateCandidate {
+                    kind: "evidence".into(),
+                    path: verification.target_ref.clone(),
+                    body: Some(verification.result.clone()),
+                    evidence_ref: Some(evidence_ref),
+                    tokens: None,
+                });
+            }
+        }
+    }
+    let workpoint_found = workpoint.is_some();
+    drop(focus);
+
+    let target = query.target.as_deref().unwrap_or("generic");
+    let dynamic_max_lines = target_dynamic_max_lines(target);
+    let token_budget = dynamic_max_lines.saturating_mul(8);
+    let mut selection =
+        curate_preload_candidates(&selection_target, token_budget, candidates, &evidence_refs);
+    let mut packet = build_packet_for_profile(profile_id).expect("profile checked above");
+    let selected = selection["selected_context"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    let item_limit = profile.max_dynamic_items.min(dynamic_max_lines);
+    let included: Vec<Value> = selected.iter().take(item_limit).cloned().collect();
+    let dynamic_lines: Vec<String> = included
+        .iter()
+        .filter_map(|item| item["body"].as_str())
+        .map(|body| body.split_whitespace().collect::<Vec<_>>().join(" "))
+        .collect();
+    let mut excluded = selection["excluded_context"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    for item in selected.iter().skip(item_limit) {
+        excluded
+            .push(json!({"kind":item["kind"],"path":item["path"],"reason":"profile_item_budget"}));
+    }
+    selection["selected_context"] = json!(included);
+    selection["excluded_context"] = json!(excluded);
+    packet["dynamic_context_lines"] = json!(dynamic_lines);
+    packet["selected_context"] = json!({"include":selection["selected_context"],"exclude":selection["excluded_context"],"over_budget":selection["over_budget"]});
+    packet["context_selection"] = json!("context_cognition");
+    packet["canonical"] = json!(false);
+    packet["advisory"] = json!(true);
+
+    let status = if workpoint_found {
+        "completed"
+    } else {
+        "degraded"
+    };
+    (
+        StatusCode::OK,
+        Json(
+            json!({"schema":PRELOAD_SCHEMA,"step":"build","status":status,"canonical":false,"advisory":true,"project_identity":identity,"packet":packet,"context_cognition":selection,"proof_gaps":if workpoint_found{Vec::<&str>::new()}else{vec!["workpoint_missing"]},"next_tools":["focusa_preload_render","focusa_preload_write","focusa_preload_verify","focusa_preload_receipt_preview"]}),
+        ),
+    )
 }
 async fn render(Query(query): Query<ProfileQuery>) -> Json<Value> {
     packet_response("render", query.profile)
@@ -546,7 +735,7 @@ mod tests {
     }
 
     #[test]
-    fn slice2_unknown_profile_fails_with_FOCUSA_PRELOAD_FAIL() {
+    fn slice2_unknown_profile_fails_with_focusa_preload_fail() {
         let err = build_packet("nope").err().unwrap_or_default();
         assert!(err.contains(FAIL_CODE_PRELOAD));
     }
@@ -555,5 +744,14 @@ mod tests {
     fn receipt_kind_and_fail_code_match_spec() {
         assert_eq!(BOOTSTRAP_RECEIPT_KIND, "bootstrap_delivery");
         assert_eq!(FAIL_CODE_PRELOAD, "FOCUSA_PRELOAD_FAIL");
+    }
+
+    #[test]
+    fn context_cognition_target_budgets_match_spec() {
+        assert_eq!(target_dynamic_max_lines("cursor"), 160);
+        assert_eq!(target_dynamic_max_lines("claude"), 200);
+        assert_eq!(target_dynamic_max_lines("codex"), 180);
+        assert_eq!(target_dynamic_max_lines("pi"), 120);
+        assert_eq!(target_dynamic_max_lines("generic"), 120);
     }
 }

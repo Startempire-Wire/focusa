@@ -578,6 +578,58 @@ mod tests {
         assert!(excluded[0].1.contains("low_score"));
         assert!(excluded[1].1.contains("over_budget"));
     }
+
+    #[test]
+    fn preload_curator_prioritizes_matching_evidence() {
+        let selected = curate_preload_candidates(
+            "",
+            10,
+            vec![
+                CurateCandidate {
+                    kind: "snippet".into(),
+                    path: "plain".into(),
+                    body: Some("plain".into()),
+                    evidence_ref: None,
+                    tokens: Some(1),
+                },
+                CurateCandidate {
+                    kind: "evidence".into(),
+                    path: "proof".into(),
+                    body: Some("verified".into()),
+                    evidence_ref: Some("ev:1".into()),
+                    tokens: Some(1),
+                },
+            ],
+            &["ev:1".into()],
+        );
+        assert_eq!(selected["selected_context"][0]["path"], "proof");
+        assert_eq!(selected["canonical"], false);
+        assert_eq!(selected["advisory"], true);
+    }
+
+    #[test]
+    fn preload_curator_labels_over_budget_context() {
+        let selected = curate_preload_candidates(
+            "next action",
+            1,
+            vec![CurateCandidate {
+                kind: "snippet".into(),
+                path: "large".into(),
+                body: Some("next action".into()),
+                evidence_ref: None,
+                tokens: Some(2),
+            }],
+            &[],
+        );
+        assert_eq!(selected["selected_context"].as_array().unwrap().len(), 0);
+        assert_eq!(selected["over_budget"].as_array().unwrap().len(), 1);
+        assert!(
+            selected["excluded_context"][0]["reason"]
+                .as_str()
+                .unwrap()
+                .starts_with("over_budget:")
+        );
+    }
 }
 
 #[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
@@ -646,6 +698,80 @@ fn score_candidate(target: &str, item: &CurateCandidate) -> f64 {
         score += 0.5;
     }
     score
+}
+
+/// Shared advisory selector for Spec 111 preload composition.
+/// It preserves Context Cognition scoring, evidence priority, and explicit
+/// over-budget/low-score exclusion reasons without granting action authority.
+pub fn curate_preload_candidates(
+    target: &str,
+    budget: usize,
+    mut candidates: Vec<CurateCandidate>,
+    evidence_refs: &[String],
+) -> Value {
+    for candidate in &mut candidates {
+        if candidate.tokens.is_none() {
+            candidate.tokens = Some(estimate_tokens(candidate.body.as_deref().unwrap_or("")));
+        }
+    }
+    let evidence_set: std::collections::HashSet<&str> =
+        evidence_refs.iter().map(String::as_str).collect();
+    let mut scored: Vec<(f64, &CurateCandidate)> = candidates
+        .iter()
+        .map(|candidate| {
+            let boost = candidate
+                .evidence_ref
+                .as_deref()
+                .filter(|evidence| evidence_set.contains(evidence))
+                .map(|_| 1.0)
+                .unwrap_or(0.0);
+            (score_candidate(target, candidate) + boost, candidate)
+        })
+        .collect();
+    scored.sort_by(|a, b| {
+        b.0.partial_cmp(&a.0)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.1.tokens.unwrap_or(0).cmp(&b.1.tokens.unwrap_or(0)))
+    });
+
+    let mut selected = Vec::new();
+    let mut excluded = Vec::new();
+    let mut used = 0usize;
+    for (score, candidate) in scored {
+        let tokens = candidate.tokens.unwrap_or(0);
+        if used + tokens <= budget {
+            used += tokens;
+            selected.push(CuratedItem {
+                kind: candidate.kind.clone(),
+                path: candidate.path.clone(),
+                body: candidate.body.clone(),
+                tokens,
+                score,
+            });
+        } else {
+            excluded.push(ExcludedItem {
+                kind: candidate.kind.clone(),
+                path: candidate.path.clone(),
+                reason: format!(
+                    "over_budget: {} > remaining {}",
+                    tokens,
+                    budget.saturating_sub(used)
+                ),
+            });
+        }
+    }
+
+    json!({
+        "canonical": false,
+        "advisory": true,
+        "target": target,
+        "token_budget": budget,
+        "tokens_used": used,
+        "tokens_remaining": budget.saturating_sub(used),
+        "selected_context": selected,
+        "excluded_context": excluded,
+        "over_budget": excluded.iter().filter(|item| item.reason.starts_with("over_budget:")).collect::<Vec<_>>(),
+    })
 }
 
 async fn curate(
