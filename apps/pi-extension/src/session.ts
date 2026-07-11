@@ -335,47 +335,59 @@ function trajectoryDraftOptions(
   const repoGoal = `Improve and verify ${projectName} as the active project`;
   return [
     {
-      label: `A) Learning-informed project card — bootstrap from ontology + predictions + metacog signals`,
+      // Spec 125 §8.3: candidate from project evidence — requires confirmation.
+      label: `A) Candidate from project evidence — requires confirmation`,
       draft: {
-        long_term_goal: `Strengthen ${projectName} project intelligence and next-step quality through ontology-grounded trajectory, prediction, evidence, and metacog loops`,
-        desired_end_state: `${projectName} has an up-to-date trajectory hierarchy, project card, evidence-backed next step, evaluated predictions, and condensed reusable lessons`,
+        long_term_goal: repoGoal,
+        desired_end_state: `${projectName} is verified, onboarding-ready, and has evidence-backed trajectory`,
         short_term_goal: short,
         current_state: current,
-        goal_source: "inferred_context",
+        goal_source: "project_evidence_candidate",
       },
     },
     {
-      label: `B) Infer from current task — ${short}`,
+      // Spec 125 §8.3: candidate from current ask — requires confirmation.
+      label: `B) Candidate from current ask — requires confirmation`,
       draft: {
         long_term_goal: seed,
         desired_end_state: `Completed and verified: ${seed}`,
         short_term_goal: short,
         current_state: current,
-        goal_source: "inferred_context",
+        goal_source: "current_ask_candidate",
       },
     },
     {
-      label: `C) Project-level default — ${repoGoal}`,
+      // Spec 125 §8.3: candidate from Workpoint gap — cannot define HLT alone.
+      label: `C) Candidate from Workpoint gap — cannot define HLT alone`,
       draft: {
-        long_term_goal: repoGoal,
-        desired_end_state: `${projectName} has a clear trajectory, active Workpoint, and passing evidence for the current change path`,
+        long_term_goal: workpointMission || `Advance ${projectName} workpoint mission`,
+        desired_end_state: `Workpoint mission completed with evidence`,
         short_term_goal: short,
         current_state: current,
-        goal_source: "inferred_context",
+        goal_source: "workpoint_gap_candidate",
       },
     },
     {
-      label: "D) Short-term only for now — keep high-level goal broad",
+      // Spec 125 §8.3: restore previous valid HLT — preferred when available.
+      label: `D) Restore previous valid HLT — preferred when available`,
       draft: {
         long_term_goal: repoGoal,
-        desired_end_state: `${projectName} remains directionally aligned while the current short-term goal is refined`,
+        desired_end_state: `${projectName} is maintained and improved within verified scope`,
         short_term_goal: short,
         current_state: current,
-        goal_source: "inferred_context",
+        goal_source: "previous_valid_fallback",
       },
     },
-    { label: "E) Skip for now", draft: null },
-    { label: "F) Custom edit (typing)", draft: null },
+    {
+      // Spec 125 §8.3: custom HLT / desired end state.
+      label: `E) Custom HLT / desired end state`,
+      draft: null,
+    },
+    {
+      // Spec 125 §8.3: skip — leaves HLT_REQUIRED warning active.
+      label: `F) Skip — leaves HLT_REQUIRED warning active`,
+      draft: null,
+    },
   ];
 }
 
