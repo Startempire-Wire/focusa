@@ -9,7 +9,7 @@ use anyhow::Context;
 use clap::{Args, Subcommand};
 use focusa_core::license::load_license_status;
 use focusa_core::update::{ReleaseChannel, UPDATE_POLICY_SCHEMA_V1, UpdateMode, UpdatePolicy};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::io::{Read, Write};
@@ -262,6 +262,9 @@ struct PartPlan {
     part: &'static str,
     current_version: Option<String>,
     target_version: String,
+    target_path: Option<String>,
+    expected_sha256: Option<String>,
+    download_url: Option<String>,
     action: &'static str,
     reason: String,
     restart_required: bool,
@@ -458,9 +461,48 @@ struct DataSafetyPlan {
 #[derive(Debug, Serialize)]
 struct LatestVersion {
     version: String,
+    tag: String,
     source: String,
+    github_repo: String,
+    target_triple: String,
     release_manifest_required: bool,
     eligibility_status: &'static str,
+    trust: ReleaseTrustSummary,
+    assets: Vec<ReleaseAssetRef>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct ReleaseTrustSummary {
+    release_resolved: bool,
+    complete_asset_set: bool,
+    sha256sums_present: bool,
+    checksums_resolved: bool,
+    signature_verified: bool,
+    ci_proof_required: bool,
+    signature_required: bool,
+    blockers: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct ReleaseAssetRef {
+    part: &'static str,
+    name: String,
+    download_url: String,
+    sha256: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GithubRelease {
+    tag_name: String,
+    draft: bool,
+    prerelease: bool,
+    assets: Vec<GithubAsset>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GithubAsset {
+    name: String,
+    browser_download_url: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -532,7 +574,27 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
             let allow_apply = args.allow_apply;
             let envelope = build_inventory("apply", args.status).await?;
             let plan = build_update_plan(envelope);
-            let apply = build_apply_envelope(plan, dry_run, yes, allow_apply);
+            let mut apply = build_apply_envelope(plan, dry_run, yes, allow_apply);
+            if apply.consent.effective && apply.plan.apply_allowed {
+                match execute_verified_apply(&apply.plan).await {
+                    Ok(promoted) => {
+                        apply.status = "completed";
+                        apply.read_only = false;
+                        apply.mutations_performed = !promoted.is_empty();
+                        apply.apply_executed = !promoted.is_empty();
+                        apply.blocked_reason.clear();
+                        apply.recovery_hint = format!(
+                            "Promoted: {}. Use focusa update status --json to verify all surfaces.",
+                            promoted.join(", ")
+                        );
+                    }
+                    Err(error) => {
+                        apply.status = "failed_rolled_back";
+                        apply.blocked_reason.push(format!("apply_failed:{error}"));
+                        apply.recovery_hint = "Promotion failed; any previously promoted parts were restored from the update backup journal.".into();
+                    }
+                }
+            }
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&apply)?);
             } else {
@@ -589,7 +651,7 @@ async fn build_inventory(
     command_name: &'static str,
     args: UpdateStatusArgs,
 ) -> anyhow::Result<UpdateInventoryEnvelope> {
-    let latest = resolve_latest(args.latest_version.as_deref());
+    let latest = resolve_latest(&args.channel, args.latest_version.as_deref()).await;
     let daemon_health = probe_daemon_health(&args.daemon_health_url).await;
     let parts = vec![
         inspect_cli(&latest.version).await?,
@@ -642,22 +704,22 @@ async fn build_inventory(
 }
 
 fn build_update_plan(inventory: UpdateInventoryEnvelope) -> UpdatePlanEnvelope {
-    let mut blockers = vec![
-        "release_manifest_signature_verification_not_wired_to_plan".to_string(),
-        "update_locking_not_implemented".to_string(),
-        "atomic_install_not_implemented".to_string(),
-        "rollback_apply_not_implemented".to_string(),
-    ];
-    if inventory.latest.source == "current_cli_package_version" {
+    let mut blockers = inventory.latest.trust.blockers.clone();
+    if !inventory.latest.trust.release_resolved {
         blockers.push("latest_release_manifest_resolver_not_wired".to_string());
     }
+    if !inventory.latest.trust.checksums_resolved {
+        blockers.push("release_asset_checksums_not_resolved".to_string());
+    }
+    blockers.sort();
+    blockers.dedup();
     let mut order = 1u8;
     let mut parts = Vec::new();
     for part in inventory.parts.iter().filter(|p| p.part != "daemon") {
-        parts.push(part_plan(part, &inventory.latest.version, &mut order));
+        parts.push(part_plan(part, &inventory.latest, &mut order));
     }
     if let Some(daemon) = inventory.parts.iter().find(|p| p.part == "daemon") {
-        parts.push(part_plan(daemon, &inventory.latest.version, &mut order));
+        parts.push(part_plan(daemon, &inventory.latest, &mut order));
     }
     let daemon_restart = parts
         .iter()
@@ -669,7 +731,7 @@ fn build_update_plan(inventory: UpdateInventoryEnvelope) -> UpdatePlanEnvelope {
         status: "planned_read_only",
         read_only: true,
         mutations_performed: false,
-        apply_allowed: false,
+        apply_allowed: blockers.is_empty(),
         apply_blocked_until: blockers.clone(),
         channel: inventory.channel,
         latest: inventory.latest,
@@ -709,9 +771,9 @@ fn build_update_plan(inventory: UpdateInventoryEnvelope) -> UpdatePlanEnvelope {
         parts,
         warnings: inventory.warnings,
         next_actions: vec![
-            "Implement Spec128 locking/staging/atomic install before update apply.".into(),
-            "Implement Spec128 rollback/history before update apply.".into(),
-            "Keep using focusa update status/check/plan as read-only surfaces.".into(),
+            "Run focusa update apply --yes --allow-apply --dry-run false after reviewing this plan.".into(),
+            "Daemon promotion remains last and requires a separate health/contract restart proof.".into(),
+            "Use focusa update history --json to inspect completed promotions and recovery records.".into(),
         ],
     }
 }
@@ -1014,6 +1076,165 @@ fn print_admin_human(admin: &UpdateAdminEnvelope) {
     println!("mutations_performed: {}", admin.mutations_performed);
 }
 
+async fn execute_verified_apply(plan: &UpdatePlanEnvelope) -> anyhow::Result<Vec<String>> {
+    let state = update_state_root();
+    std::fs::create_dir_all(&state)?;
+    let lock_path = state.join("update.lock");
+    let lock = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&lock_path)
+        .with_context(|| format!("another update owns {}", lock_path.display()))?;
+    let result = execute_verified_apply_locked(plan, &state).await;
+    drop(lock);
+    let _ = std::fs::remove_file(&lock_path);
+    result
+}
+
+async fn execute_verified_apply_locked(
+    plan: &UpdatePlanEnvelope,
+    state: &Path,
+) -> anyhow::Result<Vec<String>> {
+    let stamp = format!("{}-{}", std::process::id(), chrono_like_timestamp());
+    let stage = state.join("staging").join(&stamp);
+    let backup_root = state.join("backups").join(&stamp);
+    std::fs::create_dir_all(&stage)?;
+    std::fs::create_dir_all(&backup_root)?;
+    let journal = state.join("update-journal.json");
+    std::fs::write(
+        &journal,
+        serde_json::to_vec_pretty(&json!({
+            "schema":"focusa.update_journal.v1", "state":"staging", "tag":plan.latest.tag, "started_at":stamp
+        }))?,
+    )?;
+    let mut promoted: Vec<(String, PathBuf, PathBuf)> = Vec::new();
+    let operation = async {
+        for part in plan
+            .parts
+            .iter()
+            .filter(|part| part.action == "would_update")
+        {
+            let url = part
+                .download_url
+                .as_deref()
+                .context("release asset URL missing")?;
+            let expected = part
+                .expected_sha256
+                .as_deref()
+                .context("release asset checksum missing")?;
+            let target = PathBuf::from(part.target_path.as_deref().context("target path missing")?);
+            let parent = target.parent().context("target has no parent")?;
+            std::fs::create_dir_all(parent)?;
+            let staged = stage.join(format!("{}-{}", part.part, plan.latest.tag));
+            let response = reqwest::get(url).await?.error_for_status()?;
+            let bytes = response.bytes().await?;
+            std::fs::write(&staged, &bytes)?;
+            let actual = sha256_file(&staged)?;
+            if actual != expected {
+                anyhow::bail!(
+                    "{} checksum mismatch: expected {expected}, got {actual}",
+                    part.part
+                );
+            }
+            let mode = target.metadata().ok().map(|m| m.permissions());
+            #[cfg(unix)]
+            if mode.is_none() {
+                use std::os::unix::fs::PermissionsExt;
+                std::fs::set_permissions(&staged, std::fs::Permissions::from_mode(0o755))?;
+            }
+            std::fs::File::open(&staged)?.sync_all()?;
+            let temp = parent.join(format!(
+                ".{}.focusa-update-{}",
+                target
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("focusa"),
+                std::process::id()
+            ));
+            std::fs::rename(&staged, &temp)?;
+            if let Some(permissions) = mode {
+                std::fs::set_permissions(&temp, permissions)?;
+            }
+            let backup = backup_root.join(target.file_name().context("target filename missing")?);
+            if target.exists() {
+                std::fs::rename(&target, &backup)?;
+            }
+            if let Err(error) = std::fs::rename(&temp, &target) {
+                if backup.exists() {
+                    let _ = std::fs::rename(&backup, &target);
+                }
+                return Err(error.into());
+            }
+            // Record immediately after promotion so *every* subsequent probe
+            // failure enters the outer rollback path.
+            promoted.push((part.part.to_string(), target.clone(), backup));
+            if part.part != "daemon" {
+                let got = probe_version_command(target.to_string_lossy().as_ref())
+                    .await
+                    .map(|v| normalize_version(&v))
+                    .context("post-promotion version probe failed")?;
+                if got != plan.latest.version {
+                    anyhow::bail!(
+                        "{} smoke version mismatch: expected {}, got {}",
+                        part.part,
+                        plan.latest.version,
+                        got
+                    );
+                }
+            }
+        }
+        Ok::<(), anyhow::Error>(())
+    }
+    .await;
+    if let Err(error) = operation {
+        for (_, target, backup) in promoted.iter().rev() {
+            if backup.exists() {
+                let failed = target.with_extension("focusa-failed");
+                let _ = std::fs::rename(target, &failed);
+                let _ = std::fs::rename(backup, target);
+                let _ = std::fs::remove_file(failed);
+            }
+        }
+        std::fs::write(
+            &journal,
+            serde_json::to_vec_pretty(
+                &json!({"schema":"focusa.update_journal.v1","state":"rolled_back","error":error.to_string()}),
+            )?,
+        )?;
+        return Err(error);
+    }
+    let names = promoted
+        .iter()
+        .map(|(part, _, _)| part.clone())
+        .collect::<Vec<_>>();
+    if names.is_empty() && plan.parts.iter().any(|part| part.action == "would_update") {
+        anyhow::bail!("no stale release parts were promoted");
+    }
+    std::fs::write(
+        &journal,
+        serde_json::to_vec_pretty(
+            &json!({"schema":"focusa.update_journal.v1","state":"completed","tag":plan.latest.tag,"promoted":names}),
+        )?,
+    )?;
+    let history = state.join("update-history.jsonl");
+    let event =
+        json!({"event":"apply_completed","tag":plan.latest.tag,"promoted":names,"journal":journal});
+    use std::io::Write as _;
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(history)?;
+    writeln!(file, "{}", serde_json::to_string(&event)?)?;
+    Ok(names)
+}
+
+fn chrono_like_timestamp() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
+}
+
 fn build_apply_envelope(
     plan: UpdatePlanEnvelope,
     dry_run: bool,
@@ -1021,7 +1242,9 @@ fn build_apply_envelope(
     allow_apply: bool,
 ) -> UpdateApplyEnvelope {
     let mut blocked_reason = plan.apply_blocked_until.clone();
-    blocked_reason.push("apply_executor_not_enabled_in_spec128_07_scaffold".to_string());
+    if !plan.apply_allowed {
+        blocked_reason.push("apply_requirements_not_satisfied".to_string());
+    }
     if dry_run {
         blocked_reason.push("dry_run_requested".to_string());
     }
@@ -1034,7 +1257,11 @@ fn build_apply_envelope(
         .any(|part| part.part == "daemon" && part.action == "would_update");
     UpdateApplyEnvelope {
         schema: "focusa.update_apply.v1",
-        status: "blocked_read_only",
+        status: if yes && allow_apply && !dry_run && plan.apply_allowed {
+            "ready_to_apply"
+        } else {
+            "blocked_read_only"
+        },
         read_only: true,
         mutations_performed: false,
         apply_requested: yes || allow_apply || !dry_run,
@@ -1044,7 +1271,7 @@ fn build_apply_envelope(
             yes,
             allow_apply,
             effective: yes && allow_apply && !dry_run,
-            note: "consent is recorded only; this scaffold does not mutate binaries",
+            note: "consent allows verified promotion only after release trust and policy gates pass",
         },
         execution_order: vec!["cli", "tui", "daemon_last", "restart_daemon_only_if_changed_and_allowed"],
         daemon_restart: DaemonRestartPlan {
@@ -1175,7 +1402,7 @@ fn update_state_root() -> PathBuf {
         .join("update")
 }
 
-fn part_plan(part: &InstalledPart, target_version: &str, order: &mut u8) -> PartPlan {
+fn part_plan(part: &InstalledPart, latest: &LatestVersion, order: &mut u8) -> PartPlan {
     let action = match part.stale {
         Some(true) => "would_update",
         Some(false) => "no_op",
@@ -1185,7 +1412,21 @@ fn part_plan(part: &InstalledPart, target_version: &str, order: &mut u8) -> Part
     let plan = PartPlan {
         part: part.part,
         current_version: part.version.clone(),
-        target_version: target_version.to_string(),
+        target_version: latest.version.clone(),
+        target_path: part
+            .resolved_path
+            .clone()
+            .or_else(|| Some(part.expected_path.clone())),
+        expected_sha256: latest
+            .assets
+            .iter()
+            .find(|asset| asset.part == part.part)
+            .and_then(|asset| asset.sha256.clone()),
+        download_url: latest
+            .assets
+            .iter()
+            .find(|asset| asset.part == part.part)
+            .map(|asset| asset.download_url.clone()),
         action,
         reason: part.stale_reason.clone(),
         restart_required,
@@ -1224,32 +1465,306 @@ fn print_plan_human(plan: &UpdatePlanEnvelope) {
     }
 }
 
-fn resolve_latest(override_value: Option<&str>) -> LatestVersion {
+async fn resolve_latest(channel: &str, override_value: Option<&str>) -> LatestVersion {
     if let Some(v) = override_value.filter(|s| !s.trim().is_empty()) {
-        return LatestVersion {
-            version: normalize_version(v),
-            source: "--latest-version".into(),
-            release_manifest_required: true,
-            eligibility_status: "placeholder_until_manifest_resolver",
-        };
+        return placeholder_latest(normalize_version(v), "--latest-version");
     }
     for env_key in ["FOCUSA_LATEST_VERSION", "FOCUSA_UPDATE_LATEST_TAG"] {
         if let Ok(v) = std::env::var(env_key) {
             if !v.trim().is_empty() {
-                return LatestVersion {
-                    version: normalize_version(&v),
-                    source: env_key.into(),
-                    release_manifest_required: true,
-                    eligibility_status: "placeholder_until_manifest_resolver",
-                };
+                return placeholder_latest(normalize_version(&v), env_key);
             }
         }
     }
+    match resolve_latest_github(channel).await {
+        Ok(latest) => latest,
+        Err(error) => {
+            let mut latest = placeholder_latest(
+                env!("CARGO_PKG_VERSION").into(),
+                "current_cli_package_version",
+            );
+            latest
+                .trust
+                .blockers
+                .push(format!("github_release_resolver_failed:{error}"));
+            latest
+        }
+    }
+}
+
+fn placeholder_latest(version: String, source: &str) -> LatestVersion {
+    let tag = if version.starts_with('v') {
+        version.clone()
+    } else {
+        format!("v{version}")
+    };
     LatestVersion {
-        version: env!("CARGO_PKG_VERSION").into(),
-        source: "current_cli_package_version".into(),
+        version,
+        tag,
+        source: source.into(),
+        github_repo: github_repo(),
+        target_triple: target_triple(),
         release_manifest_required: true,
         eligibility_status: "placeholder_until_manifest_resolver",
+        trust: ReleaseTrustSummary {
+            release_resolved: false,
+            complete_asset_set: false,
+            sha256sums_present: false,
+            checksums_resolved: false,
+            signature_verified: false,
+            ci_proof_required: true,
+            signature_required: true,
+            blockers: vec!["live_release_not_resolved".into()],
+        },
+        assets: Vec::new(),
+    }
+}
+
+async fn resolve_latest_github(channel: &str) -> anyhow::Result<LatestVersion> {
+    let repo = github_repo();
+    let triple = target_triple();
+    let url = format!("https://api.github.com/repos/{repo}/releases?per_page=20");
+    let releases = reqwest::Client::new()
+        .get(&url)
+        .header("User-Agent", "focusa-update-resolver")
+        .send()
+        .await?
+        .error_for_status()?
+        .json::<Vec<GithubRelease>>()
+        .await?;
+    for release in releases {
+        if release.draft || !release_tag_matches_channel(&release.tag_name, channel) {
+            continue;
+        }
+        if let Some(latest) = build_latest_from_release(repo.clone(), triple.clone(), release) {
+            return Ok(latest);
+        }
+    }
+    anyhow::bail!("no complete release found for channel={channel} target={triple}")
+}
+
+fn build_latest_from_release(
+    repo: String,
+    triple: String,
+    release: GithubRelease,
+) -> Option<LatestVersion> {
+    let tag = release.tag_name;
+    let mut assets = Vec::new();
+    for (part, prefix) in [
+        ("cli", "focusa"),
+        ("daemon", "focusa-daemon"),
+        ("tui", "focusa-tui"),
+    ] {
+        let name = format!("{prefix}-{tag}-{triple}");
+        let gh_asset = release.assets.iter().find(|asset| asset.name == name)?;
+        assets.push(ReleaseAssetRef {
+            part,
+            name,
+            download_url: gh_asset.browser_download_url.clone(),
+            sha256: None,
+        });
+    }
+    let checksum_asset = release
+        .assets
+        .iter()
+        .find(|asset| asset.name == "SHA256SUMS" || asset.name == "SHA256SUMS.txt");
+    let mut blockers = Vec::new();
+    let mut checksums_resolved = false;
+    let mut sha256sums_present = false;
+    let mut signature_verified = false;
+    if let Some(checksum_asset) = checksum_asset {
+        sha256sums_present = true;
+        match fetch_sha256sums_blocking(&checksum_asset.browser_download_url) {
+            Ok(sums) => {
+                for asset in &mut assets {
+                    asset.sha256 = lookup_sha256(&sums, &asset.name);
+                }
+                checksums_resolved = assets.iter().all(|asset| asset.sha256.is_some());
+                if !checksums_resolved {
+                    blockers.push("release_sha256sums_missing_required_asset".into());
+                }
+            }
+            Err(error) => blockers.push(format!("release_sha256sums_fetch_failed:{error}")),
+        }
+    } else {
+        blockers.push("release_sha256sums_asset_missing".into());
+    }
+    if let (Some(checksum_asset), Some(sig_asset), Some(pem_asset)) = (
+        checksum_asset,
+        release
+            .assets
+            .iter()
+            .find(|asset| asset.name == "SHA256SUMS.txt.sig"),
+        release
+            .assets
+            .iter()
+            .find(|asset| asset.name == "SHA256SUMS.txt.pem"),
+    ) {
+        match verify_sha256sums_signature(
+            &checksum_asset.browser_download_url,
+            &sig_asset.browser_download_url,
+            &pem_asset.browser_download_url,
+        ) {
+            Ok(()) => signature_verified = true,
+            Err(error) => blockers.push(format!("release_sha256sums_signature_invalid:{error}")),
+        }
+    } else {
+        blockers.push("release_sha256sums_signature_assets_missing".into());
+    }
+    if !signature_verified {
+        blockers.push("release_signature_not_verified".into());
+    }
+    Some(LatestVersion {
+        version: normalize_version(&tag),
+        tag,
+        source: "github_releases".into(),
+        github_repo: repo,
+        target_triple: triple,
+        release_manifest_required: true,
+        eligibility_status: if checksums_resolved {
+            "eligible_with_sha256sums"
+        } else {
+            "blocked_missing_checksums"
+        },
+        trust: ReleaseTrustSummary {
+            release_resolved: true,
+            complete_asset_set: true,
+            sha256sums_present,
+            checksums_resolved,
+            signature_verified,
+            ci_proof_required: true,
+            signature_required: true,
+            blockers,
+        },
+        assets,
+    })
+}
+
+fn release_tag_matches_channel(tag: &str, channel: &str) -> bool {
+    match channel {
+        "dev" | "stable" => tag.starts_with('v') && tag.ends_with("-dev"),
+        "preview" => tag.contains("-rc."),
+        "nightly" => tag.contains("-nightly."),
+        _ => false,
+    }
+}
+
+fn verify_sha256sums_signature(
+    checksums_url: &str,
+    signature_url: &str,
+    certificate_url: &str,
+) -> anyhow::Result<()> {
+    let dir = std::env::temp_dir().join(format!("focusa-update-verify-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir)?;
+    let checksums = dir.join("SHA256SUMS.txt");
+    let signature = dir.join("SHA256SUMS.txt.sig");
+    let cert_b64 = dir.join("SHA256SUMS.txt.pem.b64");
+    let cert = dir.join("cert.pem");
+    let public_key = dir.join("public.pem");
+    let download = |url: &str, path: &std::path::Path| -> anyhow::Result<()> {
+        let status = std::process::Command::new("curl")
+            .args(["-fsSL", "--max-time", "20", url, "-o"])
+            .arg(path)
+            .status()?;
+        if status.success() {
+            Ok(())
+        } else {
+            anyhow::bail!("curl exited {}", status.code().unwrap_or(-1))
+        }
+    };
+    let result = (|| -> anyhow::Result<()> {
+        download(checksums_url, &checksums)?;
+        download(signature_url, &signature)?;
+        download(certificate_url, &cert_b64)?;
+        let decoded = std::process::Command::new("base64")
+            .args(["-d"])
+            .arg(&cert_b64)
+            .output()?;
+        if !decoded.status.success() {
+            anyhow::bail!("certificate base64 decode failed")
+        }
+        std::fs::write(&cert, decoded.stdout)?;
+        let decoded = std::process::Command::new("base64")
+            .args(["-d"])
+            .arg(&signature)
+            .output()?;
+        if !decoded.status.success() {
+            anyhow::bail!("signature base64 decode failed")
+        }
+        std::fs::write(&signature, decoded.stdout)?;
+        let issuer = std::process::Command::new("openssl")
+            .args(["x509", "-in"])
+            .arg(&cert)
+            .args(["-noout", "-issuer"])
+            .output()?;
+        if !issuer.status.success()
+            || !String::from_utf8_lossy(&issuer.stdout).contains("sigstore.dev")
+        {
+            anyhow::bail!("certificate issuer is not sigstore.dev")
+        }
+        let status = std::process::Command::new("openssl")
+            .args(["x509", "-in"])
+            .arg(&cert)
+            .args(["-pubkey", "-noout"])
+            .stdout(std::fs::File::create(&public_key)?)
+            .status()?;
+        if !status.success() {
+            anyhow::bail!("certificate public key extraction failed")
+        }
+        let status = std::process::Command::new("openssl")
+            .args(["dgst", "-sha256", "-verify"])
+            .arg(&public_key)
+            .args(["-signature"])
+            .arg(&signature)
+            .arg(&checksums)
+            .stdout(std::process::Stdio::null())
+            .status()?;
+        if !status.success() {
+            anyhow::bail!("openssl signature verification failed")
+        }
+        Ok(())
+    })();
+    let _ = std::fs::remove_dir_all(&dir);
+    result
+}
+
+fn fetch_sha256sums_blocking(url: &str) -> anyhow::Result<String> {
+    let output = std::process::Command::new("curl")
+        .args(["-fsSL", "--max-time", "20", url])
+        .output()?;
+    if !output.status.success() {
+        anyhow::bail!("curl exited {}", output.status.code().unwrap_or(-1));
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
+fn lookup_sha256(sums: &str, asset_name: &str) -> Option<String> {
+    sums.lines().find_map(|line| {
+        let mut parts = line.split_whitespace();
+        let digest = parts.next()?;
+        let name = parts.next()?.trim_start_matches('*');
+        if name == asset_name && digest.len() == 64 {
+            Some(digest.to_string())
+        } else {
+            None
+        }
+    })
+}
+
+fn github_repo() -> String {
+    std::env::var("FOCUSA_GITHUB_REPO").unwrap_or_else(|_| "Startempire-Wire/focusa".into())
+}
+
+fn target_triple() -> String {
+    match (std::env::consts::OS, std::env::consts::ARCH) {
+        // Musl assets avoid stale glibc floors on long-lived AlmaLinux/RHEL hosts.
+        ("linux", "x86_64") => "x86_64-unknown-linux-musl".into(),
+        ("linux", "aarch64") => "aarch64-unknown-linux-musl".into(),
+        ("macos", "x86_64") => "x86_64-apple-darwin".into(),
+        ("macos", "aarch64") => "aarch64-apple-darwin".into(),
+        ("windows", "x86_64") => "x86_64-pc-windows-msvc.exe".into(),
+        _ => format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS),
     }
 }
 
