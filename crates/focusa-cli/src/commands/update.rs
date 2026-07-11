@@ -70,6 +70,14 @@ pub struct UpdateSchedulerArgs {
     /// Show scheduler plan for this channel.
     #[arg(long, default_value = "dev")]
     pub channel: String,
+
+    /// Install and enable the systemd verified-update timer (Linux/root only).
+    #[arg(long, conflicts_with = "uninstall")]
+    pub install: bool,
+
+    /// Disable and remove the systemd verified-update timer (Linux/root only).
+    #[arg(long, conflicts_with = "install")]
+    pub uninstall: bool,
 }
 
 #[derive(Args, Debug)]
@@ -626,6 +634,11 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
             }
         }
         UpdateCmd::Scheduler(args) => {
+            if args.install {
+                configure_systemd_scheduler(&args.channel, true)?;
+            } else if args.uninstall {
+                configure_systemd_scheduler(&args.channel, false)?;
+            }
             let scheduler = build_scheduler_envelope(args.channel);
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&scheduler)?);
@@ -782,11 +795,15 @@ fn build_scheduler_envelope(channel: String) -> UpdateSchedulerEnvelope {
     let policy = update_policy_summary();
     UpdateSchedulerEnvelope {
         schema: "focusa.update_scheduler.v1",
-        status: "planned_read_only",
-        read_only: true,
+        status: if systemd_scheduler_installed() {
+            "installed"
+        } else {
+            "planned_read_only"
+        },
+        read_only: !systemd_scheduler_installed(),
         mutations_performed: false,
-        scheduler_installed: false,
-        background_worker_started: false,
+        scheduler_installed: systemd_scheduler_installed(),
+        background_worker_started: systemd_scheduler_installed(),
         channel,
         startup_check: SchedulerStartupCheck {
             enabled: true,
@@ -812,13 +829,17 @@ fn build_scheduler_envelope(channel: String) -> UpdateSchedulerEnvelope {
                 .to_string(),
         },
         automatic_apply: SchedulerAutomaticApply {
-            allowed: false,
-            reason: "auto apply remains disabled until manifest/signature/lock/rollback/apply gates are implemented",
+            allowed: systemd_scheduler_installed(),
+            reason: if systemd_scheduler_installed() {
+                "systemd timer invokes explicit verified CLI promotion; daemon restart remains separately gated"
+            } else {
+                "install with focusa update scheduler --install to enable verified two-minute refresh"
+            },
             requires: vec![
                 "trusted_release_manifest",
                 "update_lock_acquired",
                 "rollback_snapshot_ready",
-                "policy_allows_automatic_apply",
+                "explicit_systemd_apply_consent",
                 "daemon_restart_policy_approved",
             ],
         },
@@ -830,6 +851,88 @@ fn build_scheduler_envelope(channel: String) -> UpdateSchedulerEnvelope {
         ],
         policy,
     }
+}
+
+fn systemd_scheduler_installed() -> bool {
+    cfg!(target_os = "linux")
+        && Path::new("/etc/systemd/system/focusa-update.timer").exists()
+        && std::process::Command::new("systemctl")
+            .args(["is-enabled", "--quiet", "focusa-update.timer"])
+            .status()
+            .map(|status| status.success())
+            .unwrap_or(false)
+}
+
+fn configure_systemd_scheduler(channel: &str, install: bool) -> anyhow::Result<()> {
+    if !cfg!(target_os = "linux") || !is_root() {
+        anyhow::bail!("systemd scheduler install requires Linux root");
+    }
+    let service = Path::new("/etc/systemd/system/focusa-update.service");
+    let timer = Path::new("/etc/systemd/system/focusa-update.timer");
+    if install {
+        std::fs::write(
+            service,
+            format!(
+                r#"[Unit]
+Description=Focusa verified OTA update check/apply
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/focusa update apply --channel {channel} --yes --allow-apply --dry-run false --json
+"#
+            ),
+        )?;
+        std::fs::write(
+            timer,
+            r#"[Unit]
+Description=Focusa verified OTA update timer
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+RandomizedDelaySec=30s
+Persistent=true
+Unit=focusa-update.service
+
+[Install]
+WantedBy=timers.target
+"#,
+        )?;
+        run_systemctl(&["daemon-reload"])?;
+        run_systemctl(&["enable", "--now", "focusa-update.timer"])?;
+    } else {
+        let _ = run_systemctl(&["disable", "--now", "focusa-update.timer"]);
+        let _ = std::fs::remove_file(timer);
+        let _ = std::fs::remove_file(service);
+        run_systemctl(&["daemon-reload"])?;
+    }
+    Ok(())
+}
+
+fn run_systemctl(args: &[&str]) -> anyhow::Result<()> {
+    let status = std::process::Command::new("systemctl")
+        .args(args)
+        .status()?;
+    if status.success() {
+        Ok(())
+    } else {
+        anyhow::bail!(
+            "systemctl {} exited {}",
+            args.join(" "),
+            status.code().unwrap_or(-1)
+        )
+    }
+}
+
+fn is_root() -> bool {
+    std::process::Command::new("id")
+        .arg("-u")
+        .output()
+        .ok()
+        .map(|out| String::from_utf8_lossy(&out.stdout).trim() == "0")
+        .unwrap_or(false)
 }
 
 fn build_notifications_envelope(inventory: UpdateInventoryEnvelope) -> UpdateNotificationsEnvelope {
