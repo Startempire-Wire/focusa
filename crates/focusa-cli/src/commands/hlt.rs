@@ -4,7 +4,7 @@
 use crate::api_client::ApiClient;
 use crate::commands::scope::ensure_project_root_scope_safe;
 use clap::Subcommand;
-use serde_json::Value;
+use serde_json::{Value, json};
 
 #[derive(Subcommand)]
 pub enum HltCmd {
@@ -59,8 +59,34 @@ pub enum HltCmd {
         project_root: Option<String>,
         #[arg(long)]
         continuity_id: Option<String>,
+        /// Spec 125 §7.6: filter by session. 'current' resolves to active session.
+        #[arg(long)]
+        session_id: Option<String>,
         #[arg(long, default_value = "20")]
         limit: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// sessions — list distinct HLT history sessions for a project
+    Sessions {
+        #[arg(long)]
+        project_root: Option<String>,
+        #[arg(long)]
+        continuity_id: Option<String>,
+        #[arg(long, default_value = "50")]
+        limit: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// fallback — show latest valid HLT fallback for a session/continuity/project
+    Fallback {
+        #[arg(long)]
+        project_root: Option<String>,
+        #[arg(long)]
+        continuity_id: Option<String>,
+        /// Spec 125 §7.6: 'current' resolves to active session.
+        #[arg(long)]
+        session_id: Option<String>,
         #[arg(long)]
         json: bool,
     },
@@ -233,6 +259,7 @@ pub async fn run(cmd: HltCmd, _json_output: bool) -> anyhow::Result<()> {
         HltCmd::History {
             project_root,
             continuity_id,
+            session_id,
             limit,
             json,
         } => {
@@ -241,7 +268,40 @@ pub async fn run(cmd: HltCmd, _json_output: bool) -> anyhow::Result<()> {
                 &cwd,
                 project_root.as_deref(),
                 continuity_id.as_deref(),
+                session_id.as_deref(),
                 &limit,
+                json,
+            )
+            .await
+        }
+        HltCmd::Sessions {
+            project_root,
+            continuity_id,
+            limit,
+            json,
+        } => {
+            run_sessions(
+                &api,
+                &cwd,
+                project_root.as_deref(),
+                continuity_id.as_deref(),
+                &limit,
+                json,
+            )
+            .await
+        }
+        HltCmd::Fallback {
+            project_root,
+            continuity_id,
+            session_id,
+            json,
+        } => {
+            run_fallback(
+                &api,
+                &cwd,
+                project_root.as_deref(),
+                continuity_id.as_deref(),
+                session_id.as_deref(),
                 json,
             )
             .await
@@ -652,6 +712,7 @@ async fn run_history(
     cwd: &str,
     project_root: Option<&str>,
     continuity_id: Option<&str>,
+    session_id: Option<&str>,
     limit: &str,
     json_output: bool,
 ) -> anyhow::Result<()> {
@@ -659,7 +720,10 @@ async fn run_history(
     let limit: usize = limit.parse().unwrap_or(20);
 
     let path = build_query("/v1/hlt/history", &project_root, continuity_id);
-    let url = format!("{}&limit={}", path, limit);
+    let mut url = format!("{}&limit={}", path, limit);
+    if let Some(sid) = session_id {
+        url = format!("{}&session_id={}", url, sid);
+    }
     let response: Value = api.get(&url).await?;
     let ledger_file = response
         .get("ledger_file")
@@ -716,6 +780,142 @@ async fn run_history(
     println!();
     println!("{}", "─".repeat(72));
 
+    Ok(())
+}
+
+async fn run_sessions(
+    api: &ApiClient,
+    cwd: &str,
+    project_root: Option<&str>,
+    continuity_id: Option<&str>,
+    limit: &str,
+    json_output: bool,
+) -> anyhow::Result<()> {
+    let project_root = get_project_root(project_root, cwd)?;
+    let limit: usize = limit.parse().unwrap_or(50);
+    // Fetch all entries to extract distinct sessions.
+    let path = build_query("/v1/hlt/history", &project_root, continuity_id);
+    let url = format!("{}&limit={}", path, limit);
+    let response: Value = api.get(&url).await?;
+    let entries = response
+        .get("entries")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
+    // Collect distinct session_ids with their latest entry.
+    let mut seen: std::collections::HashMap<String, Value> = std::collections::HashMap::new();
+    for entry in &entries {
+        if let Some(sid) = entry.get("session_id").and_then(|v| v.as_str()) {
+            if !sid.is_empty() {
+                seen.entry(sid.to_string()).or_insert_with(|| entry.clone());
+            }
+        }
+    }
+    let sessions: Vec<Value> = seen.into_values().collect();
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&json!({
+            "status": "completed",
+            "project_root": project_root,
+            "continuity_id": continuity_id,
+            "count": sessions.len(),
+            "sessions": sessions,
+        }))?);
+        return Ok(());
+    }
+    println!("╔══════════════════════════════════════════════════════════════╗");
+    println!("║  HLT History Sessions                                     ║");
+    println!("╚══════════════════════════════════════════════════════════════╝");
+    println!();
+    println!("  Project: {}", project_root);
+    println!("  Sessions: {}", sessions.len());
+    println!();
+    for session in &sessions {
+        let sid = session.get("session_id").and_then(|v| v.as_str()).unwrap_or("?");
+        let hlt = session.get("new_hlt").and_then(|v| v.as_str()).unwrap_or("?");
+        let ts = session.get("timestamp").and_then(|v| v.as_str()).unwrap_or("?");
+        println!("  {} │ {} │ {}", sid, &hlt[..hlt.len().min(50)], ts);
+    }
+    println!();
+    Ok(())
+}
+
+async fn run_fallback(
+    api: &ApiClient,
+    cwd: &str,
+    project_root: Option<&str>,
+    continuity_id: Option<&str>,
+    session_id: Option<&str>,
+    json_output: bool,
+) -> anyhow::Result<()> {
+    let project_root = get_project_root(project_root, cwd)?;
+    let path = build_query("/v1/hlt/history", &project_root, continuity_id);
+    let mut url = format!("{}&limit=50", path);
+    if let Some(sid) = session_id {
+        url = format!("{}&session_id={}", url, sid);
+    }
+    let response: Value = api.get(&url).await?;
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&json!({
+            "status": "completed",
+            "project_root": project_root,
+            "continuity_id": continuity_id,
+            "session_id": session_id,
+            "fallback_candidates": response.get("fallback_candidates"),
+            "latest_valid_for_session": response.get("latest_valid_for_session"),
+            "latest_valid_for_continuity": response.get("latest_valid_for_continuity"),
+            "latest_valid_for_project": response.get("latest_valid_for_project"),
+            "generic_skipped": response.get("generic_skipped"),
+            "warnings": response.get("warnings"),
+        }))?);
+        return Ok(());
+    }
+    println!("╔══════════════════════════════════════════════════════════════╗");
+    println!("║  HLT Fallback Candidates                                  ║");
+    println!("╚══════════════════════════════════════════════════════════════╝");
+    println!();
+    println!("  Project: {}", project_root);
+    if let Some(cid) = continuity_id {
+        println!("  Continuity: {}", cid);
+    }
+    if let Some(sid) = session_id {
+        println!("  Session: {}", sid);
+    }
+    println!();
+    let print_latest = |label: &str, val: &Value| {
+        match val.get("latest_valid_for_".to_string() + label).or_else(|| val.as_str().map(|_| val)) {
+            Some(v) if !v.is_null() => {
+                let hlt = v.as_str().unwrap_or("?");
+                println!("  Latest valid HLT for {}: {}", label, hlt);
+            }
+            _ => println!("  Latest valid HLT for {}: (none)", label),
+        }
+    };
+    print_latest("session", &response);
+    print_latest("continuity", &response);
+    print_latest("project", &response);
+    println!();
+    if let Some(candidates) = response.get("fallback_candidates").and_then(|v| v.as_array()) {
+        if candidates.is_empty() {
+            println!("  Fallback: unavailable");
+        } else {
+            for c in candidates {
+                let kind = c.get("kind").and_then(|v| v.as_str()).unwrap_or("?");
+                let hlt = c.get("hlt").and_then(|v| v.as_str()).unwrap_or("?");
+                println!("  Fallback candidate ({}): {}", kind, hlt);
+            }
+        }
+    }
+    if let Some(skipped) = response.get("generic_skipped").and_then(|v| v.as_u64()) {
+        if skipped > 0 {
+            println!("  Generic HLT entries skipped: {}", skipped);
+        }
+    }
+    if let Some(warnings) = response.get("warnings").and_then(|v| v.as_array()) {
+        for w in warnings {
+            println!("  Warning: {}", w.as_str().unwrap_or("?"));
+        }
+    }
+    println!();
     Ok(())
 }
 
