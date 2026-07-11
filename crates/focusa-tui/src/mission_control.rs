@@ -240,11 +240,64 @@ fn render_ladder_block(app: &App, frame: &mut ratatui::Frame, area: Rect) -> Rec
         .title(" Mission Ladder ")
         .borders(Borders::ALL)
         .border_style(theme::border());
-    let text = vec![
+    // Spec 125 §6.2/§13/§14: HLT status warnings in mission ladder.
+    let hlt_status = trajectory
+        .as_ref()
+        .and_then(|t| t.get("hlt_status").or(t.get("status")))
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let hlt_required = trajectory
+        .as_ref()
+        .and_then(|t| t.get("hlt_required"))
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+    let generic_bootstrap = trajectory
+        .as_ref()
+        .and_then(|t| t.get("generic_bootstrap"))
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let fallback_level = trajectory
+        .as_ref()
+        .and_then(|t| t.get("fallback_level"))
+        .and_then(Value::as_str)
+        .unwrap_or("none");
+    let action_authority = trajectory
+        .as_ref()
+        .and_then(|t| t.get("action_authority_from_trajectory"))
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+
+    let mut text = vec![
         Line::from(format!(
             "HLT  {}",
             ladder_value(trajectory, &["long_term_goal", "hlt"])
         )),
+    ];
+
+    // Spec 125 §6.2: loud warning when HLT is missing/generic/fallback.
+    if hlt_required && (hlt_status == "missing_required" || generic_bootstrap || fallback_level != "none") {
+        let warning = if generic_bootstrap {
+            "⚠ HLT is generic bootstrap — define project-specific HLT"
+        } else if fallback_level != "none" {
+            &format!("⚠ HLT fallback level: {} — verify trajectory", fallback_level)
+        } else {
+            "⚠ HLT missing — use focusa_trajectory_define_goal"
+        };
+        text.push(Line::from(Span::styled(
+            format!(" {}", warning),
+            theme::status_warn(),
+        )));
+    }
+
+    // Spec 125 §6.2: action authority indicator.
+    if !action_authority {
+        text.push(Line::from(Span::styled(
+            " ⚠ No action authority from trajectory — Workpoint is immediate authority",
+            theme::status_warn(),
+        )));
+    }
+
+    text.extend(vec![
         Line::from(format!(
             " └─ MLG  {}",
             ladder_value(trajectory, &["mid_level_goal", "mlg"])
@@ -261,7 +314,7 @@ fn render_ladder_block(app: &App, frame: &mut ratatui::Frame, area: Rect) -> Rec
             "             └─ Evidence  {}",
             ladder_value(trajectory, &["evidence_count", "evidence"])
         )),
-    ];
+    ]);
     frame.render_widget(
         Paragraph::new(text).block(block).wrap(Wrap { trim: true }),
         area,
