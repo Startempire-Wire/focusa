@@ -721,6 +721,29 @@ if [ "$DRY_RUN" != 1 ]; then
   chmod 0600 "$INSTALL_LOG_FILE"
 fi
 
+# When Pi is installed, install the matching bundled extension beside its
+# other extensions. This is best-effort so Focusa CLI installation never fails
+# solely because Pi or npm is unavailable.
+if command -v pi >/dev/null 2>&1; then
+  PI_EXT_ROOT="${FOCUSA_PI_EXT_DIR:-${HOME}/.pi/agent/extensions}"
+  PI_ARCHIVE="focusa-pi-extension-${RELEASE_TAG}.tar.gz"
+  if curl -fsSL "https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}/${PI_ARCHIVE}" -o "$TMP/$PI_ARCHIVE"; then
+    mkdir -p "$PI_EXT_ROOT"
+    rm -rf "$TMP/pi-extension"
+    tar -xzf "$TMP/$PI_ARCHIVE" -C "$TMP"
+    if [ -d "$TMP/pi-extension" ]; then
+      rm -rf "$PI_EXT_ROOT/focusa"
+      mv "$TMP/pi-extension" "$PI_EXT_ROOT/focusa"
+      if command -v npm >/dev/null 2>&1; then
+        (cd "$PI_EXT_ROOT/focusa" && npm install --omit=dev) || warn "Pi extension dependencies need npm install in $PI_EXT_ROOT/focusa"
+      fi
+      log "installed Focusa Pi extension: $PI_EXT_ROOT/focusa"
+    fi
+  else
+    warn "Pi detected but matching extension archive is unavailable; install Focusa Pi extension after release publication"
+  fi
+fi
+
 log "handing off to Rust orchestrator: focusa install --target=${TARGET}"
 if [ "$DRY_RUN" = 1 ]; then
   log "DRY RUN: would exec $BIN_DIR/focusa install --target=$RUST_TARGET --github-repo=$GITHUB_REPO ..."

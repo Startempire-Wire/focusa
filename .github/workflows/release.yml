@@ -360,10 +360,28 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  pi-extension-release:
+    name: Package Pi Extension
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Package bundled Pi extension
+        run: |
+          TAG="${{ github.ref_name }}"
+          tar -C apps -czf "focusa-pi-extension-${TAG}.tar.gz" pi-extension
+      - name: Upload Pi extension archive
+        uses: softprops/action-gh-release@v2
+        with:
+          files: focusa-pi-extension-*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   checksums:
     name: Publish SHA256SUMS
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
-    needs: [tauri-build, rust-release]
+    needs: [tauri-build, rust-release, pi-extension-release]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
