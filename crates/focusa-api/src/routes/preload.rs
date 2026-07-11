@@ -43,7 +43,7 @@ pub fn router() -> Router<Arc<AppState>> {
             "/v1/preload/receipt-preview",
             get(receipt_preview).post(receipt_preview),
         )
-        .route("/v1/preload/receipt-commit", get(receipt_commit))
+        .route("/v1/preload/receipt-commit", post(receipt_commit))
         .route("/v1/preload/write", post(write_packet))
 }
 
@@ -137,17 +137,40 @@ async fn receipt_preview() -> Json<Value> {
     }
 }
 
-async fn receipt_commit() -> (StatusCode, Json<Value>) {
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Json(json!({
-            "schema": PRELOAD_SCHEMA,
-            "error": FAIL_CODE_PRELOAD,
-            "step": "receipt_commit",
-            "status": "deferred_to_slice_5",
-            "note": "Safe commit lands after Slice 4 write safety gates clear.",
-        })),
-    )
+#[derive(serde::Deserialize)]
+struct ReceiptCommitRequest {
+    #[serde(default = "default_profile")]
+    profile: String,
+    idempotency_key: String,
+}
+
+fn default_profile() -> String {
+    PROFILE_RULES_AND_CONTEXT.to_string()
+}
+
+async fn receipt_commit(Json(req): Json<ReceiptCommitRequest>) -> (StatusCode, Json<Value>) {
+    if req.idempotency_key.trim().is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(
+                json!({"schema":PRELOAD_SCHEMA,"step":"receipt_commit","status":"failed","error":{"code":FAIL_CODE_PRELOAD,"message":"idempotency_key is required"}}),
+            ),
+        );
+    }
+    match receipt_preview_for(&req.profile) {
+        Ok(receipt) => (
+            StatusCode::OK,
+            Json(
+                json!({"schema":PRELOAD_SCHEMA,"step":"receipt_commit","status":"completed","receipt_kind":BOOTSTRAP_RECEIPT_KIND,"idempotency_key":req.idempotency_key,"receipt":receipt}),
+            ),
+        ),
+        Err(error) => (
+            StatusCode::BAD_REQUEST,
+            Json(
+                json!({"schema":PRELOAD_SCHEMA,"step":"receipt_commit","status":"failed","error":{"code":FAIL_CODE_PRELOAD,"message":error}}),
+            ),
+        ),
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
