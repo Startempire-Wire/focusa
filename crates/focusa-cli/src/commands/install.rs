@@ -668,14 +668,34 @@ async fn phase_asset_download(
     for asset_name in assets {
         let expected = format!("{asset_name}-{tag_name}-{triple}");
         let install_path = install_root_for(target).join("bin").join(asset_name);
+        std::fs::create_dir_all(install_path.parent().expect("bin parent"))?;
+        let staged = install_path.with_extension("download");
+        let asset_url =
+            format!("https://github.com/{repo}/releases/download/{tag_name}/{expected}");
+        let bytes = client
+            .get(&asset_url)
+            .send()
+            .await
+            .map_err(|e| anyhow!("download {expected}: {e}"))?
+            .error_for_status()
+            .map_err(|e| anyhow!("download {expected}: {e}"))?
+            .bytes()
+            .await
+            .map_err(|e| anyhow!("read {expected}: {e}"))?;
+        std::fs::write(&staged, &bytes)?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&staged, std::fs::Permissions::from_mode(0o755))?;
+        }
+        std::fs::rename(&staged, &install_path)?;
         out.push(InstalledAsset {
-            name: asset_name.to_string(),
+            name: expected,
             version: tag_name.clone(),
             triple: triple.clone(),
-            sha256: String::new(), // filled by verify_checksum after download
+            sha256: String::new(),
             install_path: install_path.display().to_string(),
         });
-        let _ = expected; // used by verify_checksum
     }
     Ok(out)
 }
