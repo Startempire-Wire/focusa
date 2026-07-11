@@ -127,13 +127,14 @@ pub fn build_packet_for_profile(profile_id: &str) -> Result<Value, String> {
 }
 
 async fn receipt_preview() -> Json<Value> {
-    Json(json!({
-        "schema": PRELOAD_SCHEMA,
-        "step": "receipt_preview",
-        "read_only": true,
-        "receipt_kind": BOOTSTRAP_RECEIPT_KIND,
-        "status": "noop",
-    }))
+    match receipt_preview_for(PROFILE_RULES_AND_CONTEXT) {
+        Ok(receipt) => Json(
+            json!({"schema":PRELOAD_SCHEMA,"step":"receipt_preview","read_only":true,"status":"completed","receipt":receipt}),
+        ),
+        Err(error) => Json(
+            json!({"schema":PRELOAD_SCHEMA,"step":"receipt_preview","status":"failed","error":{"code":FAIL_CODE_PRELOAD,"message":error}}),
+        ),
+    }
 }
 
 async fn receipt_commit() -> (StatusCode, Json<Value>) {
