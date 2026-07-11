@@ -3028,6 +3028,26 @@ export async function refreshTrajectoryClarityLifecycle(
         view?.project_identity?.project_summary?.deployment ||
         view?.project?.deployment ||
         null,
+      // Spec 125 §9.5: provenance fields.
+      hlt_status: view?.hlt_status || null,
+      trajectory_required: view?.trajectory_required ?? true,
+      hlt_required: view?.hlt_required ?? true,
+      action_authority_from_trajectory: view?.action_authority_from_trajectory ?? false,
+      generic_bootstrap: view?.generic_bootstrap ?? false,
+      loud_warning: view?.loud_warning || null,
+      // Spec 125 §9.5: fallback metadata.
+      allow_previous_valid_trajectory: view?.allow_previous_valid_trajectory ?? false,
+      previous_valid_trajectory_fallback: view?.previous_valid_trajectory_fallback ?? false,
+      fallback_level: view?.fallback_level || "none",
+      fallback_source_scope: view?.fallback_source_scope || null,
+      // Spec 125 §9.5: provenance for no canonical local backfill.
+      provenance: {
+        source: "trajectory_view_api",
+        project_root: projectRoot,
+        session_id: S.sessionFrameKey || null,
+        continuity_id: S.continuityId || null,
+        refreshed_at: Date.now(),
+      },
       next_tools: view?.next_tools || [
         "focusa_trajectory_view",
         "focusa_project_verify",
