@@ -117,6 +117,18 @@ fn build_prompt() -> Value {
         ],
         "operator_reminder": "Decide MVP UI scope (menubar / PWA / TUI in-MVP or v0.2) so the next workpoint can lock it in.",
         "active_trajectory_hint": "HLT = Build Focusa and go to market soon with an MVP; menubar is an MLG subordinate, not the HLT.",
+        "shell_tool_reminder": {
+            "enabled_by_default": true,
+            "surface": "pi_extension.tool_execution_end",
+            "message": "For Focusa daemon/state work, prefer focusa_* Pi tools.",
+            "first_tools": [
+                "focusa_agent_prompt",
+                "focusa_tool_doctor",
+                "focusa_workpoint_resume",
+                "focusa_evidence_capture"
+            ],
+            "non_goal": "Does not block shell use; it nudges Focusa daemon/state interactions toward canonical Pi tools."
+        },
         "utility_card": utility_card,
         "rule": "every daemon interaction -> focusa_* tool. UIAI pretest is a separate verification surface and remains raw."
     })
@@ -347,5 +359,19 @@ mod tests {
             .unwrap();
         assert!(fams.iter().any(|v| v.as_str() == Some("workpoint")));
         assert!(fams.iter().any(|v| v.as_str() == Some("trajectory")));
+    }
+
+    #[test]
+    fn prompt_body_includes_shell_tool_reminder_contract() {
+        let reminder = &build_prompt()["shell_tool_reminder"];
+        assert_eq!(reminder["enabled_by_default"], true);
+        assert_eq!(reminder["surface"], "pi_extension.tool_execution_end");
+        assert_eq!(reminder["first_tools"][0], "focusa_agent_prompt");
+        assert!(
+            reminder["non_goal"]
+                .as_str()
+                .unwrap()
+                .contains("Does not block shell use")
+        );
     }
 }
