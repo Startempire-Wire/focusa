@@ -2297,6 +2297,24 @@ async fn define_goal(
         );
     }
 
+    // Spec 125 §4.4-4.5: reject generic HLT even with operator_confirmed/--confirm.
+    // Generic bootstrap text must never become canonical route authority.
+    if is_generic_bootstrap_hlt(&body.long_term_goal) {
+        return Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({
+                "status": "validation_rejected",
+                "canonical": false,
+                "failure_class": "generic_hlt_rejected",
+                "field": "long_term_goal",
+                "rejected_value": bounded(&body.long_term_goal, 120),
+                "retry_posture": "operator_input_required",
+                "next_step_hint": "Spec 125 §4.4: generic placeholder HLT is rejected. Provide a specific, operator-defined project goal.",
+                "loud_warning": "GENERIC_HLT_REJECTED: generic bootstrap text must not become canonical route authority.",
+            })),
+        ));
+    }
+
     let focusa = state.focusa.read().await;
     let mut payload = define_goal_payload(&focusa, &body);
     let trajectory_record = trajectory_record_from_define_payload(&payload, &body);
