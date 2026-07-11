@@ -22,10 +22,15 @@ Save or continue a long Focusa/Pi work session like a game-save without forking 
 - `mission` — optional save mission; defaults to current ask or inferred Workpoint mission.
 - `next_action` — optional exact next action for save.
 - `continuity_id` — optional logical continuity id; defaults to project continuity.
+- `write_preload` — request preload write guidance; defaults `false` and never writes implicitly.
+- `preload_target` — `cursor`, `claude`, `codex`, `pi`, `opencode`, or `generic`; defaults `cursor`.
+- `preload_mode` — delivery mode; defaults `session_transfer`.
+- `receipt_preview` — include a bounded receipt preview; defaults `true`.
+- `receipt_commit` — explicitly commit the receipt; defaults `false`.
 
 ## Expected result
 
-Returns a compact handoff with project root, continuity id, project-card run, inferred Workpoint candidate, optional save checkpoint, Workpoint resume packet, trajectory view, and an `operator_handoff.first_tool` command for the next Pi session.
+Returns a compact handoff with project root, continuity id, project-card run, inferred Workpoint candidate, optional save checkpoint, Workpoint resume packet, trajectory view, preload/receipt status, and `operator_handoff` commands for continuation, preload, and receipt preview. Continue without a prior save is degraded and recommends `focusa_preload_build`.
 
 ### Return shape (Pi wrapper details)
 

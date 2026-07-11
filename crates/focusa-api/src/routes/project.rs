@@ -4,6 +4,9 @@
 //! filesystem/project signals; it does not select work or mutate cognitive state.
 
 use crate::routes::predictions::read_predictions;
+use crate::routes::preload::{
+    PROFILE_RULES_AND_CONTEXT, build_packet_for_profile, commit_receipt_for,
+};
 use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::{
@@ -67,6 +70,11 @@ pub struct ProjectSessionTransferRequest {
     pub continuity_id: Option<String>,
     pub mission: Option<String>,
     pub next_action: Option<String>,
+    pub write_preload: Option<bool>,
+    pub preload_target: Option<String>,
+    pub preload_mode: Option<String>,
+    pub receipt_preview: Option<bool>,
+    pub receipt_commit: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -3904,6 +3912,106 @@ async fn card(
     }))
 }
 
+#[allow(clippy::too_many_arguments)]
+fn session_transfer_preload_bundle(
+    action: &str,
+    project_root: &str,
+    continuity_id: &str,
+    mission: &str,
+    next_action: &str,
+    latest_prior: &Value,
+    target: &str,
+    mode: &str,
+    write_preload: bool,
+    receipt_preview: bool,
+    receipt_commit: bool,
+    transfer_id: &str,
+) -> Value {
+    let has_prior = !latest_prior.is_null();
+    let current = json!({"mission":mission,"next_action":next_action,"transfer_id":transfer_id});
+    let source = if action == "continue" && has_prior {
+        latest_prior
+    } else {
+        &current
+    };
+    let source_mission = source
+        .get("mission")
+        .and_then(Value::as_str)
+        .unwrap_or(mission);
+    let source_next = source
+        .get("next_action")
+        .and_then(Value::as_str)
+        .unwrap_or(next_action);
+    let source_transfer_id = source
+        .get("transfer_id")
+        .and_then(Value::as_str)
+        .unwrap_or(transfer_id);
+
+    let packet = if action == "continue" && has_prior {
+        let mut packet = build_packet_for_profile(PROFILE_RULES_AND_CONTEXT).unwrap_or(Value::Null);
+        packet["target"] = json!(target);
+        packet["mode"] = json!(mode);
+        packet["project_root"] = json!(project_root);
+        packet["continuity_id"] = json!(continuity_id);
+        packet["source_transfer_id"] = json!(source_transfer_id);
+        packet["dynamic_context_lines"] = json!([source_mission, source_next]);
+        packet["selected_context"] = json!({"include":[
+            {"kind":"session_transfer","path":"transfer:mission","body":source_mission},
+            {"kind":"session_transfer","path":"transfer:next_action","body":source_next}
+        ],"exclude":[],"over_budget":[]});
+        packet["rendered"] = json!(format!(
+            "# Focusa Session Transfer Bootstrap\n\n- mission: {source_mission}\n- next: {source_next}\n"
+        ));
+        packet
+    } else {
+        Value::Null
+    };
+
+    let preview = if receipt_preview {
+        json!({
+            "schema":"focusa.preload_session_transfer_receipt_preview.v1",
+            "receipt_kind":"bootstrap_delivery",
+            "preview":true,
+            "target":target,
+            "mode":mode,
+            "source_transfer_id":source_transfer_id,
+            "packet_available":!packet.is_null()
+        })
+    } else {
+        Value::Null
+    };
+    let committed = if receipt_commit {
+        match commit_receipt_for(
+            PROFILE_RULES_AND_CONTEXT,
+            &format!("session-transfer-{source_transfer_id}"),
+        ) {
+            Ok((receipt, replay)) => {
+                json!({"status":"completed","idempotent_replay":replay,"receipt":receipt})
+            }
+            Err(error) => {
+                json!({"status":"failed","failure_class":"receipt_commit_failed","error":error})
+            }
+        }
+    } else {
+        Value::Null
+    };
+    let degraded = action == "continue" && !has_prior;
+    json!({
+        "status": if degraded { "degraded" } else { "completed" },
+        "target": target,
+        "mode": mode,
+        "packet": packet,
+        "write": {
+            "requested": write_preload,
+            "performed": false,
+            "reason": if write_preload { "operator_handoff_command_required" } else { "write_preload_false" }
+        },
+        "receipt_preview": preview,
+        "receipt_commit": committed,
+        "next_tools": if degraded { vec!["focusa_preload_build"] } else { vec!["focusa_preload_verify", "focusa_preload_receipt_preview"] }
+    })
+}
+
 async fn session_transfer(
     _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
@@ -3980,6 +4088,30 @@ async fn session_transfer(
     let latest_prior = recent_jsonl_values(project_session_transfers_path(), 1)
         .pop()
         .unwrap_or(Value::Null);
+    let preload_target = body.preload_target.as_deref().unwrap_or("cursor");
+    let preload_mode = body.preload_mode.as_deref().unwrap_or("session_transfer");
+    let preload = session_transfer_preload_bundle(
+        &action,
+        project_root,
+        &continuity_id,
+        &mission,
+        &next_action,
+        &latest_prior,
+        preload_target,
+        preload_mode,
+        body.write_preload.unwrap_or(false),
+        body.receipt_preview.unwrap_or(true),
+        body.receipt_commit.unwrap_or(false),
+        &transfer_id,
+    );
+    let transfer_status = preload["status"].as_str().unwrap_or("completed");
+    let operator_handoff = json!({
+        "command": format!("cd {project_root} && pi"),
+        "first_tool": format!("focusa_session_transfer action=\"continue\" project_root=\"{project_root}\" continuity_id=\"{continuity_id}\""),
+        "preload": format!("focusa preload write --target {preload_target} --project-root {project_root} --continuity-id {continuity_id}"),
+        "receipt_preview": format!("focusa preload receipt-preview --target {preload_target} --project-root {project_root} --continuity-id {continuity_id}"),
+        "authority_boundary": "project_root_plus_continuity_id"
+    });
     let record = json!({
         "schema": "focusa.project_session_transfer.v1",
         "transfer_id": transfer_id,
@@ -3995,20 +4127,34 @@ async fn session_transfer(
         "crosswire_health": card_payload.get("crosswire_health").cloned().unwrap_or(Value::Null),
         "success_sequence": card_payload.get("success_sequence").cloned().unwrap_or(Value::Null),
         "algorithm_run_id": card_payload.get("algorithm_run_id").cloned().unwrap_or(Value::Null),
-        "operator_handoff": {"command": format!("cd {project_root} && pi"), "first_tool": format!("focusa_session_transfer action=\"continue\" project_root=\"{project_root}\" continuity_id=\"{continuity_id}\""), "authority_boundary": "project_root_plus_continuity_id"}
+        "preload": preload,
+        "operator_handoff": operator_handoff
     });
     if action == "save" {
         append_project_session_transfer(&record);
     }
+    let transfer = if action == "continue" && !latest_prior.is_null() {
+        let mut prior = latest_prior.clone();
+        prior["preload"] = preload.clone();
+        prior["operator_handoff"] = operator_handoff.clone();
+        prior
+    } else {
+        record
+    };
     Json(json!({
-        "status": "completed",
+        "status": transfer_status,
         "schema": "focusa.project_session_transfer_response.v1",
         "action": action,
         "saved": action == "save",
-        "transfer": if action == "continue" && !latest_prior.is_null() { latest_prior.clone() } else { record },
+        "transfer": transfer,
         "latest_prior_save": latest_prior,
+        "preload": preload,
         "storage": {"transfers_path": project_session_transfers_path().to_string_lossy()},
-        "next_tools": ["focusa_workpoint_checkpoint", "focusa_workpoint_resume", "focusa_project_card", "focusa_trajectory_view"]
+        "next_tools": if transfer_status == "degraded" {
+            vec!["focusa_preload_build", "focusa_project_card", "focusa_trajectory_view"]
+        } else {
+            vec!["focusa_workpoint_checkpoint", "focusa_workpoint_resume", "focusa_preload_verify", "focusa_trajectory_view"]
+        }
     }))
 }
 
@@ -4582,6 +4728,62 @@ mod tests {
             Some(false)
         );
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn session_transfer_continue_without_prior_save_is_degraded() {
+        let bundle = session_transfer_preload_bundle(
+            "continue",
+            "/tmp/project",
+            "focusa-cont-test",
+            "mission",
+            "next",
+            &Value::Null,
+            "cursor",
+            "session_transfer",
+            false,
+            true,
+            false,
+            "transfer-new",
+        );
+        assert_eq!(bundle["status"], "degraded");
+        assert!(bundle["packet"].is_null());
+        assert_eq!(bundle["write"]["performed"], false);
+        assert!(bundle["receipt_commit"].is_null());
+        assert_eq!(bundle["next_tools"][0], "focusa_preload_build");
+    }
+
+    #[test]
+    fn session_transfer_continue_builds_from_latest_prior_save() {
+        let prior = json!({
+            "transfer_id":"transfer-prior",
+            "mission":"saved mission",
+            "next_action":"saved next"
+        });
+        let bundle = session_transfer_preload_bundle(
+            "continue",
+            "/tmp/project",
+            "focusa-cont-test",
+            "current",
+            "current next",
+            &prior,
+            "cursor",
+            "session_transfer",
+            true,
+            true,
+            false,
+            "transfer-new",
+        );
+        assert_eq!(bundle["status"], "completed");
+        assert_eq!(bundle["packet"]["source_transfer_id"], "transfer-prior");
+        assert_eq!(
+            bundle["packet"]["dynamic_context_lines"][0],
+            "saved mission"
+        );
+        assert_eq!(bundle["write"]["requested"], true);
+        assert_eq!(bundle["write"]["performed"], false);
+        assert_eq!(bundle["receipt_preview"]["packet_available"], true);
+        assert!(bundle["receipt_commit"].is_null());
     }
 
     #[test]

@@ -5743,6 +5743,23 @@ export function registerTools(pi: ExtensionAPI) {
       continuity_id: Type.Optional(
         Type.String({ description: "Optional logical continuity id; defaults to project continuity." })
       ),
+      write_preload: Type.Optional(
+        Type.Boolean({ description: "Request preload write guidance; defaults false and never writes implicitly." })
+      ),
+      preload_target: Type.Optional(
+        Type.Union([
+          Type.Literal("cursor"), Type.Literal("claude"), Type.Literal("codex"),
+          Type.Literal("pi"), Type.Literal("opencode"), Type.Literal("generic"),
+        ], { description: "Target agent surface; defaults cursor." })
+      ),
+      preload_mode: Type.Optional(
+        Type.Union([
+          Type.Literal("session_start"), Type.Literal("post_compaction"),
+          Type.Literal("session_transfer"), Type.Literal("recovery"), Type.Literal("tool_guidance"),
+        ], { description: "Preload mode; defaults session_transfer." })
+      ),
+      receipt_preview: Type.Optional(Type.Boolean({ description: "Return a bounded receipt preview; defaults true." })),
+      receipt_commit: Type.Optional(Type.Boolean({ description: "Explicitly commit the preload receipt; defaults false." })),
     }),
     async execute(_id, params) {
       const p = params as {
@@ -5752,6 +5769,11 @@ export function registerTools(pi: ExtensionAPI) {
         mission?: string;
         next_action?: string;
         continuity_id?: string;
+        write_preload?: boolean;
+        preload_target?: string;
+        preload_mode?: string;
+        receipt_preview?: boolean;
+        receipt_commit?: boolean;
       };
       const action = String(p.action || "status").toLowerCase();
       const projectRoot = await resolveFocusaToolProjectRoot(
@@ -5777,6 +5799,11 @@ export function registerTools(pi: ExtensionAPI) {
           continuity_id: continuityId,
           mission: p.mission,
           next_action: p.next_action,
+          write_preload: p.write_preload ?? false,
+          preload_target: p.preload_target || "cursor",
+          preload_mode: p.preload_mode || "session_transfer",
+          receipt_preview: p.receipt_preview ?? true,
+          receipt_commit: p.receipt_commit ?? false,
         }),
       });
       const apiBody = apiTransfer.body || {};
@@ -5881,6 +5908,8 @@ export function registerTools(pi: ExtensionAPI) {
           operator_handoff: apiBody.transfer?.operator_handoff || {
             command: `cd ${projectRoot} && pi`,
             first_tool: `focusa_session_transfer action=\"continue\" project_root=\"${projectRoot}\" continuity_id=\"${continuityId}\"`,
+            preload: `focusa preload write --target ${p.preload_target || "cursor"} --project-root ${projectRoot} --continuity-id ${continuityId}`,
+            receipt_preview: `focusa preload receipt-preview --target ${p.preload_target || "cursor"} --project-root ${projectRoot} --continuity-id ${continuityId}`,
             authority_boundary: "project_root_plus_continuity_id",
           },
           tool_result_v1: toolResult,

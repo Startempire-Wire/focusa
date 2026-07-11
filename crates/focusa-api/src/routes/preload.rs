@@ -423,52 +423,52 @@ fn receipt_ledger_path(key: &str) -> std::path::PathBuf {
         .join(format!("{safe}.json"))
 }
 
+pub fn commit_receipt_for(profile: &str, idempotency_key: &str) -> Result<(Value, bool), String> {
+    if idempotency_key.trim().is_empty() {
+        return Err("idempotency_key is required".to_string());
+    }
+    let path = receipt_ledger_path(idempotency_key);
+    if let Ok(body) = std::fs::read(&path)
+        && let Ok(receipt) = serde_json::from_slice::<Value>(&body)
+    {
+        return Ok((receipt, true));
+    }
+    let receipt = receipt_preview_for(profile)?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    }
+    let committed = json!({"receipt_kind":BOOTSTRAP_RECEIPT_KIND,"idempotency_key":idempotency_key,"receipt":receipt});
+    std::fs::write(
+        &path,
+        serde_json::to_vec_pretty(&committed).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())?;
+    Ok((committed, false))
+}
+
 async fn receipt_commit(Json(req): Json<ReceiptCommitRequest>) -> (StatusCode, Json<Value>) {
-    if req.idempotency_key.trim().is_empty() {
+    if req.idempotency_key.trim().is_empty() || profile_by_id(&req.profile).is_none() {
+        let message = if req.idempotency_key.trim().is_empty() {
+            "idempotency_key is required".to_string()
+        } else {
+            format!("unknown profile {:?}", req.profile)
+        };
         return (
             StatusCode::BAD_REQUEST,
             Json(
-                json!({"schema":PRELOAD_SCHEMA,"step":"receipt_commit","status":"failed","error":{"code":FAIL_CODE_PRELOAD,"message":"idempotency_key is required"}}),
+                json!({"schema":PRELOAD_SCHEMA,"step":"receipt_commit","status":"failed","error":{"code":FAIL_CODE_PRELOAD,"message":message}}),
             ),
         );
     }
-    let path = receipt_ledger_path(&req.idempotency_key);
-    if let Ok(body) = std::fs::read(&path) {
-        if let Ok(receipt) = serde_json::from_slice::<Value>(&body) {
-            return (
-                StatusCode::OK,
-                Json(
-                    json!({"schema":PRELOAD_SCHEMA,"step":"receipt_commit","status":"completed","idempotent_replay":true,"receipt":receipt}),
-                ),
-            );
-        }
-    }
-    match receipt_preview_for(&req.profile) {
-        Ok(receipt) => {
-            if let Some(parent) = path.parent() {
-                let _ = std::fs::create_dir_all(parent);
-            }
-            let committed = json!({"receipt_kind":BOOTSTRAP_RECEIPT_KIND,"idempotency_key":req.idempotency_key,"receipt":receipt});
-            if let Err(error) = std::fs::write(
-                &path,
-                serde_json::to_vec_pretty(&committed).unwrap_or_default(),
-            ) {
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(
-                        json!({"schema":PRELOAD_SCHEMA,"step":"receipt_commit","status":"failed","error":{"code":FAIL_CODE_PRELOAD,"message":error.to_string()}}),
-                    ),
-                );
-            }
-            (
-                StatusCode::OK,
-                Json(
-                    json!({"schema":PRELOAD_SCHEMA,"step":"receipt_commit","status":"completed","idempotent_replay":false,"receipt":committed}),
-                ),
-            )
-        }
+    match commit_receipt_for(&req.profile, &req.idempotency_key) {
+        Ok((receipt, replay)) => (
+            StatusCode::OK,
+            Json(
+                json!({"schema":PRELOAD_SCHEMA,"step":"receipt_commit","status":"completed","idempotent_replay":replay,"receipt":receipt}),
+            ),
+        ),
         Err(error) => (
-            StatusCode::BAD_REQUEST,
+            StatusCode::INTERNAL_SERVER_ERROR,
             Json(
                 json!({"schema":PRELOAD_SCHEMA,"step":"receipt_commit","status":"failed","error":{"code":FAIL_CODE_PRELOAD,"message":error}}),
             ),
