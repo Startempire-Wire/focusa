@@ -3775,7 +3775,17 @@ export function registerTools(pi: ExtensionAPI) {
   const SILENT_SESSION_LOG_MAX_BYTES = 5 * 1024 * 1024;
   const SILENT_SESSION_LOG_BACKUPS = 3;
   const SILENT_SESSION_STALE_SECONDS = 30 * 60;
-  const SILENT_SESSION_REGISTRY_PATH = "/tmp/focusa-silent-registry.json";
+  const LEGACY_SILENT_SESSION_REGISTRY_PATH = "/tmp/focusa-silent-registry.json";
+
+  // Durable registry: operator/project scoped, never dependent on reboot-persistent /tmp.
+  function silentSessionRegistryPath(): string {
+    const os = require("os");
+    const crypto = require("crypto");
+    const root = process.env.FOCUSA_PROJECT_ROOT || process.cwd();
+    const scope = crypto.createHash("sha256").update(`${currentUserName()}\0${root}`).digest("hex").slice(0, 24);
+    const base = process.env.XDG_STATE_HOME || require("path").join(os.homedir(), ".local", "state");
+    return require("path").join(base, "focusa", "silent-sessions", `${scope}.json`);
+  }
 
   function shellQuote(value: string): string {
     return `'${String(value).replace(/'/g, `'\''`)}'`;
@@ -3907,32 +3917,32 @@ export function registerTools(pi: ExtensionAPI) {
   }
 
   function silentSessionReadRegistry(): Record<string, any> {
-    try {
-      const fs = require("fs");
-      if (!fs.existsSync(SILENT_SESSION_REGISTRY_PATH)) return {};
-      const parsed = JSON.parse(fs.readFileSync(SILENT_SESSION_REGISTRY_PATH, "utf8"));
-      return parsed && typeof parsed === "object" ? parsed.sessions || parsed : {};
-    } catch {
-      return {};
+    const fs = require("fs");
+    const paths = [silentSessionRegistryPath(), LEGACY_SILENT_SESSION_REGISTRY_PATH];
+    for (const path of paths) {
+      try {
+        if (!fs.existsSync(path)) continue;
+        const parsed = JSON.parse(fs.readFileSync(path, "utf8"));
+        if (parsed && typeof parsed === "object") return parsed.sessions || parsed;
+      } catch {
+        // Try the next source; a corrupt legacy registry must not hide durable state.
+      }
     }
+    return {};
   }
 
   function silentSessionWriteRegistry(registry: Record<string, any>): void {
+    const fs = require("fs");
+    const path = silentSessionRegistryPath();
     try {
-      require("fs").writeFileSync(
-        SILENT_SESSION_REGISTRY_PATH,
-        JSON.stringify(
-          {
-            schema_version: "focusa.silent_sessions.registry.v1",
-            updated_at: new Date().toISOString(),
-            sessions: registry,
-          },
-          null,
-          2
-        )
-      );
+      fs.mkdirSync(require("path").dirname(path), { recursive: true, mode: 0o700 });
+      const payload = JSON.stringify({ schema_version: "focusa.silent_sessions.registry.v2", updated_at: new Date().toISOString(), sessions: registry }, null, 2);
+      const tmp = `${path}.${process.pid}.tmp`;
+      fs.writeFileSync(tmp, payload, { mode: 0o600, flag: "wx" });
+      fs.renameSync(tmp, path);
+      try { fs.chmodSync(path, 0o600); } catch { /* platform may not expose chmod */ }
     } catch {
-      /* best effort */
+      /* best effort: the session remains controllable through tmux */
     }
   }
 
@@ -4206,7 +4216,7 @@ export function registerTools(pi: ExtensionAPI) {
       ...(meta as Record<string, unknown>),
     }));
     return {
-      path: SILENT_SESSION_REGISTRY_PATH,
+      path: silentSessionRegistryPath(),
       count: entries.length,
       active_count: entries.filter((entry: any) => entry.active).length,
       stale_count: entries.filter((entry: any) => !entry.active).length,
