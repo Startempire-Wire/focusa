@@ -2,7 +2,7 @@
 //!
 //! Tracks the current phase, per-phase status, warnings, and asset progress.
 
-use super::event::{AssetProgress, InstallEvent, InstallPhase};
+use super::event::{AssetProgress, InstallEvent, InstallPhase, VerificationScanOutcome};
 use crate::sanitize::sanitize;
 use std::collections::HashMap;
 
@@ -17,6 +17,13 @@ pub enum PhaseStatus {
     Failed,
 }
 
+/// Most recent real verification cycle; never inferred from download state.
+#[derive(Debug, Clone, PartialEq)]
+pub struct VerificationScanState {
+    pub asset: String,
+    pub outcome: VerificationScanOutcome,
+}
+
 /// Aggregated install state used by renderers.
 #[derive(Debug, Clone, PartialEq)]
 pub struct InstallState {
@@ -24,6 +31,8 @@ pub struct InstallState {
     pub phases: Vec<(InstallPhase, PhaseStatus)>,
     /// Active asset downloads.
     pub assets: HashMap<String, AssetProgress>,
+    /// Most recent real verification cycle.
+    pub verification_scan: Option<VerificationScanState>,
     /// Current warning messages.
     pub warnings: Vec<String>,
     /// Active failure message (cleared on rollback start).
@@ -61,6 +70,7 @@ impl Default for InstallState {
                 .map(|p| (p, PhaseStatus::Pending))
                 .collect(),
             assets: HashMap::new(),
+            verification_scan: None,
             warnings: Vec::new(),
             failure: None,
             recovery_hint: None,
@@ -131,6 +141,12 @@ impl InstallState {
                         total_bytes: *total_bytes,
                     },
                 );
+            }
+            InstallEvent::VerificationScan { asset, outcome } => {
+                self.verification_scan = Some(VerificationScanState {
+                    asset: sanitize(asset).into_owned(),
+                    outcome: *outcome,
+                });
             }
             InstallEvent::RollbackStarted { reason } => {
                 self.start_rollback(sanitize(reason).into_owned())
@@ -305,6 +321,25 @@ mod tests {
             .find(|(p, _)| *p == InstallPhase::DownloadAssets)
             .unwrap();
         assert_eq!(*st, PhaseStatus::Succeeded);
+    }
+
+    #[test]
+    fn verification_scan_retains_real_asset_outcome() {
+        let mut state = InstallState::default();
+        for outcome in [
+            VerificationScanOutcome::Active,
+            VerificationScanOutcome::Succeeded,
+            VerificationScanOutcome::Warning,
+            VerificationScanOutcome::Failed,
+        ] {
+            state.apply_event(&InstallEvent::VerificationScan {
+                asset: "focusa-daemon".into(),
+                outcome,
+            });
+            let scan = state.verification_scan.as_ref().unwrap();
+            assert_eq!(scan.asset, "focusa-daemon");
+            assert_eq!(scan.outcome, outcome);
+        }
     }
 
     #[test]

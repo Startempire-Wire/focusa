@@ -14,7 +14,9 @@ pub use capabilities::{
     TerminalCapabilities,
 };
 pub use install::completion::InstallCompletionSummary;
-pub use install::event::{AssetProgress, InstallEvent, InstallEventSink, InstallPhase};
+pub use install::event::{
+    AssetProgress, InstallEvent, InstallEventSink, InstallPhase, VerificationScanOutcome,
+};
 pub use install::presenter::{
     presenter_for_mode, AnimatedPresenter, AnimatedPresenterState, MonochromeAnimatedPresenter,
     PlainPresenter, Presenter, ReducedMotionPresenter, SilentPresenter,

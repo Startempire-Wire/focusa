@@ -256,22 +256,18 @@ impl HybridRenderer {
             let origin_y = logical_height.saturating_sub(base_rows + core_height) / 2;
             let assembly = state.phase_completion.clamp(0.0, 1.0);
             self.core.render(&mut canvas, origin_x, origin_y, assembly);
-            if let Some((_, verification_status)) = state
-                .phases
-                .iter()
-                .find(|(phase, _)| *phase == super::event::InstallPhase::VerifyIntegrity)
-            {
-                let scan = match verification_status {
-                    PhaseStatus::Active => Some((accent, (self.tick % 90) as f32 / 89.0)),
-                    PhaseStatus::Succeeded => Some((Color::Green, 1.0)),
-                    PhaseStatus::Warning => Some((Color::Yellow, 1.0)),
-                    PhaseStatus::Failed => Some((Color::Red, 1.0)),
-                    _ => None,
-                };
-                if let Some((scan_color, scan_t)) = scan {
-                    self.core
-                        .render_scan_line(&mut canvas, origin_x, origin_y, scan_t, scan_color);
+            let scan = state.verification_scan.as_ref().map(|scan| {
+                use super::event::VerificationScanOutcome;
+                match scan.outcome {
+                    VerificationScanOutcome::Active => (accent, (self.tick % 90) as f32 / 89.0),
+                    VerificationScanOutcome::Succeeded => (Color::Green, 1.0),
+                    VerificationScanOutcome::Warning => (Color::Yellow, 1.0),
+                    VerificationScanOutcome::Failed => (Color::Red, 1.0),
                 }
+            });
+            if let Some((scan_color, scan_t)) = scan {
+                self.core
+                    .render_scan_line(&mut canvas, origin_x, origin_y, scan_t, scan_color);
             }
         }
         self.rain.render(&mut canvas, 0, 0);
