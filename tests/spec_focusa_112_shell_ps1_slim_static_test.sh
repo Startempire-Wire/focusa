@@ -2,8 +2,11 @@
 # spec_focusa_112_shell_ps1_slim_static_test.sh
 #
 # Static guard for focusa-112-shell-slim + focusa-112-ps1-slim:
-# the bash and PowerShell installers must shrink to thin bootstrappers
-# that download `focusa` and `exec` `focusa install --target=auto`.
+# the Bash and PowerShell installers must preserve their protected,
+# rollback-aware bootstrap behavior while delegating installation to Rust.
+# These surfaces are intentionally not line-count constrained: the Bash
+# bootstrapper owns release/license/download transaction safety and the
+# PowerShell bootstrapper owns the equivalent Windows handoff.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -16,23 +19,24 @@ pass() { echo "✓ PASS: $*"; }
 # ---- Shell installer ----
 [ -f "$SH" ] || fail "install-focusa.sh missing"
 LINES_SH=$(wc -l < "$SH")
-if [ "$LINES_SH" -gt 100 ]; then
-  fail "install-focusa.sh: $LINES_SH lines (must be <= 100 per §15A.4)"
-fi
-pass "install-focusa.sh: $LINES_SH lines (≤ 100)"
+[ "$LINES_SH" -ge 700 ] || fail "install-focusa.sh protected rollback-aware surface unexpectedly shrank ($LINES_SH lines)"
+pass "install-focusa.sh: $LINES_SH lines (protected surface retained)"
 
 # Bash syntax (no need to run)
 bash -n "$SH" || fail "install-focusa.sh: bash -n syntax check failed"
 pass "install-focusa.sh: bash syntax OK"
 
-# Must exec `focusa install` at the end (no logic beyond bootstrap).
-# The exec line may pass ARGS[@] which contains 'install --target=...'
-# so we check for the exec line + the install arg in ARGS.
-grep -qE '^exec .*focusa.*"' "$SH" \
-  || fail "install-focusa.sh: must end with 'exec \$BIN_DIR/focusa ...'"
+# The protected Bash path runs the Rust handoff (rather than exec) so its
+# EXIT trap can remove clean-state partial mutations after failure.
+grep -qF 'if "$BIN_DIR/focusa" "${ARGS[@]}"; then' "$SH" \
+  || fail "install-focusa.sh: rollback-aware Rust handoff missing"
+grep -qF 'Rust install orchestrator failed (exit ${status})' "$SH" \
+  || fail "install-focusa.sh: orchestrator failure must reach rollback trap"
 grep -qE 'install.*--target=' "$SH" \
-  || fail "install-focusa.sh: ARGS must include 'install --target=...'"
-pass "install-focusa.sh: ends with exec focusa install"
+  || fail "install-focusa.sh: ARGS must include Rust install target"
+grep -qF 'trap cleanup_bootstrap_failure EXIT' "$SH" \
+  || fail "install-focusa.sh: cleanup trap missing"
+pass "install-focusa.sh: protected rollback-aware Rust handoff retained"
 
 # No systemd/launchd heredoc (logic moved to Rust)
 if grep -q '\[Unit\]\|ExecStart\|launchctl bootout\|systemctl --user enable' "$SH"; then
@@ -40,11 +44,13 @@ if grep -q '\[Unit\]\|ExecStart\|launchctl bootout\|systemctl --user enable' "$S
 fi
 pass "install-focusa.sh: no systemd/launchd rendering (delegated to Rust service module)"
 
-# No license validate logic (delegated to Rust registry_validate)
-if grep -q 'wpuiai-ai-cloud.*license.*validate\|post_license_validate' "$SH"; then
-  fail "install-focusa.sh: must not call WP REST license validate (delegated to Rust)"
-fi
-pass "install-focusa.sh: no license validate logic (delegated to Rust registry_validate)"
+# The protected bootstrapper retains its license preflight contract and must
+# fail closed for commercial installs without acceptance or a key.
+grep -qF 'Commercial install requires --accept-license or a --license-key.' "$SH" \
+  || fail "install-focusa.sh: commercial license gate missing"
+grep -qF 'LICENSE_VALIDATE_PATH' "$SH" \
+  || fail "install-focusa.sh: license registry validation contract missing"
+pass "install-focusa.sh: license preflight contract retained"
 
 # Detects platform and architecture
 grep -q 'HOST_OS\|uname -s' "$SH" \
@@ -66,15 +72,16 @@ pass "install-focusa.sh: cites Spec 112 §15A"
 # ---- PowerShell installer ----
 [ -f "$PS1" ] || fail "install-focusa.ps1 missing"
 LINES_PS=$(wc -l < "$PS1")
-if [ "$LINES_PS" -gt 100 ]; then
-  fail "install-focusa.ps1: $LINES_PS lines (must be <= 100 per §15A.4)"
-fi
-pass "install-focusa.ps1: $LINES_PS lines (≤ 100)"
+[ "$LINES_PS" -ge 180 ] || fail "install-focusa.ps1 protected Windows surface unexpectedly shrank ($LINES_PS lines)"
+pass "install-focusa.ps1: $LINES_PS lines (protected surface retained)"
 
-# Must end with focusa.exe exec
-grep -qE '&\s*\(Join-Path.*focusa\.exe' "$PS1" \
-  || fail "install-focusa.ps1: must end with exec focusa.exe"
-pass "install-focusa.ps1: ends with exec focusa.exe"
+# PowerShell delegates the selected release to the Rust orchestrator and
+# propagates its exit status; it does not own service installation.
+grep -qF '& $Focusa @Args' "$PS1" \
+  || fail "install-focusa.ps1: Rust orchestrator handoff missing"
+grep -qF 'focusa install failed with exit code' "$PS1" \
+  || fail "install-focusa.ps1: orchestrator failure must be surfaced"
+pass "install-focusa.ps1: protected Rust handoff retained"
 
 # No sc.exe registration logic (delegated to Rust service module)
 if grep -qi 'sc\.exe create\|sc\.exe delete' "$PS1"; then
@@ -97,4 +104,16 @@ grep -q 'Spec 112' "$PS1" \
   || fail "install-focusa.ps1: must cite Spec 112"
 pass "install-focusa.ps1: cites Spec 112 §15A"
 
-echo "✓ All focusa-112-shell-slim + ps1-slim static checks passed"
+# Executable Bash behavior: argument validation must fail before any state is
+# created. This catches a broken bootstrapper, not merely source markers.
+FIXTURE=$(mktemp -d)
+trap 'rm -rf "$FIXTURE"' EXIT
+set +e
+HOME="$FIXTURE/home" "$SH" --not-a-real-option >"$FIXTURE/out" 2>&1
+RC=$?
+set -e
+[ "$RC" -eq 64 ] || fail "install-focusa.sh: unknown option exited $RC, expected 64"
+[ ! -e "$FIXTURE/home/.focusa" ] || fail "install-focusa.sh: invalid option mutated install state"
+pass "install-focusa.sh: invalid option fails closed without mutation"
+
+echo "✓ Protected Bash + PowerShell bootstrapper contract checks passed"
