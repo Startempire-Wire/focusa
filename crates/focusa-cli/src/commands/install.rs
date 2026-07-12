@@ -752,7 +752,7 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         return cancellation_result(&install_root, &stash_path, stashed, &ui);
     }
     let result =
-        match execute_real_install(&args, target, channel, &install_root, &cancellation, &sink)
+        match execute_real_install(&args, target, channel, &install_root, &cancellation, sink)
             .await
         {
             Ok(result) => result,
@@ -1068,7 +1068,7 @@ async fn phase_asset_download(
             .map_err(|e| anyhow!("download {expected} from {}: {e}", redact_url(&asset_url)))?
             .error_for_status()
             .map_err(|e| anyhow!("download {expected} from {}: {e}", redact_url(&asset_url)))?;
-        let existing_mode = std::fs::metadata(&install_path).ok().map(file_mode);
+        let existing_mode = std::fs::metadata(&install_path).ok().map(|metadata| file_mode(&metadata));
         stream_asset_to_staged(response, &staged, &expected, sink, cancellation).await?;
         set_asset_permissions(&staged, existing_mode)?;
         std::fs::rename(&staged, &install_path).map_err(|error| {
