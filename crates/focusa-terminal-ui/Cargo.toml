@@ -1,25 +1,23 @@
 [package]
-name = "focusa-tui"
+name = "focusa-terminal-ui"
+description = "Shared terminal UI library for Focusa installer animation and presentation"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license-file.workspace = true
 
-[[bin]]
-name = "focusa-tui"
-path = "src/main.rs"
-
 [dependencies]
 ratatui = { workspace = true }
 crossterm = { workspace = true }
-tokio = { workspace = true }
-reqwest = { workspace = true }
-serde = { version = "1", features = ["derive"] }
+serde = { workspace = true }
 serde_json = { workspace = true }
-chrono = { workspace = true }
 anyhow = { workspace = true }
-tui-big-text = "0.8.8"
-throbber-widgets-tui = "0.11.1"
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+
+[dev-dependencies]
+# testing helpers
 
 [lints]
 workspace = true
