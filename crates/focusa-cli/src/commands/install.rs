@@ -20,13 +20,130 @@ use anyhow::{anyhow, bail, Context, Result};
 use clap::Args;
 use focusa_terminal_ui::install::completion::InstallCompletionSummary;
 use focusa_terminal_ui::install::event::NullEventSink;
+use focusa_terminal_ui::install::presenter::{presenter_for_mode, PlainPresenter, Presenter};
 use focusa_terminal_ui::{
-    detect_capabilities, install_signal_handlers, validate_environment, CancellationToken,
-    InstallEvent, InstallEventSink, InstallPhase, InstallRendererMode,
+    detect_capabilities, install_signal_handlers, validate_environment, AnimatedPresenterState,
+    AnimatedRenderLoop, CancellationToken, InstallEvent, InstallEventSink, InstallPhase,
+    InstallRendererMode,
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::io::Write;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{mpsc, Arc, Mutex};
+use std::thread::JoinHandle;
+
+struct UiChannel {
+    sender: mpsc::Sender<InstallEvent>,
+    failed: AtomicBool,
+    warned: AtomicBool,
+    fallback: Mutex<PlainPresenter>,
+}
+
+impl UiChannel {
+    fn fail(&self, message: String) {
+        if !self.failed.swap(true, Ordering::AcqRel) && !self.warned.swap(true, Ordering::AcqRel) {
+            let warning = InstallEvent::PhaseWarning {
+                phase: InstallPhase::InitializeEnvironment,
+                message: "animated installer UI unavailable; continuing in plain mode".into(),
+                recovery_hint: Some(message),
+            };
+            if let Ok(mut fallback) = self.fallback.lock() {
+                fallback.handle_event(&warning);
+            }
+        }
+    }
+}
+
+struct InstallerUi {
+    channel: Option<Arc<UiChannel>>,
+    presenter: Option<Mutex<Box<dyn Presenter>>>,
+    renderer: Option<JoinHandle<()>>,
+}
+
+impl InstallerUi {
+    fn new(
+        mode: InstallRendererMode,
+        quiet: bool,
+        seed: u64,
+        cancellation: &CancellationToken,
+    ) -> Self {
+        if mode.is_animated() {
+            let (sender, receiver) = mpsc::channel();
+            let channel = Arc::new(UiChannel {
+                sender,
+                failed: AtomicBool::new(false),
+                warned: AtomicBool::new(false),
+                fallback: Mutex::new(PlainPresenter::new(quiet)),
+            });
+            let render_channel = Arc::clone(&channel);
+            let token = cancellation.clone();
+            let handle = std::thread::spawn(move || {
+                let _selected =
+                    presenter_for_mode(mode, Arc::new(AnimatedPresenterState::new()), quiet);
+                let result = AnimatedRenderLoop::new(mode, seed).run(receiver, token);
+                if let Err(error) = result {
+                    render_channel.fail(error.to_string());
+                }
+            });
+            Self {
+                channel: Some(channel),
+                presenter: None,
+                renderer: Some(handle),
+            }
+        } else if mode == InstallRendererMode::Plain {
+            Self {
+                channel: None,
+                presenter: Some(Mutex::new(presenter_for_mode(
+                    mode,
+                    Arc::new(AnimatedPresenterState::new()),
+                    quiet,
+                ))),
+                renderer: None,
+            }
+        } else {
+            Self {
+                channel: None,
+                presenter: None,
+                renderer: None,
+            }
+        }
+    }
+
+    fn finish(&mut self) {
+        self.channel.take();
+        if let Some(handle) = self.renderer.take() {
+            let _ = handle.join();
+        }
+    }
+}
+
+impl InstallEventSink for InstallerUi {
+    fn emit(&self, event: InstallEvent) {
+        if let Some(channel) = &self.channel {
+            if channel.failed.load(Ordering::Acquire) {
+                if let Ok(mut fallback) = channel.fallback.lock() {
+                    fallback.handle_event(&event);
+                }
+            } else if channel.sender.send(event.clone()).is_err() {
+                channel.fail("renderer channel closed".into());
+                if let Ok(mut fallback) = channel.fallback.lock() {
+                    fallback.handle_event(&event);
+                }
+            }
+        } else if let Some(presenter) = &self.presenter {
+            if let Ok(mut presenter) = presenter.lock() {
+                presenter.handle_event(&event);
+            }
+        }
+    }
+}
+
+impl Drop for InstallerUi {
+    fn drop(&mut self) {
+        self.finish();
+    }
+}
 
 #[derive(Args, Debug)]
 pub struct InstallArgs {
@@ -589,7 +706,20 @@ pub async fn run(args: InstallArgs) -> Result<()> {
     //   4. On smoke-test failure: rollback to stash
     //   5. On success: remove stash
     let stash_path = install_root.with_extension("stash");
-    let sink = NullEventSink;
+    let cancellation = CancellationToken::new();
+    let _signals = install_signal_handlers(&cancellation)
+        .map_err(|error| anyhow!("install cancellation handlers: {error}"))?;
+    let capabilities = detect_capabilities(args.no_animation, args.json, args.quiet);
+    let mut ui = InstallerUi::new(
+        capabilities.mode,
+        args.quiet,
+        capabilities.animation_seed,
+        &cancellation,
+    );
+    if cancellation.is_cancelled() {
+        return cancellation_result(&install_root, &stash_path, false);
+    }
+    let sink = &ui;
     sink.emit(InstallEvent::PhaseStarted {
         phase: InstallPhase::InitializeEnvironment,
         message: "Preparing atomic installation".into(),
@@ -611,9 +741,6 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         phase: InstallPhase::DetectSystem,
         detail: Some("Platform and install target detected".into()),
     });
-    let cancellation = CancellationToken::new();
-    let _signals = install_signal_handlers(&cancellation)
-        .map_err(|error| anyhow!("install cancellation handlers: {error}"))?;
     if cancellation.is_cancelled() {
         cleanup_staged_downloads(&install_root);
         return cancellation_result(&install_root, &stash_path, stashed);
@@ -703,6 +830,7 @@ pub async fn run(args: InstallArgs) -> Result<()> {
     sink.emit(InstallEvent::InstallFinished {
         summary: summary.clone(),
     });
+    ui.finish();
 
     // The renderer has restored the transient UI before this single durable
     // human summary or single JSON document is written.

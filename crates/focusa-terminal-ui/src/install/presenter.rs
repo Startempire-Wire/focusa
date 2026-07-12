@@ -160,9 +160,8 @@ impl Presenter for PlainPresenter {
                 self.print(&format!("✗ Rollback failed: {}", sanitize(message)));
                 self.print(&format!("  recovery: {}", sanitize(recovery_hint)));
             }
-            InstallEvent::InstallFinished { summary } if !self.quiet => {
-                println!("{}", summary.render_human());
-            }
+            // Durable completion is printed by the installer only after the
+            // transient presenter has restored the terminal.
             _ => {}
         }
     }
