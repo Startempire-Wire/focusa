@@ -36,6 +36,14 @@ impl BlockCanvas {
         }
     }
 
+    pub fn resize(&mut self, width: u16, height: u16) {
+        let len = (width as usize) * (height as usize);
+        self.width = width;
+        self.height = height;
+        self.pixels.resize(len, Pixel::default());
+        self.pixels.fill(Pixel::default());
+    }
+
     pub fn set(&mut self, x: u16, y: u16, pixel: Pixel) {
         if x < self.width && y < self.height {
             let idx = (y as usize) * (self.width as usize) + (x as usize);
