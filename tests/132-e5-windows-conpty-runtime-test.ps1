@@ -16,9 +16,13 @@ try {
   if ($obj.schema -ne 'focusa.install_preflight.v1' -or -not $obj.read_only -or $obj.mutations_performed) { throw 'JSON envelope is not the read-only install contract' }
   if ($json -match "`e") { throw 'ANSI escaped into redirected JSON stdout' }
 
+  $probeExit = 0
+  $probe = [Spec132ConPtyRunner]::Run('cmd.exe', '/c echo conpty-probe', 120, 40, [ref]$probeExit)
+  if ($probeExit -ne 0 -or $probe -notmatch 'conpty-probe') { throw "ConPTY host probe failed: $probeExit; output=$probe" }
+
   $exit = 0
   $pty = [Spec132ConPtyRunner]::Run($Focusa, 'install --preflight --no-animation --quiet', 120, 40, [ref]$exit)
-  if ($exit -ne 0) { throw "ConPTY preflight failed: $exit" }
+  if ($exit -ne 0) { throw "ConPTY preflight failed: $exit; output=$pty" }
   if ($pty -match "`e\[\?1049h|`e\[\?1049l") { throw 'plain/non-animated ConPTY path entered alternate screen' }
   if ($pty -notmatch 'install preflight') { throw 'ConPTY durable preflight output missing' }
 
