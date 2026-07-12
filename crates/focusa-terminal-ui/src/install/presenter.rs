@@ -209,17 +209,25 @@ impl Presenter for AnimatedPresenter {
     fn handle_event(&mut self, event: &InstallEvent) {
         if let Ok(mut st) = self.shared.state.lock() {
             match event {
-                InstallEvent::PhaseStarted { phase, .. } => st.set_active(*phase),
-                InstallEvent::PhaseSucceeded { phase, .. } => st.set_succeeded(*phase),
-                InstallEvent::PhaseSkipped { phase, .. } => st.set_skipped(*phase),
+                InstallEvent::PhaseStarted { phase, .. } => {
+                    st.set_active(*phase);
+                }
+                InstallEvent::PhaseSucceeded { phase, .. } => {
+                    st.set_succeeded(*phase);
+                }
+                InstallEvent::PhaseSkipped { phase, .. } => {
+                    st.set_skipped(*phase);
+                }
                 InstallEvent::PhaseWarning { phase, message, .. } => {
-                    st.set_warning(*phase, message.clone())
+                    st.set_warning(*phase, message.clone());
                 }
                 InstallEvent::PhaseFailed {
                     phase,
                     message,
                     recovery_hint,
-                } => st.set_failed(*phase, message.clone(), recovery_hint.clone()),
+                } => {
+                    st.set_failed(*phase, message.clone(), recovery_hint.clone());
+                }
                 InstallEvent::AssetStarted { asset, total_bytes } => {
                     st.update_asset(
                         asset.clone(),

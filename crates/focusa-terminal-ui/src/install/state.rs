@@ -40,6 +40,7 @@ pub struct InstallState {
 impl Default for InstallState {
     fn default() -> Self {
         let phases = vec![
+            InstallPhase::InitializeEnvironment,
             InstallPhase::DetectSystem,
             InstallPhase::ValidateLicense,
             InstallPhase::ResolveRelease,
@@ -51,6 +52,7 @@ impl Default for InstallState {
             InstallPhase::PersistPath,
             InstallPhase::RunHealthChecks,
             InstallPhase::Finalize,
+            InstallPhase::Complete,
         ];
         InstallState {
             phases: phases
@@ -69,59 +71,64 @@ impl Default for InstallState {
 }
 
 impl InstallState {
-    /// Mark a phase as active and clear any prior failure for that phase.
-    pub fn set_active(&mut self, phase: InstallPhase) {
-        for (p, s) in &mut self.phases {
-            if *p == phase {
-                *s = PhaseStatus::Active;
-            } else if *s == PhaseStatus::Active {
-                // Should not happen with proper orchestration, but be safe.
-            }
+    fn transition(&mut self, phase: InstallPhase, next: PhaseStatus) -> bool {
+        let Some((_, current)) = self.phases.iter_mut().find(|(p, _)| *p == phase) else {
+            return false;
+        };
+        let legal = match (*current, next) {
+            (PhaseStatus::Pending, PhaseStatus::Active | PhaseStatus::Skipped) => true,
+            (
+                PhaseStatus::Active,
+                PhaseStatus::Succeeded | PhaseStatus::Warning | PhaseStatus::Failed,
+            ) => true,
+            (PhaseStatus::Warning | PhaseStatus::Failed, PhaseStatus::Active) => true,
+            (a, b) if a == b => true,
+            _ => false,
+        };
+        if legal {
+            *current = next;
+            self.recompute_completion();
         }
-        self.current_message = phase.label().to_string();
-        self.recompute_completion();
+        legal
     }
 
-    /// Mark a phase as succeeded.
-    pub fn set_succeeded(&mut self, phase: InstallPhase) {
-        for (p, s) in &mut self.phases {
-            if *p == phase {
-                *s = PhaseStatus::Succeeded;
-            }
+    /// Mark a phase active. Returns false when the transition is illegal.
+    pub fn set_active(&mut self, phase: InstallPhase) -> bool {
+        let changed = self.transition(phase, PhaseStatus::Active);
+        if changed {
+            self.current_message = phase.label().to_string();
         }
-        self.recompute_completion();
+        changed
     }
 
-    /// Mark a phase as skipped.
-    pub fn set_skipped(&mut self, phase: InstallPhase) {
-        for (p, s) in &mut self.phases {
-            if *p == phase {
-                *s = PhaseStatus::Skipped;
-            }
-        }
-        self.recompute_completion();
+    pub fn set_succeeded(&mut self, phase: InstallPhase) -> bool {
+        self.transition(phase, PhaseStatus::Succeeded)
     }
 
-    /// Mark a phase as warning.
-    pub fn set_warning(&mut self, phase: InstallPhase, message: String) {
-        for (p, s) in &mut self.phases {
-            if *p == phase {
-                *s = PhaseStatus::Warning;
-            }
-        }
-        self.warnings.push(message);
-        self.recompute_completion();
+    pub fn set_skipped(&mut self, phase: InstallPhase) -> bool {
+        self.transition(phase, PhaseStatus::Skipped)
     }
 
-    /// Mark a phase as failed.
-    pub fn set_failed(&mut self, phase: InstallPhase, message: String, hint: Option<String>) {
-        for (p, s) in &mut self.phases {
-            if *p == phase {
-                *s = PhaseStatus::Failed;
-            }
+    pub fn set_warning(&mut self, phase: InstallPhase, message: String) -> bool {
+        let changed = self.transition(phase, PhaseStatus::Warning);
+        if changed {
+            self.warnings.push(message);
         }
-        self.failure = Some(message);
-        self.recovery_hint = hint;
+        changed
+    }
+
+    pub fn set_failed(
+        &mut self,
+        phase: InstallPhase,
+        message: String,
+        hint: Option<String>,
+    ) -> bool {
+        let changed = self.transition(phase, PhaseStatus::Failed);
+        if changed {
+            self.failure = Some(message);
+            self.recovery_hint = hint;
+        }
+        changed
     }
 
     /// Start rollback.
@@ -181,9 +188,11 @@ mod tests {
     fn completion_monotonic() {
         let mut s = InstallState::default();
         let c1 = s.phase_completion;
+        s.set_active(InstallPhase::DetectSystem);
         s.set_succeeded(InstallPhase::DetectSystem);
         let c2 = s.phase_completion;
         assert!(c2 > c1);
+        s.set_active(InstallPhase::ValidateLicense);
         s.set_succeeded(InstallPhase::ValidateLicense);
         let c3 = s.phase_completion;
         assert!(c3 > c2);
@@ -198,10 +207,9 @@ mod tests {
             "network error".into(),
             Some("check connection".into()),
         );
-        // Re-succeeding the same phase is allowed in the state machine
-        // because the orchestrator may retry, but the test documents that
-        // the renderer shows the latest authoritative state.
-        s.set_succeeded(InstallPhase::DownloadAssets);
+        assert!(!s.set_succeeded(InstallPhase::DownloadAssets));
+        assert!(s.set_active(InstallPhase::DownloadAssets));
+        assert!(s.set_succeeded(InstallPhase::DownloadAssets));
         let (_, st) = s
             .phases
             .iter()
