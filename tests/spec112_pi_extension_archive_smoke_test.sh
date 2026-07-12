@@ -9,5 +9,5 @@ if grep -q 'install_pi_extension' scripts/install-focusa.sh; then
   exit 1
 fi
 
-cargo test -p focusa-cli --bin focusa pi_extension_archive_install_is_checksum_stage_and_activation_safe -- --exact
+cargo test -p focusa-cli --bin focusa pi_extension_archive_install_is_checksum_stage_and_activation_safe
 echo "PASS: Rust-owned Pi extension archive install is staged, dependency-gated, and activated atomically"
