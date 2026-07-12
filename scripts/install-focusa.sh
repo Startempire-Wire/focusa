@@ -155,10 +155,21 @@ have sha256sum || have shasum || { err "sha256sum (or shasum) is required."; exi
 
 # Idempotent public uninstall entrypoint. Never creates install/license state.
 if [ "$UNINSTALL" = 1 ]; then
+  uninstall_status=0
   if [ -x "$BIN_DIR/focusa" ]; then
-    exec "$BIN_DIR/focusa" uninstall --yes
+    "$BIN_DIR/focusa" uninstall --yes || uninstall_status=$?
+  else
+    log "Focusa binaries are already removed."
   fi
-  log "Focusa is already removed; no uninstall action required."
+  # The shell bootstrapper owns Pi extension installation, so it also owns
+  # symmetric removal. Limit deletion to the exact managed extension path.
+  PI_MANAGED_DEST="${FOCUSA_PI_EXT_DIR:-${HOME}/.pi/agent/extensions}/focusa"
+  if [ -e "$PI_MANAGED_DEST" ]; then
+    rm -rf "$PI_MANAGED_DEST"
+    log "removed Focusa Pi extension: $PI_MANAGED_DEST"
+  fi
+  [ "$uninstall_status" -eq 0 ] || exit "$uninstall_status"
+  log "Focusa uninstall complete."
   exit 0
 fi
 
