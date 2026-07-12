@@ -24,5 +24,5 @@ pub use presenter::{
     presenter_for_mode, AnimatedPresenter, MonochromeAnimatedPresenter, PlainPresenter, Presenter,
     ReducedMotionPresenter, SilentPresenter,
 };
-pub use renderer::HybridRenderer;
+pub use renderer::{AnimatedRenderLoop, HybridRenderer};
 pub use state::InstallState;
