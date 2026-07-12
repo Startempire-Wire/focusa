@@ -26,8 +26,8 @@ pub fn sanitize(input: &str) -> Cow<'_, str> {
     let s = redact_secrets(&s);
 
     // Phase 4: bound length
-    let s = if s.len() > MAX_VISIBLE_LEN {
-        let mut truncated = s[..MAX_VISIBLE_LEN].to_string();
+    let s = if s.chars().count() > MAX_VISIBLE_LEN {
+        let mut truncated: String = s.chars().take(MAX_VISIBLE_LEN).collect();
         truncated.push('…');
         truncated
     } else {
@@ -65,6 +65,9 @@ fn redact_secrets(input: &str) -> String {
     // npm tokens
     s = replace_after_prefix(&s, "npm_", npm_token_bound);
 
+    // Customer/operator email addresses must never enter the animated surface.
+    s = redact_email_tokens(&s);
+
     s
 }
 
@@ -78,6 +81,26 @@ fn space_bound(c: char) -> bool {
 
 fn npm_token_bound(c: char) -> bool {
     c.is_alphanumeric()
+}
+
+fn redact_email_tokens(input: &str) -> String {
+    input
+        .split_inclusive(char::is_whitespace)
+        .map(|token| {
+            let trimmed = token.trim_matches(char::is_whitespace);
+            let looks_like_email = trimmed.contains('@')
+                && trimmed
+                    .split('@')
+                    .nth(1)
+                    .is_some_and(|domain| domain.contains('.') && !domain.starts_with('.'));
+            if looks_like_email {
+                let suffix = &token[trimmed.len()..];
+                format!("[REDACTED_EMAIL]{suffix}")
+            } else {
+                token.to_string()
+            }
+        })
+        .collect()
 }
 
 fn replace_token_pattern(input: &str, prefix: &str, bound: fn(char) -> bool) -> String {
@@ -301,5 +324,20 @@ mod tests {
         let input = "AKIAIOSFODNN7EXAMPLE";
         let result = sanitize(input);
         assert!(result.contains("REDACTED_AWS_KEY"));
+    }
+
+    #[test]
+    fn customer_email_redacted() {
+        let result = sanitize("customer@example.invalid");
+        assert!(!result.contains("customer@example.invalid"));
+        assert!(result.contains("REDACTED_EMAIL"));
+    }
+
+    #[test]
+    fn unicode_truncation_does_not_panic() {
+        let input = "界".repeat(MAX_VISIBLE_LEN + 10);
+        let result = sanitize(&input);
+        assert!(result.ends_with('…'));
+        assert!(result.chars().count() <= MAX_VISIBLE_LEN + 1);
     }
 }
