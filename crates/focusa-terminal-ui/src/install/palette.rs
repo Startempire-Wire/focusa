@@ -28,20 +28,20 @@ impl TrueColorPalette {
 pub struct Ansi256Palette;
 
 impl Ansi256Palette {
-    pub const BACKGROUND: Color = Color::Indexed(16);  // dark black
-    pub const TEXT: Color = Color::Indexed(231);       // white
-    pub const MUTED: Color = Color::Indexed(67);       // gray-blue
-    pub const CYAN: Color = Color::Indexed(51);        // bright cyan
+    pub const BACKGROUND: Color = Color::Indexed(16); // dark black
+    pub const TEXT: Color = Color::Indexed(231); // white
+    pub const MUTED: Color = Color::Indexed(67); // gray-blue
+    pub const CYAN: Color = Color::Indexed(51); // bright cyan
     pub const ELECTRIC_BLUE: Color = Color::Indexed(33); // blue
-    pub const VIOLET: Color = Color::Indexed(93);      // purple
-    pub const MAGENTA: Color = Color::Indexed(201);    // magenta
-    pub const LIME: Color = Color::Indexed(82);        // green
-    pub const YELLOW: Color = Color::Indexed(220);     // yellow
-    pub const ORANGE: Color = Color::Indexed(208);     // orange
-    pub const SUCCESS: Color = Color::Indexed(84);     // green
-    pub const WARNING: Color = Color::Indexed(220);    // yellow
-    pub const ERROR: Color = Color::Indexed(196);      // red
-    pub const BORDER: Color = Color::Indexed(59);      // dark gray
+    pub const VIOLET: Color = Color::Indexed(93); // purple
+    pub const MAGENTA: Color = Color::Indexed(201); // magenta
+    pub const LIME: Color = Color::Indexed(82); // green
+    pub const YELLOW: Color = Color::Indexed(220); // yellow
+    pub const ORANGE: Color = Color::Indexed(208); // orange
+    pub const SUCCESS: Color = Color::Indexed(84); // green
+    pub const WARNING: Color = Color::Indexed(220); // yellow
+    pub const ERROR: Color = Color::Indexed(196); // red
+    pub const BORDER: Color = Color::Indexed(59); // dark gray
 }
 
 /// Monochrome palette (grayscale only).

@@ -183,25 +183,69 @@ mod tests {
 
     #[test]
     fn json_forces_silent() {
-        let cap = select_mode(true, false, false, false, true, "xterm-256color", true, false, false, ColorDepth::TrueColor);
+        let cap = select_mode(
+            true,
+            false,
+            false,
+            false,
+            true,
+            "xterm-256color",
+            true,
+            false,
+            false,
+            ColorDepth::TrueColor,
+        );
         assert_eq!(cap, InstallRendererMode::Silent);
     }
 
     #[test]
     fn ci_forces_plain() {
-        let cap = select_mode(false, false, false, true, true, "xterm-256color", true, false, false, ColorDepth::TrueColor);
+        let cap = select_mode(
+            false,
+            false,
+            false,
+            true,
+            true,
+            "xterm-256color",
+            true,
+            false,
+            false,
+            ColorDepth::TrueColor,
+        );
         assert_eq!(cap, InstallRendererMode::Plain);
     }
 
     #[test]
     fn dumb_term_forces_plain() {
-        let cap = select_mode(false, false, false, false, true, "dumb", true, false, false, ColorDepth::TrueColor);
+        let cap = select_mode(
+            false,
+            false,
+            false,
+            false,
+            true,
+            "dumb",
+            true,
+            false,
+            false,
+            ColorDepth::TrueColor,
+        );
         assert_eq!(cap, InstallRendererMode::Plain);
     }
 
     #[test]
     fn no_color_uses_monochrome_not_plain() {
-        let cap = select_mode(false, false, false, false, true, "xterm-256color", true, true, false, ColorDepth::TrueColor);
+        let cap = select_mode(
+            false,
+            false,
+            false,
+            false,
+            true,
+            "xterm-256color",
+            true,
+            true,
+            false,
+            ColorDepth::TrueColor,
+        );
         assert_eq!(cap, InstallRendererMode::MonochromeAnimated);
     }
 }

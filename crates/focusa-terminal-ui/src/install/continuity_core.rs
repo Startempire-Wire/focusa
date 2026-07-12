@@ -47,7 +47,13 @@ impl ContinuityCore {
                     let angle = dy.atan2(dx);
                     let (target, is_spark) = core_color_for_angle(angle, dist, seed);
                     let lock = deterministic_float(seed, x, y);
-                    cells.push(CoreCell { x, y, target, lock_threshold: lock, is_spark });
+                    cells.push(CoreCell {
+                        x,
+                        y,
+                        target,
+                        lock_threshold: lock,
+                        is_spark,
+                    });
                 } else if in_core {
                     // Inner core energy (dim cyan/blue glow)
                     let lock = deterministic_float(seed.wrapping_add(1), x, y);
@@ -74,8 +80,12 @@ impl ContinuityCore {
             } else {
                 // Cell is dispersed based on seed and time
                 let dispersion = 1.0 - (assembly / cell.lock_threshold.max(0.01));
-                let dx = (deterministic_float(self.seed, cell.x + 100, cell.y) - 0.5) * 24.0 * dispersion;
-                let dy = (deterministic_float(self.seed, cell.x, cell.y + 200) - 0.5) * 24.0 * dispersion;
+                let dx = (deterministic_float(self.seed, cell.x + 100, cell.y) - 0.5)
+                    * 24.0
+                    * dispersion;
+                let dy = (deterministic_float(self.seed, cell.x, cell.y + 200) - 0.5)
+                    * 24.0
+                    * dispersion;
                 let px = (cell.x as f32 + dx).clamp(0.0, 31.0) as u16;
                 let py = (cell.y as f32 + dy).clamp(0.0, 31.0) as u16;
                 (px, py)
@@ -92,16 +102,32 @@ impl ContinuityCore {
             let canvas_y = origin_y + pos.1;
             if let Some(p) = canvas.get(canvas_x, canvas_y) {
                 let merged = if cell.is_spark && assembly >= cell.lock_threshold {
-                    blend_over(p, Pixel { top: color, bottom: color })
+                    blend_over(
+                        p,
+                        Pixel {
+                            top: color,
+                            bottom: color,
+                        },
+                    )
                 } else {
-                    Pixel { top: color, bottom: p.bottom }
+                    Pixel {
+                        top: color,
+                        bottom: p.bottom,
+                    }
                 };
                 canvas.set(canvas_x, canvas_y, merged);
             }
         }
     }
 
-    pub fn render_scan_line(&self, canvas: &mut BlockCanvas, origin_x: u16, origin_y: u16, scan_t: f32, scan_color: Color) {
+    pub fn render_scan_line(
+        &self,
+        canvas: &mut BlockCanvas,
+        origin_x: u16,
+        origin_y: u16,
+        scan_t: f32,
+        scan_color: Color,
+    ) {
         // Horizontal scan line across the core center
         let y = (CORE_CENTER.1 + 0.5) as u16;
         for x in 0..32u16 {
@@ -111,7 +137,14 @@ impl ContinuityCore {
                 let scan_x = (scan_t * 32.0) as u16;
                 if x == scan_x || x.saturating_add(1) == scan_x {
                     if let Some(p) = canvas.get(canvas_x, canvas_y) {
-                        canvas.set(canvas_x, canvas_y, Pixel { top: scan_color, bottom: p.bottom });
+                        canvas.set(
+                            canvas_x,
+                            canvas_y,
+                            Pixel {
+                                top: scan_color,
+                                bottom: p.bottom,
+                            },
+                        );
                     }
                 }
             }
@@ -197,7 +230,11 @@ mod tests {
     fn different_seed_different_thresholds() {
         let c1 = ContinuityCore::new(42);
         let c2 = ContinuityCore::new(43);
-        let differs = c1.cells.iter().zip(&c2.cells).any(|(a, b)| a.lock_threshold != b.lock_threshold);
+        let differs = c1
+            .cells
+            .iter()
+            .zip(&c2.cells)
+            .any(|(a, b)| a.lock_threshold != b.lock_threshold);
         assert!(differs);
     }
 
@@ -207,18 +244,25 @@ mod tests {
         let mut canvas = BlockCanvas::new(40, 40);
         core.render(&mut canvas, 4, 4, 0.0);
         // Most cells should be at displaced positions, not forming ring
-        let ring_pixels: Vec<_> = (0..32u16).flat_map(|y| (0..32u16).map(move |x| (x, y)))
+        let ring_pixels: Vec<_> = (0..32u16)
+            .flat_map(|y| (0..32u16).map(move |x| (x, y)))
             .filter(|&(x, y)| {
                 let dx = x as f32 - CORE_CENTER.0;
                 let dy = y as f32 - CORE_CENTER.1;
-                let d = (dx*dx + dy*dy).sqrt();
+                let d = (dx * dx + dy * dy).sqrt();
                 d >= 7.0 && d <= 12.0
             })
             .collect();
         // With assembly=0, ring cells are dispersed; fewer ring pixels should be present
-        let set_in_ring = ring_pixels.iter().filter(|&&(x, y)| {
-            canvas.get(4 + x, 4 + y).map(|p| p.top != Color::Black).unwrap_or(false)
-        }).count();
+        let set_in_ring = ring_pixels
+            .iter()
+            .filter(|&&(x, y)| {
+                canvas
+                    .get(4 + x, 4 + y)
+                    .map(|p| p.top != Color::Black)
+                    .unwrap_or(false)
+            })
+            .count();
         // Should be very few because cells are scattered
         assert!(set_in_ring < ring_pixels.len() / 2);
     }

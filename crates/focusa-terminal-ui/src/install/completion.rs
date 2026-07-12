@@ -54,7 +54,10 @@ impl InstallCompletionSummary {
             format!("Channel:          {}", self.channel),
             format!("Install root:     {}", self.install_root),
             format!("CLI:              {}", self.cli_path),
-            format!("Daemon:           {} ({})", self.daemon_path, self.daemon_health),
+            format!(
+                "Daemon:           {} ({})",
+                self.daemon_path, self.daemon_health
+            ),
             format!("TUI:              {}", self.tui_path),
             format!("Service:          {}", self.service_status),
             format!("PATH:             {}", self.path_status),

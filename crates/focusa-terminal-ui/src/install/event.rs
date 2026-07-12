@@ -168,7 +168,10 @@ mod tests {
     fn phase_labels_are_stable() {
         assert_eq!(InstallPhase::DetectSystem.label(), "Detect system");
         assert_eq!(InstallPhase::DownloadAssets.label(), "Download assets");
-        assert_eq!(InstallPhase::VerifyIntegrity.label(), "Verify checksums and trust");
+        assert_eq!(
+            InstallPhase::VerifyIntegrity.label(),
+            "Verify checksums and trust"
+        );
         assert_eq!(InstallPhase::Rollback.label(), "Roll back safely");
     }
 
