@@ -353,15 +353,21 @@ fn build_preflight_report(
 }
 
 fn detect_preflight_system() -> PreflightSystem {
-    let package_manager = first_command(&[
-        "dnf", "yum", "apt-get", "brew", "pacman", "zypper", "choco", "winget",
-    ]);
-    let service_manager = if have_cmd("systemctl") {
+    let package_manager = if cfg!(windows) {
+        // Windows preflight is deliberately side-effect free: package-manager
+        // command probing can recurse through PATHEXT shims on hosted agents.
+        None
+    } else {
+        first_command(&[
+            "dnf", "yum", "apt-get", "brew", "pacman", "zypper", "choco", "winget",
+        ])
+    };
+    let service_manager = if cfg!(windows) {
+        Some("windows-service".into())
+    } else if have_cmd("systemctl") {
         Some("systemd".into())
     } else if have_cmd("launchctl") {
         Some("launchd".into())
-    } else if cfg!(windows) {
-        Some("windows-service".into())
     } else {
         None
     };
@@ -375,11 +381,19 @@ fn detect_preflight_system() -> PreflightSystem {
         service_manager,
         privileged: is_root(),
         path_target: path_target.clone(),
-        path_target_writable: std::fs::OpenOptions::new()
-            .write(true)
-            .open(&path_target)
-            .is_ok(),
-        existing_focusa: find_command("focusa"),
+        path_target_writable: if cfg!(windows) {
+            false
+        } else {
+            std::fs::OpenOptions::new()
+                .write(true)
+                .open(&path_target)
+                .is_ok()
+        },
+        existing_focusa: if cfg!(windows) {
+            None
+        } else {
+            find_command("focusa")
+        },
     }
 }
 
@@ -388,7 +402,11 @@ fn detect_dependencies(package_manager: Option<&str>) -> Vec<PreflightDependency
         .into_iter()
         .map(|name| PreflightDependency {
             name: name.into(),
-            present: have_cmd(name) || (name == "sha256sum" && have_cmd("shasum")),
+            present: if cfg!(windows) {
+                false
+            } else {
+                have_cmd(name) || (name == "sha256sum" && have_cmd("shasum"))
+            },
             install_hint: install_hint(package_manager, name),
         })
         .collect()
@@ -486,6 +504,9 @@ fn find_command(name: &str) -> Option<String> {
 }
 
 fn is_root() -> bool {
+    if cfg!(windows) {
+        return false;
+    }
     std::process::Command::new("id")
         .arg("-u")
         .output()
