@@ -24,6 +24,8 @@ When a coding session gets long, context compacts, the mission drifts, proof get
 
 ## Install
 
+[Release Install Postcard](docs/RELEASE_INSTALL_POSTCARD.md) — install, verify health, quickstart, and open Mission Deck.
+
 ```bash
 curl -fsS https://install.focusa.dev/focusa | bash -s -- --eval
 focusa start
