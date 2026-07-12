@@ -2,7 +2,8 @@
 //!
 //! Tracks the current phase, per-phase status, warnings, and asset progress.
 
-use super::event::{AssetProgress, InstallPhase};
+use super::event::{AssetProgress, InstallEvent, InstallPhase};
+use crate::sanitize::sanitize;
 use std::collections::HashMap;
 
 /// Current status of a phase in the state machine.
@@ -71,6 +72,81 @@ impl Default for InstallState {
 }
 
 impl InstallState {
+    /// Apply one presentation event while preserving truthful state rules.
+    pub fn apply_event(&mut self, event: &InstallEvent) {
+        match event {
+            InstallEvent::PhaseStarted { phase, message } => {
+                self.set_active(*phase);
+                self.current_message = sanitize(message).into_owned();
+            }
+            InstallEvent::PhaseMessage { phase, message } => {
+                self.set_active(*phase);
+                self.current_message = sanitize(message).into_owned();
+            }
+            InstallEvent::PhaseSucceeded { phase, .. } => {
+                self.set_succeeded(*phase);
+            }
+            InstallEvent::PhaseSkipped { phase, reason } => {
+                self.set_skipped(*phase);
+                self.warnings.push(sanitize(reason).into_owned());
+            }
+            InstallEvent::PhaseWarning { phase, message, .. } => {
+                self.set_warning(*phase, sanitize(message).into_owned());
+            }
+            InstallEvent::PhaseFailed {
+                phase,
+                message,
+                recovery_hint,
+            } => {
+                self.set_failed(
+                    *phase,
+                    sanitize(message).into_owned(),
+                    recovery_hint
+                        .as_deref()
+                        .map(|hint| sanitize(hint).into_owned()),
+                );
+            }
+            InstallEvent::AssetStarted { asset, total_bytes } => {
+                let asset = sanitize(asset).into_owned();
+                self.update_asset(
+                    asset.clone(),
+                    AssetProgress {
+                        asset,
+                        downloaded_bytes: 0,
+                        total_bytes: *total_bytes,
+                    },
+                );
+            }
+            InstallEvent::AssetProgress {
+                asset,
+                downloaded_bytes,
+                total_bytes,
+            } => {
+                let asset = sanitize(asset).into_owned();
+                self.update_asset(
+                    asset.clone(),
+                    AssetProgress {
+                        asset,
+                        downloaded_bytes: *downloaded_bytes,
+                        total_bytes: *total_bytes,
+                    },
+                );
+            }
+            InstallEvent::RollbackStarted { reason } => {
+                self.start_rollback(sanitize(reason).into_owned())
+            }
+            InstallEvent::RollbackSucceeded => self.rollback_succeeded(),
+            InstallEvent::RollbackFailed {
+                message,
+                recovery_hint,
+            } => {
+                self.failure = Some(sanitize(message).into_owned());
+                self.recovery_hint = Some(sanitize(recovery_hint).into_owned());
+            }
+            InstallEvent::InstallFinished { .. } | InstallEvent::AssetFinished { .. } => {}
+        }
+    }
+
     fn transition(&mut self, phase: InstallPhase, next: PhaseStatus) -> bool {
         let Some((_, current)) = self.phases.iter_mut().find(|(p, _)| *p == phase) else {
             return false;

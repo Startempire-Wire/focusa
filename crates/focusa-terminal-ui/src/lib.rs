@@ -19,6 +19,7 @@ pub use install::presenter::{
     presenter_for_mode, AnimatedPresenter, AnimatedPresenterState, MonochromeAnimatedPresenter,
     PlainPresenter, Presenter, ReducedMotionPresenter, SilentPresenter,
 };
+pub use install::renderer::{AnimatedRenderLoop, HybridRenderer};
 pub use install::state::InstallState;
 pub use sanitize::sanitize;
 pub use terminal_guard::{

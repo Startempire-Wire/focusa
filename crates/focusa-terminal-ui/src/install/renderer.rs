@@ -4,6 +4,7 @@ use super::{
     canvas::{BlockCanvas, Pixel},
     completion::InstallCompletionSummary,
     continuity_core::ContinuityCore,
+    event::InstallEvent,
     glow_base::GlowBase,
     layout::{Layout, LayoutKind},
     matrix_rain::MatrixRain,
@@ -11,13 +12,20 @@ use super::{
     state::{InstallState, PhaseStatus},
 };
 use crate::sanitize::sanitize;
+use crate::terminal_guard::{
+    install_signal_handlers, install_terminal_panic_hook, CancellationToken, TerminalGuard,
+};
 use ratatui::{
+    backend::CrosstermBackend,
     layout::{Alignment, Constraint, Direction, Layout as RLayout, Rect},
     style::{Color, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Gauge, Paragraph, Row, Table},
-    Frame,
+    Frame, Terminal,
 };
+use std::io::stderr;
+use std::sync::mpsc::Receiver;
+use std::time::{Duration, Instant};
 
 pub struct HybridRenderer {
     pub seed: u64,
@@ -313,4 +321,65 @@ impl HybridRenderer {
         700
     }
     pub fn completion_summary(&self, _summary: &InstallCompletionSummary) {}
+}
+
+/// Headless-testable event-driven render loop. Cosmetic ticks are dropped when
+/// late; installer events are drained and applied in order. Terminal cleanup is
+/// owned by the RAII guard and therefore also runs on draw/receive failures.
+pub struct AnimatedRenderLoop {
+    pub mode: super::super::capabilities::InstallRendererMode,
+    pub renderer: HybridRenderer,
+}
+
+impl AnimatedRenderLoop {
+    pub fn new(mode: super::super::capabilities::InstallRendererMode, seed: u64) -> Self {
+        Self {
+            mode,
+            renderer: HybridRenderer::new(seed),
+        }
+    }
+
+    pub fn run(
+        &mut self,
+        events: Receiver<InstallEvent>,
+        cancellation: CancellationToken,
+    ) -> std::io::Result<()> {
+        let mut guard = TerminalGuard::new()?;
+        let _panic = install_terminal_panic_hook();
+        let _signals = install_signal_handlers(&cancellation)?;
+        let backend = CrosstermBackend::new(stderr());
+        let mut terminal = Terminal::new(backend)?;
+        let mut state = InstallState::default();
+        let mut finished_at: Option<Instant> = None;
+        let frame_interval = Duration::from_millis(33);
+
+        loop {
+            if cancellation.is_cancelled() {
+                break;
+            }
+            match events.recv_timeout(frame_interval) {
+                Ok(event) => {
+                    if matches!(event, InstallEvent::InstallFinished { .. }) {
+                        finished_at = Some(Instant::now());
+                    }
+                    state.apply_event(&event);
+                    for event in events.try_iter() {
+                        if matches!(event, InstallEvent::InstallFinished { .. }) {
+                            finished_at = Some(Instant::now());
+                        }
+                        state.apply_event(&event);
+                    }
+                }
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+            }
+            terminal.draw(|frame| self.renderer.render(frame, &state, self.mode))?;
+            self.renderer.tick();
+            if finished_at.is_some_and(|started| started.elapsed() >= Duration::from_millis(700)) {
+                break;
+            }
+        }
+        guard.restore()?;
+        Ok(())
+    }
 }
