@@ -1,46 +1,48 @@
-//! Terminal guard: RAII restoration of terminal state.
+//! Terminal lifecycle and cancellation primitives.
 //!
-//! §13.2: restores terminal state from Drop on every handled exit path.
+//! §13: alternate-screen restoration is RAII, panic hooks are scoped, and
+//! cancellation is explicit rather than swallowed by presentation.
 
 use crossterm::{
     cursor::Show,
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{disable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::io::{self, Stderr, Write};
+use std::io::{self, stderr, Write};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 
-/// RAII guard that enters alternate screen on creation and restores on drop.
+/// RAII guard that enters alternate screen and always restores it on drop.
 pub struct TerminalGuard {
     active: bool,
     raw_mode: bool,
 }
 
 impl TerminalGuard {
-    /// Initialize terminal for animated UI.
-    /// Returns `None` if alternate screen cannot be entered.
     pub fn new() -> io::Result<Self> {
-        // Enter alternate screen and hide cursor.
-        let mut stderr = io::stderr();
-        execute!(stderr, EnterAlternateScreen)?;
-        // Do NOT enable raw mode unless proven needed; spec says avoid raw mode.
-        Ok(TerminalGuard {
+        let mut output = stderr();
+        execute!(output, EnterAlternateScreen)?;
+        Ok(Self {
             active: true,
             raw_mode: false,
         })
     }
 
-    /// Explicitly restore terminal state.
     pub fn restore(&mut self) -> io::Result<()> {
         if self.active {
-            let mut stderr = io::stderr();
+            let mut output = stderr();
             if self.raw_mode {
                 let _ = disable_raw_mode();
             }
-            execute!(stderr, Show, LeaveAlternateScreen)?;
-            let _ = stderr.flush();
+            execute!(output, Show, LeaveAlternateScreen)?;
+            let _ = output.flush();
             self.active = false;
         }
         Ok(())
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.active
     }
 }
 
@@ -50,16 +52,57 @@ impl Drop for TerminalGuard {
     }
 }
 
-/// Install a scoped panic hook that restores terminal before calling the prior hook.
-pub fn install_terminal_panic_hook() {
+/// Scoped panic hook. Dropping it restores the hook that was installed before it.
+pub struct PanicHookGuard {
+    prior: Option<Box<dyn Fn(&std::panic::PanicHookInfo<'_>) + Send + Sync + 'static>>,
+    shared: Arc<Mutex<Option<Box<dyn Fn(&std::panic::PanicHookInfo<'_>) + Send + Sync + 'static>>>>,
+}
+
+pub fn install_terminal_panic_hook() -> PanicHookGuard {
     let prior = std::panic::take_hook();
+    let shared = Arc::new(Mutex::new(Some(prior)));
+    let for_hook = Arc::clone(&shared);
     std::panic::set_hook(Box::new(move |info| {
-        let mut stderr = io::stderr();
+        let mut output = stderr();
         let _ = disable_raw_mode();
-        let _ = execute!(stderr, Show, LeaveAlternateScreen);
-        let _ = stderr.flush();
-        prior(info);
+        let _ = execute!(output, Show, LeaveAlternateScreen);
+        let _ = output.flush();
+        if let Ok(prior) = for_hook.lock() {
+            if let Some(hook) = prior.as_ref() {
+                hook(info);
+            }
+        }
     }));
+    let prior = shared.lock().ok().and_then(|mut value| value.take());
+    PanicHookGuard { prior, shared }
+}
+
+impl Drop for PanicHookGuard {
+    fn drop(&mut self) {
+        let _ = std::panic::take_hook();
+        if let Some(prior) = self.prior.take() {
+            std::panic::set_hook(prior);
+        }
+        if let Ok(mut shared) = self.shared.lock() {
+            shared.take();
+        }
+    }
+}
+
+/// Shared cancellation state used by the installer and renderer.
+#[derive(Clone, Default)]
+pub struct CancellationToken(Arc<AtomicBool>);
+
+impl CancellationToken {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn cancel(&self) {
+        self.0.store(true, Ordering::Release);
+    }
+    pub fn is_cancelled(&self) -> bool {
+        self.0.load(Ordering::Acquire)
+    }
 }
 
 #[cfg(test)]
@@ -68,12 +111,20 @@ mod tests {
 
     #[test]
     fn guard_idempotent_restore() {
-        // We cannot easily test alternate screen in a non-TTY test harness,
-        // but we verify idempotence by creating and dropping without panic.
-        // If stderr is not a TTY, EnterAlternateScreen may fail; that's acceptable.
         if let Ok(mut guard) = TerminalGuard::new() {
+            assert!(guard.is_active());
             guard.restore().unwrap();
-            guard.restore().unwrap(); // idempotent
+            guard.restore().unwrap();
+            assert!(!guard.is_active());
         }
+    }
+
+    #[test]
+    fn cancellation_is_shared() {
+        let token = CancellationToken::new();
+        let copy = token.clone();
+        assert!(!copy.is_cancelled());
+        token.cancel();
+        assert!(copy.is_cancelled());
     }
 }
