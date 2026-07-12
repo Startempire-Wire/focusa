@@ -26,10 +26,18 @@ try {
   $pty = [Spec132ConPtyRunner]::Run($Focusa, 'install --preflight --no-animation --quiet', 120, 40, [ref]$exit)
   if ($exit -ne 0) { throw "ConPTY preflight failed: $exit; output=$pty" }
   if ($pty -match "`e\[\?1049h|`e\[\?1049l") { throw 'plain/non-animated ConPTY path entered alternate screen' }
-  Write-Output "Focusa ConPTY exit=$exit captured-output=$pty"
-  # The terminal host emits durable plain text directly through its host
-  # stream; the fixture separately validates the redirected JSON envelope
-  # above and the captured VT stream here.
+  $normalized = $pty
+  # Remove OSC/CSI/control sequences while preserving durable text for the
+  # assertion. The raw stream remains the source for the no-alt-screen check.
+  $normalized = [regex]::Replace($normalized, "`e\][^\a]*(`a|`e\\)", '')
+  $normalized = [regex]::Replace($normalized, "`e\[[0-?]*[ -/]*[@-~]", '')
+  $normalized = $normalized -replace '[\x00-\x1F\x7F]', ''
+  $compact = $normalized -replace '\s+', ''
+  Write-Output "Focusa ConPTY exit=$exit normalized-output=$compact"
+  if ($compact -notmatch 'Focusainstallpreflight:' -or
+      $compact -notmatch 'read_only:truemutations_performed:false') {
+    throw "normalized ConPTY durable output missing preflight truth: $compact"
+  }
 
   # Timeout regression: a deliberately long-lived owned child must be
   # terminated and surfaced, never waited forever or silently accepted.
