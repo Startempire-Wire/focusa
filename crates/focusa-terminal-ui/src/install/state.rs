@@ -159,7 +159,16 @@ impl InstallState {
                 self.failure = Some(sanitize(message).into_owned());
                 self.recovery_hint = Some(sanitize(recovery_hint).into_owned());
             }
-            InstallEvent::InstallFinished { .. } | InstallEvent::AssetFinished { .. } => {}
+            InstallEvent::AssetFinished {
+                asset,
+                downloaded_bytes,
+            } => {
+                let asset = sanitize(asset).into_owned();
+                if let Some(progress) = self.assets.get_mut(&asset) {
+                    progress.downloaded_bytes = *downloaded_bytes;
+                }
+            }
+            InstallEvent::InstallFinished { .. } => {}
         }
     }
 
