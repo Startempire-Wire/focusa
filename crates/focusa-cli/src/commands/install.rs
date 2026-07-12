@@ -1454,7 +1454,13 @@ fn print_plan_human(plan: &InstallPlan) {
 fn triple_for(target: InstallTarget) -> String {
     match target {
         InstallTarget::Linux => "x86_64-unknown-linux-gnu".to_string(),
-        InstallTarget::Darwin => "aarch64-apple-darwin".to_string(),
+        InstallTarget::Darwin => {
+            if cfg!(target_arch = "x86_64") {
+                "x86_64-apple-darwin".to_string()
+            } else {
+                "aarch64-apple-darwin".to_string()
+            }
+        }
         InstallTarget::WindowsX64 => "x86_64-pc-windows-msvc".to_string(),
         InstallTarget::WindowsArm64 => "aarch64-pc-windows-msvc".to_string(),
         InstallTarget::Auto => "<auto-detect>".to_string(),
@@ -1482,7 +1488,12 @@ mod tests {
     fn triple_for_each_target_is_stable() {
         // Triples are part of the install GH release asset contract.
         assert_eq!(triple_for(InstallTarget::Linux), "x86_64-unknown-linux-gnu");
-        assert_eq!(triple_for(InstallTarget::Darwin), "aarch64-apple-darwin");
+        let expected_darwin = if cfg!(target_arch = "x86_64") {
+            "x86_64-apple-darwin"
+        } else {
+            "aarch64-apple-darwin"
+        };
+        assert_eq!(triple_for(InstallTarget::Darwin), expected_darwin);
         assert_eq!(
             triple_for(InstallTarget::WindowsX64),
             "x86_64-pc-windows-msvc"
