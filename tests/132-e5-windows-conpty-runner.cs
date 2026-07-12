@@ -15,7 +15,9 @@ public static class Spec132ConPtyRunner
     const uint PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016;
     const uint EXTENDED_STARTUPINFO_PRESENT = 0x00080000;
     const uint CREATE_UNICODE_ENVIRONMENT = 0x00000400;
-    const uint INFINITE = 0xffffffff;
+    const uint WAIT_OBJECT_0 = 0x00000000;
+    const uint WAIT_TIMEOUT = 0x00000102;
+    const uint CONPTY_TIMEOUT_MS = 60000;
 
     [DllImport("kernel32.dll", SetLastError=true)] static extern bool CreatePipe(out IntPtr read, out IntPtr write, IntPtr attrs, int size);
     [DllImport("kernel32.dll", SetLastError=true)] static extern bool CloseHandle(IntPtr handle);
@@ -26,12 +28,16 @@ public static class Spec132ConPtyRunner
     [DllImport("kernel32.dll", SetLastError=true)] static extern bool UpdateProcThreadAttribute(IntPtr list, uint flags, IntPtr attribute, IntPtr value, IntPtr size, IntPtr previous, IntPtr returnSize);
     [DllImport("kernel32.dll", SetLastError=true, CharSet=CharSet.Unicode)] static extern bool CreateProcess(string app, StringBuilder command, IntPtr pa, IntPtr ta, bool inherit, uint flags, IntPtr env, string cwd, ref STARTUPINFOEX startup, out PROCESS_INFORMATION process);
     [DllImport("kernel32.dll")] static extern uint WaitForSingleObject(IntPtr handle, uint timeout);
+    [DllImport("kernel32.dll", SetLastError=true)] static extern bool TerminateProcess(IntPtr handle, uint exitCode);
     [DllImport("kernel32.dll", SetLastError=true)] static extern bool GetExitCodeProcess(IntPtr handle, out uint code);
 
     static void Check(bool ok, string operation) { if (!ok) throw new Win32Exception(Marshal.GetLastWin32Error(), operation); }
     static void Close(IntPtr h) { if (h != IntPtr.Zero && h != new IntPtr(-1)) CloseHandle(h); }
 
     public static string Run(string executable, string arguments, int width, int height, out int exitCode)
+        => Run(executable, arguments, width, height, CONPTY_TIMEOUT_MS, out exitCode);
+
+    public static string Run(string executable, string arguments, int width, int height, uint timeoutMs, out int exitCode)
     {
         IntPtr inRead, inWrite, outRead, outWrite;
         Check(CreatePipe(out inRead, out inWrite, IntPtr.Zero, 0), "CreatePipe input");
@@ -59,7 +65,26 @@ public static class Spec132ConPtyRunner
             using (var reader = new StreamReader(stream, Encoding.UTF8))
             {
                 var task = reader.ReadToEndAsync();
-                WaitForSingleObject(pi.hProcess, INFINITE);
+                var wait = WaitForSingleObject(pi.hProcess, timeoutMs);
+                if (wait == WAIT_TIMEOUT)
+                {
+                    // Never leave a hosted runner waiting forever. Terminate
+                    // only the process created by this fixture, then tear
+                    // down the PTY so the output reader receives EOF.
+                    TerminateProcess(pi.hProcess, 0xDEAD);
+                    WaitForSingleObject(pi.hProcess, 5000);
+                    Close(inWrite); inWrite = IntPtr.Zero;
+                    ClosePseudoConsole(pty); pty = IntPtr.Zero;
+                    throw new TimeoutException("ConPTY child exceeded 60 second runtime limit");
+                }
+                if (wait != WAIT_OBJECT_0)
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "WaitForSingleObject");
+
+                // The child has exited, but ConPTY output EOF is not
+                // guaranteed until both the parent input writer and the
+                // pseudo-console are closed. Do this before draining output.
+                Close(inWrite); inWrite = IntPtr.Zero;
+                ClosePseudoConsole(pty); pty = IntPtr.Zero;
                 output.Append(task.GetAwaiter().GetResult());
             }
             Check(GetExitCodeProcess(pi.hProcess, out var code), "GetExitCodeProcess");
