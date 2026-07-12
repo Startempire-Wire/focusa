@@ -1689,7 +1689,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         "source": "per_project_trajectory_projection_v1",
         "trajectory_required": trajectory_required,
         "hlt_required": hlt_required,
-        "hlt_status": serde_json::to_value(&hlt_status).unwrap_or_default(),
+        "hlt_status": serde_json::to_value(hlt_status).unwrap_or_default(),
         "generic_bootstrap": generic_bootstrap,
         "action_authority_from_trajectory": action_authority_from_trajectory,
         "mode": query.mode.as_deref().unwrap_or("summary"),
@@ -1717,7 +1717,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         "trajectory": {
             "trajectory_id": active_trajectory_id,
             "definition_status": definition_status,
-            "hlt_status": serde_json::to_value(&hlt_status).unwrap_or_default(),
+            "hlt_status": serde_json::to_value(hlt_status).unwrap_or_default(),
             // Spec 125 §11.5: new field names.
             "allow_previous_valid_trajectory": using_prior_project_trajectory,
             "previous_valid_trajectory_fallback": using_prior_project_trajectory,
@@ -1751,7 +1751,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
                 "stg": short_term_goal.as_deref().map(|value| bounded(value, 240)),
                 "waypoints": waypoints.clone(),
                 "source_metadata": {
-                    "hlt": {"source": hlt_source, "degraded": hlt_degraded_placeholder, "hlt_status": serde_json::to_value(&hlt_status).unwrap_or_default()},
+                    "hlt": {"source": hlt_source, "degraded": hlt_degraded_placeholder, "hlt_status": serde_json::to_value(hlt_status).unwrap_or_default()},
                     "mlg": {"source": if mid_level_goal.is_some() { if persisted_mid_level_goal.is_some() { "trajectory_record" } else { "hlt_compatible_projection" } } else { "none" }, "degraded": !effective_long_term_goal_present},
                     "stg": {"source": if short_term_goal.is_some() { if persisted_short_term_goal.is_some() { "trajectory_record" } else { "hlt_compatible_projection" } } else { "none" }, "degraded": !effective_long_term_goal_present}
                 },
