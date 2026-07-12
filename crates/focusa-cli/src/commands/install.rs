@@ -790,8 +790,23 @@ async fn phase_asset_download(
     Ok(out)
 }
 
-fn redact_url(url: &str) -> String {
-    focusa_terminal_ui::sanitize::sanitize(url).into_owned()
+fn redact_url(raw: &str) -> String {
+    // Error paths may include a credentialed fixture URL. Redact userinfo and
+    // query credentials before it reaches either a presenter or durable log.
+    if let Ok(mut url) = reqwest::Url::parse(raw) {
+        let _ = url.set_username("");
+        let _ = url.set_password(None);
+        for key in ["token", "api_key", "apikey", "secret", "password"] {
+            let pairs = url
+                .query_pairs()
+                .filter(|(name, _)| name != key)
+                .map(|(name, value)| (name.into_owned(), value.into_owned()))
+                .collect::<Vec<_>>();
+            url.query_pairs_mut().clear().extend_pairs(pairs);
+        }
+        return url.to_string();
+    }
+    focusa_terminal_ui::sanitize::sanitize(raw).into_owned()
 }
 
 #[cfg(unix)]
@@ -937,6 +952,13 @@ async fn stream_asset_to_staged(
         }
         file.flush()
             .with_context(|| format!("flush staged download for {label}"))?;
+        if let Some(total_bytes) = total_bytes {
+            if downloaded_bytes != total_bytes {
+                bail!(
+                    "content-length mismatch for {label}: received {downloaded_bytes}, expected {total_bytes}"
+                );
+            }
+        }
         Ok::<(), anyhow::Error>(())
     }
     .await;
