@@ -1076,7 +1076,9 @@ async fn main() -> anyhow::Result<()> {
                     "details": { "raw_error": error_message },
                 }))?
             );
-            return Ok(());
+            // Machine-readable errors must retain a failing process status. A JSON
+            // envelope is not a successful install/preflight result.
+            std::process::exit(1);
         }
         return Err(err);
     }

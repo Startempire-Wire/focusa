@@ -9,7 +9,9 @@ pub mod install;
 pub mod sanitize;
 pub mod terminal_guard;
 
-pub use capabilities::{detect_capabilities, InstallRendererMode, TerminalCapabilities};
+pub use capabilities::{
+    detect_capabilities, validate_environment, InstallRendererMode, TerminalCapabilities,
+};
 pub use install::completion::InstallCompletionSummary;
 pub use install::event::{AssetProgress, InstallEvent, InstallEventSink, InstallPhase};
 pub use install::presenter::{
