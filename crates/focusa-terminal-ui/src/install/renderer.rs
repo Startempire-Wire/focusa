@@ -10,6 +10,7 @@ use super::{
     palette::{Ansi256Palette, MonochromePalette, TrueColorPalette},
     state::{InstallState, PhaseStatus},
 };
+use crate::sanitize::sanitize;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout as RLayout, Rect},
     style::{Color, Style},
@@ -117,6 +118,33 @@ impl HybridRenderer {
             chunks[0],
         );
         self.render_art(frame, layout.art, state, mode, bg, accent, muted);
+        let bottom = RLayout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(3), Constraint::Length(3)])
+            .split(chunks[2]);
+        let asset_line = state
+            .assets
+            .values()
+            .min_by(|left, right| left.asset.cmp(&right.asset))
+            .map(|progress| {
+                let progress_text = match progress.total_bytes {
+                    Some(total) if total > 0 => format!(
+                        "{} / {} bytes ({:.1}%)",
+                        progress.downloaded_bytes,
+                        total,
+                        progress.downloaded_bytes as f64 / total as f64 * 100.0
+                    ),
+                    _ => format!("{} bytes (indeterminate)", progress.downloaded_bytes),
+                };
+                format!("asset: {} · {}", sanitize(&progress.asset), progress_text)
+            })
+            .unwrap_or_else(|| format!("phase: {}", sanitize(&state.current_message)));
+        frame.render_widget(
+            Paragraph::new(asset_line)
+                .style(Style::default().fg(muted))
+                .block(Block::default().borders(Borders::TOP).title("current")),
+            bottom[0],
+        );
         let pct = (state.phase_completion * 100.0).clamp(0.0, 100.0);
         frame.render_widget(
             Gauge::default()
@@ -127,7 +155,7 @@ impl HybridRenderer {
                 )
                 .gauge_style(Style::default().fg(accent))
                 .percent(pct as u16),
-            chunks[2],
+            bottom[1],
         );
         if layout.rail.width > 0 {
             let rows = state.phases.iter().map(|(p, s)| {
