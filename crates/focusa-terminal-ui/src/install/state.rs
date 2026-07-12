@@ -143,8 +143,21 @@ impl InstallState {
     }
 
     /// Update asset progress.
-    pub fn update_asset(&mut self, asset: String, progress: AssetProgress) {
+    /// Record byte progress without allowing visual regressions or total changes.
+    pub fn update_asset(&mut self, asset: String, progress: AssetProgress) -> bool {
+        if let Some(previous) = self.assets.get(&asset) {
+            if progress.downloaded_bytes < previous.downloaded_bytes {
+                return false;
+            }
+            if previous.total_bytes.is_some()
+                && progress.total_bytes.is_some()
+                && previous.total_bytes != progress.total_bytes
+            {
+                return false;
+            }
+        }
         self.assets.insert(asset, progress);
+        true
     }
 
     fn recompute_completion(&mut self) {
@@ -200,8 +213,8 @@ mod tests {
 
     #[test]
     fn illegal_regression_rejected() {
-        // Once failed, we do not silently auto-succeed.
         let mut s = InstallState::default();
+        s.set_active(InstallPhase::DownloadAssets);
         s.set_failed(
             InstallPhase::DownloadAssets,
             "network error".into(),
@@ -216,5 +229,34 @@ mod tests {
             .find(|(p, _)| *p == InstallPhase::DownloadAssets)
             .unwrap();
         assert_eq!(*st, PhaseStatus::Succeeded);
+    }
+
+    #[test]
+    fn asset_progress_is_monotonic() {
+        let mut state = InstallState::default();
+        assert!(state.update_asset(
+            "cli".into(),
+            AssetProgress {
+                asset: "cli".into(),
+                downloaded_bytes: 10,
+                total_bytes: Some(20)
+            }
+        ));
+        assert!(!state.update_asset(
+            "cli".into(),
+            AssetProgress {
+                asset: "cli".into(),
+                downloaded_bytes: 9,
+                total_bytes: Some(20)
+            }
+        ));
+        assert!(state.update_asset(
+            "cli".into(),
+            AssetProgress {
+                asset: "cli".into(),
+                downloaded_bytes: 20,
+                total_bytes: Some(20)
+            }
+        ));
     }
 }
