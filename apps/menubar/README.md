@@ -9,6 +9,10 @@ shows live focus, workpoint, and trajectory state from a paired Focusa daemon.
 - OAuth-like device pairing with the Focusa daemon (CLI / QR + phone / QR + VPS)
 - HTTP/WebSocket binding to a paired daemon over loopback or Tailscale
 
+### macOS incoming-network prompt
+
+The phone-bridge LAN callback is disabled by default. Pairing uses bounded room-status polling, so a normal install does not need to accept incoming network connections. Operators who explicitly want the optional low-latency LAN callback may launch with `FOCUSA_PHONE_BRIDGE_LAN_CALLBACK=1`; macOS will then show its expected firewall prompt because Focusa binds a temporary LAN listener for at most 30 seconds.
+
 ## Tracked testing work (NOT launch-ready)
 
 - Native macOS `.app` lifecycle (launchd persistence, restart, screenshot/log capture)

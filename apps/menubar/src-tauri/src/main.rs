@@ -176,9 +176,16 @@ fn body_bytes_are_valid_json(body: &str) -> bool {
 }
 
 #[tauri::command]
-fn focusa_start_bridge_callback(nonce: String) -> Result<String, String> {
+fn focusa_start_bridge_callback(nonce: String) -> Result<Option<String>, String> {
     if nonce.trim().is_empty() {
         return Err("nonce is required".to_string());
+    }
+    // The LAN callback binds 0.0.0.0 and therefore triggers macOS's
+    // "accept incoming network connections" prompt. Pairing already polls
+    // room status, so keep that prompt-free path as the safe default.
+    // Operators who need the low-latency LAN bridge can opt in explicitly.
+    if std::env::var("FOCUSA_PHONE_BRIDGE_LAN_CALLBACK").as_deref() != Ok("1") {
+        return Ok(None);
     }
     if let Ok(mut listeners) = bridge_listeners().lock() {
         if listeners.contains(&nonce) {
@@ -242,7 +249,7 @@ fn focusa_start_bridge_callback(nonce: String) -> Result<String, String> {
             }
         }
     });
-    Ok(callback_url)
+    Ok(Some(callback_url))
 }
 
 #[tauri::command]

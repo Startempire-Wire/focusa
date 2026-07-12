@@ -9,7 +9,7 @@ Usage:
 
 Rules:
   - --evidence is mandatory
-  - evidence must include at least one concrete reference (tests/, docs/, crates/, /v1/, or http)
+  - evidence must include at least one concrete reference (apps/, scripts/, tests/, docs/, crates/, .github/, /v1/, or http)
   - wrapper appends "Evidence citations: ..." to issue notes before closing
 EOF
 }
@@ -64,12 +64,19 @@ if [ -z "$evidence" ]; then
   exit 1
 fi
 
-if ! printf '%s' "$evidence" | grep -Eiq 'tests/|docs/|crates/|/v1/|http'; then
-  echo "--evidence must include concrete refs (tests/, docs/, crates/, /v1/, or http)" >&2
+if ! printf '%s' "$evidence" | grep -Eiq 'apps/|scripts/|tests/|docs/|crates/|\.github/|/v1/|http'; then
+  echo "--evidence must include concrete refs (apps/, scripts/, tests/, docs/, crates/, .github/, /v1/, or http)" >&2
   exit 1
 fi
 
 for id in "${issue_ids[@]}"; do
-  bd update "$id" --append-notes "Evidence citations: $evidence"
+  existing_notes="$(bd show "$id" --json | jq -r '.[0].notes // ""')"
+  evidence_note="Evidence citations: $evidence"
+  if [ -n "$existing_notes" ]; then
+    updated_notes="${existing_notes}"$'\n'"${evidence_note}"
+  else
+    updated_notes="$evidence_note"
+  fi
+  bd update "$id" --notes "$updated_notes"
   bd close "$id" --reason "$reason"
 done

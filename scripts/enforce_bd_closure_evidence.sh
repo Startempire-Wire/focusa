@@ -17,7 +17,7 @@ missing=$(jq -r --arg cutoff "$CUTOFF_DATE" '
   | . as $i
   | (($i.close_reason // "") + "\n" + ($i.notes // "")) as $txt
   | ( ($txt | test("Evidence citations:"; "i")) and
-      ($txt | test("tests/|docs/|crates/|/v1/|http"; "i")) ) as $ok
+      ($txt | test("apps/|scripts/|tests/|docs/|crates/|\\.github/|/v1/|http"; "i")) ) as $ok
   | select($ok | not)
   | [.id, ($i.closed_at // $i.updated_at // ""), (($i.close_reason // "") | gsub("\n"; " "))] | @tsv
 ' "$ISSUES_FILE")
@@ -31,7 +31,7 @@ if [ -n "$missing" ]; then
     fi
   done
   echo "[bd-evidence] Required format in close_reason or notes:" >&2
-  echo "  Evidence citations: tests/... ; docs/... ; crates/... ; /v1/..." >&2
+  echo "  Evidence citations: apps/... ; scripts/... ; tests/... ; docs/... ; crates/... ; .github/... ; /v1/..." >&2
   exit 1
 fi
 
