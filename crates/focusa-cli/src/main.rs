@@ -470,8 +470,22 @@ fn classify_cli_error(message: &str) -> (&'static str, &'static str, &'static st
     }
 }
 
+fn main() -> anyhow::Result<()> {
+    // Clap's deeply nested command tree and Tokio initialization can exceed
+    // the Windows process-main stack (0xC00000FD) before the command runs.
+    // Parse and execute on an explicitly sized worker stack on every host so
+    // Windows preflight has the same runtime behavior as Unix.
+    std::thread::Builder::new()
+        .name("focusa-main".into())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(|| async_main())
+        .map_err(|error| anyhow::anyhow!("start Focusa main worker: {error}"))?
+        .join()
+        .map_err(|_| anyhow::anyhow!("Focusa main worker panicked"))?
+}
+
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn async_main() -> anyhow::Result<()> {
     let raw_args: Vec<String> = std::env::args().collect();
     // Handle -v (lowercase) as version before clap parsing.
     // Clap 4 auto-assigns -V for version but not -v.
