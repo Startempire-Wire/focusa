@@ -642,6 +642,16 @@ fn release_tag(channel: Channel) -> String {
     }
 }
 
+fn release_asset_url(repo: &str, tag: &str, name: &str) -> String {
+    if let Ok(base) = std::env::var("FOCUSA_RELEASE_BASE_URL") {
+        let base = base.trim().trim_end_matches('/');
+        if !base.is_empty() {
+            return format!("{base}/{name}");
+        }
+    }
+    format!("https://github.com/{repo}/releases/download/{tag}/{name}")
+}
+
 // ----- Phase 2: Asset download (focusa-112-asset-download) -----
 async fn phase_asset_download(
     target: InstallTarget,
@@ -659,20 +669,25 @@ async fn phase_asset_download(
         .timeout(std::time::Duration::from_secs(15))
         .build()
         .map_err(|e| anyhow!("github client build failed: {e}"))?;
-    // Fetch release manifest
-    let release: serde_json::Value = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| anyhow!("github release GET failed: {e}"))?
-        .json()
-        .await
-        .map_err(|e| anyhow!("github release response not JSON: {e}"))?;
-    let tag_name = release
-        .get("tag_name")
-        .and_then(|v| v.as_str())
-        .unwrap_or(&tag)
-        .to_string();
+    // A local release fixture bypasses GitHub manifest discovery while preserving
+    // the exact production asset naming contract.
+    let tag_name = if std::env::var("FOCUSA_RELEASE_BASE_URL").is_ok() {
+        tag.clone()
+    } else {
+        let release: serde_json::Value = client
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| anyhow!("github release GET failed: {e}"))?
+            .json()
+            .await
+            .map_err(|e| anyhow!("github release response not JSON: {e}"))?;
+        release
+            .get("tag_name")
+            .and_then(|v| v.as_str())
+            .unwrap_or(&tag)
+            .to_string()
+    };
 
     let mut out = Vec::new();
     for asset_name in assets {
@@ -680,8 +695,7 @@ async fn phase_asset_download(
         let install_path = install_root_for(target).join("bin").join(asset_name);
         std::fs::create_dir_all(install_path.parent().expect("bin parent"))?;
         let staged = install_path.with_extension("download");
-        let asset_url =
-            format!("https://github.com/{repo}/releases/download/{tag_name}/{expected}");
+        let asset_url = release_asset_url(repo, &tag_name, &expected);
         let bytes = client
             .get(&asset_url)
             .send()
@@ -722,7 +736,7 @@ async fn phase_agent_context_download(
     std::fs::create_dir_all(&share)?;
     let install_path = share.join(&name);
     let staged = install_path.with_extension("download");
-    let url = format!("https://github.com/{repo}/releases/download/{tag}/{name}");
+    let url = release_asset_url(repo, &tag, &name);
     let client = reqwest::Client::builder()
         .user_agent("focusa-install/agent-context")
         .timeout(std::time::Duration::from_secs(15))
@@ -835,10 +849,10 @@ async fn verify_checksum(asset: &InstalledAsset) -> Result<()> {
     // Per Spec 112 §5.1: download SHA256SUMS, parse, verify asset.
     // When the GitHub release doesn't have SHA256SUMS (some previews don't),
     // we surface a recovery_hint but don't fail.
-    let sha256sums_url = format!(
-        "https://github.com/Startempire-Wire/focusa/releases/download/{tag}/{file}",
-        tag = asset.version,
-        file = "SHA256SUMS.txt",
+    let sha256sums_url = release_asset_url(
+        "Startempire-Wire/focusa",
+        &asset.version,
+        "SHA256SUMS.txt",
     );
     let client = reqwest::Client::builder()
         .user_agent("focusa-install/0.9.54-dev")

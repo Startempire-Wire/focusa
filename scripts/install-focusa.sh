@@ -65,6 +65,9 @@ LICENSE_AUTHORITY_FILE="${LICENSE_DIR}/license_authority.json"
 LICENSE_RECEIPT_FILE="${LICENSE_DIR}/license_receipt.json"
 INSTALL_LOG_FILE="${STATE_DIR}/installs.jsonl"
 MAX_CANDIDATES="${MAX_CANDIDATES:-20}"
+# Optional local release fixture used by installer lifecycle tests.
+# Production remains on GitHub when this is unset.
+RELEASE_BASE_URL="${FOCUSA_RELEASE_BASE_URL:-}"
 
 # Preserve pre-existing installations/configuration. The bootstrapper may
 # create these paths before handing off to Rust; on a failed clean install
@@ -378,9 +381,11 @@ trap cleanup_bootstrap_failure EXIT
 # ----------------------------------------------------------------------------
 log "fetching release list (channel=${CHANNEL} target=${TARGET})"
 RELEASES_FILE="$TMP/releases.json"
-curl -fsSL "https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=${MAX_CANDIDATES}" \
-  -o "$RELEASES_FILE" \
-  || die "failed to fetch release list from GitHub"
+if [ -z "$RELEASE_BASE_URL" ]; then
+  curl -fsSL "https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=${MAX_CANDIDATES}" \
+    -o "$RELEASES_FILE" \
+    || die "failed to fetch release list from GitHub"
+fi
 
 pick_complete_release() {
   python3 - "$RELEASES_FILE" "$TAG_PATTERN" "$TARGET" "$MAX_CANDIDATES" <<'PY'
@@ -415,7 +420,11 @@ for rel in data:
 PY
 }
 
-SELECTED="$(pick_complete_release)"
+if [ -n "$RELEASE_BASE_URL" ] && [ -n "${FOCUSA_RELEASE_TAG:-}" ]; then
+  SELECTED="${FOCUSA_RELEASE_TAG}"$'\t'"${RELEASE_BASE_URL%/}/focusa-${FOCUSA_RELEASE_TAG}-${TARGET}"
+else
+  SELECTED="$(pick_complete_release)"
+fi
 if [ -z "$SELECTED" ]; then
   err "no complete release for channel='${CHANNEL}' target='${TARGET}'"
   err "recovery_hint: a complete release ships focusa + focusa-daemon + focusa-tui for ${TARGET}."
@@ -577,9 +586,18 @@ chmod +x "$TMP/focusa"
 # Verify SHA256SUMS if available. Prefer cosign-signed manifest, fall back
 # to plain SHA256SUMS, fall back to skip-with-warning.
 # ----------------------------------------------------------------------------
+release_asset_url() {
+  local name="$1"
+  if [ -n "$RELEASE_BASE_URL" ]; then
+    printf '%s/%s' "${RELEASE_BASE_URL%/}" "$name"
+  else
+    printf 'https://github.com/%s/releases/download/%s/%s' "$GITHUB_REPO" "$RELEASE_TAG" "$name"
+  fi
+}
+
 CHECKSUM_MANIFEST=""
 for sha_path in SHA256SUMS.txt SHA256SUMS; do
-  if curl -fsSL "https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}/${sha_path}" \
+  if curl -fsSL "$(release_asset_url "$sha_path")" \
        -o "$TMP/$sha_path" 2>/dev/null; then
     CHECKSUM_MANIFEST="$TMP/$sha_path"
     break
@@ -596,8 +614,8 @@ verify_signature() {
   local base sig cert
   base="$(basename "$manifest")"
   sig="$TMP/${base}.sig"; cert="$TMP/${base}.pem"
-  if curl -fsSL "https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}/${base}.sig" -o "$sig" 2>/dev/null \
-     && curl -fsSL "https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}/${base}.pem" -o "$cert" 2>/dev/null; then
+  if curl -fsSL "$(release_asset_url "${base}.sig")" -o "$sig" 2>/dev/null \
+     && curl -fsSL "$(release_asset_url "${base}.pem")" -o "$cert" 2>/dev/null; then
     # GitHub release assets store cosign sig/pem as base64. Decode for cosign v3 compatibility.
     if python3 -c "
 import base64, sys
@@ -738,7 +756,9 @@ install_pi_extension() {
     log "DRY RUN: would verify and atomically install Focusa Pi extension to $PI_DEST"
   elif ! command -v npm >/dev/null 2>&1; then
     warn "Pi detected but npm is unavailable; existing Pi extension left unchanged"
-  elif ! curl -fsSL "https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}/${PI_ARCHIVE}" -o "$PI_ARCHIVE_PATH"; then
+  else
+    PI_DOWNLOAD_BASE="${FOCUSA_RELEASE_BASE_URL:-https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}}"
+    if ! curl -fsSL "${PI_DOWNLOAD_BASE%/}/${PI_ARCHIVE}" -o "$PI_ARCHIVE_PATH"; then
     warn "Pi detected but matching extension archive is unavailable; existing Pi extension left unchanged"
   else
     PI_EXPECTED=""
@@ -777,6 +797,7 @@ install_pi_extension() {
       fi
     fi
   fi
+  fi
 }
 # END PI_EXTENSION_INSTALL_FUNCTION
 
@@ -800,6 +821,7 @@ ARGS=(install --target="$RUST_TARGET" --github-repo="$GITHUB_REPO")
 # Bind the Rust orchestrator to the exact release selected and verified above.
 # Without this, the embedded channel default can drift from the bootstrapper.
 export FOCUSA_RELEASE_TAG="$RELEASE_TAG"
+[ -z "$RELEASE_BASE_URL" ] || export FOCUSA_RELEASE_BASE_URL="$RELEASE_BASE_URL"
 # Run rather than exec so an orchestrator failure reaches the EXIT trap.
 # The trap removes only clean-state paths created by this bootstrapper.
 if "$BIN_DIR/focusa" "${ARGS[@]}"; then
