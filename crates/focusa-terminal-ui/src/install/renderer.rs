@@ -397,3 +397,21 @@ impl AnimatedRenderLoop {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::HybridRenderer;
+
+    #[test]
+    fn completion_hold_is_bounded() {
+        assert!(HybridRenderer::completion_hold_ms() <= 700);
+    }
+
+    #[test]
+    fn fixed_seed_starts_deterministically() {
+        let left = HybridRenderer::new(132);
+        let right = HybridRenderer::new(132);
+        assert_eq!(left.seed, right.seed);
+        assert_eq!(left.tick, right.tick);
+    }
+}
