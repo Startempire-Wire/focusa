@@ -16,8 +16,8 @@ pub use capabilities::{
 pub use install::completion::InstallCompletionSummary;
 pub use install::event::{AssetProgress, InstallEvent, InstallEventSink, InstallPhase};
 pub use install::presenter::{
-    AnimatedPresenter, AnimatedPresenterState, MonochromeAnimatedPresenter, PlainPresenter,
-    Presenter, ReducedMotionPresenter, SilentPresenter,
+    presenter_for_mode, AnimatedPresenter, AnimatedPresenterState, MonochromeAnimatedPresenter,
+    PlainPresenter, Presenter, ReducedMotionPresenter, SilentPresenter,
 };
 pub use install::state::InstallState;
 pub use sanitize::sanitize;

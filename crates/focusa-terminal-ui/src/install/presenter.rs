@@ -6,6 +6,7 @@
 use super::completion::InstallCompletionSummary;
 use super::event::{AssetProgress, InstallEvent, InstallPhase};
 use super::state::{InstallState, PhaseStatus};
+use crate::capabilities::InstallRendererMode;
 use crate::sanitize::sanitize;
 use std::sync::{Arc, Mutex};
 
@@ -19,6 +20,25 @@ pub trait Presenter: Send {
     fn render_final_summary(&self, summary: &InstallCompletionSummary);
     /// Render a durable error after terminal restoration.
     fn render_error(&self, phase: InstallPhase, message: &str, recovery_hint: Option<&str>);
+}
+
+/// Select the presenter once for an install run. Installation code can emit
+/// neutral events without branching on visual state.
+pub fn presenter_for_mode(
+    mode: InstallRendererMode,
+    shared: Arc<AnimatedPresenterState>,
+    quiet: bool,
+) -> Box<dyn Presenter> {
+    match mode {
+        InstallRendererMode::TrueColorAnimated => Box::new(AnimatedPresenter::new(shared)),
+        InstallRendererMode::Ansi256Animated => Box::new(AnimatedPresenter::new(shared)),
+        InstallRendererMode::MonochromeAnimated => {
+            Box::new(MonochromeAnimatedPresenter::new(shared))
+        }
+        InstallRendererMode::ReducedMotion => Box::new(ReducedMotionPresenter::new(shared)),
+        InstallRendererMode::Plain => Box::new(PlainPresenter::new(quiet)),
+        InstallRendererMode::Silent => Box::new(SilentPresenter),
+    }
 }
 
 /// Plain text presenter: prints phase lines directly to stderr/stdout.

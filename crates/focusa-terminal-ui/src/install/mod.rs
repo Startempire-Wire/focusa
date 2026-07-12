@@ -21,7 +21,7 @@ pub use layout::{Layout, LayoutKind};
 pub use matrix_rain::MatrixRain;
 pub use palette::{Ansi256Palette, MonochromePalette, TrueColorPalette};
 pub use presenter::{
-    AnimatedPresenter, MonochromeAnimatedPresenter, PlainPresenter, Presenter,
+    presenter_for_mode, AnimatedPresenter, MonochromeAnimatedPresenter, PlainPresenter, Presenter,
     ReducedMotionPresenter, SilentPresenter,
 };
 pub use renderer::HybridRenderer;
