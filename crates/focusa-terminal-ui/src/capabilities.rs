@@ -64,6 +64,31 @@ pub enum ColorDepth {
     Monochrome,
 }
 
+/// Validate installer UI controls before any installer mutation.
+pub fn validate_environment() -> Result<(), String> {
+    if let Ok(value) = std::env::var("FOCUSA_INSTALL_UI") {
+        if !matches!(
+            value.as_str(),
+            "auto" | "full" | "mono" | "reduced" | "plain"
+        ) {
+            return Err(format!(
+                "invalid FOCUSA_INSTALL_UI={value:?}; use auto|full|mono|reduced|plain"
+            ));
+        }
+    }
+    if let Ok(value) = std::env::var("FOCUSA_INSTALL_SEED") {
+        value
+            .parse::<u64>()
+            .map_err(|_| "FOCUSA_INSTALL_SEED must be an unsigned 64-bit integer".to_string())?;
+    }
+    if let Ok(value) = std::env::var("FOCUSA_REDUCE_MOTION") {
+        if !matches!(value.as_str(), "0" | "1") {
+            return Err("FOCUSA_REDUCE_MOTION must be 0 or 1".to_string());
+        }
+    }
+    Ok(())
+}
+
 /// Detect capabilities from the current environment.
 pub fn detect_capabilities(no_animation: bool, json: bool, quiet: bool) -> TerminalCapabilities {
     let stderr_term = std::io::stderr().is_terminal();
@@ -71,8 +96,7 @@ pub fn detect_capabilities(no_animation: bool, json: bool, quiet: bool) -> Termi
     let ci = std::env::var_os("CI").is_some();
     let no_color = std::env::var_os("NO_COLOR").is_some();
     let reduced_motion_env = std::env::var("FOCUSA_REDUCE_MOTION")
-        .or_else(|_| std::env::var("REDUCE_MOTION"))
-        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .map(|v| v == "1")
         .unwrap_or(false);
 
     let (cols, rows) = crossterm::terminal::size().unwrap_or((80, 24));

@@ -16,9 +16,9 @@
 //! The shell installers become thin bootstrappers that download `focusa` and
 //! `exec focusa install --target=<detected>`. See docs §15A.
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use clap::Args;
-use focusa_terminal_ui::{detect_capabilities, InstallRendererMode};
+use focusa_terminal_ui::{InstallRendererMode, detect_capabilities, validate_environment};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
@@ -490,6 +490,7 @@ pub struct AssetPlan {
 }
 
 pub async fn run(args: InstallArgs) -> Result<()> {
+    validate_environment().map_err(|error| anyhow!(error))?;
     let target = resolve_target(args.target)?;
     let channel = args.channel;
     let dry_run = args.dry_run;
@@ -547,7 +548,11 @@ pub async fn run(args: InstallArgs) -> Result<()> {
 
     // Success is reported only after the installed binary smoke test and stash cleanup.
     if !args.json {
-        println!("\n✓ Installed assets to {}\n  atomicity: stashed={}, smoke-test OK\n  walkthrough: 6 next steps below\n", install_root.display(), stashed);
+        println!(
+            "\n✓ Installed assets to {}\n  atomicity: stashed={}, smoke-test OK\n  walkthrough: 6 next steps below\n",
+            install_root.display(),
+            stashed
+        );
         print_walkthrough_human(&result.walkthrough);
     } else {
         let report = serde_json::json!({
@@ -581,7 +586,7 @@ pub async fn run(args: InstallArgs) -> Result<()> {
 
 // ----- Phase 1: License re-validation (focusa-112-license-revalidate) -----
 async fn phase_license(args: &InstallArgs) -> Result<String> {
-    use crate::commands::license::{registry_validate, RegistryValidateOutcome};
+    use crate::commands::license::{RegistryValidateOutcome, registry_validate};
     if args.eval {
         return Ok("eval".to_string());
     }
@@ -1565,15 +1570,17 @@ mod tests {
         .unwrap();
         assert_eq!(plan.assets_planned.len(), 4);
         assert!(plan.assets_planned.iter().any(|a| a.name == "focusa"));
-        assert!(plan
-            .assets_planned
-            .iter()
-            .any(|a| a.name == "focusa-daemon"));
+        assert!(
+            plan.assets_planned
+                .iter()
+                .any(|a| a.name == "focusa-daemon")
+        );
         assert!(plan.assets_planned.iter().any(|a| a.name == "focusa-tui"));
-        assert!(plan
-            .assets_planned
-            .iter()
-            .any(|a| a.name == "focusa-agent-context" && a.triple == "all"));
+        assert!(
+            plan.assets_planned
+                .iter()
+                .any(|a| a.name == "focusa-agent-context" && a.triple == "all")
+        );
         assert_eq!(plan.license_mode, "missing");
     }
 
