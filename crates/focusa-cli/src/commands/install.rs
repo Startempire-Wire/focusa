@@ -18,6 +18,7 @@
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::Args;
+use focusa_terminal_ui::install::completion::InstallCompletionSummary;
 use focusa_terminal_ui::install::event::NullEventSink;
 use focusa_terminal_ui::{
     detect_capabilities, install_signal_handlers, validate_environment, CancellationToken,
@@ -635,6 +636,11 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         };
     let bin_dir = install_root.join("bin");
     if let Err(e) = phase_smoke_test(&bin_dir).await {
+        sink.emit(InstallEvent::PhaseFailed {
+            phase: InstallPhase::RunHealthChecks,
+            message: "Installed focusa --version smoke test failed".into(),
+            recovery_hint: Some(e.to_string()),
+        });
         if stashed {
             phase_atomic_rollback(&install_root, &stash_path).ok();
         }
@@ -650,16 +656,58 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         write_verified_version_marker(&install_root, version)?;
     }
     if stashed {
-        phase_atomic_cleanup(&stash_path).ok();
+        if let Err(error) = phase_atomic_cleanup(&stash_path) {
+            phase_atomic_rollback(&install_root, &stash_path).ok();
+            return Err(error)
+                .context("failed to remove prior installation stash after smoke test");
+        }
     }
 
-    // Success is reported only after the installed binary smoke test and stash cleanup.
+    // The completion event is deliberately after both the installed CLI smoke
+    // test and stash cleanup. The transient renderer consumes this event and
+    // restores its terminal before durable output begins.
+    let version = result
+        .assets
+        .first()
+        .map(|asset| asset.version.clone())
+        .unwrap_or_else(|| "unknown".into());
+    let summary = InstallCompletionSummary {
+        version: version.clone(),
+        target: format!("{:?}", target),
+        channel: format!("{:?}", channel),
+        install_root: install_root.display().to_string(),
+        cli_path: bin_dir.join("focusa").display().to_string(),
+        daemon_path: bin_dir.join("focusa-daemon").display().to_string(),
+        daemon_health: "smoke-test pending separate daemon health check".into(),
+        tui_path: bin_dir.join("focusa-tui").display().to_string(),
+        service_status: if args.no_service {
+            "skipped"
+        } else {
+            "registered"
+        }
+        .into(),
+        path_status: "evaluated".into(),
+        pi_status: "reported by phase events".into(),
+        integrity_status: "verified".into(),
+        atomicity_status: if stashed {
+            "prior install replaced and stash cleared".into()
+        } else {
+            "fresh install".into()
+        },
+        warnings: Vec::new(),
+    };
+    sink.emit(InstallEvent::PhaseSucceeded {
+        phase: InstallPhase::Complete,
+        detail: Some("Smoke test passed and stash cleanup completed".into()),
+    });
+    sink.emit(InstallEvent::InstallFinished {
+        summary: summary.clone(),
+    });
+
+    // The renderer has restored the transient UI before this single durable
+    // human summary or single JSON document is written.
     if !args.json {
-        println!(
-            "\n✓ Installed assets to {}\n  atomicity: stashed={}, smoke-test OK\n  walkthrough: 6 next steps below\n",
-            install_root.display(),
-            stashed
-        );
+        println!("{}", summary.render_human());
         print_walkthrough_human(&result.walkthrough);
     } else {
         let report = serde_json::json!({
