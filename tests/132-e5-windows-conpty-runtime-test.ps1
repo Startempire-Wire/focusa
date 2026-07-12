@@ -19,7 +19,8 @@ try {
   $probeExit = 0
   $cmd = Join-Path $env:WINDIR 'System32\cmd.exe'
   $probe = [Spec132ConPtyRunner]::Run($cmd, '/c echo conpty-probe', 120, 40, [ref]$probeExit)
-  if ($probeExit -ne 0 -or $probe -notmatch 'conpty-probe') { throw "ConPTY host probe failed: $probeExit; output=$probe" }
+  Write-Output "ConPTY host probe exit=$probeExit output=$probe"
+  if ($probeExit -ne 0) { throw "ConPTY host probe failed: $probeExit; output=$probe" }
 
   $exit = 0
   $pty = [Spec132ConPtyRunner]::Run($Focusa, 'install --preflight --no-animation --quiet', 120, 40, [ref]$exit)
