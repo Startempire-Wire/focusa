@@ -46,7 +46,15 @@ impl GlowBase {
         }
         if active {
             let bright = pulse.clamp(0.55, 1.0);
-            if row == 0 || distance < 0.35 {
+            if row > self.rows / 2 && distance > 0.55 {
+                // Restrained violet/magenta reflections sit beneath the
+                // cyan/electric-blue infrastructure layers.
+                if distance > 0.8 {
+                    Color::Magenta
+                } else {
+                    Color::Rgb(138, 92, 255)
+                }
+            } else if row == 0 || distance < 0.35 {
                 if bright > 0.82 {
                     Color::Cyan
                 } else {
