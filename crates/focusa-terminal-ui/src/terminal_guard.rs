@@ -61,9 +61,11 @@ impl Drop for TerminalGuard {
 }
 
 /// Scoped panic hook. Dropping it restores the hook that was installed before it.
+type PanicHook = Box<dyn Fn(&std::panic::PanicHookInfo<'_>) + Send + Sync + 'static>;
+
 pub struct PanicHookGuard {
-    prior: Option<Box<dyn Fn(&std::panic::PanicHookInfo<'_>) + Send + Sync + 'static>>,
-    shared: Arc<Mutex<Option<Box<dyn Fn(&std::panic::PanicHookInfo<'_>) + Send + Sync + 'static>>>>,
+    prior: Option<PanicHook>,
+    shared: Arc<Mutex<Option<PanicHook>>>,
 }
 
 pub fn install_terminal_panic_hook() -> PanicHookGuard {
@@ -103,8 +105,8 @@ pub struct SignalGuard {
 }
 
 pub fn install_signal_handlers(token: &CancellationToken) -> io::Result<SignalGuard> {
-    let mut ids = Vec::new();
-    ids.push(signal_hook::flag::register(SIGINT, token.0.clone()).map_err(io::Error::other)?);
+    let mut ids =
+        vec![signal_hook::flag::register(SIGINT, token.0.clone()).map_err(io::Error::other)?];
     #[cfg(unix)]
     ids.push(signal_hook::flag::register(SIGTERM, token.0.clone()).map_err(io::Error::other)?);
     Ok(SignalGuard { ids })

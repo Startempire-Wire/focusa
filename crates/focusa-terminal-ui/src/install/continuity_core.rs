@@ -40,7 +40,7 @@ impl ContinuityCore {
                 let dist = (dx * dx + dy * dy).sqrt();
 
                 // Ring shape: between radius 7 and 12
-                let in_ring = dist >= 7.0 && dist <= 12.0;
+                let in_ring = (7.0..=12.0).contains(&dist);
                 let in_core = dist < 7.0;
 
                 if in_ring {
@@ -133,7 +133,7 @@ impl ContinuityCore {
         for x in 0..32u16 {
             let canvas_x = origin_x + x;
             let canvas_y = origin_y + y;
-            if scan_t >= 0.0 && scan_t <= 1.0 {
+            if (0.0..=1.0).contains(&scan_t) {
                 let scan_x = (scan_t * 32.0) as u16;
                 if x == scan_x || x.saturating_add(1) == scan_x {
                     if let Some(p) = canvas.get(canvas_x, canvas_y) {
@@ -250,7 +250,7 @@ mod tests {
                 let dx = x as f32 - CORE_CENTER.0;
                 let dy = y as f32 - CORE_CENTER.1;
                 let d = (dx * dx + dy * dy).sqrt();
-                d >= 7.0 && d <= 12.0
+                (7.0..=12.0).contains(&d)
             })
             .collect();
         // With assembly=0, ring cells are dispersed; fewer ring pixels should be present

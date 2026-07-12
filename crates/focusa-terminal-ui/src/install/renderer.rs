@@ -189,6 +189,7 @@ impl HybridRenderer {
             );
         }
     }
+    #[allow(clippy::too_many_arguments)]
     fn render_art(
         &mut self,
         frame: &mut Frame<'_>,

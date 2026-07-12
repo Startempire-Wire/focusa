@@ -3,7 +3,7 @@
 use serde::Serialize;
 
 /// Sanitized summary printed after successful install.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
 pub struct InstallCompletionSummary {
     pub version: String,
     pub target: String,
@@ -19,27 +19,6 @@ pub struct InstallCompletionSummary {
     pub integrity_status: String,
     pub atomicity_status: String,
     pub warnings: Vec<String>,
-}
-
-impl Default for InstallCompletionSummary {
-    fn default() -> Self {
-        InstallCompletionSummary {
-            version: String::new(),
-            target: String::new(),
-            channel: String::new(),
-            install_root: String::new(),
-            cli_path: String::new(),
-            daemon_path: String::new(),
-            daemon_health: String::new(),
-            tui_path: String::new(),
-            service_status: String::new(),
-            path_status: String::new(),
-            pi_status: String::new(),
-            integrity_status: String::new(),
-            atomicity_status: String::new(),
-            warnings: Vec::new(),
-        }
-    }
 }
 
 impl InstallCompletionSummary {
