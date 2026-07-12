@@ -879,6 +879,45 @@ fn reject_release_rollback(install_root: &std::path::Path, target: &str) -> Resu
     Ok(())
 }
 
+async fn phase_pi_extension_download(
+    channel: Channel,
+    github_repo: Option<&str>,
+    install_root: &std::path::Path,
+    sink: &dyn InstallEventSink,
+) -> Result<Option<InstalledAsset>> {
+    if which::which("pi").is_err() {
+        return Ok(None);
+    }
+    let repo = github_repo.unwrap_or("Startempire-Wire/focusa");
+    let release = resolve_release(channel, repo).await?;
+    let name = format!("focusa-pi-extension-{}.tar.gz", release.tag);
+    let share = install_root.join("share");
+    std::fs::create_dir_all(&share)?;
+    let install_path = share.join(&name);
+    let staged = install_path.with_extension("download");
+    let url = release_asset_url(repo, &release.tag, &name);
+    let response = release
+        .client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|error| anyhow!("download Pi extension from {}: {error}", redact_url(&url)))?
+        .error_for_status()
+        .map_err(|error| anyhow!("download Pi extension from {}: {error}", redact_url(&url)))?;
+    stream_asset_to_staged(response, &staged, &name, sink).await?;
+    if let Err(error) = std::fs::rename(&staged, &install_path) {
+        let _ = std::fs::remove_file(&staged);
+        return Err(error).context("promote staged Pi extension archive");
+    }
+    Ok(Some(InstalledAsset {
+        name,
+        version: release.tag,
+        triple: "all".to_string(),
+        sha256: String::new(),
+        install_path: install_path.display().to_string(),
+    }))
+}
+
 async fn phase_agent_context_download(
     channel: Channel,
     github_repo: Option<&str>,
@@ -972,6 +1011,88 @@ async fn stream_asset_to_staged(
         downloaded_bytes,
     });
     Ok(())
+}
+
+fn integrate_pi_extension(
+    asset: &InstalledAsset,
+    install_root: &std::path::Path,
+) -> Result<String> {
+    let archive = std::path::Path::new(&asset.install_path);
+    let listing = std::process::Command::new("tar")
+        .args(["-tzf"])
+        .arg(archive)
+        .output()
+        .context("inspect Pi extension archive")?;
+    if !listing.status.success() {
+        bail!("Pi extension archive listing failed");
+    }
+    let listing = String::from_utf8_lossy(&listing.stdout);
+    if listing.lines().any(|entry| {
+        entry.starts_with('/')
+            || entry.split('/').any(|component| component == "..")
+            || !(entry == "pi-extension" || entry.starts_with("pi-extension/"))
+    }) || !listing
+        .lines()
+        .any(|entry| entry == "pi-extension/package.json")
+    {
+        bail!("Pi extension archive contains unsafe or incomplete paths");
+    }
+    let stage_root = install_root.join(format!(".pi-extension-stage-{}", uuid::Uuid::now_v7()));
+    std::fs::create_dir_all(&stage_root)?;
+    let cleanup = || {
+        let _ = std::fs::remove_dir_all(&stage_root);
+    };
+    let extracted = std::process::Command::new("tar")
+        .args(["-xzf"])
+        .arg(archive)
+        .arg("-C")
+        .arg(&stage_root)
+        .status()
+        .context("extract Pi extension archive")?;
+    if !extracted.success() {
+        cleanup();
+        bail!("Pi extension archive extraction failed");
+    }
+    let staged = stage_root.join("pi-extension");
+    let npm = std::process::Command::new("npm")
+        .args(["install", "--omit=dev", "--ignore-scripts"])
+        .current_dir(&staged)
+        .output()
+        .context("run npm dependency setup for Pi extension")?;
+    if !npm.status.success() {
+        cleanup();
+        let detail: String = String::from_utf8_lossy(&npm.stderr)
+            .chars()
+            .take(512)
+            .collect();
+        bail!(
+            "Pi extension dependency setup failed: {}",
+            redact_url(&detail)
+        );
+    }
+    let root = std::env::var_os("FOCUSA_PI_EXT_DIR")
+        .map(std::path::PathBuf::from)
+        .or_else(|| {
+            std::env::var_os("HOME")
+                .map(|home| std::path::PathBuf::from(home).join(".pi/agent/extensions"))
+        })
+        .ok_or_else(|| anyhow!("HOME is unavailable; cannot locate Pi extensions"))?;
+    std::fs::create_dir_all(&root)?;
+    let destination = root.join("focusa");
+    let backup = root.join(format!(".focusa-backup-{}", uuid::Uuid::now_v7()));
+    if destination.exists() {
+        std::fs::rename(&destination, &backup)?;
+    }
+    if let Err(error) = std::fs::rename(&staged, &destination) {
+        if backup.exists() {
+            let _ = std::fs::rename(&backup, &destination);
+        }
+        cleanup();
+        return Err(error).context("activate Pi extension");
+    }
+    let _ = std::fs::remove_dir_all(&backup);
+    cleanup();
+    Ok(destination.display().to_string())
 }
 
 fn install_agent_context_archive(
@@ -1471,10 +1592,28 @@ async fn execute_real_install(
         &sink,
     )
     .await?;
+    let pi_extension =
+        phase_pi_extension_download(channel, args.github_repo.as_deref(), install_root, &sink)
+            .await?;
     let agent_context =
         phase_agent_context_download(channel, args.github_repo.as_deref(), install_root, &sink)
             .await?;
     assets.push(agent_context);
+    if let Some(pi_asset) = pi_extension {
+        match verify_checksum(&pi_asset).await {
+            Ok(()) => match integrate_pi_extension(&pi_asset, install_root) {
+                Ok(path) => eprintln!("Pi integration succeeded: {}", redact_url(&path)),
+                Err(error) => eprintln!(
+                    "warning: Pi integration skipped: {}",
+                    redact_url(&error.to_string())
+                ),
+            },
+            Err(error) => eprintln!(
+                "warning: Pi extension verification skipped: {}",
+                redact_url(&error.to_string())
+            ),
+        }
+    }
     let bin_dir = install_root.join("bin");
     for asset in &assets {
         verify_checksum(asset).await?;
