@@ -4003,6 +4003,31 @@ export function registerTools(pi: ExtensionAPI) {
     return meta?.run_as_user || null;
   }
 
+  function silentSessionDurableTail(
+    name: string,
+    runAsUser: string | null,
+    cursor?: string,
+    lines = 80
+  ): { ok: boolean; output: string; cursor: string; next_cursor: string; error?: string } {
+    try {
+      const fs = require("fs");
+      const logPath = silentSessionLogPath(name, runAsUser);
+      if (!fs.existsSync(logPath)) return { ok: true, output: "", cursor: cursor || "0", next_cursor: cursor || "0" };
+      const stat = fs.statSync(logPath);
+      const start = Math.max(0, Math.min(Number.parseInt(cursor || "0", 10) || 0, stat.size));
+      const bytes = fs.readFileSync(logPath).subarray(start);
+      const raw = bytes.toString("utf8");
+      const bounded = raw.split(/\r?\n/).slice(-Math.max(1, Math.min(400, lines))).join("\n");
+      const sanitized = bounded
+        .replace(/[\u001b\u009b][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[-a-zA-Z\d/#&.:=?%@~_]+)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g, "")
+        .replace(/(Bearer\s+|token=|password=|secret=)[^\s&]+/gi, "$1[REDACTED]");
+      const next = String(stat.size);
+      return { ok: true, output: sanitized.slice(-16000), cursor: String(start), next_cursor: next };
+    } catch (error: any) {
+      return { ok: false, output: "", cursor: cursor || "0", next_cursor: cursor || "0", error: String(error?.message || error) };
+    }
+  }
+
   function silentSessionLogStats(logPath: string): {
     exists: boolean;
     size_bytes: number;
@@ -4366,7 +4391,8 @@ export function registerTools(pi: ExtensionAPI) {
         Type.String({ description: "Optional bead/work item id to anchor the SilentSession." })
       ),
       lowmem: Type.Optional(Type.Boolean({ description: "Activate LowMem at start; default true." })),
-      lines: Type.Optional(Type.Number({ description: "Tail lines for capture-pane; default 80, max 400." })),
+      lines: Type.Optional(Type.Number({ description: "Tail lines for durable output; default 80, max 400." })),
+      cursor: Type.Optional(Type.String({ description: "Byte cursor returned by a prior tail/follow call." })),
       approved: Type.Optional(
         Type.Boolean({
           description: "Required true for start/send/kill because those mutate background process state.",
@@ -4451,7 +4477,10 @@ export function registerTools(pi: ExtensionAPI) {
         const lines = Math.max(1, Math.min(400, Number(p.lines || 80)));
         const runAsUser = silentSessionRunAsFor(sessionName);
         const meta = silentSessionReadMeta(sessionName) || {};
-        const tail = silentSessionExec(
+        const durable = silentSessionDurableTail(sessionName, runAsUser, p.cursor, lines);
+        const tail = durable.output
+          ? { ok: true, stdout: durable.output, stderr: "" }
+          : silentSessionExec(
           ["capture-pane", "-p", "-J", "-t", sessionName, "-S", `-${lines}`],
           3000,
           runAsUser
@@ -4470,6 +4499,9 @@ export function registerTools(pi: ExtensionAPI) {
             status: tail.ok ? "completed" : "blocked",
             session_name: sessionName,
             tail: tail.stdout,
+            cursor: durable.cursor,
+            next_cursor: durable.next_cursor,
+            output_source: durable.output ? "durable_log" : "tmux_pane",
             tail_command: silentSessionTailCommand(sessionName, lines),
             log_path: meta.log_path || silentSessionLogPath(sessionName, runAsUser),
             run_as_user: runAsUser || currentUserName(),
