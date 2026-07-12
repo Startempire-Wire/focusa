@@ -375,7 +375,9 @@ impl AnimatedRenderLoop {
                 Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
             }
             terminal.draw(|frame| self.renderer.render(frame, &state, self.mode))?;
-            self.renderer.tick();
+            if self.mode != super::super::capabilities::InstallRendererMode::ReducedMotion {
+                self.renderer.tick();
+            }
             if finished_at.is_some_and(|started| started.elapsed() >= Duration::from_millis(700)) {
                 break;
             }
