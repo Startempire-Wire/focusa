@@ -53,7 +53,10 @@ impl Default for InstallState {
             InstallPhase::Finalize,
         ];
         InstallState {
-            phases: phases.into_iter().map(|p| (p, PhaseStatus::Pending)).collect(),
+            phases: phases
+                .into_iter()
+                .map(|p| (p, PhaseStatus::Pending))
+                .collect(),
             assets: HashMap::new(),
             warnings: Vec::new(),
             failure: None,
@@ -199,7 +202,11 @@ mod tests {
         // because the orchestrator may retry, but the test documents that
         // the renderer shows the latest authoritative state.
         s.set_succeeded(InstallPhase::DownloadAssets);
-        let (_, st) = s.phases.iter().find(|(p, _)| *p == InstallPhase::DownloadAssets).unwrap();
+        let (_, st) = s
+            .phases
+            .iter()
+            .find(|(p, _)| *p == InstallPhase::DownloadAssets)
+            .unwrap();
         assert_eq!(*st, PhaseStatus::Succeeded);
     }
 }

@@ -16,8 +16,9 @@
 //! The shell installers become thin bootstrappers that download `focusa` and
 //! `exec focusa install --target=<detected>`. See docs §15A.
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{anyhow, bail, Context, Result};
 use clap::Args;
+use focusa_terminal_ui::{detect_capabilities, InstallRendererMode};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
@@ -173,6 +174,11 @@ pub struct TerminalUxPreflight {
     pub ci: bool,
     pub intro_animation_enabled: bool,
     pub disabled_reason: Option<String>,
+    pub renderer_mode: String,
+    pub color_depth: String,
+    pub minimum_size_met: bool,
+    pub reduced_motion: bool,
+    pub stderr_is_terminal: bool,
 }
 
 fn build_preflight_report(
@@ -287,29 +293,37 @@ fn install_hint(package_manager: Option<&str>, name: &str) -> Option<String> {
 }
 
 fn terminal_ux_preflight(no_animation: bool) -> TerminalUxPreflight {
-    let ci = std::env::var_os("CI").is_some();
-    let no_color = std::env::var_os("NO_COLOR").is_some();
-    let interactive_tty = std::env::var("TERM")
-        .map(|term| !term.is_empty() && term != "dumb")
-        .unwrap_or(false)
-        && !ci;
+    let capabilities = detect_capabilities(no_animation, false, false);
+    let interactive_tty = capabilities.stderr_is_terminal
+        && !capabilities.ci
+        && capabilities.term != ""
+        && capabilities.term != "dumb";
     let disabled_reason = if no_animation {
         Some("--no-animation".into())
-    } else if ci {
+    } else if capabilities.ci {
         Some("CI".into())
-    } else if no_color {
-        Some("NO_COLOR".into())
-    } else if !interactive_tty {
+    } else if !capabilities.stderr_is_terminal {
         Some("non_interactive_terminal".into())
+    } else if capabilities.term.is_empty() || capabilities.term == "dumb" {
+        Some("unsupported_terminal".into())
+    } else if !capabilities.minimum_size_met {
+        Some("terminal_below_70x22".into())
     } else {
         None
     };
+    let color_depth = format!("{:?}", capabilities.color_depth).to_lowercase();
     TerminalUxPreflight {
         interactive_tty,
-        no_color,
-        ci,
-        intro_animation_enabled: disabled_reason.is_none(),
+        no_color: capabilities.no_color,
+        ci: capabilities.ci,
+        intro_animation_enabled: capabilities.mode.is_animated(),
         disabled_reason,
+        renderer_mode: capabilities.mode.as_str().to_string(),
+        color_depth,
+        minimum_size_met: capabilities.minimum_size_met,
+        reduced_motion: capabilities.reduced_motion_env
+            || capabilities.mode == InstallRendererMode::ReducedMotion,
+        stderr_is_terminal: capabilities.stderr_is_terminal,
     }
 }
 
@@ -549,7 +563,7 @@ pub async fn run(args: InstallArgs) -> Result<()> {
 
 // ----- Phase 1: License re-validation (focusa-112-license-revalidate) -----
 async fn phase_license(args: &InstallArgs) -> Result<String> {
-    use crate::commands::license::{RegistryValidateOutcome, registry_validate};
+    use crate::commands::license::{registry_validate, RegistryValidateOutcome};
     if args.eval {
         return Ok("eval".to_string());
     }
@@ -849,11 +863,8 @@ async fn verify_checksum(asset: &InstalledAsset) -> Result<()> {
     // Per Spec 112 §5.1: download SHA256SUMS, parse, verify asset.
     // When the GitHub release doesn't have SHA256SUMS (some previews don't),
     // we surface a recovery_hint but don't fail.
-    let sha256sums_url = release_asset_url(
-        "Startempire-Wire/focusa",
-        &asset.version,
-        "SHA256SUMS.txt",
-    );
+    let sha256sums_url =
+        release_asset_url("Startempire-Wire/focusa", &asset.version, "SHA256SUMS.txt");
     let client = reqwest::Client::builder()
         .user_agent("focusa-install/0.9.54-dev")
         .timeout(std::time::Duration::from_secs(10))
@@ -1546,17 +1557,15 @@ mod tests {
         .unwrap();
         assert_eq!(plan.assets_planned.len(), 4);
         assert!(plan.assets_planned.iter().any(|a| a.name == "focusa"));
-        assert!(
-            plan.assets_planned
-                .iter()
-                .any(|a| a.name == "focusa-daemon")
-        );
+        assert!(plan
+            .assets_planned
+            .iter()
+            .any(|a| a.name == "focusa-daemon"));
         assert!(plan.assets_planned.iter().any(|a| a.name == "focusa-tui"));
-        assert!(
-            plan.assets_planned
-                .iter()
-                .any(|a| a.name == "focusa-agent-context" && a.triple == "all")
-        );
+        assert!(plan
+            .assets_planned
+            .iter()
+            .any(|a| a.name == "focusa-agent-context" && a.triple == "all"));
         assert_eq!(plan.license_mode, "missing");
     }
 

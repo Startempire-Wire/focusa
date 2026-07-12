@@ -10,8 +10,8 @@ use std::collections::HashMap;
 
 /// Approved rain glyph set: 0-9 A-F : + * · │
 const RAIN_GLYPHS: &[char] = &[
-    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-    'A', 'B', 'C', 'D', 'E', 'F', ':', '+', '*', '·', '│',
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', ':', '+', '*',
+    '·', '│',
 ];
 
 // We don't render glyphs in the block canvas; we use color intensity instead.
@@ -87,7 +87,8 @@ impl MatrixRain {
         if self.next_spawn <= 0.0 && self.columns.len() < self.max_columns {
             let col = self.spawn_column(self.seed.wrapping_add(self.columns.len() as u64));
             self.columns.push(col);
-            self.next_spawn = deterministic_f32(self.seed, 500, self.columns.len() as u16) * 0.3 + 0.1;
+            self.next_spawn =
+                deterministic_f32(self.seed, 500, self.columns.len() as u16) * 0.3 + 0.1;
         }
     }
 
@@ -111,7 +112,14 @@ impl MatrixRain {
                     // Only draw if it doesn't obscure text; attenuate behind text
                     let bg = p.bottom;
                     let mixed = blend_colors(bg, color, brightness * 0.3);
-                    canvas.set(cx, cy, Pixel { top: p.top, bottom: mixed });
+                    canvas.set(
+                        cx,
+                        cy,
+                        Pixel {
+                            top: p.top,
+                            bottom: mixed,
+                        },
+                    );
                 }
             }
         }

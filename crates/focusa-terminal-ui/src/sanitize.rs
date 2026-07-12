@@ -151,7 +151,11 @@ fn replace_aws_key(input: &str) -> String {
     let mut result = String::with_capacity(input.len());
     let mut i = 0;
     while i + 20 <= input.len() {
-        if input[i..].starts_with("AKIA") && input[i + 4..i + 20].chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit()) {
+        if input[i..].starts_with("AKIA")
+            && input[i + 4..i + 20]
+                .chars()
+                .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
+        {
             result.push_str("[REDACTED_AWS_KEY]");
             i += 20;
         } else {

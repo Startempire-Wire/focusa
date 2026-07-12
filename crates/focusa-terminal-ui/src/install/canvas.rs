@@ -54,7 +54,10 @@ impl BlockCanvas {
 
     /// Fill entire canvas with a color.
     pub fn clear(&mut self, color: Color) {
-        let p = Pixel { top: color, bottom: color };
+        let p = Pixel {
+            top: color,
+            bottom: color,
+        };
         for px in &mut self.pixels {
             *px = p;
         }
@@ -68,7 +71,14 @@ mod tests {
     #[test]
     fn half_block_top_bottom_mapping() {
         let mut canvas = BlockCanvas::new(10, 10);
-        canvas.set(5, 5, Pixel { top: Color::Red, bottom: Color::Blue });
+        canvas.set(
+            5,
+            5,
+            Pixel {
+                top: Color::Red,
+                bottom: Color::Blue,
+            },
+        );
         let p = canvas.get(5, 5).unwrap();
         assert_eq!(p.top, Color::Red);
         assert_eq!(p.bottom, Color::Blue);

@@ -3,9 +3,9 @@
 //! §4.3: AnimatedPresenter, MonochromeAnimatedPresenter, ReducedMotionPresenter,
 //!       PlainPresenter, SilentPresenter.
 
+use super::completion::InstallCompletionSummary;
 use super::event::{AssetProgress, InstallEvent, InstallPhase};
 use super::state::{InstallState, PhaseStatus};
-use super::completion::InstallCompletionSummary;
 use crate::sanitize::sanitize;
 use std::sync::{Arc, Mutex};
 
@@ -47,7 +47,11 @@ impl Presenter for PlainPresenter {
         match event {
             InstallEvent::PhaseStarted { phase, message } => {
                 self.state.set_active(*phase);
-                self.print(&format!("{} {}", InstallState::status_symbol(PhaseStatus::Active), phase.label()));
+                self.print(&format!(
+                    "{} {}",
+                    InstallState::status_symbol(PhaseStatus::Active),
+                    phase.label()
+                ));
                 if !message.is_empty() {
                     self.print(message);
                 }
@@ -63,17 +67,31 @@ impl Presenter for PlainPresenter {
             }
             InstallEvent::PhaseSkipped { phase, reason } => {
                 self.state.set_skipped(*phase);
-                self.print(&format!("{} {} — skipped: {}", InstallState::status_symbol(PhaseStatus::Skipped), phase.label(), sanitize(reason)));
+                self.print(&format!(
+                    "{} {} — skipped: {}",
+                    InstallState::status_symbol(PhaseStatus::Skipped),
+                    phase.label(),
+                    sanitize(reason)
+                ));
             }
-            InstallEvent::PhaseWarning { phase, message, recovery_hint } => {
+            InstallEvent::PhaseWarning {
+                phase,
+                message,
+                recovery_hint,
+            } => {
                 self.state.set_warning(*phase, message.clone());
                 self.print(&format!("! {} — {}", phase.label(), sanitize(message)));
                 if let Some(h) = recovery_hint {
                     self.print(&format!("  recovery: {}", sanitize(h)));
                 }
             }
-            InstallEvent::PhaseFailed { phase, message, recovery_hint } => {
-                self.state.set_failed(*phase, message.clone(), recovery_hint.clone());
+            InstallEvent::PhaseFailed {
+                phase,
+                message,
+                recovery_hint,
+            } => {
+                self.state
+                    .set_failed(*phase, message.clone(), recovery_hint.clone());
                 self.print(&format!("✗ {} — {}", phase.label(), sanitize(message)));
                 if let Some(h) = recovery_hint {
                     self.print(&format!("  recovery: {}", sanitize(h)));
@@ -86,12 +104,20 @@ impl Presenter for PlainPresenter {
                     self.print(&format!("  → {}", sanitize(asset)));
                 }
             }
-            InstallEvent::AssetProgress { asset, downloaded_bytes, total_bytes } => {
+            InstallEvent::AssetProgress {
+                asset,
+                downloaded_bytes,
+                total_bytes,
+            } => {
                 if let Some(total) = total_bytes {
                     let pct = *downloaded_bytes as f64 / *total as f64 * 100.0;
                     self.print(&format!("  → {} {:.1}%", sanitize(asset), pct));
                 } else {
-                    self.print(&format!("  → {} {} bytes", sanitize(asset), downloaded_bytes));
+                    self.print(&format!(
+                        "  → {} {} bytes",
+                        sanitize(asset),
+                        downloaded_bytes
+                    ));
                 }
             }
             InstallEvent::RollbackStarted { reason } => {
@@ -102,7 +128,10 @@ impl Presenter for PlainPresenter {
                 self.state.rollback_succeeded();
                 self.print("↶ Rollback completed");
             }
-            InstallEvent::RollbackFailed { message, recovery_hint } => {
+            InstallEvent::RollbackFailed {
+                message,
+                recovery_hint,
+            } => {
                 self.print(&format!("✗ Rollback failed: {}", sanitize(message)));
                 self.print(&format!("  recovery: {}", sanitize(recovery_hint)));
             }
@@ -115,7 +144,9 @@ impl Presenter for PlainPresenter {
         }
     }
 
-    fn is_animated(&self) -> bool { false }
+    fn is_animated(&self) -> bool {
+        false
+    }
 
     fn render_final_summary(&self, summary: &InstallCompletionSummary) {
         if !self.quiet {
@@ -136,7 +167,9 @@ pub struct SilentPresenter;
 
 impl Presenter for SilentPresenter {
     fn handle_event(&mut self, _event: &InstallEvent) {}
-    fn is_animated(&self) -> bool { false }
+    fn is_animated(&self) -> bool {
+        false
+    }
     fn render_final_summary(&self, _summary: &InstallCompletionSummary) {}
     fn render_error(&self, _phase: InstallPhase, message: &str, recovery_hint: Option<&str>) {
         eprintln!("Install failed: {}", sanitize(message));
@@ -179,21 +212,37 @@ impl Presenter for AnimatedPresenter {
                 InstallEvent::PhaseStarted { phase, .. } => st.set_active(*phase),
                 InstallEvent::PhaseSucceeded { phase, .. } => st.set_succeeded(*phase),
                 InstallEvent::PhaseSkipped { phase, .. } => st.set_skipped(*phase),
-                InstallEvent::PhaseWarning { phase, message, .. } => st.set_warning(*phase, message.clone()),
-                InstallEvent::PhaseFailed { phase, message, recovery_hint } => st.set_failed(*phase, message.clone(), recovery_hint.clone()),
-                InstallEvent::AssetStarted { asset, total_bytes } => {
-                    st.update_asset(asset.clone(), AssetProgress {
-                        asset: asset.clone(),
-                        downloaded_bytes: 0,
-                        total_bytes: *total_bytes,
-                    });
+                InstallEvent::PhaseWarning { phase, message, .. } => {
+                    st.set_warning(*phase, message.clone())
                 }
-                InstallEvent::AssetProgress { asset, downloaded_bytes, total_bytes } => {
-                    st.update_asset(asset.clone(), AssetProgress {
-                        asset: asset.clone(),
-                        downloaded_bytes: *downloaded_bytes,
-                        total_bytes: *total_bytes,
-                    });
+                InstallEvent::PhaseFailed {
+                    phase,
+                    message,
+                    recovery_hint,
+                } => st.set_failed(*phase, message.clone(), recovery_hint.clone()),
+                InstallEvent::AssetStarted { asset, total_bytes } => {
+                    st.update_asset(
+                        asset.clone(),
+                        AssetProgress {
+                            asset: asset.clone(),
+                            downloaded_bytes: 0,
+                            total_bytes: *total_bytes,
+                        },
+                    );
+                }
+                InstallEvent::AssetProgress {
+                    asset,
+                    downloaded_bytes,
+                    total_bytes,
+                } => {
+                    st.update_asset(
+                        asset.clone(),
+                        AssetProgress {
+                            asset: asset.clone(),
+                            downloaded_bytes: *downloaded_bytes,
+                            total_bytes: *total_bytes,
+                        },
+                    );
                 }
                 InstallEvent::RollbackStarted { .. } => st.rollback_active = true,
                 InstallEvent::RollbackSucceeded => st.rollback_active = false,
@@ -202,7 +251,9 @@ impl Presenter for AnimatedPresenter {
         }
     }
 
-    fn is_animated(&self) -> bool { true }
+    fn is_animated(&self) -> bool {
+        true
+    }
 
     fn render_final_summary(&self, summary: &InstallCompletionSummary) {
         println!("{}", summary.render_human());
@@ -233,7 +284,9 @@ impl Presenter for MonochromeAnimatedPresenter {
     fn handle_event(&mut self, event: &InstallEvent) {
         self.inner.handle_event(event);
     }
-    fn is_animated(&self) -> bool { true }
+    fn is_animated(&self) -> bool {
+        true
+    }
     fn render_final_summary(&self, summary: &InstallCompletionSummary) {
         self.inner.render_final_summary(summary);
     }
@@ -259,7 +312,9 @@ impl Presenter for ReducedMotionPresenter {
     fn handle_event(&mut self, event: &InstallEvent) {
         self.inner.handle_event(event);
     }
-    fn is_animated(&self) -> bool { true }
+    fn is_animated(&self) -> bool {
+        true
+    }
     fn render_final_summary(&self, summary: &InstallCompletionSummary) {
         self.inner.render_final_summary(summary);
     }
@@ -267,4 +322,3 @@ impl Presenter for ReducedMotionPresenter {
         self.inner.render_error(phase, message, recovery_hint);
     }
 }
-

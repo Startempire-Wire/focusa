@@ -3,9 +3,9 @@
 //! §13.2: restores terminal state from Drop on every handled exit path.
 
 use crossterm::{
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
     cursor::Show,
     execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use std::io::{self, Stderr, Write};
 
