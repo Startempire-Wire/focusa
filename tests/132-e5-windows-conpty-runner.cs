@@ -31,7 +31,7 @@ public static class Spec132ConPtyRunner
     [DllImport("kernel32.dll", SetLastError=true)] static extern bool TerminateProcess(IntPtr handle, uint exitCode);
     [DllImport("kernel32.dll", SetLastError=true)] static extern bool GetExitCodeProcess(IntPtr handle, out uint code);
 
-    static void Check(bool ok, string operation) { if (!ok) throw new Win32Exception(Marshal.GetLastWin32Error(), operation); }
+    static void Check(bool ok, string operation) { if (!ok) { var error = Marshal.GetLastWin32Error(); throw new Win32Exception(error, $"{operation} (Win32={error})"); } }
     static void Close(IntPtr h) { if (h != IntPtr.Zero && h != new IntPtr(-1)) CloseHandle(h); }
 
     public static string Run(string executable, string arguments, int width, int height, out int exitCode)

@@ -17,7 +17,8 @@ try {
   if ($json -match "`e") { throw 'ANSI escaped into redirected JSON stdout' }
 
   $probeExit = 0
-  $probe = [Spec132ConPtyRunner]::Run('cmd.exe', '/c echo conpty-probe', 120, 40, [ref]$probeExit)
+  $cmd = Join-Path $env:WINDIR 'System32\cmd.exe'
+  $probe = [Spec132ConPtyRunner]::Run($cmd, '/c echo conpty-probe', 120, 40, [ref]$probeExit)
   if ($probeExit -ne 0 -or $probe -notmatch 'conpty-probe') { throw "ConPTY host probe failed: $probeExit; output=$probe" }
 
   $exit = 0
@@ -30,7 +31,7 @@ try {
   # terminated and surfaced, never waited forever or silently accepted.
   $timeoutExit = 0
   try {
-    [Spec132ConPtyRunner]::Run('cmd.exe', '/c ping 127.0.0.1 -n 60 > nul', 120, 40, 1000, [ref]$timeoutExit) | Out-Null
+    [Spec132ConPtyRunner]::Run($cmd, '/c ping 127.0.0.1 -n 60 > nul', 120, 40, 1000, [ref]$timeoutExit) | Out-Null
     throw 'ConPTY timeout regression did not fire'
   } catch [TimeoutException] { }
 
