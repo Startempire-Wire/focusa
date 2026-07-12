@@ -4120,6 +4120,21 @@ export function registerTools(pi: ExtensionAPI) {
     return r.ok ? r.stdout.trim() : "unknown";
   }
 
+  function silentSessionSemanticStatus(output: string, baseStatus: string): { status: string; why?: string; recovery?: string } {
+    const text = output.slice(-16000);
+    if (/\b(?:permission denied|trust prompt|login required|authentication required|approval required)\b/i.test(text))
+      return { status: "blocked", why: "trust or authorization input is required", recovery: "reopen and complete the prompt, then health-check again" };
+    if (/\b(?:waiting for input|press enter|continue\?|confirm)\b/i.test(text))
+      return { status: "waiting-input", why: "the worker is waiting for operator input", recovery: "tail the output and send a literal check-in after approval" };
+    if (/\b(?:cancelled|canceled|interrupted)\b/i.test(text)) return { status: "cancelled" };
+    if (/\b(?:fatal|panic|traceback|error:)\b/i.test(text) && baseStatus === "dead")
+      return { status: "failed", why: "terminal output contains a failure marker", recovery: "tail the final output and restart only after correcting the failure" };
+    if (/\b(?:completed successfully|install complete|task complete|done)\b/i.test(text)) return { status: "completed" };
+    if (baseStatus === "dead") return { status: "dead" };
+    if (baseStatus === "stale") return { status: "blocked", why: "worker heartbeat is stale", recovery: "tail from the last cursor, then reopen or restart" };
+    return { status: "running" };
+  }
+
   function silentSessionPaneHealth(sessionName: string, sessionInfo?: any): any {
     const runAsUser = silentSessionRunAsFor(sessionName);
     const logPath =
@@ -4173,10 +4188,16 @@ export function registerTools(pi: ExtensionAPI) {
     const activityAge = sessionInfo?.activity ? Math.max(0, now - Number(sessionInfo.activity)) : null;
     const noRecentLog = logStats.age_seconds !== null && logStats.age_seconds >= SILENT_SESSION_STALE_SECONDS;
     const noRecentActivity = activityAge !== null && activityAge >= SILENT_SESSION_STALE_SECONDS;
-    const status = baseStatus === "running" && (noRecentLog || noRecentActivity) ? "stale" : baseStatus;
+    const staleStatus = baseStatus === "running" && (noRecentLog || noRecentActivity) ? "stale" : baseStatus;
+    const semantic = silentSessionSemanticStatus(
+      silentSessionDurableTail(sessionName, runAsUser, undefined, 200).output,
+      staleStatus
+    );
     return {
       ok: true,
-      status,
+      status: semantic.status,
+      status_why: semantic.why,
+      recovery_hint: semantic.recovery,
       panes,
       run_as_user: runAsUser || currentUserName(),
       log_path: logPath,
