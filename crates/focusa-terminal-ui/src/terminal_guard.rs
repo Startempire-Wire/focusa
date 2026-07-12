@@ -6,8 +6,11 @@
 use crossterm::{
     cursor::Show,
     execute,
-    terminal::{disable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{disable_raw_mode, size, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use signal_hook::consts::SIGINT;
+#[cfg(unix)]
+use signal_hook::consts::SIGTERM;
 use std::io::{self, stderr, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -43,6 +46,11 @@ impl TerminalGuard {
 
     pub fn is_active(&self) -> bool {
         self.active
+    }
+
+    /// Read the current terminal size for resize-aware render loops.
+    pub fn size(&self) -> io::Result<(u16, u16)> {
+        size()
     }
 }
 
@@ -89,6 +97,27 @@ impl Drop for PanicHookGuard {
     }
 }
 
+/// Signal registrations are scoped and removed when the presenter exits.
+pub struct SignalGuard {
+    ids: Vec<signal_hook::SigId>,
+}
+
+pub fn install_signal_handlers(token: &CancellationToken) -> io::Result<SignalGuard> {
+    let mut ids = Vec::new();
+    ids.push(signal_hook::flag::register(SIGINT, token.0.clone()).map_err(io::Error::other)?);
+    #[cfg(unix)]
+    ids.push(signal_hook::flag::register(SIGTERM, token.0.clone()).map_err(io::Error::other)?);
+    Ok(SignalGuard { ids })
+}
+
+impl Drop for SignalGuard {
+    fn drop(&mut self) {
+        for id in self.ids.drain(..) {
+            signal_hook::low_level::unregister(id);
+        }
+    }
+}
+
 /// Shared cancellation state used by the installer and renderer.
 #[derive(Clone, Default)]
 pub struct CancellationToken(Arc<AtomicBool>);
@@ -126,5 +155,14 @@ mod tests {
         assert!(!copy.is_cancelled());
         token.cancel();
         assert!(copy.is_cancelled());
+    }
+
+    #[test]
+    fn signal_registration_is_scoped() {
+        let token = CancellationToken::new();
+        let guard = install_signal_handlers(&token).expect("signal handlers register");
+        assert!(!token.is_cancelled());
+        drop(guard);
+        assert!(!token.is_cancelled());
     }
 }

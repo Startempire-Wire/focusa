@@ -9,6 +9,7 @@ license-file.workspace = true
 [dependencies]
 ratatui = { workspace = true }
 crossterm = { workspace = true }
+signal-hook = { workspace = true }
 serde = { workspace = true }
 
 [dev-dependencies]

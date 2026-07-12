@@ -22,5 +22,6 @@ pub use install::presenter::{
 pub use install::state::InstallState;
 pub use sanitize::sanitize;
 pub use terminal_guard::{
-    install_terminal_panic_hook, CancellationToken, PanicHookGuard, TerminalGuard,
+    install_signal_handlers, install_terminal_panic_hook, CancellationToken, PanicHookGuard,
+    SignalGuard, TerminalGuard,
 };
