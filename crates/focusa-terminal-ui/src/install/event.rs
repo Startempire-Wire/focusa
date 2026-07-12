@@ -67,6 +67,7 @@ pub struct AssetProgress {
 
 /// Events emitted by the installer orchestrator.
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[allow(clippy::large_enum_variant)]
 pub enum InstallEvent {
     PhaseStarted {
         phase: InstallPhase,

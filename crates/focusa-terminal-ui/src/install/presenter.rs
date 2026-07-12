@@ -160,10 +160,8 @@ impl Presenter for PlainPresenter {
                 self.print(&format!("✗ Rollback failed: {}", sanitize(message)));
                 self.print(&format!("  recovery: {}", sanitize(recovery_hint)));
             }
-            InstallEvent::InstallFinished { summary } => {
-                if !self.quiet {
-                    println!("{}", summary.render_human());
-                }
+            InstallEvent::InstallFinished { summary } if !self.quiet => {
+                println!("{}", summary.render_human());
             }
             _ => {}
         }
@@ -208,6 +206,12 @@ impl Presenter for SilentPresenter {
 pub struct AnimatedPresenterState {
     pub state: Arc<Mutex<InstallState>>,
     pub should_exit: Arc<Mutex<bool>>,
+}
+
+impl Default for AnimatedPresenterState {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AnimatedPresenterState {

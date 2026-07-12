@@ -141,7 +141,7 @@ pub fn animation_seed() -> u64 {
     std::env::var("FOCUSA_INSTALL_SEED")
         .ok()
         .and_then(|value| value.parse().ok())
-        .unwrap_or(0xF0C0_5A_u64)
+        .unwrap_or(0x00F0_C05A_u64)
 }
 
 fn detect_color_depth(term: &str, no_color: bool) -> ColorDepth {
@@ -188,13 +188,7 @@ fn select_mode(
     if let Ok(ui) = std::env::var("FOCUSA_INSTALL_UI") {
         match ui.as_str() {
             "plain" => return InstallRendererMode::Plain,
-            "reduced" => {
-                return if reduced_motion_env || no_color {
-                    InstallRendererMode::ReducedMotion
-                } else {
-                    InstallRendererMode::ReducedMotion
-                }
-            }
+            "reduced" => return InstallRendererMode::ReducedMotion,
             "mono" => return InstallRendererMode::MonochromeAnimated,
             "full" => (),
             _ => (),
