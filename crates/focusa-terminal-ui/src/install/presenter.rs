@@ -47,7 +47,7 @@ impl Presenter for PlainPresenter {
         match event {
             InstallEvent::PhaseMessage { phase, message } => {
                 self.state.set_active(*phase);
-                self.state.current_message = sanitize(message);
+                self.state.current_message = sanitize(message).into_owned();
                 self.print(message);
             }
             InstallEvent::PhaseStarted { phase, message } => {
@@ -216,11 +216,11 @@ impl Presenter for AnimatedPresenter {
             match event {
                 InstallEvent::PhaseMessage { phase, message } => {
                     st.set_active(*phase);
-                    st.current_message = sanitize(message);
+                    st.current_message = sanitize(message).into_owned();
                 }
                 InstallEvent::PhaseStarted { phase, message } => {
                     st.set_active(*phase);
-                    st.current_message = sanitize(message);
+                    st.current_message = sanitize(message).into_owned();
                 }
                 InstallEvent::PhaseSucceeded { phase, .. } => {
                     st.set_succeeded(*phase);
@@ -263,7 +263,7 @@ impl Presenter for AnimatedPresenter {
                     );
                 }
                 InstallEvent::RollbackStarted { reason } => {
-                    st.start_rollback(sanitize(reason));
+                    st.start_rollback(sanitize(reason).into_owned());
                 }
                 InstallEvent::RollbackSucceeded => st.rollback_succeeded(),
                 InstallEvent::InstallFinished { .. } => {
