@@ -2329,11 +2329,31 @@ async fn pair_complete(
 pub struct PairStatusRequest {
     pub code: Option<String>,
     pub device_id: Option<String>,
+    pub host: Option<String>,
 }
 
 async fn pair_status(
+    State(state): State<Arc<AppState>>,
     axum::extract::Query(query): axum::extract::Query<PairStatusRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if let Some(device_id) = query.device_id.as_deref() {
+        let host = query.host.as_deref().unwrap_or("operator-vps");
+        if let Ok(records) = state.persistence.read_device_records(host, usize::MAX)
+            && let Some(record) = records.iter().rev().find(|record| record.device_id == device_id)
+            && record.revoked
+        {
+            return Ok(Json(json!({
+                "status": "revoked",
+                "device_id": device_id,
+                "host": host,
+                "revoked": true,
+                "revoked_at": record.revoked_at,
+                "token_present": false,
+                "next_tools": ["focusa_device_pair_start"],
+                "rehydrate_id": device_id,
+            })));
+        }
+    }
     let pairing_state = shared_state();
     let mut s = pairing_state.write().await;
     if let Some(code) = query.code.as_deref() {
