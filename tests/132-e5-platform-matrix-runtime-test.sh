@@ -22,6 +22,6 @@ run_case linux-plain env TERM=xterm FOCUSA_INSTALL_UI=plain "$BIN" --json instal
 # This host is Linux; Windows ConPTY execution belongs to the Windows CI host.
 # Keep the required Windows capability and ConPTY implementation contract in
 # the repository guard rather than pretending a Linux shell is ConPTY proof.
-rg -q 'windows|ConPTY|TerminalGuard' "$ROOT/crates/focusa-terminal-ui/src" "$ROOT/docs/132-focusa-installer-animated-terminal-experience-spec.md"
+grep -REiq 'windows|ConPTY|TerminalGuard' "$ROOT/crates/focusa-terminal-ui/src" "$ROOT/docs/132-focusa-installer-animated-terminal-experience-spec.md"
 
 echo "PASS: Linux CI/NO_COLOR/reduced/plain matrix runtime proof; Windows ConPTY delegated to Windows host"
