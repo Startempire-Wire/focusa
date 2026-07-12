@@ -65,7 +65,7 @@ out="$(run_ok pairing_start_help pairing start --help)"; grep -Eq 'Start a Mac/p
 
 # Specific regressions from Orders 08-11.
 out="$(run_ok migration_help help migration)"; grep -q 'focusa pairing start' "$out" || fail "migration help missing pairing start"; pass "migration help"
-out="$(run_ok unsafe_cleanup --json cleanup --safe --project-root /root --dry-run)"; grep -q 'CLI_SCOPE_REJECT' "$out" && grep -q 'unsafe_broad_project_root' "$out" || fail "cleanup unsafe root not blocked"; pass "cleanup scope rejection"
+out="$(run_allow unsafe_cleanup --json cleanup --safe --project-root /root --dry-run)"; grep -q 'CLI_SCOPE_REJECT' "$out" && grep -q 'unsafe_broad_project_root' "$out" || fail "cleanup unsafe root not blocked"; pass "cleanup scope rejection"
 out="$(run_ok uninstall_keep --json uninstall --dry-run --keep-data --keep-license --keep-path-modifications)"; grep -q -- '--keep-data set' "$out" && grep -q -- '--keep-license set' "$out" || fail "uninstall keep flags not reflected"; ! grep -q 'revert_path_' "$out" || fail "keep-path-modifications still planned path revert"; pass "uninstall keep flags"
 out="$(run_ok memory_block --json memory set smoke=value)"; grep -q '"status": "blocked"' "$out" && grep -q 'daemon_global_advisory' "$out" || fail "memory mutation not blocked/advisory"; pass "memory mutation block"
 
