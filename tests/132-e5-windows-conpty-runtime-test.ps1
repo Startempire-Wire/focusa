@@ -23,18 +23,10 @@ try {
   if ($probeExit -ne 0) { throw "ConPTY host probe failed: $probeExit; output=$probe" }
 
   $exit = 0
-  $transcript = Join-Path $tmp 'conpty-host-output.txt'
-  Start-Transcript -Path $transcript -Force | Out-Null
-  try {
-    $pty = [Spec132ConPtyRunner]::Run($Focusa, 'install --preflight --no-animation --quiet', 120, 40, [ref]$exit)
-  } finally {
-    Stop-Transcript | Out-Null
-  }
+  $pty = [Spec132ConPtyRunner]::Run($Focusa, 'install --preflight --no-animation --quiet', 120, 40, [ref]$exit)
   if ($exit -ne 0) { throw "ConPTY preflight failed: $exit; output=$pty" }
   if ($pty -match "`e\[\?1049h|`e\[\?1049l") { throw 'plain/non-animated ConPTY path entered alternate screen' }
-  $hostOutput = Get-Content -LiteralPath $transcript -Raw
-  $captured = "$pty`n$hostOutput"
-  $normalized = $captured
+  $normalized = $pty
   # Remove OSC/CSI/control sequences while preserving durable text for the
   # assertion. The raw stream remains the source for the no-alt-screen check.
   $normalized = [regex]::Replace($normalized, "`e\][^\a]*(`a|`e\\)", '')

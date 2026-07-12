@@ -10,7 +10,8 @@ public static class Spec132ConPtyRunner
     [StructLayout(LayoutKind.Sequential)] struct COORD { public short X, Y; }
     [StructLayout(LayoutKind.Sequential)] struct SECURITY_ATTRIBUTES { public int nLength; public IntPtr lpSecurityDescriptor; public int bInheritHandle; }
     [StructLayout(LayoutKind.Sequential)] struct PROCESS_INFORMATION { public IntPtr hProcess, hThread; public int processId, threadId; }
-    [StructLayout(LayoutKind.Sequential)] struct STARTUPINFOEX { public int cb; public IntPtr lpReserved, lpDesktop, lpTitle; public int dwX, dwY, dwXSize, dwYSize, dwXCountChars, dwYCountChars, dwFillAttribute, dwFlags; public short wShowWindow, cbReserved2; public IntPtr lpReserved2, hStdInput, hStdOutput, hStdError, lpAttributeList; }
+    [StructLayout(LayoutKind.Sequential)] struct STARTUPINFO { public int cb; public IntPtr lpReserved, lpDesktop, lpTitle; public int dwX, dwY, dwXSize, dwYSize, dwXCountChars, dwYCountChars, dwFillAttribute, dwFlags; public short wShowWindow, cbReserved2; public IntPtr lpReserved2, hStdInput, hStdOutput, hStdError; }
+    [StructLayout(LayoutKind.Sequential)] struct STARTUPINFOEX { public STARTUPINFO StartupInfo; public IntPtr lpAttributeList; }
 
     const uint PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016;
     const uint EXTENDED_STARTUPINFO_PRESENT = 0x00080000;
@@ -64,7 +65,10 @@ public static class Spec132ConPtyRunner
             // PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE expects the HPCON handle
             // value directly as lpValue, not a pointer to a second allocation.
             Check(UpdateProcThreadAttribute(list, 0, new IntPtr(unchecked((long)PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE)), pty, IntPtr.Size, IntPtr.Zero, IntPtr.Zero), "UpdateProcThreadAttribute");
-            var startup = new STARTUPINFOEX { cb=Marshal.SizeOf<STARTUPINFOEX>(), lpAttributeList=list };
+            var startup = new STARTUPINFOEX {
+                StartupInfo = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFOEX>() },
+                lpAttributeList = list,
+            };
             var fullExecutable = Path.GetFullPath(executable);
             var command = new StringBuilder("\"" + fullExecutable.Replace("\"", "\\\"") + "\" " + arguments);
             var workingDirectory = Path.GetDirectoryName(fullExecutable);
