@@ -19,7 +19,9 @@ public static class Spec132ConPtyRunner
     const uint WAIT_TIMEOUT = 0x00000102;
     const uint CONPTY_TIMEOUT_MS = 60000;
 
-    [DllImport("kernel32.dll", SetLastError=true)] static extern bool CreatePipe(out IntPtr read, out IntPtr write, IntPtr attrs, int size);
+    const uint HANDLE_FLAG_INHERIT = 0x00000001;
+    [DllImport("kernel32.dll", SetLastError=true)] static extern bool CreatePipe(out IntPtr read, out IntPtr write, ref SECURITY_ATTRIBUTES attrs, int size);
+    [DllImport("kernel32.dll", SetLastError=true)] static extern bool SetHandleInformation(IntPtr handle, uint mask, uint flags);
     [DllImport("kernel32.dll", SetLastError=true)] static extern bool CloseHandle(IntPtr handle);
     [DllImport("kernel32.dll", SetLastError=true)] static extern int CreatePseudoConsole(COORD size, IntPtr input, IntPtr output, uint flags, out IntPtr pty);
     [DllImport("kernel32.dll", SetLastError=true)] static extern int ResizePseudoConsole(IntPtr pty, COORD size);
@@ -40,8 +42,14 @@ public static class Spec132ConPtyRunner
     public static string Run(string executable, string arguments, int width, int height, uint timeoutMs, out int exitCode)
     {
         IntPtr inRead, inWrite, outRead, outWrite;
-        Check(CreatePipe(out inRead, out inWrite, IntPtr.Zero, 0), "CreatePipe input");
-        Check(CreatePipe(out outRead, out outWrite, IntPtr.Zero, 0), "CreatePipe output");
+        var pipeAttributes = new SECURITY_ATTRIBUTES {
+            nLength = Marshal.SizeOf<SECURITY_ATTRIBUTES>(),
+            bInheritHandle = 1,
+        };
+        Check(CreatePipe(out inRead, out inWrite, ref pipeAttributes, 0), "CreatePipe input");
+        Check(CreatePipe(out outRead, out outWrite, ref pipeAttributes, 0), "CreatePipe output");
+        Check(SetHandleInformation(inWrite, HANDLE_FLAG_INHERIT, 0), "SetHandleInformation input");
+        Check(SetHandleInformation(outRead, HANDLE_FLAG_INHERIT, 0), "SetHandleInformation output");
         IntPtr pty = IntPtr.Zero, list = IntPtr.Zero, processAttribute = IntPtr.Zero;
         PROCESS_INFORMATION pi = default;
         try
