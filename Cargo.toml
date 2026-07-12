@@ -6,6 +6,7 @@ members = [
     "crates/focusa-api",
     "crates/focusa-license",
     "crates/focusa-tui",
+    "crates/focusa-terminal-ui",
     "crates/focusa-bench",
 ]
 exclude = [
@@ -77,6 +78,11 @@ hex = "0.4"
 # Internal crates
 focusa-core = { path = "crates/focusa-core" }
 focusa-license = { path = "crates/focusa-license" }
+focusa-terminal-ui = { path = "crates/focusa-terminal-ui" }
+
+# Terminal UI (shared between CLI installer and TUI)
+ratatui = "0.30"
+crossterm = "0.28"
 
 # ── Performance profiles ──────────────────────────────────────────────
 # Release defaults: lto=false, codegen-units=16, panic=unwind

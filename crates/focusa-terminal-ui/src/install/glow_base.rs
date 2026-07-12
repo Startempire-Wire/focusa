@@ -1,0 +1,20 @@
+//! Deterministic lower infrastructure platform.
+
+use ratatui::style::Color;
+
+#[derive(Debug, Clone, Copy)]
+pub struct GlowBase { pub width: u16, pub rows: u16 }
+
+impl GlowBase {
+    pub const fn new(width: u16, rows: u16) -> Self { Self { width, rows } }
+    pub fn color_at(&self, x: u16, row: u16, active: bool, failed: bool) -> Color {
+        let center = self.width.saturating_sub(1) as f32 / 2.0;
+        let distance = ((x as f32 - center).abs() / center.max(1.0)).min(1.0);
+        if failed { return if row == 0 { Color::Red } else { Color::Rgb(120, 60, 20) }; }
+        if active { if row == 0 || distance < 0.35 { Color::Cyan } else { Color::Blue } }
+        else { Color::Green }
+    }
+}
+
+#[cfg(test)]
+mod tests { use super::*; #[test] fn platform_is_deterministic() { let b=GlowBase::new(20,4); assert_eq!(b.color_at(10,0,true,false), Color::Cyan); } }
