@@ -40,6 +40,14 @@ Recovery:
 
 If `focusa_browser_diagnostics_intake` is blocked by scope or trajectory clarity, preserve the diagnostics file path in the response, run `focusa_workpoint_resume`, then retry with explicit `project_root`/`workpoint_id` or use `attach_to_workpoint=false` for dry intake. If UIAI returned `url_not_allowed`, treat it as hardened private-target policy evidence; Focusa intake can record it but cannot bypass UIAI URL safety.
 
+### KH/OVH UIAI route failure
+
+KH clients continue to use `http://localhost:7456`, but `uiai-engine.service` is now an SSH compatibility forward to OVH sticky RR `7460`; UIAI/Chromium compute must not run on KH. Check the KH unit, then OVH `uiai-engine-ovh`, `uiai-engine-ovh-w2`, and `uiai-ovh-rr`. Require Pi-native health plus open/read/snapshot/diagnostics proof because malformed compression or duplicate framing may pass curl while breaking Node fetch. Use `/root/dual-server-master-plan/runbooks/21-focusa-ovh-uiai-and-build-offload-runbook.md` for rollback.
+
+### KH local build detected
+
+Inside `/home/wirebot/focusa`, root Pi resolves Cargo/npm/npx through `/root/.pi/agent/bin/` shims to `/usr/local/bin/focusa-ovh-build`; compile/test execution belongs on OVH as `wirebot`. `cargo test` must use the isolated OVH test daemon, never the KH production daemon. Commands outside Focusa remain local. Release builds stay GitHub-hosted and the KH `focusa-deploy` runner remains artifact-only.
+
 ## Safety rules
 
 - Treat `canonical=false`, `degraded=true`, `pending`, or `blocked` as recovery states, not success.

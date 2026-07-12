@@ -959,7 +959,7 @@ Operator guidance: Pi agent tools are very important, and UIAI Engine browser in
 
 ### 19.1 Server-observed baseline
 
-The server has a local UIAI Engine browser surface at `localhost:7456`. Health currently reports browser service standby/idle-off with diagnostics and bounded async eval enabled, max page pool `2`, queue depth `0`, and an `agent_pressure` packet recommendation. UIAI docs and tool metadata advertise Focusa scope echo, stable `uiai-*` evidence refs, `/api/agent/research-packet`, and diagnostics-first browser debugging.
+KH exposes the UIAI compatibility surface at `localhost:7456`, forwarded through authenticated SSH to the OVH sticky worker pool; browser compute and Chromium memory execute on OVH. Health reports browser service standby/idle-off with diagnostics and bounded async eval enabled, max page pool `2`, queue depth `0`, and an `agent_pressure` packet recommendation. UIAI docs and tool metadata advertise Focusa scope echo, stable `uiai-*` evidence refs, `/api/agent/research-packet`, and diagnostics-first browser debugging.
 
 Focusa already integrates this through:
 
