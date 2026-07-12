@@ -401,6 +401,10 @@ impl AnimatedRenderLoop {
 #[cfg(test)]
 mod tests {
     use super::HybridRenderer;
+    use crate::capabilities::InstallRendererMode;
+    use ratatui::{backend::TestBackend, Terminal};
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
 
     #[test]
     fn completion_hold_is_bounded() {
@@ -413,5 +417,67 @@ mod tests {
         let right = HybridRenderer::new(132);
         assert_eq!(left.seed, right.seed);
         assert_eq!(left.tick, right.tick);
+    }
+
+    #[test]
+    fn deterministic_golden_frames_cover_required_sizes_and_modes() {
+        let cases = [
+            (
+                120,
+                40,
+                InstallRendererMode::TrueColorAnimated,
+                15614631799357408319_u64,
+            ),
+            (
+                100,
+                30,
+                InstallRendererMode::Ansi256Animated,
+                17647664474310074821,
+            ),
+            (
+                80,
+                24,
+                InstallRendererMode::TrueColorAnimated,
+                9784246533569277816,
+            ),
+            (
+                80,
+                24,
+                InstallRendererMode::MonochromeAnimated,
+                167468927385124613,
+            ),
+            (
+                80,
+                24,
+                InstallRendererMode::ReducedMotion,
+                167468927385124613,
+            ),
+            (69, 30, InstallRendererMode::Plain, 15850258645686606196),
+        ];
+        let mut fingerprints = Vec::new();
+        for (width, height, mode, expected) in cases {
+            let backend = TestBackend::new(width, height);
+            let mut terminal = Terminal::new(backend).unwrap();
+            let mut renderer = HybridRenderer::new(132);
+            let state = crate::install::state::InstallState::default();
+            terminal
+                .draw(|frame| renderer.render(frame, &state, mode))
+                .unwrap();
+            let mut hasher = DefaultHasher::new();
+            for cell in terminal.backend().buffer().content() {
+                cell.symbol().hash(&mut hasher);
+                cell.fg.hash(&mut hasher);
+                cell.bg.hash(&mut hasher);
+            }
+            let fingerprint = hasher.finish();
+            assert_eq!(
+                fingerprint, expected,
+                "reviewed golden fingerprint drifted for {width}x{height} {mode:?}"
+            );
+            fingerprints.push(fingerprint);
+        }
+        assert_eq!(fingerprints.len(), 6);
+        assert_eq!(fingerprints[3], fingerprints[4]);
+        assert_ne!(fingerprints[0], fingerprints[1]);
     }
 }
