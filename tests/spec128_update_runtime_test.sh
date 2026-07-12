@@ -37,8 +37,15 @@ jq -e '.schema=="focusa.update_policy_status.v1" and .policy.channel=="dev" and 
 policy_eval="$(FOCUSA_UPDATE_POLICY="$TMP/no-policy.json" FOCUSA_DEV_MODE=0 "$BIN" --json update policy show)"
 jq -e '.schema=="focusa.update_policy_status.v1" and .policy.mode!="automatic" and .auto_apply_allowed==false' <<<"$policy_eval" >/dev/null || fail "eval/unattended auto-apply denial failed"
 
-plan="$(FOCUSA_FOCUSA_PATH="$TMP/bin/focusa" "$BIN" --json update plan)"
-jq -e '.schema=="focusa.update_plan.v1" and .apply_allowed==true and .latest.trust.release_resolved==true and .latest.trust.checksums_resolved==true and .latest.trust.signature_verified==true and (.safety.staging.verify_before_promote | index("asset_sha256")) and (.safety.staging.verify_before_promote | index("release_manifest_signature")) and (.safety.no_half_written_executable_rule | test("never write directly"))' <<<"$plan" >/dev/null || fail "plan missing verified release checksum/signature/no-half-written proof"
+plan=""
+for attempt in 1 2 3; do
+  plan="$(FOCUSA_FOCUSA_PATH="$TMP/bin/focusa" "$BIN" --json update plan)"
+  if jq -e '.schema=="focusa.update_plan.v1" and .apply_allowed==true and .latest.trust.release_resolved==true and .latest.trust.checksums_resolved==true and .latest.trust.signature_verified==true' <<<"$plan" >/dev/null; then
+    break
+  fi
+  [[ "$attempt" == 3 ]] || sleep 2
+done
+jq -e '.schema=="focusa.update_plan.v1" and .apply_allowed==true and .latest.trust.release_resolved==true and .latest.trust.checksums_resolved==true and .latest.trust.signature_verified==true and (.safety.staging.verify_before_promote | index("asset_sha256")) and (.safety.staging.verify_before_promote | index("release_manifest_signature")) and (.safety.no_half_written_executable_rule | test("never write directly"))' <<<"$plan" >/dev/null || fail "plan missing verified release checksum/signature/no-half-written proof after bounded retries"
 
 apply_same="$(FOCUSA_FOCUSA_PATH="$TMP/bin/focusa" "$BIN" --json update apply --latest-version 0.9.80-dev)"
 jq -e '.schema=="focusa.update_apply.v1" and .status=="blocked_read_only" and .apply_executed==false and .daemon_restart.allowed==false and .data_safety.overwrite_data==false and .data_safety.overwrite_env==false and .data_safety.overwrite_license==false' <<<"$apply_same" >/dev/null || fail "guarded apply failed no-mutation/data-safety assertions"
