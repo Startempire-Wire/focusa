@@ -1027,14 +1027,9 @@ dependencies = [
 name = "focusa-terminal-ui"
 version = "0.9.94-dev"
 dependencies = [
- "anyhow",
  "crossterm 0.28.1",
  "ratatui",
  "serde",
- "serde_json",
- "thiserror 2.0.18",
- "tokio",
- "tracing",
 ]
 
 [[package]]
