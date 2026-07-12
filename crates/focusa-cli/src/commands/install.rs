@@ -1917,14 +1917,29 @@ async fn execute_real_install(
         cancellation,
     )
     .await?;
-    let pi_extension = phase_pi_extension_download(
+    sink.emit(InstallEvent::PhaseStarted {
+        phase: InstallPhase::IntegratePi,
+        message: "Checking optional Pi integration".into(),
+    });
+    let pi_extension = match phase_pi_extension_download(
         channel,
         args.github_repo.as_deref(),
         install_root,
         sink,
         cancellation,
     )
-    .await?;
+    .await
+    {
+        Ok(asset) => asset,
+        Err(error) => {
+            sink.emit(InstallEvent::PhaseWarning {
+                phase: InstallPhase::IntegratePi,
+                message: "Pi extension download/integration unavailable".into(),
+                recovery_hint: Some(redact_url(&error.to_string())),
+            });
+            None
+        }
+    };
     let agent_context = phase_agent_context_download(
         channel,
         args.github_repo.as_deref(),
@@ -1939,17 +1954,15 @@ async fn execute_real_install(
         phase: InstallPhase::VerifyIntegrity,
         message: "Verifying checksums and trust metadata".into(),
     });
-    sink.emit(InstallEvent::PhaseStarted {
-        phase: InstallPhase::IntegratePi,
-        message: "Checking optional Pi integration".into(),
-    });
     if let Some(pi_asset) = pi_extension {
         match verify_checksum(&pi_asset).await {
             Ok(()) => match integrate_pi_extension(&pi_asset, install_root) {
-                Ok(path) => sink.emit(InstallEvent::PhaseMessage {
-                    phase: InstallPhase::IntegratePi,
-                    message: format!("Pi integration verified at {}", redact_url(&path)),
-                }),
+                Ok(path) => {
+                    sink.emit(InstallEvent::PhaseSucceeded {
+                        phase: InstallPhase::IntegratePi,
+                        detail: Some(format!("verified at {}", redact_url(&path))),
+                    });
+                }
                 Err(error) => sink.emit(InstallEvent::PhaseWarning {
                     phase: InstallPhase::IntegratePi,
                     message: "Pi integration could not be completed".into(),
