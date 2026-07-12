@@ -628,11 +628,17 @@ fn dry_run_summary(
     None
 }
 
-fn release_tag(channel: Channel) -> &'static str {
+fn release_tag(channel: Channel) -> String {
+    if let Ok(tag) = std::env::var("FOCUSA_RELEASE_TAG") {
+        let tag = tag.trim();
+        if !tag.is_empty() {
+            return tag.to_string();
+        }
+    }
     match channel {
-        Channel::Stable => "v0.9.54-dev",
-        Channel::Preview => "v0.9.55-dev-preview",
-        Channel::Nightly => "v0.9.55-dev-nightly",
+        Channel::Stable => format!("v{}", env!("CARGO_PKG_VERSION")),
+        Channel::Preview => format!("v{}-preview", env!("CARGO_PKG_VERSION")),
+        Channel::Nightly => format!("v{}-nightly", env!("CARGO_PKG_VERSION")),
     }
 }
 
@@ -665,7 +671,7 @@ async fn phase_asset_download(
     let tag_name = release
         .get("tag_name")
         .and_then(|v| v.as_str())
-        .unwrap_or(tag)
+        .unwrap_or(&tag)
         .to_string();
 
     let mut out = Vec::new();

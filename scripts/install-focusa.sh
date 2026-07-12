@@ -797,6 +797,9 @@ ARGS=(install --target="$RUST_TARGET" --github-repo="$GITHUB_REPO")
 [ "$ACCEPT_LICENSE" = 1 ] && ARGS+=(--accept-license)
 [ "$CHANNEL" != "stable" ] && ARGS+=(--channel="$CHANNEL")
 [ -n "$LICENSE_KEY" ] && ARGS+=(--license-key="$LICENSE_KEY")
+# Bind the Rust orchestrator to the exact release selected and verified above.
+# Without this, the embedded channel default can drift from the bootstrapper.
+export FOCUSA_RELEASE_TAG="$RELEASE_TAG"
 # Run rather than exec so an orchestrator failure reaches the EXIT trap.
 # The trap removes only clean-state paths created by this bootstrapper.
 if "$BIN_DIR/focusa" "${ARGS[@]}"; then
