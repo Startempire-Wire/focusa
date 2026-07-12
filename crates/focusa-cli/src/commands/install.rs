@@ -651,20 +651,6 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         println!("{}", serde_json::to_string_pretty(&report)?);
     }
 
-    // Phases that still need their sub-beads to land:
-    //   - focusa-112-path-automation (PATH detection + rc edit)
-    //   - focusa-112-first-walkthrough (post-install card)
-    // We emit a structured "wired but phase 5+ not yet wired" response so the
-    // operator can see what was done and what's pending. The walkthrough is
-    // emitted via print_walkthrough_human() below when --json is not set, and
-    // embedded in the JSON envelope when --json is set.
-    if !args.json {
-        println!(
-            "\n✓ Installed assets to {}\n  atomicity: stashed={}, smoke-test OK\n  walkthrough: 6 next steps below\n",
-            install_root.display(),
-            stashed,
-        );
-    }
     Ok(())
 }
 
