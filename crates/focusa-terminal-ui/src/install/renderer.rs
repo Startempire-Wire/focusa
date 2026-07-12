@@ -35,6 +35,7 @@ pub struct HybridRenderer {
     completion_seen: bool,
     pub core: ContinuityCore,
     pub rain: MatrixRain,
+    canvas: BlockCanvas,
 }
 fn display_color(color: Color, mode: super::super::capabilities::InstallRendererMode) -> Color {
     match mode {
@@ -74,6 +75,7 @@ impl HybridRenderer {
             completion_seen: false,
             core: ContinuityCore::new(seed),
             rain: MatrixRain::new(seed, 120, 32),
+            canvas: BlockCanvas::new(0, 0),
         }
     }
     pub fn tick(&mut self) {
@@ -205,7 +207,8 @@ impl HybridRenderer {
         // from the already-reduced presentation state.
         let logical_width = area.width;
         let logical_height = area.height.saturating_mul(2);
-        let mut canvas = BlockCanvas::new(logical_width, logical_height);
+        self.canvas.resize(logical_width, logical_height);
+        let canvas = &mut self.canvas;
         canvas.clear(background);
 
         let base_rows = (logical_height / 5).max(2);
@@ -255,7 +258,7 @@ impl HybridRenderer {
             let origin_x = logical_width.saturating_sub(core_width) / 2;
             let origin_y = logical_height.saturating_sub(base_rows + core_height) / 2;
             let assembly = state.phase_completion.clamp(0.0, 1.0);
-            self.core.render(&mut canvas, origin_x, origin_y, assembly);
+            self.core.render(canvas, origin_x, origin_y, assembly);
             let scan = state.verification_scan.as_ref().map(|scan| {
                 use super::event::VerificationScanOutcome;
                 match scan.outcome {
@@ -267,10 +270,10 @@ impl HybridRenderer {
             });
             if let Some((scan_color, scan_t)) = scan {
                 self.core
-                    .render_scan_line(&mut canvas, origin_x, origin_y, scan_t, scan_color);
+                    .render_scan_line(canvas, origin_x, origin_y, scan_t, scan_color);
             }
         }
-        self.rain.render(&mut canvas, 0, 0);
+        self.rain.render(canvas, 0, 0);
 
         let lines = (0..area.height)
             .map(|row| {
@@ -349,12 +352,14 @@ impl AnimatedRenderLoop {
         let mut state = InstallState::default();
         let mut finished_at: Option<Instant> = None;
         let frame_interval = Duration::from_millis(33);
+        let mut next_frame = Instant::now();
 
         loop {
             if cancellation.is_cancelled() {
                 break;
             }
-            match events.recv_timeout(frame_interval) {
+            let wait = next_frame.saturating_duration_since(Instant::now());
+            match events.recv_timeout(wait) {
                 Ok(event) => {
                     if matches!(event, InstallEvent::InstallFinished { .. }) {
                         finished_at = Some(Instant::now());
@@ -368,8 +373,18 @@ impl AnimatedRenderLoop {
                     }
                 }
                 Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
-                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+                    if finished_at.is_none() {
+                        break;
+                    }
+                }
             }
+            if Instant::now() < next_frame {
+                continue;
+            }
+            // A late frame is cosmetic: advance one deadline instead of
+            // queueing stale frames and flooding the terminal.
+            next_frame = Instant::now() + frame_interval;
             terminal.draw(|frame| self.renderer.render(frame, &state, self.mode))?;
             if self.mode != super::super::capabilities::InstallRendererMode::ReducedMotion {
                 self.renderer.tick();
