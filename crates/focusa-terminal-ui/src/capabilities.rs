@@ -55,6 +55,8 @@ pub struct TerminalCapabilities {
     pub color_depth: ColorDepth,
     pub mode: InstallRendererMode,
     pub minimum_size_met: bool,
+    /// Deterministic diagnostic seed; never serialized into install JSON.
+    pub animation_seed: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -94,7 +96,10 @@ pub fn detect_capabilities(no_animation: bool, json: bool, quiet: bool) -> Termi
     let stderr_term = std::io::stderr().is_terminal();
     let term = std::env::var("TERM").unwrap_or_default();
     let ci = std::env::var_os("CI").is_some();
-    let no_color = std::env::var_os("NO_COLOR").is_some();
+    let no_color = std::env::var_os("NO_COLOR").is_some()
+        || std::env::var("CLICOLOR")
+            .map(|value| value == "0")
+            .unwrap_or(false);
     let reduced_motion_env = std::env::var("FOCUSA_REDUCE_MOTION")
         .map(|v| v == "1")
         .unwrap_or(false);
@@ -128,7 +133,15 @@ pub fn detect_capabilities(no_animation: bool, json: bool, quiet: bool) -> Termi
         color_depth,
         mode,
         minimum_size_met,
+        animation_seed: animation_seed(),
     }
+}
+
+pub fn animation_seed() -> u64 {
+    std::env::var("FOCUSA_INSTALL_SEED")
+        .ok()
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(0xF0C0_5A_u64)
 }
 
 fn detect_color_depth(term: &str, no_color: bool) -> ColorDepth {
