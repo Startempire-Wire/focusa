@@ -66,7 +66,7 @@ impl ClosureProfile {
                 run_tests: true,
                 description: "Release proof: at least one code ref, one test ref, two endpoint refs; tests must run and pass.".into(),
             },
-            default_for: vec![ClosureKind::Code, ClosureKind::Deploy],
+            default_for: vec![],
         }
     }
 
@@ -82,6 +82,42 @@ impl ClosureProfile {
                 endpoint_status_in: vec![],
                 run_tests: false,
                 description: "Code-only profile: at least one code citation.".into(),
+            },
+            default_for: vec![],
+        }
+    }
+
+    /// Built-in code_with_test profile.
+    pub fn code_with_test() -> Self {
+        let mut min_required = BTreeMap::new();
+        min_required.insert(EvidenceKind::Code, 1);
+        min_required.insert(EvidenceKind::Test, 1);
+        Self {
+            name: "code_with_test".into(),
+            rule: ProfileRule {
+                min_required,
+                required_kinds: vec![EvidenceKind::Code, EvidenceKind::Test],
+                endpoint_status_in: vec![],
+                run_tests: true,
+                description: "Code with test: at least one code citation and one executed passing test.".into(),
+            },
+            default_for: vec![ClosureKind::Code],
+        }
+    }
+
+    /// Built-in code_with_endpoint profile.
+    pub fn code_with_endpoint() -> Self {
+        let mut min_required = BTreeMap::new();
+        min_required.insert(EvidenceKind::Code, 1);
+        min_required.insert(EvidenceKind::Endpoint, 1);
+        Self {
+            name: "code_with_endpoint".into(),
+            rule: ProfileRule {
+                min_required,
+                required_kinds: vec![EvidenceKind::Code, EvidenceKind::Endpoint],
+                endpoint_status_in: vec![200, 201, 202, 204],
+                run_tests: false,
+                description: "Code with endpoint: at least one code citation and one successful endpoint proof.".into(),
             },
             default_for: vec![],
         }
@@ -138,7 +174,7 @@ impl ClosureProfile {
                 description: "Deploy-only change: at least one deploy ref + one endpoint ref."
                     .into(),
             },
-            default_for: vec![],
+            default_for: vec![ClosureKind::Deploy],
         }
     }
 
@@ -146,8 +182,10 @@ impl ClosureProfile {
     pub fn all_builtins() -> Vec<Self> {
         vec![
             Self::release_proof(),
-            Self::code_only(),
             Self::pre_mvp_polish(),
+            Self::code_only(),
+            Self::code_with_test(),
+            Self::code_with_endpoint(),
             Self::doc_change(),
             Self::deploy_only(),
         ]
@@ -238,6 +276,8 @@ pub fn default_profile_for(kind: ClosureKind) -> &'static str {
             return match p.name.as_str() {
                 "release_proof" => "release_proof",
                 "code_only" => "code_only",
+                "code_with_test" => "code_with_test",
+                "code_with_endpoint" => "code_with_endpoint",
                 "pre_mvp_polish" => "pre_mvp_polish",
                 "doc_change" => "doc_change",
                 "deploy_only" => "deploy_only",
@@ -307,8 +347,8 @@ mod tests {
 
     #[test]
     fn default_profile_for_kind() {
-        assert_eq!(default_profile_for(ClosureKind::Code), "release_proof");
-        assert_eq!(default_profile_for(ClosureKind::Deploy), "release_proof");
+        assert_eq!(default_profile_for(ClosureKind::Code), "code_with_test");
+        assert_eq!(default_profile_for(ClosureKind::Deploy), "deploy_only");
         assert_eq!(default_profile_for(ClosureKind::Docs), "doc_change");
         assert_eq!(
             default_profile_for(ClosureKind::Investigation),
@@ -322,11 +362,18 @@ mod tests {
         let _ = std::fs::create_dir_all(&dir);
         let profiles = ClosureProfile::load_all(&dir);
         let names: Vec<&str> = profiles.iter().map(|p| p.name.as_str()).collect();
-        assert!(names.contains(&"release_proof"));
-        assert!(names.contains(&"code_only"));
-        assert!(names.contains(&"pre_mvp_polish"));
-        assert!(names.contains(&"doc_change"));
-        assert!(names.contains(&"deploy_only"));
+        assert_eq!(profiles.len(), 7);
+        for required in [
+            "release_proof",
+            "pre_mvp_polish",
+            "code_only",
+            "code_with_test",
+            "code_with_endpoint",
+            "doc_change",
+            "deploy_only",
+        ] {
+            assert!(names.contains(&required), "missing built-in profile {required}");
+        }
     }
 
     #[test]

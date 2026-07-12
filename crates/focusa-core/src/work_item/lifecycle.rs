@@ -842,6 +842,35 @@ mod tests {
     }
 
     #[test]
+    fn apply_override_persists_reason_and_audit_row() {
+        let root = std::env::temp_dir().join(format!("focusa-override-{}", Uuid::now_v7()));
+        let storage = ClaimStorage::new(root.join("claims"));
+        let audit_path = root.join("closure-audit.jsonl");
+        let audit = ClosureAuditLog::open(&audit_path).expect("open audit");
+        let lifecycle = Lifecycle::new(
+            storage.clone(),
+            audit,
+            ClosurePolicy::default_policy(),
+            ClosureProfile::all_builtins(),
+            ProviderRegistry::empty(),
+        );
+        let claim = tmp_claim();
+        storage.save(&claim).expect("save claim");
+
+        let overridden = lifecycle
+            .apply_override("operator@test", &claim.claim_id, "emergency operator approval")
+            .expect("apply override");
+        assert_eq!(overridden.status, ClaimStatus::Authorized);
+        assert_eq!(
+            overridden.override_reason.as_deref(),
+            Some("emergency operator approval")
+        );
+        let events = ClosureAuditLog::replay(&audit_path).expect("replay audit");
+        assert!(events.iter().any(|event| event.detail.contains("OVERRIDE:")));
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn evaluate_profile_rejects_when_min_count_missing() {
         let profile = ClosureProfile::release_proof();
         let claim = tmp_claim();

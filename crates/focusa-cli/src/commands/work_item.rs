@@ -17,7 +17,7 @@ use focusa_core::work_item::{
     adapters::{BdAdapter, NoneAdapter},
     audit::ClosureAuditLog,
     lifecycle::Lifecycle,
-    policy::{ClosurePolicy, ClosureProfile},
+    policy::{ClosurePolicy, ClosureProfile, default_profile_for},
     storage::ClaimStorage,
     types::{
         ClaimStatus, ClosureBlock, ClosureClaim, ClosureKind, EvidenceCitation, EvidenceKind,
@@ -104,8 +104,12 @@ pub struct CloseArgs {
     pub from_workpoint: String,
     #[arg(long)]
     pub profile: Option<String>,
+    /// Break glass and bypass normal evidence validation. Requires --reason.
     #[arg(long)]
-    pub override_: Option<String>,
+    pub override_: bool,
+    /// Mandatory audit reason when --override is used.
+    #[arg(long, requires = "override_")]
+    pub reason: Option<String>,
     #[arg(long)]
     pub actor: Option<String>,
 }
@@ -190,18 +194,25 @@ pub struct ProviderGuardEvalArgs {
 // Default lifecycle builder
 // ---------------------------------------------------------------------------
 
-fn default_lifecycle() -> Lifecycle {
+fn default_lifecycle_with_profile(profile: Option<&str>) -> Lifecycle {
     let mut registry = ProviderRegistry::empty();
     registry.register(Arc::new(BdAdapter::new()));
     registry.register(Arc::new(NoneAdapter::new()));
 
     let storage = ClaimStorage::open_default();
     let audit = ClosureAuditLog::open_default();
-    let policy = ClosurePolicy::load();
+    let mut policy = ClosurePolicy::load();
+    if let Some(profile) = profile {
+        policy.active_profile = profile.to_string();
+    }
     let profiles =
         ClosureProfile::load_all(&focusa_core::work_item::policy::default_profiles_dir());
 
     Lifecycle::new(storage, audit, policy, profiles, registry)
+}
+
+fn default_lifecycle() -> Lifecycle {
+    default_lifecycle_with_profile(None)
 }
 
 fn resolve_actor(input: Option<String>) -> String {
@@ -313,16 +324,36 @@ async fn run_close(args: CloseArgs) -> Result<()> {
     let kind = ClosureKind::Code;
     let summary = format!("closed via focusa (workpoint: {})", args.from_workpoint);
 
-    if let Some(reason) = args.override_ {
-        print_status("completed");
+    let selected_profile = args
+        .profile
+        .as_deref()
+        .unwrap_or_else(|| default_profile_for(kind));
+    let lifecycle = default_lifecycle_with_profile(Some(selected_profile));
+    let citations = build_citations_from_recent_tests(&work_item.project_root);
+
+    if args.override_ {
+        let reason = args.reason.as_deref().unwrap_or_default().trim();
+        if reason.is_empty() {
+            anyhow::bail!("--override requires a non-empty --reason");
+        }
+        let prepared = lifecycle.prepare(&actor, work_item, &summary, kind, citations)?;
+        let claim = lifecycle.apply_override(&actor, &prepared.claim.claim_id, reason)?;
+        let submitted = lifecycle.submit(claim.claim_id.clone()).await?;
+        if let Some(block) = submitted.block {
+            print_block(&block);
+            anyhow::bail!("override provider submission blocked");
+        }
+        let reconciled = lifecycle.reconcile(submitted.claim.claim_id.clone()).await?;
+        if let Some(block) = reconciled.block {
+            print_block(&block);
+            anyhow::bail!("override reconciliation blocked");
+        }
+        print_claim(&reconciled.claim);
         print_kv("action", &format!("close {} OVERRIDE by {actor}", args.id));
-        print_kv("reason", &reason);
-        print_kv("note", "override is audited in closure-audit.jsonl");
+        print_kv("reason", reason);
+        print_kv("audit_log", &ClosureAuditLog::default_path().display().to_string());
         return Ok(());
     }
-
-    let lifecycle = default_lifecycle();
-    let citations = build_citations_from_recent_tests(&work_item.project_root);
 
     print_status("planned");
     print_kv("action", &format!("close work-item {} by {actor}", args.id));
