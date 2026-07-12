@@ -21,6 +21,7 @@ use clap::Args;
 use focusa_terminal_ui::{InstallRendererMode, detect_capabilities, validate_environment};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
+use std::io::Write;
 
 #[derive(Args, Debug)]
 pub struct InstallArgs {
@@ -733,17 +734,14 @@ async fn phase_asset_download(
         std::fs::create_dir_all(install_path.parent().expect("bin parent"))?;
         let staged = install_path.with_extension("download");
         let asset_url = release_asset_url(repo, &tag_name, &expected);
-        let bytes = client
+        let response = client
             .get(&asset_url)
             .send()
             .await
             .map_err(|e| anyhow!("download {expected}: {e}"))?
             .error_for_status()
-            .map_err(|e| anyhow!("download {expected}: {e}"))?
-            .bytes()
-            .await
-            .map_err(|e| anyhow!("read {expected}: {e}"))?;
-        std::fs::write(&staged, &bytes)?;
+            .map_err(|e| anyhow!("download {expected}: {e}"))?;
+        stream_asset_to_staged(response, &staged, &expected).await?;
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
@@ -779,17 +777,14 @@ async fn phase_agent_context_download(
         .timeout(std::time::Duration::from_secs(15))
         .build()
         .map_err(|error| anyhow!("agent context client build failed: {error}"))?;
-    let bytes = client
+    let response = client
         .get(&url)
         .send()
         .await
         .map_err(|error| anyhow!("download {name}: {error}"))?
         .error_for_status()
-        .map_err(|error| anyhow!("download {name}: {error}"))?
-        .bytes()
-        .await
-        .map_err(|error| anyhow!("read {name}: {error}"))?;
-    std::fs::write(&staged, &bytes)?;
+        .map_err(|error| anyhow!("download {name}: {error}"))?;
+    stream_asset_to_staged(response, &staged, &name).await?;
     std::fs::rename(&staged, &install_path)?;
     Ok(InstalledAsset {
         name,
@@ -798,6 +793,26 @@ async fn phase_agent_context_download(
         sha256: String::new(),
         install_path: install_path.display().to_string(),
     })
+}
+
+async fn stream_asset_to_staged(
+    mut response: reqwest::Response,
+    staged: &std::path::Path,
+    label: &str,
+) -> Result<()> {
+    let mut file = std::fs::File::create(staged)
+        .with_context(|| format!("create staged download for {label}"))?;
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|error| anyhow!("read {label}: {error}"))?
+    {
+        file.write_all(&chunk)
+            .with_context(|| format!("write staged download for {label}"))?;
+    }
+    file.flush()
+        .with_context(|| format!("flush staged download for {label}"))?;
+    Ok(())
 }
 
 fn install_agent_context_archive(
