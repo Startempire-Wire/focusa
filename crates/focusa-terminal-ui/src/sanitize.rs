@@ -118,6 +118,7 @@ fn redact_email_tokens(input: &str) -> String {
         .map(|token| {
             let trimmed = token.trim_matches(char::is_whitespace);
             let looks_like_email = trimmed.contains('@')
+                && !trimmed.contains("[REDACTED_CREDENTIALS]@")
                 && trimmed
                     .split('@')
                     .nth(1)

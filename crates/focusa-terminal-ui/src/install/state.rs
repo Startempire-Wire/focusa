@@ -352,6 +352,29 @@ mod tests {
     }
 
     #[test]
+    fn warning_and_recovery_truth_is_retained() {
+        let mut state = InstallState::default();
+        assert!(state.set_active(InstallPhase::VerifyIntegrity));
+        assert!(state.set_warning(InstallPhase::VerifyIntegrity, "checksum unavailable".into()));
+        state.warnings.push("retry with a verified release".into());
+        assert!(state
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("retry")));
+        let mut failed = InstallState::default();
+        assert!(failed.set_active(InstallPhase::VerifyIntegrity));
+        assert!(failed.set_failed(
+            InstallPhase::VerifyIntegrity,
+            "verification failed".into(),
+            Some("download a complete signed release".into()),
+        ));
+        assert_eq!(
+            failed.recovery_hint.as_deref(),
+            Some("download a complete signed release")
+        );
+    }
+
+    #[test]
     fn asset_progress_is_monotonic() {
         let mut state = InstallState::default();
         assert!(state.update_asset(
