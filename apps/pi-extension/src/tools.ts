@@ -3778,13 +3778,26 @@ export function registerTools(pi: ExtensionAPI) {
   const LEGACY_SILENT_SESSION_REGISTRY_PATH = "/tmp/focusa-silent-registry.json";
 
   // Durable registry: operator/project scoped, never dependent on reboot-persistent /tmp.
-  function silentSessionRegistryPath(): string {
+  function silentSessionDataDir(): string {
     const os = require("os");
     const crypto = require("crypto");
+    const path = require("path");
     const root = process.env.FOCUSA_PROJECT_ROOT || process.cwd();
     const scope = crypto.createHash("sha256").update(`${currentUserName()}\0${root}`).digest("hex").slice(0, 24);
-    const base = process.env.XDG_STATE_HOME || require("path").join(os.homedir(), ".local", "state");
-    return require("path").join(base, "focusa", "silent-sessions", `${scope}.json`);
+    const base = process.env.XDG_STATE_HOME || path.join(os.homedir(), ".local", "state");
+    return path.join(base, "focusa", "silent-sessions", scope);
+  }
+
+  function silentSessionRegistryPath(): string {
+    return require("path").join(silentSessionDataDir(), "registry.json");
+  }
+
+  function silentSessionEnsureDataDir(): string {
+    const fs = require("fs");
+    const dir = silentSessionDataDir();
+    fs.mkdirSync(require("path").join(dir, "logs"), { recursive: true, mode: 0o700 });
+    try { fs.chmodSync(dir, 0o700); } catch { /* platform may not expose chmod */ }
+    return dir;
   }
 
   function shellQuote(value: string): string {
@@ -3901,7 +3914,7 @@ export function registerTools(pi: ExtensionAPI) {
       String(name || "default")
         .replace(/[^a-zA-Z0-9._:-]+/g, "-")
         .slice(0, 100) || "default";
-    return `/tmp/${safe}.json`;
+    return require("path").join(silentSessionEnsureDataDir(), `${safe}.json`);
   }
 
   function silentSessionLogPath(name: string, runAsUser?: string | null): string {
@@ -3913,7 +3926,7 @@ export function registerTools(pi: ExtensionAPI) {
       String(runAsUser || currentUserName() || "unknown")
         .replace(/[^a-zA-Z0-9._:-]+/g, "-")
         .slice(0, 40) || "unknown";
-    return `/tmp/${safe}-${user}.log`;
+    return require("path").join(silentSessionEnsureDataDir(), "logs", `${safe}-${user}.log`);
   }
 
   function silentSessionReadRegistry(): Record<string, any> {
@@ -3922,6 +3935,8 @@ export function registerTools(pi: ExtensionAPI) {
     for (const path of paths) {
       try {
         if (!fs.existsSync(path)) continue;
+        const stat = fs.lstatSync(path);
+        if (stat.isSymbolicLink() || !stat.isFile()) continue;
         const parsed = JSON.parse(fs.readFileSync(path, "utf8"));
         if (parsed && typeof parsed === "object") return parsed.sessions || parsed;
       } catch {
@@ -3935,6 +3950,7 @@ export function registerTools(pi: ExtensionAPI) {
     const fs = require("fs");
     const path = silentSessionRegistryPath();
     try {
+      silentSessionEnsureDataDir();
       fs.mkdirSync(require("path").dirname(path), { recursive: true, mode: 0o700 });
       const payload = JSON.stringify({ schema_version: "focusa.silent_sessions.registry.v2", updated_at: new Date().toISOString(), sessions: registry }, null, 2);
       const tmp = `${path}.${process.pid}.tmp`;
@@ -3950,7 +3966,11 @@ export function registerTools(pi: ExtensionAPI) {
     try {
       const fs = require("fs");
       const path = silentSessionMetaPath(name);
-      if (fs.existsSync(path)) return JSON.parse(fs.readFileSync(path, "utf8"));
+      if (fs.existsSync(path)) {
+        const stat = fs.lstatSync(path);
+        if (stat.isSymbolicLink() || !stat.isFile()) return null;
+        return JSON.parse(fs.readFileSync(path, "utf8"));
+      }
       return silentSessionReadRegistry()[name] || null;
     } catch {
       return silentSessionReadRegistry()[name] || null;
@@ -3959,9 +3979,14 @@ export function registerTools(pi: ExtensionAPI) {
 
   function silentSessionWriteMeta(name: string, meta: any): void {
     try {
-      require("fs").writeFileSync(silentSessionMetaPath(name), JSON.stringify(meta, null, 2));
+      const fs = require("fs");
+      const path = silentSessionMetaPath(name);
+      const tmp = `${path}.${process.pid}.tmp`;
+      fs.writeFileSync(tmp, JSON.stringify(meta, null, 2), { mode: 0o600, flag: "wx" });
+      fs.renameSync(tmp, path);
+      try { fs.chmodSync(path, 0o600); } catch { /* platform may not expose chmod */ }
     } catch {
-      /* best effort */
+      /* registry remains the authoritative fallback */
     }
     const registry = silentSessionReadRegistry();
     registry[name] = {
