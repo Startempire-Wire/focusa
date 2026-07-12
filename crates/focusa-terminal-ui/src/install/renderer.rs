@@ -22,6 +22,9 @@ use ratatui::{
 pub struct HybridRenderer {
     pub seed: u64,
     pub tick: u64,
+    elapsed_seconds: f32,
+    completion_wave: f32,
+    completion_seen: bool,
     pub core: ContinuityCore,
     pub rain: MatrixRain,
 }
@@ -58,12 +61,17 @@ impl HybridRenderer {
         Self {
             seed,
             tick: 0,
+            elapsed_seconds: 0.0,
+            completion_wave: 0.0,
+            completion_seen: false,
             core: ContinuityCore::new(seed),
             rain: MatrixRain::new(seed, 120, 32),
         }
     }
     pub fn tick(&mut self) {
         self.tick = self.tick.wrapping_add(1);
+        self.elapsed_seconds += 1.0 / 30.0;
+        self.completion_wave = (self.completion_wave - 1.0 / 30.0).max(0.0);
         self.rain.update(1.0 / 30.0);
     }
     pub fn render(
@@ -194,11 +202,33 @@ impl HybridRenderer {
         let base_rows = (logical_height / 5).max(2);
         let base = GlowBase::new(logical_width, base_rows);
         let failed = state.failure.is_some() || state.rollback_active;
-        let active = !failed && state.phase_completion < 1.0;
+        let complete = state.phase_completion >= 1.0 && !failed;
+        let active = !failed && !complete;
+        if complete && !self.completion_seen {
+            self.completion_seen = true;
+            self.completion_wave = 1.0;
+        }
+        self.rain.set_paused(failed || complete);
+        let pulse = 0.725 + 0.175 * (self.elapsed_seconds * std::f32::consts::TAU * 0.7).sin();
         for row in 0..base_rows {
             let y = logical_height.saturating_sub(base_rows) + row;
             for x in 0..logical_width {
-                let color = base.color_at(x, row, active, failed);
+                let distance = ((x as f32 - logical_width as f32 / 2.0).abs()
+                    / (logical_width as f32 / 2.0).max(1.0))
+                .min(1.0);
+                let wave = if self.completion_wave > 0.0 {
+                    (self.completion_wave - distance * 0.7).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                };
+                let color = base.color_at_state(
+                    x,
+                    row,
+                    active,
+                    complete || wave > 0.0,
+                    failed,
+                    (pulse + wave * 0.25).min(1.0),
+                );
                 canvas.set(
                     x,
                     y,
@@ -217,17 +247,22 @@ impl HybridRenderer {
             let origin_y = logical_height.saturating_sub(base_rows + core_height) / 2;
             let assembly = state.phase_completion.clamp(0.0, 1.0);
             self.core.render(&mut canvas, origin_x, origin_y, assembly);
-            if state.phases.iter().any(|(phase, status)| {
-                *phase == super::event::InstallPhase::VerifyIntegrity
-                    && *status == PhaseStatus::Active
-            }) {
-                self.core.render_scan_line(
-                    &mut canvas,
-                    origin_x,
-                    origin_y,
-                    (self.tick % 90) as f32 / 89.0,
-                    accent,
-                );
+            if let Some((_, verification_status)) = state
+                .phases
+                .iter()
+                .find(|(phase, _)| *phase == super::event::InstallPhase::VerifyIntegrity)
+            {
+                let scan = match verification_status {
+                    PhaseStatus::Active => Some((accent, (self.tick % 90) as f32 / 89.0)),
+                    PhaseStatus::Succeeded => Some((Color::Green, 1.0)),
+                    PhaseStatus::Warning => Some((Color::Yellow, 1.0)),
+                    PhaseStatus::Failed => Some((Color::Red, 1.0)),
+                    _ => None,
+                };
+                if let Some((scan_color, scan_t)) = scan {
+                    self.core
+                        .render_scan_line(&mut canvas, origin_x, origin_y, scan_t, scan_color);
+                }
             }
         }
         self.rain.render(&mut canvas, 0, 0);
