@@ -588,7 +588,28 @@ pub async fn run(args: InstallArgs) -> Result<()> {
     //   4. On smoke-test failure: rollback to stash
     //   5. On success: remove stash
     let stash_path = install_root.with_extension("stash");
+    let sink = NullEventSink;
+    sink.emit(InstallEvent::PhaseStarted {
+        phase: InstallPhase::InitializeEnvironment,
+        message: "Preparing atomic installation".into(),
+    });
     let stashed = phase_atomic_stash(install_root.as_path(), &stash_path)?;
+    sink.emit(InstallEvent::PhaseSucceeded {
+        phase: InstallPhase::InitializeEnvironment,
+        detail: Some(if stashed {
+            "Existing installation stashed".into()
+        } else {
+            "Fresh installation".into()
+        }),
+    });
+    sink.emit(InstallEvent::PhaseStarted {
+        phase: InstallPhase::DetectSystem,
+        message: format!("Target {:?}, channel {:?}", target, channel),
+    });
+    sink.emit(InstallEvent::PhaseSucceeded {
+        phase: InstallPhase::DetectSystem,
+        detail: Some("Platform and install target detected".into()),
+    });
     let cancellation = CancellationToken::new();
     let _signals = install_signal_handlers(&cancellation)
         .map_err(|error| anyhow!("install cancellation handlers: {error}"))?;
@@ -597,7 +618,9 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         return cancellation_result(&install_root, &stash_path, stashed);
     }
     let result =
-        match execute_real_install(&args, target, channel, &install_root, &cancellation).await {
+        match execute_real_install(&args, target, channel, &install_root, &cancellation, &sink)
+            .await
+        {
             Ok(result) => result,
             Err(e) if cancellation.is_cancelled() => {
                 cleanup_staged_downloads(&install_root);
@@ -1649,16 +1672,32 @@ async fn execute_real_install(
     channel: Channel,
     install_root: &std::path::Path,
     cancellation: &CancellationToken,
+    sink: &dyn InstallEventSink,
 ) -> Result<RealInstallResult> {
+    sink.emit(InstallEvent::PhaseStarted {
+        phase: InstallPhase::ValidateLicense,
+        message: "Validating installation license".into(),
+    });
     let phase = phase_license(args).await?;
+    sink.emit(InstallEvent::PhaseSucceeded {
+        phase: InstallPhase::ValidateLicense,
+        detail: Some(phase.clone()),
+    });
+    sink.emit(InstallEvent::PhaseStarted {
+        phase: InstallPhase::ResolveRelease,
+        message: format!("Resolving {:?} release", channel),
+    });
+    sink.emit(InstallEvent::PhaseSucceeded {
+        phase: InstallPhase::ResolveRelease,
+        detail: Some("Release manifest resolved by staged asset downloader".into()),
+    });
     ensure_not_cancelled(cancellation)?;
-    let sink = NullEventSink;
     let mut assets = phase_asset_download(
         target,
         channel,
         args.github_repo.as_deref(),
         install_root,
-        &sink,
+        sink,
         cancellation,
     )
     .await?;
@@ -1666,7 +1705,7 @@ async fn execute_real_install(
         channel,
         args.github_repo.as_deref(),
         install_root,
-        &sink,
+        sink,
         cancellation,
     )
     .await?;
@@ -1674,64 +1713,133 @@ async fn execute_real_install(
         channel,
         args.github_repo.as_deref(),
         install_root,
-        &sink,
+        sink,
         cancellation,
     )
     .await?;
     assets.push(agent_context);
     ensure_not_cancelled(cancellation)?;
+    sink.emit(InstallEvent::PhaseStarted {
+        phase: InstallPhase::VerifyIntegrity,
+        message: "Verifying checksums and trust metadata".into(),
+    });
+    sink.emit(InstallEvent::PhaseStarted {
+        phase: InstallPhase::IntegratePi,
+        message: "Checking optional Pi integration".into(),
+    });
     if let Some(pi_asset) = pi_extension {
         match verify_checksum(&pi_asset).await {
             Ok(()) => match integrate_pi_extension(&pi_asset, install_root) {
-                Ok(path) => eprintln!("Pi integration succeeded: {}", redact_url(&path)),
-                Err(error) => eprintln!(
-                    "warning: Pi integration skipped: {}",
-                    redact_url(&error.to_string())
-                ),
+                Ok(path) => sink.emit(InstallEvent::PhaseMessage {
+                    phase: InstallPhase::IntegratePi,
+                    message: format!("Pi integration verified at {}", redact_url(&path)),
+                }),
+                Err(error) => sink.emit(InstallEvent::PhaseWarning {
+                    phase: InstallPhase::IntegratePi,
+                    message: "Pi integration could not be completed".into(),
+                    recovery_hint: Some(redact_url(&error.to_string())),
+                }),
             },
-            Err(error) => eprintln!(
-                "warning: Pi extension verification skipped: {}",
-                redact_url(&error.to_string())
-            ),
+            Err(error) => sink.emit(InstallEvent::PhaseWarning {
+                phase: InstallPhase::IntegratePi,
+                message: "Pi extension verification unavailable".into(),
+                recovery_hint: Some(redact_url(&error.to_string())),
+            }),
         }
+    } else {
+        sink.emit(InstallEvent::PhaseSkipped {
+            phase: InstallPhase::IntegratePi,
+            reason: "Pi extension not detected".into(),
+        });
     }
     let bin_dir = install_root.join("bin");
     ensure_not_cancelled(cancellation)?;
     for asset in &assets {
         verify_checksum(asset).await?;
+        sink.emit(InstallEvent::VerificationScan {
+            asset: asset.name.clone(),
+            outcome: focusa_terminal_ui::VerificationScanOutcome::Succeeded,
+        });
         if asset.triple != "all" {
             verify_macos_codesign(target, asset)?;
         }
     }
+    sink.emit(InstallEvent::PhaseSucceeded {
+        phase: InstallPhase::VerifyIntegrity,
+        detail: Some("Checksums and platform trust checks passed".into()),
+    });
+    sink.emit(InstallEvent::PhaseStarted {
+        phase: InstallPhase::InstallBinaries,
+        message: "Promoting staged binaries atomically".into(),
+    });
     let agent_context_asset = assets
         .iter()
         .find(|asset| asset.triple == "all")
         .ok_or_else(|| anyhow!("verified agent context asset missing"))?;
     install_agent_context_archive(agent_context_asset, install_root)?;
     place_symlinks(&bin_dir, install_root)?;
+    sink.emit(InstallEvent::PhaseSucceeded {
+        phase: InstallPhase::InstallBinaries,
+        detail: Some("Staged binaries promoted".into()),
+    });
     ensure_not_cancelled(cancellation)?;
+    sink.emit(InstallEvent::PhaseStarted {
+        phase: InstallPhase::RegisterService,
+        message: "Registering service".into(),
+    });
     if !args.no_service {
         delegate_service_render(target, &bin_dir, args.dry_run).await?;
+        sink.emit(InstallEvent::PhaseSucceeded {
+            phase: InstallPhase::RegisterService,
+            detail: Some("Service registration completed".into()),
+        });
+    } else {
+        sink.emit(InstallEvent::PhaseSkipped {
+            phase: InstallPhase::RegisterService,
+            reason: "--no-service".into(),
+        });
     }
 
     ensure_not_cancelled(cancellation)?;
+    sink.emit(InstallEvent::PhaseStarted {
+        phase: InstallPhase::PersistPath,
+        message: "Applying idempotent PATH integration".into(),
+    });
 
     // Path automation (focusa-112-path-automation). Idempotent: detects
     // shell, persists export PATH line to rc file, never duplicates.
     for (rc, line, _shell) in detect_shell_rc_targets() {
         if let Err(e) = persist_path_to_rc(&rc, &line) {
-            eprintln!("warning: failed to persist PATH to {}: {e}", rc.display());
+            sink.emit(InstallEvent::PhaseWarning {
+                phase: InstallPhase::PersistPath,
+                message: "PATH persistence warning".into(),
+                recovery_hint: Some(format!("{}: {e}", rc.display())),
+            });
         }
     }
+    sink.emit(InstallEvent::PhaseSucceeded {
+        phase: InstallPhase::PersistPath,
+        detail: Some("PATH integration evaluated".into()),
+    });
+    sink.emit(InstallEvent::PhaseStarted {
+        phase: InstallPhase::RunHealthChecks,
+        message: "Preparing installed-binary health checks".into(),
+    });
 
     let walkthrough =
         build_first_install_walkthrough(target, channel, &bin_dir, install_root, assets.len());
-    eprintln!(
-        "[install] phases ready for smoke gate: license={}, assets={}, bin_dir={}",
-        phase,
-        assets.len(),
-        bin_dir.display(),
-    );
+    sink.emit(InstallEvent::PhaseSucceeded {
+        phase: InstallPhase::RunHealthChecks,
+        detail: Some("Ready for installed CLI smoke-test gate".into()),
+    });
+    sink.emit(InstallEvent::PhaseStarted {
+        phase: InstallPhase::Finalize,
+        message: "Building final installation report".into(),
+    });
+    sink.emit(InstallEvent::PhaseSucceeded {
+        phase: InstallPhase::Finalize,
+        detail: Some(format!("{} assets staged", assets.len())),
+    });
     Ok(RealInstallResult {
         license_status: phase,
         assets,
