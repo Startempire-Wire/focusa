@@ -50,7 +50,7 @@ public static class Spec132ConPtyRunner
         Check(CreatePipe(out outRead, out outWrite, ref pipeAttributes, 0), "CreatePipe output");
         Check(SetHandleInformation(inWrite, HANDLE_FLAG_INHERIT, 0), "SetHandleInformation input");
         Check(SetHandleInformation(outRead, HANDLE_FLAG_INHERIT, 0), "SetHandleInformation output");
-        IntPtr pty = IntPtr.Zero, list = IntPtr.Zero, processAttribute = IntPtr.Zero;
+        IntPtr pty = IntPtr.Zero, list = IntPtr.Zero;
         PROCESS_INFORMATION pi = default;
         try
         {
@@ -61,9 +61,9 @@ public static class Spec132ConPtyRunner
             InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref bytes);
             list = Marshal.AllocHGlobal(bytes);
             Check(InitializeProcThreadAttributeList(list, 1, 0, ref bytes), "InitializeProcThreadAttributeList");
-            processAttribute = Marshal.AllocHGlobal(IntPtr.Size);
-            Marshal.WriteIntPtr(processAttribute, pty);
-            Check(UpdateProcThreadAttribute(list, 0, new IntPtr(unchecked((long)PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE)), processAttribute, IntPtr.Size, IntPtr.Zero, IntPtr.Zero), "UpdateProcThreadAttribute");
+            // PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE expects the HPCON handle
+            // value directly as lpValue, not a pointer to a second allocation.
+            Check(UpdateProcThreadAttribute(list, 0, new IntPtr(unchecked((long)PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE)), pty, IntPtr.Size, IntPtr.Zero, IntPtr.Zero), "UpdateProcThreadAttribute");
             var startup = new STARTUPINFOEX { cb=Marshal.SizeOf<STARTUPINFOEX>(), lpAttributeList=list };
             var fullExecutable = Path.GetFullPath(executable);
             var command = new StringBuilder("\"" + fullExecutable.Replace("\"", "\\\"") + "\" " + arguments);
@@ -106,7 +106,7 @@ public static class Spec132ConPtyRunner
             Close(pi.hThread); Close(pi.hProcess); Close(inRead); Close(inWrite); Close(outRead); Close(outWrite);
             if (pty != IntPtr.Zero) ClosePseudoConsole(pty);
             if (list != IntPtr.Zero) { Marshal.FreeHGlobal(list); }
-            if (processAttribute != IntPtr.Zero) Marshal.FreeHGlobal(processAttribute);
+
         }
     }
 }
