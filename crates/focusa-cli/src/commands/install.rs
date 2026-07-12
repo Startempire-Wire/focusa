@@ -379,7 +379,7 @@ fn detect_preflight_system() -> PreflightSystem {
             .write(true)
             .open(&path_target)
             .is_ok(),
-        existing_focusa: which::which("focusa").ok().map(|p| p.display().to_string()),
+        existing_focusa: find_command("focusa"),
     }
 }
 
@@ -459,7 +459,30 @@ fn first_command(names: &[&str]) -> Option<String> {
 }
 
 fn have_cmd(name: &str) -> bool {
-    which::which(name).is_ok()
+    find_command(name).is_some()
+}
+
+fn find_command(name: &str) -> Option<String> {
+    #[cfg(windows)]
+    {
+        // Avoid the `which` crate's recursive PATHEXT probing on Windows.
+        // `where.exe` is the native command resolver and does not execute the
+        // candidate, which keeps preflight safe and stack-bounded.
+        let output = std::process::Command::new("where.exe")
+            .arg(name)
+            .output()
+            .ok()?;
+        if !output.status.success() {
+            return None;
+        }
+        return String::from_utf8(output.stdout)
+            .ok()
+            .and_then(|value| value.lines().next().map(str::trim).map(str::to_string));
+    }
+    #[cfg(not(windows))]
+    {
+        which::which(name).ok().map(|path| path.display().to_string())
+    }
 }
 
 fn is_root() -> bool {
