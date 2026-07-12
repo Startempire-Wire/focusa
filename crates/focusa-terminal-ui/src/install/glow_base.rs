@@ -69,4 +69,26 @@ mod tests {
         let b = GlowBase::new(20, 4);
         assert_eq!(b.color_at(10, 0, true, false), Color::Cyan);
     }
+
+    #[test]
+    fn active_platform_pulse_is_bounded_and_completion_is_green() {
+        let b = GlowBase::new(120, 8);
+        let dim = b.color_at_state(60, 0, true, false, false, 0.55);
+        let bright = b.color_at_state(60, 0, true, false, false, 0.9);
+        assert_ne!(dim, bright);
+        assert_eq!(
+            b.color_at_state(60, 0, false, true, false, 0.7),
+            Color::Green
+        );
+    }
+
+    #[test]
+    fn failure_platform_is_red_and_amber() {
+        let b = GlowBase::new(20, 4);
+        assert_eq!(b.color_at_state(10, 0, false, false, true, 0.7), Color::Red);
+        assert_eq!(
+            b.color_at_state(10, 2, false, false, true, 0.7),
+            Color::Rgb(120, 60, 20)
+        );
+    }
 }
