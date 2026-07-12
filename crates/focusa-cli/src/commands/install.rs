@@ -20,8 +20,8 @@ use anyhow::{anyhow, bail, Context, Result};
 use clap::Args;
 use focusa_terminal_ui::install::event::NullEventSink;
 use focusa_terminal_ui::{
-    detect_capabilities, validate_environment, InstallEvent, InstallEventSink, InstallPhase,
-    InstallRendererMode,
+    detect_capabilities, install_signal_handlers, validate_environment, CancellationToken,
+    InstallEvent, InstallEventSink, InstallPhase, InstallRendererMode,
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -494,6 +494,64 @@ pub struct AssetPlan {
     pub install_path: String,
 }
 
+fn cleanup_staged_downloads(install_root: &std::path::Path) {
+    for directory in [install_root.join("bin"), install_root.join("share")] {
+        if let Ok(entries) = std::fs::read_dir(directory) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.extension().is_some_and(|ext| ext == "download") {
+                    let _ = std::fs::remove_file(path);
+                }
+            }
+        }
+    }
+}
+
+fn ensure_not_cancelled(cancellation: &CancellationToken) -> Result<()> {
+    if cancellation.is_cancelled() {
+        bail!("installation cancelled by operator");
+    }
+    Ok(())
+}
+
+fn restore_terminal_after_cancellation() {
+    // The renderer owns the guard when animated; this durable fallback is
+    // harmless in plain/non-TTY mode and restores cursor/alternate screen if
+    // cancellation raced the renderer shutdown.
+    eprint!("\x1b[?25h\x1b[?1049l");
+}
+
+fn cancellation_result<T>(
+    install_root: &std::path::Path,
+    stash_path: &std::path::Path,
+    stashed: bool,
+) -> Result<T> {
+    restore_terminal_after_cancellation();
+    let sink = NullEventSink;
+    sink.emit(InstallEvent::RollbackStarted {
+        reason: "installation cancelled by operator".into(),
+    });
+    let rollback = if stashed {
+        phase_atomic_rollback(install_root, stash_path)
+    } else {
+        Ok(())
+    };
+    match rollback {
+        Ok(()) => {
+            sink.emit(InstallEvent::RollbackSucceeded);
+            eprintln!("✗ Installation cancelled; staged downloads removed and rollback completed");
+        }
+        Err(error) => {
+            sink.emit(InstallEvent::RollbackFailed {
+                message: error.to_string(),
+                recovery_hint: format!("restore the prior install from {}", stash_path.display()),
+            });
+            eprintln!("✗ Installation cancelled; rollback failed: {error}");
+        }
+    }
+    Err(anyhow!("installation cancelled by operator"))
+}
+
 pub async fn run(args: InstallArgs) -> Result<()> {
     validate_environment().map_err(|error| anyhow!(error))?;
     let target = resolve_target(args.target)?;
@@ -531,21 +589,37 @@ pub async fn run(args: InstallArgs) -> Result<()> {
     //   5. On success: remove stash
     let stash_path = install_root.with_extension("stash");
     let stashed = phase_atomic_stash(install_root.as_path(), &stash_path)?;
-    let result = match execute_real_install(&args, target, channel, &install_root).await {
-        Ok(result) => result,
-        Err(e) => {
-            if stashed {
-                phase_atomic_rollback(&install_root, &stash_path).ok();
+    let cancellation = CancellationToken::new();
+    let _signals = install_signal_handlers(&cancellation)
+        .map_err(|error| anyhow!("install cancellation handlers: {error}"))?;
+    if cancellation.is_cancelled() {
+        cleanup_staged_downloads(&install_root);
+        return cancellation_result(&install_root, &stash_path, stashed);
+    }
+    let result =
+        match execute_real_install(&args, target, channel, &install_root, &cancellation).await {
+            Ok(result) => result,
+            Err(e) if cancellation.is_cancelled() => {
+                cleanup_staged_downloads(&install_root);
+                return cancellation_result(&install_root, &stash_path, stashed);
             }
-            return Err(e);
-        }
-    };
+            Err(e) => {
+                if stashed {
+                    phase_atomic_rollback(&install_root, &stash_path).ok();
+                }
+                return Err(e);
+            }
+        };
     let bin_dir = install_root.join("bin");
     if let Err(e) = phase_smoke_test(&bin_dir).await {
         if stashed {
             phase_atomic_rollback(&install_root, &stash_path).ok();
         }
         return Err(e);
+    }
+    if cancellation.is_cancelled() {
+        cleanup_staged_downloads(&install_root);
+        return cancellation_result(&install_root, &stash_path, stashed);
     }
     // Persist the verified release only after the smoke gate; this marker is the
     // anti-rollback authority for future downloads and is itself atomic.
@@ -742,6 +816,7 @@ async fn phase_asset_download(
     github_repo: Option<&str>,
     install_root: &std::path::Path,
     sink: &dyn InstallEventSink,
+    cancellation: &CancellationToken,
 ) -> Result<Vec<InstalledAsset>> {
     sink.emit(InstallEvent::PhaseStarted {
         phase: InstallPhase::DownloadAssets,
@@ -769,7 +844,7 @@ async fn phase_asset_download(
             .error_for_status()
             .map_err(|e| anyhow!("download {expected} from {}: {e}", redact_url(&asset_url)))?;
         let existing_mode = std::fs::metadata(&install_path).ok().map(file_mode);
-        stream_asset_to_staged(response, &staged, &expected, sink).await?;
+        stream_asset_to_staged(response, &staged, &expected, sink, cancellation).await?;
         set_asset_permissions(&staged, existing_mode)?;
         std::fs::rename(&staged, &install_path).map_err(|error| {
             let _ = std::fs::remove_file(&staged);
@@ -884,6 +959,7 @@ async fn phase_pi_extension_download(
     github_repo: Option<&str>,
     install_root: &std::path::Path,
     sink: &dyn InstallEventSink,
+    cancellation: &CancellationToken,
 ) -> Result<Option<InstalledAsset>> {
     if which::which("pi").is_err() {
         return Ok(None);
@@ -904,7 +980,7 @@ async fn phase_pi_extension_download(
         .map_err(|error| anyhow!("download Pi extension from {}: {error}", redact_url(&url)))?
         .error_for_status()
         .map_err(|error| anyhow!("download Pi extension from {}: {error}", redact_url(&url)))?;
-    stream_asset_to_staged(response, &staged, &name, sink).await?;
+    stream_asset_to_staged(response, &staged, &name, sink, cancellation).await?;
     if let Err(error) = std::fs::rename(&staged, &install_path) {
         let _ = std::fs::remove_file(&staged);
         return Err(error).context("promote staged Pi extension archive");
@@ -923,6 +999,7 @@ async fn phase_agent_context_download(
     github_repo: Option<&str>,
     install_root: &std::path::Path,
     sink: &dyn InstallEventSink,
+    cancellation: &CancellationToken,
 ) -> Result<InstalledAsset> {
     let repo = github_repo.unwrap_or("Startempire-Wire/focusa");
     let tag = release_tag(channel);
@@ -944,7 +1021,7 @@ async fn phase_agent_context_download(
         .map_err(|error| anyhow!("download {name} from {}: {error}", redact_url(&url)))?
         .error_for_status()
         .map_err(|error| anyhow!("download {name} from {}: {error}", redact_url(&url)))?;
-    stream_asset_to_staged(response, &staged, &name, sink).await?;
+    stream_asset_to_staged(response, &staged, &name, sink, cancellation).await?;
     if let Err(error) = std::fs::rename(&staged, &install_path) {
         let _ = std::fs::remove_file(&staged);
         return Err(error).context("promote staged agent context archive");
@@ -963,6 +1040,7 @@ async fn stream_asset_to_staged(
     staged: &std::path::Path,
     label: &str,
     sink: &dyn InstallEventSink,
+    cancellation: &CancellationToken,
 ) -> Result<()> {
     let total_bytes = response.content_length();
     sink.emit(InstallEvent::AssetStarted {
@@ -980,6 +1058,9 @@ async fn stream_asset_to_staged(
             .await
             .map_err(|error| anyhow!("read {label}: {error}"))?
         {
+            if cancellation.is_cancelled() {
+                bail!("installation cancelled while downloading {label}");
+            }
             file.write_all(&chunk)
                 .with_context(|| format!("write staged download for {label}"))?;
             downloaded_bytes = downloaded_bytes.saturating_add(chunk.len() as u64);
@@ -1581,8 +1662,10 @@ async fn execute_real_install(
     target: InstallTarget,
     channel: Channel,
     install_root: &std::path::Path,
+    cancellation: &CancellationToken,
 ) -> Result<RealInstallResult> {
     let phase = phase_license(args).await?;
+    ensure_not_cancelled(cancellation)?;
     let sink = NullEventSink;
     let mut assets = phase_asset_download(
         target,
@@ -1590,15 +1673,27 @@ async fn execute_real_install(
         args.github_repo.as_deref(),
         install_root,
         &sink,
+        cancellation,
     )
     .await?;
-    let pi_extension =
-        phase_pi_extension_download(channel, args.github_repo.as_deref(), install_root, &sink)
-            .await?;
-    let agent_context =
-        phase_agent_context_download(channel, args.github_repo.as_deref(), install_root, &sink)
-            .await?;
+    let pi_extension = phase_pi_extension_download(
+        channel,
+        args.github_repo.as_deref(),
+        install_root,
+        &sink,
+        cancellation,
+    )
+    .await?;
+    let agent_context = phase_agent_context_download(
+        channel,
+        args.github_repo.as_deref(),
+        install_root,
+        &sink,
+        cancellation,
+    )
+    .await?;
     assets.push(agent_context);
+    ensure_not_cancelled(cancellation)?;
     if let Some(pi_asset) = pi_extension {
         match verify_checksum(&pi_asset).await {
             Ok(()) => match integrate_pi_extension(&pi_asset, install_root) {
@@ -1615,6 +1710,7 @@ async fn execute_real_install(
         }
     }
     let bin_dir = install_root.join("bin");
+    ensure_not_cancelled(cancellation)?;
     for asset in &assets {
         verify_checksum(asset).await?;
         if asset.triple != "all" {
@@ -1627,9 +1723,12 @@ async fn execute_real_install(
         .ok_or_else(|| anyhow!("verified agent context asset missing"))?;
     install_agent_context_archive(agent_context_asset, install_root)?;
     place_symlinks(&bin_dir, install_root)?;
+    ensure_not_cancelled(cancellation)?;
     if !args.no_service {
         delegate_service_render(target, &bin_dir, args.dry_run).await?;
     }
+
+    ensure_not_cancelled(cancellation)?;
 
     // Path automation (focusa-112-path-automation). Idempotent: detects
     // shell, persists export PATH line to rc file, never duplicates.
@@ -2005,6 +2104,44 @@ mod tests {
             .expect_err("missing skills must fail");
         assert!(error.to_string().contains("at least one skills/*/SKILL.md"));
         let _ = std::fs::remove_dir_all(fixture);
+    }
+
+    #[test]
+    fn cancellation_token_stops_phase_boundary_deterministically() {
+        let token = CancellationToken::new();
+        assert!(ensure_not_cancelled(&token).is_ok());
+        token.cancel();
+        let error = ensure_not_cancelled(&token).expect_err("cancelled phase must stop");
+        assert_eq!(error.to_string(), "installation cancelled by operator");
+    }
+
+    #[test]
+    fn cancellation_cleanup_removes_only_download_stages() {
+        let root = std::env::temp_dir().join(format!("focusa-cancel-{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(root.join("bin")).unwrap();
+        std::fs::create_dir_all(root.join("share")).unwrap();
+        std::fs::write(root.join("bin/focusa.download"), b"partial").unwrap();
+        std::fs::write(root.join("share/context.download"), b"partial").unwrap();
+        std::fs::write(root.join("bin/focusa"), b"keep").unwrap();
+        cleanup_staged_downloads(&root);
+        assert!(!root.join("bin/focusa.download").exists());
+        assert!(!root.join("share/context.download").exists());
+        assert!(root.join("bin/focusa").exists());
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn cancellation_result_is_nonzero_and_reports_no_prior_install() {
+        let root =
+            std::env::temp_dir().join(format!("focusa-cancel-result-{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(&root).unwrap();
+        let result: Result<()> = cancellation_result(&root, &root.join("missing.stash"), false);
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "installation cancelled by operator"
+        );
+        let _ = std::fs::remove_dir_all(root);
     }
 
     #[test]
