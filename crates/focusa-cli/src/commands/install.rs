@@ -525,12 +525,15 @@ pub async fn run(args: InstallArgs) -> Result<()> {
     //   5. On success: remove stash
     let stash_path = install_root.with_extension("stash");
     let stashed = phase_atomic_stash(install_root.as_path(), &stash_path)?;
-    if let Err(e) = execute_real_install(&args, target, channel, &install_root).await {
-        if stashed {
-            phase_atomic_rollback(&install_root, &stash_path).ok();
+    let result = match execute_real_install(&args, target, channel, &install_root).await {
+        Ok(result) => result,
+        Err(e) => {
+            if stashed {
+                phase_atomic_rollback(&install_root, &stash_path).ok();
+            }
+            return Err(e);
         }
-        return Err(e);
-    }
+    };
     let bin_dir = install_root.join("bin");
     if let Err(e) = phase_smoke_test(&bin_dir).await {
         if stashed {
@@ -540,6 +543,23 @@ pub async fn run(args: InstallArgs) -> Result<()> {
     }
     if stashed {
         phase_atomic_cleanup(&stash_path).ok();
+    }
+
+    // Success is reported only after the installed binary smoke test and stash cleanup.
+    if !args.json {
+        println!("\n✓ Installed assets to {}\n  atomicity: stashed={}, smoke-test OK\n  walkthrough: 6 next steps below\n", install_root.display(), stashed);
+        print_walkthrough_human(&result.walkthrough);
+    } else {
+        let report = serde_json::json!({
+            "ok": true,
+            "target": target,
+            "channel": channel,
+            "license_status": result.license_status,
+            "assets": result.assets,
+            "install_root": install_root.display().to_string(),
+            "first_install_walkthrough": result.walkthrough,
+        });
+        println!("{}", serde_json::to_string_pretty(&report)?);
     }
 
     // Phases that still need their sub-beads to land:
@@ -556,8 +576,6 @@ pub async fn run(args: InstallArgs) -> Result<()> {
             stashed,
         );
     }
-    // The JSON envelope (with embedded walkthrough) is emitted by the
-    // execute_real_install() return path below. Print it here if --json.
     Ok(())
 }
 
@@ -1250,13 +1268,20 @@ fn verify_macos_codesign(target: InstallTarget, asset: &InstalledAsset) -> Resul
     Ok(())
 }
 
+#[derive(Debug)]
+struct RealInstallResult {
+    license_status: String,
+    assets: Vec<InstalledAsset>,
+    walkthrough: FirstInstallWalkthrough,
+}
+
 /// Wraps the post-license phases into one async function for atomicity.
 async fn execute_real_install(
     args: &InstallArgs,
     target: InstallTarget,
     channel: Channel,
     install_root: &std::path::Path,
-) -> Result<()> {
+) -> Result<RealInstallResult> {
     let phase = phase_license(args).await?;
     let mut assets = phase_asset_download(target, channel, args.github_repo.as_deref()).await?;
     let agent_context =
@@ -1287,36 +1312,19 @@ async fn execute_real_install(
         }
     }
 
-    // First-install walkthrough (focusa-112-first-walkthrough). Prints inline
-    // to the same terminal where install ran — no separate wizard UI.
     let walkthrough =
         build_first_install_walkthrough(target, channel, &bin_dir, install_root, assets.len());
-    if !args.json {
-        print_walkthrough_human(&walkthrough);
-    } else {
-        let report = serde_json::json!({
-            "ok": true,
-            "target": target,
-            "channel": channel,
-            "license_status": phase,
-            "assets": assets.iter().map(|a| serde_json::json!({
-                "name": a.name, "version": a.version, "triple": a.triple,
-                "install_path": a.install_path, "sha256": a.sha256,
-            })).collect::<Vec<_>>(),
-            "install_root": install_root.display().to_string(),
-            "first_install_walkthrough": serde_json::to_value(&walkthrough)?,
-            "recovery_hint": "Pending phases will land as their sub-beads close; re-run focusa install to retry.",
-        });
-        println!("{}", serde_json::to_string_pretty(&report)?);
-        // Skip the second JSON block below.
-    }
     eprintln!(
-        "[install] license={}, assets={}, bin_dir={}",
+        "[install] phases ready for smoke gate: license={}, assets={}, bin_dir={}",
         phase,
         assets.len(),
         bin_dir.display(),
     );
-    Ok(())
+    Ok(RealInstallResult {
+        license_status: phase,
+        assets,
+        walkthrough,
+    })
 }
 
 // ----- Phase 5: Service rendering delegation (focusa-112-service-delegate) -----
