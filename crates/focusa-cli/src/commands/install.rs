@@ -2357,6 +2357,74 @@ mod tests {
     }
 
     #[test]
+    fn pi_extension_archive_install_is_checksum_stage_and_activation_safe() {
+        let fixture = std::env::temp_dir().join(format!(
+            "focusa-pi-extension-install-{}",
+            uuid::Uuid::now_v7()
+        ));
+        let package = fixture.join("package/pi-extension");
+        let fake_bin = fixture.join("bin");
+        let extensions = fixture.join("extensions");
+        std::fs::create_dir_all(&package).unwrap();
+        std::fs::create_dir_all(&fake_bin).unwrap();
+        std::fs::write(package.join("package.json"), r#"{"name":"focusa-pi-bridge"}"#)
+            .unwrap();
+        let npm = fake_bin.join("npm");
+        std::fs::write(
+            &npm,
+            "#!/bin/sh\nmkdir -p node_modules\nprintf staged > node_modules/.focusa-smoke\n",
+        )
+        .unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&npm, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        let archive = fixture.join("focusa-pi-extension.tar.gz");
+        assert!(
+            std::process::Command::new("tar")
+                .args(["-czf"])
+                .arg(&archive)
+                .args(["-C"])
+                .arg(fixture.join("package"))
+                .arg("pi-extension")
+                .status()
+                .unwrap()
+                .success()
+        );
+        let asset = InstalledAsset {
+            name: "focusa-pi-extension-vtest.tar.gz".to_string(),
+            version: "vtest".to_string(),
+            triple: "all".to_string(),
+            sha256: String::new(),
+            install_path: archive.display().to_string(),
+        };
+        let old_path = std::env::var_os("PATH");
+        let old_destination = std::env::var_os("FOCUSA_PI_EXT_DIR");
+        let path = format!("{}:{}", fake_bin.display(), old_path.as_deref().unwrap_or_default().to_string_lossy());
+        // Environment mutation is scoped to this single process-local test.
+        unsafe {
+            std::env::set_var("PATH", path);
+            std::env::set_var("FOCUSA_PI_EXT_DIR", &extensions);
+        }
+        let destination = integrate_pi_extension(&asset, &fixture).unwrap();
+        assert_eq!(destination, extensions.join("focusa").display().to_string());
+        assert!(extensions.join("focusa/package.json").is_file());
+        assert!(extensions.join("focusa/node_modules/.focusa-smoke").is_file());
+        unsafe {
+            match old_path {
+                Some(value) => std::env::set_var("PATH", value),
+                None => std::env::remove_var("PATH"),
+            }
+            match old_destination {
+                Some(value) => std::env::set_var("FOCUSA_PI_EXT_DIR", value),
+                None => std::env::remove_var("FOCUSA_PI_EXT_DIR"),
+            }
+        }
+        let _ = std::fs::remove_dir_all(fixture);
+    }
+
+    #[test]
     fn agent_context_archive_installs_required_files_atomically() {
         let fixture = std::env::temp_dir().join(format!(
             "focusa-agent-context-install-{}",
