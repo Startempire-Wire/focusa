@@ -52,6 +52,9 @@ fn redact_secrets(input: &str) -> String {
     s = replace_after_prefix(&s, "Authorization: Bearer ", space_bound);
     s = replace_after_prefix(&s, "authorization: bearer ", space_bound);
 
+    // Credentialed URLs: keep the scheme/host/path, never expose userinfo.
+    s = redact_url_userinfo(&s);
+
     // Generic API keys / tokens / secrets in query strings
     s = replace_query_param(&s, "api_key");
     s = replace_query_param(&s, "apikey");
@@ -81,6 +84,32 @@ fn space_bound(c: char) -> bool {
 
 fn npm_token_bound(c: char) -> bool {
     c.is_alphanumeric()
+}
+
+fn redact_url_userinfo(input: &str) -> String {
+    let mut result = String::with_capacity(input.len());
+    let mut rest = input;
+    while let Some(scheme_end) = rest.find("://") {
+        let after_scheme = scheme_end + 3;
+        result.push_str(&rest[..after_scheme]);
+        let tail = &rest[after_scheme..];
+        let Some(at) = tail.find('@') else {
+            result.push_str(tail);
+            return result;
+        };
+        let path_start = tail
+            .find(|c: char| c == '/' || c.is_whitespace())
+            .unwrap_or(tail.len());
+        if at < path_start {
+            result.push_str("[REDACTED_CREDENTIALS]@");
+            rest = &tail[at + 1..];
+        } else {
+            result.push_str(tail);
+            return result;
+        }
+    }
+    result.push_str(rest);
+    result
 }
 
 fn redact_email_tokens(input: &str) -> String {
@@ -295,6 +324,14 @@ mod tests {
         let result = sanitize(input);
         assert!(!result.contains("secret_token"));
         assert!(result.contains("REDACTED"));
+    }
+
+    #[test]
+    fn credentialed_url_redacted() {
+        let result = sanitize("https://user:password@example.invalid/a?token=secret");
+        assert!(!result.contains("user:password"));
+        assert!(!result.contains("secret"));
+        assert!(result.contains("REDACTED_CREDENTIALS"));
     }
 
     #[test]

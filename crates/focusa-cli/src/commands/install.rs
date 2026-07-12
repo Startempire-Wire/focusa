@@ -16,9 +16,13 @@
 //! The shell installers become thin bootstrappers that download `focusa` and
 //! `exec focusa install --target=<detected>`. See docs §15A.
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{anyhow, bail, Context, Result};
 use clap::Args;
-use focusa_terminal_ui::{InstallRendererMode, detect_capabilities, validate_environment};
+use focusa_terminal_ui::install::event::NullEventSink;
+use focusa_terminal_ui::{
+    detect_capabilities, validate_environment, InstallEvent, InstallEventSink, InstallPhase,
+    InstallRendererMode,
+};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::io::Write;
@@ -543,6 +547,11 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         }
         return Err(e);
     }
+    // Persist the verified release only after the smoke gate; this marker is the
+    // anti-rollback authority for future downloads and is itself atomic.
+    if let Some(version) = result.assets.first().map(|asset| asset.version.as_str()) {
+        write_verified_version_marker(&install_root, version)?;
+    }
     if stashed {
         phase_atomic_cleanup(&stash_path).ok();
     }
@@ -587,7 +596,7 @@ pub async fn run(args: InstallArgs) -> Result<()> {
 
 // ----- Phase 1: License re-validation (focusa-112-license-revalidate) -----
 async fn phase_license(args: &InstallArgs) -> Result<String> {
-    use crate::commands::license::{RegistryValidateOutcome, registry_validate};
+    use crate::commands::license::{registry_validate, RegistryValidateOutcome};
     if args.eval {
         return Ok("eval".to_string());
     }
@@ -690,30 +699,25 @@ fn release_asset_url(repo: &str, tag: &str, name: &str) -> String {
     format!("https://github.com/{repo}/releases/download/{tag}/{name}")
 }
 
-// ----- Phase 2: Asset download (focusa-112-asset-download) -----
-async fn phase_asset_download(
-    target: InstallTarget,
-    channel: Channel,
-    github_repo: Option<&str>,
-) -> Result<Vec<InstalledAsset>> {
-    // GitHub releases API: GET /repos/{owner}/{repo}/releases/tags/{tag}
-    let repo = github_repo.unwrap_or("Startempire-Wire/focusa");
+// ----- Phase 2: Release resolution and streamed asset download -----
+struct ResolvedRelease {
+    tag: String,
+    client: reqwest::Client,
+}
+
+async fn resolve_release(channel: Channel, github_repo: &str) -> Result<ResolvedRelease> {
     let tag = release_tag(channel);
-    let triple = triple_for(target);
-    let assets = ["focusa", "focusa-daemon", "focusa-tui"];
-    let url = format!("https://api.github.com/repos/{repo}/releases/tags/{tag}");
     let client = reqwest::Client::builder()
         .user_agent("focusa-install/0.9.54-dev")
         .timeout(std::time::Duration::from_secs(15))
         .build()
         .map_err(|e| anyhow!("github client build failed: {e}"))?;
-    // A local release fixture bypasses GitHub manifest discovery while preserving
-    // the exact production asset naming contract.
-    let tag_name = if std::env::var("FOCUSA_RELEASE_BASE_URL").is_ok() {
-        tag.clone()
+    let resolved_tag = if std::env::var("FOCUSA_RELEASE_BASE_URL").is_ok() {
+        tag
     } else {
+        let url = format!("https://api.github.com/repos/{github_repo}/releases/tags/{tag}");
         let release: serde_json::Value = client
-            .get(&url)
+            .get(url)
             .send()
             .await
             .map_err(|e| anyhow!("github release GET failed: {e}"))?
@@ -726,28 +730,51 @@ async fn phase_asset_download(
             .unwrap_or(&tag)
             .to_string()
     };
+    Ok(ResolvedRelease {
+        tag: resolved_tag,
+        client,
+    })
+}
 
+async fn phase_asset_download(
+    target: InstallTarget,
+    channel: Channel,
+    github_repo: Option<&str>,
+    install_root: &std::path::Path,
+    sink: &dyn InstallEventSink,
+) -> Result<Vec<InstalledAsset>> {
+    sink.emit(InstallEvent::PhaseStarted {
+        phase: InstallPhase::DownloadAssets,
+        message: "streaming assets to staged files".into(),
+    });
+    let repo = github_repo.unwrap_or("Startempire-Wire/focusa");
+    let release = resolve_release(channel, repo).await?;
+    let tag_name = release.tag;
+    let client = release.client;
+    let triple = triple_for(target);
+    let assets = ["focusa", "focusa-daemon", "focusa-tui"];
     let mut out = Vec::new();
     for asset_name in assets {
         let expected = format!("{asset_name}-{tag_name}-{triple}");
-        let install_path = install_root_for(target).join("bin").join(asset_name);
+        let install_path = install_root.join("bin").join(asset_name);
         std::fs::create_dir_all(install_path.parent().expect("bin parent"))?;
+        reject_release_rollback(install_root, &tag_name)?;
         let staged = install_path.with_extension("download");
         let asset_url = release_asset_url(repo, &tag_name, &expected);
         let response = client
             .get(&asset_url)
             .send()
             .await
-            .map_err(|e| anyhow!("download {expected}: {e}"))?
+            .map_err(|e| anyhow!("download {expected} from {}: {e}", redact_url(&asset_url)))?
             .error_for_status()
-            .map_err(|e| anyhow!("download {expected}: {e}"))?;
-        stream_asset_to_staged(response, &staged, &expected).await?;
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            std::fs::set_permissions(&staged, std::fs::Permissions::from_mode(0o755))?;
-        }
-        std::fs::rename(&staged, &install_path)?;
+            .map_err(|e| anyhow!("download {expected} from {}: {e}", redact_url(&asset_url)))?;
+        let existing_mode = std::fs::metadata(&install_path).ok().map(file_mode);
+        stream_asset_to_staged(response, &staged, &expected, sink).await?;
+        set_asset_permissions(&staged, existing_mode)?;
+        std::fs::rename(&staged, &install_path).map_err(|error| {
+            let _ = std::fs::remove_file(&staged);
+            anyhow!("promote staged asset {expected}: {error}")
+        })?;
         out.push(InstalledAsset {
             name: expected,
             version: tag_name.clone(),
@@ -756,13 +783,92 @@ async fn phase_asset_download(
             install_path: install_path.display().to_string(),
         });
     }
+    sink.emit(InstallEvent::PhaseSucceeded {
+        phase: InstallPhase::DownloadAssets,
+        detail: Some("all assets promoted atomically".into()),
+    });
     Ok(out)
+}
+
+fn redact_url(url: &str) -> String {
+    focusa_terminal_ui::sanitize::sanitize(url).into_owned()
+}
+
+#[cfg(unix)]
+fn file_mode(path: &std::fs::Metadata) -> u32 {
+    use std::os::unix::fs::PermissionsExt;
+    path.permissions().mode()
+}
+
+#[cfg(not(unix))]
+fn file_mode(_path: &std::fs::Metadata) -> u32 {
+    0o755
+}
+
+fn set_asset_permissions(path: &std::path::Path, existing_mode: Option<u32>) -> Result<()> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(
+            path,
+            std::fs::Permissions::from_mode(existing_mode.unwrap_or(0o755)),
+        )?;
+    }
+    let _ = existing_mode;
+    Ok(())
+}
+
+fn write_verified_version_marker(install_root: &std::path::Path, version: &str) -> Result<()> {
+    let marker = install_root.join(".focusa-version");
+    let staged = marker.with_extension("download");
+    std::fs::write(&staged, format!("{version}\n"))?;
+    if let Err(error) = std::fs::rename(&staged, &marker) {
+        let _ = std::fs::remove_file(&staged);
+        return Err(error).context("promote verified release marker");
+    }
+    Ok(())
+}
+
+fn release_number(tag: &str) -> Option<Vec<u64>> {
+    tag.trim_start_matches('v')
+        .split('-')
+        .next()?
+        .split('.')
+        .map(|part| part.parse().ok())
+        .collect()
+}
+
+fn reject_release_rollback(install_root: &std::path::Path, target: &str) -> Result<()> {
+    let marker = install_root.join(".focusa-version");
+    let Some(current) = std::fs::read_to_string(&marker).ok() else {
+        return Ok(());
+    };
+    if let (Some(current), Some(target)) = (release_number(current.trim()), release_number(target))
+    {
+        if target < current {
+            bail!(
+                "refusing release rollback from {} to {}",
+                current
+                    .iter()
+                    .map(u64::to_string)
+                    .collect::<Vec<_>>()
+                    .join("."),
+                target
+                    .iter()
+                    .map(u64::to_string)
+                    .collect::<Vec<_>>()
+                    .join(".")
+            );
+        }
+    }
+    Ok(())
 }
 
 async fn phase_agent_context_download(
     channel: Channel,
     github_repo: Option<&str>,
     install_root: &std::path::Path,
+    sink: &dyn InstallEventSink,
 ) -> Result<InstalledAsset> {
     let repo = github_repo.unwrap_or("Startempire-Wire/focusa");
     let tag = release_tag(channel);
@@ -781,14 +887,17 @@ async fn phase_agent_context_download(
         .get(&url)
         .send()
         .await
-        .map_err(|error| anyhow!("download {name}: {error}"))?
+        .map_err(|error| anyhow!("download {name} from {}: {error}", redact_url(&url)))?
         .error_for_status()
-        .map_err(|error| anyhow!("download {name}: {error}"))?;
-    stream_asset_to_staged(response, &staged, &name).await?;
-    std::fs::rename(&staged, &install_path)?;
+        .map_err(|error| anyhow!("download {name} from {}: {error}", redact_url(&url)))?;
+    stream_asset_to_staged(response, &staged, &name, sink).await?;
+    if let Err(error) = std::fs::rename(&staged, &install_path) {
+        let _ = std::fs::remove_file(&staged);
+        return Err(error).context("promote staged agent context archive");
+    }
     Ok(InstalledAsset {
         name,
-        version: tag.to_string(),
+        version: tag,
         triple: "all".to_string(),
         sha256: String::new(),
         install_path: install_path.display().to_string(),
@@ -799,19 +908,47 @@ async fn stream_asset_to_staged(
     mut response: reqwest::Response,
     staged: &std::path::Path,
     label: &str,
+    sink: &dyn InstallEventSink,
 ) -> Result<()> {
-    let mut file = std::fs::File::create(staged)
-        .with_context(|| format!("create staged download for {label}"))?;
-    while let Some(chunk) = response
-        .chunk()
-        .await
-        .map_err(|error| anyhow!("read {label}: {error}"))?
-    {
-        file.write_all(&chunk)
-            .with_context(|| format!("write staged download for {label}"))?;
+    let total_bytes = response.content_length();
+    sink.emit(InstallEvent::AssetStarted {
+        asset: label.to_string(),
+        total_bytes,
+    });
+    let mut file = match std::fs::File::create(staged) {
+        Ok(file) => file,
+        Err(error) => return Err(anyhow!("create staged download for {label}: {error}")),
+    };
+    let mut downloaded_bytes = 0_u64;
+    let result = async {
+        while let Some(chunk) = response
+            .chunk()
+            .await
+            .map_err(|error| anyhow!("read {label}: {error}"))?
+        {
+            file.write_all(&chunk)
+                .with_context(|| format!("write staged download for {label}"))?;
+            downloaded_bytes = downloaded_bytes.saturating_add(chunk.len() as u64);
+            sink.emit(InstallEvent::AssetProgress {
+                asset: label.to_string(),
+                downloaded_bytes,
+                total_bytes,
+            });
+        }
+        file.flush()
+            .with_context(|| format!("flush staged download for {label}"))?;
+        Ok::<(), anyhow::Error>(())
     }
-    file.flush()
-        .with_context(|| format!("flush staged download for {label}"))?;
+    .await;
+    if let Err(error) = result {
+        drop(file);
+        let _ = std::fs::remove_file(staged);
+        return Err(error);
+    }
+    sink.emit(InstallEvent::AssetFinished {
+        asset: label.to_string(),
+        downloaded_bytes,
+    });
     Ok(())
 }
 
@@ -1303,9 +1440,18 @@ async fn execute_real_install(
     install_root: &std::path::Path,
 ) -> Result<RealInstallResult> {
     let phase = phase_license(args).await?;
-    let mut assets = phase_asset_download(target, channel, args.github_repo.as_deref()).await?;
+    let sink = NullEventSink;
+    let mut assets = phase_asset_download(
+        target,
+        channel,
+        args.github_repo.as_deref(),
+        install_root,
+        &sink,
+    )
+    .await?;
     let agent_context =
-        phase_agent_context_download(channel, args.github_repo.as_deref(), install_root).await?;
+        phase_agent_context_download(channel, args.github_repo.as_deref(), install_root, &sink)
+            .await?;
     assets.push(agent_context);
     let bin_dir = install_root.join("bin");
     for asset in &assets {
@@ -1585,17 +1731,15 @@ mod tests {
         .unwrap();
         assert_eq!(plan.assets_planned.len(), 4);
         assert!(plan.assets_planned.iter().any(|a| a.name == "focusa"));
-        assert!(
-            plan.assets_planned
-                .iter()
-                .any(|a| a.name == "focusa-daemon")
-        );
+        assert!(plan
+            .assets_planned
+            .iter()
+            .any(|a| a.name == "focusa-daemon"));
         assert!(plan.assets_planned.iter().any(|a| a.name == "focusa-tui"));
-        assert!(
-            plan.assets_planned
-                .iter()
-                .any(|a| a.name == "focusa-agent-context" && a.triple == "all")
-        );
+        assert!(plan
+            .assets_planned
+            .iter()
+            .any(|a| a.name == "focusa-agent-context" && a.triple == "all"));
         assert_eq!(plan.license_mode, "missing");
     }
 
