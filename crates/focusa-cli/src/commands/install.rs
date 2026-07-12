@@ -632,42 +632,48 @@ fn ensure_not_cancelled(cancellation: &CancellationToken) -> Result<()> {
     Ok(())
 }
 
-fn restore_terminal_after_cancellation() {
-    // The renderer owns the guard when animated; this durable fallback is
-    // harmless in plain/non-TTY mode and restores cursor/alternate screen if
-    // cancellation raced the renderer shutdown.
-    eprint!("\x1b[?25h\x1b[?1049l");
-}
-
 fn cancellation_result<T>(
     install_root: &std::path::Path,
     stash_path: &std::path::Path,
     stashed: bool,
+    sink: &dyn InstallEventSink,
 ) -> Result<T> {
-    restore_terminal_after_cancellation();
-    let sink = NullEventSink;
+    sink.emit(InstallEvent::PhaseFailed {
+        phase: InstallPhase::Finalize,
+        message: "Installation cancelled by operator".into(),
+        recovery_hint: Some("staged downloads were removed before rollback".into()),
+    });
     sink.emit(InstallEvent::RollbackStarted {
         reason: "installation cancelled by operator".into(),
     });
     let rollback = if stashed {
         phase_atomic_rollback(install_root, stash_path)
     } else {
+        cleanup_staged_downloads(install_root);
         Ok(())
     };
     match rollback {
         Ok(()) => {
             sink.emit(InstallEvent::RollbackSucceeded);
-            eprintln!("✗ Installation cancelled; staged downloads removed and rollback completed");
+            Err(anyhow!(
+                "installation cancelled by operator; {}",
+                if stashed {
+                    "prior installation restored"
+                } else {
+                    "clean-state cleanup completed; no prior installation existed"
+                }
+            ))
         }
         Err(error) => {
             sink.emit(InstallEvent::RollbackFailed {
                 message: error.to_string(),
                 recovery_hint: format!("restore the prior install from {}", stash_path.display()),
             });
-            eprintln!("✗ Installation cancelled; rollback failed: {error}");
+            Err(anyhow!(
+                "installation cancelled by operator; rollback failed: {error}"
+            ))
         }
     }
-    Err(anyhow!("installation cancelled by operator"))
 }
 
 pub async fn run(args: InstallArgs) -> Result<()> {
@@ -717,7 +723,7 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         &cancellation,
     );
     if cancellation.is_cancelled() {
-        return cancellation_result(&install_root, &stash_path, false);
+        return cancellation_result(&install_root, &stash_path, false, &ui);
     }
     let sink = &ui;
     sink.emit(InstallEvent::PhaseStarted {
@@ -743,7 +749,7 @@ pub async fn run(args: InstallArgs) -> Result<()> {
     });
     if cancellation.is_cancelled() {
         cleanup_staged_downloads(&install_root);
-        return cancellation_result(&install_root, &stash_path, stashed);
+        return cancellation_result(&install_root, &stash_path, stashed, &ui);
     }
     let result =
         match execute_real_install(&args, target, channel, &install_root, &cancellation, &sink)
@@ -752,11 +758,32 @@ pub async fn run(args: InstallArgs) -> Result<()> {
             Ok(result) => result,
             Err(e) if cancellation.is_cancelled() => {
                 cleanup_staged_downloads(&install_root);
-                return cancellation_result(&install_root, &stash_path, stashed);
+                return cancellation_result(&install_root, &stash_path, stashed, &ui);
             }
             Err(e) => {
-                if stashed {
-                    phase_atomic_rollback(&install_root, &stash_path).ok();
+                sink.emit(InstallEvent::PhaseFailed {
+                    phase: InstallPhase::Finalize,
+                    message: "Installer phase failed".into(),
+                    recovery_hint: Some(e.to_string()),
+                });
+                cleanup_staged_downloads(&install_root);
+                sink.emit(InstallEvent::RollbackStarted {
+                    reason: "recovering from installer phase failure".into(),
+                });
+                let rollback = if stashed {
+                    phase_atomic_rollback(&install_root, &stash_path)
+                } else {
+                    Ok(())
+                };
+                match rollback {
+                    Ok(()) => sink.emit(InstallEvent::RollbackSucceeded),
+                    Err(rollback_error) => sink.emit(InstallEvent::RollbackFailed {
+                        message: rollback_error.to_string(),
+                        recovery_hint: format!(
+                            "restore the prior install from {}",
+                            stash_path.display()
+                        ),
+                    }),
                 }
                 return Err(e);
             }
@@ -768,14 +795,27 @@ pub async fn run(args: InstallArgs) -> Result<()> {
             message: "Installed focusa --version smoke test failed".into(),
             recovery_hint: Some(e.to_string()),
         });
-        if stashed {
-            phase_atomic_rollback(&install_root, &stash_path).ok();
+        cleanup_staged_downloads(&install_root);
+        sink.emit(InstallEvent::RollbackStarted {
+            reason: "recovering from smoke-test failure".into(),
+        });
+        let rollback = if stashed {
+            phase_atomic_rollback(&install_root, &stash_path)
+        } else {
+            Ok(())
+        };
+        match rollback {
+            Ok(()) => sink.emit(InstallEvent::RollbackSucceeded),
+            Err(rollback_error) => sink.emit(InstallEvent::RollbackFailed {
+                message: rollback_error.to_string(),
+                recovery_hint: format!("restore the prior install from {}", stash_path.display()),
+            }),
         }
         return Err(e);
     }
     if cancellation.is_cancelled() {
         cleanup_staged_downloads(&install_root);
-        return cancellation_result(&install_root, &stash_path, stashed);
+        return cancellation_result(&install_root, &stash_path, stashed, &ui);
     }
     // Persist the verified release only after the smoke gate; this marker is the
     // anti-rollback authority for future downloads and is itself atomic.
@@ -2405,12 +2445,14 @@ mod tests {
         let root =
             std::env::temp_dir().join(format!("focusa-cancel-result-{}", uuid::Uuid::now_v7()));
         std::fs::create_dir_all(&root).unwrap();
-        let result: Result<()> = cancellation_result(&root, &root.join("missing.stash"), false);
+        let sink = NullEventSink;
+        let result: Result<()> =
+            cancellation_result(&root, &root.join("missing.stash"), false, &sink);
         assert!(result.is_err());
-        assert_eq!(
-            result.unwrap_err().to_string(),
-            "installation cancelled by operator"
-        );
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("no prior installation existed"));
         let _ = std::fs::remove_dir_all(root);
     }
 
