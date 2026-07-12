@@ -1,0 +1,39 @@
+name: Spec 132 terminal matrix
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'crates/focusa-terminal-ui/**'
+      - 'crates/focusa-cli/src/commands/install.rs'
+      - 'tests/132-e5-*'
+      - '.github/workflows/spec132-terminal-matrix.yml'
+
+jobs:
+  windows-conpty:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build executable under test
+        run: cargo build -p focusa-cli --bin focusa
+      - name: Execute ConPTY runtime proof
+        shell: pwsh
+        run: .\tests\132-e5-windows-conpty-runtime-test.ps1 -Focusa .\target\debug\focusa.exe
+
+  unix-terminal:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build executable under test
+        run: cargo build -p focusa-cli --bin focusa
+      - name: Execute Unix matrix proof
+        run: bash tests/132-e5-platform-matrix-runtime-test.sh
+        env:
+          FOCUSA_BIN: ${{ github.workspace }}/target/debug/focusa
