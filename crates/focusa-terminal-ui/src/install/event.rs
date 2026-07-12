@@ -65,6 +65,15 @@ pub struct AssetProgress {
     pub total_bytes: Option<u64>,
 }
 
+/// Truthful outcome of a real asset verification cycle.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum VerificationScanOutcome {
+    Active,
+    Succeeded,
+    Warning,
+    Failed,
+}
+
 /// Events emitted by the installer orchestrator.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[allow(clippy::large_enum_variant)]
@@ -89,6 +98,10 @@ pub enum InstallEvent {
     AssetFinished {
         asset: String,
         downloaded_bytes: u64,
+    },
+    VerificationScan {
+        asset: String,
+        outcome: VerificationScanOutcome,
     },
     PhaseSucceeded {
         phase: InstallPhase,
