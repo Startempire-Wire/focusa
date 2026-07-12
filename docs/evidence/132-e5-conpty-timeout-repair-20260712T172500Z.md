@@ -8,4 +8,4 @@ The Windows fixture hang was a harness defect: it waited indefinitely for the ch
 4. Uses a bounded post-termination wait and preserves exit/output assertions.
 5. Includes a runtime timeout regression using an intentionally long-lived owned `cmd.exe` child with a 1-second test timeout.
 
-The Focusa JSON/ConPTY behavior is not masked; the fixture still requires the real executable, validates JSON schema/read-only state, checks no alternate screen, and requires durable output. The native matrix must be rerun after this fix.
+The Focusa JSON/ConPTY behavior is not masked; the fixture still requires the real executable, validates JSON schema/read-only state, checks no alternate screen, and requires durable output. A subsequent native run exposed a separate fixture launch defect (`0xC0000142`): the child was launched with a relative executable and inherited working directory. The runner now passes the absolute executable path and its directory explicitly to `CreateProcess`. The native matrix must be rerun after this fix.

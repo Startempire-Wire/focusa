@@ -57,8 +57,10 @@ public static class Spec132ConPtyRunner
             Marshal.WriteIntPtr(processAttribute, pty);
             Check(UpdateProcThreadAttribute(list, 0, new IntPtr(unchecked((long)PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE)), processAttribute, IntPtr.Size, IntPtr.Zero, IntPtr.Zero), "UpdateProcThreadAttribute");
             var startup = new STARTUPINFOEX { cb=Marshal.SizeOf<STARTUPINFOEX>(), lpAttributeList=list };
-            var command = new StringBuilder("\"" + executable.Replace("\"", "\\\"") + "\" " + arguments);
-            Check(CreateProcess(null, command, IntPtr.Zero, IntPtr.Zero, false, EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT, IntPtr.Zero, null, ref startup, out pi), "CreateProcess");
+            var fullExecutable = Path.GetFullPath(executable);
+            var command = new StringBuilder("\"" + fullExecutable.Replace("\"", "\\\"") + "\" " + arguments);
+            var workingDirectory = Path.GetDirectoryName(fullExecutable);
+            Check(CreateProcess(fullExecutable, command, IntPtr.Zero, IntPtr.Zero, false, EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT, IntPtr.Zero, workingDirectory, ref startup, out pi), "CreateProcess");
             Close(pi.hThread); pi.hThread = IntPtr.Zero;
             var output = new StringBuilder();
             using (var stream = new FileStream(new SafeFileHandle(outRead, false), FileAccess.Read, 4096, false))
