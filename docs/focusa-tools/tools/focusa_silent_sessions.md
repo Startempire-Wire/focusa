@@ -88,3 +88,79 @@ focusa_silent_sessions action="kill" session_name="focusa-c7e1" approved=true fo
 
 ## Source
 Defined in `apps/pi-extension/src/tools.ts`; wraps `tmux` local commands.
+
+## Durable observability and operator-control contract (Spec 132 D7)
+
+This contract is the binding seam for the daemon-independent compatibility
+surface. A foreground Pi process is never the liveness authority: a
+`SilentSession` continues independently and its records remain readable after
+Pi restarts.
+
+### Stable identity and scope
+
+Every session has a stable `session_id` (ULID/UUID), a normalized display name,
+`project_root`, `continuity_id`, optional `work_item_id`, and an owner/scope
+record. A restart creates a new `run_id` under the same `session_id`; it does
+not silently create a new logical session. Requests must carry the session
+identity or an unambiguous normalized name and must pass the project-root and
+operator-authorization checks.
+
+### Versioned envelopes
+
+Successful calls return `focusa.silent_session.<action>.v1` with:
+
+```json
+{
+  "session_id": "…",
+  "run_id": "…",
+  "status": "running",
+  "project_root": "~/projects/example",
+  "continuity_id": "…",
+  "cursor": "42",
+  "output": [],
+  "retention": {"max_bytes": 5242880, "backups": 3},
+  "authorization": {"approved": true, "operator_scope": "project"},
+  "recovery": {"next_tools": ["focusa_silent_sessions"]}
+}
+```
+
+`output` is bounded and sanitized. `tail` accepts a cursor and returns the
+next cursor; `follow` is a bounded stream that terminates on completion,
+failure, cancellation, or disconnect. Control calls return `accepted`,
+`performed`, `run_id`, and an auditable event reference rather than claiming
+that a process changed when the control command only queued input.
+
+Failure envelopes use `tool_result_v1` and include `failure_class`, `status`,
+`retry`, `side_effects`, `evidence_refs`, `next_tools`, and one actionable
+recovery hint. They never expose raw command lines, credentials, ANSI/OSC
+sequences, or unbounded npm/agent output.
+
+### Lifecycle and retention
+
+The only canonical lifecycle values are `starting`, `running`,
+`waiting-input`, `blocked`, `completed`, `failed`, and `dead`. `stale` and
+`degraded` are diagnostic annotations, not replacement statuses. A durable
+registry record, append-only event log, bounded output log, and checkpoint
+cursor are written under the Focusa runtime home (not `/tmp`); logs rotate at
+5 MiB with three backups and rotation is itself an auditable event. Restart
+recovery reopens the same `session_id`, selects the latest run, and reports
+missing/corrupt records instead of silently reconstructing state.
+
+### Operator controls and safety
+
+`list`, `health`, `tail`, and `follow` are read-only. `start`, `send`,
+`interrupt`, `restart`, and `kill` require explicit approval bound to the
+project/workpoint scope; `kill` additionally requires force and records the
+reason. `reopen`/attach is read-only planning and never steals a terminal
+without an explicit detach-others choice. Authorization failure, a trust
+prompt, shell-quoting failure, LowMem activation failure, or daemon error is a
+visible blocked/warning result and must not silently terminate the worker.
+
+The effective start configuration is retained in a typed, redacted record:
+`root_dir`, `project_root`, `continuity_id`, `work_item_id`, provider/model,
+thinking mode, command arguments, LowMem request/result, run-as user, resource
+limits, and operator approval. Commands are passed as argument vectors or
+literal tmux input; nested shell interpolation is prohibited. Recovery is
+explicit: inspect `health`, then `tail` from the last cursor, then `reopen`,
+`restart`, `interrupt`, or `kill` according to the reported status and
+approval posture.
