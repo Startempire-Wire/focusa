@@ -22,6 +22,14 @@ try {
   if ($pty -match "`e\[\?1049h|`e\[\?1049l") { throw 'plain/non-animated ConPTY path entered alternate screen' }
   if ($pty -notmatch 'install preflight') { throw 'ConPTY durable preflight output missing' }
 
+  # Timeout regression: a deliberately long-lived owned child must be
+  # terminated and surfaced, never waited forever or silently accepted.
+  $timeoutExit = 0
+  try {
+    [Spec132ConPtyRunner]::Run('cmd.exe', '/c ping 127.0.0.1 -n 60 > nul', 120, 40, 1000, [ref]$timeoutExit) | Out-Null
+    throw 'ConPTY timeout regression did not fire'
+  } catch [TimeoutException] { }
+
   # Capability limits are explicit: this proof requires CreatePseudoConsole and
   # does not substitute a compile-only or redirected-process test for ConPTY.
   Write-Output 'PASS: Windows ConPTY runtime, JSON isolation, non-alternate plain mode, and capability limits'
