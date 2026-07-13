@@ -6,7 +6,10 @@ interface OpenClawPluginApi {
   };
   on(
     event: "before_agent_start",
-    handler: (event: unknown, ctx: { sessionKey?: string }) => Promise<{ prependContext: string }>,
+    handler: (
+      event: unknown,
+      ctx: { sessionKey?: string },
+    ) => Promise<{ prependContext: string }>,
   ): void;
 }
 
@@ -25,23 +28,29 @@ interface FocusaAwarenessConfig {
 function cfg(api: OpenClawPluginApi): Required<FocusaAwarenessConfig> {
   const raw = (api.pluginConfig ?? {}) as FocusaAwarenessConfig;
   return {
-    focusaUrl: raw.focusaUrl || process.env.FOCUSA_API_URL || "http://127.0.0.1:8787",
+    focusaUrl:
+      raw.focusaUrl || process.env.FOCUSA_API_URL || "http://127.0.0.1:8787",
     adapterId: raw.adapterId || "openclaw",
     workspaceId: raw.workspaceId || "wirebot",
     agentId: raw.agentId || "wirebot",
     operatorId: raw.operatorId || "verious.smith",
-    projectRoot: raw.projectRoot || "/data/wirebot/users/verious",
+    projectRoot: raw.projectRoot || process.env.FOCUSA_PROJECT_ROOT || "",
     continuityId: raw.continuityId || process.env.FOCUSA_CONTINUITY_ID || "",
     timeoutMs: Number(raw.timeoutMs || 1500),
     enabled: raw.enabled !== false,
   };
 }
 
-function sessionIdFromContext(ctx: { sessionKey?: string } | undefined): string {
+function sessionIdFromContext(
+  ctx: { sessionKey?: string } | undefined,
+): string {
   return String(ctx?.sessionKey || "openclaw-session").slice(0, 240);
 }
 
-function fallbackCard(c: Required<FocusaAwarenessConfig>, reason: string): string {
+function fallbackCard(
+  c: Required<FocusaAwarenessConfig>,
+  reason: string,
+): string {
   return [
     "# Focusa Utility Card",
     "Status: degraded / awareness endpoint unavailable",
@@ -61,7 +70,10 @@ function fallbackCard(c: Required<FocusaAwarenessConfig>, reason: string): strin
   ].join("\n");
 }
 
-async function fetchCard(c: Required<FocusaAwarenessConfig>, sessionId: string): Promise<string> {
+async function fetchCard(
+  c: Required<FocusaAwarenessConfig>,
+  sessionId: string,
+): Promise<string> {
   const qs = new URLSearchParams({
     adapter_id: c.adapterId,
     workspace_id: c.workspaceId,
@@ -74,13 +86,17 @@ async function fetchCard(c: Required<FocusaAwarenessConfig>, sessionId: string):
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), c.timeoutMs);
   try {
-    const res = await fetch(`${c.focusaUrl.replace(/\/$/, "")}/v1/awareness/card?${qs.toString()}`, {
-      signal: controller.signal,
-      headers: { "accept": "application/json" },
-    });
+    const res = await fetch(
+      `${c.focusaUrl.replace(/\/$/, "")}/v1/awareness/card?${qs.toString()}`,
+      {
+        signal: controller.signal,
+        headers: { accept: "application/json" },
+      },
+    );
     if (!res.ok) throw new Error(`Focusa awareness HTTP ${res.status}`);
-    const body = await res.json() as { rendered_card?: string };
-    if (!body.rendered_card) throw new Error("Focusa awareness response missing rendered_card");
+    const body = (await res.json()) as { rendered_card?: string };
+    if (!body.rendered_card)
+      throw new Error("Focusa awareness response missing rendered_card");
     return body.rendered_card;
   } finally {
     clearTimeout(timer);
@@ -100,20 +116,37 @@ const focusaAwareness = {
       return;
     }
 
-    api.on("before_agent_start", async (_event: unknown, ctx: { sessionKey?: string }) => {
-      const sessionId = sessionIdFromContext(ctx);
-      try {
-        const card = await fetchCard(c, sessionId);
-        api.logger.info(`focusa-awareness: injected card session=${sessionId.slice(0, 80)}`);
-        return { prependContext: card };
-      } catch (err) {
-        const reason = String(err instanceof Error ? err.message : err);
-        api.logger.warn(`focusa-awareness: degraded injection session=${sessionId.slice(0, 80)} reason=${reason}`);
-        return { prependContext: fallbackCard(c, reason) };
-      }
-    });
+    api.on(
+      "before_agent_start",
+      async (_event: unknown, ctx: { sessionKey?: string }) => {
+        const sessionId = sessionIdFromContext(ctx);
+        if (!c.projectRoot || !c.continuityId) {
+          const reason =
+            "typed project_root and continuity_id are required; no global scope fallback is allowed";
+          api.logger.warn(
+            `focusa-awareness: blocked injection session=${sessionId.slice(0, 80)} reason=${reason}`,
+          );
+          return { prependContext: fallbackCard(c, reason) };
+        }
+        try {
+          const card = await fetchCard(c, sessionId);
+          api.logger.info(
+            `focusa-awareness: injected card session=${sessionId.slice(0, 80)}`,
+          );
+          return { prependContext: card };
+        } catch (err) {
+          const reason = String(err instanceof Error ? err.message : err);
+          api.logger.warn(
+            `focusa-awareness: degraded injection session=${sessionId.slice(0, 80)} reason=${reason}`,
+          );
+          return { prependContext: fallbackCard(c, reason) };
+        }
+      },
+    );
 
-    api.logger.info(`focusa-awareness: active url=${c.focusaUrl} workspace=${c.workspaceId}`);
+    api.logger.info(
+      `focusa-awareness: active url=${c.focusaUrl} workspace=${c.workspaceId}`,
+    );
   },
 };
 

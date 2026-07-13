@@ -119,7 +119,7 @@ enum Commands {
     /// bootstrappers that `exec focusa install --target=auto` after detecting platform.
     Install(commands::install::InstallArgs),
 
-    /// Read-only update inventory/status/check surfaces (Spec 128).
+    /// Signed OTA status, plan, apply, rollback, policy, scheduler, notification, and history surfaces (Spec 128).
     #[command(subcommand)]
     Update(commands::update::UpdateCmd),
 

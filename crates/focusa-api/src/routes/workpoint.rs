@@ -23,21 +23,10 @@ use focusa_core::types::{
 };
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
-use std::collections::HashMap;
-use std::sync::{Arc, LazyLock, Mutex};
-use std::time::Instant;
+use std::sync::Arc;
 use tokio::sync::mpsc::error::TrySendError;
 use tokio::time::{Duration, sleep};
 use uuid::Uuid;
-
-#[derive(Clone)]
-struct IdempotencyCacheEntry {
-    record: WorkpointRecord,
-    inserted_at: Instant,
-}
-
-static WORKPOINT_IDEMPOTENCY_CACHE: LazyLock<Mutex<HashMap<String, IdempotencyCacheEntry>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 #[derive(Debug, Deserialize, Default)]
 pub struct WorkpointCheckpointRequest {
@@ -537,74 +526,13 @@ fn identity_confidence_payload(
     })
 }
 
-fn idempotency_cache_max_entries() -> usize {
-    std::env::var("FOCUSA_WORKPOINT_IDEMPOTENCY_CACHE_MAX")
-        .ok()
-        .and_then(|value| value.parse::<usize>().ok())
-        .unwrap_or(256)
-        .max(1)
-}
-
-fn idempotency_cache_ttl_seconds() -> u64 {
-    std::env::var("FOCUSA_WORKPOINT_IDEMPOTENCY_CACHE_TTL_SECONDS")
-        .ok()
-        .and_then(|value| value.parse::<u64>().ok())
-        .unwrap_or(3600)
-        .max(1)
-}
-
-fn prune_idempotency_cache(cache: &mut HashMap<String, IdempotencyCacheEntry>) -> usize {
-    let ttl = Duration::from_secs(idempotency_cache_ttl_seconds());
-    let before = cache.len();
-    cache.retain(|_, entry| entry.inserted_at.elapsed() <= ttl);
-    let max_entries = idempotency_cache_max_entries();
-    if cache.len() > max_entries {
-        let mut oldest = cache
-            .iter()
-            .map(|(key, entry)| (key.clone(), entry.inserted_at))
-            .collect::<Vec<_>>();
-        oldest.sort_by_key(|(_, inserted_at)| *inserted_at);
-        let remove_count = cache.len() - max_entries;
-        for (key, _) in oldest.into_iter().take(remove_count) {
-            cache.remove(&key);
-        }
-    }
-    before.saturating_sub(cache.len())
-}
-
-fn get_idempotency_cache_record(key: &str) -> Option<WorkpointRecord> {
-    let mut cache = WORKPOINT_IDEMPOTENCY_CACHE.lock().ok()?;
-    prune_idempotency_cache(&mut cache);
-    cache.get(key).map(|entry| entry.record.clone())
-}
-
-fn put_idempotency_cache_record(key: String, record: WorkpointRecord) -> usize {
-    let Ok(mut cache) = WORKPOINT_IDEMPOTENCY_CACHE.lock() else {
-        return 0;
-    };
-    cache.insert(
-        key,
-        IdempotencyCacheEntry {
-            record,
-            inserted_at: Instant::now(),
-        },
-    );
-    prune_idempotency_cache(&mut cache)
-}
-
 pub(crate) fn idempotency_cache_status_payload() -> Value {
-    let mut cache_len = 0;
-    let mut pruned = 0;
-    if let Ok(mut cache) = WORKPOINT_IDEMPOTENCY_CACHE.lock() {
-        pruned = prune_idempotency_cache(&mut cache);
-        cache_len = cache.len();
-    }
     json!({
-        "status": "ok",
-        "entries": cache_len,
-        "max_entries": idempotency_cache_max_entries(),
-        "ttl_seconds": idempotency_cache_ttl_seconds(),
-        "pruned_on_read": pruned,
+        "schema": "focusa.workpoint_idempotency_cache.v1",
+        "status": "eliminated",
+        "cache_enabled": false,
+        "authority": "scope-matched Workpoint reducer records",
+        "cross_scope_fallback": false,
     })
 }
 
@@ -1642,26 +1570,12 @@ async fn checkpoint(
         .as_ref()
         .filter(|key| !key.trim().is_empty())
     {
-        if let Some(existing) = get_idempotency_cache_record(key) {
-            return Ok(Json(json!({
-                "status": "completed",
-                "workpoint_id": existing.workpoint_id,
-                "canonical": existing.canonical,
-                "idempotent_replay": true,
-                "idempotency_cache": idempotency_cache_status_payload(),
-                "workpoint": workpoint_packet(&existing),
-                "warnings": [],
-                "next_step_hint": "idempotency key already accepted; call /v1/workpoint/resume to render the packet"
-            })));
-        }
         let focusa = state.focusa.read().await;
-        if let Some(existing) = focusa
-            .workpoint
-            .records
-            .iter()
-            .find(|record| record.idempotency_key.as_deref() == Some(key.as_str()))
-        {
-            put_idempotency_cache_record(key.clone(), existing.clone());
+        if let Some(existing) = focusa.workpoint.records.iter().find(|record| {
+            record.idempotency_key.as_deref() == Some(key.as_str())
+                && record.project_root.as_deref() == req.project_root.as_deref()
+                && record.continuity_id.as_deref() == req.continuity_id.as_deref()
+        }) {
             return Ok(Json(json!({
                 "status": "completed",
                 "workpoint_id": existing.workpoint_id,
@@ -1767,9 +1681,7 @@ async fn checkpoint(
             .as_ref()
             .filter(|key| !key.trim().is_empty()),
         promoted_record.as_ref(),
-    ) {
-        put_idempotency_cache_record(key.clone(), record.clone());
-    }
+    ) {}
 
     Ok(Json(json!({
         "status": if promote && canonical { "accepted" } else { "partial" },
@@ -3153,29 +3065,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn idempotency_cache_prunes_to_configured_max() {
-        let mut cache = HashMap::new();
-        for idx in 0..3 {
-            cache.insert(
-                format!("key-{idx}"),
-                IdempotencyCacheEntry {
-                    record: WorkpointRecord::default(),
-                    inserted_at: Instant::now() - Duration::from_secs((idx + 1) as u64),
-                },
-            );
-        }
-        // Environment-independent assertion: pruning never increases cache size and
-        // respects the runtime-configured max when it is lower than current size.
-        let _ = prune_idempotency_cache(&mut cache);
-        assert!(cache.len() <= idempotency_cache_max_entries());
-    }
-
-    #[test]
-    fn idempotency_cache_status_payload_exposes_caps() {
+    fn idempotency_cache_is_eliminated_in_favor_of_scope_matched_reducer_records() {
         let payload = idempotency_cache_status_payload();
-        assert_eq!(payload["status"].as_str(), Some("ok"));
-        assert!(payload["max_entries"].as_u64().unwrap_or(0) >= 1);
-        assert!(payload["ttl_seconds"].as_u64().unwrap_or(0) >= 1);
+        assert_eq!(payload["status"], "eliminated");
+        assert_eq!(payload["cross_scope_fallback"], false);
     }
 
     #[test]

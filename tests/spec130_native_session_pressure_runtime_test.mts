@@ -1,8 +1,18 @@
 import {
   measureNativeSessionPressure,
+  migrateNativeSessionBounded,
   nativeSessionBudgets,
 } from "../apps/pi-extension/src/session-pressure.ts";
-import { mkdtempSync, rmSync, truncateSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  truncateSync,
+  writeFileSync,
+} from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 
@@ -109,7 +119,99 @@ try {
   assert(sampled.sampled_entry_count === 2_048, "entry sample was not bounded");
   assert(sampled.sample_complete === false, "partial sample not labeled");
 
-  console.log("PASS: Spec 130 native session pressure policy");
+  const migrationSource = join(root, "migration-source.jsonl");
+  const migrationOutput = join(root, "migration-output");
+  const oversizedEntry = JSON.stringify({ type: "tool", payload: "x".repeat(40 * 1024) });
+  const sourceBody = [
+    JSON.stringify({ type: "session", id: "spec130" }),
+    oversizedEntry,
+    JSON.stringify({ type: "compaction", id: "cmp-final", summary: "bounded recovery" }),
+  ].join("\n") + "\n";
+  writeFileSync(migrationSource, sourceBody);
+  const sourceBefore = readFileSync(migrationSource);
+  const scope = {
+    root_scope: {
+      scope_kind: "project" as const,
+      scope_id: "project:spec130",
+      root_path: root,
+      canonical_name: "spec130-fixture",
+      fingerprint: "sha256:spec130",
+    },
+    continuity_id: "focusa-cont-spec130",
+  };
+
+  const dryRun = await migrateNativeSessionBounded({
+    source_path: migrationSource,
+    output_dir: migrationOutput,
+    scope,
+    mode: "dry_run",
+    recovery_max_bytes: 64 * 1024,
+    entry_max_bytes: 16 * 1024,
+  });
+  assert(dryRun.archive === null, "dry-run unexpectedly wrote archive metadata");
+  assert(!existsSync(migrationOutput), "dry-run mutated output directory");
+
+  const migrated = await migrateNativeSessionBounded({
+    source_path: migrationSource,
+    output_dir: migrationOutput,
+    scope,
+    mode: "execute",
+    recovery_max_bytes: 64 * 1024,
+    entry_max_bytes: 16 * 1024,
+  });
+  assert(migrated.integrity.source_unchanged, "migration mutated source session");
+  assert(migrated.integrity.archive_matches_source, "archive checksum mismatch");
+  assert(migrated.integrity.recovery_within_budget, "recovery segment exceeded budget");
+  assert(migrated.archive?.immutable === true, "archive is not immutable");
+  assert((statSync(migrated.archive!.path).mode & 0o777) === 0o400, "archive mode is not read-only");
+  assert(migrated.recovery_segment!.omitted_oversized_entries === 1, "oversized entry was not externalized");
+  assert(
+    readFileSync(migrated.recovery_segment!.path, "utf8").includes("focusa-migration-omitted-entry"),
+    "recovery segment lacks oversized-entry handle"
+  );
+  assert(existsSync(migrated.manifest_path!), "migration manifest missing");
+  assert(readFileSync(migrationSource).equals(sourceBefore), "source bytes changed after migration");
+
+  const rollbackOutput = join(root, "rollback-output");
+  const rollbackPlan = await migrateNativeSessionBounded({
+    source_path: migrationSource,
+    output_dir: rollbackOutput,
+    scope,
+    mode: "dry_run",
+    recovery_max_bytes: 64 * 1024,
+    entry_max_bytes: 16 * 1024,
+  });
+  const rollbackDigest = rollbackPlan.migration_id.replace("native-session-", "");
+  const rollbackBase = "migration-source.jsonl";
+  const collidingRecovery = join(
+    rollbackOutput,
+    `${rollbackBase}.${rollbackDigest}.recovery.jsonl`
+  );
+  const rollbackArchive = join(
+    rollbackOutput,
+    `${rollbackBase}.${rollbackDigest}.immutable.jsonl`
+  );
+  mkdirSync(rollbackOutput, { recursive: true });
+  writeFileSync(collidingRecovery, "preexisting\n");
+  let rollbackError = "";
+  try {
+    await migrateNativeSessionBounded({
+      source_path: migrationSource,
+      output_dir: rollbackOutput,
+      scope,
+      mode: "execute",
+      recovery_max_bytes: 64 * 1024,
+      entry_max_bytes: 16 * 1024,
+    });
+  } catch (error) {
+    rollbackError = error instanceof Error ? error.message : String(error);
+  }
+  assert(Boolean(rollbackError), "collision did not fail migration");
+  assert(!existsSync(rollbackArchive), "failed migration left a partial archive");
+  assert(readFileSync(collidingRecovery, "utf8") === "preexisting\n", "rollback removed preexisting file");
+  assert(readFileSync(migrationSource).equals(sourceBefore), "rollback mutated source session");
+
+  console.log("PASS: Spec 130 native session pressure and streaming migration policy");
 } finally {
   rmSync(root, { recursive: true, force: true });
 }

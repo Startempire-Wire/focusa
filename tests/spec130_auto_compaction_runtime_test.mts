@@ -49,14 +49,16 @@ const pi = {
 };
 registerAutoCompaction(pi as any);
 assert(handlers.has("agent_end"), "agent_end fallback not registered");
+assert(handlers.has("agent_settled"), "agent_settled idle-boundary fallback not registered");
 assert(handlers.has("session_compact"), "session_compact reset not registered");
 
 let usage: any = { tokens: 371_566, contextWindow: 372_000, percent: 99.88 };
 let compactCalls = 0;
 let compactOptions: any;
+let idle = true;
 const statuses: Array<[string, string | undefined]> = [];
 const ctx = {
-  isIdle: () => true,
+  isIdle: () => idle,
   getContextUsage: () => usage,
   compact(options: any) {
     compactCalls += 1;
@@ -87,6 +89,20 @@ await waitForTimer();
 assert(compactCalls === 1, "pending compaction was duplicated");
 compactOptions.onComplete({});
 
+// Regression: agent_end can fire while Pi still owns an automatic retry or
+// queued continuation. The authoritative agent_settled boundary must retry the
+// pressure check rather than silently dropping automatic compaction.
+await invoke("session_start", {}, ctx);
+usage = { tokens: 371_566, contextWindow: 372_000, percent: 99.88 };
+idle = false;
+await invoke("agent_end", {}, ctx);
+await waitForTimer();
+assert(compactCalls === 1, "busy agent_end should not compact");
+idle = true;
+await invoke("agent_settled", {}, ctx);
+assert(compactCalls === 2, "settled idle boundary did not recover skipped compaction");
+compactOptions.onComplete({});
+
 // Native Pi compaction gets first chance: usage becomes unknown before the
 // zero-delay fallback recheck, so Focusa must not issue a duplicate compact.
 await invoke("session_start", {}, ctx);
@@ -94,6 +110,6 @@ usage = { tokens: 371_566, contextWindow: 372_000, percent: 99.88 };
 await invoke("agent_end", {}, ctx);
 usage = { tokens: null, contextWindow: 372_000, percent: null };
 await waitForTimer();
-assert(compactCalls === 1, "fallback duplicated native compaction");
+assert(compactCalls === 2, "fallback duplicated native compaction");
 
 console.log("PASS: Spec 130 automatic compaction fallback");

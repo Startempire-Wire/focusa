@@ -65,6 +65,44 @@ tests/spec97_reflex_utility_card_static_test.sh
 
 Note: `tests/spec97_reflex_runtime_dogfood_test.sh` temporarily activates LowMem through `/v1/resource/mode` to prove degraded reflex suggestions, then restores the runtime override on exit.
 
+## Spec 132 installer proof
+
+Short/static gates that do not require a long Cargo build:
+
+```bash
+bash tests/spec_focusa_112_install_cmd_static_test.sh
+bash tests/spec_install_path_walkthrough_static_test.sh
+bash tests/spec_install_animation_static_test.sh
+bash tests/spec_install_animation_contract_test.sh
+bash tests/spec_install_animation_fallback_static_test.sh
+bash tests/spec_install_animation_security_static_test.sh
+bash tests/spec_install_pi_integration_rust_static_test.sh
+bash tests/spec_install_pi_integration_truth_test.sh
+bash tests/spec_install_service_rust_static_test.sh
+bash tests/spec_upgrade_cmd_static_test.sh
+bash tests/spec_install_failure_rollback_test.sh
+bash tests/spec_install_completion_order_test.sh
+bash tests/spec_install_codesign_verify_static_test.sh
+bash tests/spec_macos_codesign_rust_static_test.sh
+bash tests/spec132_pi_extension_ownership_test.sh
+bash tests/spec_install_ui_integration_test.sh
+bash tests/spec128_installer_preflight_static_test.sh
+bash tests/installer_update_policy_static_test.sh
+```
+
+Executable/runtime gates require a built Focusa binary and/or native hosted platforms and must not be claimed from static proof alone:
+
+```bash
+bash tests/spec132_pty_lifecycle_runtime_test.sh
+bash tests/132-e5-platform-matrix-runtime-test.sh
+pwsh -File tests/132-e5-windows-conpty-runtime-test.ps1 -FocusaExe <focusa.exe>
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace --all-features
+bash scripts/verify-bootstrapper-parity.sh
+# plus every release target build in .github/workflows/release.yml
+```
+
 ## Runtime proof
 
 A real release proof should verify the installed daemon/CLI, not only shell scripts:

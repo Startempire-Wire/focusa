@@ -55,6 +55,13 @@ import {
   getCurrentTaskTurnStart,
 } from "./state.js";
 import { FOCUSA_TOOL_CONTRACTS, focusaToolContractSummary } from "./tool-contracts.js";
+import {
+  buildProjectWorkstreamKey,
+  renderScopedResultHuman,
+  scopedQueryParams,
+  type ScopedResultEnvelope,
+  type WorkstreamKey,
+} from "./scoped-state.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
 
@@ -3540,16 +3547,10 @@ export function registerTools(pi: ExtensionAPI) {
     );
     // FOCUSA_FIX-9q5l: include mission + next_slice + action so the operator sees
     // what was checkpointed, not just the next= resume pointer.
-    const mission = String(
-      body?.mission || body?.resume_packet?.mission || body?.workpoint?.mission || ""
-    );
-    const actionRaw = body?.action_intent || body?.resume_packet?.action_intent || body?.workpoint?.action_intent || "";
-    const action =
-      typeof actionRaw === "string"
-        ? actionRaw
-        : actionRaw
-          ? JSON.stringify(actionRaw)
-          : "";
+    const mission = String(body?.mission || body?.resume_packet?.mission || body?.workpoint?.mission || "");
+    const actionRaw =
+      body?.action_intent || body?.resume_packet?.action_intent || body?.workpoint?.action_intent || "";
+    const action = typeof actionRaw === "string" ? actionRaw : actionRaw ? JSON.stringify(actionRaw) : "";
     let summary = `status=${status} id=${id} canonical=${canonical}`;
     if (mission) summary += ` mission="${truncateForSummary(mission, 80)}"`;
     if (action) summary += ` action="${truncateForSummary(action, 80)}"`;
@@ -3783,6 +3784,16 @@ export function registerTools(pi: ExtensionAPI) {
   const SILENT_SESSION_LOG_BACKUPS = 3;
   const SILENT_SESSION_STALE_SECONDS = 30 * 60;
   const LEGACY_SILENT_SESSION_REGISTRY_PATH = "/tmp/focusa-silent-registry.json";
+  const SILENT_SESSION_LEGACY_POSTURE = Object.freeze({
+    schema: "focusa.silent_sessions.legacy_posture.v1",
+    legacy: true,
+    canonical: false,
+    durable: false,
+    control_plane: "pi_local_tmux_compatibility_wrapper",
+    superseded_by: "Spec133 daemon-native /v1/silent-sessions control plane",
+    warning:
+      "This compatibility wrapper is non-canonical and non-durable; tmux/session/log metadata are runtime observations only.",
+  });
 
   // Durable registry: operator/project scoped, never dependent on reboot-persistent /tmp.
   function silentSessionDataDir(): string {
@@ -3790,7 +3801,11 @@ export function registerTools(pi: ExtensionAPI) {
     const crypto = require("crypto");
     const path = require("path");
     const root = process.env.FOCUSA_PROJECT_ROOT || process.cwd();
-    const scope = crypto.createHash("sha256").update(`${currentUserName()}\0${root}`).digest("hex").slice(0, 24);
+    const scope = crypto
+      .createHash("sha256")
+      .update(`${currentUserName()}\0${root}`)
+      .digest("hex")
+      .slice(0, 24);
     const base = process.env.XDG_STATE_HOME || path.join(os.homedir(), ".local", "state");
     return path.join(base, "focusa", "silent-sessions", scope);
   }
@@ -3803,7 +3818,11 @@ export function registerTools(pi: ExtensionAPI) {
     const fs = require("fs");
     const dir = silentSessionDataDir();
     fs.mkdirSync(require("path").join(dir, "logs"), { recursive: true, mode: 0o700 });
-    try { fs.chmodSync(dir, 0o700); } catch { /* platform may not expose chmod */ }
+    try {
+      fs.chmodSync(dir, 0o700);
+    } catch {
+      /* platform may not expose chmod */
+    }
     return dir;
   }
 
@@ -3953,17 +3972,45 @@ export function registerTools(pi: ExtensionAPI) {
     return {};
   }
 
+  function legacySilentSessionDetails(extra: Record<string, any> = {}): Record<string, any> {
+    return {
+      ...SILENT_SESSION_LEGACY_POSTURE,
+      legacy_registry_path: LEGACY_SILENT_SESSION_REGISTRY_PATH,
+      daemon_native_required: true,
+      ...extra,
+    };
+  }
+
+  function recordLegacySilentSessionTelemetry(action: string, sessionName: string): void {
+    focusaPost("/telemetry/trace", {
+      event_type: "legacy_silent_session_wrapper_used",
+      payload: legacySilentSessionDetails({ action, session_name: sessionName }),
+    });
+  }
+
   function silentSessionWriteRegistry(registry: Record<string, any>): void {
     const fs = require("fs");
     const path = silentSessionRegistryPath();
     try {
       silentSessionEnsureDataDir();
       fs.mkdirSync(require("path").dirname(path), { recursive: true, mode: 0o700 });
-      const payload = JSON.stringify({ schema_version: "focusa.silent_sessions.registry.v2", updated_at: new Date().toISOString(), sessions: registry }, null, 2);
+      const payload = JSON.stringify(
+        {
+          schema_version: "focusa.silent_sessions.registry.v2",
+          updated_at: new Date().toISOString(),
+          sessions: registry,
+        },
+        null,
+        2
+      );
       const tmp = `${path}.${process.pid}.tmp`;
       fs.writeFileSync(tmp, payload, { mode: 0o600, flag: "wx" });
       fs.renameSync(tmp, path);
-      try { fs.chmodSync(path, 0o600); } catch { /* platform may not expose chmod */ }
+      try {
+        fs.chmodSync(path, 0o600);
+      } catch {
+        /* platform may not expose chmod */
+      }
     } catch {
       /* best effort: the session remains controllable through tmux */
     }
@@ -3991,7 +4038,11 @@ export function registerTools(pi: ExtensionAPI) {
       const tmp = `${path}.${process.pid}.tmp`;
       fs.writeFileSync(tmp, JSON.stringify(meta, null, 2), { mode: 0o600, flag: "wx" });
       fs.renameSync(tmp, path);
-      try { fs.chmodSync(path, 0o600); } catch { /* platform may not expose chmod */ }
+      try {
+        fs.chmodSync(path, 0o600);
+      } catch {
+        /* platform may not expose chmod */
+      }
     } catch {
       /* registry remains the authoritative fallback */
     }
@@ -4019,19 +4070,32 @@ export function registerTools(pi: ExtensionAPI) {
     try {
       const fs = require("fs");
       const logPath = silentSessionLogPath(name, runAsUser);
-      if (!fs.existsSync(logPath)) return { ok: true, output: "", cursor: cursor || "0", next_cursor: cursor || "0" };
+      if (!fs.existsSync(logPath))
+        return { ok: true, output: "", cursor: cursor || "0", next_cursor: cursor || "0" };
       const stat = fs.statSync(logPath);
       const start = Math.max(0, Math.min(Number.parseInt(cursor || "0", 10) || 0, stat.size));
       const bytes = fs.readFileSync(logPath).subarray(start);
       const raw = bytes.toString("utf8");
-      const bounded = raw.split(/\r?\n/).slice(-Math.max(1, Math.min(400, lines))).join("\n");
+      const bounded = raw
+        .split(/\r?\n/)
+        .slice(-Math.max(1, Math.min(400, lines)))
+        .join("\n");
       const sanitized = bounded
-        .replace(/[\u001b\u009b][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[-a-zA-Z\d/#&.:=?%@~_]+)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g, "")
+        .replace(
+          /[\u001b\u009b][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[-a-zA-Z\d/#&.:=?%@~_]+)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g,
+          ""
+        )
         .replace(/(Bearer\s+|token=|password=|secret=)[^\s&]+/gi, "$1[REDACTED]");
       const next = String(stat.size);
       return { ok: true, output: sanitized.slice(-16000), cursor: String(start), next_cursor: next };
     } catch (error: any) {
-      return { ok: false, output: "", cursor: cursor || "0", next_cursor: cursor || "0", error: String(error?.message || error) };
+      return {
+        ok: false,
+        output: "",
+        cursor: cursor || "0",
+        next_cursor: cursor || "0",
+        error: String(error?.message || error),
+      };
     }
   }
 
@@ -4127,18 +4191,43 @@ export function registerTools(pi: ExtensionAPI) {
     return r.ok ? r.stdout.trim() : "unknown";
   }
 
-  function silentSessionSemanticStatus(output: string, baseStatus: string): { status: string; why?: string; recovery?: string } {
+  function silentSessionSemanticStatus(
+    output: string,
+    baseStatus: string
+  ): { status: string; why?: string; recovery?: string } {
     const text = output.slice(-16000);
-    if (/\b(?:permission denied|trust prompt|login required|authentication required|approval required)\b/i.test(text))
-      return { status: "blocked", why: "trust or authorization input is required", recovery: "reopen and complete the prompt, then health-check again" };
+    if (
+      /\b(?:permission denied|trust prompt|login required|authentication required|approval required)\b/i.test(
+        text
+      )
+    )
+      return {
+        status: "blocked",
+        why: "trust or authorization input is required",
+        recovery: "reopen and complete the prompt, then health-check again",
+      };
     if (/\b(?:waiting for input|press enter|continue\?|confirm)\b/i.test(text))
-      return { status: "waiting-input", why: "the worker is waiting for operator input", recovery: "tail the output and send a literal check-in after approval" };
+      return {
+        status: "waiting-input",
+        why: "the worker is waiting for operator input",
+        recovery: "tail the output and send a literal check-in after approval",
+      };
     if (/\b(?:cancelled|canceled|interrupted)\b/i.test(text)) return { status: "cancelled" };
     if (/\b(?:fatal|panic|traceback|error:)\b/i.test(text) && baseStatus === "dead")
-      return { status: "failed", why: "terminal output contains a failure marker", recovery: "tail the final output and restart only after correcting the failure" };
-    if (/\b(?:completed successfully|install complete|task complete|done)\b/i.test(text)) return { status: "completed" };
+      return {
+        status: "failed",
+        why: "terminal output contains a failure marker",
+        recovery: "tail the final output and restart only after correcting the failure",
+      };
+    if (/\b(?:completed successfully|install complete|task complete|done)\b/i.test(text))
+      return { status: "completed" };
     if (baseStatus === "dead") return { status: "dead" };
-    if (baseStatus === "stale") return { status: "blocked", why: "worker heartbeat is stale", recovery: "tail from the last cursor, then reopen or restart" };
+    if (baseStatus === "stale")
+      return {
+        status: "blocked",
+        why: "worker heartbeat is stale",
+        recovery: "tail from the last cursor, then reopen or restart",
+      };
     return { status: "running" };
   }
 
@@ -4348,7 +4437,7 @@ export function registerTools(pi: ExtensionAPI) {
       side_effects: [],
       evidence_refs: [],
       next_tools: nextTools,
-      raw: { action, session_name: sessionName, sessions, ...extra },
+      raw: { action, session_name: sessionName, legacy: legacySilentSessionDetails(), sessions, ...extra },
     });
     return {
       content: [
@@ -4375,11 +4464,11 @@ export function registerTools(pi: ExtensionAPI) {
 
   pi.registerTool({
     name: "focusa_silent_sessions",
-    label: "Focusa Silent Sessions",
+    label: "Focusa Silent Sessions (legacy tmux wrapper)",
     description:
-      "List, start, reopen, tail, send input to, or safely kill tmux-backed Focusa SilentSessions running in the background.",
+      "Legacy/non-durable tmux compatibility wrapper for listing, starting, reopening, tailing, sending input to, or safely killing Pi-local Focusa SilentSessions. It is not the canonical Spec133 daemon-native control plane.",
     promptSnippet:
-      "Use when an operator asks to list, reopen, start, or kill background SilentSessions/autopilot tmux sessions.",
+      "Use only when an operator explicitly asks to manage legacy background tmux SilentSessions. Treat all output as non-canonical runtime observation; prefer daemon-native Spec133 APIs when available.",
     parameters: Type.Object({
       action: Type.Optional(
         Type.Union(
@@ -4419,8 +4508,12 @@ export function registerTools(pi: ExtensionAPI) {
         Type.String({ description: "Optional bead/work item id to anchor the SilentSession." })
       ),
       lowmem: Type.Optional(Type.Boolean({ description: "Activate LowMem at start; default true." })),
-      lines: Type.Optional(Type.Number({ description: "Tail lines for durable output; default 80, max 400." })),
-      cursor: Type.Optional(Type.String({ description: "Byte cursor returned by a prior tail/follow call." })),
+      lines: Type.Optional(
+        Type.Number({ description: "Tail lines for durable output; default 80, max 400." })
+      ),
+      cursor: Type.Optional(
+        Type.String({ description: "Byte cursor returned by a prior tail/follow call." })
+      ),
       approved: Type.Optional(
         Type.Boolean({
           description: "Required true for start/send/kill because those mutate background process state.",
@@ -4435,6 +4528,7 @@ export function registerTools(pi: ExtensionAPI) {
       const action = String(p.action || "list") as SilentSessionAction;
       const sessionsBefore = listSilentSessions();
       const sessionName = silentSessionName(p.session_name || p.work_item_id || "default");
+      recordLegacySilentSessionTelemetry(action, sessionName);
       const hasSession = sessionsBefore.some((session: any) => session.name === sessionName);
 
       if (action === "list") {
@@ -4450,6 +4544,7 @@ export function registerTools(pi: ExtensionAPI) {
             count: sessionsBefore.length,
             registry: silentSessionRegistrySnapshot(sessionsBefore),
             tmux_version: silentSessionVersion(),
+            legacy: legacySilentSessionDetails({ action }),
             next_tools: ["focusa_silent_sessions", "focusa_resource_mode", "focusa_work_loop_status"],
           },
         } as any;
@@ -4509,10 +4604,10 @@ export function registerTools(pi: ExtensionAPI) {
         const tail = durable.output
           ? { ok: true, stdout: durable.output, stderr: "" }
           : silentSessionExec(
-          ["capture-pane", "-p", "-J", "-t", sessionName, "-S", `-${lines}`],
-          3000,
-          runAsUser
-        );
+              ["capture-pane", "-p", "-J", "-t", sessionName, "-S", `-${lines}`],
+              3000,
+              runAsUser
+            );
         return {
           content: [
             {
@@ -4627,10 +4722,9 @@ export function registerTools(pi: ExtensionAPI) {
         }
         const priorMeta = action === "restart" ? silentSessionReadMeta(sessionName) || {} : {};
         const rootDir = String(p.root_dir || priorMeta.root_dir || getSessionCwd() || process.cwd());
+        const reusedStoredCommand = Boolean(action === "restart" && !p.command && priorMeta.command);
         const cmd = String(
-          p.command ||
-            priorMeta.command ||
-            defaultSilentSessionCommand({ ...priorMeta, ...p, root_dir: rootDir }, sessionName)
+          p.command || defaultSilentSessionCommand({ ...priorMeta, ...p, root_dir: rootDir }, sessionName)
         );
         const owner = silentSessionRootOwner(rootDir);
         const current = currentUserName();
@@ -4721,6 +4815,8 @@ export function registerTools(pi: ExtensionAPI) {
             registry_metadata: silentSessionReadMeta(sessionName),
             registry: silentSessionRegistrySnapshot(sessionsAfter),
             error: started.stderr || pipeLog.error,
+            stored_legacy_command_reused: false,
+            stored_legacy_command_rejected: reusedStoredCommand,
             log_path: pipeLog.log_path,
             pipe_log_ok: pipeLog.ok,
             log_rotated: pipeLog.rotated,
@@ -5839,22 +5935,41 @@ export function registerTools(pi: ExtensionAPI) {
         Type.String({ description: "Optional logical continuity id; defaults to project continuity." })
       ),
       write_preload: Type.Optional(
-        Type.Boolean({ description: "Request preload write guidance; defaults false and never writes implicitly." })
+        Type.Boolean({
+          description: "Request preload write guidance; defaults false and never writes implicitly.",
+        })
       ),
       preload_target: Type.Optional(
-        Type.Union([
-          Type.Literal("cursor"), Type.Literal("claude"), Type.Literal("codex"),
-          Type.Literal("pi"), Type.Literal("opencode"), Type.Literal("generic"),
-        ], { description: "Target agent surface; defaults cursor." })
+        Type.Union(
+          [
+            Type.Literal("cursor"),
+            Type.Literal("claude"),
+            Type.Literal("codex"),
+            Type.Literal("pi"),
+            Type.Literal("opencode"),
+            Type.Literal("generic"),
+          ],
+          { description: "Target agent surface; defaults cursor." }
+        )
       ),
       preload_mode: Type.Optional(
-        Type.Union([
-          Type.Literal("session_start"), Type.Literal("post_compaction"),
-          Type.Literal("session_transfer"), Type.Literal("recovery"), Type.Literal("tool_guidance"),
-        ], { description: "Preload mode; defaults session_transfer." })
+        Type.Union(
+          [
+            Type.Literal("session_start"),
+            Type.Literal("post_compaction"),
+            Type.Literal("session_transfer"),
+            Type.Literal("recovery"),
+            Type.Literal("tool_guidance"),
+          ],
+          { description: "Preload mode; defaults session_transfer." }
+        )
       ),
-      receipt_preview: Type.Optional(Type.Boolean({ description: "Return a bounded receipt preview; defaults true." })),
-      receipt_commit: Type.Optional(Type.Boolean({ description: "Explicitly commit the preload receipt; defaults false." })),
+      receipt_preview: Type.Optional(
+        Type.Boolean({ description: "Return a bounded receipt preview; defaults true." })
+      ),
+      receipt_commit: Type.Optional(
+        Type.Boolean({ description: "Explicitly commit the preload receipt; defaults false." })
+      ),
     }),
     async execute(_id, params) {
       const p = params as {
@@ -6460,9 +6575,17 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: Type.Object({
       project_root: Type.Optional(Type.String({ description: "Project root for HLT history scope." })),
       continuity_id: Type.Optional(Type.String({ description: "Optional continuity_id filter." })),
-      session_id: Type.Optional(Type.String({ description: "Spec 125 §7.6: filter by session. 'current' resolves to active session." })),
-      include_cross_session_fallbacks: Type.Optional(Type.Boolean({ description: "Include cross-session fallback candidates (default false)." })),
-      include_generic: Type.Optional(Type.Boolean({ description: "Include generic HLT entries (default false)." })),
+      session_id: Type.Optional(
+        Type.String({
+          description: "Spec 125 §7.6: filter by session. 'current' resolves to active session.",
+        })
+      ),
+      include_cross_session_fallbacks: Type.Optional(
+        Type.Boolean({ description: "Include cross-session fallback candidates (default false)." })
+      ),
+      include_generic: Type.Optional(
+        Type.Boolean({ description: "Include generic HLT entries (default false)." })
+      ),
       limit: Type.Optional(
         Type.Integer({ minimum: 1, maximum: 500, description: "Max entries to return (defaults to 50)." })
       ),
@@ -7537,6 +7660,7 @@ export function registerTools(pi: ExtensionAPI) {
         predictionResult = await focusaFetchDetailed("/predictions", {
           method: "POST",
           body: JSON.stringify({
+            scope: buildProjectWorkstreamKey(projectRoot, scopedContinuityId),
             prediction_type: "browser_diagnostics_next_action",
             predicted_outcome:
               severityClassification.severity === "benign_asset"
@@ -8165,14 +8289,9 @@ export function registerTools(pi: ExtensionAPI) {
       );
       if (res.ok && canonical && actionAuthority && matchesCurrentAskScope) {
         const candidate = normalizeWorkpointResumePacketEnvelope(res.body);
-        const adoptedRoot = adoptWorkpointScopeForFrameRecovery(
-          candidate,
-          "workpoint_resume_tool"
-        );
+        const adoptedRoot = adoptWorkpointScopeForFrameRecovery(candidate, "workpoint_resume_tool");
         if (adoptedRoot) {
-          setActiveWorkpointSummary(
-            String(res.body?.rendered_summary || v2?.rendered_summary || "")
-          );
+          setActiveWorkpointSummary(String(res.body?.rendered_summary || v2?.rendered_summary || ""));
           S.lastWorkpointUpdate = Date.now();
           persistState();
         }
@@ -9271,7 +9390,7 @@ export function registerTools(pi: ExtensionAPI) {
         res,
         total > 0
           ? `metacog retrieve: candidates=${total} top_lesson="${topLesson}" why="${topWhy}" rehydrate_id=${topCapture}` +
-            (rehydrateHint ? ` ${rehydrateHint}` : "")
+              (rehydrateHint ? ` ${rehydrateHint}` : "")
           : `metacog retrieve: candidates=0 lesson="none" why="no prior signals matched" rehydrate_id=none`,
         "metacog retrieve",
         {
@@ -13092,7 +13211,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       // build an empty fallback so downstream code never reads properties of null.
       // Previously crashed with 'Cannot read properties of null (reading value)'.
       const raw = (result && (result as any).value) as any;
-      const packet = raw && typeof raw === 'object' ? raw : {};
+      const packet = raw && typeof raw === "object" ? raw : {};
       const visibleCount = Array.isArray(packet.visibleLines) ? packet.visibleLines.length : 0;
       const textLines = [
         `awareness_packet | surface=${packet.surface || surface} | mode=${packet.mode || "?"} | visible=${visibleCount}`,
@@ -13319,89 +13438,57 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       ),
     }),
     async execute(_id, params) {
-      const payload = params && typeof params === "object" ? { ...(params as any) } : params;
-      if (payload && typeof payload === "object") {
-        const projectRoot = normalizeProjectRoot(
-          payload.project_root || getLastProjectIdentity()?.project_root || getSessionCwd() || process.cwd()
+      const p = params as any;
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
+      if (projectRootGate) return projectRootGate;
+      const continuityId = String(p.continuity_id || getContinuityId() || "").trim();
+      if (!continuityId)
+        return blockedToolResponse(
+          "focusa_predict_record",
+          "prediction",
+          "prediction record blocked → typed continuity scope required",
+          "scope_mismatch",
+          {},
+          ["focusa_workpoint_resume", "focusa_project_identity"]
         );
-        const continuityId = String(
-          payload.continuity_id || getContinuityId() || ensureContinuityId(projectRoot) || ""
-        ).trim();
-        if (projectRoot) payload.project_root = projectRoot;
-        if (continuityId) payload.continuity_id = continuityId;
-        if (!payload.session_identity && projectRoot) {
-          payload.session_identity = await buildFocusaSessionIdentity(projectRoot, "manual", {
-            continuityId,
-            sessionId: S.sessionFrameKey,
-          });
-        }
-      }
+      const scope = buildProjectWorkstreamKey(projectRoot, continuityId);
+      const payload = {
+        scope,
+        prediction_type: p.prediction_type,
+        predicted_outcome: p.predicted_outcome,
+        confidence: p.confidence,
+        recommended_action: p.recommended_action,
+        why: p.why,
+        context_refs: p.context_refs || [],
+        ontology_context: p.ontology_context || {},
+      };
       const res = await focusaFetchDetailed("/predictions", {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      const body = res.body || {};
-      if (!res.ok)
+      const body = (res.body || {}) as ScopedResultEnvelope<any>;
+      if (!res.ok || body.authority?.status === "blocked")
         return blockedToolResponse(
           "focusa_predict_record",
           "prediction",
-          `prediction record blocked → ${explainWorkLoopResult(res, "prediction write unavailable")}`,
-          body.failure_class || "daemon_unavailable",
+          `prediction record blocked → ${body.human?.summary || explainWorkLoopResult(res, "prediction write unavailable")}`,
+          "scope_mismatch",
           body,
-          ["focusa_tool_doctor", "focusa_resource_mode", "focusa_predict_recent"]
+          ["focusa_project_identity", "focusa_workpoint_resume"]
         );
-      const prediction = body.prediction || {};
-      const predictionId = String(prediction.prediction_id || body.prediction_id || "unknown");
-      const predictionScope = `project=${String(prediction.project_root || payload?.project_root || "unknown")} continuity=${String(prediction.continuity_id || payload?.continuity_id || "unknown")}`;
-      const predictionEvalHint = `focusa_predict_evaluate prediction_id=${predictionId}`;
-      const predictionConfidence = String(prediction.confidence ?? payload?.confidence ?? "unknown");
-      const toolResult =
-        body.details?.tool_result_v1 ||
-        focusaToolResult({
-          ok: true,
-          status: "completed",
-          summary: `prediction record → ${body.status || "accepted"} id=${predictionId}`,
-          tool: "focusa_predict_record",
-          family: "prediction",
-          side_effects: ["prediction_store"],
-          evidence_refs: [],
-          next_tools: ["focusa_predict_evaluate", "focusa_predict_recent"],
-          raw: body,
-        });
-      const predictionType = String(prediction.prediction_type || payload?.prediction_type || "unknown");
+      const record = body.data?.record || {};
+      const prediction = record.prediction || {};
+      const predictionId = String(record.record_id || "unknown");
       return {
-        content: [
-          {
-            type: "text",
-            text: piToolText({
-              kind: "ok",
-              tool: "focusa_predict_record",
-              summary: `prediction record → ${body.status || "accepted"} type=${predictionType}`,
-              ids: [
-                { label: "prediction_id", value: predictionId },
-                { label: "rehydrate_id", value: predictionId },
-                { label: "prediction_type", value: predictionType },
-              ],
-              fields: [
-                { label: "confidence", value: predictionConfidence },
-                { label: "scope", value: predictionScope },
-                { label: "evaluation_hint", value: predictionEvalHint },
-              ],
-              nextTools: ["focusa_predict_evaluate", "focusa_predict_recent"],
-            }),
-          },
-        ],
+        content: [{ type: "text", text: renderScopedResultHuman(body) }],
         details: {
           ...body,
-          compact_actionability: {
-            prediction_id: predictionId,
-            prediction_type: predictionType,
-            confidence: predictionConfidence,
-            scope: predictionScope,
-            evaluation_hint: predictionEvalHint,
-          },
-          tool_result_v1: toolResult,
-          next_tools: toolResult.next_tools,
+          prediction_id: predictionId,
+          prediction_type: prediction.prediction_type,
+          scope,
+          evaluation_hint: `focusa_predict_evaluate prediction_id=${predictionId}`,
+          next_tools: ["focusa_predict_evaluate", "focusa_predict_recent"],
         },
       } as any;
     },
@@ -13410,143 +13497,56 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
   pi.registerTool({
     name: "focusa_predict_recent",
     label: "Recent Predictions",
-    description: "List recent bounded Focusa prediction records.",
+    description: "List recent predictions from one typed project/workstream scope.",
     parameters: Type.Object({
       limit: Type.Optional(Type.Number({ description: "Recent prediction count, max 100." })),
-      project_root: Type.Optional(
-        Type.String({ description: "Optional expected project root; defaults to Pi session cwd." })
+      project_root: Type.Optional(Type.String({ description: "Explicit or current verified project root." })),
+      continuity_id: Type.Optional(
+        Type.String({ description: "Explicit or current workstream continuity id." })
       ),
     }),
     async execute(_id, params) {
-      const limit = Math.max(1, Math.min(100, Number((params as any).limit || 20)));
-      const projectRoot = await resolveFocusaToolProjectRoot((params as any).project_root);
-      const projectRootGate = projectRootConfirmationGate(projectRoot, (params as any).project_root);
-      if (projectRootGate) return projectRootGate;
-      const query = new URLSearchParams();
-      query.set("limit", String(limit));
-      query.set("project_root", projectRoot);
-      const res = await focusaFetchDetailed(`/predictions/recent?${query.toString()}`);
-      const body = res.body || {};
-      if (!res.ok)
+      const p = params as any;
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+      const gate = projectRootConfirmationGate(projectRoot, p.project_root);
+      if (gate) return gate;
+      const continuityId = String(p.continuity_id || getContinuityId() || "").trim();
+      if (!continuityId)
         return blockedToolResponse(
           "focusa_predict_recent",
           "prediction",
-          `predictions recent blocked → ${explainWorkLoopResult(res, "prediction read unavailable")}`,
-          body.failure_class || "daemon_unavailable",
+          "predictions recent blocked → typed continuity scope required",
+          "scope_mismatch",
+          {},
+          ["focusa_workpoint_resume"]
+        );
+      const scope = buildProjectWorkstreamKey(projectRoot, continuityId);
+      const query = scopedQueryParams(scope);
+      query.set("limit", String(Math.max(1, Math.min(100, Number(p.limit || 20)))));
+      const res = await focusaFetchDetailed(`/predictions/recent?${query.toString()}`);
+      const body = (res.body || {}) as ScopedResultEnvelope<any>;
+      if (!res.ok || body.authority?.status === "blocked")
+        return blockedToolResponse(
+          "focusa_predict_recent",
+          "prediction",
+          `predictions recent blocked → ${body.human?.summary || "scoped read unavailable"}`,
+          "scope_mismatch",
           body,
-          ["focusa_tool_doctor", "focusa_resource_mode"]
+          ["focusa_project_identity", "focusa_workpoint_resume"]
         );
-      const predictions = Array.isArray(body.predictions) ? body.predictions : [];
-      const count = predictions.length;
-      // FOCUSA_FIX-cu5o: find the best un-evaluated prediction to evaluate.
-      // Try: (1) highest-confidence un-evaluated, (2) oldest un-evaluated
-      // (age decay — old predictions lose relevance), (3) most recent.
-      const unevaluated = predictions.filter(
-        (item: any) => item && !item.evaluated_at && item.prediction_id
-      );
-      let actionable: any = null;
-      if (unevaluated.length > 0) {
-        // Prefer highest-confidence un-evaluated prediction
-        const sorted = [...unevaluated].sort(
-          (a: any, b: any) => (b.confidence ?? 0) - (a.confidence ?? 0)
-        );
-        actionable = sorted[0];
-        // If there's an older one with similar confidence, prefer the older
-        // (age decay — older predictions are more actionable to evaluate).
-        const withAge = unevaluated.filter(
-          (item: any) => item.created_at && Math.abs((item.confidence ?? 0) - (actionable.confidence ?? 0)) < 0.15
-        );
-        if (withAge.length > 1) {
-          withAge.sort((a: any, b: any) =>
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-          );
-          actionable = withAge[0];
-        }
-      }
-      if (!actionable) {
-        actionable = predictions.at(-1) || null;
-      }
-      const apiEvaluateHint = body.evaluate_hint || null;
-      const ageStr =
-        apiEvaluateHint?.age_hours !== undefined && apiEvaluateHint?.age_hours !== null
-          ? `age=${String(apiEvaluateHint.age_hours)}h`
-          : actionable?.created_at || actionable?.ts
-            ? (() => {
-                const ageH = Math.round(
-                  (Date.now() - new Date(actionable.created_at || actionable.ts).getTime()) / 3600000
-                );
-                return ageH > 0 ? `age=${ageH}h` : `age=fresh`;
-              })()
-            : "";
-      const evalHint = apiEvaluateHint?.command
-        ? `${String(apiEvaluateHint.action || "evaluate_hint")}: ${String(apiEvaluateHint.command)}`
-        : actionable
-          ? `${actionable.evaluated_at ? "already_evaluated" : "focusa_predict_evaluate prediction_id=" + String(actionable.prediction_id)}`
-          : "record_prediction_first";
-      const actionLine = actionable
-        ? ` next_id=${String(actionable.prediction_id)} confidence=${String(actionable.confidence ?? "unknown")} ${ageStr} scope=(project=${String(actionable.project_root || "unknown")} continuity=${String(actionable.continuity_id || "unknown")}) eval_hint="${evalHint}"`
-        : ` next_id=none eval_hint=${String(apiEvaluateHint?.action || "record_prediction_first")}`;
-      const toolResult =
-        body.details?.tool_result_v1 ||
-        focusaToolResult({
-          ok: true,
-          status: "completed",
-          summary: `predictions recent → ${count}${actionable ? ` next_id=${String(actionable.prediction_id)}` : ""}`,
-          tool: "focusa_predict_recent",
-          family: "prediction",
-          side_effects: [],
-          evidence_refs: [],
-          next_tools: ["focusa_predict_record", "focusa_predict_evaluate"],
-          raw: body,
-        });
+      const predictions = Array.isArray(body.data?.predictions) ? body.data.predictions : [];
+      const hint = body.data?.evaluate_hint || {};
       return {
-        content: [
-          {
-            type: "text",
-            text: piToolText({
-              kind: count > 0 ? "ok" : "advisory",
-              tool: "focusa_predict_recent",
-              summary: `predictions recent → ${count}${actionable ? ` next_id=${String(actionable.prediction_id)}` : ""}`,
-              ids: actionable
-                ? [{ label: "next_prediction_id", value: String(actionable.prediction_id) }]
-                : [],
-              fields: [
-                { label: "count", value: count },
-                { label: "limit", value: limit },
-                {
-                  label: "next_confidence",
-                  value: actionable ? String(actionable.confidence ?? "unknown") : "n/a",
-                },
-                {
-                  label: "next_scope",
-                  value: actionable
-                    ? `project=${String(actionable.project_root || "unknown")} continuity=${String(actionable.continuity_id || "unknown")}`
-                    : "n/a",
-                },
-                {
-                  label: "evaluation_hint",
-                  value: evalHint,
-                },
-              ],
-              nextTools: ["focusa_predict_record", "focusa_predict_evaluate"],
-            }),
-          },
-        ],
+        content: [{ type: "text", text: renderScopedResultHuman(body) }],
         details: {
           ...body,
-          compact_actionability: actionable
-            ? {
-                prediction_id: String(actionable.prediction_id),
-                confidence: actionable.confidence ?? null,
-                project_root: actionable.project_root || null,
-                continuity_id: actionable.continuity_id || null,
-                age: ageStr || null,
-                evaluation_hint: evalHint,
-                evaluate_hint: apiEvaluateHint || null,
-              }
-            : apiEvaluateHint || null,
-          tool_result_v1: toolResult,
-          next_tools: toolResult.next_tools,
+          predictions,
+          next_prediction_id: hint.prediction_id || null,
+          evaluate_hint: hint,
+          scope,
+          next_tools: hint.prediction_id
+            ? ["focusa_predict_evaluate", "focusa_predict_stats"]
+            : ["focusa_predict_record"],
         },
       } as any;
     },
@@ -13555,104 +13555,65 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
   pi.registerTool({
     name: "focusa_predict_evaluate",
     label: "Evaluate Prediction",
-    description: "Evaluate a Focusa prediction against an actual outcome and optional score.",
+    description: "Evaluate a prediction inside its exact typed project/workstream scope.",
     parameters: Type.Object({
       prediction_id: Type.String({ description: "Prediction id to evaluate." }),
       actual_outcome: Type.String({ description: "Observed actual outcome." }),
       score: Type.Optional(Type.Number({ description: "Score 0.0 to 1.0." })),
       learning_signal_ref: Type.Optional(
-        Type.String({ description: "Optional metacog/learning signal ref." })
+        Type.String({ description: "Optional scoped learning signal ref." })
+      ),
+      project_root: Type.Optional(Type.String({ description: "Explicit or current verified project root." })),
+      continuity_id: Type.Optional(
+        Type.String({ description: "Explicit or current workstream continuity id." })
       ),
     }),
     async execute(_id, params) {
-      const { prediction_id, ...payload } = params as any;
-      const res = await focusaFetchDetailed(`/predictions/${encodeURIComponent(prediction_id)}/evaluate`, {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-      const body = res.body || {};
-      if (!res.ok)
+      const p = params as any;
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+      const gate = projectRootConfirmationGate(projectRoot, p.project_root);
+      if (gate) return gate;
+      const continuityId = String(p.continuity_id || getContinuityId() || "").trim();
+      if (!continuityId)
         return blockedToolResponse(
           "focusa_predict_evaluate",
           "prediction",
-          `prediction evaluate blocked → ${explainWorkLoopResult(res, "prediction evaluation unavailable")}`,
-          body.failure_class || (res.status === 404 ? "not_found" : "daemon_unavailable"),
-          body,
-          ["focusa_predict_recent", "focusa_predict_record", "focusa_tool_doctor"]
+          "prediction evaluate blocked → typed continuity scope required",
+          "scope_mismatch",
+          {},
+          ["focusa_workpoint_resume"]
         );
-      const toolResult =
-        body.details?.tool_result_v1 ||
-        focusaToolResult({
-          ok: true,
-          status: "completed",
-          summary: `prediction evaluate → ${body.status || "accepted"}`,
-          tool: "focusa_predict_evaluate",
-          family: "prediction",
-          side_effects: ["prediction_store", "metacog_capture_if_score_high"],
-          evidence_refs: [],
-          next_tools: ["focusa_predict_stats", "focusa_metacog_retrieve", "focusa_predict_record"],
-          raw: body,
-        });
+      const scope = buildProjectWorkstreamKey(projectRoot, continuityId);
+      const res = await focusaFetchDetailed(`/predictions/${encodeURIComponent(p.prediction_id)}/evaluate`, {
+        method: "POST",
+        body: JSON.stringify({
+          scope,
+          actual_outcome: p.actual_outcome,
+          score: p.score,
+          learning_signal_ref: p.learning_signal_ref,
+        }),
+      });
+      const body = (res.body || {}) as ScopedResultEnvelope<any>;
+      if (!res.ok || body.authority?.status === "blocked")
+        return blockedToolResponse(
+          "focusa_predict_evaluate",
+          "prediction",
+          `prediction evaluate blocked → ${body.human?.summary || "scoped evaluation unavailable"}`,
+          "scope_mismatch",
+          body,
+          ["focusa_predict_recent"]
+        );
       return {
-        content: [
-          {
-            type: "text",
-            text: piToolText({
-              kind: "ok",
-              tool: "focusa_predict_evaluate",
-              summary: `prediction evaluate → ${body.status || "accepted"}`,
-              ids: [
-                { label: "prediction_id", value: String(prediction_id) },
-                { label: "rehydrate_id", value: String(prediction_id) },
-              ],
-              fields: [
-                {
-                  label: "score",
-                  value:
-                    typeof payload?.score === "number"
-                      ? payload.score
-                      : typeof body.score === "number"
-                        ? body.score
-                        : "n/a",
-                },
-                {
-                  label: "learning_signal_ref",
-                  value: String(payload?.learning_signal_ref || body.learning_signal_ref || "n/a"),
-                },
-                { label: "actual_outcome", value: String(payload?.actual_outcome || "n/a").slice(0, 120) },
-              ],
-              nextTools: ["focusa_predict_stats", "focusa_metacog_retrieve", "focusa_predict_record"],
-            }),
-          },
-        ],
-        details: { ...body, tool_result_v1: toolResult, next_tools: toolResult.next_tools },
+        content: [{ type: "text", text: renderScopedResultHuman(body) }],
+        details: {
+          ...body,
+          prediction_id: p.prediction_id,
+          scope,
+          next_tools: ["focusa_predict_stats", "focusa_metacog_retrieve"],
+        },
       } as any;
     },
   });
-
-  const preloadProfile = Type.Optional(
-    Type.Union([
-      Type.Literal("rules_only"),
-      Type.Literal("rules_and_context"),
-      Type.Literal("budget_light"),
-      Type.Literal("budget_deep"),
-    ], { description: "Agent bootstrap profile; defaults to rules_and_context." })
-  );
-  const preloadScopeParams = {
-    profile: preloadProfile,
-    target: Type.Optional(Type.String({ maxLength: 80 })),
-    mode: Type.Optional(Type.String({ maxLength: 80 })),
-    project_root: Type.Optional(Type.String({ maxLength: 4096 })),
-    continuity_id: Type.Optional(Type.String({ maxLength: 256 })),
-    session_id: Type.Optional(Type.String({ maxLength: 256 })),
-    current_ask: Type.Optional(Type.String({ maxLength: 1000 })),
-  };
-  const preloadReadTools = [
-    ["focusa_preload_build", "Build Preload Packet", "build", ["focusa_preload_render", "focusa_preload_write", "focusa_preload_verify", "focusa_preload_receipt_preview"]],
-    ["focusa_preload_render", "Render Preload Packet", "render", ["focusa_preload_write", "focusa_preload_verify", "focusa_preload_receipt_preview"]],
-    ["focusa_preload_verify", "Verify Preload Packet", "verify", ["focusa_preload_receipt_preview", "focusa_preload_doctor", "focusa_workpoint_resume"]],
-    ["focusa_preload_doctor", "Preload Doctor", "doctor", ["focusa_project_identity", "focusa_workpoint_resume", "focusa_context_cognition"]],
-  ] as const;
 
   pi.registerTool({
     name: "focusa_preload_profiles",
@@ -13661,9 +13622,15 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     parameters: strictObject({}),
     async execute() {
       const res = await callSpec80Tool("focusa_preload_profiles", "/preload/profiles", {}, { method: "GET" });
-      return spec80Result("focusa_preload_profiles", "/v1/preload/profiles", {}, res,
-        `preload profiles → ${res.body?.profiles?.length || 0} available`, "preload profiles unavailable",
-        { kind: res.ok ? "ok" : "blocked", nextTools: ["focusa_preload_build"] });
+      return spec80Result(
+        "focusa_preload_profiles",
+        "/v1/preload/profiles",
+        {},
+        res,
+        `preload profiles → ${res.body?.profiles?.length || 0} available`,
+        "preload profiles unavailable",
+        { kind: res.ok ? "ok" : "blocked", nextTools: ["focusa_preload_build"] }
+      );
     },
   });
 
@@ -13676,9 +13643,15 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       async execute(_id, params) {
         const request = params as Record<string, any>;
         const res = await callSpec80Tool(name, `/preload/${action}`, request, { method: "POST" });
-        return spec80Result(name, `/v1/preload/${action}`, request, res,
-          `${action} preload → ${res.body?.status || "completed"}`, `${action} preload unavailable`,
-          { kind: res.ok ? "ok" : "blocked", nextTools: [...nextTools] });
+        return spec80Result(
+          name,
+          `/v1/preload/${action}`,
+          request,
+          res,
+          `${action} preload → ${res.body?.status || "completed"}`,
+          `${action} preload unavailable`,
+          { kind: res.ok ? "ok" : "blocked", nextTools: [...nextTools] }
+        );
       },
     });
   }
@@ -13695,11 +13668,28 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     }),
     async execute(_id, params) {
       const p = params as Record<string, any>;
-      const request = { profile_id: p.profile || "rules_and_context", target_path: p.target, idempotency_key: p.idempotency_key, overwrite: p.overwrite || false };
-      const res = await callSpec80Tool("focusa_preload_write", "/preload/write", request, { method: "POST", writer: true });
-      return spec80Result("focusa_preload_write", "/v1/preload/write", request, res,
-        `preload write → ${res.body?.target_path || p.target}`, "preload write blocked",
-        { kind: res.ok ? "ok" : "blocked", nextTools: ["focusa_preload_verify", "focusa_preload_receipt_preview", "focusa_preload_doctor"] });
+      const request = {
+        profile_id: p.profile || "rules_and_context",
+        target_path: p.target,
+        idempotency_key: p.idempotency_key,
+        overwrite: p.overwrite || false,
+      };
+      const res = await callSpec80Tool("focusa_preload_write", "/preload/write", request, {
+        method: "POST",
+        writer: true,
+      });
+      return spec80Result(
+        "focusa_preload_write",
+        "/v1/preload/write",
+        request,
+        res,
+        `preload write → ${res.body?.target_path || p.target}`,
+        "preload write blocked",
+        {
+          kind: res.ok ? "ok" : "blocked",
+          nextTools: ["focusa_preload_verify", "focusa_preload_receipt_preview", "focusa_preload_doctor"],
+        }
+      );
     },
   });
 
@@ -13710,10 +13700,24 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     parameters: strictObject({ profile: preloadProfile }),
     async execute(_id, params) {
       const request = params as Record<string, any>;
-      const res = await callSpec80Tool("focusa_preload_receipt_preview", "/preload/receipt-preview", request, { method: "POST" });
-      return spec80Result("focusa_preload_receipt_preview", "/v1/preload/receipt-preview", request, res,
-        `preload receipt preview → ${res.body?.status || "completed"}`, "preload receipt preview unavailable",
-        { kind: res.ok ? "ok" : "blocked", nextTools: ["focusa_preload_receipt_commit", "focusa_preload_doctor"] });
+      const res = await callSpec80Tool(
+        "focusa_preload_receipt_preview",
+        "/preload/receipt-preview",
+        request,
+        { method: "POST" }
+      );
+      return spec80Result(
+        "focusa_preload_receipt_preview",
+        "/v1/preload/receipt-preview",
+        request,
+        res,
+        `preload receipt preview → ${res.body?.status || "completed"}`,
+        "preload receipt preview unavailable",
+        {
+          kind: res.ok ? "ok" : "blocked",
+          nextTools: ["focusa_preload_receipt_commit", "focusa_preload_doctor"],
+        }
+      );
     },
   });
 
@@ -13728,66 +13732,68 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     async execute(_id, params) {
       const p = params as Record<string, any>;
       const request = { profile: p.profile || "rules_and_context", idempotency_key: p.idempotency_key };
-      const res = await callSpec80Tool("focusa_preload_receipt_commit", "/preload/receipt-commit", request, { method: "POST", writer: true });
-      return spec80Result("focusa_preload_receipt_commit", "/v1/preload/receipt-commit", request, res,
-        `preload receipt commit → ${res.body?.status || "completed"}`, "preload receipt commit blocked",
-        { kind: res.ok ? "ok" : "blocked", nextTools: ["focusa_receipt_verify", "focusa_preload_doctor"] });
+      const res = await callSpec80Tool("focusa_preload_receipt_commit", "/preload/receipt-commit", request, {
+        method: "POST",
+        writer: true,
+      });
+      return spec80Result(
+        "focusa_preload_receipt_commit",
+        "/v1/preload/receipt-commit",
+        request,
+        res,
+        `preload receipt commit → ${res.body?.status || "completed"}`,
+        "preload receipt commit blocked",
+        { kind: res.ok ? "ok" : "blocked", nextTools: ["focusa_receipt_verify", "focusa_preload_doctor"] }
+      );
     },
   });
 
   pi.registerTool({
     name: "focusa_predict_stats",
     label: "Prediction Stats",
-    description: "Report Focusa prediction accuracy/calibration stats.",
-    parameters: Type.Object({}),
-    async execute() {
-      const res = await focusaFetchDetailed("/predictions/stats");
-      const body = res.body || {};
-      if (!res.ok)
+    description: "Report prediction calibration for one typed project/workstream scope.",
+    parameters: Type.Object({
+      project_root: Type.Optional(Type.String({ description: "Explicit or current verified project root." })),
+      continuity_id: Type.Optional(
+        Type.String({ description: "Explicit or current workstream continuity id." })
+      ),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+      const gate = projectRootConfirmationGate(projectRoot, p.project_root);
+      if (gate) return gate;
+      const continuityId = String(p.continuity_id || getContinuityId() || "").trim();
+      if (!continuityId)
         return blockedToolResponse(
           "focusa_predict_stats",
           "prediction",
-          `prediction stats blocked → ${explainWorkLoopResult(res, "prediction stats unavailable")}`,
-          body.failure_class || "daemon_unavailable",
-          body,
-          ["focusa_predict_recent", "focusa_tool_doctor"]
+          "prediction stats blocked → typed continuity scope required",
+          "scope_mismatch",
+          {},
+          ["focusa_workpoint_resume"]
         );
-      const summary = String(body.summary || body.status || "available");
-      const toolResult =
-        body.details?.tool_result_v1 ||
-        focusaToolResult({
-          ok: true,
-          status: "completed",
-          summary: `prediction stats → ${summary}`,
-          tool: "focusa_predict_stats",
-          family: "prediction",
-          side_effects: [],
-          evidence_refs: [],
-          next_tools: ["focusa_predict_record", "focusa_predict_recent"],
-          raw: body,
-        });
-      const total = Number(body.total || body.prediction_count || body.count || 0);
-      const evaluated = Number(body.evaluated || body.evaluated_count || 0);
-      const accuracy = Number(body.accuracy ?? body.accuracy_score ?? 0);
+      const scope = buildProjectWorkstreamKey(projectRoot, continuityId);
+      const query = scopedQueryParams(scope);
+      const res = await focusaFetchDetailed(`/predictions/stats?${query.toString()}`);
+      const body = (res.body || {}) as ScopedResultEnvelope<any>;
+      if (!res.ok || body.authority?.status === "blocked")
+        return blockedToolResponse(
+          "focusa_predict_stats",
+          "prediction",
+          `prediction stats blocked → ${body.human?.summary || "scoped stats unavailable"}`,
+          "scope_mismatch",
+          body,
+          ["focusa_predict_recent"]
+        );
       return {
-        content: [
-          {
-            type: "text",
-            text: piToolText({
-              kind: "ok",
-              tool: "focusa_predict_stats",
-              summary: `prediction stats → ${summary}`,
-              fields: [
-                { label: "total", value: total },
-                { label: "evaluated", value: evaluated },
-                { label: "accuracy", value: total > 0 ? accuracy : "n/a" },
-                { label: "summary", value: summary },
-              ],
-              nextTools: ["focusa_predict_record", "focusa_predict_recent"],
-            }),
-          },
-        ],
-        details: { ...body, tool_result_v1: toolResult, next_tools: toolResult.next_tools },
+        content: [{ type: "text", text: renderScopedResultHuman(body) }],
+        details: {
+          ...body,
+          ...body.data,
+          scope,
+          next_tools: ["focusa_predict_record", "focusa_predict_recent"],
+        },
       } as any;
     },
   });

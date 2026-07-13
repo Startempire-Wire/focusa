@@ -1,9 +1,9 @@
-//! Spec 128 read-only update inventory/status/check/plan/apply guard.
+//! Spec 128 signed over-the-air update inventory, planning, apply, rollback, policy,
+//! scheduler, notification, and history surfaces.
 //!
-//! This command intentionally performs no mutation: no downloads, no binary
-//! replacement, no daemon restart. It only inventories local Focusa surfaces
-//! and reports stale parts against an operator-supplied or environment-supplied
-//! latest version placeholder until the release manifest resolver is wired.
+//! Status/check/plan remain read-only. Apply requires explicit consent plus verified
+//! release provenance, signatures, checksums, compatibility, staging, atomic promotion,
+//! smoke checks, and rollback journaling.
 
 use anyhow::Context;
 use clap::{Args, Subcommand};
@@ -724,8 +724,8 @@ async fn build_inventory(
         vec!["Implement Spec128 policy/license/dev_mode defaults before auto-apply.".to_string()]
     } else {
         vec![
-            "Use this stale-part report as input to focusa update plan once Spec128 planning is implemented.".to_string(),
-            "Do not manually replace binaries from this command; it is read-only by design.".to_string(),
+            "Use this stale-part report as input to focusa update plan --json.".to_string(),
+            "Use focusa update apply with explicit consent after the signed plan passes every safety gate.".to_string(),
         ]
     };
     Ok(UpdateInventoryEnvelope {
@@ -799,7 +799,7 @@ fn build_update_plan(inventory: UpdateInventoryEnvelope) -> UpdatePlanEnvelope {
             copy: vec![
                 "Your Focusa data, projects, license, Workpoints, evidence, and .env files will not be overwritten by a valid update plan.",
                 "Daemon restart is shown separately because it may interrupt active sessions.",
-                "This command is read-only; it has not downloaded, installed, or restarted anything.",
+                "This plan is read-only; run focusa update apply with explicit consent after every safety gate passes.",
             ],
             choices: vec![
                 "show_details",
@@ -876,7 +876,7 @@ fn build_scheduler_envelope(channel: String) -> UpdateSchedulerEnvelope {
         next_actions: vec![
             "wire daemon startup check after runtime tests",
             "wire interval worker after scheduler proof",
-            "keep apply disabled until Spec128 gates pass",
+            "resolve every listed signature, provenance, compatibility, and install-safety blocker before apply",
         ],
         policy,
     }
@@ -1563,7 +1563,7 @@ fn build_apply_envelope(
             "no_data_env_license_overwrite",
             "rollback_journal_written",
         ],
-        recovery_hint: "No update was applied. Use focusa update plan --json to inspect blockers; apply remains disabled until Spec128 apply gates are implemented.".into(),
+        recovery_hint: "No update was applied. Use focusa update plan --json to inspect and resolve the reported trust or safety blockers before retrying.".into(),
         blocked_reason,
         plan,
     }
@@ -2075,7 +2075,7 @@ fn license_summary() -> LicenseSummary {
                 dev_mode,
                 features: status.features,
                 source: "local_license_file",
-                note: "policy defaults are derived from license, but update apply remains disabled until safety gates exist",
+                note: "policy defaults are derived from license; automatic apply still requires all signed release and safety gates",
             }
         }
         Err(_) => LicenseSummary {

@@ -9,6 +9,26 @@ Focusa installers and updates must be explicit, reversible, and guarded by Conte
 - Menubar app bundle: signed Mac app release artifact.
 - Pi extension package: versioned extension package loaded by Pi.
 
+## Installer terminal UX policy
+
+Spec 132 makes `focusa install` the owner of terminal presentation. Animated UI is an event consumer only: it renders sanitized phase/download/verification/service/Pi/PATH/cancel/rollback events to stderr and never owns install truth, rollback decisions, release selection, license validation, or file mutation.
+
+Renderer selection:
+
+| Condition | Required behavior |
+|---|---|
+| `--json` | silent presenter; one stdout JSON document |
+| `--quiet` | silent except durable errors |
+| `--no-animation` / `FOCUSA_INSTALL_UI=plain` | plain presenter |
+| CI, non-TTY stderr, `TERM=dumb`, or terminal smaller than 70×22 | plain presenter |
+| `NO_COLOR` or `CLICOLOR=0` on suitable TTY | monochrome animated presenter |
+| `FOCUSA_REDUCE_MOTION=1` on suitable TTY | reduced-motion presenter |
+| truecolor/256-color capable suitable TTY | animated color presenter |
+
+Supported controls: `FOCUSA_INSTALL_UI=auto|full|mono|reduced|plain`, `FOCUSA_INSTALL_SEED=<u64>`, and `FOCUSA_REDUCE_MOTION=0|1`. Invalid values fail preflight before mutation. Terminal failures restore the cursor/alternate screen, warn once, and continue in plain mode. Dynamic strings are sanitized and redact license keys, authorization headers, sensitive query parameters, and emails before animated display.
+
+Pi integration is Rust-owned: Pi absent is skipped; verified installation is success; archive/dependency/setup failure is a warning and must not falsely fail core Focusa install.
+
 ## Required preflight
 
 Before replacing binaries, restarting production services, or installing release assets, run:

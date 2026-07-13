@@ -1,3 +1,5 @@
+import { createHash } from "crypto";
+
 // Typed scope, authority, result, and CRDT contracts for Spec 104.
 // Canonical state is rooted by ScopeRef before continuity/workstream metadata.
 
@@ -77,6 +79,39 @@ export function isScopeRef(value: unknown): value is ScopeRef {
 export function isWorkstreamKey(value: unknown): value is WorkstreamKey {
   const scope = value as WorkstreamKey | null;
   return Boolean(scope && isScopeRef(scope.root_scope) && nonempty(scope.continuity_id));
+}
+
+export function buildProjectWorkstreamKey(
+  projectRoot: string,
+  continuityId: string,
+  canonicalName?: string
+): WorkstreamKey {
+  const root = String(projectRoot || "").trim().replace(/\/+$/, "");
+  const continuity = String(continuityId || "").trim();
+  if (!root || !continuity) throw new Error("typed_scope_required");
+  const fingerprint = `sha256:${createHash("sha256").update(root).digest("hex")}`;
+  const name = canonicalName || root.split("/").filter(Boolean).at(-1) || "project";
+  return {
+    root_scope: {
+      scope_kind: "project",
+      scope_id: `project:${fingerprint.slice(7, 23)}`,
+      root_path: root,
+      canonical_name: name,
+      fingerprint,
+    },
+    continuity_id: continuity,
+  };
+}
+
+export function scopedQueryParams(scope: WorkstreamKey): URLSearchParams {
+  const query = new URLSearchParams();
+  query.set("scope_kind", scope.root_scope.scope_kind);
+  query.set("scope_id", scope.root_scope.scope_id);
+  query.set("root_path", scope.root_scope.root_path);
+  query.set("canonical_name", scope.root_scope.canonical_name);
+  query.set("fingerprint", scope.root_scope.fingerprint);
+  query.set("continuity_id", scope.continuity_id);
+  return query;
 }
 
 export function sameRootScope(left: ScopeRef, right: ScopeRef): boolean {

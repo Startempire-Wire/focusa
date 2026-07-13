@@ -7,7 +7,7 @@ Scope: Rust workspace, CLI, daemon/API, TUI, Tauri menubar, Pi extension, script
 
 | Surface | Primary modern environments | Current posture |
 |---|---|---|
-| Rust CLI / daemon / TUI | macOS arm64/x64, Linux x64 glibc | Buildable from source; release workflow now includes macOS + Linux x64 Rust binaries. |
+| Rust CLI / daemon / TUI | macOS arm64/x64, Linux x64 glibc/musl, Windows x64/ARM64 release targets | Source and release workflows cover the Rust surfaces; Spec 132 terminal matrix proof remains open until all native hosted/runtime proofs and E7 target builds are complete. |
 | Menubar app | macOS arm64/x64 | Tauri package proof remains macOS-focused. Linux/Windows desktop packaging is not yet claimed. |
 | Pi extension | Pi environments with Node 20+ and a POSIX shell | Typechecks; daemon restart default no longer assumes systemd first. |
 | API scripts / spec gates | Linux CI, local POSIX shell | CI-proven on Ubuntu; helper scripts assume bash, curl, jq, Python 3, and cargo. |
@@ -52,7 +52,12 @@ Scope: Rust workspace, CLI, daemon/API, TUI, Tauri menubar, Pi extension, script
 
 4. **Service installation**
    - Focusa is local-first and can run foreground from source/binary.
-   - OS-native service installers are not yet provided for launchd/systemd/Windows Service.
+   - Rust service/install paths report systemd user units, launchd user agents, skipped service, or warning states truthfully. Windows service registration must remain warning/skipped unless native host support is actually available and proven.
+
+5. **Spec 132 installer terminal proof**
+   - Linux/plain/CI/TERM=dumb/NO_COLOR/reduced/static fixture coverage exists in repo evidence.
+   - Native Windows ConPTY and macOS interactive proof must remain unclaimed until hosted runtime evidence is available.
+   - Runtime fixture scripts require a built `target/debug/focusa`; do not substitute static proof for executable PTY/ConPTY proof.
 
 ## Verification run
 

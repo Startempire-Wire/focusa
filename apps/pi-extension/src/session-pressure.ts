@@ -169,3 +169,307 @@ export function measureNativeSessionPressure(input: {
     measured_at: (input.measuredAt || new Date()).toISOString(),
   };
 }
+
+export type NativeSessionMigrationMode = "dry_run" | "execute";
+
+export interface NativeSessionMigrationRequest {
+  source_path: string;
+  output_dir: string;
+  scope: import("./scoped-state.js").WorkstreamKey;
+  mode: NativeSessionMigrationMode;
+  recovery_max_bytes?: number;
+  entry_max_bytes?: number;
+}
+
+export interface NativeSessionMigrationManifestV1 {
+  schema: "focusa.native_session_migration_manifest.v1";
+  migration_id: string;
+  mode: NativeSessionMigrationMode;
+  scope: import("./scoped-state.js").WorkstreamKey;
+  source: { path: string; bytes: number; sha256: string; mtime_ms: number };
+  archive: { path: string; bytes: number; sha256: string; immutable: boolean } | null;
+  recovery_segment: {
+    path: string;
+    bytes: number;
+    sha256: string;
+    entry_count: number;
+    omitted_oversized_entries: number;
+  } | null;
+  manifest_path: string | null;
+  integrity: {
+    source_unchanged: boolean;
+    archive_matches_source: boolean;
+    recovery_within_budget: boolean;
+  };
+  rollback: {
+    action: "resume_immutable_source";
+    source_path: string;
+    source_sha256: string;
+  };
+}
+
+const DEFAULT_RECOVERY_MAX_BYTES = 8 * MIB;
+const DEFAULT_ENTRY_MAX_BYTES = 256 * 1024;
+
+interface SessionScanResult {
+  source_sha256: string;
+  source_bytes: number;
+  entry_count: number;
+  omitted_oversized_entries: number;
+  recovery_entries: Buffer[];
+  recovery_bytes: number;
+}
+
+function safeMigrationBaseName(sourcePath: string): string {
+  const name = sourcePath.split(/[\\/]/).filter(Boolean).at(-1) || "session.jsonl";
+  return name.replace(/[^A-Za-z0-9._-]/g, "_");
+}
+
+async function scanSessionJsonlBounded(
+  sourcePath: string,
+  recoveryMaxBytes: number,
+  entryMaxBytes: number
+): Promise<SessionScanResult> {
+  const { createHash } = await import("crypto");
+  const { createReadStream } = await import("fs");
+  const sourceHash = createHash("sha256");
+  const recoveryEntries: Buffer[] = [];
+  let recoveryBytes = 0;
+  let sourceBytes = 0;
+  let entryCount = 0;
+  let omittedOversizedEntries = 0;
+  let lineBytes = 0;
+  let lineParts: Buffer[] = [];
+  let lineOversized = false;
+  let lineHash = createHash("sha256");
+
+  const pushRecovery = (entry: Buffer) => {
+    if (entry.length > recoveryMaxBytes) return;
+    while (recoveryBytes + entry.length > recoveryMaxBytes && recoveryEntries.length) {
+      recoveryBytes -= recoveryEntries.shift()!.length;
+    }
+    recoveryEntries.push(entry);
+    recoveryBytes += entry.length;
+  };
+
+  const finishLine = () => {
+    if (lineBytes === 0 && lineParts.length === 0 && !lineOversized) return;
+    entryCount += 1;
+    if (lineOversized) {
+      omittedOversizedEntries += 1;
+      const ref = Buffer.from(
+        `${JSON.stringify({
+          type: "focusa-migration-omitted-entry",
+          schema: "focusa.native_session_omitted_entry.v1",
+          bytes: lineBytes,
+          sha256: `sha256:${lineHash.digest("hex")}`,
+          reason: "entry_exceeds_migration_budget",
+        })}\n`
+      );
+      pushRecovery(ref);
+    } else {
+      pushRecovery(Buffer.concat([...lineParts, Buffer.from("\n")]));
+      lineHash.digest();
+    }
+    lineBytes = 0;
+    lineParts = [];
+    lineOversized = false;
+    lineHash = createHash("sha256");
+  };
+
+  for await (const chunkValue of createReadStream(sourcePath, { highWaterMark: 64 * 1024 })) {
+    const chunk = Buffer.isBuffer(chunkValue) ? chunkValue : Buffer.from(chunkValue);
+    sourceHash.update(chunk);
+    sourceBytes += chunk.length;
+    let offset = 0;
+    while (offset < chunk.length) {
+      const newline = chunk.indexOf(0x0a, offset);
+      const end = newline === -1 ? chunk.length : newline;
+      const part = chunk.subarray(offset, end);
+      lineHash.update(part);
+      lineBytes += part.length;
+      if (!lineOversized && lineBytes <= entryMaxBytes) lineParts.push(Buffer.from(part));
+      else if (!lineOversized) {
+        lineOversized = true;
+        lineParts = [];
+      }
+      if (newline !== -1) finishLine();
+      offset = newline === -1 ? chunk.length : newline + 1;
+    }
+  }
+  finishLine();
+  return {
+    source_sha256: `sha256:${sourceHash.digest("hex")}`,
+    source_bytes: sourceBytes,
+    entry_count: entryCount,
+    omitted_oversized_entries: omittedOversizedEntries,
+    recovery_entries: recoveryEntries,
+    recovery_bytes: recoveryBytes,
+  };
+}
+
+async function writeBuffersAtomic(path: string, entries: Buffer[]): Promise<void> {
+  const { createWriteStream, linkSync, unlinkSync } = await import("fs");
+  const { once } = await import("events");
+  const temporary = `${path}.tmp-${process.pid}`;
+  const stream = createWriteStream(temporary, { mode: 0o600, flags: "wx" });
+  try {
+    for (const entry of entries) {
+      if (!stream.write(entry)) await once(stream, "drain");
+    }
+    stream.end();
+    await once(stream, "close");
+    linkSync(temporary, path);
+    unlinkSync(temporary);
+  } catch (error) {
+    stream.destroy();
+    try {
+      unlinkSync(temporary);
+    } catch {
+      // Source remains immutable; cleanup is best effort only.
+    }
+    throw error;
+  }
+}
+
+async function copyFileStreaming(source: string, target: string): Promise<void> {
+  const { createReadStream, createWriteStream, linkSync, unlinkSync } = await import("fs");
+  const { pipeline } = await import("stream/promises");
+  const temporary = `${target}.tmp-${process.pid}`;
+  try {
+    await pipeline(
+      createReadStream(source, { highWaterMark: 64 * 1024 }),
+      createWriteStream(temporary, { flags: "wx", mode: 0o600 })
+    );
+    linkSync(temporary, target);
+    unlinkSync(temporary);
+  } catch (error) {
+    try {
+      unlinkSync(temporary);
+    } catch {
+      // Source remains immutable; cleanup is best effort only.
+    }
+    throw error;
+  }
+}
+
+export async function migrateNativeSessionBounded(
+  request: NativeSessionMigrationRequest
+): Promise<NativeSessionMigrationManifestV1> {
+  const { chmodSync, linkSync, mkdirSync, statSync, writeFileSync, unlinkSync } = await import(
+    "fs"
+  );
+  const { join } = await import("path");
+  const sourceBefore = statSync(request.source_path);
+  if (!sourceBefore.isFile()) throw new Error("native_session_source_not_file");
+  const recoveryMaxBytes = Math.max(64 * 1024, request.recovery_max_bytes || DEFAULT_RECOVERY_MAX_BYTES);
+  const entryMaxBytes = Math.max(16 * 1024, request.entry_max_bytes || DEFAULT_ENTRY_MAX_BYTES);
+  const scan = await scanSessionJsonlBounded(request.source_path, recoveryMaxBytes, entryMaxBytes);
+  const digestId = scan.source_sha256.slice(7, 23);
+  const migrationId = `native-session-${digestId}`;
+  const base = safeMigrationBaseName(request.source_path);
+  const archivePath = join(request.output_dir, `${base}.${digestId}.immutable.jsonl`);
+  const recoveryPath = join(request.output_dir, `${base}.${digestId}.recovery.jsonl`);
+  const manifestPath = join(request.output_dir, `${base}.${digestId}.manifest.json`);
+
+  const baseManifest: NativeSessionMigrationManifestV1 = {
+    schema: "focusa.native_session_migration_manifest.v1",
+    migration_id: migrationId,
+    mode: request.mode,
+    scope: request.scope,
+    source: {
+      path: request.source_path,
+      bytes: scan.source_bytes,
+      sha256: scan.source_sha256,
+      mtime_ms: sourceBefore.mtimeMs,
+    },
+    archive: null,
+    recovery_segment: null,
+    manifest_path: null,
+    integrity: {
+      source_unchanged: true,
+      archive_matches_source: false,
+      recovery_within_budget: scan.recovery_bytes <= recoveryMaxBytes,
+    },
+    rollback: {
+      action: "resume_immutable_source",
+      source_path: request.source_path,
+      source_sha256: scan.source_sha256,
+    },
+  };
+  if (request.mode === "dry_run") return baseManifest;
+
+  mkdirSync(request.output_dir, { recursive: true, mode: 0o700 });
+  const createdFiles: string[] = [];
+  try {
+    await copyFileStreaming(request.source_path, archivePath);
+    createdFiles.push(archivePath);
+    const archiveScan = await scanSessionJsonlBounded(archivePath, 64 * 1024, entryMaxBytes);
+    if (
+      archiveScan.source_sha256 !== scan.source_sha256 ||
+      archiveScan.source_bytes !== scan.source_bytes
+    )
+      throw new Error("native_session_archive_integrity_mismatch");
+    chmodSync(archivePath, 0o400);
+    await writeBuffersAtomic(recoveryPath, scan.recovery_entries);
+    createdFiles.push(recoveryPath);
+    const recoveryScan = await scanSessionJsonlBounded(
+      recoveryPath,
+      recoveryMaxBytes,
+      entryMaxBytes
+    );
+    const sourceAfter = statSync(request.source_path);
+    const sourceAfterScan = await scanSessionJsonlBounded(
+      request.source_path,
+      64 * 1024,
+      entryMaxBytes
+    );
+    const sourceUnchanged =
+      sourceAfter.size === sourceBefore.size &&
+      sourceAfter.mtimeMs === sourceBefore.mtimeMs &&
+      sourceAfterScan.source_sha256 === scan.source_sha256;
+    if (!sourceUnchanged) throw new Error("native_session_source_changed_during_migration");
+
+    const manifest: NativeSessionMigrationManifestV1 = {
+      ...baseManifest,
+      archive: {
+        path: archivePath,
+        bytes: archiveScan.source_bytes,
+        sha256: archiveScan.source_sha256,
+        immutable: true,
+      },
+      recovery_segment: {
+        path: recoveryPath,
+        bytes: recoveryScan.source_bytes,
+        sha256: recoveryScan.source_sha256,
+        entry_count: recoveryScan.entry_count,
+        omitted_oversized_entries: scan.omitted_oversized_entries,
+      },
+      manifest_path: manifestPath,
+      integrity: {
+        source_unchanged: sourceUnchanged,
+        archive_matches_source: true,
+        recovery_within_budget: recoveryScan.source_bytes <= recoveryMaxBytes,
+      },
+    };
+    const temporaryManifest = `${manifestPath}.tmp-${process.pid}`;
+    writeFileSync(temporaryManifest, `${JSON.stringify(manifest, null, 2)}\n`, {
+      mode: 0o600,
+      flag: "wx",
+    });
+    linkSync(temporaryManifest, manifestPath);
+    unlinkSync(temporaryManifest);
+    createdFiles.push(manifestPath);
+    return manifest;
+  } catch (error) {
+    for (const path of createdFiles.reverse()) {
+      try {
+        chmodSync(path, 0o600);
+        unlinkSync(path);
+      } catch {
+        // Preserve the immutable source; orphan cleanup is bounded and best effort.
+      }
+    }
+    throw error;
+  }
+}

@@ -121,6 +121,23 @@ impl ScopeRef {
         })
     }
 
+    pub fn validate(&self) -> Result<(), ScopeKeyError> {
+        required(self.scope_id.clone(), "scope_id")?;
+        required(self.canonical_name.clone(), "canonical_name")?;
+        required(self.fingerprint.clone(), "fingerprint")?;
+        if self.root_path.as_os_str().is_empty() {
+            return Err(ScopeKeyError::Missing("root_path"));
+        }
+        if self.scope_kind == ScopeKind::Project
+            && !classify_project_root(self.root_path.to_string_lossy().as_ref()).is_safe()
+        {
+            return Err(ScopeKeyError::UnsafeProjectRoot(
+                self.root_path.display().to_string(),
+            ));
+        }
+        Ok(())
+    }
+
     pub fn storage_key(&self) -> String {
         let bytes = serde_json::to_vec(self).unwrap_or_default();
         hex::encode(Sha256::digest(bytes))
@@ -148,6 +165,12 @@ impl WorkstreamKey {
             root_scope,
             continuity_id: required(continuity_id, "continuity_id")?,
         })
+    }
+
+    pub fn validate(&self) -> Result<(), ScopeKeyError> {
+        self.root_scope.validate()?;
+        required(self.continuity_id.clone(), "continuity_id")?;
+        Ok(())
     }
 
     pub fn storage_key(&self) -> String {

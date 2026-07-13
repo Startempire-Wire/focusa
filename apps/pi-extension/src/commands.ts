@@ -18,12 +18,21 @@ import {
   getActiveFrameId,
   getTurnCount,
   getSessionCwd,
+  getContinuityId,
+  isProjectRootAuthoritySafe,
   getCurrentScopeStore,
   getTotalCompactions,
   setCompilationErrors,
   resetFileEditCounts,
 } from "./state.js";
 import { saveConfigOverrides } from "./config.js";
+import { buildProjectWorkstreamKey } from "./scoped-state.js";
+import {
+  measureNativeSessionPressure,
+  migrateNativeSessionBounded,
+} from "./session-pressure.js";
+import { prepareCompactionRollover } from "./compaction.js";
+import { dirname, resolve } from "path";
 
 function nonEmptyLines(items: any[] | undefined): string[] {
   return (items || []).map((v) => String(v || "").trim()).filter(Boolean);
@@ -573,6 +582,88 @@ export function registerCommands(pi: ExtensionAPI) {
   });
 
   // /focusa-status (§10.3)
+  pi.registerCommand("focusa-rollover", {
+    description:
+      "Inspect, dry-run, or execute a bounded native-session rollover: /focusa-rollover inspect|dry-run|execute [output-dir]",
+    handler: async (args, ctx) => {
+      const [modeRaw, outputRaw] = String(args || "inspect").trim().split(/\s+/, 2);
+      const mode = modeRaw || "inspect";
+      if (!new Set(["inspect", "dry-run", "execute"]).has(mode)) {
+        ctx.ui.notify(
+          "Usage: /focusa-rollover inspect | dry-run [output-dir] | execute <output-dir>",
+          "warning"
+        );
+        return;
+      }
+      const sourcePath = String(ctx.sessionManager.getSessionFile?.() || "").trim();
+      if (!sourcePath) {
+        ctx.ui.notify("Focusa rollover blocked: native session file unavailable.", "error");
+        return;
+      }
+      const projectRoot = getSessionCwd();
+      const continuityId = String(getContinuityId() || "").trim();
+      if (!isProjectRootAuthoritySafe(projectRoot) || !continuityId) {
+        ctx.ui.notify(
+          "Focusa rollover blocked: typed verified project/workstream scope required.",
+          "error"
+        );
+        return;
+      }
+      const scope = buildProjectWorkstreamKey(projectRoot, continuityId);
+      const pressure = measureNativeSessionPressure({
+        adapter: "pi",
+        sessionFile: sourcePath,
+        entries: ctx.sessionManager.getEntries?.(),
+      });
+      if (mode === "inspect") {
+        ctx.ui.notify(
+          `Focusa rollover inspect: posture=${pressure.posture} bytes=${pressure.session_bytes} next=${pressure.recommended_action}`,
+          pressure.posture === "normal" ? "info" : "warning"
+        );
+        return;
+      }
+      const outputDir = outputRaw
+        ? resolve(outputRaw)
+        : resolve(dirname(sourcePath), "focusa-rollover-dry-run");
+      if (mode === "execute" && !outputRaw) {
+        ctx.ui.notify(
+          "Focusa rollover execute blocked: provide an explicit output directory.",
+          "error"
+        );
+        return;
+      }
+      if (mode === "execute") {
+        const preparation = await prepareCompactionRollover();
+        if (!preparation.ready) {
+          ctx.ui.notify(
+            `Focusa rollover blocked: ${preparation.reason}; Workpoint, Trajectory, and CompactionMissionPacket checkpoints are required.`,
+            "error"
+          );
+          return;
+        }
+      }
+      try {
+        const manifest = await migrateNativeSessionBounded({
+          source_path: sourcePath,
+          output_dir: outputDir,
+          scope,
+          mode: mode === "execute" ? "execute" : "dry_run",
+        });
+        ctx.ui.notify(
+          mode === "execute"
+            ? `Focusa rollover archive ready: ${manifest.manifest_path}`
+            : `Focusa rollover dry-run: source=${manifest.source.bytes} bytes id=${manifest.migration_id}`,
+          "info"
+        );
+      } catch (error) {
+        ctx.ui.notify(
+          `Focusa rollover failed safely; source preserved: ${error instanceof Error ? error.message : String(error)}`,
+          "error"
+        );
+      }
+    },
+  });
+
   pi.registerCommand("focusa-status", {
     description: "Show Focusa integration status",
     handler: async (_args, ctx) => {

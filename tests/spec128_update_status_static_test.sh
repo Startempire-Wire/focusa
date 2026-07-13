@@ -20,8 +20,12 @@ pass() { echo "PASS: $*"; }
 [[ -f "$SRC" ]] || fail "missing update command module"
 rg -q 'pub mod update;' "$MOD" || fail "update module not exported"
 rg -q 'Update\(commands::update::UpdateCmd\)' "$MAIN" || fail "main CLI missing Update command"
+rg -q 'Signed OTA status, plan, apply, rollback, policy, scheduler, notification, and history' "$MAIN" || fail "main CLI still hides completed OTA functionality"
 rg -q 'Commands::Update\(cmd\) => commands::update::run\(cmd, cli\.json\)' "$MAIN" || fail "main CLI missing update dispatch"
 rg -q 'enum UpdateCmd' "$SRC" || fail "missing UpdateCmd enum"
+if rg -q 'latest version placeholder until the release manifest resolver is wired|apply remains disabled until Spec128 apply gates are implemented|once Spec128 planning is implemented' "$SRC"; then
+  fail "completed OTA surface still advertises obsolete scaffold/disabled behavior"
+fi
 rg -q 'Status\(UpdateStatusArgs\)' "$SRC" || fail "missing update status subcommand"
 rg -q 'Check\(UpdateStatusArgs\)' "$SRC" || fail "missing update check subcommand"
 rg -q 'Plan\(UpdateStatusArgs\)|focusa.update_plan.v1|build_update_plan|CompatibilityPlan|PromptPlan' "$SRC" || fail "missing CLI update plan/compatibility/prompt envelope"

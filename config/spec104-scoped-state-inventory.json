@@ -8,7 +8,7 @@
       "symbol": "MUTATION_BUCKETS",
       "classification": "scope_key",
       "authority_bearing": false,
-      "status": "open",
+      "status": "scope_keyed",
       "target": "Typed caller or host runtime scope key; never project authority",
       "acceptance_test": "rate limits for one typed scope do not throttle another"
     },
@@ -118,7 +118,7 @@
       "symbol": "STORE",
       "classification": "scope_key",
       "authority_bearing": true,
-      "status": "open",
+      "status": "eliminated",
       "target": "AppState-owned typed scoped advisory cache over durable ledger",
       "acceptance_test": "restart and cache eviction preserve scoped packet authority"
     },
@@ -168,7 +168,7 @@
       "symbol": "ONTOLOGY_READ_INDEX_CACHE",
       "classification": "scope_key",
       "authority_bearing": true,
-      "status": "open",
+      "status": "eliminated",
       "target": "AppState-owned typed scope index or immutable global index proof",
       "acceptance_test": "scope-relative ontology cannot return prior-scope index"
     },
@@ -178,7 +178,7 @@
       "symbol": "PREDICTION_CACHE",
       "classification": "eliminate",
       "authority_bearing": true,
-      "status": "open",
+      "status": "eliminated",
       "target": "Typed scoped CRDT prediction ledger/read model in AppState service",
       "acceptance_test": "record/recent/evaluate/outcome/stats isolate project and workstream"
     },
@@ -188,7 +188,7 @@
       "symbol": "PROJECT_IDENTITY_PAYLOAD_CACHE",
       "classification": "scope_key",
       "authority_bearing": true,
-      "status": "open",
+      "status": "eliminated",
       "target": "AppState-owned ScopeRef-keyed identity cache",
       "acceptance_test": "alternating roots never return prior identity"
     },
@@ -228,7 +228,7 @@
       "symbol": "WORKPOINT_IDEMPOTENCY_CACHE",
       "classification": "eliminate",
       "authority_bearing": true,
-      "status": "open",
+      "status": "eliminated",
       "target": "Typed WorkstreamKey plus action/idempotency CRDT ledger",
       "acceptance_test": "same key under separate scopes remains isolated"
     },
@@ -278,7 +278,7 @@
       "symbol": "GLOBAL_FILE:spec92_predictions.json",
       "classification": "eliminate",
       "authority_bearing": true,
-      "status": "open",
+      "status": "eliminated",
       "target": "Scoped append-only CRDT prediction ledgers under WorkstreamKey storage path",
       "acceptance_test": "no global prediction file; explicit legacy migration only"
     },
@@ -288,7 +288,7 @@
       "symbol": "CONSUMER_FILE:spec92_predictions.json",
       "classification": "consumer_migrate",
       "authority_bearing": true,
-      "status": "open",
+      "status": "migrated",
       "target": "Prediction ontology consumes typed scoped prediction service",
       "acceptance_test": "ontology never reads global prediction file"
     },
@@ -308,7 +308,7 @@
       "symbol": "GLOBAL_FILE:focusa-project-root.json",
       "classification": "eliminate",
       "authority_bearing": true,
-      "status": "open",
+      "status": "eliminated",
       "target": "Typed non-authoritative scope profiles or no remembered-root file",
       "acceptance_test": "broad cwd cannot adopt one-slot remembered project"
     },
@@ -318,7 +318,7 @@
       "symbol": "HARDCODED_SCOPE_DEFAULT",
       "classification": "eliminate",
       "authority_bearing": true,
-      "status": "open",
+      "status": "eliminated",
       "target": "Typed bootstrap scope packet or blocked/advisory state",
       "acceptance_test": "no hardcoded project root default"
     }

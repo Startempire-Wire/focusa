@@ -8,7 +8,7 @@ use crate::routes::bounded::{
     BoundedReadOptions, bounded_metadata, env_limit, full_payload_blocked_by_pressure,
     pressure_status, record_json_response_size,
 };
-use crate::routes::predictions::{read_predictions, write_predictions};
+use crate::routes::predictions::append_prediction_record_scoped;
 use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Query, State};
@@ -18,15 +18,16 @@ use axum::{
     routing::{get, post},
 };
 use chrono::Utc;
+use focusa_core::prediction::{PredictionOntologyContext, PredictionValue};
+use focusa_core::scoped_state::WorkstreamKey;
 use focusa_core::types::{Action, FocusaEvent, FocusaState, FrameRecord, HandleKind, HandleRef};
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, LazyLock, Mutex, OnceLock};
-use std::time::Instant;
+use std::sync::{Arc, LazyLock};
 use uuid::Uuid;
 
 const OBJECT_TYPES: &[&str] = &[
@@ -554,6 +555,7 @@ struct ReflectionSynthesizerRequest {
 
 #[derive(Deserialize)]
 struct MemoryPipelineRequest {
+    scope: WorkstreamKey,
     #[serde(default)]
     episodic_events: Vec<Value>,
     #[serde(default)]
@@ -1709,29 +1711,6 @@ struct OntologyReadIndex {
     link_type_counts: BTreeMap<String, usize>,
     last_reducer_event_id: Option<String>,
     ttl_seconds: usize,
-}
-
-type OntologyReadIndexCache = Mutex<HashMap<String, (Instant, Arc<OntologyReadIndex>)>>;
-static ONTOLOGY_READ_INDEX_CACHE: OnceLock<OntologyReadIndexCache> = OnceLock::new();
-
-fn ontology_read_index_cache_key(
-    focusa: &FocusaState,
-    frame_id: Option<&str>,
-    scope: Option<&ScopeContext>,
-) -> String {
-    let scope_root = scope
-        .and_then(|s| s.project_root.as_deref())
-        .unwrap_or_default();
-    let scope_cont = scope
-        .and_then(|s| s.continuity_id.as_deref())
-        .unwrap_or_default();
-    format!(
-        "scope_root={}\nscope_cont={}\nversion={}\nframe_id={}",
-        scope_root,
-        scope_cont,
-        focusa.version,
-        frame_id.unwrap_or_default(),
-    )
 }
 
 fn read_text(path: &Path) -> Option<String> {
@@ -5798,22 +5777,15 @@ fn build_ontology_read_index(
 fn ontology_read_index(
     focusa: &FocusaState,
     frame_id: Option<&str>,
-    scope: Option<&ScopeContext>,
+    _scope: Option<&ScopeContext>,
 ) -> Arc<OntologyReadIndex> {
-    let key = ontology_read_index_cache_key(focusa, frame_id, scope);
-    let cache = ONTOLOGY_READ_INDEX_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    if let Ok(guard) = cache.lock()
-        && let Some((stored_at, index)) = guard.get(&key)
-        && stored_at.elapsed().as_secs() < index.ttl_seconds as u64
-    {
-        return Arc::clone(index);
-    }
-    let projection = combined_projection(focusa, frame_id);
-    let index = Arc::new(build_ontology_read_index(focusa, frame_id, projection));
-    if let Ok(mut guard) = cache.lock() {
-        guard.insert(key, (Instant::now(), Arc::clone(&index)));
-    }
-    index
+    // Rebuild this advisory projection from reducer state per request. A
+    // process-global cache can retain scope-relative objects across requests.
+    Arc::new(build_ontology_read_index(
+        focusa,
+        frame_id,
+        combined_projection(focusa, frame_id),
+    ))
 }
 
 /// Expose read-index cache metadata for telemetry/cache-metadata endpoints (Spec95 H1).
@@ -7371,28 +7343,57 @@ fn persist_ontology_artifact(
     Some(path.display().to_string())
 }
 
-fn record_memory_pipeline_prediction(
+async fn record_memory_pipeline_prediction(
+    state: &AppState,
+    scope: WorkstreamKey,
     artifact: &Value,
     evidence_refs: &[String],
     procedural_ready: bool,
 ) -> Option<String> {
-    let prediction_id = Uuid::now_v7().to_string();
-    let payload = json!({
-        "prediction_id": prediction_id,
-        "prediction_type": "ontology_memory_pipeline_promotion",
-        "predicted_outcome": if procedural_ready { "procedural candidate will improve repeated recovery" } else { "semantic candidate will improve future retrieval" },
-        "confidence": if procedural_ready { 0.82 } else { 0.72 },
-        "recommended_action": if procedural_ready { "evaluate procedural playbook candidate after next repeated use" } else { "retrieve promoted semantic candidate in the next related task" },
-        "why": "Ontology memory pipeline passed evidence/evaluation gates and persisted a promotion artifact.",
-        "context_refs": evidence_refs.iter().take(8).cloned().collect::<Vec<_>>(),
-        "artifact_ref": artifact.get("artifact_id").cloned().unwrap_or(Value::Null),
-        "created_at": Utc::now().to_rfc3339(),
-        "source": "ontology_memory_pipeline",
-    });
-    let mut predictions = read_predictions();
-    predictions.push(payload);
-    write_predictions(predictions).ok()?;
-    Some(prediction_id)
+    let record = append_prediction_record_scoped(
+        state,
+        scope,
+        PredictionValue {
+            prediction_type: "ontology_memory_pipeline_promotion".into(),
+            context_refs: evidence_refs.iter().take(8).cloned().collect(),
+            ontology_context: PredictionOntologyContext {
+                object_refs: vec!["OntologyMemoryPipeline".into()],
+                action_refs: vec!["promote_memory_candidate".into()],
+                tool_refs: vec!["focusa_predict_evaluate".into()],
+                evidence_refs: evidence_refs.iter().take(8).cloned().collect(),
+                relation_refs: vec!["artifact_informs_prediction".into()],
+            },
+            predicted_outcome: if procedural_ready {
+                "procedural candidate will improve repeated recovery"
+            } else {
+                "semantic candidate will improve future retrieval"
+            }
+            .into(),
+            confidence: if procedural_ready { 0.82 } else { 0.72 },
+            recommended_action: if procedural_ready {
+                "evaluate procedural playbook candidate after next repeated use"
+            } else {
+                "retrieve promoted semantic candidate in the next related task"
+            }
+            .into(),
+            why: format!(
+                "Scoped ontology memory pipeline persisted promotion artifact {}.",
+                artifact
+                    .get("artifact_id")
+                    .and_then(Value::as_str)
+                    .unwrap_or("unknown")
+            ),
+            trajectory: None,
+            actual_outcome: None,
+            evaluated_at: None,
+            score: None,
+            learning_signal_ref: None,
+            outcome_capture: None,
+        },
+    )
+    .await
+    .ok()?;
+    Some(record.record_id)
 }
 
 fn memory_pipeline_payload(
@@ -7507,13 +7508,21 @@ async fn memory_pipeline(
                 "written": true,
                 "promotion_target": payload.get("promotion_target").cloned().unwrap_or(Value::Null),
             });
-            prediction_record_id =
-                record_memory_pipeline_prediction(&artifact, &body.evidence_refs, procedural_ready);
             artifact
         })
     } else {
         None
     };
+    if let Some(ref artifact) = artifact {
+        prediction_record_id = record_memory_pipeline_prediction(
+            &state,
+            body.scope.clone(),
+            artifact,
+            &body.evidence_refs,
+            procedural_ready,
+        )
+        .await;
+    }
     let mut payload = memory_pipeline_payload(&body, artifact);
     if let Some(object) = payload.as_object_mut() {
         object.insert(

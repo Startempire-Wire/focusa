@@ -18,6 +18,10 @@ Commands:
   deck           Launch Focusa Mission Deck
   doctor         Run full agent-first doctor checks
   cleanup        Recoverable cleanup of generated residue
+  install        Rust-orchestrated Focusa installer with Spec 132 terminal UI
+  upgrade        Guarded upgrade path delegating through installer safety gates
+  uninstall      Remove binaries/services while preserving user data by default
+  install-service Install daemon service/LaunchAgent where supported
   continue       Resume governed continuous work and refresh state
   focus          Focus stack and Focus State operations
   stack          Show focus stack overview
@@ -133,6 +137,7 @@ Phone Bridge JSON includes `environment_contract`, `runtime_inventory`, and `act
 ## Current agent-first command groups
 
 - `help all` / `help migration` — curated command inventory and old → new command map.
+- `install` — Rust-owned installer orchestrator. Human interactive stderr may use the Spec 132 terminal UI; `--json` emits exactly one stdout JSON document; `--quiet` is silent except durable errors; `--no-animation` selects plain output. Supported installer UI controls: `FOCUSA_INSTALL_UI=auto|full|mono|reduced|plain`, `FOCUSA_INSTALL_SEED=<u64>`, `FOCUSA_REDUCE_MOTION=0|1`; `NO_COLOR`/`CLICOLOR=0` select monochrome animation on suitable terminals. Minimum animated size is 70×22; smaller, CI, non-TTY, and `TERM=dumb` fall back to plain. Pi extension integration is performed by Rust and reports integrated/skipped/warning truthfully.
 - `project` — dashboard, discovery, selected-project convenience, status, creation, templates, and settings.
 - `first-mission` — guided project → Workpoint → proof → Mission Deck handoff; dry-run is non-mutating.
 - `setup wizard` — routes to First Mission; `setup init` / `setup doctor` are migration hints.

@@ -163,7 +163,7 @@ pub struct InstallArgs {
     #[arg(long)]
     pub preflight: bool,
 
-    /// Disable terminal intro animation/spinner.
+    /// Disable terminal install animation and use plain output.
     #[arg(long)]
     pub no_animation: bool,
 
@@ -899,12 +899,7 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         daemon_path: bin_dir.join("focusa-daemon").display().to_string(),
         daemon_health: "smoke-test pending separate daemon health check".into(),
         tui_path: bin_dir.join("focusa-tui").display().to_string(),
-        service_status: if args.no_service {
-            "skipped"
-        } else {
-            "registered"
-        }
-        .into(),
+        service_status: result.service_status.clone(),
         path_status: "evaluated".into(),
         pi_status: "reported by phase events".into(),
         integrity_status: "verified".into(),
@@ -1933,6 +1928,7 @@ struct RealInstallResult {
     license_status: String,
     assets: Vec<InstalledAsset>,
     walkthrough: FirstInstallWalkthrough,
+    service_status: String,
 }
 
 /// Wraps the post-license phases into one async function for atomicity.
@@ -2070,18 +2066,33 @@ async fn execute_real_install(
         phase: InstallPhase::RegisterService,
         message: "Registering service".into(),
     });
-    if !args.no_service {
-        delegate_service_render(target, &bin_dir, args.dry_run).await?;
-        sink.emit(InstallEvent::PhaseSucceeded {
-            phase: InstallPhase::RegisterService,
-            detail: Some("Service registration completed".into()),
-        });
+    let service_status = if !args.no_service {
+        match delegate_service_render(target, &bin_dir, args.dry_run).await? {
+            ServiceRegistrationOutcome::Registered(detail) => {
+                sink.emit(InstallEvent::PhaseSucceeded {
+                    phase: InstallPhase::RegisterService,
+                    detail: Some(detail),
+                });
+                "registered".to_string()
+            }
+            ServiceRegistrationOutcome::Warning(message) => {
+                sink.emit(InstallEvent::PhaseWarning {
+                    phase: InstallPhase::RegisterService,
+                    message: message.clone(),
+                    recovery_hint: Some(
+                        "Run focusa-daemon manually or rerun with --no-service".into(),
+                    ),
+                });
+                "warning".to_string()
+            }
+        }
     } else {
         sink.emit(InstallEvent::PhaseSkipped {
             phase: InstallPhase::RegisterService,
             reason: "--no-service".into(),
         });
-    }
+        "skipped".to_string()
+    };
 
     ensure_not_cancelled(cancellation)?;
     sink.emit(InstallEvent::PhaseStarted {
@@ -2127,10 +2138,16 @@ async fn execute_real_install(
         license_status: phase,
         assets,
         walkthrough,
+        service_status,
     })
 }
 
 // ----- Phase 5: Service rendering delegation (focusa-112-service-delegate) -----
+enum ServiceRegistrationOutcome {
+    Registered(String),
+    Warning(String),
+}
+
 async fn delegate_service_render(
     target: InstallTarget,
     bin_dir: &std::path::Path,
@@ -2152,7 +2169,9 @@ async fn delegate_service_render(
             home.join("Library/LaunchAgents/com.startempire.focusa-daemon.plist")
         }
         InstallTarget::WindowsX64 | InstallTarget::WindowsArm64 => {
-            return Err(anyhow!("sc.exe service registration: Phase 2.0"));
+            return Ok(ServiceRegistrationOutcome::Warning(
+                "Windows service registration is unavailable in this installer build".into(),
+            ));
         }
     };
     if let Some(parent) = unit_path.parent() {
@@ -2164,8 +2183,10 @@ async fn delegate_service_render(
             daemon_bin.display()
         );
     }
-    let _ = dry_run; // reserved for future --dry-run support
-    Ok(())
+    let _ = dry_run;
+    Ok(ServiceRegistrationOutcome::Registered(
+        "Service registration completed".into(),
+    ))
 }
 
 pub(crate) fn resolve_target(target: InstallTarget) -> Result<InstallTarget> {
@@ -2234,7 +2255,7 @@ fn build_plan(
             InstallTarget::Linux => "systemd --user".to_string(),
             InstallTarget::Darwin => "launchd user agent".to_string(),
             InstallTarget::WindowsX64 | InstallTarget::WindowsArm64 => {
-                "sc.exe (Phase 2.0)".to_string()
+                "Windows service warning".to_string()
             }
             InstallTarget::Auto => "auto".to_string(),
         },

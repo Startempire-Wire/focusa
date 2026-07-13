@@ -11,7 +11,7 @@ use crate::routes::bounded::{
     budgeted_default_limit, budgeted_hard_limit, budgeted_requested_limit,
 };
 use crate::routes::permissions::{forbid, permission_context};
-use crate::routes::predictions::append_prediction_record;
+use crate::routes::predictions::append_prediction_record_scoped;
 use crate::server::AppState;
 use axum::extract::{Path as AxumPath, Query, State};
 use axum::http::{HeaderMap, StatusCode};
@@ -20,6 +20,8 @@ use axum::{
     routing::{get, post},
 };
 use chrono::Utc;
+use focusa_core::prediction::{PredictionOntologyContext, PredictionValue};
+use focusa_core::scoped_state::WorkstreamKey;
 use focusa_core::types::TrajectoryLadderContext;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -40,6 +42,8 @@ struct CaptureRecord {
     storage_path: String,
     #[serde(default)]
     trajectory: Option<TrajectoryLadderContext>,
+    #[serde(default)]
+    scope: Option<WorkstreamKey>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,6 +57,8 @@ struct ReflectionRecord {
     storage_path: String,
     #[serde(default)]
     trajectory: Option<TrajectoryLadderContext>,
+    #[serde(default)]
+    scope: Option<WorkstreamKey>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -64,6 +70,8 @@ struct AdjustmentRecord {
     storage_path: String,
     #[serde(default)]
     trajectory: Option<TrajectoryLadderContext>,
+    #[serde(default)]
+    scope: Option<WorkstreamKey>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -77,6 +85,8 @@ struct EvaluationRecord {
     storage_path: String,
     #[serde(default)]
     trajectory: Option<TrajectoryLadderContext>,
+    #[serde(default)]
+    scope: Option<WorkstreamKey>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -93,6 +103,8 @@ struct CaptureIndexEntry {
     storage_path: String,
     #[serde(default)]
     trajectory: Option<TrajectoryLadderContext>,
+    #[serde(default)]
+    scope: Option<WorkstreamKey>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -228,6 +240,7 @@ fn capture_index_entry(capture: &CaptureRecord) -> CaptureIndexEntry {
         has_rationale: capture.rationale.is_some(),
         storage_path: capture.storage_path.clone(),
         trajectory: capture.trajectory.clone(),
+        scope: capture.scope.clone(),
     }
 }
 
@@ -553,6 +566,7 @@ pub(crate) async fn capture_learning_signal(
         strategy_class,
         storage_path: storage_path.clone(),
         trajectory,
+        scope: None,
     };
     persist_json_record(
         &metacog_record_path(state, "captures", &capture_id),
@@ -566,6 +580,55 @@ pub(crate) async fn capture_learning_signal(
     s.captures.push(rec);
     s.capture_hot_index.push(index_entry);
     prune_metacog_store(&mut s, Utc::now(), metacog_store_config(&state.config));
+    Some(capture_id)
+}
+
+pub(crate) async fn capture_learning_signal_scoped(
+    state: &AppState,
+    scope: WorkstreamKey,
+    kind: &str,
+    content: &str,
+    rationale: Option<String>,
+    confidence: Option<f64>,
+    strategy_class: Option<String>,
+) -> Option<String> {
+    if scope.validate().is_err() || kind.trim().is_empty() || content.trim().is_empty() {
+        return None;
+    }
+    let capture_id = format!(
+        "scoped-{}",
+        Utc::now().timestamp_nanos_opt().unwrap_or_default()
+    );
+    let storage_path = metacog_base_dir(state)
+        .join("scoped")
+        .join(scope.storage_key())
+        .join("captures")
+        .join(format!("{capture_id}.json"));
+    let trajectory = active_trajectory_context(state).await.filter(|trajectory| {
+        trajectory.project_root.as_deref()
+            == Some(scope.root_scope.root_path.to_string_lossy().as_ref())
+            && trajectory.continuity_id.as_deref() == Some(scope.continuity_id.as_str())
+    });
+    let rec = CaptureRecord {
+        capture_id: capture_id.clone(),
+        created_at: Utc::now(),
+        kind: kind.to_string(),
+        content: content.to_string(),
+        rationale,
+        confidence,
+        strategy_class,
+        storage_path: storage_path.display().to_string(),
+        trajectory,
+        scope: Some(scope),
+    };
+    persist_json_record(&storage_path, &json!(rec));
+    let index_entry = capture_index_entry(&rec);
+    let mut store = store()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    store.captures.push(rec);
+    store.capture_hot_index.push(index_entry);
+    prune_metacog_store(&mut store, Utc::now(), metacog_store_config(&state.config));
     Some(capture_id)
 }
 
@@ -617,6 +680,7 @@ async fn capture(
         strategy_class: body.strategy_class,
         storage_path: storage_path.clone(),
         trajectory: trajectory.clone(),
+        scope: None,
     };
 
     persist_json_record(
@@ -884,6 +948,7 @@ async fn reflect(
         strategy_updates: strategy_updates.clone(),
         storage_path: storage_path.clone(),
         trajectory: trajectory.clone(),
+        scope: None,
     };
 
     persist_json_record(
@@ -954,6 +1019,7 @@ async fn adjust(
         created_at: Utc::now(),
         storage_path: storage_path.clone(),
         trajectory: trajectory.clone(),
+        scope: None,
     };
     persist_json_record(
         &metacog_record_path(&state, "adjustments", &adjustment_id),
@@ -1020,6 +1086,7 @@ async fn evaluate(
         created_at: now,
         storage_path: storage_path.clone(),
         trajectory: trajectory.clone(),
+        scope: None,
     };
     persist_json_record(
         &metacog_record_path(&state, "evaluations", &evaluation_id),
@@ -1053,6 +1120,7 @@ async fn evaluate(
             strategy_class: Some("metacognition_evaluation".to_string()),
             storage_path: capture_storage_path,
             trajectory: trajectory.clone(),
+            scope: adjustment.scope.clone(),
         };
         persist_json_record(
             &metacog_record_path(&state, "captures", &capture_id),
@@ -1065,42 +1133,55 @@ async fn evaluate(
         None
     };
 
-    let mut s = store()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    s.evaluations.push(rec.clone());
-    if let Some((capture, index_entry)) = promoted_capture.clone() {
-        s.captures.push(capture);
-        s.capture_hot_index.push(index_entry);
+    {
+        let mut s = store()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        s.evaluations.push(rec.clone());
+        if let Some((capture, index_entry)) = promoted_capture.clone() {
+            s.captures.push(capture);
+            s.capture_hot_index.push(index_entry);
+        }
+        prune_metacog_store(&mut s, now, metacog_store_config(&state.config));
     }
-    prune_metacog_store(&mut s, now, metacog_store_config(&state.config));
 
     let promoted_capture_id = promoted_capture
         .as_ref()
         .map(|(capture, _)| capture.capture_id.clone());
 
     let follow_up_prediction = if rec.promote_learning {
-        append_prediction_record(json!({
-            "prediction_type": "metacog_learning_transfer",
-            "context_refs": [rec.evaluation_id.clone(), rec.adjustment_id.clone()],
-            "ontology_context": {
-                "object_refs": ["MetacognitionEvaluation", "PredictionMetacogFlywheel"],
-                "action_refs": ["evaluate_outcome", "promote_learning", "record_next_prediction"],
-                "tool_refs": ["focusa_metacog_evaluate_outcome", "focusa_predict_record"],
-                "evidence_refs": [storage_path.clone()],
-                "relation_refs": ["evaluation_promotes_capture", "capture_informs_prediction"]
-            },
-            "predicted_outcome": "promoted learning improves the next similar action",
-            "confidence": score,
-            "recommended_action": "retrieve promoted metacognition before the next similar decision and record the next prediction",
-            "why": "Metacognition evaluation promoted a bounded learning signal; prediction follow-up keeps the learning flywheel measurable.",
-            "trajectory": trajectory,
-            "actual_outcome": null,
-            "evaluated_at": null,
-            "score": null,
-            "learning_signal_ref": promoted_capture_id.clone(),
-            "outcome_capture": null
-        })).ok()
+        if let Some(scope) = rec.scope.clone() {
+            append_prediction_record_scoped(
+                &state,
+                scope,
+                PredictionValue {
+                    prediction_type: "metacog_learning_transfer".into(),
+                    context_refs: vec![rec.evaluation_id.clone(), rec.adjustment_id.clone()],
+                    ontology_context: PredictionOntologyContext {
+                        object_refs: vec!["MetacognitionEvaluation".into(), "PredictionMetacogFlywheel".into()],
+                        action_refs: vec!["evaluate_outcome".into(), "promote_learning".into(), "record_next_prediction".into()],
+                        tool_refs: vec!["focusa_metacog_evaluate_outcome".into(), "focusa_predict_record".into()],
+                        evidence_refs: vec![storage_path.clone()],
+                        relation_refs: vec!["evaluation_promotes_capture".into(), "capture_informs_prediction".into()],
+                    },
+                    predicted_outcome: "promoted learning improves the next similar action".into(),
+                    confidence: score,
+                    recommended_action: "retrieve promoted metacognition before the next similar decision and record the next prediction".into(),
+                    why: "A scoped metacognition evaluation promoted a bounded learning signal.".into(),
+                    trajectory: trajectory.clone(),
+                    actual_outcome: None,
+                    evaluated_at: None,
+                    score: None,
+                    learning_signal_ref: promoted_capture_id.clone(),
+                    outcome_capture: None,
+                },
+            )
+            .await
+            .ok()
+            .map(|record| json!({"record_id": record.record_id, "scope": record.scope}))
+        } else {
+            None
+        }
     } else {
         None
     };
@@ -1435,6 +1516,7 @@ mod tests {
             strategy_class: None,
             storage_path: format!("/tmp/capture-{id}.json"),
             trajectory: None,
+            scope: None,
         }
     }
 
@@ -1448,6 +1530,7 @@ mod tests {
             strategy_updates: vec![],
             storage_path: format!("/tmp/reflection-{id}.json"),
             trajectory: None,
+            scope: None,
         }
     }
 
@@ -1459,6 +1542,7 @@ mod tests {
             created_at,
             storage_path: format!("/tmp/adjustment-{id}.json"),
             trajectory: None,
+            scope: None,
         }
     }
 
@@ -1472,6 +1556,7 @@ mod tests {
             created_at,
             storage_path: format!("/tmp/evaluation-{id}.json"),
             trajectory: None,
+            scope: None,
         }
     }
 

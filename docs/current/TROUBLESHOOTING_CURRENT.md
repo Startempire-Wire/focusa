@@ -55,6 +55,23 @@ curl -sS 'http://127.0.0.1:8787/v1/reflex/primitives?family=recovery&limit=5' | 
 
 In Pi, use `focusa_reflex_primitives` only to clarify the smallest safe next step; `next_tools`, operator steering, and canonical Workpoint/Trajectory scope still decide the route.
 
+## Installer terminal UI recovery
+
+`focusa install` restores the alternate screen and cursor through a terminal guard. If a host terminal is left in a damaged state after an external kill or emulator crash, run:
+
+```bash
+reset || tput reset
+printf '\033[?25h\033[0m'
+```
+
+Then rerun with a nonanimated mode:
+
+```bash
+FOCUSA_INSTALL_UI=plain focusa install --no-animation
+```
+
+Installer JSON troubleshooting should always use `focusa install --json ...`; stdout must contain one JSON document and no ANSI. `NO_COLOR=1` requests monochrome animation on a suitable TTY, while `--no-animation` requests plain output.
+
 ## Real release proof
 
 Use `docs/current/VALIDATION_AND_RELEASE_PROOF.md` for current validation expectations.

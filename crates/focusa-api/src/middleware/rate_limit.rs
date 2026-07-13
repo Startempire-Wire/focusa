@@ -102,8 +102,35 @@ fn caller_key(headers: &HeaderMap) -> String {
     "local-anon".to_string()
 }
 
+fn runtime_scope_key(headers: &HeaderMap) -> String {
+    let caller = caller_key(headers);
+    let scope_id = headers
+        .get("x-focusa-scope-id")
+        .and_then(|value| value.to_str().ok())
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    let continuity_id = headers
+        .get("x-focusa-continuity-id")
+        .and_then(|value| value.to_str().ok())
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    match (scope_id, continuity_id) {
+        (Some(scope_id), Some(continuity_id)) => format!(
+            "workstream:{:016x}:{:016x}:caller={caller}",
+            hash_value(scope_id),
+            hash_value(continuity_id)
+        ),
+        _ => format!("caller-scope:{caller}"),
+    }
+}
+
 fn rate_key(method: &Method, path: &str, headers: &HeaderMap) -> String {
-    format!("{}:{}:{}", caller_key(headers), method.as_str(), path)
+    format!(
+        "{}:{}:{}",
+        runtime_scope_key(headers),
+        method.as_str(),
+        path
+    )
 }
 
 fn prune_stale_buckets(buckets: &mut HashMap<String, RateBucket>, now: Instant, window: Duration) {
@@ -156,6 +183,20 @@ pub async fn mutation_rate_limit_layer(req: Request, next: Next) -> Result<Respo
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn typed_workstreams_have_independent_rate_keys() {
+        let mut left = HeaderMap::new();
+        left.insert("x-focusa-scope-id", "project:left".parse().unwrap());
+        left.insert("x-focusa-continuity-id", "cont:left".parse().unwrap());
+        let mut right = HeaderMap::new();
+        right.insert("x-focusa-scope-id", "project:right".parse().unwrap());
+        right.insert("x-focusa-continuity-id", "cont:right".parse().unwrap());
+        assert_ne!(
+            rate_key(&Method::POST, "/v1/workpoint/checkpoint", &left),
+            rate_key(&Method::POST, "/v1/workpoint/checkpoint", &right)
+        );
+    }
 
     #[test]
     fn mutation_detection_skips_read_methods() {

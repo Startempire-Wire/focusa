@@ -4,6 +4,11 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import {
+  buildProjectWorkstreamKey,
+  scopedQueryParams,
+  type WorkstreamKey,
+} from "./scoped-state.js";
+import {
   S,
   focusaFetch,
   getFocusState,
@@ -11,7 +16,6 @@ import {
   persistState,
   persistAuthoritativeState,
   sanitizeFocusFailures,
-  ensureContinuityId,
   getScopedWorkpointPacket,
   isWorkpointPacketScopedToCurrentSession,
   isProjectRootAuthoritySafe,
@@ -129,6 +133,13 @@ function compactText(value: unknown, fallback = "unknown", max = 180): string {
   return text.length > max ? `${text.slice(0, Math.max(0, max - 1))}…` : text;
 }
 
+function currentCompactionScope(): WorkstreamKey | null {
+  const projectRoot = normalizeProjectRoot(getSessionCwd());
+  const continuityId = String(getContinuityId() || "").trim();
+  if (!isProjectRootAuthoritySafe(projectRoot) || !continuityId) return null;
+  return buildProjectWorkstreamKey(projectRoot, continuityId);
+}
+
 async function buildLearningCompactionCard(
   currentAsk: string,
   mission: string,
@@ -148,8 +159,12 @@ async function buildLearningCompactionCard(
     `- Current/next slice: ${compactText(nextSlice || ask)}`,
   ];
   try {
-    const stats = await focusaFetch("/predictions/stats");
-    if (stats) {
+    const scope = currentCompactionScope();
+    const stats = scope
+      ? await focusaFetch(`/predictions/stats?${scopedQueryParams(scope).toString()}`)
+      : null;
+    if (stats?.authority?.status === "accepted") {
+      const predictionStats = stats.data || {};
       lines.push("## Predictive Context");
       lines.push(
         `- Stats: total=${stats.total_predictions ?? stats.total ?? "unknown"}; evaluated=${stats.evaluated_predictions ?? stats.evaluated ?? "unknown"}; accuracy=${compactText(stats.global_accuracy ?? stats.accuracy ?? "unknown", "unknown", 60)}`
@@ -233,14 +248,17 @@ function renderCompactionMissionPacket(packet: any): string {
 
 async function buildCompactionMissionPacket(resumeSource: string): Promise<any | null> {
   if (!S.focusaAvailable) return null;
+  const scope = currentCompactionScope();
+  if (!scope) return null;
   try {
     const visibleRecapReason = toolOutputVisibleRecapReason();
     const packet = await focusaFetch("/compaction/build", {
       method: "POST",
       body: JSON.stringify({
         resume_source: resumeSource,
-        project_root: normalizeProjectRoot(getSessionCwd() || process.cwd()),
-        continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
+        scope,
+        project_root: scope.root_scope.root_path,
+        continuity_id: scope.continuity_id,
         session_id: getSessionFrameKey() || undefined,
         current_ask: semanticCurrentAsk() || undefined,
         ask_kind: S.currentAsk?.kind || "unknown",
@@ -397,7 +415,7 @@ let compactResumeRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function refreshWorkpointResumePacket(mode = "compact_prompt"): Promise<any | null> {
   if (!S.focusaAvailable) return null;
-  const root = getSessionCwd() || process.cwd();
+  const root = currentCompactionScope()?.root_scope.root_path || "";
   if (!isProjectRootAuthoritySafe(root)) {
     setActiveWorkpointPacket(null);
     setActiveWorkpointSummary("");
@@ -408,9 +426,10 @@ async function refreshWorkpointResumePacket(mode = "compact_prompt"): Promise<an
       method: "POST",
       body: JSON.stringify({
         mode,
-        continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
+        scope,
+        continuity_id: scope.continuity_id,
         session_id: getSessionFrameKey(),
-        project_root: getSessionCwd() || process.cwd(),
+        project_root: scope.root_scope.root_path,
         current_ask: S.currentAsk?.text || "",
       }),
     });
@@ -441,14 +460,17 @@ async function refreshWorkpointResumePacket(mode = "compact_prompt"): Promise<an
 
 async function checkpointTrajectoryBeforeCompaction(reason = "before_compaction"): Promise<any | null> {
   if (!S.focusaAvailable) return null;
-  const root = getSessionCwd() || process.cwd();
-  if (!isProjectRootAuthoritySafe(root)) return null;
+  const scope = currentCompactionScope();
+  if (!scope) return null;
+  const root = scope.root_scope.root_path;
+  const continuityId = scope.continuity_id;
   try {
     return await focusaFetch("/trajectory/checkpoint", {
       method: "POST",
       body: JSON.stringify({
         summary: `Pi ${reason}: preserve Trajectory Ladder north-star context across compaction.`,
-        continuity_id: ensureContinuityId(root),
+        scope,
+        continuity_id: continuityId,
         session_id: getSessionFrameKey(),
         project_root: root,
         idempotency_key: `pi-trajectory-${reason}-${getSessionFrameKey() || "session"}-${getTurnCount()}`,
@@ -461,14 +483,17 @@ async function checkpointTrajectoryBeforeCompaction(reason = "before_compaction"
 
 async function refreshTrajectoryResumePacket(reason = "compaction"): Promise<any | null> {
   if (!S.focusaAvailable) return null;
-  const root = getSessionCwd() || process.cwd();
-  if (!isProjectRootAuthoritySafe(root)) return null;
+  const scope = currentCompactionScope();
+  if (!scope) return null;
+  const root = scope.root_scope.root_path;
+  const continuityId = scope.continuity_id;
   try {
     const packet = await focusaFetch("/trajectory/resume", {
       method: "POST",
       body: JSON.stringify({
         mode: "summary",
-        continuity_id: ensureContinuityId(root),
+        scope,
+        continuity_id: continuityId,
         session_id: getSessionFrameKey(),
         project_root: root,
       }),
@@ -480,7 +505,7 @@ async function refreshTrajectoryResumePacket(reason = "compaction"): Promise<any
       reason,
       refreshed_at: Date.now(),
       project_root: root,
-      continuity_id: getContinuityId() || ensureContinuityId(root),
+      continuity_id: continuityId,
       session_id: getSessionFrameKey() || null,
       status: String(
         view?.intelligence_view?.clarity_gate?.status ||
@@ -565,7 +590,7 @@ function formatTrajectoryPacketForPrompt(packet: any): string {
   const actionAuthority = packet?.action_authority_from_trajectory ?? view?.action_authority_from_trajectory ?? false;
   const genericBootstrap = packet?.generic_bootstrap ?? view?.generic_bootstrap ?? false;
   const loudWarning = packet?.loud_warning || view?.loud_warning || null;
-  const fallbackLevel = packet?.fallback_level || view?.fallback_level || "none";
+  const fallbackLevel = packet?.fallback_level || view?.fallback_level || "not_applicable";
   const fallbackSourceScope = packet?.fallback_source_scope || view?.fallback_source_scope || null;
   const warnings = Array.isArray(packet?.warnings || view?.warnings) ? (packet?.warnings || view?.warnings) : [];
 
@@ -584,7 +609,7 @@ function formatTrajectoryPacketForPrompt(packet: any): string {
     `ACTION_AUTHORITY_FROM_TRAJECTORY: ${actionAuthority}`,
     `GENERIC_BOOTSTRAP: ${genericBootstrap}`,
     `FALLBACK_LEVEL: ${fallbackLevel}`,
-    `FALLBACK_SOURCE_SCOPE: ${fallbackSourceScope || "none"}`,
+    `FALLBACK_SOURCE_SCOPE: ${fallbackSourceScope || "not_applicable"}`,
     // Deprecated aliases.
     `FALLBACK_PRIOR_PROJECT_TRAJECTORY: ${trajectory.fallback_prior_project_trajectory === true || packet?.fallback_prior_project_trajectory === true}`,
     `FALLBACK_SOURCE_CONTINUITY_ID: ${compactText(trajectory.fallback_source_continuity_id || packet?.fallback_source_continuity_id, "none", 120)}`,
@@ -631,8 +656,10 @@ function recordLocalWorkpointFallback(reason: string): void {
 
 async function checkpointBeforeCompaction(): Promise<any | null> {
   if (!S.focusaAvailable) return null;
-  const root = getSessionCwd() || process.cwd();
-  if (!isProjectRootAuthoritySafe(root)) return null;
+  const scope = currentCompactionScope();
+  if (!scope) return null;
+  const root = scope.root_scope.root_path;
+  const continuityId = scope.continuity_id;
   const ask = semanticCurrentAsk();
   const mission =
     ask ||
@@ -656,9 +683,10 @@ async function checkpointBeforeCompaction(): Promise<any | null> {
         checkpoint_reason: "before_compact",
         canonical: true,
         promote: true,
-        continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
+        scope,
+        continuity_id: continuityId,
         session_id: getSessionFrameKey(),
-        project_root: getSessionCwd() || process.cwd(),
+        project_root: root,
         source_turn_id: `pi-turn-${getTurnCount()}`,
         idempotency_key: `pi-before-compact-${getSessionFrameKey() || "session"}-${getTurnCount()}`,
         action_intent: {
@@ -677,10 +705,45 @@ async function checkpointBeforeCompaction(): Promise<any | null> {
   }
 }
 
+export interface CompactionRolloverPreparation {
+  ready: boolean;
+  scope: WorkstreamKey | null;
+  workpoint_checkpoint: any | null;
+  trajectory_checkpoint: any | null;
+  compaction_packet: any | null;
+  reason: string;
+}
+
+export async function prepareCompactionRollover(): Promise<CompactionRolloverPreparation> {
+  const scope = currentCompactionScope();
+  if (!scope) {
+    return {
+      ready: false,
+      scope: null,
+      workpoint_checkpoint: null,
+      trajectory_checkpoint: null,
+      compaction_packet: null,
+      reason: "typed_verified_project_workstream_scope_required",
+    };
+  }
+  const workpointCheckpoint = await checkpointBeforeCompaction();
+  const trajectoryCheckpoint = await checkpointTrajectoryBeforeCompaction("session_rollover");
+  const compactionPacket = await buildCompactionMissionPacket("session_rollover");
+  const ready = Boolean(workpointCheckpoint && trajectoryCheckpoint && compactionPacket);
+  return {
+    ready,
+    scope,
+    workpoint_checkpoint: workpointCheckpoint,
+    trajectory_checkpoint: trajectoryCheckpoint,
+    compaction_packet: compactionPacket,
+    reason: ready ? "checkpoint_transaction_ready" : "checkpoint_transaction_incomplete",
+  };
+}
+
 export function isFocusaContextContinuityHealthy(): boolean {
-  const cwd = getSessionCwd() || process.cwd();
-  const continuityId = getContinuityId() || ensureContinuityId(cwd);
-  if (!isProjectRootAuthoritySafe(cwd)) return false;
+  const scope = currentCompactionScope();
+  if (!scope) return false;
+  const continuityId = scope.continuity_id;
   const packet = getScopedWorkpointPacket();
   const rawPacket = getActiveWorkpointPacket();
   const noDegradedWorkpoint = !rawPacket || Boolean(packet);
@@ -842,7 +905,7 @@ export function registerCompaction(pi: ExtensionAPI) {
     }
     await checkpointBeforeCompaction();
     await checkpointTrajectoryBeforeCompaction("before_compaction");
-    await refreshTrajectoryClarityLifecycle("before_compaction", getSessionCwd() || process.cwd());
+    await refreshTrajectoryClarityLifecycle("before_compaction", currentCompactionScope()?.root_scope.root_path || "");
     const trajectoryPacket = await refreshTrajectoryResumePacket("before_compaction");
     void trajectoryPacket;
     const workpointPacket = await refreshWorkpointResumePacket("compact_prompt");
@@ -931,8 +994,8 @@ export function registerCompaction(pi: ExtensionAPI) {
         method: "POST",
         body: JSON.stringify({
           frame_id: getActiveFrameId(),
-          project_root: normalizeProjectRoot(getSessionCwd() || process.cwd()),
-          continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
+          project_root: currentCompactionScope()?.root_scope.root_path,
+          continuity_id: currentCompactionScope()?.continuity_id,
           turn_id: `pi-turn-${getTurnCount()}`,
           delta: {
             ...(artifacts.length ? { artifacts } : {}),
@@ -963,7 +1026,7 @@ export function registerCompaction(pi: ExtensionAPI) {
       (Date.now() - S.lastCompactResumeAt < 30_000 && compactOrdinal !== "unknown");
     if (!S.compactResumePending && !recentlySubmitted) {
       await refreshWorkpointResumePacket("compact_prompt");
-      await refreshTrajectoryClarityLifecycle("after_compaction", getSessionCwd() || process.cwd());
+      await refreshTrajectoryClarityLifecycle("after_compaction", currentCompactionScope()?.root_scope.root_path || "");
       const trajectoryPacket = await refreshTrajectoryResumePacket("after_compaction");
       const missionPacket = await buildCompactionMissionPacket("after_compaction");
       S.lastCompactResumeKey = compactResumeKey;
@@ -1020,9 +1083,9 @@ ${S.lastCompactDecision || "pre-compaction work"}
 ## AttentionRecallVerdict
 ${attentionPrompt}
 ## WorkpointResumePacketV2
-${v2Prompt || `No project-bound WorkpointResumePacketV2 recorded (${projectRootAuthorityFailure(getSessionCwd() || process.cwd()) || "v2 packet unavailable"}); continue from Last Active Focus only after a fresh safe resume/orientation call.`}
+${v2Prompt || `No project-bound WorkpointResumePacketV2 recorded (${projectRootAuthorityFailure(currentCompactionScope()?.root_scope.root_path || "") || "v2 packet unavailable"}); continue from Last Active Focus only after a fresh safe resume/orientation call.`}
 ## TrajectoryResumePacket
-${trajectoryPrompt || `No project-bound TrajectoryResumePacket recorded (${projectRootAuthorityFailure(getSessionCwd() || process.cwd()) || "trajectory packet unavailable"}); call focusa_trajectory_view before treating TL context as current.`}
+${trajectoryPrompt || `No project-bound TrajectoryResumePacket recorded (${projectRootAuthorityFailure(currentCompactionScope()?.root_scope.root_path || "") || "trajectory packet unavailable"}); call focusa_trajectory_view before treating TL context as current.`}
 ## Directive
 ${directive}
 
@@ -1121,7 +1184,7 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
     if (S.focusaAvailable) {
       await checkpointBeforeCompaction();
       await checkpointTrajectoryBeforeCompaction("hard_context_pressure");
-      await refreshTrajectoryClarityLifecycle("hard_context_pressure", getSessionCwd() || process.cwd());
+      await refreshTrajectoryClarityLifecycle("hard_context_pressure", currentCompactionScope()?.root_scope.root_path || "");
     }
     const r = S.focusaAvailable
       ? await focusaFetch("/commands/submit", {
@@ -1158,7 +1221,7 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
     if (S.focusaAvailable) {
       await checkpointBeforeCompaction();
       await checkpointTrajectoryBeforeCompaction("auto_context_pressure");
-      await refreshTrajectoryClarityLifecycle("auto_context_pressure", getSessionCwd() || process.cwd());
+      await refreshTrajectoryClarityLifecycle("auto_context_pressure", currentCompactionScope()?.root_scope.root_path || "");
     }
     const r = S.focusaAvailable
       ? await focusaFetch("/commands/submit", {

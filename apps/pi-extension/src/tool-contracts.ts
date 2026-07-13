@@ -75,13 +75,43 @@ export interface FocusSliceToolAffordanceOptions {
 
 const PRELOAD_TOOL_CONTRACTS: FocusaToolContract[] = [
   ["profiles", "Preload Profiles", "List bounded agent bootstrap profiles.", "read_state", "GET"],
-  ["build", "Build Preload Packet", "Build a scoped agent bootstrap packet without writing it.", "read_state", "POST"],
+  [
+    "build",
+    "Build Preload Packet",
+    "Build a scoped agent bootstrap packet without writing it.",
+    "read_state",
+    "POST",
+  ],
   ["render", "Render Preload Packet", "Render a scoped agent bootstrap packet.", "read_state", "POST"],
-  ["write", "Write Preload Packet", "Write an agent bootstrap packet to an allowlisted target.", "write_project_files", "POST"],
+  [
+    "write",
+    "Write Preload Packet",
+    "Write an agent bootstrap packet to an allowlisted target.",
+    "write_project_files",
+    "POST",
+  ],
   ["verify", "Verify Preload Packet", "Verify bootstrap packet scope and integrity.", "read_state", "POST"],
-  ["doctor", "Preload Doctor", "Diagnose bootstrap delivery readiness and recovery steps.", "read_state", "POST"],
-  ["receipt_preview", "Preview Preload Receipt", "Preview a bootstrap delivery receipt without committing it.", "read_state", "POST"],
-  ["receipt_commit", "Commit Preload Receipt", "Commit an idempotent bootstrap delivery receipt.", "write_receipt", "POST"],
+  [
+    "doctor",
+    "Preload Doctor",
+    "Diagnose bootstrap delivery readiness and recovery steps.",
+    "read_state",
+    "POST",
+  ],
+  [
+    "receipt_preview",
+    "Preview Preload Receipt",
+    "Preview a bootstrap delivery receipt without committing it.",
+    "read_state",
+    "POST",
+  ],
+  [
+    "receipt_commit",
+    "Commit Preload Receipt",
+    "Commit an idempotent bootstrap delivery receipt.",
+    "write_receipt",
+    "POST",
+  ],
 ].map(([suffix, label, purpose, sideEffect, method]) => {
   const action = suffix.replace("_", "-");
   const write = sideEffect.startsWith("write");
@@ -901,9 +931,9 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
 
   {
     name: "focusa_silent_sessions",
-    label: "Focusa Silent Sessions",
+    label: "Focusa Silent Sessions (legacy tmux wrapper)",
     purpose:
-      "List, start, reopen, tail, send input to, or safely kill tmux-backed Focusa SilentSessions running in the background.",
+      "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane.",
     family: "work_loop",
     ontology_action: "work_loop.silent_session.control",
     ontology_objects: ["SilentSession", "WorkLoopStatus", "ResourceMode"],
@@ -919,7 +949,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "tmux send-keys C-c",
       "tmux kill-session",
     ],
-    core_surface: "Pi-local tmux SilentSession controller",
+    core_surface: "Legacy Pi-local tmux SilentSession compatibility wrapper",
     doc_path: "docs/focusa-tools/tools/focusa_silent_sessions.md",
     result_envelope: "tool_result_v1",
     side_effect_profile: "process_control",
@@ -1102,13 +1132,15 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   {
     name: "focusa_hlt_history",
     label: "HLT History",
-    purpose: "Read append-only HLT change history with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6.",
+    purpose:
+      "Read append-only HLT change history with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6.",
     family: "trajectory",
     ontology_action: "trajectory.hlt_history",
     ontology_objects: ["ProjectIdentity", "WorkpointRecord"],
     api_routes: ["GET /v1/hlt/history"],
     cli_commands: ["focusa hlt history", "focusa hlt sessions", "focusa hlt fallback"],
-    core_surface: "Spec125 §7.2-7.6: per-project append-only HLT ledger history with session filters and fallback candidates",
+    core_surface:
+      "Spec125 §7.2-7.6: per-project append-only HLT ledger history with session filters and fallback candidates",
     doc_path: "docs/focusa-tools/tools/focusa_hlt_history.md",
     result_envelope: "tool_result_v1",
     side_effect_profile: "read_state",

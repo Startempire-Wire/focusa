@@ -18,10 +18,7 @@ use focusa_core::{
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::{
-    collections::VecDeque,
-    sync::{Arc, Mutex, OnceLock},
-};
+use std::sync::Arc;
 use uuid::Uuid;
 
 const PACKET_SCHEMA: &str = "focusa.compaction_mission_packet.v1";
@@ -66,11 +63,6 @@ pub struct PacketIdRequest {
 pub struct DiffCompactionPacketRequest {
     pub before: String,
     pub after: String,
-}
-
-fn packet_store() -> &'static Mutex<VecDeque<(String, Value)>> {
-    static STORE: OnceLock<Mutex<VecDeque<(String, Value)>>> = OnceLock::new();
-    STORE.get_or_init(|| Mutex::new(VecDeque::new()))
 }
 
 fn bounded_text(value: Option<&str>, max: usize) -> Option<String> {
@@ -295,16 +287,6 @@ fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Valu
     })
 }
 
-fn packet_by_id(packet_id: &str) -> Option<Value> {
-    packet_store()
-        .lock()
-        .ok()?
-        .iter()
-        .rev()
-        .find(|(id, _)| id == packet_id)
-        .map(|(_, packet)| packet.clone())
-}
-
 fn packet_db_path(data_dir: &str) -> std::path::PathBuf {
     if let Some(rest) = data_dir.strip_prefix("~/")
         && let Ok(home) = std::env::var("HOME")
@@ -349,9 +331,6 @@ fn persist_packet(data_dir: &str, packet: &Value) -> rusqlite::Result<()> {
 }
 
 fn packet_by_id_durable(data_dir: &str, packet_id: &str) -> Option<Value> {
-    if let Some(packet) = packet_by_id(packet_id) {
-        return Some(packet);
-    }
     let conn = Connection::open(packet_db_path(data_dir)).ok()?;
     ensure_packet_table(&conn).ok()?;
     let raw: Option<String> = conn
@@ -365,37 +344,32 @@ fn packet_by_id_durable(data_dir: &str, packet_id: &str) -> Option<Value> {
     raw.and_then(|raw| serde_json::from_str(&raw).ok())
 }
 
-fn cascade_count(packet: &Value) -> usize {
+fn cascade_count(data_dir: &str, packet: &Value) -> usize {
     let continuity = packet.pointer("/scope/continuity_id");
     let next_slice = packet.pointer("/workpoint/next_slice");
-    packet_store()
-        .lock()
-        .ok()
-        .map(|store| {
-            store
-                .iter()
-                .rev()
-                .take(8)
-                .filter(|(_, prior)| {
-                    prior.pointer("/scope/continuity_id") == continuity
-                        && prior.pointer("/workpoint/next_slice") == next_slice
-                })
-                .count()
-        })
-        .unwrap_or(0)
-}
-
-fn store_packet(packet: &Value) {
-    let Some(packet_id) = packet.get("packet_id").and_then(Value::as_str) else {
-        return;
+    let Ok(conn) = Connection::open(packet_db_path(data_dir)) else {
+        return 0;
     };
-    let mut store = packet_store()
-        .lock()
-        .expect("compaction packet store poisoned");
-    store.push_back((packet_id.to_string(), packet.clone()));
-    while store.len() > PACKET_CAP {
-        store.pop_front();
+    if ensure_packet_table(&conn).is_err() {
+        return 0;
     }
+    let Ok(mut statement) =
+        conn.prepare("SELECT packet_json FROM compaction_packets ORDER BY rowid DESC LIMIT 8")
+    else {
+        return 0;
+    };
+    statement
+        .query_map([], |row| row.get::<_, String>(0))
+        .ok()
+        .into_iter()
+        .flatten()
+        .filter_map(Result::ok)
+        .filter_map(|raw| serde_json::from_str::<Value>(&raw).ok())
+        .filter(|prior| {
+            prior.pointer("/scope/continuity_id") == continuity
+                && prior.pointer("/workpoint/next_slice") == next_slice
+        })
+        .count()
 }
 
 async fn build(
@@ -448,7 +422,7 @@ async fn build(
             }
         }
     }
-    let repeated_without_progress = cascade_count(&packet);
+    let repeated_without_progress = cascade_count(&state.config.data_dir, &packet);
     packet["cascading_compaction"] = json!({
         "detected": repeated_without_progress >= 2,
         "same_mission_next_slice_prior_count": repeated_without_progress,
@@ -462,12 +436,11 @@ async fn build(
             ));
         }
     }
-    store_packet(&packet);
     if let Err(error) = persist_packet(&state.config.data_dir, &packet) {
         packet["persistence_warning"] = json!({
             "status": "degraded",
             "error": error.to_string(),
-            "recovery": "packet remains available in bounded process cache until restart"
+            "recovery": "retry persistence after storage recovery; no process-global packet fallback is retained"
         });
     }
     Ok(Json(packet))
@@ -809,11 +782,17 @@ mod tests {
             },
         );
         packet["workpoint"]["next_slice"] = json!("same-next-slice");
-        assert_eq!(cascade_count(&packet), 0);
-        store_packet(&packet);
-        assert_eq!(cascade_count(&packet), 1);
-        store_packet(&packet);
-        assert_eq!(cascade_count(&packet), 2);
+        let dir = std::env::temp_dir().join(format!("focusa-cascade-{}", Uuid::now_v7()));
+        std::fs::create_dir_all(&dir).expect("temp cascade dir");
+        let data_dir = dir.to_str().expect("utf8 path");
+        assert_eq!(cascade_count(data_dir, &packet), 0);
+        persist_packet(data_dir, &packet).expect("persist packet");
+        assert_eq!(cascade_count(data_dir, &packet), 1);
+        let mut packet_two = packet.clone();
+        packet_two["packet_id"] = json!(Uuid::now_v7().to_string());
+        persist_packet(data_dir, &packet_two).expect("persist second packet");
+        assert_eq!(cascade_count(data_dir, &packet), 2);
+        std::fs::remove_dir_all(dir).expect("remove cascade dir");
     }
 
     #[test]

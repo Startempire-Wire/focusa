@@ -1,11 +1,15 @@
 # `focusa_silent_sessions`
 
 **Family:** `work_loop`  
-**Label:** Focusa Silent Sessions
+**Label:** Focusa Silent Sessions (legacy tmux wrapper)
+
+## Spec 133 legacy posture
+
+This tool is frozen as a legacy Pi-local tmux compatibility wrapper. It is **not** the canonical Spec 133 daemon-native Silent Session control plane, does **not** create durable canonical session identity, and its tmux/session/log metadata are runtime observations only. New behavior must be implemented behind daemon-native `/v1/silent-sessions` APIs and this tool should become a facade over those APIs in later Spec 133 phases.
 
 ## Purpose
 
-List, start, reopen, tail, send input to, or safely kill tmux-backed Focusa SilentSessions running in the background.
+List, start, reopen, tail, send input to, or safely kill legacy tmux-backed Focusa SilentSessions running in the background.
 
 ## Why it exists
 
@@ -20,7 +24,7 @@ Operators need a `focusa_` tool surface to see background autonomous coding sess
 - `health` — read pane metadata plus tmux activity/log mtime to classify the session as `running`, `stale`, `degraded`, `dead`, or `unknown`.
 - `send` — send literal operator steering text to the session and press Enter; requires `approved=true`.
 - `interrupt` — send `C-c` to the active pane for a hung/runaway agent; requires `approved=true`.
-- `restart` — kill the existing named tmux session if present and start it again from stored metadata (`root_dir`, `command`, `mission`, `work_item_id`, `run_as_user`) unless caller supplies overrides; requires `approved=true`.
+- `restart` — kill the existing named tmux session if present and start it again from safe stored metadata (`root_dir`, `mission`, `work_item_id`, `run_as_user`) unless caller supplies explicit overrides; stored legacy shell `command` values are not auto-executed; requires `approved=true`.
 - `kill` — terminate the tmux session; requires `approved=true` and `force=true`.
 
 ## Tmux control model
@@ -39,7 +43,7 @@ Reference reviewed: https://tmuxcheatsheet.com/
 - `tmux pipe-pane -o` to persist pane output to `/tmp/focusa-silent-<session>-<run_as_user>.log` for unattended audit/recovery.
 - Before enabling `pipe-pane`, logs rotate at 5 MiB with three backups (`.1` through `.3`) so repeated starts/restarts do not append forever.
 - `/tmp/focusa-silent-<session>.json` stores best-effort per-session metadata (`root_dir`, `root_owner`, `run_as_user`, `permission_posture`, `command`, `mission`, `work_item_id`, `log_path`, `log_max_bytes`, `log_backups`) so later `list`, `tail`, `health`, `send`, `interrupt`, `restart`, and `kill` use the same execution identity and restart contract.
-- `/tmp/focusa-silent-registry.json` stores a bounded registry of SilentSession metadata keyed by normalized session name. `list`, `reopen`, `tail`, `health`, `start`, `restart`, and `kill` surface `registry`/`registry_metadata` so recovery does not depend on reconstructing flags from transcript memory.
+- `/tmp/focusa-silent-registry.json` is treated as an untrusted legacy import source only. The compatibility wrapper may read it for operator visibility, but it must not promote it to canonical truth or automatically execute stored legacy shell commands.
 - `tmux send-keys -l -- <text>` followed by `Enter` for literal steering input.
 - `tmux send-keys C-c` for approved interruption without destroying the session.
 - `tmux kill-session -t <name>` only for explicit stop/kill/restart.
@@ -89,12 +93,9 @@ focusa_silent_sessions action="kill" session_name="focusa-c7e1" approved=true fo
 ## Source
 Defined in `apps/pi-extension/src/tools.ts`; wraps `tmux` local commands.
 
-## Durable observability and operator-control contract (Spec 132 D7)
+## Legacy observability and operator-control compatibility contract (Spec 132 D7, superseded by Spec 133)
 
-This contract is the binding seam for the daemon-independent compatibility
-surface. A foreground Pi process is never the liveness authority: a
-`SilentSession` continues independently and its records remain readable after
-Pi restarts.
+This section documents the best-effort compatibility seam that existed before Spec 133. Under Spec 133, these guarantees are implementation gaps until the daemon-native control plane owns identity, persistence, streams, authorization, and completion. The Pi-local tmux wrapper must not claim canonical durability.
 
 ### Stable identity and scope
 

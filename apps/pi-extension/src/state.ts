@@ -1,8 +1,7 @@
 // Shared state, helpers, types for focusa-pi-bridge
 // Spec: docs/44-pi-focusa-integration-spec.md
 
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import { homedir } from "os";
+import { appendFileSync, existsSync, readFileSync } from "fs";
 import { dirname, join, resolve } from "path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { DEFAULT_DAEMON_RESTART_COMMAND, type FocusaConfig } from "./config.js";
@@ -271,12 +270,9 @@ export const S = {
   lastCompactResumeAt: 0,
   // Post-compaction: save last decision for steer message (cleared after localDecisions trim)
   lastCompactDecision: "",
-  // Spec88 Workpoint resume packet projected from Focusa.
-  activeWorkpointPacket: null as any | null,
-  activeWorkpointSummary: "" as string,
-  lastTrajectoryClarity: null as any | null,
-  lastProjectIdentity: null as any | null,
-  lastProjectVerify: null as any | null,
+  // Spec88/104 Workpoint, Trajectory, and identity shadows live in TypedScopeStore only.
+  // Do not add singleton fallbacks for activeWorkpointPacket, activeWorkpointSummary,
+  // lastTrajectoryClarity, lastProjectIdentity, or lastProjectVerify.
   // latestReportSummary migrated to scope store (PI-06, removed from singleton)
   toolOutputPressure: {
     windowStartedAt: 0,
@@ -487,7 +483,7 @@ export function resetPiSessionScopedState(reason = "session_boundary"): void {
   setActiveWorkpointPacket(null);
   setActiveWorkpointSummary("");
   setLastTrajectoryClarity(null);
-  S.lastProjectIdentity = null;
+  setLastProjectIdentity(null);
   setLatestReportSummary(null);
   resetToolOutputPressureWindow(Date.now());
   S.projectSwitchLedger = [];
@@ -2225,7 +2221,7 @@ async function loadFocusState(): Promise<{ frame: any; fs: any; stack: any } | n
   const liveAscc =
     asccState?.frame_id === frame.id ? asccState?.ascc || asccState?.focus_state || null : null;
   const frameState = frame?.focus_state || {};
-  const trajectoryShortTermGoal = S.lastTrajectoryClarity?.short_term_goal || "";
+  const trajectoryShortTermGoal = getLastTrajectoryClarity()?.short_term_goal || "";
   const fs = {
     ...frameState,
     ...(liveAscc || {}),
@@ -2251,7 +2247,7 @@ async function loadFocusState(): Promise<{ frame: any; fs: any; stack: any } | n
     constraints: Array.isArray(fs?.constraints) ? fs.constraints : [],
     failures: sanitizeFocusFailures(Array.isArray(fs?.failures) ? fs.failures : []),
     intent: fs?.intent || "",
-    currentFocus: fs?.current_focus || fs?.current_state || S.lastTrajectoryClarity?.short_term_goal || "",
+    currentFocus: fs?.current_focus || fs?.current_state || getLastTrajectoryClarity()?.short_term_goal || "",
   };
 
   return { frame, fs, stack };
@@ -2442,7 +2438,10 @@ function ensureAutocreatedBeadsIssueForProject(projectRoot: string): string | nu
     if (!existsSync(issuesFile)) {
       // Empty .beads directory is acceptable; the JSONL will be created on first write.
     }
-    const stamp = new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 14);
+    const stamp = new Date()
+      .toISOString()
+      .replace(/[^0-9]/g, "")
+      .slice(0, 14);
     const id = `pi-auto-${stamp}-${process.pid}`;
     const issue = {
       id,
@@ -2678,82 +2677,6 @@ type ProjectRootResolution = {
   candidates?: Array<{ projectRoot: string; confidenceScore: number; markers: string[]; source: string }>;
 };
 
-function rememberedProjectRootPath(): string {
-  const home = process.env.HOME || homedir() || ".";
-  return process.env.FOCUSA_PI_PROJECT_ROOT_CACHE || join(home, ".pi", "agent", "focusa-project-root.json");
-}
-
-function readRememberedProjectRoot(): string {
-  try {
-    const raw = JSON.parse(readFileSync(rememberedProjectRootPath(), "utf8"));
-    return normalizeProjectRoot(raw?.project_root || raw?.projectRoot || "");
-  } catch {
-    return "";
-  }
-}
-
-function rememberedProjectRootResolution(cwdInput?: unknown): ProjectRootResolution | null {
-  const remembered = readRememberedProjectRoot();
-  if (!remembered || !isProjectRootAuthoritySafe(remembered)) return null;
-  const cwd = normalizeProjectRoot(cwdInput || S.sessionCwd || process.cwd());
-  // Hard isolation: durable project-root cache is only a same-tree hint.
-  // It must never pull a broad/ambiguous or different-project Pi session into another project.
-  if (!cwd || (cwd !== remembered && !cwd.startsWith(`${remembered}/`))) return null;
-  const candidates = findAncestorProjectRootCandidates(remembered);
-  const exact = candidates.find((candidate) => candidate.root === remembered) || candidates[0] || null;
-  if (!exact || exact.root !== remembered) return null;
-  const confidence = confidenceForScore(exact.score);
-  return {
-    projectRoot: remembered,
-    ...confidence,
-    source: "remembered_project_root",
-    reason: `durable Pi project_root cache; markers=${exact.markers.join(",")}`,
-    safe: true,
-    requiresOperatorConfirmation: projectRootScoreRequiresConfirmation(confidence.confidenceScore),
-    markerScore: exact.score,
-    markers: exact.markers,
-    candidates: [
-      {
-        projectRoot: remembered,
-        confidenceScore: confidence.confidenceScore,
-        markers: exact.markers,
-        source: "remembered_project_root",
-      },
-    ],
-  };
-}
-
-function rememberProjectRoot(resolution: ProjectRootResolution): void {
-  if (
-    !resolution.safe ||
-    resolution.requiresOperatorConfirmation ||
-    !isProjectRootAuthoritySafe(resolution.projectRoot)
-  )
-    return;
-  try {
-    const path = rememberedProjectRootPath();
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(
-      path,
-      JSON.stringify(
-        {
-          schema: "focusa.pi.project_root_cache.v1",
-          project_root: resolution.projectRoot,
-          confidence: resolution.confidence,
-          confidence_score: resolution.confidenceScore,
-          source: resolution.source,
-          markers: resolution.markers || [],
-          updated_at: new Date().toISOString(),
-        },
-        null,
-        2
-      )
-    );
-  } catch {
-    // Best-effort cache only; never block Focusa session startup.
-  }
-}
-
 export function resolvePiProjectRootCandidate(
   cwdInput?: unknown,
   persistedPacket?: any
@@ -2824,9 +2747,6 @@ export function resolvePiProjectRootCandidate(
     };
   }
 
-  const remembered = rememberedProjectRootResolution(explicit || sessionRoot);
-  if (remembered) return remembered;
-
   const fallback = explicit || sessionRoot || normalizeProjectRoot(process.cwd());
   const safe = isProjectRootAuthoritySafe(fallback);
   return {
@@ -2849,10 +2769,7 @@ export function resolvePiProjectRoot(cwdInput?: unknown, persistedPacket?: any):
   return resolvePiProjectRootCandidate(cwdInput, persistedPacket).projectRoot;
 }
 
-export function resolveFocusWriteProjectRoot(
-  liveCwdInput: unknown,
-  cachedCwdInput: unknown
-): string {
+export function resolveFocusWriteProjectRoot(liveCwdInput: unknown, cachedCwdInput: unknown): string {
   const live = resolvePiProjectRootCandidate(liveCwdInput);
   if (
     live.safe === true &&
@@ -2898,7 +2815,6 @@ export function adoptPiProjectRoot(cwdInput?: unknown, persistedPacket?: any): s
   const resolution = resolvePiProjectRootCandidate(cwdInput, persistedPacket);
   setLastProjectRootResolution(resolution);
   S.sessionCwd = resolution.projectRoot;
-  rememberProjectRoot(resolution);
   return resolution.projectRoot;
 }
 
@@ -2924,7 +2840,6 @@ export function confirmPiProjectRoot(
   };
   setLastProjectRootResolution(confirmed);
   S.sessionCwd = projectRoot;
-  rememberProjectRoot(confirmed);
   return projectRoot;
 }
 
@@ -3103,7 +3018,7 @@ export async function refreshTrajectoryClarityLifecycle(
       ],
     };
     setLastTrajectoryClarity(snapshot);
-    if (snapshot.project_identity) S.lastProjectIdentity = snapshot.project_identity;
+    if (snapshot.project_identity) setLastProjectIdentity(snapshot.project_identity);
     focusaPost("/telemetry/activity", {
       surface: "pi",
       event: "trajectory_clarity_refreshed",
@@ -3602,9 +3517,7 @@ function buildPersistedRecoveryState(): Record<string, any> {
     frameId: S.activeFrameId,
     frameTitle: trimPersistText(S.activeFrameTitle),
     frameGoal: trimPersistText(S.activeFrameGoal),
-    currentAsk: S.currentAsk
-      ? { ...S.currentAsk, text: trimPersistText(S.currentAsk.text) }
-      : null,
+    currentAsk: S.currentAsk ? { ...S.currentAsk, text: trimPersistText(S.currentAsk.text) } : null,
     queryScope: S.queryScope,
     decisions: tailBounded(S.localDecisions),
     constraints: tailBounded(S.localConstraints),
@@ -3622,11 +3535,11 @@ function buildPersistedRecoveryState(): Record<string, any> {
       48 * 1024,
       compactTrajectoryClarity(getLastTrajectoryClarity())
     ),
-    lastProjectIdentity: boundedObject(S.lastProjectIdentity, 16 * 1024, {
-      project_root: S.lastProjectIdentity?.project_root || null,
-      project_id: S.lastProjectIdentity?.project_id || null,
-      canonical_name: S.lastProjectIdentity?.canonical_name || null,
-      status: S.lastProjectIdentity?.status || null,
+    lastProjectIdentity: boundedObject(getLastProjectIdentity(), 16 * 1024, {
+      project_root: getLastProjectIdentity()?.project_root || null,
+      project_id: getLastProjectIdentity()?.project_id || null,
+      canonical_name: getLastProjectIdentity()?.canonical_name || null,
+      status: getLastProjectIdentity()?.status || null,
     }),
     lastProjectVerify: boundedObject(getLastProjectVerify(), 16 * 1024, {
       project_root: getLastProjectVerify()?.project_root || null,
@@ -3710,13 +3623,7 @@ function persistProjectSwitchLedgerAnchor(): void {
     payload.observations.pop();
   }
   if (Buffer.byteLength(JSON.stringify(payload), "utf8") > PROJECT_SWITCH_ANCHOR_MAX_BYTES) return;
-  if (
-    appendBoundedNativeEntry(
-      "focusa-project-switch-ledger",
-      payload,
-      PROJECT_SWITCH_ANCHOR_MAX_BYTES
-    )
-  ) {
+  if (appendBoundedNativeEntry("focusa-project-switch-ledger", payload, PROJECT_SWITCH_ANCHOR_MAX_BYTES)) {
     S.lastProjectSwitchPersistHash = digest;
   }
 }
@@ -4183,78 +4090,73 @@ export function setLastProjectRootResolution(resolution: TypedScopeStore["lastPr
 }
 
 /**
- * PI-02: Get lastProjectIdentity from scope store or S fallback.
+ * PI-02: Get lastProjectIdentity from the typed scope store only.
  */
 export function getLastProjectIdentity(): Record<string, any> | null {
   const store = getCurrentScopeStore();
-  return store?.lastProjectIdentity ?? S.lastProjectIdentity;
+  return store ? store.lastProjectIdentity : null;
 }
 
 /**
- * PI-02: Set lastProjectIdentity on both scope store and S singleton.
+ * PI-02: Set lastProjectIdentity on the typed scope store only.
  */
 export function setLastProjectIdentity(identity: Record<string, any> | null): void {
-  S.lastProjectIdentity = identity;
   const store = getCurrentScopeStore();
   if (store) store.lastProjectIdentity = identity;
 }
 
 /**
- * PI-03: Get active workpoint packet from scope store (preferred) or S fallback.
+ * PI-03: Get active workpoint packet from the typed scope store only.
  */
 export function getActiveWorkpointPacket(): Record<string, any> | null {
   const store = getCurrentScopeStore();
-  return store?.activeWorkpointPacket ?? S.activeWorkpointPacket;
+  return store ? store.activeWorkpointPacket : null;
 }
 
 /**
- * PI-03: Set activeWorkpointPacket on both scope store and S singleton.
+ * PI-03: Set activeWorkpointPacket on the typed scope store only.
  */
 export function setActiveWorkpointPacket(packet: Record<string, any> | null): void {
-  S.activeWorkpointPacket = packet;
   const store = getCurrentScopeStore();
   if (store) store.activeWorkpointPacket = packet;
 }
 
 /**
- * PI-03: Get active workpoint summary from scope store (preferred) or S fallback.
+ * PI-03: Get active workpoint summary from the typed scope store only.
  */
 export function getActiveWorkpointSummary(): string {
   const store = getCurrentScopeStore();
-  return store?.activeWorkpointSummary || S.activeWorkpointSummary || "";
+  return store ? store.activeWorkpointSummary || "" : "";
 }
 
 /**
- * PI-03: Set activeWorkpointSummary on both scope store and S singleton.
+ * PI-03: Set activeWorkpointSummary on the typed scope store only.
  */
 export function setActiveWorkpointSummary(summary: string): void {
-  S.activeWorkpointSummary = summary;
   const store = getCurrentScopeStore();
   if (store) store.activeWorkpointSummary = summary;
 }
 
-/** PI-04: Get lastTrajectoryClarity from scope store or S fallback. */
+/** PI-04: Get lastTrajectoryClarity from the typed scope store only. */
 export function getLastTrajectoryClarity(): Record<string, any> | null {
   const store = getCurrentScopeStore();
-  return store?.lastTrajectoryClarity ?? S.lastTrajectoryClarity;
+  return store ? store.lastTrajectoryClarity : null;
 }
 
-/** PI-04: Set lastTrajectoryClarity on both scope store and S. */
+/** PI-04: Set lastTrajectoryClarity on the typed scope store only. */
 export function setLastTrajectoryClarity(snapshot: Record<string, any> | null): void {
-  S.lastTrajectoryClarity = snapshot;
   const store = getCurrentScopeStore();
   if (store) store.lastTrajectoryClarity = snapshot;
 }
 
-/** PI-05: Get lastProjectVerify from scope store or S fallback. */
+/** PI-05: Get lastProjectVerify from the typed scope store only. */
 export function getLastProjectVerify(): Record<string, any> | null {
   const store = getCurrentScopeStore();
-  return store?.lastProjectVerify ?? S.lastProjectVerify;
+  return store ? store.lastProjectVerify : null;
 }
 
-/** PI-05: Set lastProjectVerify on both scope store and S. */
+/** PI-05: Set lastProjectVerify on the typed scope store only. */
 export function setLastProjectVerify(result: Record<string, any> | null): void {
-  S.lastProjectVerify = result;
   const store = getCurrentScopeStore();
   if (store) store.lastProjectVerify = result;
 }

@@ -42,6 +42,7 @@ pub mod intuition;
 pub mod license;
 pub mod memory;
 pub mod permissions;
+pub mod prediction;
 pub mod pre;
 pub mod reducer;
 pub mod reference;

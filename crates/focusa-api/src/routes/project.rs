@@ -3,7 +3,6 @@
 //! ProjectIdentity is a bounded, hot-path-safe orientation record. It composes
 //! filesystem/project signals; it does not select work or mutate cognitive state.
 
-use crate::routes::predictions::read_predictions;
 use crate::routes::preload::{
     PROFILE_RULES_AND_CONTEXT, build_packet_for_profile, commit_receipt_for,
 };
@@ -15,15 +14,15 @@ use axum::{
     routing::{get, post},
 };
 use focusa_core::scope_safety::classify_project_root;
+use focusa_core::scoped_state::{ScopeKind, ScopeRef, WorkstreamKey};
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::{Arc, Mutex, OnceLock};
-use std::time::{Duration, Instant};
+use std::sync::Arc;
 
 #[derive(Debug, Deserialize, Default)]
 pub struct ProjectIdentityQuery {
@@ -2049,94 +2048,19 @@ fn candidate_payload(
     })
 }
 
-type ProjectIdentityPayloadCache = Mutex<HashMap<String, (Instant, Value)>>;
-static PROJECT_IDENTITY_PAYLOAD_CACHE: OnceLock<ProjectIdentityPayloadCache> = OnceLock::new();
-const PROJECT_IDENTITY_PAYLOAD_CACHE_TTL: Duration = Duration::from_secs(2);
-
-fn project_identity_cache_key(
-    cwd: Option<&str>,
-    project_root: Option<&str>,
-    current_ask: Option<&str>,
-    remote_hint: &RemoteProjectHint,
-    scope: Option<&crate::scope::ScopeContext>,
-) -> String {
-    let scope_root = scope
-        .and_then(|s| s.project_root.as_deref())
-        .unwrap_or_default();
-    let scope_cont = scope
-        .and_then(|s| s.continuity_id.as_deref())
-        .unwrap_or_default();
-    format!(
-        "cwd={}\nproject_root={}\ncurrent_ask={}\nscope_root={}\nscope_cont={}\nremote_host={}\nremote_repo_remote={}\nremote_workspace_kind={}\nremote_deploy_root={}\npersisted_project_root={}\npersisted_project_fingerprint={}\npersisted_project_id={}\npersisted_canonical_name={}",
-        cwd.unwrap_or_default(),
-        project_root.unwrap_or_default(),
-        current_ask.unwrap_or_default(),
-        scope_root,
-        scope_cont,
-        remote_hint.remote_host.as_deref().unwrap_or_default(),
-        remote_hint
-            .remote_repo_remote
-            .as_deref()
-            .unwrap_or_default(),
-        remote_hint
-            .remote_workspace_kind
-            .as_deref()
-            .unwrap_or_default(),
-        remote_hint
-            .remote_deploy_root
-            .as_deref()
-            .unwrap_or_default(),
-        remote_hint
-            .persisted_project_root
-            .as_deref()
-            .unwrap_or_default(),
-        remote_hint
-            .persisted_project_fingerprint
-            .as_deref()
-            .unwrap_or_default(),
-        remote_hint
-            .persisted_project_id
-            .as_deref()
-            .unwrap_or_default(),
-        remote_hint
-            .persisted_canonical_name
-            .as_deref()
-            .unwrap_or_default()
-    )
-
-    // HINT: If you remove persisted_canonical_name from the format string,
-    // also remove it from the format!() arguments above.
-}
-
 fn project_identity_payload_for_scope_with_remote(
     cwd: Option<&str>,
     project_root: Option<&str>,
     current_ask: Option<&str>,
     remote_hint: RemoteProjectHint,
-    scope: Option<&crate::scope::ScopeContext>,
+    _scope: Option<&crate::scope::ScopeContext>,
 ) -> Value {
-    let key = project_identity_cache_key(cwd, project_root, current_ask, &remote_hint, scope);
-    let cache = PROJECT_IDENTITY_PAYLOAD_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    if let Ok(guard) = cache.lock()
-        && let Some((cached_at, payload)) = guard.get(&key)
-        && cached_at.elapsed() <= PROJECT_IDENTITY_PAYLOAD_CACHE_TTL
-    {
-        return payload.clone();
-    }
-
-    let payload = candidate_payload(
+    // Identity discovery is intentionally uncached. A process-global cache can
+    // return stale authority across alternating project/workstream requests.
+    candidate_payload(
         discover_identity(cwd, project_root, current_ask, remote_hint),
         None,
-    );
-    if let Ok(mut guard) = cache.lock() {
-        if guard.len() > 64 {
-            guard.retain(|_, (cached_at, _)| {
-                cached_at.elapsed() <= PROJECT_IDENTITY_PAYLOAD_CACHE_TTL
-            });
-        }
-        guard.insert(key, (Instant::now(), payload.clone()));
-    }
-    payload
+    )
 }
 
 pub(crate) fn project_identity_payload_for_scope(
@@ -3609,7 +3533,7 @@ fn scoped_workpoint_record<'a>(
 }
 
 async fn card(
-    _scope: ScopeContext,
+    request_scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Query(query): Query<ProjectIdentityQuery>,
 ) -> Json<Value> {
@@ -3762,8 +3686,47 @@ async fn card(
     let (outcome_count, average_outcome_score, recent_outcome_score) =
         project_card_outcome_stats(&recent_algorithm_outcomes);
     let efficiency_summary = project_card_efficiency_summary(&recent_algorithm_outcomes);
-    let predictions = read_predictions();
-    let prediction = prediction_stats_card(&predictions);
+    let prediction_workstream = request_scope
+        .continuity_id
+        .as_ref()
+        .and_then(|continuity_id| {
+            let root = project.get("project_root").and_then(Value::as_str)?;
+            let scope_ref = ScopeRef {
+                scope_kind: ScopeKind::Project,
+                scope_id: project
+                    .get("project_id")
+                    .and_then(Value::as_str)
+                    .unwrap_or(root)
+                    .to_string(),
+                root_path: root.into(),
+                canonical_name: project
+                    .get("canonical_name")
+                    .and_then(Value::as_str)
+                    .unwrap_or("project")
+                    .to_string(),
+                fingerprint: project
+                    .get("fingerprint")
+                    .or_else(|| project.get("project_fingerprint"))
+                    .and_then(Value::as_str)
+                    .unwrap_or(root)
+                    .to_string(),
+            };
+            WorkstreamKey::new(scope_ref, continuity_id.clone()).ok()
+        });
+    let prediction_records = if let Some(scope) = prediction_workstream.as_ref() {
+        state
+            .prediction_store
+            .recent(scope, 1000)
+            .await
+            .unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+    let prediction_values = prediction_records
+        .iter()
+        .filter_map(|record| serde_json::to_value(&record.value).ok())
+        .collect::<Vec<_>>();
+    let prediction = prediction_stats_card(&prediction_values);
     let current_ask = query.current_ask.as_deref().unwrap_or_default().trim();
     let project_name = project
         .get("canonical_name")

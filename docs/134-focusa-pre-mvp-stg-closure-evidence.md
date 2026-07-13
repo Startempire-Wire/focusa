@@ -1,7 +1,9 @@
 # 134 — Focusa Pre-MVP STG Closure Evidence
 
 **Date:** 2026-07-12  
-**Status:** verified complete  
+**Status:** superseded — reopened 2026-07-13
+
+> **Current authority:** This file preserves the 2026-07-12 closure snapshot only. Spec 130 §§38–54 subsequently reopened after real Pi replay OOM evidence; beads `focusa-w26jj`, `focusa-w26jj.4`, and `focusa-w26jj.7` are reopened. Do not use this document to authorize a build or release.
 **Root bead:** `focusa-w26jj`  
 **Release/deploy boundary: not authorized or implied.** Specs 132/133 may resume from this closure; production release remains a separate operator-controlled gate.
 
@@ -11,8 +13,8 @@
 |---|---|---|---|
 | STG-0 | Baseline, requirement graph, proof budgets | Closed | Dependency-linked `focusa-w26jj.*` graph and runtime memory/version baseline |
 | STG-1 | Spec 125 mandatory Trajectory/non-lazy HLT | Closed | 16 trajectory tests, 22 Workpoint tests, §15.1 static and §15.2 isolated runtime suites |
-| STG-2 | Spec 130 compaction/context firewall | Closed | Packet/API/Pi/CLI tests, Context Cognition runtime, bounded subagent intake, memory telemetry and 3 GiB future-session heap guard |
-| STG-3 | Specs 82/94 optimization | Closed | Memory-SLO, persistence/offload, retrieval pagination, pressure/degrade, bounded payload, profile and store-growth runtime gates |
+| STG-2 | Spec 130 compaction/context firewall | **Reopened** | Original §§0–37 proof preserved; bounded-persistence amendment §§38–54 and real OOM/memory-release proof remain open |
+| STG-3 | Specs 82/94 optimization | **Reopened dependency gate** | Prior optimization proof preserved, but direct blocker `focusa-w26jj.3.7` is open |
 | STG-4 | Spec 128 OTA | Closed | 14 core update tests, installer/service suites, status/runtime tests, signature/provenance and deterministic atomic rollback faults |
 | STG-5 | Software currency | Closed | `config/software-currency.json`, exact Pi SDK pin, workspace all-target check, Pi lint/typecheck, UIAI health, release/version and continuous drift tests |
 

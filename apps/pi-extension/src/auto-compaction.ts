@@ -127,11 +127,18 @@ export function registerAutoCompaction(pi: ExtensionAPI): void {
 
   pi.on("agent_end", async (_event, ctx) => {
     clearTimer();
-    // Yield to Pi's native post-run compaction check. If native compaction runs,
-    // its rebuilt context reports unknown/low usage and this fallback becomes a no-op.
+    // Yield to Pi's native post-run compaction check. The host can still be busy
+    // with retry/continuation work after agent_end, so this is only the fast path.
     evaluationTimer = setTimeout(() => {
       evaluationTimer = null;
       maybeCompact(ctx);
     }, 0);
+  });
+
+  pi.on("agent_settled", async (_event, ctx) => {
+    // agent_settled is the authoritative idle boundary. Re-evaluate here so an
+    // agent_end check skipped while Pi was busy cannot silently lose compaction.
+    clearTimer();
+    maybeCompact(ctx);
   });
 }

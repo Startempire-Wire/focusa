@@ -448,13 +448,18 @@ Common dependency categories:
 - shell support (`bash`, `sh`, PowerShell) and terminal capability;
 - optional build/dev dependencies only when source/dev channel requires local build.
 
-Intro and terminal UX:
+Intro and terminal UX (as amended by Spec 132):
 
-- show a short Focusa intro animation/spinner when stdout is an interactive TTY and `NO_COLOR`/`CI` are not set;
-- animation must have `--no-animation`, `--quiet`, and non-TTY fallback;
+- `focusa install` owns terminal presentation in Rust through `focusa-terminal-ui`; the shell and PowerShell bootstrappers remain thin handoff surfaces;
+- animated modes render to stderr only and JSON remains a single stdout document;
+- animation is disabled by `--quiet`, `--json`, non-TTY stderr, CI, `TERM=dumb`, too-small terminals, or `FOCUSA_INSTALL_UI=plain`;
+- `--no-animation` selects plain mode;
+- `NO_COLOR` / `CLICOLOR=0` select monochrome animation on a suitable TTY instead of disabling all motion;
+- `FOCUSA_REDUCE_MOTION=1` selects reduced-motion mode on a suitable TTY;
+- `FOCUSA_INSTALL_UI=auto|full|mono|reduced|plain` and `FOCUSA_INSTALL_SEED=<u64>` are supported diagnostics/test controls;
 - first screen explains what Focusa will install, where, and what data it will not touch;
-- progress phases: preflight, license, release selection, download, verify, install, service, smoke test, update policy, next steps;
-- errors should be plain-language with exact recovery commands.
+- progress phases: initialize environment, detect system, validate license, resolve release, download assets, verify checksums/trust, install binaries, integrate Pi, register service, persist PATH, run health checks, finalize, complete/rollback;
+- errors should be plain-language with exact recovery commands and terminal state restored before durable output.
 
 Additional installer best practices:
 
@@ -541,7 +546,7 @@ Update events should be visible in:
 23. Update checks do not send project names, Workpoints, evidence, prompts, local file paths, `.env`, or secrets.
 24. Installer preflight detects OS/distro, arch, shell, terminal, package manager, service manager, privileges, PATH, existing install, license/dev override, and update policy.
 25. Installer offers to install missing system dependencies with exact commands, dry-run, assume-yes guardrails, and recovery hints.
-26. Installer intro animation appears only on interactive terminals and is disabled by `--no-animation`, `--quiet`, CI, non-TTY, or `NO_COLOR`.
+26. Installer animation appears only on suitable interactive stderr terminals; `--no-animation` selects plain mode, `--quiet`/`--json`/CI/non-TTY/`TERM=dumb` suppress alternate-screen animation, and `NO_COLOR` selects monochrome animation rather than disabling motion.
 27. Installer supports dry-run, doctor, repair, uninstall-preserve-data, portable/user-local, proxy/offline/airgap, and idempotent rerun flows.
 28. Installer writes initial update policy based on license: dev mode automatic latest, evaluation notify-only, paid prompt/scheduled according to entitlement.
 29. Structured update events are visible in daemon API, CLI status, TUI/menubar/Pi doctor where applicable, and update history.

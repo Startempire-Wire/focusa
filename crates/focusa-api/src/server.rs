@@ -10,8 +10,10 @@ use crate::middleware;
 use crate::routes;
 use crate::routes::bounded::{observe_resource_mode_transition, resource_mode_status};
 use crate::routes::sse::EventBroadcaster;
+use crate::scoped_store::ScopedCrdtLedger;
 use axum::middleware as axum_mw;
 use axum::{Router, extract::DefaultBodyLimit};
+use focusa_core::prediction::PredictionValue;
 use focusa_core::runtime::persistence_sqlite::SqlitePersistence;
 use tower_http::services::ServeDir;
 
@@ -237,6 +239,8 @@ pub struct AppState {
     pub writer_claims: Arc<TokioRwLock<HashMap<String, String>>>,
     /// FocusStackState by scope key — FS-01: Focus State reducer scope enforcement.
     pub focus_stack_by_scope: Arc<TokioRwLock<HashMap<String, FocusStackState>>>,
+    /// Typed ProjectRootKey + WorkstreamKey scoped prediction CRDT ledger.
+    pub prediction_store: Arc<ScopedCrdtLedger<PredictionValue>>,
     /// Process start time for uptime reporting.
     pub started_at: Instant,
     /// Optional daemon-owned Pi RPC transport session for continuous work.
@@ -978,6 +982,11 @@ pub async fn run(
     let bind_addr = config.api_bind.clone();
 
     let broadcaster = EventBroadcaster::new();
+    let prediction_store = Arc::new(ScopedCrdtLedger::new(
+        &config.data_dir,
+        "predictions",
+        format!("daemon:{}", std::process::id()),
+    ));
 
     let state = Arc::new(AppState {
         focusa,
@@ -991,6 +1000,7 @@ pub async fn run(
         token_store: Arc::new(RwLock::new(focusa_core::permissions::TokenStore::new())),
         writer_claims: Arc::new(TokioRwLock::new(HashMap::new())),
         focus_stack_by_scope: Arc::new(TokioRwLock::new(HashMap::new())),
+        prediction_store,
         started_at: Instant::now(),
         pi_rpc_session: Arc::new(Mutex::new(None)),
         supervisor_perf: Arc::new(SupervisorPerfCounters::default()),

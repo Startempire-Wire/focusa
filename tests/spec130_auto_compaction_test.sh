@@ -6,6 +6,7 @@ INDEX="$ROOT/apps/pi-extension/src/index.ts"
 
 rg -q 'PROACTIVE_COMPACTION_RESERVE_FRACTION = 0\.1' "$AUTO"
 rg -q 'pi\.on\("agent_end"' "$AUTO"
+rg -q 'pi\.on\("agent_settled"' "$AUTO"
 rg -q 'pi\.on\("session_compact"' "$AUTO"
 rg -q 'ctx\.getContextUsage\(\)' "$AUTO"
 rg -q 'ctx\.compact\(' "$AUTO"

@@ -1,7 +1,7 @@
 # Spec 112 — Install Binary Architecture
 
 **Spec number:** 112
-**Status:** Specification (no implementation yet)
+**Status:** Historical architecture specification with current Rust implementation addenda. Stale lines that describe the Rust installer as unimplemented are superseded by §15A and Spec 132.
 **Operator ask:** Smart, system-detecting installer that installs proper binary and weaves into license authority (WordPress website).
 **Source URL:** https://install.focusa.dev/focusa
 **Last verified:** 2026-06-26
@@ -1035,7 +1035,7 @@ The installer is ready for MVP Cohort when ALL of these are ✅:
 
 ### 15A.1 Canonical entry: `focusa install`
 
-The installer is implemented as a **Rust subcommand** at `crates/focusa-cli/src/commands/install.rs`. All install logic — license validation, asset download, SHA256SUMS verification, symlink placement, service rendering, atomicity, rollback, dry-run, recovery hints — lives in Rust and is unit-testable.
+The installer is implemented as a **Rust subcommand** at `crates/focusa-cli/src/commands/install.rs`. All install logic — license validation, asset download, SHA256SUMS verification, symlink placement, service rendering, atomicity, rollback, dry-run, recovery hints — lives in Rust and is unit-testable. Spec 132 adds the binding terminal presentation layer: `crates/focusa-terminal-ui` receives sanitized installer events and renders the transient Hybrid AC terminal UI without owning install decisions.
 
 The bash and PowerShell installers (`install.focusa.dev/focusa`, `install.focusa.dev/focusa.ps1`) are **thin bootstrappers** whose sole job is:
 
@@ -1066,7 +1066,7 @@ existing `crates/focusa-cli/src/commands/service.rs`:
 
 - Linux → `service::run_systemd_user` (renders `~/.config/systemd/user/focusa-daemon.service`)
 - macOS → `service::run_launchd_user` (renders `~/Library/LaunchAgents/com.startempire.focusa-daemon.plist` + `launchctl load -w`)
-- Windows → `service::run_scm` (renders `sc.exe` registration; future work, Phase 2.0)
+- Windows → service registration is reported truthfully by the Rust installer as registered, skipped, or warning according to available host support; it must not falsely fail core install solely because service registration is unavailable.
 
 The shell installer MUST NOT duplicate service rendering. This is the
 bead `focusa-foyr` closure condition.

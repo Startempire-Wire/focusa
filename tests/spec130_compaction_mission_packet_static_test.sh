@@ -36,6 +36,8 @@ require "$API" 'recent_turn:'
 require "$RECENT" 'pub(crate) fn read_recent_turns_bounded'
 require "$MOD" 'pub mod compaction;'
 require "$SERVER" '.merge(routes::compaction::router())'
+require "$PI" 'currentCompactionScope()'
+require "$PI" 'scope.root_scope.root_path'
 require "$PI" 'buildCompactionMissionPacket("before_compaction")'
 require "$PI" 'buildCompactionMissionPacket("after_compaction")'
 require "$PI" 'renderCompactionMissionPacket(missionPacket)'
@@ -44,6 +46,10 @@ require "$PI" 'focusa.compaction_memory_verdict.v1'
 require "$PI" 'FOCUSA_PI_COMPACTION_RSS_WARN_MIB'
 require "$PI" 'warn_retained_under_pressure'
 require "$PI" 'scheduleCompactionMemoryEvaluation()'
+if rg -q 'getSessionCwd\(\) \|\| process\.cwd\(\)' "$PI"; then
+  echo 'FAIL: compaction falls back to process cwd instead of typed verified scope' >&2
+  exit 1
+fi
 require "$CLI" 'CompactionCmd'
 require "$CLI" '/v1/compaction/inspect/'
 require "$CLI" '/v1/compaction/evaluate'
