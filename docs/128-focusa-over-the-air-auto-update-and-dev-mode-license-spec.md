@@ -555,11 +555,12 @@ Implemented MVP-safe scaffolds through `focusa-wefzg.11`:
 - license/dev-mode update policy defaults with `auto_apply_allowed=false`;
 - `focusa install --preflight` system/dependency/terminal UX report;
 - `focusa update plan` compatibility, prompt, lock, staging, atomic, recovery, and no-half-written-executable safety plan;
-- `focusa update apply` guarded `blocked_read_only` envelope with CLI/TUI/daemon-last execution order and no data/env/license overwrite;
-- `focusa update history`, `rollback`, `admin`, `scheduler`, and `notifications` read-only observability/control envelopes;
-- `tests/spec128_update_runtime_test.sh` plus cargo integration `spec128_update_runtime_e2e` covering the acceptance-critical runtime checks.
+- `focusa update apply` performs guarded locking, staging/download, signed-SHA256SUMS trust resolution, checksum verification, fsync, atomic promotion, daemon-last ordering, version/health probes, rollback journaling, and reverse-order restoration when every apply gate permits mutation;
+- `focusa update rollback` restores SHA-verified backup manifests; scheduler installation and policy/admin controls remain separately gated;
+- core staged-asset verification now includes declared size, SHA-256, and Ed25519 signature verification against public-key fingerprint, algorithm, key-id, and revocation state;
+- `tests/spec128_update_runtime_test.sh` plus cargo integration `spec128_update_runtime_e2e` cover safe runtime surfaces, while deeper successful/failed promotion and cross-platform fault-injection proof remains required.
 
-Customer safety boundary: these surfaces prove stale detection, planning, policy, and prompts; they intentionally do not download assets, replace binaries, install timers, restart the daemon, execute rollback, or mutate admin policy until the remaining trust/apply gates are wired.
+Customer safety boundary: updater mutation exists but remains deny-by-default unless explicit consent, eligible release resolution, complete assets, checksums/signatures, compatibility, license, lock, rollback, and health gates all pass. Remaining work is full manifest/provenance integration, per-asset signature use in apply, exhaustive atomic failure proof, scheduler/admin completion, and cross-part/platform parity—not reimplementation of the existing updater.
 
 Proof commands:
 
