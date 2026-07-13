@@ -9,6 +9,7 @@ bash tests/spec130_compaction_mission_packet_static_test.sh >/dev/null
 bash tests/spec130_bounded_persistence_test.sh >/dev/null
 bash tests/spec130_native_session_pressure_test.sh >/dev/null
 bash tests/spec130_auto_compaction_test.sh >/dev/null
+bash tests/spec104_scoped_state_foundation_test.sh >/dev/null
 bash tests/focusa_decide_scope_recovery_test.sh >/dev/null
 bash tests/spec82_low_resource_efficiency_static_test.sh >/dev/null
 bash tests/spec94_response_size_and_metadata_contract_test.sh >/dev/null

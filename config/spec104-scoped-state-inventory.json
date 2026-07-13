@@ -1,0 +1,326 @@
+{
+  "schema": "focusa.spec104.singleton_inventory.v1",
+  "authority": "docs/104-typed-scoped-runtime-and-singleton-elimination-spec.md",
+  "entries": [
+    {
+      "annex_id": "API-11",
+      "path": "crates/focusa-api/src/middleware/rate_limit.rs",
+      "symbol": "MUTATION_BUCKETS",
+      "classification": "scope_key",
+      "authority_bearing": false,
+      "status": "open",
+      "target": "Typed caller or host runtime scope key; never project authority",
+      "acceptance_test": "rate limits for one typed scope do not throttle another"
+    },
+    {
+      "annex_id": "INF-01",
+      "path": "crates/focusa-api/src/routes/bounded.rs",
+      "symbol": "TEST_PRESSURE_THRESHOLD_KB",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Test-only process pressure override",
+      "acceptance_test": "cfg-test-only static classification"
+    },
+    {
+      "annex_id": "INF-02",
+      "path": "crates/focusa-api/src/routes/bounded.rs",
+      "symbol": "RUNTIME_RESOURCE_MODE_OVERRIDE",
+      "classification": "scope_key",
+      "authority_bearing": false,
+      "status": "open",
+      "target": "Typed host/runtime scope resource-mode service",
+      "acceptance_test": "resource override cannot change another scope"
+    },
+    {
+      "annex_id": "INF-03",
+      "path": "crates/focusa-api/src/routes/bounded.rs",
+      "symbol": "RESOURCE_MODE_LAST_OBSERVED",
+      "classification": "scope_key",
+      "authority_bearing": false,
+      "status": "open",
+      "target": "Typed host/runtime scope observation",
+      "acceptance_test": "canonical authority independent of prior observation"
+    },
+    {
+      "annex_id": "INF-04",
+      "path": "crates/focusa-api/src/routes/bounded.rs",
+      "symbol": "RESOURCE_MODE_TRANSITIONS",
+      "classification": "scope_key",
+      "authority_bearing": false,
+      "status": "open",
+      "target": "Scoped telemetry transition ledger",
+      "acceptance_test": "transition query is scope-isolated"
+    },
+    {
+      "annex_id": "INF-05",
+      "path": "crates/focusa-api/src/routes/bounded.rs",
+      "symbol": "RESOURCE_MODE_TRANSITION_OMITTED",
+      "classification": "scope_key",
+      "authority_bearing": false,
+      "status": "open",
+      "target": "Scoped telemetry omission counter",
+      "acceptance_test": "omission count cannot alter authority"
+    },
+    {
+      "annex_id": "INF-06",
+      "path": "crates/focusa-api/src/routes/bounded.rs",
+      "symbol": "RESOURCE_MODE_HYSTERESIS_STATE",
+      "classification": "scope_key",
+      "authority_bearing": false,
+      "status": "open",
+      "target": "Typed host/runtime scope hysteresis state",
+      "acceptance_test": "hysteresis state is isolated per runtime scope"
+    },
+    {
+      "annex_id": "INF-07",
+      "path": "crates/focusa-api/src/routes/bounded.rs",
+      "symbol": "PRESSURE_TRANSITION",
+      "classification": "scope_key",
+      "authority_bearing": false,
+      "status": "open",
+      "target": "Scoped pressure telemetry",
+      "acceptance_test": "pressure transitions cannot bleed scopes"
+    },
+    {
+      "annex_id": "INF-07",
+      "path": "crates/focusa-api/src/routes/bounded.rs",
+      "symbol": "PRESSURE_LAST_ACTIVE",
+      "classification": "scope_key",
+      "authority_bearing": false,
+      "status": "open",
+      "target": "Scoped pressure telemetry",
+      "acceptance_test": "pressure activity cannot bleed scopes"
+    },
+    {
+      "annex_id": "INF-07",
+      "path": "crates/focusa-api/src/routes/bounded.rs",
+      "symbol": "RESPONSE_SIZE_SAMPLES",
+      "classification": "scope_key",
+      "authority_bearing": false,
+      "status": "open",
+      "target": "Scoped route telemetry",
+      "acceptance_test": "response samples cannot bleed scopes"
+    },
+    {
+      "annex_id": "INF-01",
+      "path": "crates/focusa-api/src/routes/bounded.rs",
+      "symbol": "TEST_RESOURCE_MODE_LOCK",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Test serialization lock only",
+      "acceptance_test": "cfg-test-only static classification"
+    },
+    {
+      "annex_id": "API-12",
+      "path": "crates/focusa-api/src/routes/compaction.rs",
+      "symbol": "STORE",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "open",
+      "target": "AppState-owned typed scoped advisory cache over durable ledger",
+      "acceptance_test": "restart and cache eviction preserve scoped packet authority"
+    },
+    {
+      "annex_id": "API-08",
+      "path": "crates/focusa-api/src/routes/device_pairing.rs",
+      "symbol": "STATE",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Device pairing runtime isolated from cognition authority",
+      "acceptance_test": "pairing state cannot alter project/workstream authority"
+    },
+    {
+      "annex_id": "API-10",
+      "path": "crates/focusa-api/src/routes/license.rs",
+      "symbol": "GUARD",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Immutable initialized license guard",
+      "acceptance_test": "guard cannot supply or mutate scope"
+    },
+    {
+      "annex_id": "API-05",
+      "path": "crates/focusa-api/src/routes/metacognition.rs",
+      "symbol": "METACOG_STORE",
+      "classification": "eliminate",
+      "authority_bearing": true,
+      "status": "open",
+      "target": "Typed scoped CRDT metacognition ledger/read model in AppState service",
+      "acceptance_test": "project and workstream learning isolation plus CRDT convergence"
+    },
+    {
+      "annex_id": "API-09",
+      "path": "crates/focusa-api/src/routes/ontology.rs",
+      "symbol": "ACTION_CATALOG_PROJECTION",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Immutable action catalog projection",
+      "acceptance_test": "projection contains no mutable request scope"
+    },
+    {
+      "annex_id": "API-09",
+      "path": "crates/focusa-api/src/routes/ontology.rs",
+      "symbol": "ONTOLOGY_READ_INDEX_CACHE",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "open",
+      "target": "AppState-owned typed scope index or immutable global index proof",
+      "acceptance_test": "scope-relative ontology cannot return prior-scope index"
+    },
+    {
+      "annex_id": "API-04",
+      "path": "crates/focusa-api/src/routes/predictions.rs",
+      "symbol": "PREDICTION_CACHE",
+      "classification": "eliminate",
+      "authority_bearing": true,
+      "status": "open",
+      "target": "Typed scoped CRDT prediction ledger/read model in AppState service",
+      "acceptance_test": "record/recent/evaluate/outcome/stats isolate project and workstream"
+    },
+    {
+      "annex_id": "API-02",
+      "path": "crates/focusa-api/src/routes/project.rs",
+      "symbol": "PROJECT_IDENTITY_PAYLOAD_CACHE",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "open",
+      "target": "AppState-owned ScopeRef-keyed identity cache",
+      "acceptance_test": "alternating roots never return prior identity"
+    },
+    {
+      "annex_id": "API-10",
+      "path": "crates/focusa-api/src/routes/proxy.rs",
+      "symbol": "UPSTREAM_CLIENT",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Shared stateless HTTP connection pool",
+      "acceptance_test": "client contains no canonical scope state"
+    },
+    {
+      "annex_id": "API-07",
+      "path": "crates/focusa-api/src/routes/snapshots.rs",
+      "symbol": "SNAPSHOTS",
+      "classification": "eliminate",
+      "authority_bearing": true,
+      "status": "open",
+      "target": "Typed scoped CRDT snapshot ledger/read model",
+      "acceptance_test": "cross-scope snapshot read/restore blocked"
+    },
+    {
+      "annex_id": "API-06",
+      "path": "crates/focusa-api/src/routes/turn.rs",
+      "symbol": "RECENT_COMPLETED_TURNS",
+      "classification": "eliminate",
+      "authority_bearing": true,
+      "status": "open",
+      "target": "Typed attachment/session scoped dedupe service",
+      "acceptance_test": "same turn id in separate scopes never collides"
+    },
+    {
+      "annex_id": "API-03",
+      "path": "crates/focusa-api/src/routes/workpoint.rs",
+      "symbol": "WORKPOINT_IDEMPOTENCY_CACHE",
+      "classification": "eliminate",
+      "authority_bearing": true,
+      "status": "open",
+      "target": "Typed WorkstreamKey plus action/idempotency CRDT ledger",
+      "acceptance_test": "same key under separate scopes remains isolated"
+    },
+    {
+      "annex_id": "API-01",
+      "path": "crates/focusa-api/src/server.rs",
+      "symbol": "APP_STATE",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Dependency injection handle only; routes require typed request scope",
+      "acceptance_test": "no canonical route reads global current authority"
+    },
+    {
+      "annex_id": "MBN-01",
+      "path": "apps/menubar/src-tauri/src/main.rs",
+      "symbol": "BRIDGE_COMPLETIONS",
+      "classification": "scope_key",
+      "authority_bearing": false,
+      "status": "open",
+      "target": "Tauri managed state keyed by typed attachment scope",
+      "acceptance_test": "completion cannot cross attachment scope"
+    },
+    {
+      "annex_id": "MBN-01",
+      "path": "apps/menubar/src-tauri/src/main.rs",
+      "symbol": "BRIDGE_LISTENERS",
+      "classification": "scope_key",
+      "authority_bearing": false,
+      "status": "open",
+      "target": "Tauri managed state keyed by typed attachment scope",
+      "acceptance_test": "listener cannot cross attachment scope"
+    },
+    {
+      "annex_id": "PI-01",
+      "path": "apps/pi-extension/src/state.ts",
+      "symbol": "S",
+      "classification": "eliminate",
+      "authority_bearing": true,
+      "status": "open",
+      "target": "Typed ScopeRuntimeStore keyed by ScopeRef, WorkstreamKey, and AttachmentKey",
+      "acceptance_test": "zero canonical S reads/writes and cross-session isolation"
+    },
+    {
+      "annex_id": "API-04",
+      "path": "crates/focusa-api/src/routes/predictions.rs",
+      "symbol": "GLOBAL_FILE:spec92_predictions.json",
+      "classification": "eliminate",
+      "authority_bearing": true,
+      "status": "open",
+      "target": "Scoped append-only CRDT prediction ledgers under WorkstreamKey storage path",
+      "acceptance_test": "no global prediction file; explicit legacy migration only"
+    },
+    {
+      "annex_id": "API-04",
+      "path": "crates/focusa-api/src/routes/ontology.rs",
+      "symbol": "CONSUMER_FILE:spec92_predictions.json",
+      "classification": "consumer_migrate",
+      "authority_bearing": true,
+      "status": "open",
+      "target": "Prediction ontology consumes typed scoped prediction service",
+      "acceptance_test": "ontology never reads global prediction file"
+    },
+    {
+      "annex_id": "API-05",
+      "path": "crates/focusa-api/src/routes/metacognition.rs",
+      "symbol": "GLOBAL_DIR:runtime/metacognition",
+      "classification": "eliminate",
+      "authority_bearing": true,
+      "status": "open",
+      "target": "WorkstreamKey-partitioned append-only CRDT metacognition ledgers",
+      "acceptance_test": "no unscoped metacognition directory; legacy quarantine only"
+    },
+    {
+      "annex_id": "PI-08",
+      "path": "apps/pi-extension/src/state.ts",
+      "symbol": "GLOBAL_FILE:focusa-project-root.json",
+      "classification": "eliminate",
+      "authority_bearing": true,
+      "status": "open",
+      "target": "Typed non-authoritative scope profiles or no remembered-root file",
+      "acceptance_test": "broad cwd cannot adopt one-slot remembered project"
+    },
+    {
+      "annex_id": "AWA-02",
+      "path": "apps/focusa-awareness/index.ts",
+      "symbol": "HARDCODED_SCOPE_DEFAULT",
+      "classification": "eliminate",
+      "authority_bearing": true,
+      "status": "open",
+      "target": "Typed bootstrap scope packet or blocked/advisory state",
+      "acceptance_test": "no hardcoded project root default"
+    }
+  ]
+}

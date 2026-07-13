@@ -49,6 +49,7 @@ pub mod replay;
 pub mod rfm;
 pub mod runtime;
 pub mod scope_safety;
+pub mod scoped_state;
 pub mod skills;
 pub mod sync;
 pub mod telemetry;

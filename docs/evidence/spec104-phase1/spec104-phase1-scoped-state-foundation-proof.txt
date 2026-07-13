@@ -1,0 +1,31 @@
+Spec 104 Phase 0/1 — inventory and typed scoped CRDT foundation proof
+Date: 2026-07-13
+Work item: focusa-fsrc.26
+
+Correction applied:
+- prior focusa-fsrc closure was invalidated and reopened
+- contradicted Pi/API singleton-removal children were reopened
+- current source inventory found 32 mutable-global/non-scoped markers; 25 require remediation and 7 are explicitly infra-classified
+- existing deep sweep passed despite those violations, so it is no longer accepted as singleton closure proof
+
+Implemented:
+- Rust ScopeKind, ScopeRef, ProjectRootKey, WorkstreamKey and AttachmentKey
+- broad roots rejected as project scope and accepted only through explicit typed host scope
+- continuity required but secondary to verified root authority
+- typed AuthorityEnvelope and HumanReadableSummary
+- ScopedResultEnvelope carrying human and machine views together
+- vector-clock + Lamport ScopedCrdtRecord and ScopedCrdtMap reconciliation
+- causal, concurrent, commutative, idempotent and cross-scope-blocking merge semantics
+- TypeScript parity types, validators, reconciliation and human renderer
+- JSON schema parity for project/host scope, authority, human summary and data
+- machine inventory gate that blocks unknown/stale findings
+- closure mode that fails while any remediation remains open
+
+Proof:
+PASS python3 tests/spec104_singleton_inventory_gate.py
+EXPECTED BLOCK python3 tests/spec104_singleton_inventory_gate.py --closure (25 remediation entries open)
+PASS bash tests/spec104_scoped_state_foundation_test.sh
+PASS cargo test -p focusa-core scoped_state --lib (6/6)
+PASS npm --prefix apps/pi-extension run typecheck
+PASS npm --prefix apps/pi-extension run lint -- --quiet
+PASS git diff --check

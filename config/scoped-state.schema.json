@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://focusa.dev/schemas/scoped-state.v1.json",
+  "title": "Focusa Typed Scoped State Contracts",
+  "$defs": {
+    "scopeRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope_kind", "scope_id", "root_path", "canonical_name", "fingerprint"],
+      "properties": {
+        "scope_kind": {"enum": ["project", "host"]},
+        "scope_id": {"type": "string", "minLength": 1},
+        "root_path": {"type": "string", "minLength": 1},
+        "canonical_name": {"type": "string", "minLength": 1},
+        "fingerprint": {"type": "string", "minLength": 1}
+      }
+    },
+    "workstreamKey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["root_scope", "continuity_id"],
+      "properties": {
+        "root_scope": {"$ref": "#/$defs/scopeRef"},
+        "continuity_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "why"],
+      "properties": {
+        "status": {"enum": ["canonical", "advisory", "blocked", "degraded"]},
+        "why": {"type": "string"}
+      }
+    },
+    "human": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "summary", "next_action", "why", "evidence_refs", "warnings"],
+      "properties": {
+        "status": {"type": "string"},
+        "summary": {"type": "string"},
+        "next_action": {"type": "string"},
+        "why": {"type": "string"},
+        "evidence_refs": {"type": "array", "items": {"type": "string"}},
+        "warnings": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "scope", "authority", "human", "data"],
+  "properties": {
+    "schema": {"const": "focusa.scoped_result.v1"},
+    "scope": {"$ref": "#/$defs/workstreamKey"},
+    "authority": {"$ref": "#/$defs/authority"},
+    "human": {"$ref": "#/$defs/human"},
+    "data": {}
+  }
+}

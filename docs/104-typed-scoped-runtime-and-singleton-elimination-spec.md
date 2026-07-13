@@ -414,6 +414,13 @@ Produce the full singleton evidence matrix with:
 - target replacement,
 - acceptance tests.
 
+Machine enforcement artifacts:
+
+- `config/spec104-scoped-state-inventory.json` is the classified source inventory.
+- `tests/spec104_singleton_inventory_gate.py` fails on unknown or stale singleton/non-scoped markers.
+- `tests/spec104_singleton_inventory_gate.py --closure` fails while any remediation remains open.
+- `crates/focusa-core/src/scoped_state.rs`, `apps/pi-extension/src/scoped-state.ts`, and `config/scoped-state.schema.json` define Rust/TS/JSON contract parity.
+
 ### Phase 1 — establish typed scope model
 
 Required before broad surface refactors:
