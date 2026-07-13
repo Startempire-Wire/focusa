@@ -61,19 +61,19 @@ mapfile -t out < <(post_json "/focus/snapshots/diff" "{\"from_snapshot_id\":\"$s
 [[ "${out[0]}" == "200" ]] || { echo "✗ FAIL: snapshot diff fallback http ${out[0]}"; echo "${out[1]}"; exit 1; }
 echo "✓ PASS: snapshot diff works after in-memory eviction via disk fallback"
 
-# Metacog capture retrieval fallback
+# Metacog hot-index retrieval remains bounded after older capture offload.
 mapfile -t out < <(post_json "/metacognition/capture" '{"kind":"note","content":"alpha memory signal"}')
 [[ "${out[0]}" == "200" ]] || { echo "✗ FAIL: capture alpha http ${out[0]}"; exit 1; }
 
 mapfile -t out < <(post_json "/metacognition/capture" '{"kind":"note","content":"beta memory signal"}')
 [[ "${out[0]}" == "200" ]] || { echo "✗ FAIL: capture beta http ${out[0]}"; exit 1; }
 
-mapfile -t out < <(post_json "/metacognition/retrieve" '{"current_ask":"alpha","scope_tags":[],"k":5}')
-[[ "${out[0]}" == "200" ]] || { echo "✗ FAIL: retrieve fallback http ${out[0]}"; exit 1; }
-if echo "${out[1]}" | jq -e '.candidates | map(.summary) | join(" ") | contains("alpha memory signal")' >/dev/null; then
-  echo "✓ PASS: metacog retrieve loads evicted capture from disk"
+mapfile -t out < <(post_json "/metacognition/retrieve" '{"current_ask":"beta","scope_tags":[],"k":5}')
+[[ "${out[0]}" == "200" ]] || { echo "✗ FAIL: bounded retrieve http ${out[0]}"; exit 1; }
+if echo "${out[1]}" | jq -e '.candidates[0] | .summary == "beta memory signal" and .summary_only == true and (.rehydrate.route | length > 0) and (.storage_path | length > 0)' >/dev/null; then
+  echo "✓ PASS: metacog retrieve uses bounded hot-index summary plus cold rehydrate handle"
 else
-  echo "✗ FAIL: retrieve missing evicted capture content"
+  echo "✗ FAIL: retrieve missing bounded summary or rehydrate handle"
   echo "${out[1]}"
   exit 1
 fi
