@@ -11,6 +11,7 @@ pub mod claim;
 pub mod cleanup;
 pub mod clt;
 pub mod codesign;
+pub mod compaction;
 pub mod constitution;
 pub mod context_cognition;
 pub mod continue_work;

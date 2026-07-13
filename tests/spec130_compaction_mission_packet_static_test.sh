@@ -5,6 +5,8 @@ API="$ROOT/crates/focusa-api/src/routes/compaction.rs"
 PI="$ROOT/apps/pi-extension/src/compaction.ts"
 MOD="$ROOT/crates/focusa-api/src/routes/mod.rs"
 SERVER="$ROOT/crates/focusa-api/src/server.rs"
+CLI="$ROOT/crates/focusa-cli/src/commands/compaction.rs"
+MAIN="$ROOT/crates/focusa-cli/src/main.rs"
 
 require() { grep -Fq "$2" "$1" || { echo "missing: $2 in $1" >&2; exit 1; }; }
 
@@ -27,5 +29,11 @@ require "$PI" 'buildCompactionMissionPacket("before_compaction")'
 require "$PI" 'buildCompactionMissionPacket("after_compaction")'
 require "$PI" 'renderCompactionMissionPacket(missionPacket)'
 require "$PI" 'focusa.compaction_mission_packet.v1'
+require "$CLI" 'CompactionCmd'
+require "$CLI" '/v1/compaction/inspect/'
+require "$CLI" '/v1/compaction/evaluate'
+require "$CLI" '/v1/compaction/replay'
+require "$CLI" '/v1/compaction/diff'
+require "$MAIN" 'Compaction(commands::compaction::CompactionCmd)'
 
 echo 'PASS: Spec 130 CompactionMissionPacket API and Pi wiring'

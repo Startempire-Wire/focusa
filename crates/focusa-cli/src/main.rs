@@ -123,6 +123,10 @@ enum Commands {
     #[command(subcommand)]
     Update(commands::update::UpdateCmd),
 
+    /// Inspect, evaluate, replay, and diff bounded compaction packets (Spec 130).
+    #[command(subcommand)]
+    Compaction(commands::compaction::CompactionCmd),
+
     /// Upgrade an existing Focusa install via the atomic installer path.
     Upgrade(commands::upgrade::UpgradeArgs),
 
@@ -569,6 +573,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::InstallService(args) => commands::service::run(args, false).await,
         Commands::Install(args) => commands::install::run(args).await,
         Commands::Update(cmd) => commands::update::run(cmd, cli.json).await,
+        Commands::Compaction(cmd) => commands::compaction::run(cmd, cli.json).await,
         Commands::Upgrade(args) => commands::upgrade::run(cli.json, args).await,
         Commands::Uninstall(args) => commands::uninstall::run(args).await,
         Commands::Codesign(args) => commands::codesign::run(args).await,
