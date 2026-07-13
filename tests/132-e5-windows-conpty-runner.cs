@@ -16,7 +16,6 @@ public static class Spec132ConPtyRunner
     const uint PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016;
     const uint EXTENDED_STARTUPINFO_PRESENT = 0x00080000;
     const uint CREATE_UNICODE_ENVIRONMENT = 0x00000400;
-    const uint CREATE_NO_WINDOW = 0x08000000;
     const uint WAIT_OBJECT_0 = 0x00000000;
     const uint WAIT_TIMEOUT = 0x00000102;
     const uint CONPTY_TIMEOUT_MS = 60000;
