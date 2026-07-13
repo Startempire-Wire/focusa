@@ -704,6 +704,7 @@ fn trajectory_record_from_define_payload(
         }),
         definition_of_done: Some(definition_of_done),
         supersedes_trajectory_id: body.supersedes_trajectory_id.clone(),
+        hlt_status: HltStatus::CanonicalExplicit,
         canonical: true,
         ..TrajectoryProjectionRecord::default()
     })
