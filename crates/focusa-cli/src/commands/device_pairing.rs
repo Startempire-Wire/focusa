@@ -43,7 +43,7 @@ pub enum DeviceCmd {
     #[command(name = "pair-complete")]
     PairComplete {
         code: String,
-        #[arg(long, default_value = "operator-vps")]
+        #[arg(long, default_value = "operator-host")]
         host: String,
         #[arg(long)]
         operator_id: Option<String>,
@@ -61,7 +61,7 @@ pub enum DeviceCmd {
     /// List paired devices for a host.
     #[command(name = "pair-list")]
     PairList {
-        #[arg(long, default_value = "operator-vps")]
+        #[arg(long, default_value = "operator-host")]
         host: String,
         #[arg(long, default_value = "20")]
         limit: usize,
@@ -71,7 +71,7 @@ pub enum DeviceCmd {
     PairRevoke {
         #[arg(long)]
         device_id: String,
-        #[arg(long, default_value = "operator-vps")]
+        #[arg(long, default_value = "operator-host")]
         host: String,
         #[arg(long)]
         reason: Option<String>,

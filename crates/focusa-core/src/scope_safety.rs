@@ -155,7 +155,7 @@ mod tests {
 
     #[test]
     fn rejects_user_homes() {
-        for root in ["/home/wirebot", "/home/user", "/home/alice"] {
+        for root in ["/home/example", "/home/user", "/home/alice"] {
             let safety = classify_project_root(root);
             assert!(
                 matches!(safety, ScopeSafety::UnsafeUserHome(_)),
@@ -197,7 +197,7 @@ mod tests {
     #[test]
     fn allows_safe_roots() {
         for root in [
-            "/home/wirebot/focusa",
+            "/home/example/project",
             "/root/my-project",
             "/tmp/project",
             "/var/www/project",

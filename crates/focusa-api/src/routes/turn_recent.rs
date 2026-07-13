@@ -315,7 +315,7 @@ mod tests {
         let r = AppendTurnRequest {
             turn_id: "t1".into(),
             continuity_id: "c1".into(),
-            mission_at_turn: "set OVH topology".into(),
+            mission_at_turn: "set deployment topology".into(),
             outcome: "committed".into(),
             evidence_refs: vec!["ev:42".into()],
             tool_call_count: 3,

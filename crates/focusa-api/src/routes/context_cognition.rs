@@ -554,11 +554,13 @@ mod tests {
     #[test]
     fn agent_runtime_paths_are_unsafe_for_any_account() {
         assert!(is_unsafe_agent_runtime_path_inline("/root/.cargo"));
-        assert!(is_unsafe_agent_runtime_path_inline("/home/wirebot/.cargo"));
+        assert!(is_unsafe_agent_runtime_path_inline("/home/example/.cargo"));
         assert!(is_unsafe_agent_runtime_path_inline(
             "/Users/dev/.pi/sessions"
         ));
-        assert!(!is_unsafe_agent_runtime_path_inline("/home/wirebot/focusa"));
+        assert!(!is_unsafe_agent_runtime_path_inline(
+            "/home/example/project"
+        ));
     }
 
     #[test]

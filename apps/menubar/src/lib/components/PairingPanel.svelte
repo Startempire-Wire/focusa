@@ -18,7 +18,7 @@
   import { renderRedactedDebugBundle } from '$lib/stores/diagnostics.svelte';
   import QRCode from './QRCode.svelte';
 
-  let { host = 'operator-vps' }: { host?: string } = $props();
+  let { host = 'operator-host' }: { host?: string } = $props();
 
   let deviceNameInput = $state(localStorage.getItem('focusa_device_name') || 'operator-mac');
   let copied = $state(false);

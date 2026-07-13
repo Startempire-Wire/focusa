@@ -42,8 +42,14 @@
 
   onMount(async () => {
     try {
+      const identity = await fetchJson<{
+        project_identity?: { project_root?: string };
+      }>('/v1/project/identity', 3000);
+      const projectRoot = identity.project_identity?.project_root;
+      if (!projectRoot) throw new Error('No verified project selected');
+      const query = new URLSearchParams({ project_root: projectRoot });
       const resp = await fetchJson<{ status: string; scope_status: string; packet: Packet; next_tools: string[] }>(
-        '/v1/context-cognition?project_root=/home/wirebot/focusa',
+        `/v1/context-cognition?${query.toString()}`,
         3000,
       );
       packet = resp.packet ?? null;

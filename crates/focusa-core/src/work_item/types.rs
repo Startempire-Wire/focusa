@@ -511,7 +511,7 @@ mod tests {
         WorkItemRef {
             provider: WorkItemProvider::Bd,
             provider_item_id: "focusa-glny".into(),
-            project_root: PathBuf::from("/home/wirebot/focusa"),
+            project_root: PathBuf::from("/home/example/project"),
             external_url: None,
         }
     }
