@@ -10,6 +10,7 @@ use crate::routes::bounded::{
     budgeted_requested_limit,
 };
 use crate::routes::permissions::{forbid, permission_context};
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode};
@@ -24,9 +25,9 @@ use std::collections::HashMap;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::Arc;
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct SnapshotRecord {
+pub(crate) struct SnapshotRecord {
     snapshot_id: String,
     clt_node_id: String,
     created_at: chrono::DateTime<chrono::Utc>,
@@ -86,10 +87,15 @@ fn prune_snapshot_store(
     }
 }
 
-static SNAPSHOTS: OnceLock<Mutex<HashMap<String, SnapshotRecord>>> = OnceLock::new();
-
-fn snapshot_store() -> &'static Mutex<HashMap<String, SnapshotRecord>> {
-    SNAPSHOTS.get_or_init(|| Mutex::new(HashMap::new()))
+fn scope_required_response(reason: String) -> (StatusCode, Json<Value>) {
+    (
+        StatusCode::BAD_REQUEST,
+        Json(json!({
+            "status": "error",
+            "code": "SCOPE_REQUIRED",
+            "reason": reason,
+        })),
+    )
 }
 
 fn token_enabled(state: &AppState) -> bool {
@@ -117,25 +123,37 @@ fn compute_checksum(version: u64, head: Option<&str>, clt_node_id: &str) -> Stri
     format!("{:016x}", hasher.finish())
 }
 
-fn snapshot_dir(state: &AppState) -> PathBuf {
+fn snapshot_dir(state: &AppState, scope: &focusa_core::scoped_state::WorkstreamKey) -> PathBuf {
     Path::new(&state.config.data_dir)
         .join("runtime")
         .join("snapshots")
+        .join(scope.storage_key())
 }
 
-fn snapshot_record_path(state: &AppState, snapshot_id: &str) -> PathBuf {
-    snapshot_dir(state).join(format!("{snapshot_id}.json"))
+fn snapshot_record_path(
+    state: &AppState,
+    scope: &focusa_core::scoped_state::WorkstreamKey,
+    snapshot_id: &str,
+) -> PathBuf {
+    snapshot_dir(state, scope).join(format!("{snapshot_id}.json"))
 }
 
-fn snapshot_index_path(state: &AppState) -> PathBuf {
-    snapshot_dir(state).join("snapshot-index.json")
+fn snapshot_index_path(
+    state: &AppState,
+    scope: &focusa_core::scoped_state::WorkstreamKey,
+) -> PathBuf {
+    snapshot_dir(state, scope).join("snapshot-index.json")
 }
 
-fn persist_snapshot_index(state: &AppState, records: impl IntoIterator<Item = SnapshotRecord>) {
+fn persist_snapshot_index(
+    state: &AppState,
+    scope: &focusa_core::scoped_state::WorkstreamKey,
+    records: impl IntoIterator<Item = SnapshotRecord>,
+) {
     let mut items = records.into_iter().collect::<Vec<_>>();
     items.sort_by_key(|rec| std::cmp::Reverse(rec.created_at));
     items.truncate(snapshot_store_config().max_snapshots.min(2048));
-    let path = snapshot_index_path(state);
+    let path = snapshot_index_path(state, scope);
     if let Some(parent) = path.parent() {
         let _ = fs::create_dir_all(parent);
     }
@@ -144,17 +162,24 @@ fn persist_snapshot_index(state: &AppState, records: impl IntoIterator<Item = Sn
     }
 }
 
-fn load_snapshot_index(state: &AppState) -> Vec<SnapshotRecord> {
-    fs::read(snapshot_index_path(state))
+fn load_snapshot_index(
+    state: &AppState,
+    scope: &focusa_core::scoped_state::WorkstreamKey,
+) -> Vec<SnapshotRecord> {
+    fs::read(snapshot_index_path(state, scope))
         .ok()
         .and_then(|bytes| serde_json::from_slice::<Vec<SnapshotRecord>>(&bytes).ok())
         .unwrap_or_default()
 }
 
-fn persist_snapshot_record(state: &AppState, rec: &SnapshotRecord) {
-    let dir = snapshot_dir(state);
+fn persist_snapshot_record(
+    state: &AppState,
+    scope: &focusa_core::scoped_state::WorkstreamKey,
+    rec: &SnapshotRecord,
+) {
+    let dir = snapshot_dir(state, scope);
     let _ = fs::create_dir_all(&dir);
-    let path = snapshot_record_path(state, &rec.snapshot_id);
+    let path = snapshot_record_path(state, scope, &rec.snapshot_id);
     let payload = json!({
         "snapshot_id": rec.snapshot_id,
         "clt_node_id": rec.clt_node_id,
@@ -170,8 +195,12 @@ fn persist_snapshot_record(state: &AppState, rec: &SnapshotRecord) {
     }
 }
 
-fn load_snapshot_record(state: &AppState, snapshot_id: &str) -> Option<SnapshotRecord> {
-    let path = snapshot_record_path(state, snapshot_id);
+fn load_snapshot_record(
+    state: &AppState,
+    scope: &focusa_core::scoped_state::WorkstreamKey,
+    snapshot_id: &str,
+) -> Option<SnapshotRecord> {
+    let path = snapshot_record_path(state, scope, snapshot_id);
     let bytes = fs::read(path).ok()?;
     let v: Value = serde_json::from_slice(&bytes).ok()?;
     Some(SnapshotRecord {
@@ -227,10 +256,14 @@ struct SnapshotCreateBody {
 
 async fn create_snapshot(
     State(state): State<Arc<AppState>>,
+    scope_context: ScopeContext,
     headers: HeaderMap,
     Json(body): Json<SnapshotCreateBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "state:write")?;
+    let scope = scope_context
+        .require_workstream_key()
+        .map_err(scope_required_response)?;
 
     let s = state.focusa.read().await;
     let clt_node_id = body
@@ -254,7 +287,7 @@ async fn create_snapshot(
     let checksum = compute_checksum(s.version, s.clt.head_id.as_deref(), &clt_node_id);
     let created_at = Utc::now();
 
-    let storage_path = snapshot_record_path(&state, &snapshot_id)
+    let storage_path = snapshot_record_path(&state, &scope, &snapshot_id)
         .display()
         .to_string();
     let rec = SnapshotRecord {
@@ -270,14 +303,13 @@ async fn create_snapshot(
 
     drop(s);
 
-    persist_snapshot_record(&state, &rec);
+    persist_snapshot_record(&state, &scope, &rec);
 
-    let mut store = snapshot_store()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let mut stores = state.snapshots_by_scope.write().await;
+    let store = stores.entry(scope.clone()).or_insert_with(HashMap::new);
     store.insert(snapshot_id.clone(), rec.clone());
-    prune_snapshot_store(&mut store, Utc::now(), snapshot_store_config());
-    persist_snapshot_index(&state, store.values().cloned());
+    prune_snapshot_store(store, Utc::now(), snapshot_store_config());
+    persist_snapshot_index(&state, &scope, store.values().cloned());
 
     Ok(Json(json!({
         "status": "ok",
@@ -305,10 +337,14 @@ fn default_restore_mode() -> String {
 
 async fn restore_snapshot(
     State(state): State<Arc<AppState>>,
+    scope_context: ScopeContext,
     headers: HeaderMap,
     Json(body): Json<SnapshotRestoreBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "state:write")?;
+    let scope = scope_context
+        .require_workstream_key()
+        .map_err(scope_required_response)?;
 
     if body.restore_mode != "exact" && body.restore_mode != "merge" {
         return Err((
@@ -322,11 +358,10 @@ async fn restore_snapshot(
     }
 
     let record = {
-        let mut store = snapshot_store()
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut stores = state.snapshots_by_scope.write().await;
+        let store = stores.entry(scope.clone()).or_insert_with(HashMap::new);
         if !store.contains_key(&body.snapshot_id)
-            && let Some(mut disk_record) = load_snapshot_record(&state, &body.snapshot_id)
+            && let Some(mut disk_record) = load_snapshot_record(&state, &scope, &body.snapshot_id)
         {
             disk_record.accessed_at = Utc::now();
             store.insert(body.snapshot_id.clone(), disk_record);
@@ -343,9 +378,9 @@ async fn restore_snapshot(
             ));
         };
         record.accessed_at = Utc::now();
-        persist_snapshot_record(&state, record);
+        persist_snapshot_record(&state, &scope, record);
         let cloned = record.clone();
-        persist_snapshot_index(&state, store.values().cloned());
+        persist_snapshot_index(&state, &scope, store.values().cloned());
         cloned
     };
 
@@ -384,21 +419,25 @@ struct RecentSnapshotsQuery {
 
 async fn recent_snapshots(
     State(state): State<Arc<AppState>>,
+    scope_context: ScopeContext,
     headers: HeaderMap,
     Query(query): Query<RecentSnapshotsQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "lineage:read")?;
+    let scope = scope_context
+        .require_workstream_key()
+        .map_err(scope_required_response)?;
 
     let mut by_id: HashMap<String, SnapshotRecord> = HashMap::new();
     {
-        let store = snapshot_store()
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        for rec in store.values() {
-            by_id.insert(rec.snapshot_id.clone(), rec.clone());
+        let stores = state.snapshots_by_scope.read().await;
+        if let Some(store) = stores.get(&scope) {
+            for rec in store.values() {
+                by_id.insert(rec.snapshot_id.clone(), rec.clone());
+            }
         }
     }
-    for rec in load_snapshot_index(&state) {
+    for rec in load_snapshot_index(&state, &scope) {
         by_id.entry(rec.snapshot_id.clone()).or_insert(rec);
     }
 
@@ -456,24 +495,27 @@ struct SnapshotDiffBody {
 
 async fn diff_snapshots(
     State(state): State<Arc<AppState>>,
+    scope_context: ScopeContext,
     headers: HeaderMap,
     Json(body): Json<SnapshotDiffBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "lineage:read")?;
+    let scope = scope_context
+        .require_workstream_key()
+        .map_err(scope_required_response)?;
 
     let (from, to) = {
-        let mut store = snapshot_store()
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut stores = state.snapshots_by_scope.write().await;
+        let store = stores.entry(scope.clone()).or_insert_with(HashMap::new);
 
         if !store.contains_key(&body.from_snapshot_id)
-            && let Some(mut rec) = load_snapshot_record(&state, &body.from_snapshot_id)
+            && let Some(mut rec) = load_snapshot_record(&state, &scope, &body.from_snapshot_id)
         {
             rec.accessed_at = Utc::now();
             store.insert(body.from_snapshot_id.clone(), rec);
         }
         if !store.contains_key(&body.to_snapshot_id)
-            && let Some(mut rec) = load_snapshot_record(&state, &body.to_snapshot_id)
+            && let Some(mut rec) = load_snapshot_record(&state, &scope, &body.to_snapshot_id)
         {
             rec.accessed_at = Utc::now();
             store.insert(body.to_snapshot_id.clone(), rec);
@@ -490,7 +532,7 @@ async fn diff_snapshots(
             ));
         };
         from.accessed_at = Utc::now();
-        persist_snapshot_record(&state, from);
+        persist_snapshot_record(&state, &scope, from);
         let from_cloned = from.clone();
 
         let Some(to) = store.get_mut(&body.to_snapshot_id) else {
@@ -504,11 +546,11 @@ async fn diff_snapshots(
             ));
         };
         to.accessed_at = Utc::now();
-        persist_snapshot_record(&state, to);
+        persist_snapshot_record(&state, &scope, to);
         let to_cloned = to.clone();
 
-        prune_snapshot_store(&mut store, Utc::now(), snapshot_store_config());
-        persist_snapshot_index(&state, store.values().cloned());
+        prune_snapshot_store(store, Utc::now(), snapshot_store_config());
+        persist_snapshot_index(&state, &scope, store.values().cloned());
         (from_cloned, to_cloned)
     };
 

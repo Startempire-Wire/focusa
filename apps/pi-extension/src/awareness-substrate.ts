@@ -3,7 +3,7 @@
 // Design ref: docs/current/FOCUSA_AWARENESS_ALGORITHM_DESIGN_2026-06-15.md
 
 import {
-  S,
+  getAttachmentRuntime,
   getScopedWorkpointPacket,
   isProjectRootAuthoritySafe,
   normalizeProjectRoot,
@@ -190,15 +190,21 @@ const DVS_CUTOFF = { minimal: 7.0, standard: 4.0, rich: 1.5, onboarding: 0.5 };
 
 export async function gatherAwarenessInput(surface: AwarenessSurface): Promise<AwarenessInput> {
   const scopedPacket = getScopedWorkpointPacket();
-  const projectRoot = normalizeProjectRoot(scopedPacket?.project_root || S.sessionCwd || process.cwd());
+  const projectRoot = normalizeProjectRoot(
+    scopedPacket?.project_root || getAttachmentRuntime().sessionCwd || process.cwd()
+  );
   const authoritySafe = isProjectRootAuthoritySafe(projectRoot);
-  const continuityId = scopedPacket ? String(scopedPacket.continuity_id || "") : String(S.continuityId || "");
-  const sessionId = scopedPacket ? String(scopedPacket.session_id || "") : String(S.sessionFrameKey || "");
+  const continuityId = scopedPacket
+    ? String(scopedPacket.continuity_id || "")
+    : String(getAttachmentRuntime().continuityId || "");
+  const sessionId = scopedPacket
+    ? String(scopedPacket.session_id || "")
+    : String(getAttachmentRuntime().sessionFrameKey || "");
 
   // Trajectory view (async, non-blocking)
   let trajectoryView: AwarenessInput["trajectoryView"] = null;
   try {
-    if (S.focusaAvailable && authoritySafe) {
+    if (getAttachmentRuntime().focusaAvailable && authoritySafe) {
       const tv = await focusaFetch("/trajectory/view");
       if (tv && tv.ok) {
         trajectoryView = {
@@ -225,7 +231,7 @@ export async function gatherAwarenessInput(surface: AwarenessSurface): Promise<A
   const toolGraph = await gatherToolGraph();
 
   // Operator steering
-  const currentAsk = S.currentAsk?.text || "";
+  const currentAsk = getAttachmentRuntime().currentAsk?.text || "";
 
   // Select mode
   const mode = selectMode({
@@ -252,10 +258,10 @@ export async function gatherAwarenessInput(surface: AwarenessSurface): Promise<A
     surface,
     currentAsk,
     contextPressure: {
-      percentage: S.currentContextPct ?? 0,
-      tier: contextTierFromString(S.currentTier),
+      percentage: getAttachmentRuntime().currentContextPct ?? 0,
+      tier: contextTierFromString(getAttachmentRuntime().currentTier),
       compactionPending: false,
-      compactionCount: S.compactsThisHour,
+      compactionCount: getAttachmentRuntime().compactsThisHour,
     },
   });
 
@@ -293,15 +299,15 @@ export async function gatherAwarenessInput(surface: AwarenessSurface): Promise<A
       : null,
     trajectoryView,
     contextPressure: {
-      percentage: S.currentContextPct ?? 0,
-      tier: contextTierFromString(S.currentTier),
+      percentage: getAttachmentRuntime().currentContextPct ?? 0,
+      tier: contextTierFromString(getAttachmentRuntime().currentTier),
       compactionPending: false,
-      compactionCount: S.compactsThisHour,
-      lastCompactionAt: S.lastCompactTime || undefined,
+      compactionCount: getAttachmentRuntime().compactsThisHour,
+      lastCompactionAt: getAttachmentRuntime().lastCompactTime || undefined,
     },
     operatorSteering: { currentAsk },
     toolGraph,
-    cadenceState: S.awarenessCadenceState || null,
+    cadenceState: getAttachmentRuntime().awarenessCadenceState || null,
     mode,
     surface,
   };
@@ -428,7 +434,7 @@ export function generateCandidateLines(input: AwarenessInput): AwarenessCandidat
   // ── Authority layer ────────────────────────────────────────────────────────
   if (input.workpointResume) {
     const wp = input.workpointResume;
-    const isStale = wp.canonical && now - (S.lastWorkpointUpdate || 0) > wpStaleMs;
+    const isStale = wp.canonical && now - (getAttachmentRuntime().lastWorkpointUpdate || 0) > wpStaleMs;
 
     lines.push(
       makeLine({

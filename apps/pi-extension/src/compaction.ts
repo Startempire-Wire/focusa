@@ -3,13 +3,9 @@
 //        §33.10 (customInstructions), §35.6 (files), §38.1 (trim)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { buildProjectWorkstreamKey, scopedQueryParams, type WorkstreamKey } from "./scoped-state.js";
 import {
-  buildProjectWorkstreamKey,
-  scopedQueryParams,
-  type WorkstreamKey,
-} from "./scoped-state.js";
-import {
-  S,
+  getAttachmentRuntime,
   focusaFetch,
   getFocusState,
   buildCompactInstructions,
@@ -97,7 +93,7 @@ function compactionMemorySample(): CompactionMemorySample {
 }
 
 function scheduleCompactionMemoryEvaluation() {
-  const before = (S as any).compactionMemoryBefore as CompactionMemorySample | undefined;
+  const before = (getAttachmentRuntime() as any).compactionMemoryBefore as CompactionMemorySample | undefined;
   if (!before) return;
   setTimeout(() => {
     const after = compactionMemorySample();
@@ -106,7 +102,7 @@ function scheduleCompactionMemoryEvaluation() {
     const rssRatio = before.rssBytes > 0 ? after.rssBytes / before.rssBytes : 0;
     const heapRatio = before.heapUsedBytes > 0 ? after.heapUsedBytes / before.heapUsedBytes : 0;
     const retainedUnderPressure = after.rssBytes >= rssWarnBytes && rssRatio >= 0.9;
-    (S as any).lastCompactionMemory = {
+    (getAttachmentRuntime() as any).lastCompactionMemory = {
       schema: "focusa.compaction_memory_verdict.v1",
       before,
       after,
@@ -115,7 +111,7 @@ function scheduleCompactionMemoryEvaluation() {
       status: retainedUnderPressure ? "warn_retained_under_pressure" : "within_budget",
       warningThresholdMiB: warningMiB,
     };
-    delete (S as any).compactionMemoryBefore;
+    delete (getAttachmentRuntime() as any).compactionMemoryBefore;
     persistState();
     if (retainedUnderPressure) {
       console.warn(
@@ -145,7 +141,7 @@ async function buildLearningCompactionCard(
   mission: string,
   nextSlice: string
 ): Promise<string> {
-  if (!S.focusaAvailable) {
+  if (!getAttachmentRuntime().focusaAvailable) {
     return [
       "## Learning Loop",
       "- Predictive/metacog context unavailable because Focusa is offline.",
@@ -216,7 +212,7 @@ async function buildLearningCompactionCard(
 }
 
 function semanticCurrentAsk(): string {
-  const text = String(S.currentAsk?.text || "").trim();
+  const text = String(getAttachmentRuntime().currentAsk?.text || "").trim();
   if (!text || isExplicitContinuationAsk(text) || isNonTaskStatusLikeText(text)) return "";
   return text;
 }
@@ -247,7 +243,7 @@ function renderCompactionMissionPacket(packet: any): string {
 }
 
 async function buildCompactionMissionPacket(resumeSource: string): Promise<any | null> {
-  if (!S.focusaAvailable) return null;
+  if (!getAttachmentRuntime().focusaAvailable) return null;
   const scope = currentCompactionScope();
   if (!scope) return null;
   try {
@@ -261,18 +257,14 @@ async function buildCompactionMissionPacket(resumeSource: string): Promise<any |
         continuity_id: scope.continuity_id,
         session_id: getSessionFrameKey() || undefined,
         current_ask: semanticCurrentAsk() || undefined,
-        ask_kind: S.currentAsk?.kind || "unknown",
+        ask_kind: getAttachmentRuntime().currentAsk?.kind || "unknown",
         source_turn_id: `pi-turn-${getTurnCount()}`,
         omitted_sections: visibleRecapReason ? ["raw_tool_history"] : [],
-        rehydrate_refs: [
-          "focusa_workpoint_resume",
-          "focusa_trajectory_view",
-          "focusa_traverse",
-        ],
+        rehydrate_refs: ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"],
       }),
     });
     if (packet?.schema_version !== "focusa.compaction_mission_packet.v1") return null;
-    (S as any).lastCompactionMissionPacket = packet;
+    (getAttachmentRuntime() as any).lastCompactionMissionPacket = packet;
     return packet;
   } catch {
     return null;
@@ -290,26 +282,30 @@ async function buildCompactionFallbackSummary(fs: any, workpointPacket: any): Pr
   const mission =
     packetField(packet, "mission") ||
     ask ||
-    S.activeFrameGoal ||
-    S.lastFocusSnapshot.intent ||
-    S.lastFocusSnapshot.currentFocus ||
-    S.activeFrameTitle;
+    getAttachmentRuntime().activeFrameGoal ||
+    getAttachmentRuntime().lastFocusSnapshot.intent ||
+    getAttachmentRuntime().lastFocusSnapshot.currentFocus ||
+    getAttachmentRuntime().activeFrameTitle;
   const nextSlice =
     packetField(packet, "next_slice") ||
-    S.lastFocusSnapshot.currentFocus ||
-    S.lastCompactDecision ||
+    getAttachmentRuntime().lastFocusSnapshot.currentFocus ||
+    getAttachmentRuntime().lastCompactDecision ||
     ask ||
-    S.activeFrameGoal;
+    getAttachmentRuntime().activeFrameGoal;
   const currentFocus =
-    fs?.current_focus || fs?.current_state || S.lastFocusSnapshot.currentFocus || nextSlice || mission;
+    fs?.current_focus ||
+    fs?.current_state ||
+    getAttachmentRuntime().lastFocusSnapshot.currentFocus ||
+    nextSlice ||
+    mission;
   const decisions = compactLines(fs?.decisions)
-    .concat(S.localDecisions.slice(-5))
+    .concat(getAttachmentRuntime().localDecisions.slice(-5))
     .filter((v, i, a) => a.indexOf(v) === i);
   const constraints = compactLines(fs?.constraints)
-    .concat(S.localConstraints.slice(-5))
+    .concat(getAttachmentRuntime().localConstraints.slice(-5))
     .filter((v, i, a) => a.indexOf(v) === i);
   const failures = compactLines(sanitizeFocusFailures(fs?.failures || []))
-    .concat(sanitizeFocusFailures(S.localFailures).slice(-3))
+    .concat(sanitizeFocusFailures(getAttachmentRuntime().localFailures).slice(-3))
     .filter((v, i, a) => a.indexOf(v) === i);
   const nextSteps = compactLines(fs?.next_steps);
   if (nextSlice) nextSteps.unshift(`Continue from Workpoint next_slice: ${nextSlice}`);
@@ -356,8 +352,8 @@ async function buildCompactionFallbackSummary(fs: any, workpointPacket: any): Pr
         focusState: fs,
         workpointPacket: packet,
         currentAskText: ask,
-        currentAskKind: S.currentAsk?.kind,
-        queryScopeKind: S.queryScope?.scopeKind,
+        currentAskKind: getAttachmentRuntime().currentAsk?.kind,
+        queryScopeKind: getAttachmentRuntime().queryScope?.scopeKind,
         projectRoot: getSessionCwd(),
         continuityId: getContinuityId(),
         visibleRecapReason,
@@ -414,9 +410,10 @@ async function buildCompactionFallbackSummary(fs: any, workpointPacket: any): Pr
 let compactResumeRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function refreshWorkpointResumePacket(mode = "compact_prompt"): Promise<any | null> {
-  if (!S.focusaAvailable) return null;
-  const root = currentCompactionScope()?.root_scope.root_path || "";
-  if (!isProjectRootAuthoritySafe(root)) {
+  if (!getAttachmentRuntime().focusaAvailable) return null;
+  const scope = currentCompactionScope();
+  const root = scope?.root_scope.root_path || "";
+  if (!scope || !isProjectRootAuthoritySafe(root)) {
     setActiveWorkpointPacket(null);
     setActiveWorkpointSummary("");
     return null;
@@ -430,7 +427,7 @@ async function refreshWorkpointResumePacket(mode = "compact_prompt"): Promise<an
         continuity_id: scope.continuity_id,
         session_id: getSessionFrameKey(),
         project_root: scope.root_scope.root_path,
-        current_ask: S.currentAsk?.text || "",
+        current_ask: getAttachmentRuntime().currentAsk?.text || "",
       }),
     });
     if (packet && packet.status === "rejected_scope_mismatch") {
@@ -449,7 +446,7 @@ async function refreshWorkpointResumePacket(mode = "compact_prompt"): Promise<an
       setActiveWorkpointSummary(
         packet.rendered_summary || packet.resume_packet_v2?.rendered_summary || packet.next_step_hint || ""
       );
-      S.lastWorkpointUpdate = Date.now();
+      getAttachmentRuntime().lastWorkpointUpdate = Date.now();
       return packet;
     }
   } catch {
@@ -459,7 +456,7 @@ async function refreshWorkpointResumePacket(mode = "compact_prompt"): Promise<an
 }
 
 async function checkpointTrajectoryBeforeCompaction(reason = "before_compaction"): Promise<any | null> {
-  if (!S.focusaAvailable) return null;
+  if (!getAttachmentRuntime().focusaAvailable) return null;
   const scope = currentCompactionScope();
   if (!scope) return null;
   const root = scope.root_scope.root_path;
@@ -482,7 +479,7 @@ async function checkpointTrajectoryBeforeCompaction(reason = "before_compaction"
 }
 
 async function refreshTrajectoryResumePacket(reason = "compaction"): Promise<any | null> {
-  if (!S.focusaAvailable) return null;
+  if (!getAttachmentRuntime().focusaAvailable) return null;
   const scope = currentCompactionScope();
   if (!scope) return null;
   const root = scope.root_scope.root_path;
@@ -587,12 +584,15 @@ function formatTrajectoryPacketForPrompt(packet: any): string {
   const hltStatus = packet?.hlt_status || view?.hlt_status || "missing_required";
   const trajectoryRequired = packet?.trajectory_required ?? view?.trajectory_required ?? true;
   const hltRequired = packet?.hlt_required ?? view?.hlt_required ?? true;
-  const actionAuthority = packet?.action_authority_from_trajectory ?? view?.action_authority_from_trajectory ?? false;
+  const actionAuthority =
+    packet?.action_authority_from_trajectory ?? view?.action_authority_from_trajectory ?? false;
   const genericBootstrap = packet?.generic_bootstrap ?? view?.generic_bootstrap ?? false;
   const loudWarning = packet?.loud_warning || view?.loud_warning || null;
   const fallbackLevel = packet?.fallback_level || view?.fallback_level || "not_applicable";
   const fallbackSourceScope = packet?.fallback_source_scope || view?.fallback_source_scope || null;
-  const warnings = Array.isArray(packet?.warnings || view?.warnings) ? (packet?.warnings || view?.warnings) : [];
+  const warnings = Array.isArray(packet?.warnings || view?.warnings)
+    ? packet?.warnings || view?.warnings
+    : [];
 
   return [
     "## TrajectoryResumePacket",
@@ -634,20 +634,24 @@ function recordLocalWorkpointFallback(reason: string): void {
     status: "partial",
     canonical: false,
     reason,
-    mission: semanticCurrentAsk() || S.activeFrameGoal || S.lastFocusSnapshot.intent || "unknown mission",
+    mission:
+      semanticCurrentAsk() ||
+      getAttachmentRuntime().activeFrameGoal ||
+      getAttachmentRuntime().lastFocusSnapshot.intent ||
+      "unknown mission",
     next_slice:
-      S.lastFocusSnapshot.currentFocus ||
-      S.lastCompactDecision ||
-      S.activeFrameGoal ||
+      getAttachmentRuntime().lastFocusSnapshot.currentFocus ||
+      getAttachmentRuntime().lastCompactDecision ||
+      getAttachmentRuntime().activeFrameGoal ||
       "resume from local degraded fallback",
     source_turn_id: `pi-turn-${getTurnCount()}`,
     recorded_at: new Date().toISOString(),
   };
   setActiveWorkpointPacket(fallback);
   setActiveWorkpointSummary(`NON-CANONICAL WORKPOINT FALLBACK: ${fallback.next_slice}`);
-  S.lastWorkpointUpdate = Date.now();
+  getAttachmentRuntime().lastWorkpointUpdate = Date.now();
   try {
-    S.pi?.appendEntry("focusa-workpoint-fallback", fallback);
+    getAttachmentRuntime().pi?.appendEntry("focusa-workpoint-fallback", fallback);
   } catch {
     /* best effort */
   }
@@ -655,7 +659,7 @@ function recordLocalWorkpointFallback(reason: string): void {
 }
 
 async function checkpointBeforeCompaction(): Promise<any | null> {
-  if (!S.focusaAvailable) return null;
+  if (!getAttachmentRuntime().focusaAvailable) return null;
   const scope = currentCompactionScope();
   if (!scope) return null;
   const root = scope.root_scope.root_path;
@@ -663,14 +667,14 @@ async function checkpointBeforeCompaction(): Promise<any | null> {
   const ask = semanticCurrentAsk();
   const mission =
     ask ||
-    S.activeFrameGoal ||
-    S.lastFocusSnapshot.intent ||
-    S.lastFocusSnapshot.currentFocus ||
+    getAttachmentRuntime().activeFrameGoal ||
+    getAttachmentRuntime().lastFocusSnapshot.intent ||
+    getAttachmentRuntime().lastFocusSnapshot.currentFocus ||
     "Pi work before compaction";
   const nextSlice =
-    S.lastFocusSnapshot.currentFocus ||
-    S.lastCompactDecision ||
-    S.activeFrameGoal ||
+    getAttachmentRuntime().lastFocusSnapshot.currentFocus ||
+    getAttachmentRuntime().lastCompactDecision ||
+    getAttachmentRuntime().activeFrameGoal ||
     ask ||
     "Resume current task from typed Workpoint packet after compaction.";
   try {
@@ -679,7 +683,7 @@ async function checkpointBeforeCompaction(): Promise<any | null> {
       body: JSON.stringify({
         mission,
         next_slice: nextSlice,
-        work_item_id: S.currentAsk?.sourceTurnId,
+        work_item_id: getAttachmentRuntime().currentAsk?.sourceTurnId,
         checkpoint_reason: "before_compact",
         canonical: true,
         promote: true,
@@ -691,7 +695,7 @@ async function checkpointBeforeCompaction(): Promise<any | null> {
         idempotency_key: `pi-before-compact-${getSessionFrameKey() || "session"}-${getTurnCount()}`,
         action_intent: {
           action_type: "resume_workpoint",
-          target_ref: S.currentAsk?.sourceTurnId || getActiveFrameId() || "pi-session",
+          target_ref: getAttachmentRuntime().currentAsk?.sourceTurnId || getActiveFrameId() || "pi-session",
           verification_hooks: [
             "resume packet appears in compaction instructions",
             "post-compact steer uses WorkpointResumePacket",
@@ -747,7 +751,9 @@ export function isFocusaContextContinuityHealthy(): boolean {
   const packet = getScopedWorkpointPacket();
   const rawPacket = getActiveWorkpointPacket();
   const noDegradedWorkpoint = !rawPacket || Boolean(packet);
-  return Boolean(S.focusaAvailable && String(continuityId || "").trim() && noDegradedWorkpoint);
+  return Boolean(
+    getAttachmentRuntime().focusaAvailable && String(continuityId || "").trim() && noDegradedWorkpoint
+  );
 }
 
 export type ContextPressureWarningKind = "auto_suggest" | "hard_unconfirmed" | "handoff_unconfirmed";
@@ -779,8 +785,8 @@ function setContextStatus(
   pct?: number,
   focusaContinuityReady = isFocusaContextContinuityHealthy()
 ) {
-  S.currentContextPct = typeof pct === "number" ? pct : null;
-  const mode = S.cfg?.contextStatusMode || "actionable";
+  getAttachmentRuntime().currentContextPct = typeof pct === "number" ? pct : null;
+  const mode = getAttachmentRuntime().cfg?.contextStatusMode || "actionable";
   if (mode === "off") {
     ctx.ui.setStatus("focusa-ctx", "");
     return;
@@ -847,7 +853,7 @@ function formatResumePacketV2ForPrompt(packet: any): string {
 }
 
 function submitCompactionResumeTurn(ctx: any, steerMessage: string): boolean {
-  const pi2 = S.pi;
+  const pi2 = getAttachmentRuntime().pi;
   if (!pi2) return false;
   pi2.sendMessage(
     {
@@ -857,25 +863,25 @@ function submitCompactionResumeTurn(ctx: any, steerMessage: string): boolean {
     },
     { triggerTurn: true }
   );
-  S.compactResumePending = false;
+  getAttachmentRuntime().compactResumePending = false;
   persistState();
   ctx.ui.notify(`✅ Compaction done — auto-resume turn submitted`, "info");
   return true;
 }
 
 function scheduleCompactionResumeRetry(ctx: any, steerMessage: string, retryAttempt = 1) {
-  if (!S.compactResumePending) return;
+  if (!getAttachmentRuntime().compactResumePending) return;
   const nextAttempt = retryAttempt + 1;
   compactResumeRetryTimer = setTimeout(
     () => {
       compactResumeRetryTimer = null;
-      if (!S.compactResumePending) return;
+      if (!getAttachmentRuntime().compactResumePending) return;
       try {
         submitCompactionResumeTurn(ctx, steerMessage);
         scheduleCompactionResumeRetry(ctx, steerMessage, retryAttempt + 1);
       } catch (e) {
         console.warn(`[focusa] compaction auto-resume retry ${retryAttempt} failed:`, e);
-        if (!S.compactResumePending) return;
+        if (!getAttachmentRuntime().compactResumePending) return;
         scheduleCompactionResumeRetry(ctx, steerMessage, nextAttempt);
       }
     },
@@ -884,28 +890,31 @@ function scheduleCompactionResumeRetry(ctx: any, steerMessage: string, retryAtte
 }
 
 function scheduleCompactionResumeWatchdog(ctx: any, steerMessage: string) {
-  if (!S.compactResumePending) return;
+  if (!getAttachmentRuntime().compactResumePending) return;
   scheduleCompactionResumeRetry(ctx, steerMessage, 1);
 }
 
 export function registerCompaction(pi: ExtensionAPI) {
   // ── session_before_compact (§33.1 ASCC replacement, §33.10 fallback) ───────
   pi.on("session_before_compact", async (event, _ctx) => {
-    (S as any).compactionMemoryBefore = compactionMemorySample();
+    (getAttachmentRuntime() as any).compactionMemoryBefore = compactionMemorySample();
     // Sync local shadow → Focusa before compaction
     // §33.1 + N5: Use pushDelta() for ALL writes — enforces validateSlot() on every delta.
     // session_compact bypassed validation before this fix — every compaction refilled
     // recent_results with verbose entries that validateSlot would have rejected.
-    if (S.focusaAvailable && getActiveFrameId()) {
+    if (getAttachmentRuntime().focusaAvailable && getActiveFrameId()) {
       await pushDelta({
-        decisions: S.localDecisions.slice(-10),
-        constraints: S.localConstraints.slice(-10),
-        failures: sanitizeFocusFailures(S.localFailures).slice(-5),
+        decisions: getAttachmentRuntime().localDecisions.slice(-10),
+        constraints: getAttachmentRuntime().localConstraints.slice(-10),
+        failures: sanitizeFocusFailures(getAttachmentRuntime().localFailures).slice(-5),
       });
     }
     await checkpointBeforeCompaction();
     await checkpointTrajectoryBeforeCompaction("before_compaction");
-    await refreshTrajectoryClarityLifecycle("before_compaction", currentCompactionScope()?.root_scope.root_path || "");
+    await refreshTrajectoryClarityLifecycle(
+      "before_compaction",
+      currentCompactionScope()?.root_scope.root_path || ""
+    );
     const trajectoryPacket = await refreshTrajectoryResumePacket("before_compaction");
     void trajectoryPacket;
     const workpointPacket = await refreshWorkpointResumePacket("compact_prompt");
@@ -928,7 +937,7 @@ export function registerCompaction(pi: ExtensionAPI) {
     }
 
     // §33.1: Try Focusa ASCC replacement FIRST
-    if (S.focusaAvailable) {
+    if (getAttachmentRuntime().focusaAvailable) {
       try {
         const ascc = await focusaFetch("/ascc/state");
         if (ascc?.focus_state) {
@@ -962,20 +971,22 @@ export function registerCompaction(pi: ExtensionAPI) {
   // ── session_compact (§38.1 trim, §35.6 files + auto-resume) ───────────────
   pi.on("session_compact", async (event, ctx) => {
     // §38.1: Trim local shadow only after Focusa confirms state.
-    // NOTE: S.lastCompactDecision is saved BEFORE trimming (used in steer below).
-    const lastDecision = S.localDecisions[S.localDecisions.length - 1] ?? "pre-compaction work";
-    S.lastCompactDecision = lastDecision;
+    // NOTE: getAttachmentRuntime().lastCompactDecision is saved BEFORE trimming (used in steer below).
+    const lastDecision =
+      getAttachmentRuntime().localDecisions[getAttachmentRuntime().localDecisions.length - 1] ??
+      "pre-compaction work";
+    getAttachmentRuntime().lastCompactDecision = lastDecision;
 
     // §5.12: On compaction, force re-emit recent-turns slice on the resumed loop.
     // Reset idempotency guard so the next before_agent_start injects fresh.
-    (S as any).lastRecentTurnsSliceTurn = -1;
+    (getAttachmentRuntime() as any).lastRecentTurnsSliceTurn = -1;
 
-    if (S.focusaAvailable && getActiveFrameId()) {
+    if (getAttachmentRuntime().focusaAvailable && getActiveFrameId()) {
       const data = await getFocusState();
       if (data?.fs?.decisions?.length || data?.fs?.constraints?.length) {
-        S.localDecisions = [];
-        S.localConstraints = [];
-        S.localFailures = [];
+        getAttachmentRuntime().localDecisions = [];
+        getAttachmentRuntime().localConstraints = [];
+        getAttachmentRuntime().localFailures = [];
       }
     }
 
@@ -989,7 +1000,11 @@ export function registerCompaction(pi: ExtensionAPI) {
       compactNotes.push(`Session compacted. Modified: ${artifacts.map((a) => a.path_or_id).join(", ")}`);
     if (Array.isArray(readFiles) && readFiles.length)
       compactNotes.push(`Session compacted. Read: ${readFiles.slice(0, 20).join(", ")}`);
-    if (S.focusaAvailable && getActiveFrameId() && (artifacts.length || compactNotes.length)) {
+    if (
+      getAttachmentRuntime().focusaAvailable &&
+      getActiveFrameId() &&
+      (artifacts.length || compactNotes.length)
+    ) {
       await focusaFetch("/focus/update", {
         method: "POST",
         body: JSON.stringify({
@@ -1022,22 +1037,25 @@ export function registerCompaction(pi: ExtensionAPI) {
         `${getSessionFrameKey() || "session"}:compact:${compactOrdinal}`
     );
     const recentlySubmitted =
-      S.lastCompactResumeKey === compactResumeKey ||
-      (Date.now() - S.lastCompactResumeAt < 30_000 && compactOrdinal !== "unknown");
-    if (!S.compactResumePending && !recentlySubmitted) {
+      getAttachmentRuntime().lastCompactResumeKey === compactResumeKey ||
+      (Date.now() - getAttachmentRuntime().lastCompactResumeAt < 30_000 && compactOrdinal !== "unknown");
+    if (!getAttachmentRuntime().compactResumePending && !recentlySubmitted) {
       await refreshWorkpointResumePacket("compact_prompt");
-      await refreshTrajectoryClarityLifecycle("after_compaction", currentCompactionScope()?.root_scope.root_path || "");
+      await refreshTrajectoryClarityLifecycle(
+        "after_compaction",
+        currentCompactionScope()?.root_scope.root_path || ""
+      );
       const trajectoryPacket = await refreshTrajectoryResumePacket("after_compaction");
       const missionPacket = await buildCompactionMissionPacket("after_compaction");
-      S.lastCompactResumeKey = compactResumeKey;
-      S.lastCompactResumeAt = Date.now();
+      getAttachmentRuntime().lastCompactResumeKey = compactResumeKey;
+      getAttachmentRuntime().lastCompactResumeAt = Date.now();
       persistState();
       if (compactResumeRetryTimer) {
         clearTimeout(compactResumeRetryTimer);
         compactResumeRetryTimer = null;
       }
-      S.compactResumePending = true;
-      const pi2 = S.pi;
+      getAttachmentRuntime().compactResumePending = true;
+      const pi2 = getAttachmentRuntime().pi;
       if (pi2) {
         queueMicrotask(() => {
           // lastDecision saved above, before localDecisions was cleared
@@ -1052,8 +1070,8 @@ export function registerCompaction(pi: ExtensionAPI) {
               buildAttentionRecallVerdict({
                 workpointPacket: scopedPacket,
                 currentAskText: semanticCurrentAsk(),
-                currentAskKind: S.currentAsk?.kind,
-                queryScopeKind: S.queryScope?.scopeKind,
+                currentAskKind: getAttachmentRuntime().currentAsk?.kind,
+                queryScopeKind: getAttachmentRuntime().queryScope?.scopeKind,
                 projectRoot: getSessionCwd(),
                 continuityId: getContinuityId(),
                 visibleRecapReason,
@@ -1079,7 +1097,7 @@ export function registerCompaction(pi: ExtensionAPI) {
           const steerMessage = `# Compaction Complete${note}
 ${missionPrompt}
 ## Last Active Focus
-${S.lastCompactDecision || "pre-compaction work"}
+${getAttachmentRuntime().lastCompactDecision || "pre-compaction work"}
 ## AttentionRecallVerdict
 ${attentionPrompt}
 ## WorkpointResumePacketV2
@@ -1111,7 +1129,7 @@ See: ls /tmp/pi-scratch/ | cat /tmp/pi-scratch/turn-NNNN/notes.txt`;
             submitCompactionResumeTurn(ctx, steerMessage);
           } catch (e) {
             console.warn("[focusa] auto-resume failed:", e);
-            S.compactResumePending = false;
+            getAttachmentRuntime().compactResumePending = false;
           }
         });
       }
@@ -1126,50 +1144,50 @@ See: ls /tmp/pi-scratch/ | cat /tmp/pi-scratch/turn-NNNN/notes.txt`;
 
 // ── Compaction tier check — called from turn_end in turns.ts (§20) ───────────
 export async function checkCompactionTier(ctx: any): Promise<void> {
-  const cfg = S.cfg;
+  const cfg = getAttachmentRuntime().cfg;
   if (!cfg) return;
-  S.turnsSinceCompact++;
+  getAttachmentRuntime().turnsSinceCompact++;
 
   const usage = ctx.getContextUsage?.();
   if (!usage?.tokens) return;
   if (typeof usage.contextWindow === "number" && usage.contextWindow > 0) {
-    S.activeContextWindow = usage.contextWindow;
+    getAttachmentRuntime().activeContextWindow = usage.contextWindow;
   }
   const pct =
     typeof usage.percent === "number"
       ? usage.percent
-      : (usage.tokens / (usage.contextWindow || S.activeContextWindow)) * 100;
+      : (usage.tokens / (usage.contextWindow || getAttachmentRuntime().activeContextWindow)) * 100;
 
   // Reset hourly counter
-  if (Date.now() - S.compactHourStart > 3_600_000) {
-    S.compactsThisHour = 0;
-    S.compactHourStart = Date.now();
+  if (Date.now() - getAttachmentRuntime().compactHourStart > 3_600_000) {
+    getAttachmentRuntime().compactsThisHour = 0;
+    getAttachmentRuntime().compactHourStart = Date.now();
   }
 
-  const cooldownOk = Date.now() - S.lastCompactTime > cfg.cooldownMs;
-  const hourlyOk = S.compactsThisHour < cfg.maxCompactionsPerHour;
-  const turnsOk = S.turnsSinceCompact >= cfg.minTurnsBetweenCompactions;
+  const cooldownOk = Date.now() - getAttachmentRuntime().lastCompactTime > cfg.cooldownMs;
+  const hourlyOk = getAttachmentRuntime().compactsThisHour < cfg.maxCompactionsPerHour;
+  const turnsOk = getAttachmentRuntime().turnsSinceCompact >= cfg.minTurnsBetweenCompactions;
   const canCompact = cooldownOk && hourlyOk && turnsOk;
 
   const onDone = () => {
-    S.lastCompactTime = Date.now();
-    S.compactsThisHour++;
+    getAttachmentRuntime().lastCompactTime = Date.now();
+    getAttachmentRuntime().compactsThisHour++;
     incrementTotalCompactions();
-    S.turnsSinceCompact = 0;
-    S.currentTier = "";
-    S.forkSuggested = false; // Reset after compaction frees space
+    getAttachmentRuntime().turnsSinceCompact = 0;
+    getAttachmentRuntime().currentTier = "";
+    getAttachmentRuntime().forkSuggested = false; // Reset after compaction frees space
   };
 
   const focusaContinuityReady = isFocusaContextContinuityHealthy();
 
   // §18: autoSuggestForkPct — generic fork/new guidance is only actionable when scoped Focusa anchors are unconfirmed.
-  if (pct >= cfg.autoSuggestForkPct && !S.forkSuggested && !focusaContinuityReady) {
-    S.forkSuggested = true;
+  if (pct >= cfg.autoSuggestForkPct && !getAttachmentRuntime().forkSuggested && !focusaContinuityReady) {
+    getAttachmentRuntime().forkSuggested = true;
     ctx.ui.notify(contextPressureWarningCopy("auto_suggest", pct), "warning");
   }
 
   if (pct >= cfg.hardPct) {
-    S.currentTier = "hard";
+    getAttachmentRuntime().currentTier = "hard";
     setContextStatus(ctx, "hard", pct, focusaContinuityReady);
     if (!focusaContinuityReady) {
       ctx.ui.notify(contextPressureWarningCopy("hard_unconfirmed", pct), "warning");
@@ -1181,12 +1199,15 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
         );
       }
     }
-    if (S.focusaAvailable) {
+    if (getAttachmentRuntime().focusaAvailable) {
       await checkpointBeforeCompaction();
       await checkpointTrajectoryBeforeCompaction("hard_context_pressure");
-      await refreshTrajectoryClarityLifecycle("hard_context_pressure", currentCompactionScope()?.root_scope.root_path || "");
+      await refreshTrajectoryClarityLifecycle(
+        "hard_context_pressure",
+        currentCompactionScope()?.root_scope.root_path || ""
+      );
     }
-    const r = S.focusaAvailable
+    const r = getAttachmentRuntime().focusaAvailable
       ? await focusaFetch("/commands/submit", {
           method: "POST",
           body: JSON.stringify({
@@ -1196,34 +1217,37 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
           }),
         })
       : null;
-    if (r?.accepted) {
-      onDone();
-      return;
-    }
-    recordLocalWorkpointFallback("hard context fallback before local compact");
-    // §25.7: Fallback marked non-canonical — guard ctx.compact existence
-    if (
-      (cfg.fallbackMode === "passthrough" || cfg.fallbackMode === "local-compact") &&
-      typeof ctx.compact === "function"
-    ) {
+    // /commands/submit materializes Focusa's CLT/ASCC checkpoint only. It cannot
+    // compact the live Pi context. API acceptance therefore prepares authority
+    // but must never be mistaken for completion of ctx.compact().
+    const focusaPrepared = Boolean(r?.accepted);
+    if (!focusaPrepared) recordLocalWorkpointFallback("hard context fallback before local compact");
+    if (typeof ctx.compact === "function") {
       ctx.compact({
         customInstructions: buildCompactInstructions(
-          "[NON-CANONICAL FALLBACK — Focusa unavailable] HARD COMPACT: Context critically full."
+          focusaPrepared
+            ? "HARD COMPACT: Focusa checkpoint accepted; compact the live Pi context now."
+            : "[NON-CANONICAL FALLBACK — Focusa unavailable] HARD COMPACT: Context critically full."
         ),
         onComplete: onDone,
         onError: (e: Error) => ctx.ui.notify(`Compaction failed: ${e.message}`, "error"),
       });
+    } else {
+      ctx.ui.notify("Compaction failed: Pi ctx.compact is unavailable", "error");
     }
   } else if (pct >= cfg.compactPct && canCompact) {
-    S.currentTier = "auto";
+    getAttachmentRuntime().currentTier = "auto";
     setContextStatus(ctx, "auto", pct);
     ctx.ui.notify(`📊 Context ${pct.toFixed(0)}% — compacting`, "info");
-    if (S.focusaAvailable) {
+    if (getAttachmentRuntime().focusaAvailable) {
       await checkpointBeforeCompaction();
       await checkpointTrajectoryBeforeCompaction("auto_context_pressure");
-      await refreshTrajectoryClarityLifecycle("auto_context_pressure", currentCompactionScope()?.root_scope.root_path || "");
+      await refreshTrajectoryClarityLifecycle(
+        "auto_context_pressure",
+        currentCompactionScope()?.root_scope.root_path || ""
+      );
     }
-    const r = S.focusaAvailable
+    const r = getAttachmentRuntime().focusaAvailable
       ? await focusaFetch("/commands/submit", {
           method: "POST",
           body: JSON.stringify({
@@ -1233,36 +1257,36 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
           }),
         })
       : null;
-    if (r?.accepted) {
-      onDone();
-      return;
-    }
-    recordLocalWorkpointFallback("auto context fallback before local compact");
-    if (
-      (cfg.fallbackMode === "passthrough" || cfg.fallbackMode === "local-compact") &&
-      typeof ctx.compact === "function"
-    ) {
+    // API acceptance prepares Focusa state; only Pi's public ctx.compact API
+    // releases the live model context. Never return before invoking it.
+    const focusaPrepared = Boolean(r?.accepted);
+    if (!focusaPrepared) recordLocalWorkpointFallback("auto context fallback before local compact");
+    if (typeof ctx.compact === "function") {
       ctx.compact({
         customInstructions: buildCompactInstructions(
-          "[NON-CANONICAL FALLBACK] Context approaching limit. Preserve Focus State."
+          focusaPrepared
+            ? "Focusa checkpoint accepted. Compact the live Pi context while preserving canonical authority."
+            : "[NON-CANONICAL FALLBACK] Context approaching limit. Preserve Focus State."
         ),
         onComplete: onDone,
         onError: (e: Error) => ctx.ui.notify(`Compaction failed: ${e.message}`, "error"),
       });
+    } else {
+      ctx.ui.notify("Compaction failed: Pi ctx.compact is unavailable", "error");
     }
   } else if (pct >= cfg.warnPct) {
-    S.currentTier = "warn";
+    getAttachmentRuntime().currentTier = "warn";
     setContextStatus(ctx, "warn", pct);
   } else {
-    S.currentTier = "";
+    getAttachmentRuntime().currentTier = "";
     setContextStatus(ctx, "");
   }
 }
 
 // ── Periodic micro-compact (§21) — called from turn_end ─────────────────────
 export async function checkMicroCompact(): Promise<void> {
-  const n = S.cfg?.microCompactEveryNTurns || 5;
-  if (getTurnCount() > 0 && getTurnCount() % n === 0 && S.focusaAvailable) {
+  const n = getAttachmentRuntime().cfg?.microCompactEveryNTurns || 5;
+  if (getTurnCount() > 0 && getTurnCount() % n === 0 && getAttachmentRuntime().focusaAvailable) {
     // §21: Request micro-compact via Focusa API (not extension-owned summarization)
     focusaFetch("/commands/submit", {
       method: "POST",

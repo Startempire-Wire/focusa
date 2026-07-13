@@ -9,6 +9,7 @@
 
 use crate::routes::ontology;
 use crate::routes::work_loop::maybe_dispatch_continuous_turn_prompt;
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -20,32 +21,36 @@ use focusa_core::reducer;
 use focusa_core::types::*;
 use serde_json::{Value, json};
 use std::collections::VecDeque;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::Arc;
 use uuid::Uuid;
 
 const RECENT_COMPLETED_TURN_CAP: usize = 2048;
-static RECENT_COMPLETED_TURNS: OnceLock<Mutex<VecDeque<String>>> = OnceLock::new();
-
-fn recent_completed_turns() -> &'static Mutex<VecDeque<String>> {
-    RECENT_COMPLETED_TURNS.get_or_init(|| Mutex::new(VecDeque::new()))
+async fn recent_turn_completed(
+    state: &AppState,
+    scope: &focusa_core::scoped_state::WorkstreamKey,
+    turn_id: &str,
+) -> bool {
+    state
+        .recent_completed_turns_by_scope
+        .read()
+        .await
+        .get(scope)
+        .is_some_and(|turns| turns.iter().any(|value| value == turn_id))
 }
 
-fn recent_turn_completed(turn_id: &str) -> bool {
-    recent_completed_turns()
-        .lock()
-        .map(|turns| turns.iter().any(|value| value == turn_id))
-        .unwrap_or(false)
-}
-
-fn remember_completed_turn(turn_id: &str) {
-    if let Ok(mut turns) = recent_completed_turns().lock() {
-        if turns.iter().any(|value| value == turn_id) {
-            return;
-        }
-        turns.push_back(turn_id.to_string());
-        while turns.len() > RECENT_COMPLETED_TURN_CAP {
-            turns.pop_front();
-        }
+async fn remember_completed_turn(
+    state: &AppState,
+    scope: focusa_core::scoped_state::WorkstreamKey,
+    turn_id: &str,
+) {
+    let mut scoped_turns = state.recent_completed_turns_by_scope.write().await;
+    let turns = scoped_turns.entry(scope).or_insert_with(VecDeque::new);
+    if turns.iter().any(|value| value == turn_id) {
+        return;
+    }
+    turns.push_back(turn_id.to_string());
+    while turns.len() > RECENT_COMPLETED_TURN_CAP {
+        turns.pop_front();
     }
 }
 
@@ -415,6 +420,7 @@ struct TurnAppend {
 /// Daemon emits TurnCompleted event for observability.
 async fn turn_complete(
     State(state): State<Arc<AppState>>,
+    scope_context: ScopeContext,
     Json(req): Json<TurnComplete>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     tracing::info!(
@@ -425,9 +431,20 @@ async fn turn_complete(
         "Turn completed"
     );
 
+    let turn_scope = scope_context.require_workstream_key().map_err(|reason| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "status": "rejected",
+                "failure_class": "scope_required",
+                "reason": reason,
+            })),
+        )
+    })?;
+
     // Hot idempotency guard: repeated completion for the same turn_id must not
     // wait on SQLite or the daemon write lock during resource pressure.
-    if recent_turn_completed(&req.turn_id) {
+    if recent_turn_completed(&state, &turn_scope, &req.turn_id).await {
         tracing::debug!(turn_id = %req.turn_id, "Duplicate turn_complete ignored");
         return Ok(Json(json!({
             "status": "accepted",
@@ -475,7 +492,7 @@ async fn turn_complete(
             .or(req.tokens.as_ref().and_then(|t| t.output_tokens)),
     };
 
-    remember_completed_turn(&req.turn_id);
+    remember_completed_turn(&state, turn_scope, &req.turn_id).await;
     let state_for_event = Arc::clone(&state);
     tokio::spawn(async move {
         if let Err((status, body)) =
@@ -557,10 +574,12 @@ pub fn router() -> Router<Arc<AppState>> {
 
 #[cfg(test)]
 mod tests {
+    use crate::scoped_store::ScopedCrdtLedger;
     use crate::server::{AppState, build_router};
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use chrono::Utc;
+    use focusa_core::prediction::PredictionValue;
     use focusa_core::runtime::persistence_sqlite::SqlitePersistence;
     use focusa_core::types::{
         Action, EventLogEntry, FocusaConfig, FocusaEvent, FocusaState, SignalOrigin,
@@ -613,7 +632,7 @@ mod tests {
             command_tx: tx,
             events_tx,
             event_broadcaster: crate::routes::sse::EventBroadcaster::new(),
-            config: cfg,
+            config: cfg.clone(),
             persistence: persistence.clone(),
             write_serial_lock: Arc::new(Mutex::new(())),
             command_store: Arc::new(RwLock::new(HashMap::new())),
@@ -622,6 +641,14 @@ mod tests {
             focus_stack_by_scope: Arc::new(tokio::sync::RwLock::new(
                 std::collections::HashMap::new(),
             )),
+            prediction_store: Arc::new(ScopedCrdtLedger::<PredictionValue>::new(
+                &cfg.data_dir,
+                "predictions-test",
+                "test-actor",
+            )),
+            recent_completed_turns_by_scope: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            snapshots_by_scope: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            metacog_by_scope: Arc::new(std::sync::Mutex::new(HashMap::new())),
             started_at: Instant::now(),
             pi_rpc_session: Arc::new(Mutex::new(None)),
             supervisor_perf: Arc::new(crate::server::SupervisorPerfCounters::default()),
@@ -670,6 +697,8 @@ mod tests {
             .method("POST")
             .uri("/v1/turn/complete")
             .header("content-type", "application/json")
+            .header("x-scope-project-root", "/tmp/focusa-spec104-turn-a")
+            .header("x-scope-continuity-id", "cont-a")
             .body(Body::from(complete_body.clone()))
             .expect("request1");
         let resp1 = app.clone().oneshot(req1).await.expect("resp1");
@@ -682,6 +711,8 @@ mod tests {
             .method("POST")
             .uri("/v1/turn/complete")
             .header("content-type", "application/json")
+            .header("x-scope-project-root", "/tmp/focusa-spec104-turn-a")
+            .header("x-scope-continuity-id", "cont-a")
             .body(Body::from(complete_body))
             .expect("request2");
         let resp2 = app.clone().oneshot(req2).await.expect("resp2");

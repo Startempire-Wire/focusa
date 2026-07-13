@@ -6,7 +6,7 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { getSettingsListTheme } from "@mariozechner/pi-coding-agent";
 import { Container, Text, type SettingItem, SettingsList } from "@mariozechner/pi-tui";
 import {
-  S,
+  getAttachmentRuntime,
   focusaFetch,
   getFocusState,
   getEffectiveFocusSnapshot,
@@ -26,11 +26,8 @@ import {
   resetFileEditCounts,
 } from "./state.js";
 import { saveConfigOverrides } from "./config.js";
-import { buildProjectWorkstreamKey } from "./scoped-state.js";
-import {
-  measureNativeSessionPressure,
-  migrateNativeSessionBounded,
-} from "./session-pressure.js";
+import { buildProjectWorkstreamKey, type WorkstreamKey } from "./scoped-state.js";
+import { measureNativeSessionPressure, migrateNativeSessionBounded } from "./session-pressure.js";
 import { prepareCompactionRollover } from "./compaction.js";
 import { dirname, resolve } from "path";
 
@@ -107,6 +104,43 @@ function normalizeTierConfig(draft: { warnPct: number; compactPct: number; hardP
   if (draft.compactPct >= draft.hardPct) draft.hardPct = Number(nextHigher(HARD_OPTIONS, draft.compactPct));
   if (draft.compactPct >= draft.hardPct) draft.compactPct = Number(nextLower(COMPACT_OPTIONS, draft.hardPct));
   if (draft.warnPct >= draft.compactPct) draft.warnPct = Number(nextLower(WARN_OPTIONS, draft.compactPct));
+}
+
+function rolloverPacketRef(prefix: string, packet: any): string {
+  return String(
+    packet?.packet_ref ||
+      packet?.checkpoint_ref ||
+      packet?.workpoint_id ||
+      packet?.trajectory_id ||
+      packet?.mission_packet_ref ||
+      packet?.id ||
+      `${prefix}:unavailable`
+  );
+}
+
+function buildTargetBootstrap(input: {
+  sourceScope: WorkstreamKey;
+  targetScope: WorkstreamKey;
+  sourceSessionId: string;
+  targetSessionId: string;
+  checkpointRef: string;
+  workpointPacketRef: string;
+  compactionPacketRef: string;
+  manifestPath: string;
+}): string {
+  const lines = [
+    "Focusa rollover target bootstrap (bounded):",
+    `source_scope=${input.sourceScope.root_scope.root_path}#${input.sourceScope.continuity_id}`,
+    `target_scope=${input.targetScope.root_scope.root_path}#${input.targetScope.continuity_id}`,
+    `source_session_id=${input.sourceSessionId}`,
+    `target_session_id=${input.targetSessionId}`,
+    `checkpoint_ref=${input.checkpointRef}`,
+    `workpoint_packet_ref=${input.workpointPacketRef}`,
+    `compaction_packet_ref=${input.compactionPacketRef}`,
+    `migration_manifest=${input.manifestPath}`,
+    "First action: verify Focusa target Workpoint/resume before file/API mutations.",
+  ];
+  return lines.join("\n").slice(0, 4_000);
 }
 
 function renderFocusaContext(data: { frame: any; fs: any }): string {
@@ -206,28 +240,35 @@ export function registerCommands(pi: ExtensionAPI) {
       const advancedMode = /\badvanced\b/i.test(String(args || ""));
 
       const draft = {
-        contextStatusMode: S.cfg?.contextStatusMode || "actionable",
-        vitalInfoPromptMode: S.cfg?.vitalInfoPromptMode || "prompt",
+        contextStatusMode: getAttachmentRuntime().cfg?.contextStatusMode || "actionable",
+        vitalInfoPromptMode: getAttachmentRuntime().cfg?.vitalInfoPromptMode || "prompt",
         vitalInfoPromptSurfaces:
-          S.cfg?.vitalInfoPromptSurfaces || "project_root,project_verify,workpoint,trajectory",
-        warnPct: S.cfg?.warnPct || 50,
-        compactPct: S.cfg?.compactPct || 70,
-        hardPct: S.cfg?.hardPct || 85,
-        workLoopPreset: S.cfg?.workLoopPreset || "balanced",
-        workLoopMaxTurns: S.cfg?.workLoopMaxTurns || 12,
-        workLoopMaxWallClockMs: S.cfg?.workLoopMaxWallClockMs || 1_800_000,
-        workLoopMaxRetries: S.cfg?.workLoopMaxRetries || 3,
-        workLoopCooldownMs: S.cfg?.workLoopCooldownMs || 1_000,
-        workLoopAllowDestructiveActions: S.cfg?.workLoopAllowDestructiveActions || false,
-        workLoopRequireOperatorForGovernance: S.cfg?.workLoopRequireOperatorForGovernance ?? true,
-        workLoopRequireOperatorForScopeChange: S.cfg?.workLoopRequireOperatorForScopeChange ?? true,
-        workLoopRequireVerificationBeforePersist: S.cfg?.workLoopRequireVerificationBeforePersist ?? true,
-        workLoopMaxConsecutiveLowProductivityTurns: S.cfg?.workLoopMaxConsecutiveLowProductivityTurns || 3,
-        workLoopMaxConsecutiveFailures: S.cfg?.workLoopMaxConsecutiveFailures || 3,
-        workLoopAutoPauseOnOperatorMessage: S.cfg?.workLoopAutoPauseOnOperatorMessage ?? true,
-        workLoopRequireExplainableContinueReason: S.cfg?.workLoopRequireExplainableContinueReason ?? true,
-        workLoopMaxSameSubproblemRetries: S.cfg?.workLoopMaxSameSubproblemRetries || 2,
-        workLoopStatusHeartbeatMs: S.cfg?.workLoopStatusHeartbeatMs || 5_000,
+          getAttachmentRuntime().cfg?.vitalInfoPromptSurfaces ||
+          "project_root,project_verify,workpoint,trajectory",
+        warnPct: getAttachmentRuntime().cfg?.warnPct || 50,
+        compactPct: getAttachmentRuntime().cfg?.compactPct || 70,
+        hardPct: getAttachmentRuntime().cfg?.hardPct || 85,
+        workLoopPreset: getAttachmentRuntime().cfg?.workLoopPreset || "balanced",
+        workLoopMaxTurns: getAttachmentRuntime().cfg?.workLoopMaxTurns || 12,
+        workLoopMaxWallClockMs: getAttachmentRuntime().cfg?.workLoopMaxWallClockMs || 1_800_000,
+        workLoopMaxRetries: getAttachmentRuntime().cfg?.workLoopMaxRetries || 3,
+        workLoopCooldownMs: getAttachmentRuntime().cfg?.workLoopCooldownMs || 1_000,
+        workLoopAllowDestructiveActions: getAttachmentRuntime().cfg?.workLoopAllowDestructiveActions || false,
+        workLoopRequireOperatorForGovernance:
+          getAttachmentRuntime().cfg?.workLoopRequireOperatorForGovernance ?? true,
+        workLoopRequireOperatorForScopeChange:
+          getAttachmentRuntime().cfg?.workLoopRequireOperatorForScopeChange ?? true,
+        workLoopRequireVerificationBeforePersist:
+          getAttachmentRuntime().cfg?.workLoopRequireVerificationBeforePersist ?? true,
+        workLoopMaxConsecutiveLowProductivityTurns:
+          getAttachmentRuntime().cfg?.workLoopMaxConsecutiveLowProductivityTurns || 3,
+        workLoopMaxConsecutiveFailures: getAttachmentRuntime().cfg?.workLoopMaxConsecutiveFailures || 3,
+        workLoopAutoPauseOnOperatorMessage:
+          getAttachmentRuntime().cfg?.workLoopAutoPauseOnOperatorMessage ?? true,
+        workLoopRequireExplainableContinueReason:
+          getAttachmentRuntime().cfg?.workLoopRequireExplainableContinueReason ?? true,
+        workLoopMaxSameSubproblemRetries: getAttachmentRuntime().cfg?.workLoopMaxSameSubproblemRetries || 2,
+        workLoopStatusHeartbeatMs: getAttachmentRuntime().cfg?.workLoopStatusHeartbeatMs || 5_000,
       };
 
       const applySimpleProfile = (profile: SimpleProfileId) => {
@@ -301,7 +342,7 @@ export function registerCommands(pi: ExtensionAPI) {
       const persistDraft = () => {
         normalizeTierConfig(draft);
         const saved = saveConfigOverrides(ctx.cwd, draft, "project");
-        S.cfg = saved.config;
+        getAttachmentRuntime().cfg = saved.config;
         if (saved.errors.length) ctx.ui.notify(saved.errors.join("\n"), "warning");
         else ctx.ui.notify(`Saved Focusa settings → ${saved.path}`, "info");
       };
@@ -586,7 +627,9 @@ export function registerCommands(pi: ExtensionAPI) {
     description:
       "Inspect, dry-run, or execute a bounded native-session rollover: /focusa-rollover inspect|dry-run|execute [output-dir]",
     handler: async (args, ctx) => {
-      const [modeRaw, outputRaw] = String(args || "inspect").trim().split(/\s+/, 2);
+      const [modeRaw, outputRaw] = String(args || "inspect")
+        .trim()
+        .split(/\s+/, 2);
       const mode = modeRaw || "inspect";
       if (!new Set(["inspect", "dry-run", "execute"]).has(mode)) {
         ctx.ui.notify(
@@ -603,10 +646,7 @@ export function registerCommands(pi: ExtensionAPI) {
       const projectRoot = getSessionCwd();
       const continuityId = String(getContinuityId() || "").trim();
       if (!isProjectRootAuthoritySafe(projectRoot) || !continuityId) {
-        ctx.ui.notify(
-          "Focusa rollover blocked: typed verified project/workstream scope required.",
-          "error"
-        );
+        ctx.ui.notify("Focusa rollover blocked: typed verified project/workstream scope required.", "error");
         return;
       }
       const scope = buildProjectWorkstreamKey(projectRoot, continuityId);
@@ -626,14 +666,15 @@ export function registerCommands(pi: ExtensionAPI) {
         ? resolve(outputRaw)
         : resolve(dirname(sourcePath), "focusa-rollover-dry-run");
       if (mode === "execute" && !outputRaw) {
-        ctx.ui.notify(
-          "Focusa rollover execute blocked: provide an explicit output directory.",
-          "error"
-        );
+        ctx.ui.notify("Focusa rollover execute blocked: provide an explicit output directory.", "error");
         return;
       }
+      let preparation: Awaited<ReturnType<typeof prepareCompactionRollover>> | null = null;
+      let targetScope = scope;
+      let targetSessionId = "";
       if (mode === "execute") {
-        const preparation = await prepareCompactionRollover();
+        await ctx.waitForIdle();
+        preparation = await prepareCompactionRollover();
         if (!preparation.ready) {
           ctx.ui.notify(
             `Focusa rollover blocked: ${preparation.reason}; Workpoint, Trajectory, and CompactionMissionPacket checkpoints are required.`,
@@ -641,6 +682,9 @@ export function registerCommands(pi: ExtensionAPI) {
           );
           return;
         }
+        const targetContinuityId = `rollover-${Date.now().toString(36)}`;
+        targetScope = buildProjectWorkstreamKey(projectRoot, targetContinuityId);
+        targetSessionId = `pi-rollover-${Date.now().toString(36)}`;
       }
       try {
         const manifest = await migrateNativeSessionBounded({
@@ -649,12 +693,93 @@ export function registerCommands(pi: ExtensionAPI) {
           scope,
           mode: mode === "execute" ? "execute" : "dry_run",
         });
-        ctx.ui.notify(
-          mode === "execute"
-            ? `Focusa rollover archive ready: ${manifest.manifest_path}`
-            : `Focusa rollover dry-run: source=${manifest.source.bytes} bytes id=${manifest.migration_id}`,
-          "info"
+        if (mode !== "execute") {
+          ctx.ui.notify(
+            `Focusa rollover dry-run: source=${manifest.source.bytes} bytes id=${manifest.migration_id}`,
+            "info"
+          );
+          return;
+        }
+        const sourceSessionId = String(
+          ctx.sessionManager.getSessionFile?.() || getAttachmentRuntime().sessionFrameKey || ""
         );
+        const checkpointRef = rolloverPacketRef("checkpoint", preparation?.workpoint_checkpoint);
+        const workpointPacketRef = rolloverPacketRef("workpoint", preparation?.workpoint_checkpoint);
+        const compactionPacketRef = rolloverPacketRef("compaction", preparation?.compaction_packet);
+        await focusaFetch("/project/session-transfer", {
+          method: "POST",
+          body: JSON.stringify({
+            action: "rollover",
+            rollover_action: "migrate",
+            source_scope: scope,
+            target_scope: targetScope,
+            target_continuity_id: targetScope.continuity_id,
+            source_session_id: sourceSessionId,
+            target_session_id: targetSessionId,
+            checkpoint_ref: checkpointRef,
+            workpoint_packet_ref: workpointPacketRef,
+            compaction_packet_ref: compactionPacketRef,
+            migration_manifest_ref: manifest.manifest_path,
+            seal_source: true,
+          }),
+        });
+        const bootstrap = buildTargetBootstrap({
+          sourceScope: scope,
+          targetScope,
+          sourceSessionId,
+          targetSessionId,
+          checkpointRef,
+          workpointPacketRef,
+          compactionPacketRef,
+          manifestPath: manifest.manifest_path || manifest.migration_id,
+        });
+        const newSessionResult = await ctx.newSession({
+          parentSession: sourceSessionId,
+          setup: async (sessionManager: { appendMessage?: (message: any) => void }) => {
+            sessionManager.appendMessage?.({
+              role: "user",
+              content: [{ type: "text", text: bootstrap }],
+              timestamp: Date.now(),
+            });
+          },
+        });
+        if ((newSessionResult as any)?.cancelled) {
+          ctx.ui.notify("Focusa rollover cancelled by session hook; immutable source preserved.", "warning");
+          return;
+        }
+        const verifyResume = await focusaFetch("/workpoint/resume", {
+          method: "POST",
+          body: JSON.stringify({
+            scope: targetScope,
+            source_scope: scope,
+            project_root: targetScope.root_scope.root_path,
+            continuity_id: targetScope.continuity_id,
+            session_id: targetSessionId,
+            source_session_id: sourceSessionId,
+            target_session_id: targetSessionId,
+            checkpoint_ref: checkpointRef,
+            workpoint_packet_ref: workpointPacketRef,
+            compaction_packet_ref: compactionPacketRef,
+            mode: "compact_prompt",
+          }),
+        });
+        await focusaFetch("/project/session-transfer/verify-target", {
+          method: "POST",
+          body: JSON.stringify({
+            schema: "focusa.pi_rollover_verify_target_receipt.v1",
+            source_scope: scope,
+            target_scope: targetScope,
+            source_session_id: sourceSessionId,
+            target_session_id: targetSessionId,
+            checkpoint_ref: checkpointRef,
+            workpoint_packet_ref: workpointPacketRef,
+            compaction_packet_ref: compactionPacketRef,
+            migration_manifest_ref: manifest.manifest_path,
+            target_resume_status: verifyResume?.status || "unknown",
+            verified: verifyResume?.status === "completed" || verifyResume?.canonical === true,
+          }),
+        });
+        ctx.ui.notify(`Focusa rollover complete: target=${targetScope.continuity_id}`, "info");
       } catch (error) {
         ctx.ui.notify(
           `Focusa rollover failed safely; source preserved: ${error instanceof Error ? error.message : String(error)}`,
@@ -669,12 +794,24 @@ export function registerCommands(pi: ExtensionAPI) {
     handler: async (_args, ctx) => {
       const up = getFocusaAvailable() ? "✅ Connected" : "❌ Offline";
       const frame = getActiveFrameId() ?? "none";
-      const wbm = S.wbmEnabled ? (S.wbmDeep ? "deep" : S.wbmNoCatalogue ? "on (no-catalogue)" : "on") : "off";
-      const tier = S.currentTier ? ` | Tier: ${S.currentTier.toUpperCase()}` : "";
+      const wbm = getAttachmentRuntime().wbmEnabled
+        ? getAttachmentRuntime().wbmDeep
+          ? "deep"
+          : getAttachmentRuntime().wbmNoCatalogue
+            ? "on (no-catalogue)"
+            : "on"
+        : "off";
+      const tier = getAttachmentRuntime().currentTier
+        ? ` | Tier: ${getAttachmentRuntime().currentTier.toUpperCase()}`
+        : "";
       const compactions = getTotalCompactions() ? ` | Compactions: ${getTotalCompactions()}` : "";
       const focusState = await getFocusState();
-      const titleLine = S.activeFrameTitle ? `\nTitle: ${S.activeFrameTitle}` : "";
-      const goalLine = S.activeFrameGoal ? `\nGoal: ${S.activeFrameGoal}` : "";
+      const titleLine = getAttachmentRuntime().activeFrameTitle
+        ? `\nTitle: ${getAttachmentRuntime().activeFrameTitle}`
+        : "";
+      const goalLine = getAttachmentRuntime().activeFrameGoal
+        ? `\nGoal: ${getAttachmentRuntime().activeFrameGoal}`
+        : "";
       const loop = await focusaFetch("/work-loop");
       const replayPayload =
         (await focusaFetch("/work-loop/replay/closure-bundle")) ||
@@ -715,8 +852,8 @@ export function registerCommands(pi: ExtensionAPI) {
           focusLine +
           `\n` +
           `Decisions: ${snapshot.decisions.length} | Constraints: ${snapshot.constraints.length} | Failures: ${snapshot.failures.length}` +
-          (S.cfg
-            ? `\nConfig: warn=${S.cfg.warnPct}% compact=${S.cfg.compactPct}% hard=${S.cfg.hardPct}% | work-loop=${S.cfg.workLoopPreset}`
+          (getAttachmentRuntime().cfg
+            ? `\nConfig: warn=${getAttachmentRuntime().cfg.warnPct}% compact=${getAttachmentRuntime().cfg.compactPct}% hard=${getAttachmentRuntime().cfg.hardPct}% | work-loop=${getAttachmentRuntime().cfg.workLoopPreset}`
             : ""),
         "info"
       );
@@ -734,22 +871,26 @@ export function registerCommands(pi: ExtensionAPI) {
       const rest = parts.slice(1).join(" ").trim();
       if (sub === "on") {
         const payload = {
-          preset: S.cfg?.workLoopPreset || "balanced",
+          preset: getAttachmentRuntime().cfg?.workLoopPreset || "balanced",
           policy_overrides: {
-            max_turns: S.cfg?.workLoopMaxTurns,
-            max_wall_clock_ms: S.cfg?.workLoopMaxWallClockMs,
-            max_retries: S.cfg?.workLoopMaxRetries,
-            cooldown_ms: S.cfg?.workLoopCooldownMs,
-            allow_destructive_actions: S.cfg?.workLoopAllowDestructiveActions,
-            require_operator_for_governance: S.cfg?.workLoopRequireOperatorForGovernance,
-            require_operator_for_scope_change: S.cfg?.workLoopRequireOperatorForScopeChange,
-            require_verification_before_persist: S.cfg?.workLoopRequireVerificationBeforePersist,
-            max_consecutive_low_productivity_turns: S.cfg?.workLoopMaxConsecutiveLowProductivityTurns,
-            max_consecutive_failures: S.cfg?.workLoopMaxConsecutiveFailures,
-            auto_pause_on_operator_message: S.cfg?.workLoopAutoPauseOnOperatorMessage,
-            require_explainable_continue_reason: S.cfg?.workLoopRequireExplainableContinueReason,
-            max_same_subproblem_retries: S.cfg?.workLoopMaxSameSubproblemRetries,
-            status_heartbeat_ms: S.cfg?.workLoopStatusHeartbeatMs,
+            max_turns: getAttachmentRuntime().cfg?.workLoopMaxTurns,
+            max_wall_clock_ms: getAttachmentRuntime().cfg?.workLoopMaxWallClockMs,
+            max_retries: getAttachmentRuntime().cfg?.workLoopMaxRetries,
+            cooldown_ms: getAttachmentRuntime().cfg?.workLoopCooldownMs,
+            allow_destructive_actions: getAttachmentRuntime().cfg?.workLoopAllowDestructiveActions,
+            require_operator_for_governance: getAttachmentRuntime().cfg?.workLoopRequireOperatorForGovernance,
+            require_operator_for_scope_change:
+              getAttachmentRuntime().cfg?.workLoopRequireOperatorForScopeChange,
+            require_verification_before_persist:
+              getAttachmentRuntime().cfg?.workLoopRequireVerificationBeforePersist,
+            max_consecutive_low_productivity_turns:
+              getAttachmentRuntime().cfg?.workLoopMaxConsecutiveLowProductivityTurns,
+            max_consecutive_failures: getAttachmentRuntime().cfg?.workLoopMaxConsecutiveFailures,
+            auto_pause_on_operator_message: getAttachmentRuntime().cfg?.workLoopAutoPauseOnOperatorMessage,
+            require_explainable_continue_reason:
+              getAttachmentRuntime().cfg?.workLoopRequireExplainableContinueReason,
+            max_same_subproblem_retries: getAttachmentRuntime().cfg?.workLoopMaxSameSubproblemRetries,
+            status_heartbeat_ms: getAttachmentRuntime().cfg?.workLoopStatusHeartbeatMs,
           },
         };
         const res = await focusaFetch("/work-loop/enable", {
@@ -831,7 +972,7 @@ export function registerCommands(pi: ExtensionAPI) {
           : `${replayConsumer.nonClosureObjectiveEvents}${replayConsumer.nonClosureObjectiveRate == null ? "" : ` (${(replayConsumer.nonClosureObjectiveRate * 100).toFixed(1)}%)`}`;
       ctx.ui.notify(
         loop
-          ? `Loop: ${loop.enabled ? "on" : "off"}\nStatus: ${loop.status}\nProject: ${loop.project_status}\nTranche: ${loop.tranche_status}\nReplay: ${replayConsumer.replayStatus} | pair=${replayConsumer.pairLabel} | continuity_gate=${replayConsumer.continuityGate}\nObjectives: non_closure=${objectiveSummary}\nMission: ${mission}\nFocus: ${focus}\nReason: ${loop.last_continue_reason || loop.last_blocker_reason || "(none)"}\nCheckpoint: ${loop.last_checkpoint_id || "(none)"}\nSupervision: ${loop.transport?.daemon_supervised_session?.session_id || "(none)"}\nPreset: ${loop.policy?.preset || S.cfg?.workLoopPreset || "balanced"}`
+          ? `Loop: ${loop.enabled ? "on" : "off"}\nStatus: ${loop.status}\nProject: ${loop.project_status}\nTranche: ${loop.tranche_status}\nReplay: ${replayConsumer.replayStatus} | pair=${replayConsumer.pairLabel} | continuity_gate=${replayConsumer.continuityGate}\nObjectives: non_closure=${objectiveSummary}\nMission: ${mission}\nFocus: ${focus}\nReason: ${loop.last_continue_reason || loop.last_blocker_reason || "(none)"}\nCheckpoint: ${loop.last_checkpoint_id || "(none)"}\nSupervision: ${loop.transport?.daemon_supervised_session?.session_id || "(none)"}\nPreset: ${loop.policy?.preset || getAttachmentRuntime().cfg?.workLoopPreset || "balanced"}`
           : "Loop status unavailable",
         "info"
       );
@@ -849,11 +990,11 @@ export function registerCommands(pi: ExtensionAPI) {
       }
 
       const alreadyEnabled = getFocusaAvailable();
-      S.focusaAvailable = true;
+      getAttachmentRuntime().focusaAvailable = true;
       const store = getCurrentScopeStore();
       if (store) store.focusaAvailable = true;
-      S.outageStart = null;
-      S.healthBackoffMs = 30_000;
+      getAttachmentRuntime().outageStart = null;
+      getAttachmentRuntime().healthBackoffMs = 30_000;
 
       const status = await focusaFetch("/status").catch(() => null);
       if (status?.session?.status !== "active") {
@@ -870,7 +1011,7 @@ export function registerCommands(pi: ExtensionAPI) {
         await ensurePiFrame(ctx.cwd, undefined, "pi-auto");
       }
 
-      ctx.ui.setStatus("focusa", S.wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
+      ctx.ui.setStatus("focusa", getAttachmentRuntime().wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
       if (getActiveFrameId()) await persistAuthoritativeState();
 
       if (alreadyEnabled && getActiveFrameId()) {
@@ -891,7 +1032,7 @@ export function registerCommands(pi: ExtensionAPI) {
         ctx.ui.notify("Focusa already disabled", "info");
         return;
       }
-      S.focusaAvailable = false;
+      getAttachmentRuntime().focusaAvailable = false;
       const store = getCurrentScopeStore();
       if (store) store.focusaAvailable = false;
       ctx.ui.setStatus("focusa", "⏸️ Focusa disabled");
@@ -909,19 +1050,25 @@ export function registerCommands(pi: ExtensionAPI) {
         constraints: clearedSnapshot.constraints.length,
         failures: clearedSnapshot.failures.length,
       };
-      S.localDecisions = [];
-      S.localConstraints = [];
-      S.localFailures = [];
-      S.lastFocusSnapshot = { decisions: [], constraints: [], failures: [], intent: "", currentFocus: "" };
+      getAttachmentRuntime().localDecisions = [];
+      getAttachmentRuntime().localConstraints = [];
+      getAttachmentRuntime().localFailures = [];
+      getAttachmentRuntime().lastFocusSnapshot = {
+        decisions: [],
+        constraints: [],
+        failures: [],
+        intent: "",
+        currentFocus: "",
+      };
       setCompilationErrors([]);
       resetFileEditCounts();
-      S.cataloguedDecisions = [];
-      S.cataloguedFacts = [];
-      S.compactResumePending = false;
-      S.forkSuggested = false;
-      S.currentTier = "";
+      getAttachmentRuntime().cataloguedDecisions = [];
+      getAttachmentRuntime().cataloguedFacts = [];
+      getAttachmentRuntime().compactResumePending = false;
+      getAttachmentRuntime().forkSuggested = false;
+      getAttachmentRuntime().currentTier = "";
       const previousFrameId = getActiveFrameId();
-      S.activeFrameId = null;
+      getAttachmentRuntime().activeFrameId = null;
       {
         const store = getCurrentScopeStore();
         if (store) store.activeFrameId = null;
@@ -942,7 +1089,7 @@ export function registerCommands(pi: ExtensionAPI) {
       if (getFocusaAvailable()) {
         const frameId = await ensurePiFrame(ctx.cwd, undefined, "pi-reset");
         if (frameId) {
-          S.activeFrameId = frameId;
+          getAttachmentRuntime().activeFrameId = frameId;
           await persistAuthoritativeState();
           ctx.ui.notify(
             `✅ Focus State reset (cleared D:${cleared.decisions} C:${cleared.constraints} F:${cleared.failures})\nFresh Pi frame: ${frameId}`,

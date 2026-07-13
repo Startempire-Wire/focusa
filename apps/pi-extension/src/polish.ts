@@ -1,5 +1,11 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaPost, getFocusaAvailable, getTurnCount, getActiveWorkpointPacket } from "./state.js";
+import {
+  getAttachmentRuntime,
+  focusaPost,
+  getFocusaAvailable,
+  getTurnCount,
+  getActiveWorkpointPacket,
+} from "./state.js";
 
 const MAX_RECORDS = 80;
 const MAX_TEXT = 500;
@@ -36,16 +42,22 @@ function estimateTokensFromChars(chars: number): number {
 
 function recordHookTelemetry(record: Record<string, unknown>): void {
   const entry = { ts: nowIso(), ...record };
-  S.spec92HookTelemetry.push(entry);
-  if (S.spec92HookTelemetry.length > MAX_RECORDS)
-    S.spec92HookTelemetry.splice(0, S.spec92HookTelemetry.length - MAX_RECORDS);
+  getAttachmentRuntime().spec92HookTelemetry.push(entry);
+  if (getAttachmentRuntime().spec92HookTelemetry.length > MAX_RECORDS)
+    getAttachmentRuntime().spec92HookTelemetry.splice(
+      0,
+      getAttachmentRuntime().spec92HookTelemetry.length - MAX_RECORDS
+    );
 }
 
 function recordTokenTelemetry(record: Record<string, unknown>): void {
   const entry = { ts: nowIso(), ...record };
-  S.spec92TokenTelemetry.push(entry);
-  if (S.spec92TokenTelemetry.length > MAX_RECORDS)
-    S.spec92TokenTelemetry.splice(0, S.spec92TokenTelemetry.length - MAX_RECORDS);
+  getAttachmentRuntime().spec92TokenTelemetry.push(entry);
+  if (getAttachmentRuntime().spec92TokenTelemetry.length > MAX_RECORDS)
+    getAttachmentRuntime().spec92TokenTelemetry.splice(
+      0,
+      getAttachmentRuntime().spec92TokenTelemetry.length - MAX_RECORDS
+    );
 }
 
 function bestEffortTelemetry(kind: string, payload: Record<string, unknown>): void {
@@ -121,7 +133,7 @@ export function registerPolishHooks(pi: ExtensionAPI) {
         const wp = getActiveWorkpointPacket();
         return wp?.workpoint_id || wp?.id || null;
       })(),
-      current_ask: boundText(S.currentAsk?.text || ""),
+      current_ask: boundText(getAttachmentRuntime().currentAsk?.text || ""),
     };
     recordHookTelemetry(record);
     bestEffortTelemetry("spec92.agent_start", record);
@@ -183,7 +195,7 @@ export function registerPolishHooks(pi: ExtensionAPI) {
       tool_name: event?.toolName || event?.name || "unknown",
       args_size_bytes: safeJsonSize(event?.args),
     };
-    S.spec92ToolStartTimes[String(record.tool_call_id)] = Date.now();
+    getAttachmentRuntime().spec92ToolStartTimes[String(record.tool_call_id)] = Date.now();
     recordHookTelemetry(record);
   });
 
@@ -198,8 +210,8 @@ export function registerPolishHooks(pi: ExtensionAPI) {
 
   hookApi.on("tool_execution_end", async (event: any, _ctx: any) => {
     const id = String(event?.toolCallId || event?.id || "unknown");
-    const started = S.spec92ToolStartTimes[id];
-    if (started) delete S.spec92ToolStartTimes[id];
+    const started = getAttachmentRuntime().spec92ToolStartTimes[id];
+    if (started) delete getAttachmentRuntime().spec92ToolStartTimes[id];
     const toolName = (event?.toolName || event?.name || "unknown").toLowerCase();
     const record = {
       hook: "tool_execution_end",
@@ -215,26 +227,35 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     // tool that could touch the Focusa daemon, emit a visible reminder to
     // prefer focusa_* tools for governed interactions.
     const SHELL_TOOLS = ["bash", "sh", "fish", "zsh", "csh", "dash"];
-    const reminderCfg = S.cfg;
-    if (reminderCfg?.agentReminderMode === "shell" && SHELL_TOOLS.includes(toolName) && getFocusaAvailable()) {
+    const reminderCfg = getAttachmentRuntime().cfg;
+    if (
+      reminderCfg?.agentReminderMode === "shell" &&
+      SHELL_TOOLS.includes(toolName) &&
+      getFocusaAvailable()
+    ) {
       const now = Date.now();
-      const lastReminder = S.lastShellReminderAt || 0;
+      const lastReminder = getAttachmentRuntime().lastShellReminderAt || 0;
       const turnCount = getTurnCount();
-      const lastReminderTurn = S.lastShellReminderTurn || 0;
+      const lastReminderTurn = getAttachmentRuntime().lastShellReminderTurn || 0;
       const frequency = Math.max(1, reminderCfg.agentReminderShellFrequency || 1);
       const cooldownMs = Math.max(0, reminderCfg.agentReminderCooldownMs || 30_000);
-      if (turnCount !== lastReminderTurn && turnCount % frequency === 0 && (now - lastReminder) > cooldownMs) {
-        S.lastShellReminderAt = now;
-        S.lastShellReminderTurn = turnCount;
+      if (turnCount !== lastReminderTurn && turnCount % frequency === 0 && now - lastReminder > cooldownMs) {
+        getAttachmentRuntime().lastShellReminderAt = now;
+        getAttachmentRuntime().lastShellReminderTurn = turnCount;
         const prefix = reminderCfg.agentReminderUseEmoji ? "🧭 " : "";
         const reminder = {
           customType: "focusa_agent_prompt",
           content: `${prefix}For Focusa daemon/state interactions, prefer focusa_* Pi tools over shell/bash — they handle scope, authority, recovery, and evidence automatically.`,
           display: true,
         };
-        bestEffortTelemetry("agent_tool_layer_reminder", { tool_name: toolName, turn: turnCount, frequency, cooldown_ms: cooldownMs });
+        bestEffortTelemetry("agent_tool_layer_reminder", {
+          tool_name: toolName,
+          turn: turnCount,
+          frequency,
+          cooldown_ms: cooldownMs,
+        });
         try {
-          S.pi?.sendMessage(reminder);
+          getAttachmentRuntime().pi?.sendMessage(reminder);
         } catch {
           /* best-effort */
         }

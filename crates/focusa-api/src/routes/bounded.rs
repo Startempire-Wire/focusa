@@ -6,13 +6,12 @@
 //!
 //! # Runtime classification (Spec104 BND-01)
 //!
-//! Resource mode / pressure globals are RUNTIME INFRASTRUCTURE statics,
-//! scope-keyed to the daemon process (one daemon per host). They are NOT
-//! project-scoped because they govern the process's read pressure, memory
-//! budget, and bounded read behavior — properties of the daemon, not
-//! the project. Per-project state lives in FocusaState, not here.
+//! Resource mode / pressure runtime state is explicitly keyed by a typed
+//! Host `ScopeRef`. It never supplies project/workstream authority and has no
+//! unkeyed mutable fallback.
 
 use chrono::Utc;
+use focusa_core::scoped_state::ScopeRef;
 use serde::Serialize;
 use serde_json::{Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -21,15 +20,18 @@ use uuid::Uuid;
 
 static TEST_PRESSURE_THRESHOLD_KB: LazyLock<Mutex<Option<u64>>> =
     LazyLock::new(|| Mutex::new(None));
-static RUNTIME_RESOURCE_MODE_OVERRIDE: LazyLock<Mutex<Option<String>>> =
-    LazyLock::new(|| Mutex::new(None));
-static RESOURCE_MODE_LAST_OBSERVED: LazyLock<Mutex<Option<String>>> =
-    LazyLock::new(|| Mutex::new(None));
-static RESOURCE_MODE_TRANSITIONS: LazyLock<Mutex<Vec<ResourceModeTransitionRecord>>> =
-    LazyLock::new(|| Mutex::new(Vec::new()));
-static RESOURCE_MODE_TRANSITION_OMITTED: LazyLock<Mutex<usize>> = LazyLock::new(|| Mutex::new(0));
-static RESOURCE_MODE_HYSTERESIS_STATE: LazyLock<Mutex<ResourceModeHysteresisRuntime>> =
-    LazyLock::new(|| Mutex::new(ResourceModeHysteresisRuntime::default()));
+static RUNTIME_RESOURCE_MODE_OVERRIDE: LazyLock<Mutex<BTreeMap<String, Option<String>>>> =
+    LazyLock::new(|| Mutex::new(BTreeMap::new()));
+static RESOURCE_MODE_LAST_OBSERVED: LazyLock<Mutex<BTreeMap<String, Option<String>>>> =
+    LazyLock::new(|| Mutex::new(BTreeMap::new()));
+static RESOURCE_MODE_TRANSITIONS: LazyLock<
+    Mutex<BTreeMap<String, Vec<ResourceModeTransitionRecord>>>,
+> = LazyLock::new(|| Mutex::new(BTreeMap::new()));
+static RESOURCE_MODE_TRANSITION_OMITTED: LazyLock<Mutex<BTreeMap<String, usize>>> =
+    LazyLock::new(|| Mutex::new(BTreeMap::new()));
+static RESOURCE_MODE_HYSTERESIS_STATE: LazyLock<
+    Mutex<BTreeMap<String, ResourceModeHysteresisRuntime>>,
+> = LazyLock::new(|| Mutex::new(BTreeMap::new()));
 const RESOURCE_MODE_TRANSITION_RING_LIMIT: usize = 32;
 
 #[derive(Debug, Clone)]
@@ -47,6 +49,17 @@ impl Default for ResourceModeHysteresisRuntime {
             recovery_count: 0,
         }
     }
+}
+
+fn host_runtime_scope_key() -> String {
+    ScopeRef::host(
+        "host:focusa-daemon-runtime",
+        "/",
+        "focusa-daemon-runtime",
+        "sha256:focusa-daemon-runtime",
+    )
+    .expect("static host runtime scope is valid")
+    .storage_key()
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -147,10 +160,11 @@ pub struct ResponseSizeHistogram {
     pub max_bytes: usize,
 }
 
-static PRESSURE_TRANSITION: LazyLock<Mutex<Option<PressureTransition>>> =
-    LazyLock::new(|| Mutex::new(None));
-static PRESSURE_LAST_ACTIVE: LazyLock<Mutex<Option<bool>>> = LazyLock::new(|| Mutex::new(None));
-static RESPONSE_SIZE_SAMPLES: LazyLock<Mutex<BTreeMap<String, Vec<usize>>>> =
+static PRESSURE_TRANSITION: LazyLock<Mutex<BTreeMap<String, Option<PressureTransition>>>> =
+    LazyLock::new(|| Mutex::new(BTreeMap::new()));
+static PRESSURE_LAST_ACTIVE: LazyLock<Mutex<BTreeMap<String, Option<bool>>>> =
+    LazyLock::new(|| Mutex::new(BTreeMap::new()));
+static RESPONSE_SIZE_SAMPLES: LazyLock<Mutex<BTreeMap<String, BTreeMap<String, Vec<usize>>>>> =
     LazyLock::new(|| Mutex::new(BTreeMap::new()));
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -398,8 +412,8 @@ fn normalize_resource_mode_value(value: &str) -> Option<String> {
 
 pub fn set_runtime_resource_mode_override(mode: Option<&str>) -> Result<Option<String>, String> {
     let normalized = mode.and_then(normalize_resource_mode_value);
-    if let Ok(mut slot) = RUNTIME_RESOURCE_MODE_OVERRIDE.lock() {
-        *slot = normalized.clone();
+    if let Ok(mut slots) = RUNTIME_RESOURCE_MODE_OVERRIDE.lock() {
+        slots.insert(host_runtime_scope_key(), normalized.clone());
         Ok(normalized)
     } else {
         Err("resource mode override lock poisoned".to_string())
@@ -410,7 +424,7 @@ pub fn runtime_resource_mode_override() -> Option<String> {
     RUNTIME_RESOURCE_MODE_OVERRIDE
         .lock()
         .ok()
-        .and_then(|slot| slot.clone())
+        .and_then(|slots| slots.get(&host_runtime_scope_key()).cloned().flatten())
 }
 
 fn resource_mode_recovery_hint(mode: &str) -> &'static str {
@@ -427,25 +441,29 @@ fn resource_mode_recovery_hint(mode: &str) -> &'static str {
 }
 
 fn transition_snapshot() -> (Option<ResourceModeTransitionRecord>, usize) {
-    let latest = RESOURCE_MODE_TRANSITIONS
-        .lock()
-        .ok()
-        .and_then(|records| records.last().cloned());
+    let scope_key = host_runtime_scope_key();
+    let latest = RESOURCE_MODE_TRANSITIONS.lock().ok().and_then(|records| {
+        records
+            .get(&scope_key)
+            .and_then(|records| records.last().cloned())
+    });
     let omitted = RESOURCE_MODE_TRANSITION_OMITTED
         .lock()
-        .map(|value| *value)
+        .map(|values| values.get(&scope_key).copied().unwrap_or_default())
         .unwrap_or_default();
     (latest, omitted)
 }
 
 fn push_resource_mode_transition(record: ResourceModeTransitionRecord) {
-    if let Ok(mut records) = RESOURCE_MODE_TRANSITIONS.lock() {
+    let scope_key = host_runtime_scope_key();
+    if let Ok(mut scoped_records) = RESOURCE_MODE_TRANSITIONS.lock() {
+        let records = scoped_records.entry(scope_key.clone()).or_default();
         records.push(record);
         if records.len() > RESOURCE_MODE_TRANSITION_RING_LIMIT {
             let overflow = records.len() - RESOURCE_MODE_TRANSITION_RING_LIMIT;
             records.drain(0..overflow);
             if let Ok(mut omitted) = RESOURCE_MODE_TRANSITION_OMITTED.lock() {
-                *omitted += overflow;
+                *omitted.entry(scope_key).or_default() += overflow;
             }
         }
     }
@@ -457,10 +475,9 @@ pub fn resource_mode_transition_records(limit: usize) -> Vec<ResourceModeTransit
         .lock()
         .map(|records| {
             records
-                .iter()
-                .rev()
-                .take(limit)
-                .cloned()
+                .get(&host_runtime_scope_key())
+                .into_iter()
+                .flat_map(|records| records.iter().rev().take(limit).cloned())
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default()
@@ -500,7 +517,7 @@ fn apply_resource_mode_hysteresis(
     }
 
     let recovery_samples = resource_mode_hysteresis_recovery_samples();
-    let Ok(mut state) = RESOURCE_MODE_HYSTERESIS_STATE.lock() else {
+    let Ok(mut states) = RESOURCE_MODE_HYSTERESIS_STATE.lock() else {
         return (
             raw_mode,
             raw_reason,
@@ -512,6 +529,7 @@ fn apply_resource_mode_hysteresis(
             }),
         );
     };
+    let state = states.entry(host_runtime_scope_key()).or_default();
 
     let previous_mode = state.current_mode;
     let previous_severity = resource_mode_severity(previous_mode);
@@ -570,10 +588,11 @@ pub fn observe_resource_mode_transition(
     active_session_id: Option<String>,
 ) -> ResourceModeStatus {
     let mut status = resource_mode_status();
+    let scope_key = host_runtime_scope_key();
     let previous_mode = RESOURCE_MODE_LAST_OBSERVED
         .lock()
         .ok()
-        .and_then(|slot| slot.clone());
+        .and_then(|slots| slots.get(&scope_key).cloned().flatten());
     let should_record = match previous_mode.as_deref() {
         Some(previous) => previous != status.mode,
         None => status.mode != "normal" || trigger != "background_resource_monitor",
@@ -601,8 +620,8 @@ pub fn observe_resource_mode_transition(
         status.transition_omitted_count = transition_omitted_count;
     }
 
-    if let Ok(mut slot) = RESOURCE_MODE_LAST_OBSERVED.lock() {
-        *slot = Some(status.mode.to_string());
+    if let Ok(mut slots) = RESOURCE_MODE_LAST_OBSERVED.lock() {
+        slots.insert(scope_key, Some(status.mode.to_string()));
     }
 
     status
@@ -729,7 +748,11 @@ pub fn pressure_status() -> PressureStatus {
             "normal"
         },
     };
-    if let Ok(mut last_active) = PRESSURE_LAST_ACTIVE.lock() {
+    let scope_key = host_runtime_scope_key();
+    if let Ok(mut last_active_by_scope) = PRESSURE_LAST_ACTIVE.lock() {
+        let last_active = last_active_by_scope
+            .entry(scope_key.clone())
+            .or_insert(None);
         let should_record = match *last_active {
             Some(previous) => previous != active,
             None => active && threshold_kb.is_some(),
@@ -738,14 +761,17 @@ pub fn pressure_status() -> PressureStatus {
             let from_status = last_active
                 .map(|previous| if previous { "pressure" } else { "ok" })
                 .unwrap_or("unknown");
-            if let Ok(mut transition) = PRESSURE_TRANSITION.lock() {
-                *transition = Some(PressureTransition {
-                    transitioned_at: Utc::now().to_rfc3339(),
-                    from_status,
-                    to_status: status.status,
-                    rss_kb,
-                    threshold_kb,
-                });
+            if let Ok(mut transitions) = PRESSURE_TRANSITION.lock() {
+                transitions.insert(
+                    scope_key,
+                    Some(PressureTransition {
+                        transitioned_at: Utc::now().to_rfc3339(),
+                        from_status,
+                        to_status: status.status,
+                        rss_kb,
+                        threshold_kb,
+                    }),
+                );
             }
         }
         *last_active = Some(active);
@@ -757,11 +783,14 @@ pub fn last_pressure_transition() -> Option<PressureTransition> {
     PRESSURE_TRANSITION
         .lock()
         .ok()
-        .and_then(|value| value.clone())
+        .and_then(|values| values.get(&host_runtime_scope_key()).cloned().flatten())
 }
 
 pub fn record_response_size(route: &str, bytes: usize) {
-    if let Ok(mut samples) = RESPONSE_SIZE_SAMPLES.lock() {
+    if let Ok(mut samples_by_scope) = RESPONSE_SIZE_SAMPLES.lock() {
+        let samples = samples_by_scope
+            .entry(host_runtime_scope_key())
+            .or_default();
         let route_samples = samples.entry(route.to_string()).or_default();
         route_samples.push(bytes);
         if route_samples.len() > 512 {
@@ -774,9 +803,11 @@ pub fn record_response_size(route: &str, bytes: usize) {
 pub fn response_size_histograms() -> Vec<ResponseSizeHistogram> {
     RESPONSE_SIZE_SAMPLES
         .lock()
-        .map(|samples| {
-            samples
-                .iter()
+        .map(|samples_by_scope| {
+            samples_by_scope
+                .get(&host_runtime_scope_key())
+                .into_iter()
+                .flat_map(|samples| samples.iter())
                 .filter_map(|(route, values)| {
                     if values.is_empty() {
                         return None;
@@ -995,17 +1026,18 @@ mod tests {
 
     #[cfg(test)]
     fn reset_resource_mode_transitions_for_test() {
-        if let Ok(mut slot) = RESOURCE_MODE_LAST_OBSERVED.lock() {
-            *slot = None;
+        let scope_key = host_runtime_scope_key();
+        if let Ok(mut slots) = RESOURCE_MODE_LAST_OBSERVED.lock() {
+            slots.remove(&scope_key);
         }
         if let Ok(mut records) = RESOURCE_MODE_TRANSITIONS.lock() {
-            records.clear();
+            records.remove(&scope_key);
         }
         if let Ok(mut omitted) = RESOURCE_MODE_TRANSITION_OMITTED.lock() {
-            *omitted = 0;
+            omitted.remove(&scope_key);
         }
         if let Ok(mut hysteresis) = RESOURCE_MODE_HYSTERESIS_STATE.lock() {
-            *hysteresis = ResourceModeHysteresisRuntime::default();
+            hysteresis.remove(&scope_key);
         }
     }
 

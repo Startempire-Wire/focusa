@@ -212,7 +212,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     name: "focusa_session_transfer",
     label: "Session Transfer",
     purpose:
-      "Save or continue a long Focusa/Pi work session like a game-save by composing project card, inferred Workpoint, Workpoint checkpoint/resume, and trajectory view.",
+      "Save, continue, or Spec130-roll over a long Focusa/Pi work session with explicit source_scope/target_scope or target_continuity_id, source/target session ids, checkpoint/packet refs, and rollover action.",
     family: "workpoint",
     ontology_action: "session.transfer",
     ontology_objects: [
@@ -230,15 +230,15 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "GET /v1/trajectory/view",
     ],
     cli_commands: ["focusa project session-transfer"],
-    core_surface: "Focusa session transfer save/continue wrapper",
+    core_surface: "Focusa typed session transfer save/continue/rollover wrapper",
     doc_path: "docs/focusa-tools/tools/focusa_session_transfer.md",
     result_envelope: "tool_result_v1",
     side_effect_profile: "save_may_checkpoint_workpoint",
     parity_status: "full",
     exemptions: [],
     live_check:
-      "contract_static plus Pi tool typecheck; compose project-card/resume/checkpoint safe fixture when run interactively",
-    scope_requirement: { kind: "read", route_family: "auto" },
+      "contract_static plus Pi tool typecheck and Spec104 static check that session_transfer carries source_scope,target_scope,target_continuity_id,session ids,packet refs,rollover_action and does not call ensureContinuityId",
+    scope_requirement: { kind: "read", route_family: "explicit_source_target_scope" },
     authority_requirement: { kind: "advisory_only" },
   },
   {

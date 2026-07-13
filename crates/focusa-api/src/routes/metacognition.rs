@@ -12,6 +12,7 @@ use crate::routes::bounded::{
 };
 use crate::routes::permissions::{forbid, permission_context};
 use crate::routes::predictions::append_prediction_record_scoped;
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Path as AxumPath, Query, State};
 use axum::http::{HeaderMap, StatusCode};
@@ -21,15 +22,16 @@ use axum::{
 };
 use chrono::Utc;
 use focusa_core::prediction::{PredictionOntologyContext, PredictionValue};
-use focusa_core::scoped_state::WorkstreamKey;
+use focusa_core::scoped_state::{ScopeRef, WorkstreamKey};
 use focusa_core::types::TrajectoryLadderContext;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use sha2::Digest;
 use std::cmp::Reverse;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::Arc;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct CaptureRecord {
     capture_id: String,
@@ -116,7 +118,7 @@ struct MetacogEvictionEvent {
 }
 
 #[derive(Debug, Default)]
-struct MetaStore {
+pub(crate) struct MetaStore {
     captures: Vec<CaptureRecord>,
     reflections: Vec<ReflectionRecord>,
     adjustments: Vec<AdjustmentRecord>,
@@ -310,22 +312,28 @@ fn prune_metacog_store(
     record_eviction(store, "evaluations", evaluation_evicted, "ttl_or_cap", now);
 }
 
-fn metacog_base_dir(state: &AppState) -> PathBuf {
+fn metacog_base_dir(state: &AppState, scope: &WorkstreamKey) -> PathBuf {
     Path::new(&state.config.data_dir)
         .join("runtime")
-        .join("metacognition")
+        .join("scoped-metacog")
+        .join(scope.storage_key())
 }
 
-fn metacog_category_dir(state: &AppState, category: &str) -> PathBuf {
-    metacog_base_dir(state).join(category)
+fn metacog_category_dir(state: &AppState, scope: &WorkstreamKey, category: &str) -> PathBuf {
+    metacog_base_dir(state, scope).join(category)
 }
 
-fn metacog_record_path(state: &AppState, category: &str, id: &str) -> PathBuf {
-    metacog_category_dir(state, category).join(format!("{id}.json"))
+fn metacog_record_path(
+    state: &AppState,
+    scope: &WorkstreamKey,
+    category: &str,
+    id: &str,
+) -> PathBuf {
+    metacog_category_dir(state, scope, category).join(format!("{id}.json"))
 }
 
-fn metacog_capture_index_path(state: &AppState) -> PathBuf {
-    metacog_base_dir(state).join("capture-hot-index.jsonl")
+fn metacog_capture_index_path(state: &AppState, scope: &WorkstreamKey) -> PathBuf {
+    metacog_base_dir(state, scope).join("capture-hot-index.jsonl")
 }
 
 fn persist_json_record(path: &Path, payload: &Value) {
@@ -337,8 +345,8 @@ fn persist_json_record(path: &Path, payload: &Value) {
     }
 }
 
-fn append_capture_index_entry(state: &AppState, entry: &CaptureIndexEntry) {
-    let path = metacog_capture_index_path(state);
+fn append_capture_index_entry(state: &AppState, scope: &WorkstreamKey, entry: &CaptureIndexEntry) {
+    let path = metacog_capture_index_path(state, scope);
     if let Some(parent) = path.parent() {
         let _ = fs::create_dir_all(parent);
     }
@@ -352,10 +360,11 @@ fn append_capture_index_entry(state: &AppState, entry: &CaptureIndexEntry) {
 
 fn load_capture_index_from_disk(
     state: &AppState,
+    scope: &WorkstreamKey,
     cfg: MetaStoreConfig,
     now: chrono::DateTime<chrono::Utc>,
 ) -> Vec<CaptureIndexEntry> {
-    let path = metacog_capture_index_path(state);
+    let path = metacog_capture_index_path(state, scope);
     let Ok(text) = fs::read_to_string(path) else {
         return Vec::new();
     };
@@ -380,9 +389,9 @@ fn load_capture_record_from_path(path: &str) -> Option<CaptureRecord> {
     serde_json::from_slice::<CaptureRecord>(&bytes).ok()
 }
 
-fn load_capture_records_from_disk(state: &AppState) -> Vec<CaptureRecord> {
+fn load_capture_records_from_disk(state: &AppState, scope: &WorkstreamKey) -> Vec<CaptureRecord> {
     let mut out = Vec::new();
-    let dir = metacog_category_dir(state, "captures");
+    let dir = metacog_category_dir(state, scope, "captures");
     let Ok(entries) = fs::read_dir(dir) else {
         return out;
     };
@@ -401,9 +410,12 @@ fn load_capture_records_from_disk(state: &AppState) -> Vec<CaptureRecord> {
     out
 }
 
-fn load_reflection_records_from_disk(state: &AppState) -> Vec<ReflectionRecord> {
+fn load_reflection_records_from_disk(
+    state: &AppState,
+    scope: &WorkstreamKey,
+) -> Vec<ReflectionRecord> {
     let mut out = Vec::new();
-    let dir = metacog_category_dir(state, "reflections");
+    let dir = metacog_category_dir(state, scope, "reflections");
     let Ok(entries) = fs::read_dir(dir) else {
         return out;
     };
@@ -422,9 +434,12 @@ fn load_reflection_records_from_disk(state: &AppState) -> Vec<ReflectionRecord> 
     out
 }
 
-fn load_adjustment_records_from_disk(state: &AppState) -> Vec<AdjustmentRecord> {
+fn load_adjustment_records_from_disk(
+    state: &AppState,
+    scope: &WorkstreamKey,
+) -> Vec<AdjustmentRecord> {
     let mut out = Vec::new();
-    let dir = metacog_category_dir(state, "adjustments");
+    let dir = metacog_category_dir(state, scope, "adjustments");
     let Ok(entries) = fs::read_dir(dir) else {
         return out;
     };
@@ -443,29 +458,41 @@ fn load_adjustment_records_from_disk(state: &AppState) -> Vec<AdjustmentRecord> 
     out
 }
 
-fn reflection_exists_on_disk(state: &AppState, reflection_id: &str) -> bool {
-    metacog_record_path(state, "reflections", reflection_id).exists()
+fn reflection_exists_on_disk(state: &AppState, scope: &WorkstreamKey, reflection_id: &str) -> bool {
+    metacog_record_path(state, scope, "reflections", reflection_id).exists()
 }
 
-fn load_reflection_record(state: &AppState, reflection_id: &str) -> Option<ReflectionRecord> {
-    let in_mem = store()
+fn load_reflection_record(
+    state: &AppState,
+    scope: &WorkstreamKey,
+    reflection_id: &str,
+) -> Option<ReflectionRecord> {
+    let in_mem = state
+        .metacog_by_scope
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
-        .reflections
-        .iter()
-        .find(|rec| rec.reflection_id == reflection_id)
-        .cloned();
+        .get(scope)
+        .and_then(|store| {
+            store
+                .reflections
+                .iter()
+                .find(|rec| rec.reflection_id == reflection_id)
+                .cloned()
+        });
     in_mem.or_else(|| {
-        let path = metacog_record_path(state, "reflections", reflection_id);
+        let path = metacog_record_path(state, scope, "reflections", reflection_id);
         fs::read(path)
             .ok()
             .and_then(|bytes| serde_json::from_slice::<ReflectionRecord>(&bytes).ok())
     })
 }
 
-fn load_evaluation_records_from_disk(state: &AppState) -> Vec<EvaluationRecord> {
+fn load_evaluation_records_from_disk(
+    state: &AppState,
+    scope: &WorkstreamKey,
+) -> Vec<EvaluationRecord> {
     let mut out = Vec::new();
-    let dir = metacog_category_dir(state, "evaluations");
+    let dir = metacog_category_dir(state, scope, "evaluations");
     let Ok(entries) = fs::read_dir(dir) else {
         return out;
     };
@@ -484,16 +511,25 @@ fn load_evaluation_records_from_disk(state: &AppState) -> Vec<EvaluationRecord> 
     out
 }
 
-fn load_adjustment_record(state: &AppState, adjustment_id: &str) -> Option<AdjustmentRecord> {
-    let in_mem = store()
+fn load_adjustment_record(
+    state: &AppState,
+    scope: &WorkstreamKey,
+    adjustment_id: &str,
+) -> Option<AdjustmentRecord> {
+    let in_mem = state
+        .metacog_by_scope
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
-        .adjustments
-        .iter()
-        .find(|rec| rec.adjustment_id == adjustment_id)
-        .cloned();
+        .get(scope)
+        .and_then(|store| {
+            store
+                .adjustments
+                .iter()
+                .find(|rec| rec.adjustment_id == adjustment_id)
+                .cloned()
+        });
     in_mem.or_else(|| {
-        let path = metacog_record_path(state, "adjustments", adjustment_id);
+        let path = metacog_record_path(state, scope, "adjustments", adjustment_id);
         fs::read(path)
             .ok()
             .and_then(|bytes| serde_json::from_slice::<AdjustmentRecord>(&bytes).ok())
@@ -508,12 +544,6 @@ fn promotion_score(observed_metrics: &[String], selected_updates: &[String]) -> 
         0.25
     };
     (metric_score + update_score).clamp(0.0, 1.0)
-}
-
-static METACOG_STORE: OnceLock<Mutex<MetaStore>> = OnceLock::new();
-
-fn store() -> &'static Mutex<MetaStore> {
-    METACOG_STORE.get_or_init(|| Mutex::new(MetaStore::default()))
 }
 
 fn token_enabled(state: &AppState) -> bool {
@@ -537,6 +567,40 @@ async fn active_trajectory_context(state: &AppState) -> Option<TrajectoryLadderC
     state.focusa.read().await.trajectory_ladder_context()
 }
 
+fn scope_required_response(reason: String) -> (StatusCode, Json<Value>) {
+    (
+        StatusCode::BAD_REQUEST,
+        Json(json!({
+            "status": "error",
+            "code": "SCOPE_REQUIRED",
+            "reason": reason,
+        })),
+    )
+}
+
+fn workstream_from_trajectory(trajectory: &TrajectoryLadderContext) -> Option<WorkstreamKey> {
+    let root = trajectory.project_root.as_deref()?;
+    let continuity_id = trajectory.continuity_id.as_deref()?;
+    let canonical_name = root
+        .trim_end_matches('/')
+        .rsplit('/')
+        .next()
+        .filter(|value| !value.is_empty())
+        .unwrap_or("project");
+    let fingerprint = format!(
+        "sha256:{}",
+        hex::encode(sha2::Sha256::digest(root.trim_end_matches('/').as_bytes()))
+    );
+    let root_scope = ScopeRef::project(
+        format!("project:{fingerprint}"),
+        root,
+        canonical_name,
+        fingerprint,
+    )
+    .ok()?;
+    WorkstreamKey::new(root_scope, continuity_id).ok()
+}
+
 pub(crate) async fn capture_learning_signal(
     state: &AppState,
     kind: &str,
@@ -548,39 +612,18 @@ pub(crate) async fn capture_learning_signal(
     if kind.trim().is_empty() || content.trim().is_empty() {
         return None;
     }
-    let capture_id = format!(
-        "auto-{}",
-        Utc::now().timestamp_nanos_opt().unwrap_or_default()
-    );
-    let storage_path = metacog_record_path(state, "captures", &capture_id)
-        .display()
-        .to_string();
     let trajectory = active_trajectory_context(state).await;
-    let rec = CaptureRecord {
-        capture_id: capture_id.clone(),
-        created_at: Utc::now(),
-        kind: kind.to_string(),
-        content: content.to_string(),
+    let scope = trajectory.as_ref().and_then(workstream_from_trajectory)?;
+    capture_learning_signal_scoped(
+        state,
+        scope,
+        kind,
+        content,
         rationale,
         confidence,
         strategy_class,
-        storage_path: storage_path.clone(),
-        trajectory,
-        scope: None,
-    };
-    persist_json_record(
-        &metacog_record_path(state, "captures", &capture_id),
-        &json!(rec),
-    );
-    let index_entry = capture_index_entry(&rec);
-    append_capture_index_entry(state, &index_entry);
-    let mut s = store()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    s.captures.push(rec);
-    s.capture_hot_index.push(index_entry);
-    prune_metacog_store(&mut s, Utc::now(), metacog_store_config(&state.config));
-    Some(capture_id)
+    )
+    .await
 }
 
 pub(crate) async fn capture_learning_signal_scoped(
@@ -599,11 +642,7 @@ pub(crate) async fn capture_learning_signal_scoped(
         "scoped-{}",
         Utc::now().timestamp_nanos_opt().unwrap_or_default()
     );
-    let storage_path = metacog_base_dir(state)
-        .join("scoped")
-        .join(scope.storage_key())
-        .join("captures")
-        .join(format!("{capture_id}.json"));
+    let storage_path = metacog_record_path(state, &scope, "captures", &capture_id);
     let trajectory = active_trajectory_context(state).await.filter(|trajectory| {
         trajectory.project_root.as_deref()
             == Some(scope.root_scope.root_path.to_string_lossy().as_ref())
@@ -619,16 +658,19 @@ pub(crate) async fn capture_learning_signal_scoped(
         strategy_class,
         storage_path: storage_path.display().to_string(),
         trajectory,
-        scope: Some(scope),
+        scope: Some(scope.clone()),
     };
     persist_json_record(&storage_path, &json!(rec));
     let index_entry = capture_index_entry(&rec);
-    let mut store = store()
+    append_capture_index_entry(state, &scope, &index_entry);
+    let mut stores = state
+        .metacog_by_scope
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let store = stores.entry(scope).or_default();
     store.captures.push(rec);
     store.capture_hot_index.push(index_entry);
-    prune_metacog_store(&mut store, Utc::now(), metacog_store_config(&state.config));
+    prune_metacog_store(store, Utc::now(), metacog_store_config(&state.config));
     Some(capture_id)
 }
 
@@ -646,10 +688,14 @@ struct CaptureBody {
 
 async fn capture(
     State(state): State<Arc<AppState>>,
+    scope_context: ScopeContext,
     headers: HeaderMap,
     Json(body): Json<CaptureBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "metacognition:write")?;
+    let scope = scope_context
+        .require_workstream_key()
+        .map_err(scope_required_response)?;
 
     if body.kind.trim().is_empty() || body.content.trim().is_empty() {
         return Err((
@@ -666,7 +712,7 @@ async fn capture(
         "cap-{}",
         Utc::now().timestamp_nanos_opt().unwrap_or_default()
     );
-    let storage_path = metacog_record_path(&state, "captures", &capture_id)
+    let storage_path = metacog_record_path(&state, &scope, "captures", &capture_id)
         .display()
         .to_string();
     let trajectory = active_trajectory_context(&state).await;
@@ -680,23 +726,25 @@ async fn capture(
         strategy_class: body.strategy_class,
         storage_path: storage_path.clone(),
         trajectory: trajectory.clone(),
-        scope: None,
+        scope: Some(scope.clone()),
     };
 
     persist_json_record(
-        &metacog_record_path(&state, "captures", &capture_id),
+        &metacog_record_path(&state, &scope, "captures", &capture_id),
         &json!(rec),
     );
 
     let index_entry = capture_index_entry(&rec);
-    append_capture_index_entry(&state, &index_entry);
+    append_capture_index_entry(&state, &scope, &index_entry);
 
-    let mut s = store()
+    let mut stores = state
+        .metacog_by_scope
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let s = stores.entry(scope).or_default();
     s.captures.push(rec);
     s.capture_hot_index.push(index_entry);
-    prune_metacog_store(&mut s, Utc::now(), metacog_store_config(&state.config));
+    prune_metacog_store(s, Utc::now(), metacog_store_config(&state.config));
 
     Ok(Json(json!({
         "capture_id": capture_id,
@@ -749,10 +797,14 @@ fn recent_artifacts_hard_limit() -> usize {
 
 async fn retrieve(
     State(state): State<Arc<AppState>>,
+    scope_context: ScopeContext,
     headers: HeaderMap,
     Json(body): Json<RetrieveBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "metacognition:read")?;
+    let scope = scope_context
+        .require_workstream_key()
+        .map_err(scope_required_response)?;
 
     let ask = body.current_ask.to_lowercase();
     let tags = body
@@ -764,9 +816,11 @@ async fn retrieve(
     let cfg = metacog_store_config(&state.config);
     let now = Utc::now();
     let (in_memory_records, in_memory_index) = {
-        let mut s = store()
+        let mut stores = state
+            .metacog_by_scope
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let s = stores.entry(scope.clone()).or_default();
         if s.capture_hot_index.is_empty() && !s.captures.is_empty() {
             s.capture_hot_index = rebuild_capture_hot_index(&s.captures, cfg, now);
         }
@@ -780,7 +834,7 @@ async fn retrieve(
 
     let mut by_id = HashMap::new();
     let mut index_by_id = HashMap::new();
-    for entry in load_capture_index_from_disk(&state, cfg, now) {
+    for entry in load_capture_index_from_disk(&state, &scope, cfg, now) {
         index_by_id.insert(entry.capture_id.clone(), entry);
     }
     for entry in in_memory_index {
@@ -906,10 +960,14 @@ struct ReflectBody {
 
 async fn reflect(
     State(state): State<Arc<AppState>>,
+    scope_context: ScopeContext,
     headers: HeaderMap,
     Json(body): Json<ReflectBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "metacognition:write")?;
+    let scope = scope_context
+        .require_workstream_key()
+        .map_err(scope_required_response)?;
 
     if body.turn_range.trim().is_empty() {
         return Err((
@@ -935,7 +993,7 @@ async fn reflect(
             .collect::<Vec<_>>()
     };
 
-    let storage_path = metacog_record_path(&state, "reflections", &reflection_id)
+    let storage_path = metacog_record_path(&state, &scope, "reflections", &reflection_id)
         .display()
         .to_string();
     let trajectory = active_trajectory_context(&state).await;
@@ -948,19 +1006,21 @@ async fn reflect(
         strategy_updates: strategy_updates.clone(),
         storage_path: storage_path.clone(),
         trajectory: trajectory.clone(),
-        scope: None,
+        scope: Some(scope.clone()),
     };
 
     persist_json_record(
-        &metacog_record_path(&state, "reflections", &reflection_id),
+        &metacog_record_path(&state, &scope, "reflections", &reflection_id),
         &json!(rec),
     );
 
-    let mut s = store()
+    let mut stores = state
+        .metacog_by_scope
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let s = stores.entry(scope).or_default();
     s.reflections.push(rec.clone());
-    prune_metacog_store(&mut s, Utc::now(), metacog_store_config(&state.config));
+    prune_metacog_store(s, Utc::now(), metacog_store_config(&state.config));
 
     Ok(Json(json!({
         "reflection_id": reflection_id,
@@ -980,20 +1040,26 @@ struct AdjustBody {
 
 async fn adjust(
     State(state): State<Arc<AppState>>,
+    scope_context: ScopeContext,
     headers: HeaderMap,
     Json(body): Json<AdjustBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "metacognition:write")?;
+    let scope = scope_context
+        .require_workstream_key()
+        .map_err(scope_required_response)?;
 
-    let in_mem_exists = {
-        let s = store()
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        s.reflections
-            .iter()
-            .any(|r| r.reflection_id == body.reflection_id)
-    };
-    if !in_mem_exists && !reflection_exists_on_disk(&state, &body.reflection_id) {
+    let in_mem_exists = state
+        .metacog_by_scope
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .get(&scope)
+        .is_some_and(|s| {
+            s.reflections
+                .iter()
+                .any(|r| r.reflection_id == body.reflection_id)
+        });
+    if !in_mem_exists && !reflection_exists_on_disk(&state, &scope, &body.reflection_id) {
         return Err((
             StatusCode::NOT_FOUND,
             Json(json!({
@@ -1008,7 +1074,7 @@ async fn adjust(
         "adj-{}",
         Utc::now().timestamp_nanos_opt().unwrap_or_default()
     );
-    let storage_path = metacog_record_path(&state, "adjustments", &adjustment_id)
+    let storage_path = metacog_record_path(&state, &scope, "adjustments", &adjustment_id)
         .display()
         .to_string();
     let trajectory = active_trajectory_context(&state).await;
@@ -1019,17 +1085,19 @@ async fn adjust(
         created_at: Utc::now(),
         storage_path: storage_path.clone(),
         trajectory: trajectory.clone(),
-        scope: None,
+        scope: Some(scope.clone()),
     };
     persist_json_record(
-        &metacog_record_path(&state, "adjustments", &adjustment_id),
+        &metacog_record_path(&state, &scope, "adjustments", &adjustment_id),
         &json!(rec),
     );
-    let mut s = store()
+    let mut stores = state
+        .metacog_by_scope
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let s = stores.entry(scope).or_default();
     s.adjustments.push(rec.clone());
-    prune_metacog_store(&mut s, Utc::now(), metacog_store_config(&state.config));
+    prune_metacog_store(s, Utc::now(), metacog_store_config(&state.config));
 
     Ok(Json(json!({
         "adjustment_id": adjustment_id,
@@ -1052,12 +1120,16 @@ struct EvaluateBody {
 
 async fn evaluate(
     State(state): State<Arc<AppState>>,
+    scope_context: ScopeContext,
     headers: HeaderMap,
     Json(body): Json<EvaluateBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "metacognition:write")?;
+    let scope = scope_context
+        .require_workstream_key()
+        .map_err(scope_required_response)?;
 
-    let adjustment = load_adjustment_record(&state, &body.adjustment_id);
+    let adjustment = load_adjustment_record(&state, &scope, &body.adjustment_id);
     let Some(adjustment) = adjustment else {
         return Err((
             StatusCode::NOT_FOUND,
@@ -1068,12 +1140,12 @@ async fn evaluate(
             })),
         ));
     };
-    let reflection = load_reflection_record(&state, &adjustment.reflection_id);
+    let reflection = load_reflection_record(&state, &scope, &adjustment.reflection_id);
     let score = promotion_score(&body.observed_metrics, &adjustment.selected_updates);
     let promote = score >= 0.5;
     let now = Utc::now();
     let evaluation_id = format!("eval-{}", now.timestamp_nanos_opt().unwrap_or_default());
-    let storage_path = metacog_record_path(&state, "evaluations", &evaluation_id)
+    let storage_path = metacog_record_path(&state, &scope, "evaluations", &evaluation_id)
         .display()
         .to_string();
     let trajectory = active_trajectory_context(&state).await;
@@ -1086,16 +1158,16 @@ async fn evaluate(
         created_at: now,
         storage_path: storage_path.clone(),
         trajectory: trajectory.clone(),
-        scope: None,
+        scope: Some(scope.clone()),
     };
     persist_json_record(
-        &metacog_record_path(&state, "evaluations", &evaluation_id),
+        &metacog_record_path(&state, &scope, "evaluations", &evaluation_id),
         &json!(rec),
     );
 
     let promoted_capture = if rec.promote_learning {
         let capture_id = format!("promoted-{}", now.timestamp_nanos_opt().unwrap_or_default());
-        let capture_storage_path = metacog_record_path(&state, "captures", &capture_id)
+        let capture_storage_path = metacog_record_path(&state, &scope, "captures", &capture_id)
             .display()
             .to_string();
         let capture = CaptureRecord {
@@ -1123,26 +1195,28 @@ async fn evaluate(
             scope: adjustment.scope.clone(),
         };
         persist_json_record(
-            &metacog_record_path(&state, "captures", &capture_id),
+            &metacog_record_path(&state, &scope, "captures", &capture_id),
             &json!(capture),
         );
         let index_entry = capture_index_entry(&capture);
-        append_capture_index_entry(&state, &index_entry);
+        append_capture_index_entry(&state, &scope, &index_entry);
         Some((capture, index_entry))
     } else {
         None
     };
 
     {
-        let mut s = store()
+        let mut stores = state
+            .metacog_by_scope
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let s = stores.entry(scope.clone()).or_default();
         s.evaluations.push(rec.clone());
         if let Some((capture, index_entry)) = promoted_capture.clone() {
             s.captures.push(capture);
             s.capture_hot_index.push(index_entry);
         }
-        prune_metacog_store(&mut s, now, metacog_store_config(&state.config));
+        prune_metacog_store(s, now, metacog_store_config(&state.config));
     }
 
     let promoted_capture_id = promoted_capture
@@ -1214,15 +1288,21 @@ struct RecentMetacogQuery {
 
 async fn metacog_status(
     State(state): State<Arc<AppState>>,
+    scope_context: ScopeContext,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "metacognition:read")?;
+    let scope = scope_context
+        .require_workstream_key()
+        .map_err(scope_required_response)?;
     let cfg = metacog_store_config(&state.config);
-    let disk_captures = load_capture_records_from_disk(&state);
-    let disk_evaluations = load_evaluation_records_from_disk(&state);
-    let mut s = store()
+    let disk_captures = load_capture_records_from_disk(&state, &scope);
+    let disk_evaluations = load_evaluation_records_from_disk(&state, &scope);
+    let mut stores = state
+        .metacog_by_scope
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let s = stores.entry(scope).or_default();
     let mut by_id: HashMap<String, CaptureRecord> = HashMap::new();
     for rec in disk_captures {
         by_id.insert(rec.capture_id.clone(), rec);
@@ -1273,21 +1353,27 @@ async fn metacog_status(
 
 async fn get_capture(
     State(state): State<Arc<AppState>>,
+    scope_context: ScopeContext,
     headers: HeaderMap,
     AxumPath(capture_id): AxumPath<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "metacognition:read")?;
-    let in_mem = {
-        let s = store()
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        s.captures
-            .iter()
-            .find(|rec| rec.capture_id == capture_id)
-            .cloned()
-    };
+    let scope = scope_context
+        .require_workstream_key()
+        .map_err(scope_required_response)?;
+    let in_mem = state
+        .metacog_by_scope
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .get(&scope)
+        .and_then(|s| {
+            s.captures
+                .iter()
+                .find(|rec| rec.capture_id == capture_id)
+                .cloned()
+        });
     let rec = in_mem.or_else(|| {
-        let path = metacog_record_path(&state, "captures", &capture_id);
+        let path = metacog_record_path(&state, &scope, "captures", &capture_id);
         fs::read(path)
             .ok()
             .and_then(|bytes| serde_json::from_slice::<CaptureRecord>(&bytes).ok())
@@ -1310,21 +1396,27 @@ async fn get_capture(
 
 async fn recent_reflections(
     State(state): State<Arc<AppState>>,
+    scope_context: ScopeContext,
     headers: HeaderMap,
     Query(query): Query<RecentMetacogQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "metacognition:read")?;
+    let scope = scope_context
+        .require_workstream_key()
+        .map_err(scope_required_response)?;
 
     let mut by_id: HashMap<String, ReflectionRecord> = HashMap::new();
+    if let Some(s) = state
+        .metacog_by_scope
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .get(&scope)
     {
-        let s = store()
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
         for rec in &s.reflections {
             by_id.insert(rec.reflection_id.clone(), rec.clone());
         }
     }
-    for rec in load_reflection_records_from_disk(&state) {
+    for rec in load_reflection_records_from_disk(&state, &scope) {
         by_id.entry(rec.reflection_id.clone()).or_insert(rec);
     }
 
@@ -1366,21 +1458,27 @@ async fn recent_reflections(
 
 async fn recent_evaluations(
     State(state): State<Arc<AppState>>,
+    scope_context: ScopeContext,
     headers: HeaderMap,
     Query(query): Query<RecentMetacogQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "metacognition:read")?;
+    let scope = scope_context
+        .require_workstream_key()
+        .map_err(scope_required_response)?;
 
     let mut by_id: HashMap<String, EvaluationRecord> = HashMap::new();
+    if let Some(s) = state
+        .metacog_by_scope
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .get(&scope)
     {
-        let s = store()
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
         for rec in &s.evaluations {
             by_id.insert(rec.evaluation_id.clone(), rec.clone());
         }
     }
-    for rec in load_evaluation_records_from_disk(&state) {
+    for rec in load_evaluation_records_from_disk(&state, &scope) {
         by_id.entry(rec.evaluation_id.clone()).or_insert(rec);
     }
 
@@ -1424,21 +1522,27 @@ async fn recent_evaluations(
 
 async fn recent_adjustments(
     State(state): State<Arc<AppState>>,
+    scope_context: ScopeContext,
     headers: HeaderMap,
     Query(query): Query<RecentMetacogQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "metacognition:read")?;
+    let scope = scope_context
+        .require_workstream_key()
+        .map_err(scope_required_response)?;
 
     let mut by_id: HashMap<String, AdjustmentRecord> = HashMap::new();
+    if let Some(s) = state
+        .metacog_by_scope
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .get(&scope)
     {
-        let s = store()
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
         for rec in &s.adjustments {
             by_id.insert(rec.adjustment_id.clone(), rec.clone());
         }
     }
-    for rec in load_adjustment_records_from_disk(&state) {
+    for rec in load_adjustment_records_from_disk(&state, &scope) {
         by_id.entry(rec.adjustment_id.clone()).or_insert(rec);
     }
 

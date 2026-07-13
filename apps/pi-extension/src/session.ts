@@ -8,7 +8,7 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { existsSync } from "fs";
 import { join } from "path";
 import {
-  S,
+  getAttachmentRuntime,
   focusaFetch,
   focusaPost,
   checkFocusa,
@@ -37,7 +37,7 @@ import {
   projectRootConfirmationRequired,
   projectRootConfirmationSummary,
   buildFocusaSessionIdentity,
-  syncSFieldsToScopeStore,
+  syncRuntimeFieldsToScopeStore,
   getActiveWorkpointPacket,
   setActiveWorkpointPacket,
   getActiveWorkpointSummary,
@@ -72,13 +72,14 @@ function refreshNativeSessionPressure(ctx: any, reason: string, entries?: any[])
     sessionFile,
     entries,
   });
-  S.lastNativeSessionPressure = pressure;
+  getAttachmentRuntime().lastNativeSessionPressure = pressure;
   const noticeKey = `${pressure.posture}:${pressure.recommended_action}`;
   if (pressure.posture === "normal") {
-    if (S.lastNativeSessionPressureNoticeKey) ctx?.ui?.setStatus?.("focusa-pressure", undefined);
-    S.lastNativeSessionPressureNoticeKey = "";
-  } else if (noticeKey !== S.lastNativeSessionPressureNoticeKey) {
-    S.lastNativeSessionPressureNoticeKey = noticeKey;
+    if (getAttachmentRuntime().lastNativeSessionPressureNoticeKey)
+      ctx?.ui?.setStatus?.("focusa-pressure", undefined);
+    getAttachmentRuntime().lastNativeSessionPressureNoticeKey = "";
+  } else if (noticeKey !== getAttachmentRuntime().lastNativeSessionPressureNoticeKey) {
+    getAttachmentRuntime().lastNativeSessionPressureNoticeKey = noticeKey;
     const mib = Math.ceil(pressure.session_bytes / (1024 * 1024));
     ctx?.ui?.setStatus?.("focusa-pressure", `session ${pressure.posture} · ${mib} MiB`);
     if (pressure.posture !== "soft_pressure") {
@@ -112,9 +113,9 @@ function queueUnboundProjectNag(pi: ExtensionAPI, ctx: any, reason: string): voi
   if (pi.getFlag("--nag-suppress")) return;
   const cwd = normalizeProjectRoot(ctx?.cwd || process.cwd());
   if (markerExistsAtCwd(cwd)) return;
-  const key = `pi_unbound_project_nag:${S.sessionFrameKey || "no-session"}:${cwd}`;
-  if (S.vitalInfoPrompted[key]) return;
-  S.vitalInfoPrompted[key] = Date.now();
+  const key = `pi_unbound_project_nag:${getAttachmentRuntime().sessionFrameKey || "no-session"}:${cwd}`;
+  if (getAttachmentRuntime().vitalInfoPrompted[key]) return;
+  getAttachmentRuntime().vitalInfoPrompted[key] = Date.now();
   persistState();
   const prompt = [
     "Focusa project not bound: no .focusa-project.json marker found at this Pi session cwd.",
@@ -127,12 +128,12 @@ function queueUnboundProjectNag(pi: ExtensionAPI, ctx: any, reason: string): voi
   ].join("\n");
   focusaPost("/telemetry/trace", {
     event_type: "pi_unbound_project_nag",
-    payload: { reason, cwd, session_id: S.sessionFrameKey, suppressed: false },
+    payload: { reason, cwd, session_id: getAttachmentRuntime().sessionFrameKey, suppressed: false },
   });
   if (!ctx?.hasUI) {
     focusaPost("/telemetry/trace", {
       event_type: "pi_unbound_project_nag_skipped_headless",
-      payload: { reason, cwd, session_id: S.sessionFrameKey },
+      payload: { reason, cwd, session_id: getAttachmentRuntime().sessionFrameKey },
     });
     return;
   }
@@ -145,7 +146,9 @@ function queueUnboundProjectNag(pi: ExtensionAPI, ctx: any, reason: string): voi
 }
 
 function vitalPromptSurfaceEnabled(surface: string): boolean {
-  const raw = String(S.cfg?.vitalInfoPromptSurfaces || "project_root,workpoint,trajectory");
+  const raw = String(
+    getAttachmentRuntime().cfg?.vitalInfoPromptSurfaces || "project_root,workpoint,trajectory"
+  );
   return raw
     .split(",")
     .map((part) => part.trim())
@@ -162,16 +165,19 @@ type WorkpointDraft = {
 };
 
 async function ensureLowConfidenceWorkpoint(reason: string, draft?: WorkpointDraft): Promise<void> {
-  if (!S.focusaAvailable) return;
+  if (!getAttachmentRuntime().focusaAvailable) return;
   if (!isProjectRootAuthoritySafe(getSessionCwd() || process.cwd())) return;
   const mission =
     draft?.mission ||
-    S.currentAsk?.text ||
-    S.activeFrameGoal ||
-    S.lastFocusSnapshot.intent ||
-    S.lastFocusSnapshot.currentFocus;
+    getAttachmentRuntime().currentAsk?.text ||
+    getAttachmentRuntime().activeFrameGoal ||
+    getAttachmentRuntime().lastFocusSnapshot.intent ||
+    getAttachmentRuntime().lastFocusSnapshot.currentFocus;
   const nextSlice =
-    draft?.next_slice || S.lastFocusSnapshot.currentFocus || S.activeFrameGoal || S.currentAsk?.text;
+    draft?.next_slice ||
+    getAttachmentRuntime().lastFocusSnapshot.currentFocus ||
+    getAttachmentRuntime().activeFrameGoal ||
+    getAttachmentRuntime().currentAsk?.text;
   if (!mission && !nextSlice) return;
   await focusaFetch("/workpoint/checkpoint", {
     method: "POST",
@@ -183,12 +189,16 @@ async function ensureLowConfidenceWorkpoint(reason: string, draft?: WorkpointDra
       canonical: true,
       promote: true,
       continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
-      session_id: S.sessionFrameKey,
+      session_id: getAttachmentRuntime().sessionFrameKey,
       project_root: getSessionCwd() || process.cwd(),
       source_turn_id: `pi-turn-${getTurnCount()}`,
       action_intent: {
         action_type: draft?.action_type || "resume_workpoint",
-        target_ref: draft?.target_ref || S.activeFrameId || S.sessionFrameKey || "pi-session",
+        target_ref:
+          draft?.target_ref ||
+          getAttachmentRuntime().activeFrameId ||
+          getAttachmentRuntime().sessionFrameKey ||
+          "pi-session",
         verification_hooks: ["low-confidence checkpoint created because no active workpoint existed"],
         status: "needs_refinement",
       },
@@ -197,7 +207,7 @@ async function ensureLowConfidenceWorkpoint(reason: string, draft?: WorkpointDra
 }
 
 async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
-  if (!S.focusaAvailable) return;
+  if (!getAttachmentRuntime().focusaAvailable) return;
   if (!isProjectRootAuthoritySafe(getSessionCwd() || process.cwd())) {
     setActiveWorkpointPacket(null);
     setActiveWorkpointSummary("");
@@ -209,7 +219,7 @@ async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
       body: JSON.stringify({
         mode: "compact_prompt",
         continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
-        session_id: S.sessionFrameKey,
+        session_id: getAttachmentRuntime().sessionFrameKey,
         project_root: getSessionCwd() || process.cwd(),
       }),
     });
@@ -229,7 +239,7 @@ async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
       setActiveWorkpointSummary(
         packet.rendered_summary || packet.resume_packet_v2?.rendered_summary || packet.next_step_hint || ""
       );
-      S.lastWorkpointUpdate = Date.now();
+      getAttachmentRuntime().lastWorkpointUpdate = Date.now();
       focusaPost("/telemetry/trace", {
         event_type: "workpoint_resume_packet_loaded",
         payload: { reason, workpoint_id: packet.workpoint_id, canonical: packet.canonical },
@@ -247,11 +257,17 @@ async function promptForConfirmedProjectRoot(
 ): Promise<string | null> {
   if (!vitalPromptSurfaceEnabled("project_root")) return proposedRoot;
   if (!projectRootConfirmationRequired(proposedRoot)) return proposedRoot;
-  const mode = S.cfg?.vitalInfoPromptMode || "prompt";
+  const mode = getAttachmentRuntime().cfg?.vitalInfoPromptMode || "prompt";
   const summary = projectRootConfirmationSummary(proposedRoot);
   focusaPost("/telemetry/trace", {
     event_type: "pi_vital_project_root_agent_inference_required",
-    payload: { reason, project_root: proposedRoot, summary, mode, session_id: S.sessionFrameKey },
+    payload: {
+      reason,
+      project_root: proposedRoot,
+      summary,
+      mode,
+      session_id: getAttachmentRuntime().sessionFrameKey,
+    },
   });
   return null;
 }
@@ -262,11 +278,11 @@ function queueProjectIdentityBootstrapTurn(
   proposedRoot: string,
   reason: string
 ): void {
-  if (!S.focusaAvailable || !vitalPromptSurfaceEnabled("project_root")) return;
+  if (!getAttachmentRuntime().focusaAvailable || !vitalPromptSurfaceEnabled("project_root")) return;
   if (!projectRootConfirmationRequired(proposedRoot)) return;
-  const key = `project_identity_bootstrap:${S.sessionFrameKey || "no-session"}:${normalizeProjectRoot(ctx?.cwd || proposedRoot || process.cwd())}`;
-  if (S.vitalInfoPrompted[key]) return;
-  S.vitalInfoPrompted[key] = Date.now();
+  const key = `project_identity_bootstrap:${getAttachmentRuntime().sessionFrameKey || "no-session"}:${normalizeProjectRoot(ctx?.cwd || proposedRoot || process.cwd())}`;
+  if (getAttachmentRuntime().vitalInfoPrompted[key]) return;
+  getAttachmentRuntime().vitalInfoPrompted[key] = Date.now();
   persistState();
   const summary = projectRootConfirmationSummary(proposedRoot);
   const prompt = [
@@ -281,13 +297,13 @@ function queueProjectIdentityBootstrapTurn(
   if (!hasInteractiveUi) {
     focusaPost("/telemetry/trace", {
       event_type: "pi_vital_project_root_send_user_message_skipped_headless",
-      payload: { reason, project_root: proposedRoot, session_id: S.sessionFrameKey },
+      payload: { reason, project_root: proposedRoot, session_id: getAttachmentRuntime().sessionFrameKey },
     });
     return;
   }
   focusaPost("/telemetry/trace", {
     event_type: "pi_vital_project_root_send_user_message",
-    payload: { reason, project_root: proposedRoot, session_id: S.sessionFrameKey },
+    payload: { reason, project_root: proposedRoot, session_id: getAttachmentRuntime().sessionFrameKey },
   });
   try {
     const sender = ctx && typeof ctx.sendUserMessage === "function" ? ctx : pi;
@@ -326,9 +342,9 @@ function cleanTrajectorySeed(value: unknown): string {
 }
 
 function currentAskForProject(projectRoot: string): string {
-  const ask: any = S.currentAsk;
+  const ask: any = getAttachmentRuntime().currentAsk;
   if (!ask?.text) return "";
-  if (ask.sessionId && ask.sessionId !== S.sessionFrameKey) return "";
+  if (ask.sessionId && ask.sessionId !== getAttachmentRuntime().sessionFrameKey) return "";
   if (ask.projectRoot && adoptPiProjectRoot(ask.projectRoot) !== projectRoot) return "";
   if (ask.continuityId && getContinuityId() && ask.continuityId !== getContinuityId()) return "";
   return cleanTrajectorySeed(ask.text);
@@ -341,8 +357,8 @@ function trajectoryClarityForProject(projectRoot: string): any | null {
   if (clarity.continuity_id && getContinuityId() && clarity.continuity_id !== getContinuityId()) return null;
   if (
     clarity.session_id &&
-    S.sessionFrameKey &&
-    clarity.session_id !== S.sessionFrameKey &&
+    getAttachmentRuntime().sessionFrameKey &&
+    clarity.session_id !== getAttachmentRuntime().sessionFrameKey &&
     clarity.fallback_prior_project_trajectory !== true
   )
     return null;
@@ -444,7 +460,8 @@ function workpointDraftOptions(projectRoot: string): Array<{ label: string; draf
         mission,
         next_slice: next,
         action_type: "resume_current_task",
-        target_ref: S.activeFrameId || S.sessionFrameKey || "pi-session",
+        target_ref:
+          getAttachmentRuntime().activeFrameId || getAttachmentRuntime().sessionFrameKey || "pi-session",
         confidence: "low",
       },
     },
@@ -515,7 +532,7 @@ async function promptForProjectVerifyIfNeeded(
   projectRoot: string,
   reason: string
 ): Promise<boolean> {
-  const mode = S.cfg?.vitalInfoPromptMode || "prompt";
+  const mode = getAttachmentRuntime().cfg?.vitalInfoPromptMode || "prompt";
   if (
     !vitalPromptSurfaceEnabled("project_verify") ||
     mode === "off" ||
@@ -570,7 +587,7 @@ async function promptForProjectVerifyIfNeeded(
 }
 
 async function promptForWorkpointIfNeeded(ctx: any, projectRoot: string, reason: string): Promise<boolean> {
-  const mode = S.cfg?.vitalInfoPromptMode || "prompt";
+  const mode = getAttachmentRuntime().cfg?.vitalInfoPromptMode || "prompt";
   if (
     !vitalPromptSurfaceEnabled("workpoint") ||
     mode !== "prompt" ||
@@ -579,12 +596,18 @@ async function promptForWorkpointIfNeeded(ctx: any, projectRoot: string, reason:
   )
     return false;
   const mission =
-    S.currentAsk?.text || S.activeFrameGoal || S.lastFocusSnapshot.intent || S.lastFocusSnapshot.currentFocus;
-  const nextSlice = S.lastFocusSnapshot.currentFocus || S.activeFrameGoal || S.currentAsk?.text;
+    getAttachmentRuntime().currentAsk?.text ||
+    getAttachmentRuntime().activeFrameGoal ||
+    getAttachmentRuntime().lastFocusSnapshot.intent ||
+    getAttachmentRuntime().lastFocusSnapshot.currentFocus;
+  const nextSlice =
+    getAttachmentRuntime().lastFocusSnapshot.currentFocus ||
+    getAttachmentRuntime().activeFrameGoal ||
+    getAttachmentRuntime().currentAsk?.text;
   if (!mission && !nextSlice) return false;
   const key = `workpoint:${projectRoot}:${reason}`;
-  if (S.vitalInfoPrompted[key]) return false;
-  S.vitalInfoPrompted[key] = Date.now();
+  if (getAttachmentRuntime().vitalInfoPrompted[key]) return false;
+  getAttachmentRuntime().vitalInfoPrompted[key] = Date.now();
   persistState();
   if (typeof ctx.ui?.select !== "function") {
     ctx.ui?.notify?.("Focusa Workpoint prompt skipped: Pi UI select is unavailable.", "warning");
@@ -623,7 +646,7 @@ async function promptForWorkpointIfNeeded(ctx: any, projectRoot: string, reason:
 }
 
 async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason: string): Promise<void> {
-  const mode = S.cfg?.vitalInfoPromptMode || "prompt";
+  const mode = getAttachmentRuntime().cfg?.vitalInfoPromptMode || "prompt";
   if (
     !vitalPromptSurfaceEnabled("trajectory") ||
     mode !== "prompt" ||
@@ -641,7 +664,7 @@ async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason
         reason,
         project_root: projectRoot,
         continuity_id: getContinuityId() || null,
-        session_id: S.sessionFrameKey || null,
+        session_id: getAttachmentRuntime().sessionFrameKey || null,
         trajectory_id: clarity.trajectory_id || null,
         fallback_source_continuity_id: clarity.fallback_source_continuity_id || null,
       },
@@ -653,9 +676,9 @@ async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason
   const unclear =
     ["unknown", "unclear", "not_found", "not_set", "missing"].includes(status) ||
     /define_goal|operator_required/.test(action);
-  const key = `trajectory:${projectRoot}:${getContinuityId() || "no-continuity"}:${S.sessionFrameKey || "no-session"}:${status}:${action}`;
-  if (!unclear || S.vitalInfoPrompted[key]) return;
-  S.vitalInfoPrompted[key] = Date.now();
+  const key = `trajectory:${projectRoot}:${getContinuityId() || "no-continuity"}:${getAttachmentRuntime().sessionFrameKey || "no-session"}:${status}:${action}`;
+  if (!unclear || getAttachmentRuntime().vitalInfoPrompted[key]) return;
+  getAttachmentRuntime().vitalInfoPrompted[key] = Date.now();
   persistState();
   const options = trajectoryDraftOptions(projectRoot);
   const choice = await ctx.ui.select(
@@ -684,12 +707,12 @@ async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason
     ...parsed,
     project_root: projectRoot,
     continuity_id: ensureContinuityId(projectRoot),
-    session_id: S.sessionFrameKey,
+    session_id: getAttachmentRuntime().sessionFrameKey,
     goal_source: parsed.goal_source || "operator_selected_inference",
     operator_confirmed: true,
     session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", {
       continuityId: ensureContinuityId(projectRoot),
-      sessionId: S.sessionFrameKey,
+      sessionId: getAttachmentRuntime().sessionFrameKey,
     }),
   };
   const res = await focusaFetch("/trajectory/define-goal", {
@@ -713,18 +736,18 @@ function seedCurrentAskFromPersistedState(ctx: any, data: any) {
   const cleanedRestoredAsk = stripQuotedFocusaContext(restoredAsk?.text || "");
   const cwd = adoptPiProjectRoot(ctx?.cwd || getSessionCwd() || process.cwd());
   if (cleanedRestoredAsk && !isNonTaskStatusLikeText(cleanedRestoredAsk)) {
-    if (restoredAsk.sessionId && restoredAsk.sessionId !== S.sessionFrameKey) return;
+    if (restoredAsk.sessionId && restoredAsk.sessionId !== getAttachmentRuntime().sessionFrameKey) return;
     if (restoredAsk.projectRoot && adoptPiProjectRoot(restoredAsk.projectRoot) !== cwd) return;
-    S.currentAsk = {
+    getAttachmentRuntime().currentAsk = {
       text: trimFrameText(cleanedRestoredAsk, 500),
       kind: restoredAsk.kind || classifyCurrentAsk(cleanedRestoredAsk),
       sourceTurnId: restoredAsk.sourceTurnId || "restored",
       updatedAt: restoredAsk.updatedAt || Date.now(),
-      sessionId: restoredAsk.sessionId || S.sessionFrameKey,
+      sessionId: restoredAsk.sessionId || getAttachmentRuntime().sessionFrameKey,
       projectRoot: restoredAsk.projectRoot || cwd,
       continuityId: restoredAsk.continuityId || getContinuityId(),
     };
-    if (data?.queryScope) S.queryScope = data.queryScope;
+    if (data?.queryScope) getAttachmentRuntime().queryScope = data.queryScope;
     return;
   }
 
@@ -733,12 +756,12 @@ function seedCurrentAskFromPersistedState(ctx: any, data: any) {
   if (!goal || isNonTaskStatusLikeText(goal) || isGenericPiFrameForCwd(cwd, title, goal)) return;
   if (!/^Pi (Task|Question|Correction): /.test(title)) return;
 
-  S.currentAsk = {
+  getAttachmentRuntime().currentAsk = {
     text: trimFrameText(goal, 500),
     kind: classifyCurrentAsk(goal),
     sourceTurnId: "restored-frame-goal",
     updatedAt: Date.now(),
-    sessionId: S.sessionFrameKey,
+    sessionId: getAttachmentRuntime().sessionFrameKey,
     projectRoot: cwd,
     continuityId: getContinuityId(),
   };
@@ -769,9 +792,9 @@ function connectSSE() {
     sseReconnectTimer = null;
   }
   if (sseAbort) sseAbort.abort();
-  if (!S.focusaAvailable) return;
+  if (!getAttachmentRuntime().focusaAvailable) return;
 
-  const base = S.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+  const base = getAttachmentRuntime().cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
   const controller = new AbortController();
   sseAbort = controller;
 
@@ -799,13 +822,13 @@ function connectSSE() {
       }
     })
     .catch(() => {
-      if (controller.signal.aborted || !S.focusaAvailable) return;
+      if (controller.signal.aborted || !getAttachmentRuntime().focusaAvailable) return;
       // §30: "If background work fails, the extension shows nothing (fail silent)"
       // Reconnect with backoff — use same exponential backoff as health checks (§11)
       sseReconnectTimer = setTimeout(() => {
         sseReconnectTimer = null;
-        if (S.focusaAvailable) connectSSE();
-      }, S.healthBackoffMs);
+        if (getAttachmentRuntime().focusaAvailable) connectSSE();
+      }, getAttachmentRuntime().healthBackoffMs);
     });
 }
 
@@ -813,27 +836,29 @@ function connectSSE() {
 function handleSSEEvent(evt: any) {
   switch (evt.type) {
     case "worker_started":
-      S.lastMetacogEvent = "thinking...";
+      getAttachmentRuntime().lastMetacogEvent = "thinking...";
       break;
     case "extraction_complete":
-      S.lastMetacogEvent = `extracted ${evt.count || "N"} items`;
+      getAttachmentRuntime().lastMetacogEvent = `extracted ${evt.count || "N"} items`;
       setTimeout(() => {
-        S.lastMetacogEvent = "";
+        getAttachmentRuntime().lastMetacogEvent = "";
       }, 5000);
       break;
     case "thesis_updated":
-      S.lastMetacogEvent = "thesis updated";
+      getAttachmentRuntime().lastMetacogEvent = "thesis updated";
       setTimeout(() => {
-        S.lastMetacogEvent = "";
+        getAttachmentRuntime().lastMetacogEvent = "";
       }, 5000);
       break;
     case "quality_flag":
-      S.lastMetacogEvent = `⚠️ ${evt.message || "quality issue"}`;
+      getAttachmentRuntime().lastMetacogEvent = `⚠️ ${evt.message || "quality issue"}`;
       break;
     case "focus_state_updated":
       // §37.10: Cross-surface decision notification
       if (evt.source && evt.source !== "pi" && evt.decisions?.length) {
-        S.pi?.exec("echo", [], { timeout: 1 }).catch(() => {}); // no-op to access ctx
+        getAttachmentRuntime()
+          .pi?.exec("echo", [], { timeout: 1 })
+          .catch(() => {}); // no-op to access ctx
       }
       break;
     case "trajectory_goal_defined":
@@ -842,11 +867,11 @@ function handleSSEEvent(evt: any) {
         const t = evt.data.trajectory;
         const hlt = t.long_term_goal || "unknown";
         const display = hlt.length > 80 ? hlt.substring(0, 77) + "…" : hlt;
-        S.uiCtx?.notify(`[HLT CHANGED] ${display}`, "error");
+        getAttachmentRuntime().uiCtx?.notify(`[HLT CHANGED] ${display}`, "error");
         if (t.mid_level_goal) {
-          S.lastMetacogEvent = `[MLG] ${t.mid_level_goal}`;
+          getAttachmentRuntime().lastMetacogEvent = `[MLG] ${t.mid_level_goal}`;
           setTimeout(() => {
-            S.lastMetacogEvent = "";
+            getAttachmentRuntime().lastMetacogEvent = "";
           }, 15000);
         }
       }
@@ -859,22 +884,22 @@ function handleSSEEvent(evt: any) {
 export function registerSession(pi: ExtensionAPI) {
   // ── session_start — single merged handler ──────────────────────────────────
   pi.on("session_start", async (event, ctx) => {
-    S.pi = pi;
-    S.uiCtx = ctx.ui; // §93: SSE handler needs ctx.ui for high-priority agent alerts
-    S.sessionStartTime = Date.now();
+    getAttachmentRuntime().pi = pi;
+    getAttachmentRuntime().uiCtx = ctx.ui; // §93: SSE handler needs ctx.ui for high-priority agent alerts
+    getAttachmentRuntime().sessionStartTime = Date.now();
     const eventSessionId = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
-    S.sessionFrameKey = eventSessionId;
-    S.sessionCwd = adoptPiProjectRoot(ctx.cwd);
+    getAttachmentRuntime().sessionFrameKey = eventSessionId;
+    getAttachmentRuntime().sessionCwd = adoptPiProjectRoot(ctx.cwd);
     resetPiSessionScopedState("session_start");
-    syncSFieldsToScopeStore();
+    syncRuntimeFieldsToScopeStore();
 
     // §37.5: Check CLI flags FIRST
     if (pi.getFlag("--no-focusa")) {
-      S.focusaAvailable = false;
+      getAttachmentRuntime().focusaAvailable = false;
       ctx.ui.setStatus("focusa", "⏸️ Focusa disabled");
       return;
     }
-    if (pi.getFlag("--wbm")) S.wbmEnabled = true;
+    if (pi.getFlag("--wbm")) getAttachmentRuntime().wbmEnabled = true;
     queueUnboundProjectNag(pi, ctx, "session_start");
 
     // Health check
@@ -897,19 +922,19 @@ export function registerSession(pi: ExtensionAPI) {
         if (!d) continue;
         // §33.5 + §33.7: restore resumable session metadata and safe local shadow,
         // but do not blindly reuse stale frame identity outside WBM mode.
-        S.localDecisions = d.decisions || [];
+        getAttachmentRuntime().localDecisions = d.decisions || [];
         setTurnCount(d.turnCount || 0);
-        S.wbmEnabled = d.wbmEnabled || S.wbmEnabled;
-        S.wbmNoCatalogue = d.wbmNoCatalogue || false;
-        S.cataloguedDecisions = d.cataloguedDecisions || [];
-        S.cataloguedFacts = d.cataloguedFacts || [];
+        getAttachmentRuntime().wbmEnabled = d.wbmEnabled || getAttachmentRuntime().wbmEnabled;
+        getAttachmentRuntime().wbmNoCatalogue = d.wbmNoCatalogue || false;
+        getAttachmentRuntime().cataloguedDecisions = d.cataloguedDecisions || [];
+        getAttachmentRuntime().cataloguedFacts = d.cataloguedFacts || [];
         setTotalCompactions(d.totalCompactions || 0);
-        S.lastCompactResumeKey = d.lastCompactResumeKey || "";
-        S.lastCompactResumeAt = d.lastCompactResumeAt || 0;
-        S.activeFrameTitle = d.frameTitle || "";
-        S.activeFrameGoal = d.frameGoal || "";
+        getAttachmentRuntime().lastCompactResumeKey = d.lastCompactResumeKey || "";
+        getAttachmentRuntime().lastCompactResumeAt = d.lastCompactResumeAt || 0;
+        getAttachmentRuntime().activeFrameTitle = d.frameTitle || "";
+        getAttachmentRuntime().activeFrameGoal = d.frameGoal || "";
         seedCurrentAskFromPersistedState(ctx, d);
-        S.lastFocusSnapshot = {
+        getAttachmentRuntime().lastFocusSnapshot = {
           decisions: d.authoritativeDecisions || [],
           constraints: d.authoritativeConstraints || [],
           failures: d.authoritativeFailures || [],
@@ -938,28 +963,29 @@ export function registerSession(pi: ExtensionAPI) {
         }
         if (d.lastProjectVerify) setLastProjectVerify(d.lastProjectVerify);
         if (d.latestReportSummary?.handle) setLatestReportSummary(d.latestReportSummary);
-        if (d.toolOutputPressure?.recapRequired) S.toolOutputPressure = d.toolOutputPressure;
+        if (d.toolOutputPressure?.recapRequired)
+          getAttachmentRuntime().toolOutputPressure = d.toolOutputPressure;
         if (Array.isArray(d.projectSwitchLedger))
-          S.projectSwitchLedger = d.projectSwitchLedger.slice(0, 12);
-        if (d.vitalInfoPrompted) S.vitalInfoPrompted = d.vitalInfoPrompted;
+          getAttachmentRuntime().projectSwitchLedger = d.projectSwitchLedger.slice(0, 12);
+        if (d.vitalInfoPrompted) getAttachmentRuntime().vitalInfoPrompted = d.vitalInfoPrompted;
         adoptPersistedContinuityForSession(
           d,
           eventSessionId,
           adoptPiProjectRoot(ctx.cwd, d.activeWorkpointPacket)
         );
         // Explicitly clear stale pollution — do NOT carry across sessions
-        S.localConstraints = [];
-        S.localFailures = [];
+        getAttachmentRuntime().localConstraints = [];
+        getAttachmentRuntime().localFailures = [];
         break;
       }
     }
     // §33.5: Always NULL out activeFrameId — force-push fresh Pi frame.
     // This prevents Wirebot/TEP frame state from leaking into Pi sessions.
     // WBM mode may override this via --wbm flag above.
-    if (!S.wbmEnabled) S.activeFrameId = null;
-    syncSFieldsToScopeStore();
+    if (!getAttachmentRuntime().wbmEnabled) getAttachmentRuntime().activeFrameId = null;
+    syncRuntimeFieldsToScopeStore();
 
-    if (!S.focusaAvailable) {
+    if (!getAttachmentRuntime().focusaAvailable) {
       ctx.ui.setStatus("focusa", "📡 Focusa offline");
       return;
     }
@@ -973,7 +999,7 @@ export function registerSession(pi: ExtensionAPI) {
           project_root: detectedProjectRoot,
           summary: projectRootConfirmationSummary(detectedProjectRoot),
           session_id: eventSessionId,
-          prompt_mode: S.cfg?.vitalInfoPromptMode || "prompt",
+          prompt_mode: getAttachmentRuntime().cfg?.vitalInfoPromptMode || "prompt",
         },
       });
       queueProjectIdentityBootstrapTurn(pi, ctx, detectedProjectRoot, "session_start");
@@ -1003,8 +1029,8 @@ export function registerSession(pi: ExtensionAPI) {
     // Focusa may cache its scoped frame title for context/status, but must not call the Pi session naming API.
     const data = await getFocusState().catch(() => null);
     if (data?.frame?.title) {
-      S.activeFrameTitle = data.frame.title;
-      S.activeFrameGoal = data.frame.goal || S.activeFrameGoal;
+      getAttachmentRuntime().activeFrameTitle = data.frame.title;
+      getAttachmentRuntime().activeFrameGoal = data.frame.goal || getAttachmentRuntime().activeFrameGoal;
     }
 
     // §37.9: Context Core activity signal + wb me --set pi_active
@@ -1016,14 +1042,14 @@ export function registerSession(pi: ExtensionAPI) {
 
     // Keep Pi footer task label fresh between explicit commands.
     // Default is event-driven (no periodic polling); polling can be enabled explicitly.
-    if (S.footerSyncInterval) clearInterval(S.footerSyncInterval);
-    S.footerSyncInterval = null;
-    const bridgeSyncMode = S.cfg?.bridgeSyncMode || "event-driven";
+    if (getAttachmentRuntime().footerSyncInterval) clearInterval(getAttachmentRuntime().footerSyncInterval);
+    getAttachmentRuntime().footerSyncInterval = null;
+    const bridgeSyncMode = getAttachmentRuntime().cfg?.bridgeSyncMode || "event-driven";
     if (bridgeSyncMode === "polling") {
-      const footerRefreshMs = Math.max(5_000, S.cfg?.bridgePollMs || 15_000);
+      const footerRefreshMs = Math.max(5_000, getAttachmentRuntime().cfg?.bridgePollMs || 15_000);
       let footerSyncInFlight = false;
-      S.footerSyncInterval = setInterval(async () => {
-        if (!S.focusaAvailable || footerSyncInFlight) return;
+      getAttachmentRuntime().footerSyncInterval = setInterval(async () => {
+        if (!getAttachmentRuntime().focusaAvailable || footerSyncInFlight) return;
         footerSyncInFlight = true;
         try {
           await getFocusState().catch(() => null);
@@ -1040,16 +1066,20 @@ export function registerSession(pi: ExtensionAPI) {
 
     // §38.3 + §11: Health check with exponential backoff via recursive setTimeout
     function scheduleHealthCheck() {
-      if (S.healthInterval) clearTimeout(S.healthInterval);
-      S.healthInterval = setTimeout(async () => {
+      if (getAttachmentRuntime().healthInterval) clearTimeout(getAttachmentRuntime().healthInterval);
+      getAttachmentRuntime().healthInterval = setTimeout(async () => {
         refreshNativeSessionPressure(ctx, "health_tick");
         await checkFocusa();
 
-        if (!S.focusaAvailable && !outageMode && S.healthFailCount >= offlineWarnThreshold) {
+        if (
+          !getAttachmentRuntime().focusaAvailable &&
+          !outageMode &&
+          getAttachmentRuntime().healthFailCount >= offlineWarnThreshold
+        ) {
           // Confirmed outage (not single blip) — preserve tool availability, enter holdover, and kickstart daemon.
           ctx.ui.setStatus("focusa", "🛟 Focusa holdover · restarting");
           ctx.ui.notify(
-            `Focusa daemon unavailable (${S.healthFailCount} checks) — holdover active; kickstarting daemon without restarting session`,
+            `Focusa daemon unavailable (${getAttachmentRuntime().healthFailCount} checks) — holdover active; kickstarting daemon without restarting session`,
             "warning"
           );
           if (sseAbort) {
@@ -1062,25 +1092,29 @@ export function registerSession(pi: ExtensionAPI) {
             await checkFocusa();
             ctx.ui.notify("Focusa daemon kickstarted — session preserved", "info");
           }
-        } else if (!S.focusaAvailable && outageMode) {
+        } else if (!getAttachmentRuntime().focusaAvailable && outageMode) {
           ctx.ui.setStatus("focusa", "🛟 Focusa holdover · retrying");
           await kickstartFocusaDaemon("session_health_retry");
-        } else if (S.focusaAvailable && outageMode) {
+        } else if (getAttachmentRuntime().focusaAvailable && outageMode) {
           // Came back — reconnect SSE and reconcile holdover state; tools were never disabled.
-          ctx.ui.setStatus("focusa", S.wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
+          ctx.ui.setStatus("focusa", getAttachmentRuntime().wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
           ctx.ui.notify("Focusa daemon reconnected — holdover reconciled; session preserved", "info");
           await ensureFocusaSession(ctx);
           await ensureActiveFrame(ctx);
           connectSSE();
 
           // §11/§25.7: Soft resync — reconcile local shadow with Focusa on reconnect
-          if (S.activeFrameId) {
+          if (getAttachmentRuntime().activeFrameId) {
             // Push any local shadow accumulated during outage
-            if (S.localDecisions.length || S.localConstraints.length || S.localFailures.length) {
+            if (
+              getAttachmentRuntime().localDecisions.length ||
+              getAttachmentRuntime().localConstraints.length ||
+              getAttachmentRuntime().localFailures.length
+            ) {
               await pushDelta({
-                decisions: S.localDecisions.slice(-10),
-                constraints: S.localConstraints.slice(-10),
-                failures: S.localFailures.slice(-5),
+                decisions: getAttachmentRuntime().localDecisions.slice(-10),
+                constraints: getAttachmentRuntime().localConstraints.slice(-10),
+                failures: getAttachmentRuntime().localFailures.slice(-5),
                 notes: ["Reconciled after Focusa outage"],
               }).catch(() => null);
             }
@@ -1106,11 +1140,11 @@ export function registerSession(pi: ExtensionAPI) {
 
         // Schedule next check with (possibly updated) backoff interval
         scheduleHealthCheck();
-      }, S.healthBackoffMs);
+      }, getAttachmentRuntime().healthBackoffMs);
     }
     scheduleHealthCheck();
 
-    ctx.ui.setStatus("focusa", S.wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
+    ctx.ui.setStatus("focusa", getAttachmentRuntime().wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
   });
 
   // ── session_shutdown — single handler (§33.8, §34.2A, §37.9) ──────────────
@@ -1118,7 +1152,9 @@ export function registerSession(pi: ExtensionAPI) {
     await persistAuthoritativeState();
 
     // §37.9: Tell Context Core Pi is no longer active
-    S.pi?.exec("wb", ["me", "--set", "pi_active=false"]).catch(() => {});
+    getAttachmentRuntime()
+      .pi?.exec("wb", ["me", "--set", "pi_active=false"])
+      .catch(() => {});
 
     // Close SSE
     if (sseReconnectTimer) {
@@ -1130,36 +1166,36 @@ export function registerSession(pi: ExtensionAPI) {
       sseAbort = null;
     }
 
-    if (S.focusaAvailable) {
+    if (getAttachmentRuntime().focusaAvailable) {
       await focusaFetch("/session/close", {
         method: "POST",
         body: JSON.stringify({ reason: "pi_session_shutdown" }),
       });
     }
-    if (S.focusaAvailable) {
+    if (getAttachmentRuntime().focusaAvailable) {
       focusaPost("/instance/disconnect", { instance_id: `pi-${process.pid}` });
       focusaPost("/telemetry/activity", { surface: "pi", event: "session_shutdown" });
     }
-    if (S.healthInterval) {
-      clearInterval(S.healthInterval);
-      S.healthInterval = null;
+    if (getAttachmentRuntime().healthInterval) {
+      clearInterval(getAttachmentRuntime().healthInterval);
+      getAttachmentRuntime().healthInterval = null;
     }
-    if (S.footerSyncInterval) {
-      clearInterval(S.footerSyncInterval);
-      S.footerSyncInterval = null;
+    if (getAttachmentRuntime().footerSyncInterval) {
+      clearInterval(getAttachmentRuntime().footerSyncInterval);
+      getAttachmentRuntime().footerSyncInterval = null;
     }
   });
 
   // ── session_before_switch (§37.7) ─────────────────────────────────────────
   pi.on("session_before_switch", async (_event, _ctx) => {
     await persistAuthoritativeState();
-    if (S.focusaAvailable && S.activeFrameId) {
+    if (getAttachmentRuntime().focusaAvailable && getAttachmentRuntime().activeFrameId) {
       await pushDelta({
-        decisions: S.localDecisions.slice(-5),
-        constraints: S.localConstraints.slice(-5),
+        decisions: getAttachmentRuntime().localDecisions.slice(-5),
+        constraints: getAttachmentRuntime().localConstraints.slice(-5),
       }).catch(() => null);
     }
-    if (S.focusaAvailable) {
+    if (getAttachmentRuntime().focusaAvailable) {
       await focusaFetch("/session/close", {
         method: "POST",
         body: JSON.stringify({ reason: "pi_session_switch" }),
@@ -1170,14 +1206,14 @@ export function registerSession(pi: ExtensionAPI) {
   // ── session_switch (§37.7) ────────────────────────────────────────────────
   pi.on("session_switch", async (event, ctx) => {
     const eventSessionId = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
-    S.sessionFrameKey = eventSessionId;
-    S.sessionCwd = adoptPiProjectRoot(ctx.cwd);
+    getAttachmentRuntime().sessionFrameKey = eventSessionId;
+    getAttachmentRuntime().sessionCwd = adoptPiProjectRoot(ctx.cwd);
     resetPiSessionScopedState("session_switch");
-    syncSFieldsToScopeStore();
+    syncRuntimeFieldsToScopeStore();
 
     const switchEntries = (event as any).entries || (ctx as any).sessionManager?.getEntries?.() || [];
     refreshNativeSessionPressure(ctx, "session_switch", switchEntries);
-    S.forkSuggested = false;
+    getAttachmentRuntime().forkSuggested = false;
     for (let i = switchEntries.length - 1; i >= 0; i--) {
       if (
         (switchEntries[i].customType === "focusa-wbm-state" ||
@@ -1187,19 +1223,19 @@ export function registerSession(pi: ExtensionAPI) {
       ) {
         const d = loadPersistedRecoveryState(switchEntries[i].data);
         if (!d) continue;
-        S.localDecisions = d.decisions || [];
-        S.localConstraints = d.constraints || [];
-        S.localFailures = d.failures || [];
+        getAttachmentRuntime().localDecisions = d.decisions || [];
+        getAttachmentRuntime().localConstraints = d.constraints || [];
+        getAttachmentRuntime().localFailures = d.failures || [];
         setTurnCount(d.turnCount || 0);
-        S.wbmEnabled = d.wbmEnabled || false;
-        S.wbmNoCatalogue = d.wbmNoCatalogue || false;
+        getAttachmentRuntime().wbmEnabled = d.wbmEnabled || false;
+        getAttachmentRuntime().wbmNoCatalogue = d.wbmNoCatalogue || false;
         setTotalCompactions(d.totalCompactions || 0);
-        S.lastCompactResumeKey = d.lastCompactResumeKey || "";
-        S.lastCompactResumeAt = d.lastCompactResumeAt || 0;
-        S.activeFrameTitle = d.frameTitle || "";
-        S.activeFrameGoal = d.frameGoal || "";
+        getAttachmentRuntime().lastCompactResumeKey = d.lastCompactResumeKey || "";
+        getAttachmentRuntime().lastCompactResumeAt = d.lastCompactResumeAt || 0;
+        getAttachmentRuntime().activeFrameTitle = d.frameTitle || "";
+        getAttachmentRuntime().activeFrameGoal = d.frameGoal || "";
         seedCurrentAskFromPersistedState(ctx, d);
-        S.lastFocusSnapshot = {
+        getAttachmentRuntime().lastFocusSnapshot = {
           decisions: d.authoritativeDecisions || [],
           constraints: d.authoritativeConstraints || [],
           failures: d.authoritativeFailures || [],
@@ -1228,9 +1264,11 @@ export function registerSession(pi: ExtensionAPI) {
         }
         if (d.lastProjectVerify) setLastProjectVerify(d.lastProjectVerify);
         if (d.latestReportSummary?.handle) setLatestReportSummary(d.latestReportSummary);
-        if (d.toolOutputPressure?.recapRequired) S.toolOutputPressure = d.toolOutputPressure;
-        if (Array.isArray(d.projectSwitchLedger)) S.projectSwitchLedger = d.projectSwitchLedger.slice(0, 12);
-        if (d.vitalInfoPrompted) S.vitalInfoPrompted = d.vitalInfoPrompted;
+        if (d.toolOutputPressure?.recapRequired)
+          getAttachmentRuntime().toolOutputPressure = d.toolOutputPressure;
+        if (Array.isArray(d.projectSwitchLedger))
+          getAttachmentRuntime().projectSwitchLedger = d.projectSwitchLedger.slice(0, 12);
+        if (d.vitalInfoPrompted) getAttachmentRuntime().vitalInfoPrompted = d.vitalInfoPrompted;
         adoptPersistedContinuityForSession(
           d,
           eventSessionId,
@@ -1240,9 +1278,9 @@ export function registerSession(pi: ExtensionAPI) {
       }
     }
 
-    if (!S.wbmEnabled) S.activeFrameId = null;
-    syncSFieldsToScopeStore();
-    if (S.focusaAvailable) {
+    if (!getAttachmentRuntime().wbmEnabled) getAttachmentRuntime().activeFrameId = null;
+    syncRuntimeFieldsToScopeStore();
+    if (getAttachmentRuntime().focusaAvailable) {
       const detectedProjectRoot = adoptPiProjectRoot(ctx.cwd);
       const projectRoot = await promptForConfirmedProjectRoot(ctx, detectedProjectRoot, "session_switch");
       if (!projectRoot) {
@@ -1252,7 +1290,7 @@ export function registerSession(pi: ExtensionAPI) {
             project_root: detectedProjectRoot,
             summary: projectRootConfirmationSummary(detectedProjectRoot),
             session_id: eventSessionId,
-            prompt_mode: S.cfg?.vitalInfoPromptMode || "prompt",
+            prompt_mode: getAttachmentRuntime().cfg?.vitalInfoPromptMode || "prompt",
           },
         });
         queueProjectIdentityBootstrapTurn(pi, ctx, detectedProjectRoot, "session_switch");
@@ -1278,23 +1316,28 @@ export function registerSession(pi: ExtensionAPI) {
 
   // ── session_before_fork (§36.5) ───────────────────────────────────────────
   pi.on("session_before_fork", async (_event, _ctx) => {
-    if (S.focusaAvailable) {
+    if (getAttachmentRuntime().focusaAvailable) {
       await focusaFetch("/workpoint/checkpoint", {
         method: "POST",
         body: JSON.stringify({
           mission:
-            S.currentAsk?.text || S.activeFrameGoal || S.lastFocusSnapshot.intent || "Pi fork boundary",
-          next_slice: S.lastFocusSnapshot.currentFocus || "Resume from fork WorkpointResumePacket.",
+            getAttachmentRuntime().currentAsk?.text ||
+            getAttachmentRuntime().activeFrameGoal ||
+            getAttachmentRuntime().lastFocusSnapshot.intent ||
+            "Pi fork boundary",
+          next_slice:
+            getAttachmentRuntime().lastFocusSnapshot.currentFocus ||
+            "Resume from fork WorkpointResumePacket.",
           checkpoint_reason: "fork",
           canonical: true,
           promote: true,
           continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
-          session_id: S.sessionFrameKey,
+          session_id: getAttachmentRuntime().sessionFrameKey,
           project_root: getSessionCwd() || process.cwd(),
           source_turn_id: `pi-turn-${getTurnCount()}`,
           action_intent: {
             action_type: "resume_workpoint",
-            target_ref: S.activeFrameId || "pi-fork",
+            target_ref: getAttachmentRuntime().activeFrameId || "pi-fork",
             verification_hooks: ["fork refreshes workpoint"],
             status: "ready",
           },
@@ -1304,9 +1347,9 @@ export function registerSession(pi: ExtensionAPI) {
       await refreshTrajectoryClarityLifecycle("handoff_fork", getSessionCwd() || process.cwd());
     }
     await persistAuthoritativeState();
-    if (S.focusaAvailable && S.activeFrameId) {
+    if (getAttachmentRuntime().focusaAvailable && getAttachmentRuntime().activeFrameId) {
       focusaPost("/focus/update", {
-        frame_id: S.activeFrameId,
+        frame_id: getAttachmentRuntime().activeFrameId,
         project_root: normalizeProjectRoot(getSessionCwd() || process.cwd()),
         continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
         turn_id: `pi-turn-${getTurnCount()}`,
@@ -1318,14 +1361,18 @@ export function registerSession(pi: ExtensionAPI) {
   // ── session_fork (§36.5) ──────────────────────────────────────────────────
   pi.on("session_fork", async (_event, _ctx) => {
     // §36.5: Take Focusa snapshot of branch point before fork diverges
-    if (S.focusaAvailable && S.activeFrameId) {
+    if (getAttachmentRuntime().focusaAvailable && getAttachmentRuntime().activeFrameId) {
       focusaPost("/focus/update", {
-        frame_id: S.activeFrameId,
+        frame_id: getAttachmentRuntime().activeFrameId,
         project_root: normalizeProjectRoot(getSessionCwd() || process.cwd()),
         continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
         turn_id: `pi-turn-${getTurnCount()}`,
         delta: {
-          meta: { event: "fork", turn_count: getTurnCount(), decisions_count: S.localDecisions.length },
+          meta: {
+            event: "fork",
+            turn_count: getTurnCount(),
+            decisions_count: getAttachmentRuntime().localDecisions.length,
+          },
         },
       });
     }

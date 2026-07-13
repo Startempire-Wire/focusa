@@ -5,113 +5,42 @@
 
 ## Purpose
 
-Save or continue a long Focusa/Pi work session like a game-save without forking the Pi session. The wrapper composes project card, inferred Workpoint, Workpoint checkpoint/resume, and trajectory view.
-
-## When to use
-
-- Before leaving a long session: `action="save"`.
-- In a fresh Pi session: `action="continue"`.
-- To inspect transfer readiness: `action="status"`.
-- When project scope is verified but no canonical Workpoint exists; the wrapper uses `inferred_workpoint_candidate` instead of punting inference to the operator.
+Save, continue, inspect, or Spec130-roll over a long Focusa/Pi work session using explicit typed source/target scope. The wrapper composes project card, inferred Workpoint, Workpoint checkpoint/resume, trajectory view, and transfer payloads without deriving continuity from a project fingerprint.
 
 ## Parameters
 
-- `action` — `save`, `continue`, or `status`.
-- `project_root` — project root to transfer; defaults to Pi cwd/session cwd.
-- `current_ask` — current resume/save intent.
-- `mission` — optional save mission; defaults to current ask or inferred Workpoint mission.
-- `next_action` — optional exact next action for save.
-- `continuity_id` — optional logical continuity id; defaults to project continuity.
-- `write_preload` — request preload write guidance; defaults `false` and never writes implicitly.
-- `preload_target` — `cursor`, `claude`, `codex`, `pi`, `opencode`, or `generic`; defaults `cursor`.
-- `preload_mode` — delivery mode; defaults `session_transfer`.
-- `receipt_preview` — include a bounded receipt preview; defaults `true`.
-- `receipt_commit` — explicitly commit the receipt; defaults `false`.
+- `action` — `save`, `continue`, `status`, or `rollover`.
+- `source_scope` — explicit typed source scope/workstream object: `root_path` or `project_root`, optional `scope_kind`, `scope_id`, `canonical_name`, `fingerprint`, and required/known `continuity_id`.
+- `target_scope` — explicit typed target scope/workstream object for handoff/rollover.
+- `target_continuity_id` — explicit rotated target continuity id when the target root is the source root.
+- `source_session_id` / `target_session_id` — native Pi session ids before/after transfer.
+- `checkpoint_ref`, `workpoint_packet_ref`, `compaction_packet_ref` — packet/checkpoint anchors for Spec130 rollover handoff.
+- `rollover_action` — `none`, `inspect`, `checkpoint`, `migrate`, `resume`, `commit`, or `rollback`.
+- `project_root` / `continuity_id` — deprecated source-scope convenience fields; prefer `source_scope`.
+- `current_ask`, `mission`, `next_action`, `write_preload`, `preload_target`, `preload_mode`, `receipt_preview`, `receipt_commit` — transfer/preload options.
 
 ## Expected result
 
-Returns a compact handoff with project root, continuity id, project-card run, inferred Workpoint candidate, optional save checkpoint, Workpoint resume packet, trajectory view, preload/receipt status, and `operator_handoff` commands for continuation, preload, and receipt preview. Continue without a prior save is degraded and recommends `focusa_preload_build`.
+Returns compact details containing `source_scope`, `target_scope`, source/target session ids, packet refs, rollover action, optional save checkpoint, target Workpoint resume packet, target trajectory view, and `operator_handoff` commands.
 
-### Return shape (Pi wrapper details)
+Continuity rules:
 
-The wrapper composes three sub-calls; the response details object exposes each as a distinct field so the operator can tell them apart:
-
-| Field | Source | Shape |
-|---|---|---|
-| `api_transfer` | `POST /v1/project/session-transfer` body | the raw envelope with `action`, `saved`, `transfer`, `latest_prior_save`, `storage` |
-| `session_transfer_save_packet` | `apiBody.transfer` (when `action="save"`) | the **game-save** packet: `transfer_id`, `mission`, `next_action`, `inferred_workpoint_candidate`, `operator_handoff` |
-| `workpoint_checkpoint_packet` | `POST /v1/workpoint/checkpoint` body (when `action="save"`) | the typed Workpoint: `workpoint_id`, `status`, `canonical`, `mission`, `next_slice` |
-| `workpoint_resume_packet` | `POST /v1/workpoint/resume` body (when `action="continue"`) | the resumed Workpoint: `workpoint_id`, `rendered_summary`, `canonical`, `next_step_hint` |
-| `trajectory` | `GET /v1/trajectory/view` body | trajectory view (advisory) |
-| `project_card` | `GET /v1/project/card` body | project identity + inferred workpoint candidate + trajectory report card + crosswire health + success sequence |
-| `operator_handoff` | from `apiBody.transfer.operator_handoff` or default | `command` (e.g. `cd <root> && pi`) + `first_tool` (the next session-transfer call) + `authority_boundary` |
+- `continuity_id` is workstream metadata under typed root scope.
+- `target_continuity_id` must be explicit for rotating continuity.
+- The Pi wrapper must not derive continuity from project fingerprint.
 
 ## Example
 
-Save:
-
 ```text
-focusa_session_transfer action="save" project_root="/path/to/project" current_ask="Save current work for transfer"
+focusa_session_transfer action="rollover" \
+  source_scope='{"root_path":"/path/to/project","continuity_id":"cont-old"}' \
+  target_continuity_id="cont-new" \
+  source_session_id="pi-old" target_session_id="pi-new" \
+  compaction_packet_ref="packet:123" rollover_action="checkpoint"
 ```
-
-Continue:
-
-```text
-focusa_session_transfer action="continue" project_root="/path/to/project"
-```
-
-## Failure recovery
-
-`tool_result_v1.failure_class` is part of the recovery contract. On `project_identity_unverified`, run `focusa_project_verify` before retrying. On `daemon_unavailable`, run `focusa_tool_doctor` and retry. On `workpoint_checkpoint_blocked` during save, drop to `focusa_workpoint_resume` to capture current packet and retry. For `continue` actions, treat `inferred_workpoint_candidate` as advisory and prefer canonical `focusa_workpoint_resume` when a verified Workpoint is required.
-
-When `apiBody.transfer?.operator_handoff?.first_tool` is present, it is the canonical next call. Re-running it with the same `project_root` + `continuity_id` should round-trip the save intact.
 
 ## Contract summary
 
-- Family: Workpoint.
-- Side effects: `save` may checkpoint a Workpoint; `continue` and `status` are read/compose operations.
-- Result envelope: `tool_result_v1` with status, canonical/degraded posture, side effects, and next tools.
-- API routes composed: `GET /v1/project/card`, `POST /v1/workpoint/checkpoint`, `POST /v1/workpoint/resume`, `GET /v1/trajectory/view`.
-- API routes: `POST /v1/project/session-transfer` persists save packets to `project_session_transfers.jsonl` (append-only, scope-bounded by `(project_root, continuity_id)`, replay-friendly).
-
-## Direct API (bypassing the Pi wrapper)
-
-The underlying HTTP route is `POST /v1/project/session-transfer`. It accepts:
-
-```json
-{
-  "action": "save|continue|status",
-  "project_root": "/path/to/project",
-  "continuity_id": "focusa-cont-...",
-  "current_ask": "optional intent",
-  "mission": "optional save mission",
-  "next_action": "optional next action"
-}
-```
-
-Response (save):
-
-```json
-{
-  "schema": "focusa.project_session_transfer_response.v1",
-  "action": "save",
-  "saved": true,
-  "transfer": {
-    "transfer_id": "019ea...",
-    "schema": "focusa.project_session_transfer.v1",
-    "action": "save",
-    "mission": "...",
-    "next_action": "...",
-    "inferred_workpoint_candidate": {...},
-    "checkpoint_payload_hint": {...},
-    "operator_handoff": {"command": "cd <root> && pi", "first_tool": "focusa_session_transfer action=\"continue\" ...", "authority_boundary": "project_root_plus_continuity_id"}
-  },
-  "storage": {"transfers_path": "/path/to/data/project_session_transfers.jsonl"}
-}
-```
-
-Response (continue) returns the **latest prior save** in the `transfer` field. The status action returns `saved: false` when there is no prior save.
-- CLI commands: `focusa project session-transfer`.
-- Parity: `full`.
-- Core surface: Focusa session transfer save/continue wrapper.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+- Side effects: `save` or `rollover_action="checkpoint"` may checkpoint a Workpoint; `continue`/`status` are read/compose operations.
+- API routes composed: `POST /v1/project/session-transfer`, `GET /v1/project/card`, `POST /v1/workpoint/checkpoint`, `POST /v1/workpoint/resume`, `GET /v1/trajectory/view`.
+- Scope contract: explicit source/target typed scopes; no continuity fingerprint fallback.

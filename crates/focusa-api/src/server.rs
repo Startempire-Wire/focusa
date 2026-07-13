@@ -15,6 +15,7 @@ use axum::middleware as axum_mw;
 use axum::{Router, extract::DefaultBodyLimit};
 use focusa_core::prediction::PredictionValue;
 use focusa_core::runtime::persistence_sqlite::SqlitePersistence;
+use focusa_core::scoped_state::WorkstreamKey;
 use tower_http::services::ServeDir;
 
 /// Vendored static files directory (e.g. jsQR for offline PWA /scan pages).
@@ -24,7 +25,7 @@ use focusa_core::types::{
     WorkLoopPreset, WorkLoopStatus,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
@@ -241,6 +242,16 @@ pub struct AppState {
     pub focus_stack_by_scope: Arc<TokioRwLock<HashMap<String, FocusStackState>>>,
     /// Typed ProjectRootKey + WorkstreamKey scoped prediction CRDT ledger.
     pub prediction_store: Arc<ScopedCrdtLedger<PredictionValue>>,
+    /// Request-local turn completion idempotency, keyed by typed WorkstreamKey.
+    pub(crate) recent_completed_turns_by_scope:
+        Arc<TokioRwLock<HashMap<WorkstreamKey, VecDeque<String>>>>,
+    /// Focus snapshots keyed first by typed WorkstreamKey, never daemon-global.
+    pub(crate) snapshots_by_scope: Arc<
+        TokioRwLock<HashMap<WorkstreamKey, HashMap<String, routes::snapshots::SnapshotRecord>>>,
+    >,
+    /// Metacognition read model keyed first by typed WorkstreamKey, never daemon-global.
+    pub(crate) metacog_by_scope:
+        Arc<std::sync::Mutex<HashMap<WorkstreamKey, routes::metacognition::MetaStore>>>,
     /// Process start time for uptime reporting.
     pub started_at: Instant,
     /// Optional daemon-owned Pi RPC transport session for continuous work.
@@ -1001,6 +1012,9 @@ pub async fn run(
         writer_claims: Arc::new(TokioRwLock::new(HashMap::new())),
         focus_stack_by_scope: Arc::new(TokioRwLock::new(HashMap::new())),
         prediction_store,
+        recent_completed_turns_by_scope: Arc::new(TokioRwLock::new(HashMap::new())),
+        snapshots_by_scope: Arc::new(TokioRwLock::new(HashMap::new())),
+        metacog_by_scope: Arc::new(std::sync::Mutex::new(HashMap::new())),
         started_at: Instant::now(),
         pi_rpc_session: Arc::new(Mutex::new(None)),
         supervisor_perf: Arc::new(SupervisorPerfCounters::default()),

@@ -13,6 +13,7 @@ use axum::{
     extract::{Query, State},
     routing::{get, post},
 };
+use chrono::Utc;
 use focusa_core::scope_safety::classify_project_root;
 use focusa_core::scoped_state::{ScopeKind, ScopeRef, WorkstreamKey};
 use serde::Deserialize;
@@ -23,6 +24,7 @@ use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Default)]
 pub struct ProjectIdentityQuery {
@@ -2850,8 +2852,12 @@ fn project_card_outcomes_path() -> PathBuf {
     focusa_data_dir().join("project_card_algorithm_outcomes.jsonl")
 }
 
-fn project_session_transfers_path() -> PathBuf {
-    focusa_data_dir().join("project_session_transfers.jsonl")
+fn project_session_transfers_path(root_scope: &ScopeRef) -> PathBuf {
+    focusa_data_dir()
+        .join("runtime")
+        .join("project-session-transfers")
+        .join(root_scope.storage_key())
+        .join("transfers.jsonl")
 }
 
 fn default_project_card_weights() -> BTreeMap<String, f64> {
@@ -2942,8 +2948,8 @@ fn append_project_card_algorithm_outcome(outcome: &Value) {
     append_jsonl(project_card_outcomes_path(), outcome);
 }
 
-fn append_project_session_transfer(record: &Value) {
-    append_jsonl(project_session_transfers_path(), record);
+fn append_project_session_transfer(root_scope: &ScopeRef, record: &Value) {
+    append_jsonl(project_session_transfers_path(root_scope), record);
 }
 
 fn project_card_run_exists(algorithm_run_id: &str) -> bool {
@@ -4020,6 +4026,13 @@ async fn session_transfer(
     Json(body): Json<ProjectSessionTransferRequest>,
 ) -> Json<Value> {
     let action = body.action.trim().to_lowercase();
+    if !["save", "continue", "status", "rollover", "verify_target"].contains(&action.as_str()) {
+        return Json(json!({
+            "status":"blocked",
+            "failure_class":"invalid_action",
+            "reason":"session transfer action must be save, continue, status, rollover, or verify_target"
+        }));
+    }
     let query = ProjectIdentityQuery {
         cwd: body.cwd.clone(),
         project_root: body.project_root.clone(),
@@ -4175,7 +4188,8 @@ async fn session_transfer(
         })
         .unwrap_or_else(|| "Continue from session-transfer packet".to_string());
     let transfer_id = uuid::Uuid::now_v7().to_string();
-    let latest_prior = recent_jsonl_values(project_session_transfers_path(), 256)
+    let transfers_path = project_session_transfers_path(&source_scope.root_scope);
+    let latest_prior = recent_jsonl_values(transfers_path.clone(), 256)
         .into_iter()
         .rev()
         .find(|record| {
@@ -4255,7 +4269,7 @@ async fn session_transfer(
         "operator_handoff": operator_handoff
     });
     if action == "save" || action == "rollover" {
-        append_project_session_transfer(&record);
+        append_project_session_transfer(&source_scope.root_scope, &record);
     }
     let transfer = if (action == "continue" || action == "verify_target") && !latest_prior.is_null()
     {
@@ -4285,7 +4299,7 @@ async fn session_transfer(
                 "verified_at": Utc::now().to_rfc3339(),
                 "evidence_refs": body.evidence_refs,
             });
-            append_project_session_transfer(&receipt);
+            append_project_session_transfer(&source_scope.root_scope, &receipt);
             prior["transition_receipt"] = receipt;
             prior["transition"]["status"] = json!(if verified {
                 "target_resume_verified"
@@ -4305,7 +4319,7 @@ async fn session_transfer(
         "transfer": transfer,
         "latest_prior_save": latest_prior,
         "preload": preload,
-        "storage": {"transfers_path": project_session_transfers_path().to_string_lossy()},
+        "storage": {"transfers_path": transfers_path.to_string_lossy(), "scope": source_scope.root_scope},
         "next_tools": if transfer_status == "degraded" {
             vec!["focusa_preload_build", "focusa_project_card", "focusa_trajectory_view"]
         } else {

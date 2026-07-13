@@ -41,3 +41,23 @@ Runtime regression cases:
 - unknown post-compaction usage does not trigger
 - pending compaction is not duplicated
 - simulated native-first compaction suppresses fallback duplication
+
+Reopen / second incident — 2026-07-13:
+- operator again had to invoke manual /compact; bead focusa-w26jj.3.10.4 was reopened as a false closure
+- active session started before auto-compaction.ts/index.ts were modified, so the running extension could not contain the prior source hardening without /reload
+- live session proof: manual compaction entry tokensBefore=371566 with model contextWindow=372000
+- root code defect: /v1/commands/submit accepted only materializes Focusa CLT/ASCC state, but checkCompactionTier treated accepted=true as if live Pi ctx.compact had completed
+- root threshold defect: provider-window reserve logic allowed 372K contexts to grow beyond Focusa balanced policy
+- root scoped-runtime defect: event AttachmentRuntime entries did not inherit immutable bootstrap config, allowing checkCompactionTier to return when cfg was absent
+
+Corrective source proof:
+- API acceptance now prepares Focusa authority but never returns before invoking public ctx.compact
+- proactive trigger is min(70% of context, 256000 tokens, final reserve threshold)
+- agent_settled uses a documented typed event overload with no any/unknown cast
+- every typed event/command/tool attachment explicitly receives immutable config/Pi adapter dependencies
+- PASS bash tests/spec130_auto_compaction_test.sh
+- PASS npm --prefix apps/pi-extension run typecheck
+- PASS npm --prefix apps/pi-extension run lint -- --quiet
+
+Remaining live gate:
+- reload/restart the active Pi extension, then observe a real automatic ctx.compact event before re-closing A3.4

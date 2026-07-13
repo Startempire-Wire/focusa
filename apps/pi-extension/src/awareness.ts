@@ -1,5 +1,5 @@
 import {
-  S,
+  getAttachmentRuntime,
   getScopedWorkpointPacket,
   isProjectRootAuthoritySafe,
   normalizeProjectRoot,
@@ -120,7 +120,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     `- current=${compact(trajectory.current_state, "unknown")}; gap=${compact(trajectory.active_gap || trajectory.short_term_goal, "unknown")}; recommended=${compact(trajectory.recommended_action, "unknown", 120)}`,
     `- workpoint=${workpointStatus}; ${scopedPacket ? "canonical packet matches project_root+continuity_id" : "resume/checkpoint required before treating Workpoint as canonical"}`,
     ...(loudWarning ? [`- LOUD_WARNING: ${loudWarning}`] : []),
-    `- next=${!safeScope || needsConfirm ? "auto-bootstrap project identity with focusa_project_identity before durable work" : (hltRequired ? "focusa_trajectory_define_goal (HLT required)" : (next ? compact(next) : compact(trajectory.active_gap || trajectory.short_term_goal || mission || "refresh trajectory then checkpoint mission")))}`,
+    `- next=${!safeScope || needsConfirm ? "auto-bootstrap project identity with focusa_project_identity before durable work" : hltRequired ? "focusa_trajectory_define_goal (HLT required)" : next ? compact(next) : compact(trajectory.active_gap || trajectory.short_term_goal || mission || "refresh trajectory then checkpoint mission")}`,
     `- environment=${envParts || "unknown; call focusa_project_identity/trajectory_view for URL/deploy facts"}`,
     `- boundary=operator steering wins; project_root+continuity_id are authority; trajectory similarity/fallback is advisory only`,
   ];

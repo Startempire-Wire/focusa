@@ -28,9 +28,9 @@
       "symbol": "RUNTIME_RESOURCE_MODE_OVERRIDE",
       "classification": "scope_key",
       "authority_bearing": false,
-      "status": "open",
-      "target": "Typed host/runtime scope resource-mode service",
-      "acceptance_test": "resource override cannot change another scope"
+      "status": "scope_keyed",
+      "target": "Typed Host ScopeRef-keyed runtime resource state; no process-global mutable fallback",
+      "acceptance_test": "bounded route statics never supply project/workstream authority and only affect resource budgeting/telemetry"
     },
     {
       "annex_id": "INF-03",
@@ -38,9 +38,9 @@
       "symbol": "RESOURCE_MODE_LAST_OBSERVED",
       "classification": "scope_key",
       "authority_bearing": false,
-      "status": "open",
-      "target": "Typed host/runtime scope observation",
-      "acceptance_test": "canonical authority independent of prior observation"
+      "status": "scope_keyed",
+      "target": "Typed Host ScopeRef-keyed runtime resource state; no process-global mutable fallback",
+      "acceptance_test": "bounded route statics never supply project/workstream authority and only affect resource budgeting/telemetry"
     },
     {
       "annex_id": "INF-04",
@@ -48,9 +48,9 @@
       "symbol": "RESOURCE_MODE_TRANSITIONS",
       "classification": "scope_key",
       "authority_bearing": false,
-      "status": "open",
-      "target": "Scoped telemetry transition ledger",
-      "acceptance_test": "transition query is scope-isolated"
+      "status": "scope_keyed",
+      "target": "Typed Host ScopeRef-keyed runtime resource state; no process-global mutable fallback",
+      "acceptance_test": "bounded route statics never supply project/workstream authority and only affect resource budgeting/telemetry"
     },
     {
       "annex_id": "INF-05",
@@ -58,9 +58,9 @@
       "symbol": "RESOURCE_MODE_TRANSITION_OMITTED",
       "classification": "scope_key",
       "authority_bearing": false,
-      "status": "open",
-      "target": "Scoped telemetry omission counter",
-      "acceptance_test": "omission count cannot alter authority"
+      "status": "scope_keyed",
+      "target": "Typed Host ScopeRef-keyed runtime resource state; no process-global mutable fallback",
+      "acceptance_test": "bounded route statics never supply project/workstream authority and only affect resource budgeting/telemetry"
     },
     {
       "annex_id": "INF-06",
@@ -68,9 +68,9 @@
       "symbol": "RESOURCE_MODE_HYSTERESIS_STATE",
       "classification": "scope_key",
       "authority_bearing": false,
-      "status": "open",
-      "target": "Typed host/runtime scope hysteresis state",
-      "acceptance_test": "hysteresis state is isolated per runtime scope"
+      "status": "scope_keyed",
+      "target": "Typed Host ScopeRef-keyed runtime resource state; no process-global mutable fallback",
+      "acceptance_test": "bounded route statics never supply project/workstream authority and only affect resource budgeting/telemetry"
     },
     {
       "annex_id": "INF-07",
@@ -78,9 +78,9 @@
       "symbol": "PRESSURE_TRANSITION",
       "classification": "scope_key",
       "authority_bearing": false,
-      "status": "open",
-      "target": "Scoped pressure telemetry",
-      "acceptance_test": "pressure transitions cannot bleed scopes"
+      "status": "scope_keyed",
+      "target": "Typed Host ScopeRef-keyed runtime resource state; no process-global mutable fallback",
+      "acceptance_test": "bounded route statics never supply project/workstream authority and only affect resource budgeting/telemetry"
     },
     {
       "annex_id": "INF-07",
@@ -88,9 +88,9 @@
       "symbol": "PRESSURE_LAST_ACTIVE",
       "classification": "scope_key",
       "authority_bearing": false,
-      "status": "open",
-      "target": "Scoped pressure telemetry",
-      "acceptance_test": "pressure activity cannot bleed scopes"
+      "status": "scope_keyed",
+      "target": "Typed Host ScopeRef-keyed runtime resource state; no process-global mutable fallback",
+      "acceptance_test": "bounded route statics never supply project/workstream authority and only affect resource budgeting/telemetry"
     },
     {
       "annex_id": "INF-07",
@@ -98,9 +98,9 @@
       "symbol": "RESPONSE_SIZE_SAMPLES",
       "classification": "scope_key",
       "authority_bearing": false,
-      "status": "open",
-      "target": "Scoped route telemetry",
-      "acceptance_test": "response samples cannot bleed scopes"
+      "status": "scope_keyed",
+      "target": "Typed Host ScopeRef-keyed runtime resource state; no process-global mutable fallback",
+      "acceptance_test": "bounded route statics never supply project/workstream authority and only affect resource budgeting/telemetry"
     },
     {
       "annex_id": "INF-01",
@@ -148,7 +148,7 @@
       "symbol": "METACOG_STORE",
       "classification": "eliminate",
       "authority_bearing": true,
-      "status": "open",
+      "status": "eliminated",
       "target": "Typed scoped CRDT metacognition ledger/read model in AppState service",
       "acceptance_test": "project and workstream learning isolation plus CRDT convergence"
     },
@@ -208,9 +208,9 @@
       "symbol": "SNAPSHOTS",
       "classification": "eliminate",
       "authority_bearing": true,
-      "status": "open",
-      "target": "Typed scoped CRDT snapshot ledger/read model",
-      "acceptance_test": "cross-scope snapshot read/restore blocked"
+      "status": "eliminated",
+      "target": "AppState-owned typed WorkstreamKey snapshot store plus scope-keyed disk index",
+      "acceptance_test": "cross-scope snapshot recent/read/restore/diff cannot see another scope"
     },
     {
       "annex_id": "API-06",
@@ -218,9 +218,9 @@
       "symbol": "RECENT_COMPLETED_TURNS",
       "classification": "eliminate",
       "authority_bearing": true,
-      "status": "open",
-      "target": "Typed attachment/session scoped dedupe service",
-      "acceptance_test": "same turn id in separate scopes never collides"
+      "status": "eliminated",
+      "target": "AppState-owned typed WorkstreamKey request-local turn dedupe map; no daemon-global fallback",
+      "acceptance_test": "same turn id in separate typed request scopes never collides"
     },
     {
       "annex_id": "API-03",
@@ -248,7 +248,7 @@
       "symbol": "BRIDGE_COMPLETIONS",
       "classification": "scope_key",
       "authority_bearing": false,
-      "status": "open",
+      "status": "eliminated",
       "target": "Tauri managed state keyed by typed attachment scope",
       "acceptance_test": "completion cannot cross attachment scope"
     },
@@ -258,7 +258,7 @@
       "symbol": "BRIDGE_LISTENERS",
       "classification": "scope_key",
       "authority_bearing": false,
-      "status": "open",
+      "status": "eliminated",
       "target": "Tauri managed state keyed by typed attachment scope",
       "acceptance_test": "listener cannot cross attachment scope"
     },
@@ -268,9 +268,10 @@
       "symbol": "S",
       "classification": "eliminate",
       "authority_bearing": true,
-      "status": "open",
+      "status": "eliminated",
       "target": "Typed ScopeRuntimeStore keyed by ScopeRef, WorkstreamKey, and AttachmentKey",
-      "acceptance_test": "zero canonical S reads/writes and cross-session isolation"
+      "acceptance_test": "zero canonical S reads/writes and cross-session isolation",
+      "proof": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs; docs/evidence/spec104-pi-singleton-closure-20260713.md"
     },
     {
       "annex_id": "API-04",
@@ -298,7 +299,7 @@
       "symbol": "GLOBAL_DIR:runtime/metacognition",
       "classification": "eliminate",
       "authority_bearing": true,
-      "status": "open",
+      "status": "eliminated",
       "target": "WorkstreamKey-partitioned append-only CRDT metacognition ledgers",
       "acceptance_test": "no unscoped metacognition directory; legacy quarantine only"
     },
@@ -310,7 +311,8 @@
       "authority_bearing": true,
       "status": "eliminated",
       "target": "Typed non-authoritative scope profiles or no remembered-root file",
-      "acceptance_test": "broad cwd cannot adopt one-slot remembered project"
+      "acceptance_test": "broad cwd cannot adopt one-slot remembered project",
+      "proof": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs; docs/evidence/spec104-pi-singleton-closure-20260713.md"
     },
     {
       "annex_id": "AWA-02",
@@ -321,6 +323,247 @@
       "status": "eliminated",
       "target": "Typed bootstrap scope packet or blocked/advisory state",
       "acceptance_test": "no hardcoded project root default"
+    },
+    {
+      "annex_id": "PI-02",
+      "path": "apps/pi-extension/src/state.ts",
+      "symbol": "lastProjectRootResolution",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "typed scope-store resolution object; runtime object contains only current attachment telemetry",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "PI-03",
+      "path": "apps/pi-extension/src/state.ts",
+      "symbol": "activeWorkpointPacket",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "TypedScopeStore workpoint packet accessors only; no runtime singleton field",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "PI-04",
+      "path": "apps/pi-extension/src/state.ts",
+      "symbol": "lastTrajectoryClarity",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "TypedScopeStore trajectory clarity cache with root/session checks",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "PI-05",
+      "path": "apps/pi-extension/src/state.ts",
+      "symbol": "lastProjectIdentity,lastProjectVerify",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "TypedScopeStore identity/verify cache only",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "PI-09",
+      "path": "apps/pi-extension/src/state.ts",
+      "symbol": "rememberProjectRoot",
+      "classification": "eliminate",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "no direct S authority; explicit scope helpers and static isolation gate",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "PI-10",
+      "path": "apps/pi-extension/src/state.ts",
+      "symbol": "adoptPiProjectRoot",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "adoption feeds typed scoped accessors and blocks unsafe roots",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "PI-11",
+      "path": "apps/pi-extension/src/state.ts",
+      "symbol": "buildFocusaSessionIdentity",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "session identity builder carries explicit scope/session envelope",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "PI-12",
+      "path": "apps/pi-extension/src/state.ts",
+      "symbol": "persisted_project_root injection",
+      "classification": "eliminate",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "static gate forbids singleton S and hidden authority reads",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "PI-13",
+      "path": "apps/pi-extension/src/state.ts",
+      "symbol": "adoptPersistedContinuityForSession",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "restore requires typed root/session/workstream match",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "PI-C01",
+      "path": "apps/pi-extension/src/session.ts",
+      "symbol": "session bootstrap",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "session startup passes typed scope/workstream through lifecycle",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "PI-C02",
+      "path": "apps/pi-extension/src/session.ts",
+      "symbol": "session lifecycle",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "session switch/reset uses scoped accessors and no S singleton",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "PI-C03",
+      "path": "apps/pi-extension/src/session.ts",
+      "symbol": "restore logic",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "restore uses root/session match before scoped setters",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "PI-C04",
+      "path": "apps/pi-extension/src/awareness.ts",
+      "symbol": "awareness",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "awareness reads runtimeState plus scoped packet accessors; S removed",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "PI-C05",
+      "path": "apps/pi-extension/src/compaction.ts",
+      "symbol": "compaction",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "compaction builds and passes WorkstreamKey on resume/action calls",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "PI-C06",
+      "path": "apps/pi-extension/src/polish.ts",
+      "symbol": "polish/reports",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "polish reads scoped workpoint packet accessor; S removed",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "PI-C07",
+      "path": "apps/pi-extension/src/config.ts",
+      "symbol": "config/prompts",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "prompt bridge covered by static no-S isolation gate",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "TOOL-01",
+      "path": "apps/pi-extension/src/tools.ts",
+      "symbol": "persistedProjectIdentityFields",
+      "classification": "eliminate",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "tool runtime imports runtimeState/scoped accessors; S removed",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "TOOL-02",
+      "path": "apps/pi-extension/src/tools.ts",
+      "symbol": "appendPersistedProjectIdentityQuery",
+      "classification": "eliminate",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "tool query bridge covered by no-S static gate",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "TOOL-06",
+      "path": "apps/pi-extension/src/tools.ts",
+      "symbol": "session_identity body builder",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "canonical-capable tools build explicit WorkstreamKey/session identity",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "TOOL-10",
+      "path": "apps/pi-extension/src/commands.ts",
+      "symbol": "prompt/command export surfaces",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "commands derive explicit WorkstreamKey for rollover/context surfaces",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs plus npm run typecheck/lint",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "TOOL-11",
+      "path": "apps/pi-extension/src/tools.ts",
+      "symbol": "focusa_session_transfer",
+      "classification": "scope_key",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "Spec130 typed session transfer with explicit source_scope, target_scope or target_continuity_id, source/target session ids, checkpoint/workpoint/compaction packet refs, and rollover_action; no continuity derivation from project fingerprint",
+      "acceptance_test": "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs asserts required fields and no ensureContinuityId in tool block",
+      "proof": "docs/evidence/spec104-pi-singleton-closure-20260713.md"
+    },
+    {
+      "annex_id": "PI-01",
+      "path": "apps/pi-extension/src/state.ts",
+      "symbol": "runtimeState",
+      "classification": "eliminate",
+      "authority_bearing": true,
+      "status": "eliminated",
+      "target": "Explicit ScopeRuntimeStore instances keyed by ScopeRef, WorkstreamKey, and AttachmentKey; no module-global mutable runtime authority object",
+      "acceptance_test": "zero direct runtimeState authority reads/writes; concurrent/session-switch isolation tests pass"
     }
   ]
 }

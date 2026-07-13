@@ -13,7 +13,9 @@ use axum::{
     http::{HeaderMap, StatusCode, request::Parts},
     response::{IntoResponse, Response},
 };
+use focusa_core::scoped_state::{ScopeRef, WorkstreamKey};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::fmt;
 
 /// Canonical request scope parameters.
@@ -52,12 +54,54 @@ impl ScopeContext {
         }
     }
 
-    /// Check if this scope matches another scope.
+    /// Check exact project/workstream authority equality. Missing scope never matches.
     pub fn matches(&self, other: &ScopeContext) -> bool {
-        match (&self.project_root, &other.project_root) {
-            (Some(a), Some(b)) => a == b,
-            _ => true, // empty scopes match everything (lenient)
-        }
+        matches!(
+            (
+                self.project_root.as_deref(),
+                self.continuity_id.as_deref(),
+                other.project_root.as_deref(),
+                other.continuity_id.as_deref(),
+            ),
+            (Some(left_root), Some(left_continuity), Some(right_root), Some(right_continuity))
+                if left_root == right_root && left_continuity == right_continuity
+        )
+    }
+
+    /// Build a typed project/workstream key for request-local state.
+    ///
+    /// Spec104 API-01: request-local runtime state must not fall back to a
+    /// daemon-global singleton. Endpoints that own scoped mutable state call
+    /// this and reject unscoped requests rather than borrowing global authority.
+    pub fn require_workstream_key(&self) -> Result<WorkstreamKey, String> {
+        let project_root = self
+            .project_root
+            .as_deref()
+            .ok_or_else(|| "x-scope-project-root or project_root is required".to_string())?;
+        let continuity_id = self
+            .continuity_id
+            .as_deref()
+            .ok_or_else(|| "x-scope-continuity-id or continuity_id is required".to_string())?;
+        let canonical_name = project_root
+            .trim_end_matches('/')
+            .rsplit('/')
+            .next()
+            .filter(|value| !value.is_empty())
+            .unwrap_or("project");
+        let fingerprint = format!(
+            "sha256:{}",
+            hex::encode(Sha256::digest(
+                project_root.trim_end_matches('/').as_bytes()
+            ))
+        );
+        let scope = ScopeRef::project(
+            format!("project:{fingerprint}"),
+            project_root,
+            canonical_name,
+            fingerprint,
+        )
+        .map_err(|error| error.to_string())?;
+        WorkstreamKey::new(scope, continuity_id).map_err(|error| error.to_string())
     }
 }
 
@@ -149,5 +193,29 @@ impl IntoResponse for ScopeRejection {
     fn into_response(self) -> Response {
         let ScopeRejection::Internal(body) = self;
         (StatusCode::BAD_REQUEST, body).into_response()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn missing_or_cross_workstream_scope_never_matches() {
+        let empty = ScopeContext::default();
+        let left = ScopeContext {
+            project_root: Some("/workspace/a".into()),
+            continuity_id: Some("cont-a".into()),
+            ..Default::default()
+        };
+        let other_continuity = ScopeContext {
+            project_root: Some("/workspace/a".into()),
+            continuity_id: Some("cont-b".into()),
+            ..Default::default()
+        };
+        assert!(!empty.matches(&left));
+        assert!(!left.matches(&empty));
+        assert!(!left.matches(&other_continuity));
+        assert!(left.matches(&left));
     }
 }

@@ -48,8 +48,14 @@ def discover() -> dict[tuple[str, str], dict[str, object]]:
             if match and any(marker in match.group(2) for marker in MUTABLE_MARKERS):
                 key = (rel(path), match.group(1))
                 findings[key] = {"path": key[0], "symbol": key[1], "line": line_no, "kind": "mutable_static"}
-        if rel(path) == "apps/pi-extension/src/state.ts" and re.search(r"export\s+const\s+S\s*=", text):
-            findings[(rel(path), "S")] = {"path": rel(path), "symbol": "S", "kind": "adapter_singleton"}
+        if rel(path) == "apps/pi-extension/src/state.ts":
+            for symbol in ("S", "runtimeState"):
+                if re.search(rf"export\s+const\s+{symbol}\s*=", text):
+                    findings[(rel(path), symbol)] = {
+                        "path": rel(path),
+                        "symbol": symbol,
+                        "kind": "adapter_singleton",
+                    }
 
     marker_rules = [
         ("crates/focusa-api/src/routes/predictions.rs", "spec92_predictions.json", "GLOBAL_FILE:spec92_predictions.json"),

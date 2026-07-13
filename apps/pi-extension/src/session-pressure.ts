@@ -4,11 +4,7 @@ import { statSync } from "fs";
 import { getHeapStatistics } from "v8";
 
 export type NativeSessionPressurePosture =
-  | "normal"
-  | "soft_pressure"
-  | "hard_pressure"
-  | "emergency"
-  | "oversized_at_start";
+  "normal" | "soft_pressure" | "hard_pressure" | "emergency" | "oversized_at_start";
 
 export interface NativeSessionBudgetsV1 {
   focusa_custom_soft_bytes: number;
@@ -38,12 +34,7 @@ export interface NativeSessionPressureV1 {
   budgets: NativeSessionBudgetsV1;
   posture: NativeSessionPressurePosture;
   recommended_action:
-    | "continue"
-    | "checkpoint"
-    | "compact"
-    | "rollover"
-    | "stream_migrate"
-    | "refuse_full_load";
+    "continue" | "checkpoint" | "compact" | "rollover" | "stream_migrate" | "refuse_full_load";
   measured_at: string;
 }
 
@@ -356,9 +347,7 @@ async function copyFileStreaming(source: string, target: string): Promise<void> 
 export async function migrateNativeSessionBounded(
   request: NativeSessionMigrationRequest
 ): Promise<NativeSessionMigrationManifestV1> {
-  const { chmodSync, linkSync, mkdirSync, statSync, writeFileSync, unlinkSync } = await import(
-    "fs"
-  );
+  const { chmodSync, linkSync, mkdirSync, statSync, writeFileSync, unlinkSync } = await import("fs");
   const { join } = await import("path");
   const sourceBefore = statSync(request.source_path);
   if (!sourceBefore.isFile()) throw new Error("native_session_source_not_file");
@@ -405,25 +394,14 @@ export async function migrateNativeSessionBounded(
     await copyFileStreaming(request.source_path, archivePath);
     createdFiles.push(archivePath);
     const archiveScan = await scanSessionJsonlBounded(archivePath, 64 * 1024, entryMaxBytes);
-    if (
-      archiveScan.source_sha256 !== scan.source_sha256 ||
-      archiveScan.source_bytes !== scan.source_bytes
-    )
+    if (archiveScan.source_sha256 !== scan.source_sha256 || archiveScan.source_bytes !== scan.source_bytes)
       throw new Error("native_session_archive_integrity_mismatch");
     chmodSync(archivePath, 0o400);
     await writeBuffersAtomic(recoveryPath, scan.recovery_entries);
     createdFiles.push(recoveryPath);
-    const recoveryScan = await scanSessionJsonlBounded(
-      recoveryPath,
-      recoveryMaxBytes,
-      entryMaxBytes
-    );
+    const recoveryScan = await scanSessionJsonlBounded(recoveryPath, recoveryMaxBytes, entryMaxBytes);
     const sourceAfter = statSync(request.source_path);
-    const sourceAfterScan = await scanSessionJsonlBounded(
-      request.source_path,
-      64 * 1024,
-      entryMaxBytes
-    );
+    const sourceAfterScan = await scanSessionJsonlBounded(request.source_path, 64 * 1024, entryMaxBytes);
     const sourceUnchanged =
       sourceAfter.size === sourceBefore.size &&
       sourceAfter.mtimeMs === sourceBefore.mtimeMs &&

@@ -62,7 +62,7 @@ else
   log_fail "Pi missing bounded authoritative recovery persistence"
 fi
 
-if rg -n 'sessionId: S\.sessionFrameKey' "$STATE_FILE" >/dev/null 2>&1; then
+if rg -n 'sessionId: getAttachmentRuntime\(\)\.sessionFrameKey' "$STATE_FILE" >/dev/null 2>&1; then
   log_pass "Pi persisted state includes sessionId for resume"
 else
   log_fail "Pi persisted state missing sessionId for resume"
@@ -320,7 +320,7 @@ else
   log_fail "Persisted renderer missing authoritative snapshot content"
 fi
 
-if rg -n 'S\.activeFrameId|S\.activeFrameTitle|S\.activeFrameGoal' "$SESSION_TS" >/dev/null 2>&1 \
+if rg -n 'getAttachmentRuntime\(\)\.activeFrameId|getAttachmentRuntime\(\)\.activeFrameTitle|getAttachmentRuntime\(\)\.activeFrameGoal' "$SESSION_TS" >/dev/null 2>&1 \
   && ! rg -n 'setSessionName' "${ROOT_DIR}/apps/pi-extension/src" >/dev/null 2>&1; then
   log_pass "Session sync keeps Focusa frame metadata without overriding Pi session names"
 else

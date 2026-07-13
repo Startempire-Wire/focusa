@@ -1255,9 +1255,11 @@ pub fn router() -> Router<Arc<AppState>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::scoped_store::ScopedCrdtLedger;
     use crate::server::{AppState, build_router};
     use axum::body::{Body, to_bytes};
     use axum::http::{Request, StatusCode};
+    use focusa_core::prediction::PredictionValue;
     use focusa_core::runtime::persistence_sqlite::SqlitePersistence;
     use focusa_core::types::{Action, FocusaConfig, FocusaState};
     use std::collections::HashMap;
@@ -1286,7 +1288,7 @@ mod tests {
             command_tx: tx,
             events_tx,
             event_broadcaster: crate::routes::sse::EventBroadcaster::new(),
-            config: cfg,
+            config: cfg.clone(),
             persistence,
             write_serial_lock: Arc::new(Mutex::new(())),
             command_store: Arc::new(RwLock::new(HashMap::new())),
@@ -1295,6 +1297,14 @@ mod tests {
             focus_stack_by_scope: Arc::new(tokio::sync::RwLock::new(
                 std::collections::HashMap::new(),
             )),
+            prediction_store: Arc::new(ScopedCrdtLedger::<PredictionValue>::new(
+                &cfg.data_dir,
+                "predictions-test",
+                "test-actor",
+            )),
+            recent_completed_turns_by_scope: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            snapshots_by_scope: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            metacog_by_scope: Arc::new(std::sync::Mutex::new(HashMap::new())),
             started_at: Instant::now(),
             pi_rpc_session: Arc::new(Mutex::new(None)),
             supervisor_perf: Arc::new(crate::server::SupervisorPerfCounters::default()),

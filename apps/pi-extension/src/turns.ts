@@ -10,7 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { PiGoverningPriorKind } from "./state.js";
 import {
-  S,
+  getAttachmentRuntime,
   focusaFetch,
   focusaPost,
   extractText,
@@ -122,12 +122,16 @@ function deriveOutcome(text: string, hasFailureSignal: boolean): string {
 function captureRecentTurnSlice(assistantOutput: string): void {
   try {
     const turnCount = getTurnCount();
-    const toolCount = (S as any).currentTaskToolCalls ?? 0;
+    const toolCount = (getAttachmentRuntime() as any).currentTaskToolCalls ?? 0;
     const text = assistantOutput || "";
     if (!shouldIncludeTurnInSlice(text, toolCount)) return;
     const slice: RecentTurnSlice = {
       turn_id: `pi-turn-${turnCount}`,
-      mission_at_turn: (S.activeFrameGoal || S.activeFrameTitle || "").slice(0, 120),
+      mission_at_turn: (
+        getAttachmentRuntime().activeFrameGoal ||
+        getAttachmentRuntime().activeFrameTitle ||
+        ""
+      ).slice(0, 120),
       outcome: deriveOutcome(text, false) as RecentTurnSlice["outcome"],
       evidence_refs: [] as string[],
       tool_call_count: toolCount,
@@ -135,7 +139,7 @@ function captureRecentTurnSlice(assistantOutput: string): void {
     };
     pushRecentTurn(slice);
     // Best-effort POST to daemon; focusaPost swallows failures internally.
-    if (S.focusaAvailable) {
+    if (getAttachmentRuntime().focusaAvailable) {
       focusaPost("/v1/turns/recent", {
         turn_id: slice.turn_id,
         continuity_id: getContinuityId(),
@@ -152,7 +156,7 @@ function captureRecentTurnSlice(assistantOutput: string): void {
 }
 
 async function fetchRecentTurnsFromDaemon(n: number): Promise<RecentTurnSlice[]> {
-  if (!S.focusaAvailable) return [];
+  if (!getAttachmentRuntime().focusaAvailable) return [];
   try {
     const continuity = getContinuityId();
     if (!continuity) return [];
@@ -250,7 +254,9 @@ function isNonTaskStatusLikeText(text: string): boolean {
 const traceBatch: any[] = [];
 
 function vitalPromptSurfaceEnabled(surface: string): boolean {
-  const raw = String(S.cfg?.vitalInfoPromptSurfaces || "project_root,project_verify,workpoint,trajectory");
+  const raw = String(
+    getAttachmentRuntime().cfg?.vitalInfoPromptSurfaces || "project_root,project_verify,workpoint,trajectory"
+  );
   return raw
     .split(",")
     .map((part) => part.trim())
@@ -258,17 +264,17 @@ function vitalPromptSurfaceEnabled(surface: string): boolean {
 }
 
 async function hardGateVitalProjectRoot(ctx: any): Promise<string | null> {
-  if (!S.focusaAvailable || !vitalPromptSurfaceEnabled("project_root")) return null;
+  if (!getAttachmentRuntime().focusaAvailable || !vitalPromptSurfaceEnabled("project_root")) return null;
   const detected = adoptPiProjectRoot(ctx.cwd || getSessionCwd() || process.cwd());
   if (!projectRootConfirmationRequired(detected)) {
     ctx.ui.setWidget("focusa-vital", undefined);
     return detected;
   }
   const summary = projectRootConfirmationSummary(detected);
-  const mode = S.cfg?.vitalInfoPromptMode || "prompt";
+  const mode = getAttachmentRuntime().cfg?.vitalInfoPromptMode || "prompt";
   focusaPost("/telemetry/trace", {
     event_type: "pi_vital_project_root_before_agent_inference_required",
-    payload: { project_root: detected, summary, mode, session_id: S.sessionFrameKey },
+    payload: { project_root: detected, summary, mode, session_id: getAttachmentRuntime().sessionFrameKey },
   });
   return null;
 }
@@ -294,7 +300,7 @@ function flushTraceTelemetryBatch(reason = "turn_end"): void {
 }
 
 async function checkpointDiscontinuity(reason: string, extra: Record<string, any> = {}): Promise<void> {
-  if (!S.focusaAvailable) return;
+  if (!getAttachmentRuntime().focusaAvailable) return;
   const root = getSessionCwd() || process.cwd();
   if (!isProjectRootAuthoritySafe(root)) return;
   try {
@@ -302,21 +308,23 @@ async function checkpointDiscontinuity(reason: string, extra: Record<string, any
       method: "POST",
       body: JSON.stringify({
         mission:
-          S.currentAsk?.text ||
-          S.activeFrameGoal ||
-          S.lastFocusSnapshot.intent ||
+          getAttachmentRuntime().currentAsk?.text ||
+          getAttachmentRuntime().activeFrameGoal ||
+          getAttachmentRuntime().lastFocusSnapshot.intent ||
           "Pi discontinuity boundary",
-        next_slice: S.lastFocusSnapshot.currentFocus || "Resume from typed Workpoint after discontinuity.",
+        next_slice:
+          getAttachmentRuntime().lastFocusSnapshot.currentFocus ||
+          "Resume from typed Workpoint after discontinuity.",
         checkpoint_reason: reason,
         canonical: true,
         promote: true,
         continuity_id: ensureContinuityId(root),
-        session_id: S.sessionFrameKey,
+        session_id: getAttachmentRuntime().sessionFrameKey,
         project_root: root,
         source_turn_id: `pi-turn-${getTurnCount()}`,
         action_intent: {
           action_type: "resume_workpoint",
-          target_ref: S.activeFrameId || "pi-session",
+          target_ref: getAttachmentRuntime().activeFrameId || "pi-session",
           verification_hooks: [reason],
           status: "ready",
         },
@@ -328,7 +336,7 @@ async function checkpointDiscontinuity(reason: string, extra: Record<string, any
       body: JSON.stringify({
         mode: "compact_prompt",
         continuity_id: ensureContinuityId(root),
-        session_id: S.sessionFrameKey,
+        session_id: getAttachmentRuntime().sessionFrameKey,
         project_root: root,
       }),
     });
@@ -346,7 +354,7 @@ async function checkpointDiscontinuity(reason: string, extra: Record<string, any
       }
       setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(candidate));
       setActiveWorkpointSummary(packet.rendered_summary || packet.next_step_hint || "");
-      S.lastWorkpointUpdate = Date.now();
+      getAttachmentRuntime().lastWorkpointUpdate = Date.now();
     }
   } catch {
     /* best effort */
@@ -712,7 +720,7 @@ function formatTrajectoryFocusSlice(view: any): string[] {
 }
 
 async function getResourceModeFocusSliceLines(): Promise<string[]> {
-  if (!S.focusaAvailable) return [];
+  if (!getAttachmentRuntime().focusaAvailable) return [];
   try {
     const body = await focusaFetch("/resource/mode");
     const mode = body?.resource_mode || body?.mode || {};
@@ -774,13 +782,15 @@ function getToolAffordanceFocusSliceLines(options: {
 async function getTrajectoryFocusSliceLines(): Promise<string[]> {
   const root = getSessionCwd() || process.cwd();
   if (!isProjectRootAuthoritySafe(root)) return [];
-  if (!S.focusaAvailable) return formatTrajectoryFallbackFocusSlice(root, "focusa_unavailable");
+  if (!getAttachmentRuntime().focusaAvailable)
+    return formatTrajectoryFallbackFocusSlice(root, "focusa_unavailable");
   try {
     const params = new URLSearchParams();
     params.set("mode", "summary");
     params.set("project_root", root);
     params.set("allow_prior_project_trajectory", "true");
-    if (S.sessionFrameKey) params.set("session_id", S.sessionFrameKey);
+    if (getAttachmentRuntime().sessionFrameKey)
+      params.set("session_id", getAttachmentRuntime().sessionFrameKey);
     if (getContinuityId()) params.set("continuity_id", getContinuityId());
     const view = await focusaFetch(`/trajectory/view?${params.toString()}`);
     const lines = formatTrajectoryFocusSlice(view);
@@ -816,11 +826,11 @@ export function registerTurns(pi: ExtensionAPI) {
   // ── before_agent_start (§35.2 behavioral + §29 WBM injection) ────────────
   pi.on("before_agent_start", async (event, ctx) => {
     // Reconnect check
-    if (!S.focusaAvailable) {
+    if (!getAttachmentRuntime().focusaAvailable) {
       const h = await focusaFetch("/health");
       if (h?.ok) {
-        S.focusaAvailable = true;
-        ctx.ui.setStatus("focusa", S.wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
+        getAttachmentRuntime().focusaAvailable = true;
+        ctx.ui.setStatus("focusa", getAttachmentRuntime().wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
       }
     }
 
@@ -875,8 +885,8 @@ export function registerTurns(pi: ExtensionAPI) {
     (event as any).systemPrompt =
       ((event as any).systemPrompt || "") + "\n" + behavioral + workpointLaw + visibleRecapLaw + utilityCard;
 
-    if (!S.seenFirstBeforeAgentStart) {
-      S.seenFirstBeforeAgentStart = true;
+    if (!getAttachmentRuntime().seenFirstBeforeAgentStart) {
+      getAttachmentRuntime().seenFirstBeforeAgentStart = true;
       const visibleCard = buildFocusaUtilityCard("visible");
       // pi's custom-message renderer reads `this.toolOutputExpanded` (see
       // pi-coding-agent dist/modes/interactive/interactive-mode.js: case "custom":
@@ -900,7 +910,7 @@ export function registerTurns(pi: ExtensionAPI) {
     }
 
     // §29: WBM inbound context injection
-    if (S.wbmEnabled) {
+    if (getAttachmentRuntime().wbmEnabled) {
       const wbmCtx = await fetchWbmContext();
       (event as any).systemPrompt += "\n\n" + wbmCtx;
     }
@@ -917,7 +927,7 @@ export function registerTurns(pi: ExtensionAPI) {
   // Per spec doc 44 §7.1: all 10 ASCC slots in compaction strategy.
   // Per spec doc 44 §33.2: compute a bounded Focusa slice for each LLM call.
   pi.on("context", async (event: any, ctx: any) => {
-    if (!S.focusaAvailable || !S.activeFrameId) {
+    if (!getAttachmentRuntime().focusaAvailable || !getAttachmentRuntime().activeFrameId) {
       const trajectoryLines = await getTrajectoryFocusSliceLines();
       const toolAffordanceLines = getToolAffordanceFocusSliceLines({
         resourceModeActive: false,
@@ -925,13 +935,13 @@ export function registerTurns(pi: ExtensionAPI) {
         hasWorkpoint: Boolean(getActiveWorkpointPacket()),
         hasOntologyAmbiguity: false,
       });
-      const scopeKind = S.queryScope?.scopeKind || "mission_carryover";
-      const askText = S.currentAsk?.text || "";
+      const scopeKind = getAttachmentRuntime().queryScope?.scopeKind || "mission_carryover";
+      const askText = getAttachmentRuntime().currentAsk?.text || "";
       const visibleRecapReason = toolOutputVisibleRecapReason();
       const attentionLines = formatAttentionRecallFocusSliceLines(
         buildAttentionRecallVerdict({
           currentAskText: askText,
-          currentAskKind: S.currentAsk?.kind,
+          currentAskKind: getAttachmentRuntime().currentAsk?.kind,
           queryScopeKind: scopeKind,
           projectRoot: getSessionCwd(),
           workpointPacket: getScopedWorkpointPacket(),
@@ -953,7 +963,7 @@ export function registerTurns(pi: ExtensionAPI) {
         "PROJECTION_KIND: operator_view",
         "VIEW_PROFILE: pi_operator_view",
         askText ? `CURRENT_ASK: ${askText}` : "CURRENT_ASK: (none)",
-        `QUERY_SCOPE: ${scopeKind} · ${S.queryScope?.carryoverPolicy || "allow_if_relevant"}`,
+        `QUERY_SCOPE: ${scopeKind} · ${getAttachmentRuntime().queryScope?.carryoverPolicy || "allow_if_relevant"}`,
         ...getUiaiFirstFocusSliceLines(askText),
         `PROJECT_TRAJECTORY:\n${trajectoryLines.map((value) => `  - ${value}`).join("\n")}`,
         ...formatWorkpointContextSections(),
@@ -979,9 +989,9 @@ export function registerTurns(pi: ExtensionAPI) {
       const visibleRecapReason = toolOutputVisibleRecapReason();
       const attentionLines = formatAttentionRecallFocusSliceLines(
         buildAttentionRecallVerdict({
-          currentAskText: S.currentAsk?.text,
-          currentAskKind: S.currentAsk?.kind,
-          queryScopeKind: S.queryScope?.scopeKind,
+          currentAskText: getAttachmentRuntime().currentAsk?.text,
+          currentAskKind: getAttachmentRuntime().currentAsk?.kind,
+          queryScopeKind: getAttachmentRuntime().queryScope?.scopeKind,
           projectRoot: getSessionCwd(),
           workpointPacket: getScopedWorkpointPacket(),
           visibleRecapReason,
@@ -992,7 +1002,7 @@ export function registerTurns(pi: ExtensionAPI) {
         ...attentionLines,
         ...formatCurrentAskScopeVerdictLines(
           buildCurrentAskScopeVerdict({
-            currentAskText: S.currentAsk?.text,
+            currentAskText: getAttachmentRuntime().currentAsk?.text,
             workpointPacket: getScopedWorkpointPacket(),
             projectRoot: getSessionCwd(),
             continuityId: getContinuityId(),
@@ -1002,7 +1012,7 @@ export function registerTurns(pi: ExtensionAPI) {
         "PROJECTION_KIND: operator_view",
         "VIEW_PROFILE: pi_operator_view",
         "FOCUS_STATE: unavailable; using project/trajectory fallback card",
-        ...getUiaiFirstFocusSliceLines(S.currentAsk?.text),
+        ...getUiaiFirstFocusSliceLines(getAttachmentRuntime().currentAsk?.text),
         `PROJECT_TRAJECTORY:\n${trajectoryLines.map((value) => `  - ${value}`).join("\n")}`,
         ...formatWorkpointContextSections(),
         ...toolAffordanceLines,
@@ -1022,15 +1032,15 @@ export function registerTurns(pi: ExtensionAPI) {
 
     // §36.7: Budget check — cap injection to 15% of headroom, max 1500 tokens
     const usage = ctx.getContextUsage?.();
-    const window = usage?.contextWindow || S.activeContextWindow || 128000;
+    const window = usage?.contextWindow || getAttachmentRuntime().activeContextWindow || 128000;
     if (typeof usage?.contextWindow === "number" && usage.contextWindow > 0) {
-      S.activeContextWindow = usage.contextWindow;
+      getAttachmentRuntime().activeContextWindow = usage.contextWindow;
     }
     const headroom = usage?.tokens ? window - usage.tokens - 16384 : window;
     const maxTokens = Math.min(Math.max(Math.floor(headroom * 0.15), 200), 1500);
 
-    const scopeKind = S.queryScope?.scopeKind || "mission_carryover";
-    const askText = S.currentAsk?.text || "";
+    const scopeKind = getAttachmentRuntime().queryScope?.scopeKind || "mission_carryover";
+    const askText = getAttachmentRuntime().currentAsk?.text || "";
     const missionIncluded = shouldIncludeMissionContext(askText, scopeKind, [
       fs.intent || "",
       fs.current_focus || "",
@@ -1124,18 +1134,21 @@ export function registerTurns(pi: ExtensionAPI) {
     });
     const canonicalReferenceAliases = buildCanonicalReferenceAliases(relevantVerifiedDeltas.items);
     let ontologyContext: any = null;
-    if (S.focusaAvailable && includeAuxContext) {
+    if (getAttachmentRuntime().focusaAvailable && includeAuxContext) {
       try {
         ontologyContext = await focusaFetch("/ontology/context", {
           method: "POST",
           body: JSON.stringify({
-            current_ask: S.currentAsk?.text || askText,
-            frame_id: S.activeFrameId,
+            current_ask: getAttachmentRuntime().currentAsk?.text || askText,
+            frame_id: getAttachmentRuntime().activeFrameId,
             workpoint_id:
               getScopedWorkpointPacket()?.workpoint_id || getScopedWorkpointPacket()?.workpoint?.workpoint_id,
             target_refs: canonicalReferenceAliases.slice(0, 6),
             budget_tokens: Math.min(maxTokens, 800),
-            operator_steering_detected: isOperatorSteeringInput(askText, S.currentAsk?.kind || "unknown"),
+            operator_steering_detected: isOperatorSteeringInput(
+              askText,
+              getAttachmentRuntime().currentAsk?.kind || "unknown"
+            ),
             active_object_refs: [],
           }),
         });
@@ -1189,8 +1202,8 @@ export function registerTurns(pi: ExtensionAPI) {
       buildAttentionRecallVerdict({
         focusState: fs,
         workpointPacket: getScopedWorkpointPacket(),
-        currentAskText: S.currentAsk?.text || askText,
-        currentAskKind: S.currentAsk?.kind,
+        currentAskText: getAttachmentRuntime().currentAsk?.text || askText,
+        currentAskKind: getAttachmentRuntime().currentAsk?.kind,
         queryScopeKind: scopeKind,
         projectRoot: getSessionCwd(),
         continuityId: getContinuityId(),
@@ -1219,8 +1232,8 @@ export function registerTurns(pi: ExtensionAPI) {
       },
       {
         key: "current_ask",
-        text: `CURRENT_ASK: ${S.currentAsk?.text || askText || "(none)"}`,
-        include: Boolean(S.currentAsk?.text || askText),
+        text: `CURRENT_ASK: ${getAttachmentRuntime().currentAsk?.text || askText || "(none)"}`,
+        include: Boolean(getAttachmentRuntime().currentAsk?.text || askText),
         selectedCount: 1,
         excludedCount: 0,
         priority: 2,
@@ -1228,7 +1241,7 @@ export function registerTurns(pi: ExtensionAPI) {
       },
       {
         key: "query_scope",
-        text: `QUERY_SCOPE: ${scopeKind} · ${S.queryScope?.carryoverPolicy || "allow_if_relevant"}`,
+        text: `QUERY_SCOPE: ${scopeKind} · ${getAttachmentRuntime().queryScope?.carryoverPolicy || "allow_if_relevant"}`,
         include: true,
         selectedCount: 1,
         excludedCount: 0,
@@ -1256,7 +1269,7 @@ export function registerTurns(pi: ExtensionAPI) {
         "project_switch_ledger",
         "PROJECT_SWITCH_LEDGER",
         formatProjectSwitchLedgerLines(askText),
-        S.projectSwitchLedger.length > 0,
+        getAttachmentRuntime().projectSwitchLedger.length > 0,
         (values) => `PROJECT_SWITCH_LEDGER:\n${values.map((value) => `  - ${value}`).join("\n")}`,
         0,
         5,
@@ -1341,7 +1354,7 @@ export function registerTurns(pi: ExtensionAPI) {
       },
       {
         key: "projection_boundary",
-        text: `PROJECTION_BOUNDARY: token_budget=${maxTokens} carryover=${S.queryScope?.carryoverPolicy || "allow_if_relevant"} mission=${missionIncluded ? "included" : "suppressed"}`,
+        text: `PROJECTION_BOUNDARY: token_budget=${maxTokens} carryover=${getAttachmentRuntime().queryScope?.carryoverPolicy || "allow_if_relevant"} mission=${missionIncluded ? "included" : "suppressed"}`,
         include: true,
         selectedCount: 1,
         excludedCount: 0,
@@ -1626,7 +1639,10 @@ export function registerTurns(pi: ExtensionAPI) {
       new Set([...scopeExcludedLabels, ...irrelevantExcludedLabels, ...budgetExcludedLabels])
     );
     const contextTurnId = `pi-turn-${getTurnCount()}`;
-    const scopeSourceTurnId = S.queryScope?.sourceTurnId || S.currentAsk?.sourceTurnId || contextTurnId;
+    const scopeSourceTurnId =
+      getAttachmentRuntime().queryScope?.sourceTurnId ||
+      getAttachmentRuntime().currentAsk?.sourceTurnId ||
+      contextTurnId;
     const workingSetPriorHits = relevantWorkingSet.scores
       .filter(({ value, priorBoost }) => relevantWorkingSet.items.includes(value) && (priorBoost || 0) > 0)
       .map(({ value, priorBoost, appliedPriors }) => ({
@@ -1648,14 +1664,14 @@ export function registerTurns(pi: ExtensionAPI) {
     const exclusionReason = truncated
       ? "budget_truncation"
       : resetReason || (irrelevantExcludedLabels.length ? "irrelevance" : "none");
-    S.excludedContext = {
+    getAttachmentRuntime().excludedContext = {
       labels: excludedContext,
       reason: exclusionReason,
       sourceTurnId: scopeSourceTurnId,
       updatedAt: Date.now(),
     };
 
-    if (S.focusaAvailable) {
+    if (getAttachmentRuntime().focusaAvailable) {
       focusaPost("/work-loop/context", {
         excluded_context_reason: exclusionReason,
         excluded_context_labels: excludedContext,
@@ -1663,19 +1679,19 @@ export function registerTurns(pi: ExtensionAPI) {
       });
     }
 
-    if (S.cfg?.emitMetrics) {
+    if (getAttachmentRuntime().cfg?.emitMetrics) {
       const common = {
         turn_id: contextTurnId,
-        frame_id: S.activeFrameId,
+        frame_id: getAttachmentRuntime().activeFrameId,
         surface: "pi",
         routing_mode: "minimal_focus_slice_builder",
         focus_slice_estimated_tokens: injectedTokens,
         focus_slice_full_tokens: fullTokens,
         focus_slice_truncated: truncated,
         excluded_context: excludedContext,
-        current_ask_kind: S.currentAsk?.kind,
-        query_scope_kind: S.queryScope?.scopeKind,
-        carryover_policy: S.queryScope?.carryoverPolicy,
+        current_ask_kind: getAttachmentRuntime().currentAsk?.kind,
+        query_scope_kind: getAttachmentRuntime().queryScope?.scopeKind,
+        carryover_policy: getAttachmentRuntime().queryScope?.carryoverPolicy,
         projection_kind: projectionKind,
         view_profile: viewProfile,
       };
@@ -1711,7 +1727,7 @@ export function registerTurns(pi: ExtensionAPI) {
         ...common,
         projection_boundary: {
           token_budget: maxTokens,
-          carryover_policy: S.queryScope?.carryoverPolicy,
+          carryover_policy: getAttachmentRuntime().queryScope?.carryoverPolicy,
           mission_included: missionIncluded,
         },
         canonical_sources: ["focus_state", "semantic_memory", "ecs_handles", "reference_index"],
@@ -1808,9 +1824,9 @@ export function registerTurns(pi: ExtensionAPI) {
     // §5.12.10: recall-intent trigger — detect and force re-emit.
     const intent = detectRecallIntent(cleanedText);
     if (intent) {
-      S.lastRecentTurnsSliceTurn = -1;
-      if (S.focusaAvailable) {
-        const ringSize = (S.recentTurns || []).length;
+      getAttachmentRuntime().lastRecentTurnsSliceTurn = -1;
+      if (getAttachmentRuntime().focusaAvailable) {
+        const ringSize = (getAttachmentRuntime().recentTurns || []).length;
         focusaPost("/v1/events/recall-trigger", {
           matched_category: intent.matched_category,
           matched_phrase: intent.matched_phrase,
@@ -1831,32 +1847,32 @@ export function registerTurns(pi: ExtensionAPI) {
     const askKind = packageUpdateCommand ? "meta" : classifyCurrentAsk(String(text));
     const storedAskText = cleanedText || (askKind === "meta" ? "" : String(text));
     const newTaskText = storedAskText.slice(0, 500);
-    S.currentTaskStartTime = Date.now();
-    S.currentTaskLabel = newTaskText;
+    getAttachmentRuntime().currentTaskStartTime = Date.now();
+    getAttachmentRuntime().currentTaskLabel = newTaskText;
     setCurrentTaskTurnStart(getTurnCount() + 1);
-    S.currentTaskInputTokenEstimate = estimateTokens(newTaskText);
-    S.currentTaskOutputTokenEstimate = 0;
-    S.currentTaskProviderInputTokens = 0;
-    S.currentTaskProviderOutputTokens = 0;
-    S.currentTaskToolCalls = 0;
-    S.currentAsk = {
+    getAttachmentRuntime().currentTaskInputTokenEstimate = estimateTokens(newTaskText);
+    getAttachmentRuntime().currentTaskOutputTokenEstimate = 0;
+    getAttachmentRuntime().currentTaskProviderInputTokens = 0;
+    getAttachmentRuntime().currentTaskProviderOutputTokens = 0;
+    getAttachmentRuntime().currentTaskToolCalls = 0;
+    getAttachmentRuntime().currentAsk = {
       text: newTaskText,
       kind: askKind,
       sourceTurnId,
       updatedAt: Date.now(),
-      sessionId: S.sessionFrameKey,
+      sessionId: getAttachmentRuntime().sessionFrameKey,
       projectRoot: getSessionCwd(),
       continuityId: getContinuityId(),
     };
     observeProjectThreadHintsFromText(newTaskText, sourceTurnId, "current_ask", "current_ask_project_hints");
     const queryScope = deriveQueryScope(askKind);
     const steeringDetected = isOperatorSteeringInput(String(text), askKind);
-    S.queryScope = {
+    getAttachmentRuntime().queryScope = {
       ...queryScope,
       sourceTurnId,
       updatedAt: Date.now(),
     };
-    S.excludedContext = {
+    getAttachmentRuntime().excludedContext = {
       labels: [],
       reason: askKind === "question" ? "fresh_scope" : askKind === "correction" ? "correction_reset" : "none",
       sourceTurnId,
@@ -1865,21 +1881,26 @@ export function registerTurns(pi: ExtensionAPI) {
 
     const projectRoot = adoptPiProjectRoot((_ctx as any)?.cwd);
     const rootConfirmed = !projectRootConfirmationRequired(projectRoot);
-    if (S.focusaAvailable && S.activeFrameId && !packageUpdateCommand && rootConfirmed) {
+    if (
+      getAttachmentRuntime().focusaAvailable &&
+      getAttachmentRuntime().activeFrameId &&
+      !packageUpdateCommand &&
+      rootConfirmed
+    ) {
       await rescopePiFrameFromCurrentAsk(projectRoot, "pi-post-input-rescope").catch(() => null);
       await getFocusState().catch(() => null);
     }
 
-    if (S.focusaAvailable) {
+    if (getAttachmentRuntime().focusaAvailable) {
       focusaFetch("/work-loop/context", {
         method: "POST",
         headers: { "x-focusa-writer-id": `pi-${process.pid}` },
         body: JSON.stringify({
-          current_ask: S.currentAsk.text,
-          ask_kind: S.currentAsk.kind,
-          scope_kind: S.queryScope.scopeKind,
-          carryover_policy: S.queryScope.carryoverPolicy,
-          excluded_context_reason: S.excludedContext.reason,
+          current_ask: getAttachmentRuntime().currentAsk.text,
+          ask_kind: getAttachmentRuntime().currentAsk.kind,
+          scope_kind: getAttachmentRuntime().queryScope.scopeKind,
+          carryover_policy: getAttachmentRuntime().queryScope.carryoverPolicy,
+          excluded_context_reason: getAttachmentRuntime().excludedContext.reason,
           excluded_context_labels: [],
           source_turn_id: sourceTurnId,
           operator_steering_detected: steeringDetected,
@@ -1890,30 +1911,30 @@ export function registerTurns(pi: ExtensionAPI) {
       }
     }
 
-    if (S.cfg?.emitMetrics) {
+    if (getAttachmentRuntime().cfg?.emitMetrics) {
       const common = {
         turn_id: sourceTurnId,
-        frame_id: S.activeFrameId,
+        frame_id: getAttachmentRuntime().activeFrameId,
         surface: "pi",
-        current_ask_kind: S.currentAsk.kind,
-        query_scope_kind: S.queryScope.scopeKind,
-        carryover_policy: S.queryScope.carryoverPolicy,
+        current_ask_kind: getAttachmentRuntime().currentAsk.kind,
+        query_scope_kind: getAttachmentRuntime().queryScope.scopeKind,
+        carryover_policy: getAttachmentRuntime().queryScope.carryoverPolicy,
       };
       queueTraceTelemetry({
         event_type: "operator_subject",
         ...common,
-        operator_subject_preview: S.currentAsk.text.slice(0, 200),
+        operator_subject_preview: getAttachmentRuntime().currentAsk.text.slice(0, 200),
       });
       queueTraceTelemetry({
         event_type: "current_ask_determined",
         ...common,
-        current_ask_text_preview: S.currentAsk.text.slice(0, 200),
+        current_ask_text_preview: getAttachmentRuntime().currentAsk.text.slice(0, 200),
       });
       queueTraceTelemetry({
         event_type: "query_scope_built",
         ...common,
-        query_scope_kind: S.queryScope.scopeKind,
-        carryover_policy: S.queryScope.carryoverPolicy,
+        query_scope_kind: getAttachmentRuntime().queryScope.scopeKind,
+        carryover_policy: getAttachmentRuntime().queryScope.carryoverPolicy,
       });
       queueTraceTelemetry({
         event_type: "steering_detected",
@@ -1922,7 +1943,7 @@ export function registerTurns(pi: ExtensionAPI) {
       });
     }
 
-    if (S.focusaAvailable) {
+    if (getAttachmentRuntime().focusaAvailable) {
       focusaPost("/focus-gate/ingest-signal", {
         signal_type: "user_input",
         surface: "pi",
@@ -1943,17 +1964,17 @@ export function registerTurns(pi: ExtensionAPI) {
     if (corrections.some((c) => lower.includes(c))) {
       // Correction is steering signal, not canonical failure.
       // Keep as telemetry/trust update to avoid stale Known Failures contamination.
-      if (S.focusaAvailable) {
+      if (getAttachmentRuntime().focusaAvailable) {
         queueTraceTelemetry({
           event_type: "operator_correction_detected",
           turn_id: `pi-turn-${getTurnCount()}`,
-          frame_id: S.activeFrameId,
+          frame_id: getAttachmentRuntime().activeFrameId,
           surface: "pi",
           correction_preview: String(text).slice(0, 160),
         });
       }
       // §35.7/§29: WBM trust metric update on correction
-      if (S.wbmEnabled) {
+      if (getAttachmentRuntime().wbmEnabled) {
         wbExec(["trust", "set", "--corrections", "+1"]).catch(() => {});
       }
     }
@@ -1965,20 +1986,23 @@ export function registerTurns(pi: ExtensionAPI) {
     setLastStreamLen(0);
     resetToolUsageBatch();
     // Reset dedup flag so next compaction can re-trigger auto-resume
-    S.compactResumePending = false;
-    if (S.focusaAvailable) {
-      focusaPost("/turn/start", { turn_id: `pi-turn-${getTurnCount()}`, frame_id: S.activeFrameId });
+    getAttachmentRuntime().compactResumePending = false;
+    if (getAttachmentRuntime().focusaAvailable) {
+      focusaPost("/turn/start", {
+        turn_id: `pi-turn-${getTurnCount()}`,
+        frame_id: getAttachmentRuntime().activeFrameId,
+      });
     }
   });
 
   // ── turn_end (§35.5 tokens + §37.3 widget + §10.4 badges + §20 tier + §21 micro) ─
   pi.on("turn_end", async (event, ctx) => {
     const ev = event as any;
-    const cfg = S.cfg;
+    const cfg = getAttachmentRuntime().cfg;
     const assistantOutput = extractText(ev.message?.content || ev.message || "");
 
     // §35.5: Token counts + assistant output
-    if (S.focusaAvailable) {
+    if (getAttachmentRuntime().focusaAvailable) {
       const reportSummary = maybeCaptureReportSummaryFromAssistantOutput(
         assistantOutput,
         `pi-turn-${getTurnCount()}`
@@ -1987,7 +2011,7 @@ export function registerTurns(pi: ExtensionAPI) {
         queueTraceTelemetry({
           event_type: "report_summary_captured",
           turn_id: `pi-turn-${getTurnCount()}`,
-          frame_id: S.activeFrameId,
+          frame_id: getAttachmentRuntime().activeFrameId,
           surface: "pi",
           latest_report_summary_ref: reportSummary.handle,
         });
@@ -1996,7 +2020,7 @@ export function registerTurns(pi: ExtensionAPI) {
         queueTraceTelemetry({
           event_type: "visible_recap_emitted",
           turn_id: `pi-turn-${getTurnCount()}`,
-          frame_id: S.activeFrameId,
+          frame_id: getAttachmentRuntime().activeFrameId,
           surface: "pi",
           reason: "tool_output_flood",
         });
@@ -2006,7 +2030,7 @@ export function registerTurns(pi: ExtensionAPI) {
         focusaPost("/focus-gate/ingest-signal", {
           signal_type: "visible_output_leak",
           surface: "pi",
-          frame_id: S.activeFrameId,
+          frame_id: getAttachmentRuntime().activeFrameId,
           payload: {
             leak_classes: detectedLeakClasses,
             preview: assistantOutput.slice(0, 280),
@@ -2015,26 +2039,26 @@ export function registerTurns(pi: ExtensionAPI) {
         queueTraceTelemetry({
           event_type: "visible_output_leak_detected",
           turn_id: `pi-turn-${getTurnCount()}`,
-          frame_id: S.activeFrameId,
+          frame_id: getAttachmentRuntime().activeFrameId,
           surface: "pi",
           leak_classes: detectedLeakClasses,
         });
       }
 
       const scopeFailures = detectScopeFailureSignals({
-        askText: S.currentAsk?.text || "",
-        askKind: S.currentAsk?.kind || "unknown",
-        scopeKind: S.queryScope?.scopeKind || "mission_carryover",
+        askText: getAttachmentRuntime().currentAsk?.text || "",
+        askKind: getAttachmentRuntime().currentAsk?.kind || "unknown",
+        scopeKind: getAttachmentRuntime().queryScope?.scopeKind || "mission_carryover",
         assistantOutput,
         leakClasses: detectedLeakClasses,
       });
       const scopeTraceBase = {
         turn_id: `pi-turn-${getTurnCount()}`,
-        frame_id: S.activeFrameId,
+        frame_id: getAttachmentRuntime().activeFrameId,
         surface: "pi",
-        ask_kind: S.currentAsk?.kind || "unknown",
-        scope_kind: S.queryScope?.scopeKind || "mission_carryover",
-        carryover_policy: S.queryScope?.carryoverPolicy || "allow_if_relevant",
+        ask_kind: getAttachmentRuntime().currentAsk?.kind || "unknown",
+        scope_kind: getAttachmentRuntime().queryScope?.scopeKind || "mission_carryover",
+        carryover_policy: getAttachmentRuntime().queryScope?.carryoverPolicy || "allow_if_relevant",
       };
       if (scopeFailures.length || detectedLeakClasses.length) {
         refreshTrajectoryClarityLifecycle("failure_or_degradation", getSessionCwd() || process.cwd()).catch(
@@ -2046,7 +2070,7 @@ export function registerTurns(pi: ExtensionAPI) {
           event_type: "scope_verified",
           ...scopeTraceBase,
           verified: true,
-          excluded_context_reason: S.excludedContext?.reason || "none",
+          excluded_context_reason: getAttachmentRuntime().excludedContext?.reason || "none",
         });
       } else {
         for (const failure of scopeFailures) {
@@ -2106,7 +2130,7 @@ export function registerTurns(pi: ExtensionAPI) {
             queueTraceTelemetry({
               event_type: drift?.drift_detected ? "workpoint_drift_detected" : "workpoint_drift_checked",
               turn_id: `pi-turn-${getTurnCount()}`,
-              frame_id: S.activeFrameId,
+              frame_id: getAttachmentRuntime().activeFrameId,
               surface: "pi",
               workpoint_id: drift?.workpoint_id || getActiveWorkpointPacket()?.workpoint_id,
               expected_action_type: expectedActionType,
@@ -2118,7 +2142,7 @@ export function registerTurns(pi: ExtensionAPI) {
             queueTraceTelemetry({
               event_type: "workpoint_drift_check_unavailable",
               turn_id: `pi-turn-${getTurnCount()}`,
-              frame_id: S.activeFrameId,
+              frame_id: getAttachmentRuntime().activeFrameId,
               surface: "pi",
               expected_action_type: expectedActionType,
             });
@@ -2127,13 +2151,13 @@ export function registerTurns(pi: ExtensionAPI) {
 
       const promptTokens = ev.usage?.inputTokens || ev.usage?.input || 0;
       const completionTokens = ev.usage?.outputTokens || ev.usage?.output || 0;
-      S.currentTaskProviderInputTokens += promptTokens;
-      S.currentTaskProviderOutputTokens += completionTokens;
-      S.currentTaskOutputTokenEstimate += estimateTokens(assistantOutput);
+      getAttachmentRuntime().currentTaskProviderInputTokens += promptTokens;
+      getAttachmentRuntime().currentTaskProviderOutputTokens += completionTokens;
+      getAttachmentRuntime().currentTaskOutputTokenEstimate += estimateTokens(assistantOutput);
 
       focusaPost("/turn/complete", {
         turn_id: `pi-turn-${getTurnCount()}`,
-        frame_id: S.activeFrameId,
+        frame_id: getAttachmentRuntime().activeFrameId,
         assistant_output: assistantOutput,
         artifacts: [],
         errors: [],
@@ -2149,8 +2173,8 @@ export function registerTurns(pi: ExtensionAPI) {
     }
 
     // §33.4: Flush batched tool usage
-    if (S.focusaAvailable && getToolUsageBatch().length) {
-      S.currentTaskToolCalls += getToolUsageBatch().length;
+    if (getAttachmentRuntime().focusaAvailable && getToolUsageBatch().length) {
+      getAttachmentRuntime().currentTaskToolCalls += getToolUsageBatch().length;
       focusaPost("/telemetry/tool-usage", {
         turn_id: `pi-turn-${getTurnCount()}`,
         tools: getToolUsageBatch(),
@@ -2158,7 +2182,7 @@ export function registerTurns(pi: ExtensionAPI) {
       queueTraceTelemetry({
         event_type: "tools_invoked",
         turn_id: `pi-turn-${getTurnCount()}`,
-        frame_id: S.activeFrameId,
+        frame_id: getAttachmentRuntime().activeFrameId,
         surface: "pi",
         tools: getToolUsageBatch(),
       });
@@ -2168,33 +2192,36 @@ export function registerTurns(pi: ExtensionAPI) {
     // §37.3 + §10.4: Widget with all badges
     const w: string[] = [];
     let liveFocus: Awaited<ReturnType<typeof getFocusState>> = null;
-    if (S.focusaAvailable) liveFocus = await getFocusState();
+    if (getAttachmentRuntime().focusaAvailable) liveFocus = await getFocusState();
     const snapshot = getEffectiveFocusSnapshot(liveFocus?.fs);
     if (snapshot.decisions.length) w.push(`📌 ${snapshot.decisions.length} decisions`);
     if (snapshot.constraints.length) w.push(`🔒 ${snapshot.constraints.length} constraints`);
     if (snapshot.failures.length) w.push(`⚠️ ${snapshot.failures.length} failures`);
-    if (S.wbmEnabled) w.push(S.wbmDeep ? "⚡ WBM deep" : "🤖 WBM on");
-    if (S.currentTier && typeof S.currentContextPct === "number") {
-      const label = contextTierLabel(S.currentTier);
-      w.push(`📦 Context ${S.currentContextPct.toFixed(0)}% ${label}`);
+    if (getAttachmentRuntime().wbmEnabled)
+      w.push(getAttachmentRuntime().wbmDeep ? "⚡ WBM deep" : "🤖 WBM on");
+    if (getAttachmentRuntime().currentTier && typeof getAttachmentRuntime().currentContextPct === "number") {
+      const label = contextTierLabel(getAttachmentRuntime().currentTier);
+      w.push(`📦 Context ${getAttachmentRuntime().currentContextPct.toFixed(0)}% ${label}`);
     }
     // §10.4: Degraded-context badge
-    if (!S.focusaAvailable) w.push("⚪ degraded");
+    if (!getAttachmentRuntime().focusaAvailable) w.push("⚪ degraded");
     // §10.4: Thesis snippet
     if (liveFocus?.frame?.thread_thesis) w.push(`🎯 ${liveFocus.frame.thread_thesis.slice(0, 50)}`);
     // §30: Metacognitive indicator
-    if (S.lastMetacogEvent) w.push(`✨ ${S.lastMetacogEvent}`);
+    if (getAttachmentRuntime().lastMetacogEvent) w.push(`✨ ${getAttachmentRuntime().lastMetacogEvent}`);
     ctx.ui.setWidget("focusa", w.length ? w : undefined);
 
     // §34.2C: Update Focus State on significant progress
-    if (S.focusaAvailable && S.activeFrameId) {
+    if (getAttachmentRuntime().focusaAvailable && getAttachmentRuntime().activeFrameId) {
       const hasSignificant =
-        S.localDecisions.length > 0 || S.localConstraints.length > 0 || S.localFailures.length > 0;
+        getAttachmentRuntime().localDecisions.length > 0 ||
+        getAttachmentRuntime().localConstraints.length > 0 ||
+        getAttachmentRuntime().localFailures.length > 0;
       if (hasSignificant) {
         await pushDelta({
-          decisions: S.localDecisions.slice(-5),
-          constraints: S.localConstraints.slice(-5),
-          failures: S.localFailures.slice(-3),
+          decisions: getAttachmentRuntime().localDecisions.slice(-5),
+          constraints: getAttachmentRuntime().localConstraints.slice(-5),
+          failures: getAttachmentRuntime().localFailures.slice(-3),
         }).catch(() => null);
       }
     }
@@ -2212,7 +2239,7 @@ export function registerTurns(pi: ExtensionAPI) {
 
   // ── message_update (§36.1 streaming delta) ────────────────────────────────
   pi.on("message_update", async (event, _ctx) => {
-    if (!S.focusaAvailable) return;
+    if (!getAttachmentRuntime().focusaAvailable) return;
     const fullText = extractText((event as any).message?.content);
     if (getTurnCount() % 10 !== 0 && fullText.length - getLastStreamLen() < 500) return;
     const delta = fullText.slice(getLastStreamLen());
@@ -2223,22 +2250,23 @@ export function registerTurns(pi: ExtensionAPI) {
 
   // ── model_select (§37.8) ──────────────────────────────────────────────────
   pi.on("model_select", async (event, _ctx) => {
-    if (!S.focusaAvailable) return;
+    if (!getAttachmentRuntime().focusaAvailable) return;
     const model = (event as any).model;
-    S.activeContextWindow = model?.contextWindow || S.activeContextWindow;
+    getAttachmentRuntime().activeContextWindow =
+      model?.contextWindow || getAttachmentRuntime().activeContextWindow;
     // §37.8: Wire model change to Focusa with frame context
     await checkpointDiscontinuity("model_switch", { active_object_refs: [model?.id || "unknown-model"] });
     focusaPost("/focus-gate/ingest-signal", {
       signal_type: "model_change",
       surface: "pi",
-      frame_id: S.activeFrameId,
+      frame_id: getAttachmentRuntime().activeFrameId,
       payload: {
         model_id: model?.id || "unknown",
-        context_window: model?.contextWindow || S.activeContextWindow,
+        context_window: model?.contextWindow || getAttachmentRuntime().activeContextWindow,
       },
     });
     // §5.12: force re-emit on model switch
-    S.lastRecentTurnsSliceTurn = -1;
+    getAttachmentRuntime().lastRecentTurnsSliceTurn = -1;
     if ((event as any).systemPrompt != null) {
       await injectRecentTurnsSlice(event, 4);
     }
@@ -2255,16 +2283,16 @@ export function registerTurns(pi: ExtensionAPI) {
   // ── agent_end (§29 WBM catalogue + signals — single handler) ──────────────
   pi.on("agent_end", async (event, ctx) => {
     // §29: WBM outbound cataloguing
-    if (S.wbmEnabled && !S.wbmNoCatalogue) {
+    if (getAttachmentRuntime().wbmEnabled && !getAttachmentRuntime().wbmNoCatalogue) {
       const messages = (event as any).messages || [];
       catalogueFromMessages(messages).catch(() => {});
     }
 
     // Long session detection
-    const elapsed = (Date.now() - S.sessionStartTime) / 60_000;
+    const elapsed = (Date.now() - getAttachmentRuntime().sessionStartTime) / 60_000;
     if (elapsed > 45 && !getLongSessionSignaled()) {
       setLongSessionSignaled(true);
-      if (S.focusaAvailable) {
+      if (getAttachmentRuntime().focusaAvailable) {
         focusaPost("/focus-gate/ingest-signal", {
           signal_type: "long_session",
           surface: "pi",
@@ -2280,7 +2308,7 @@ export function registerTurns(pi: ExtensionAPI) {
         `⚠️ ${recentErrors.length} compilation errors in 5 min — consider a different approach`,
         "warning"
       );
-      if (S.focusaAvailable) {
+      if (getAttachmentRuntime().focusaAvailable) {
         focusaPost("/focus-gate/ingest-signal", {
           signal_type: "error_rate_high",
           surface: "pi",
@@ -2296,10 +2324,10 @@ export function registerTurns(pi: ExtensionAPI) {
     const toolName = ev.toolName || ev.name || "";
     const content = extractText(ev.content);
     const isError = ev.isError || /error|failed|ENOENT|EPERM/i.test(content.slice(0, 200));
-    const cfg = S.cfg;
+    const cfg = getAttachmentRuntime().cfg;
 
     // §36.2: Error signals
-    if (isError && S.focusaAvailable) {
+    if (isError && getAttachmentRuntime().focusaAvailable) {
       focusaPost("/focus-gate/ingest-signal", {
         signal_type: "tool_error",
         surface: "pi",
@@ -2335,7 +2363,7 @@ export function registerTurns(pi: ExtensionAPI) {
       `tool=${toolName || "unknown_tool"}`
     );
 
-    if (S.focusaAvailable) {
+    if (getAttachmentRuntime().focusaAvailable) {
       focusaPost("/ontology/tool-result-proposals", {
         tool_name: toolName || "unknown_tool",
         status: isError ? "failed" : "completed",
@@ -2346,7 +2374,7 @@ export function registerTurns(pi: ExtensionAPI) {
           getActiveWorkpointPacket()?.workpoint_id ||
           getActiveWorkpointPacket()?.workpoint?.workpoint_id ||
           null,
-        action_intent: S.currentAsk?.text || null,
+        action_intent: getAttachmentRuntime().currentAsk?.text || null,
         summary: content.slice(0, 500),
         error: isError ? content.slice(0, 500) : null,
         emit_proposals: false,
@@ -2362,7 +2390,7 @@ export function registerTurns(pi: ExtensionAPI) {
       queueTraceTelemetry({
         event_type: "visible_recap_required",
         turn_id: `pi-turn-${getTurnCount()}`,
-        frame_id: S.activeFrameId,
+        frame_id: getAttachmentRuntime().activeFrameId,
         surface: "pi",
         reason: pressure.recapReason,
         tool_output_bytes: pressure.totalBytes,
@@ -2371,7 +2399,10 @@ export function registerTurns(pi: ExtensionAPI) {
         latest_report_summary_ref: getLatestReportSummary()?.handle || "none",
       });
     }
-    if ((content.length > byteThreshold || tokens > tokenThreshold) && S.focusaAvailable) {
+    if (
+      (content.length > byteThreshold || tokens > tokenThreshold) &&
+      getAttachmentRuntime().focusaAvailable
+    ) {
       const handle = await focusaFetch("/ecs/store", {
         method: "POST",
         body: JSON.stringify({
@@ -2404,7 +2435,10 @@ export function registerTurns(pi: ExtensionAPI) {
 
     // §7.4 + §33.3: If Focusa unavailable but content still exceeds threshold,
     // store locally so the handle resolves without hitting Focusa.
-    if (!S.focusaAvailable && (content.length > byteThreshold || tokens > tokenThreshold)) {
+    if (
+      !getAttachmentRuntime().focusaAvailable &&
+      (content.length > byteThreshold || tokens > tokenThreshold)
+    ) {
       const localId = storeEcsArtifact("text", content);
       return {
         content: [
@@ -2424,7 +2458,7 @@ export function registerTurns(pi: ExtensionAPI) {
       const path = ev.params?.path || ev.input?.path || "";
       if (path) {
         incrementFileEditCount(path);
-        if (getFileEditCounts()[path] >= 5 && S.focusaAvailable) {
+        if (getFileEditCounts()[path] >= 5 && getAttachmentRuntime().focusaAvailable) {
           focusaPost("/focus-gate/ingest-signal", {
             signal_type: "file_churn",
             surface: "pi",

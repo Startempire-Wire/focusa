@@ -1,11 +1,13 @@
 // Shared state, helpers, types for focusa-pi-bridge
 // Spec: docs/44-pi-focusa-integration-spec.md
 
+import { AsyncLocalStorage } from "async_hooks";
 import { appendFileSync, existsSync, readFileSync } from "fs";
 import { dirname, join, resolve } from "path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { DEFAULT_DAEMON_RESTART_COMMAND, type FocusaConfig } from "./config.js";
 import type { NativeSessionPressureV1 } from "./session-pressure.js";
+import { buildProjectWorkstreamKey, type AttachmentKey } from "./scoped-state.js";
 import {
   COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA,
   COMPACTION_PERSISTENCE_ANCHOR_SCHEMA,
@@ -199,171 +201,229 @@ export interface PiSliceSection {
   relevanceScore?: number;
 }
 
-// ── Mutable shared state ─────────────────────────────────────────────────────
-export const S = {
-  pi: null as ExtensionAPI | null,
-  cfg: null as FocusaConfig | null,
-  focusaAvailable: false,
-  lastProjectRootResolution: null as null | {
-    projectRoot: string;
-    confidence: "high" | "medium" | "low";
-    confidenceScore: number;
-    source: string;
-    reason: string;
-    safe: boolean;
-    requiresOperatorConfirmation: boolean;
-    markerScore?: number;
-    markers?: string[];
-    candidates?: Array<{ projectRoot: string; confidenceScore: number; markers: string[]; source: string }>;
-  },
-  activeFrameId: null as string | null,
-  activeFramePromise: null as Promise<string | null> | null,
-  activeFrameTitle: "" as string,
-  activeFrameGoal: "" as string,
-  uiCtx: null as any, // §93: SSE handler needs ctx.ui for high-priority agent alerts
-  sessionFrameKey: "" as string,
-  sessionCwd: "" as string,
-  continuityId: "" as string,
-  wbmEnabled: false,
-  wbmDeep: false,
-  wbmNoCatalogue: false, // §29 --no-catalogue flag
-  // turnCount migrated to scope store (PI-07, removed from singleton)
-  // Local shadow (§35.4)
-  localDecisions: [] as string[],
-  localConstraints: [] as string[],
-  localFailures: [] as string[],
-  // Transient routing metadata — truthful bridge toward CurrentAsk/QueryScope work.
-  currentAsk: null as PiCurrentAsk | null,
-  queryScope: null as PiQueryScope | null,
-  excludedContext: null as PiExcludedContext | null,
-  lastFocusSnapshot: {
-    decisions: [] as string[],
-    constraints: [] as string[],
-    failures: [] as string[],
-    intent: "" as string,
-    currentFocus: "" as string,
-  },
-  // Compaction tier (§20)
-  lastCompactTime: 0,
-  compactsThisHour: 0,
-  turnsSinceCompact: 0,
-  compactHourStart: Date.now(),
-  activeContextWindow: 200_000, // claude-opus-4-6 has 200K window; updated on model_select events
-  currentTier: "" as "" | "warn" | "auto" | "hard", // §10.4 tier badge
-  currentContextPct: null as number | null,
-  // Spec108 awareness substrate cadence state
-  awarenessCadenceState: null as null | {
-    lastShownAt: number;
-    lastPct: number;
-    lastTier: "low" | "medium" | "high" | "critical";
-    lastAnchorState: string;
-    compactionCountAtLastShown: number;
-    transitionCount: number;
-    suppressionCount: number;
-  },
-  lastWorkpointUpdate: 0, // timestamp ms of last Workpoint update
-  // lastStreamLen migrated to scope store (PI-07, removed from singleton)
-  // Auto-resume dedup: set when compaction fires, cleared after continuation sent
-  compactResumePending: false,
-  // Persisted compaction auto-resume idempotency guard; prevents repeated post-compact resume spam across extension reloads.
-  lastCompactResumeKey: "",
-  lastCompactResumeAt: 0,
-  // Post-compaction: save last decision for steer message (cleared after localDecisions trim)
-  lastCompactDecision: "",
-  // Spec88/104 Workpoint, Trajectory, and identity shadows live in TypedScopeStore only.
-  // Do not add singleton fallbacks for activeWorkpointPacket, activeWorkpointSummary,
-  // lastTrajectoryClarity, lastProjectIdentity, or lastProjectVerify.
-  // latestReportSummary migrated to scope store (PI-06, removed from singleton)
-  toolOutputPressure: {
-    windowStartedAt: 0,
-    resultCount: 0,
-    totalBytes: 0,
-    totalTokens: 0,
-    largeResultCount: 0,
-    recapRequired: false,
-    recapReason: "",
-    lastToolName: "",
-    lastEventAt: 0,
-    lastRecapAt: 0,
-  } as PiToolOutputPressure,
-  projectSwitchLedger: [] as PiProjectThreadObservation[],
-  lastCurrentAskScopeTelemetryKey: "",
-  vitalInfoPrompted: {} as Record<string, number>,
-  // First-turn guard: only inject behavioral directive once per session, not on every before_agent_start
-  seenFirstBeforeAgentStart: false,
-  // ECS handle registry: kind -> id -> { content, stored_at }
-  ecsRegistry: {} as Record<string, Record<string, { content: string; storedAt: number }>>,
-  // toolUsageBatch migrated to scope store (PI-07, removed from singleton)
-  // Spec92 bounded hook/token telemetry (in-memory Pi extension ring buffers)
-  spec92HookTelemetry: [] as Array<Record<string, unknown>>,
-  spec92TokenTelemetry: [] as Array<Record<string, unknown>>,
-  spec92ToolStartTimes: {} as Record<string, number>,
-  // FOCUSA_FIX-a52s: shell-tool reminder frequency gate state.
-  lastShellReminderAt: 0 as number,
-  lastShellReminderTurn: 0 as number,
-  // compilationErrors/fileEditCounts migrated to scope store (PI-07, removed from singleton)
-  // Session/task timing + token accounting
-  sessionStartTime: Date.now(),
-  currentTaskStartTime: Date.now(),
-  currentTaskLabel: "",
-  // currentTaskTurnStart migrated to scope store (PI-07, removed from singleton)
-  currentTaskInputTokenEstimate: 0,
-  currentTaskOutputTokenEstimate: 0,
-  currentTaskProviderInputTokens: 0,
-  currentTaskProviderOutputTokens: 0,
-  currentTaskToolCalls: 0,
-  // longSessionSignaled migrated to scope store (PI-07, removed from singleton)
-  // WBM cataloguing (§29)
-  cataloguedDecisions: [] as string[],
-  cataloguedFacts: [] as string[],
-  // Health (§38.3)
-  healthInterval: null as ReturnType<typeof setInterval> | null,
-  // Footer/session-title sync cadence (keeps Pi footer task label fresh between commands)
-  footerSyncInterval: null as ReturnType<typeof setInterval> | null,
-  healthBackoffMs: 30_000, // §11 exponential backoff
-  healthFailCount: 0,
-  daemonRestartAttempts: [] as number[],
-  daemonRestartInFlight: null as Promise<boolean> | null,
-  daemonHoldoverMode: false,
-  // Outage audit (§11)
-  outageStart: null as number | null,
-  // §30 metacognitive indicators
-  lastMetacogEvent: "",
-  // totalCompactions migrated to scope store (PI-07, removed from singleton)
-  // Fork suggestion dedup (§18 autoSuggestForkPct)
-  forkSuggested: false,
-  // Persistence dedup/throttle for appendEntry pressure
-  lastPersistAt: 0,
-  lastPersistHash: "",
-  persistRevision: 0,
-  pendingPersistAnchor: false,
-  lastPersistSidecarKey: "",
-  lastPersistSidecarBytes: 0,
-  lastProjectSwitchPersistHash: "",
-  lastNativeSessionPressure: null as NativeSessionPressureV1 | null,
-  lastNativeSessionPressureNoticeKey: "",
-  // Hot-path caches for context injection latency control
-  focusStateCache: {
-    key: "",
-    at: 0,
-    data: null as { frame: any; fs: any; stack: any } | null,
-    inflight: null as Promise<{ frame: any; fs: any; stack: any } | null> | null,
-  },
-  semanticMemoryCache: {
-    at: 0,
-    data: null as any,
-    inflight: null as Promise<any> | null,
-  },
-  ecsHandlesCache: {
-    at: 0,
-    data: null as any,
-    inflight: null as Promise<any> | null,
-  },
-  // §5.12 recent-turns ring buffer (bounded, capped at RECENT_TURNS_HARD_CAP)
-  recentTurns: [] as RecentTurnSlice[],
-  // §5.12 idempotency guard — last turn_index we emitted the slice for
-  lastRecentTurnsSliceTurn: -1,
-};
+// ── Typed attachment runtime state ───────────────────────────────────────────
+function createAttachmentRuntime() {
+  return {
+    pi: null as ExtensionAPI | null,
+    cfg: null as FocusaConfig | null,
+    focusaAvailable: false,
+    activeFrameId: null as string | null,
+    activeFramePromise: null as Promise<string | null> | null,
+    activeFrameTitle: "" as string,
+    activeFrameGoal: "" as string,
+    uiCtx: null as any, // §93: SSE handler needs ctx.ui for high-priority agent alerts
+    sessionFrameKey: "" as string,
+    sessionCwd: "" as string,
+    continuityId: "" as string,
+    wbmEnabled: false,
+    wbmDeep: false,
+    wbmNoCatalogue: false, // §29 --no-catalogue flag
+    // turnCount migrated to scope store (PI-07, removed from singleton)
+    // Local shadow (§35.4)
+    localDecisions: [] as string[],
+    localConstraints: [] as string[],
+    localFailures: [] as string[],
+    // Transient routing metadata — truthful bridge toward CurrentAsk/QueryScope work.
+    currentAsk: null as PiCurrentAsk | null,
+    queryScope: null as PiQueryScope | null,
+    excludedContext: null as PiExcludedContext | null,
+    lastFocusSnapshot: {
+      decisions: [] as string[],
+      constraints: [] as string[],
+      failures: [] as string[],
+      intent: "" as string,
+      currentFocus: "" as string,
+    },
+    // Compaction tier (§20)
+    lastCompactTime: 0,
+    compactsThisHour: 0,
+    turnsSinceCompact: 0,
+    compactHourStart: Date.now(),
+    activeContextWindow: 200_000, // claude-opus-4-6 has 200K window; updated on model_select events
+    currentTier: "" as "" | "warn" | "auto" | "hard", // §10.4 tier badge
+    currentContextPct: null as number | null,
+    // Spec108 awareness substrate cadence state
+    awarenessCadenceState: null as null | {
+      lastShownAt: number;
+      lastPct: number;
+      lastTier: "low" | "medium" | "high" | "critical";
+      lastAnchorState: string;
+      compactionCountAtLastShown: number;
+      transitionCount: number;
+      suppressionCount: number;
+    },
+    lastWorkpointUpdate: 0, // timestamp ms of last Workpoint update
+    // lastStreamLen migrated to scope store (PI-07, removed from singleton)
+    // Auto-resume dedup: set when compaction fires, cleared after continuation sent
+    compactResumePending: false,
+    // Persisted compaction auto-resume idempotency guard; prevents repeated post-compact resume spam across extension reloads.
+    lastCompactResumeKey: "",
+    lastCompactResumeAt: 0,
+    // Post-compaction: save last decision for steer message (cleared after localDecisions trim)
+    lastCompactDecision: "",
+    // Spec88/104 Workpoint, Trajectory, and identity shadows live in TypedScopeStore only.
+    // Do not add singleton fallbacks for activeWorkpointPacket, activeWorkpointSummary,
+    // lastTrajectoryClarity, lastProjectIdentity, or lastProjectVerify.
+    // latestReportSummary migrated to scope store (PI-06, removed from singleton)
+    toolOutputPressure: {
+      windowStartedAt: 0,
+      resultCount: 0,
+      totalBytes: 0,
+      totalTokens: 0,
+      largeResultCount: 0,
+      recapRequired: false,
+      recapReason: "",
+      lastToolName: "",
+      lastEventAt: 0,
+      lastRecapAt: 0,
+    } as PiToolOutputPressure,
+    projectSwitchLedger: [] as PiProjectThreadObservation[],
+    lastCurrentAskScopeTelemetryKey: "",
+    vitalInfoPrompted: {} as Record<string, number>,
+    // First-turn guard: only inject behavioral directive once per session, not on every before_agent_start
+    seenFirstBeforeAgentStart: false,
+    // ECS handle registry: kind -> id -> { content, stored_at }
+    ecsRegistry: {} as Record<string, Record<string, { content: string; storedAt: number }>>,
+    // toolUsageBatch migrated to scope store (PI-07, removed from singleton)
+    // Spec92 bounded hook/token telemetry (in-memory Pi extension ring buffers)
+    spec92HookTelemetry: [] as Array<Record<string, unknown>>,
+    spec92TokenTelemetry: [] as Array<Record<string, unknown>>,
+    spec92ToolStartTimes: {} as Record<string, number>,
+    // FOCUSA_FIX-a52s: shell-tool reminder frequency gate state.
+    lastShellReminderAt: 0 as number,
+    lastShellReminderTurn: 0 as number,
+    // compilationErrors/fileEditCounts migrated to scope store (PI-07, removed from singleton)
+    // Session/task timing + token accounting
+    sessionStartTime: Date.now(),
+    currentTaskStartTime: Date.now(),
+    currentTaskLabel: "",
+    // currentTaskTurnStart migrated to scope store (PI-07, removed from singleton)
+    currentTaskInputTokenEstimate: 0,
+    currentTaskOutputTokenEstimate: 0,
+    currentTaskProviderInputTokens: 0,
+    currentTaskProviderOutputTokens: 0,
+    currentTaskToolCalls: 0,
+    // longSessionSignaled migrated to scope store (PI-07, removed from singleton)
+    // WBM cataloguing (§29)
+    cataloguedDecisions: [] as string[],
+    cataloguedFacts: [] as string[],
+    // Health (§38.3)
+    healthInterval: null as ReturnType<typeof setInterval> | null,
+    // Footer/session-title sync cadence (keeps Pi footer task label fresh between commands)
+    footerSyncInterval: null as ReturnType<typeof setInterval> | null,
+    healthBackoffMs: 30_000, // §11 exponential backoff
+    healthFailCount: 0,
+    daemonRestartAttempts: [] as number[],
+    daemonRestartInFlight: null as Promise<boolean> | null,
+    daemonHoldoverMode: false,
+    // Outage audit (§11)
+    outageStart: null as number | null,
+    // §30 metacognitive indicators
+    lastMetacogEvent: "",
+    // totalCompactions migrated to scope store (PI-07, removed from singleton)
+    // Fork suggestion dedup (§18 autoSuggestForkPct)
+    forkSuggested: false,
+    // Persistence dedup/throttle for appendEntry pressure
+    lastPersistAt: 0,
+    lastPersistHash: "",
+    persistRevision: 0,
+    pendingPersistAnchor: false,
+    lastPersistSidecarKey: "",
+    lastPersistSidecarBytes: 0,
+    lastProjectSwitchPersistHash: "",
+    lastNativeSessionPressure: null as NativeSessionPressureV1 | null,
+    lastNativeSessionPressureNoticeKey: "",
+    // Hot-path caches for context injection latency control
+    focusStateCache: {
+      key: "",
+      at: 0,
+      data: null as { frame: any; fs: any; stack: any } | null,
+      inflight: null as Promise<{ frame: any; fs: any; stack: any } | null> | null,
+    },
+    semanticMemoryCache: {
+      at: 0,
+      data: null as any,
+      inflight: null as Promise<any> | null,
+    },
+    ecsHandlesCache: {
+      at: 0,
+      data: null as any,
+      inflight: null as Promise<any> | null,
+    },
+    // §5.12 recent-turns ring buffer (bounded, capped at RECENT_TURNS_HARD_CAP)
+    recentTurns: [] as RecentTurnSlice[],
+    // §5.12 idempotency guard — last turn_index we emitted the slice for
+    lastRecentTurnsSliceTurn: -1,
+  };
+}
+
+export type AttachmentRuntimeState = ReturnType<typeof createAttachmentRuntime>;
+
+function attachmentRuntimeKey(key: AttachmentKey): string {
+  return [
+    key.workstream.root_scope.scope_kind,
+    key.workstream.root_scope.scope_id,
+    key.workstream.root_scope.fingerprint,
+    key.workstream.root_scope.root_path,
+    key.workstream.continuity_id,
+    key.instance_id,
+    key.session_id,
+    key.attachment_id,
+  ].join("::");
+}
+
+export class AttachmentRuntimeRegistry {
+  private readonly runtimes = new Map<string, AttachmentRuntimeState>();
+
+  getOrCreate(key: AttachmentKey): AttachmentRuntimeState {
+    const id = attachmentRuntimeKey(key);
+    let runtime = this.runtimes.get(id);
+    if (!runtime) {
+      runtime = createAttachmentRuntime();
+      runtime.sessionCwd = key.workstream.root_scope.root_path;
+      runtime.continuityId = key.workstream.continuity_id;
+      runtime.sessionFrameKey = key.session_id;
+      this.runtimes.set(id, runtime);
+    }
+    return runtime;
+  }
+
+  reset(): void {
+    this.runtimes.clear();
+  }
+}
+
+export const attachmentRuntimeRegistry = new AttachmentRuntimeRegistry();
+const attachmentRuntimeContext = new AsyncLocalStorage<AttachmentKey>();
+
+export function makeAttachmentKey(input: {
+  projectRoot: string;
+  continuityId: string;
+  sessionId: string;
+  instanceId?: string;
+  attachmentId?: string;
+}): AttachmentKey {
+  return {
+    workstream: buildProjectWorkstreamKey(input.projectRoot, input.continuityId),
+    instance_id: input.instanceId || `pi-${process.pid}`,
+    session_id: input.sessionId,
+    attachment_id: input.attachmentId || input.sessionId,
+  };
+}
+
+export function currentAttachmentKey(): AttachmentKey | undefined {
+  return attachmentRuntimeContext.getStore();
+}
+
+export function getAttachmentRuntime(key?: AttachmentKey): any {
+  const resolved = key || attachmentRuntimeContext.getStore();
+  if (!resolved) throw new Error("attachment_runtime_key_required");
+  return attachmentRuntimeRegistry.getOrCreate(resolved);
+}
+
+export function runWithAttachmentRuntime<T>(key: AttachmentKey, fn: () => T): T {
+  return attachmentRuntimeContext.run(key, fn);
+}
 
 const FOCUS_STATE_CACHE_TTL_MS = 1_200;
 const AUX_CONTEXT_CACHE_TTL_MS = 3_000;
@@ -400,29 +460,29 @@ export function classifyTurnOutcome(
 }
 
 export function pushRecentTurn(slice: RecentTurnSlice): void {
-  S.recentTurns.push(slice);
-  while (S.recentTurns.length > RECENT_TURNS_HARD_CAP) {
-    S.recentTurns.shift();
+  getAttachmentRuntime().recentTurns.push(slice);
+  while (getAttachmentRuntime().recentTurns.length > RECENT_TURNS_HARD_CAP) {
+    getAttachmentRuntime().recentTurns.shift();
   }
 }
 
 export function clearRecentTurns(): void {
-  S.recentTurns = [];
-  S.lastRecentTurnsSliceTurn = -1;
+  getAttachmentRuntime().recentTurns = [];
+  getAttachmentRuntime().lastRecentTurnsSliceTurn = -1;
 }
 
 export function getRecentTurns(): RecentTurnSlice[] {
-  return S.recentTurns;
+  return getAttachmentRuntime().recentTurns;
 }
 
 export function shouldEmitRecentTurnsSlice(currentTurnCount: number): boolean {
   if (currentTurnCount < 1) return false;
-  if (S.lastRecentTurnsSliceTurn === currentTurnCount) return false;
+  if (getAttachmentRuntime().lastRecentTurnsSliceTurn === currentTurnCount) return false;
   return true;
 }
 
 export function markRecentTurnsSliceEmitted(currentTurnCount: number): void {
-  S.lastRecentTurnsSliceTurn = currentTurnCount;
+  getAttachmentRuntime().lastRecentTurnsSliceTurn = currentTurnCount;
 }
 
 function truncate(s: string, n: number): string {
@@ -433,7 +493,7 @@ function truncate(s: string, n: number): string {
 export function formatRecentTurnsSection(n: number = RECENT_TURNS_N_DEFAULT): string {
   const cap = Math.max(0, Math.min(RECENT_TURNS_HARD_CAP, Math.floor(n)));
   if (cap === 0) return "";
-  const recent = S.recentTurns.slice(-cap).reverse();
+  const recent = getAttachmentRuntime().recentTurns.slice(-cap).reverse();
   if (recent.length === 0) return "";
   const lines = ["Recent turns (last " + recent.length + "):"];
   for (const t of recent) {
@@ -473,71 +533,81 @@ export function splitCacheableSystemPrompt(systemPrompt: string): CacheableSplit
 }
 
 export function resetPiSessionScopedState(reason = "session_boundary"): void {
-  S.seenFirstBeforeAgentStart = false;
-  S.seenFirstBeforeAgentStart = false;
-  S.activeFrameId = null;
-  S.activeFramePromise = null;
-  S.activeFrameTitle = "";
-  S.activeFrameGoal = "";
-  S.continuityId = "";
+  getAttachmentRuntime().seenFirstBeforeAgentStart = false;
+  getAttachmentRuntime().seenFirstBeforeAgentStart = false;
+  getAttachmentRuntime().activeFrameId = null;
+  getAttachmentRuntime().activeFramePromise = null;
+  getAttachmentRuntime().activeFrameTitle = "";
+  getAttachmentRuntime().activeFrameGoal = "";
+  getAttachmentRuntime().continuityId = "";
   setActiveWorkpointPacket(null);
   setActiveWorkpointSummary("");
   setLastTrajectoryClarity(null);
   setLastProjectIdentity(null);
   setLatestReportSummary(null);
   resetToolOutputPressureWindow(Date.now());
-  S.projectSwitchLedger = [];
-  S.currentAsk = null;
-  S.queryScope = null;
-  S.excludedContext = null;
-  S.lastFocusSnapshot = { decisions: [], constraints: [], failures: [], intent: "", currentFocus: "" };
-  S.localDecisions = [];
-  S.localConstraints = [];
-  S.localFailures = [];
-  S.lastCompactTime = 0;
-  S.compactsThisHour = 0;
-  S.turnsSinceCompact = 0;
-  S.compactHourStart = Date.now();
-  S.currentTier = "";
-  S.currentContextPct = null;
-  S.compactResumePending = false;
-  S.lastCompactResumeKey = "";
-  S.lastCompactResumeAt = 0;
-  S.lastCompactDecision = "";
-  S.spec92HookTelemetry = [];
-  S.spec92TokenTelemetry = [];
-  S.spec92ToolStartTimes = {};
+  getAttachmentRuntime().projectSwitchLedger = [];
+  getAttachmentRuntime().currentAsk = null;
+  getAttachmentRuntime().queryScope = null;
+  getAttachmentRuntime().excludedContext = null;
+  getAttachmentRuntime().lastFocusSnapshot = {
+    decisions: [],
+    constraints: [],
+    failures: [],
+    intent: "",
+    currentFocus: "",
+  };
+  getAttachmentRuntime().localDecisions = [];
+  getAttachmentRuntime().localConstraints = [];
+  getAttachmentRuntime().localFailures = [];
+  getAttachmentRuntime().lastCompactTime = 0;
+  getAttachmentRuntime().compactsThisHour = 0;
+  getAttachmentRuntime().turnsSinceCompact = 0;
+  getAttachmentRuntime().compactHourStart = Date.now();
+  getAttachmentRuntime().currentTier = "";
+  getAttachmentRuntime().currentContextPct = null;
+  getAttachmentRuntime().compactResumePending = false;
+  getAttachmentRuntime().lastCompactResumeKey = "";
+  getAttachmentRuntime().lastCompactResumeAt = 0;
+  getAttachmentRuntime().lastCompactDecision = "";
+  getAttachmentRuntime().spec92HookTelemetry = [];
+  getAttachmentRuntime().spec92TokenTelemetry = [];
+  getAttachmentRuntime().spec92ToolStartTimes = {};
   // compilationErrors/fileEditCounts/longSessionSignaled migrated to scope store (PI-07)
-  S.cataloguedDecisions = [];
-  S.cataloguedFacts = [];
+  getAttachmentRuntime().cataloguedDecisions = [];
+  getAttachmentRuntime().cataloguedFacts = [];
   // totalCompactions migrated to scope store (PI-07, removed from singleton)
-  S.forkSuggested = false;
-  S.focusStateCache = { key: "", at: 0, data: null, inflight: null };
-  S.semanticMemoryCache = { at: 0, data: null, inflight: null };
-  S.ecsHandlesCache = { at: 0, data: null, inflight: null };
-  S.lastPersistAt = 0;
-  S.lastPersistHash = "";
-  S.persistRevision = 0;
-  S.pendingPersistAnchor = false;
-  S.lastPersistSidecarKey = "";
-  S.lastPersistSidecarBytes = 0;
-  S.lastProjectSwitchPersistHash = "";
-  S.lastNativeSessionPressure = null;
-  S.lastNativeSessionPressureNoticeKey = "";
-  S.wbmEnabled = false;
-  S.wbmDeep = false;
-  S.wbmNoCatalogue = false;
+  getAttachmentRuntime().forkSuggested = false;
+  getAttachmentRuntime().focusStateCache = { key: "", at: 0, data: null, inflight: null };
+  getAttachmentRuntime().semanticMemoryCache = { at: 0, data: null, inflight: null };
+  getAttachmentRuntime().ecsHandlesCache = { at: 0, data: null, inflight: null };
+  getAttachmentRuntime().lastPersistAt = 0;
+  getAttachmentRuntime().lastPersistHash = "";
+  getAttachmentRuntime().persistRevision = 0;
+  getAttachmentRuntime().pendingPersistAnchor = false;
+  getAttachmentRuntime().lastPersistSidecarKey = "";
+  getAttachmentRuntime().lastPersistSidecarBytes = 0;
+  getAttachmentRuntime().lastProjectSwitchPersistHash = "";
+  getAttachmentRuntime().lastNativeSessionPressure = null;
+  getAttachmentRuntime().lastNativeSessionPressureNoticeKey = "";
+  getAttachmentRuntime().wbmEnabled = false;
+  getAttachmentRuntime().wbmDeep = false;
+  getAttachmentRuntime().wbmNoCatalogue = false;
   focusaPost("/telemetry/trace", {
     event_type: "pi_session_scoped_state_reset",
-    payload: { reason, session_id: S.sessionFrameKey, cwd: S.sessionCwd },
+    payload: {
+      reason,
+      session_id: getAttachmentRuntime().sessionFrameKey,
+      cwd: getAttachmentRuntime().sessionCwd,
+    },
   });
 }
 
 // ── HTTP helper ──────────────────────────────────────────────────────────────
 export async function focusaFetch(path: string, opts: RequestInit = {}): Promise<any> {
-  const timeout = S.cfg?.focusaApiTimeoutMs || 5000;
-  const base = S.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
-  const token = S.cfg?.focusaToken || "";
+  const timeout = getAttachmentRuntime().cfg?.focusaApiTimeoutMs || 5000;
+  const base = getAttachmentRuntime().cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+  const token = getAttachmentRuntime().cfg?.focusaToken || "";
   const attempts = 2;
   for (let attempt = 0; attempt < attempts; attempt++) {
     const ac = new AbortController();
@@ -552,7 +622,7 @@ export async function focusaFetch(path: string, opts: RequestInit = {}): Promise
           // header + structured /v1/agent/prompt body). See
           // crates/focusa-api/src/routes/agent_reminder.rs.
           "X-Focusa-Client": "pi",
-          "X-Extension-Token": `focusa-pi-${S.cfg?.focusaExtensionBuild || "v0"}`,
+          "X-Extension-Token": `focusa-pi-${getAttachmentRuntime().cfg?.focusaExtensionBuild || "v0"}`,
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
           ...((opts.headers as Record<string, string>) || {}),
         },
@@ -856,7 +926,7 @@ function latestReportSummaryRefFromFocusState(focusState?: any): string {
 }
 
 function resetToolOutputPressureWindow(now = Date.now()): void {
-  S.toolOutputPressure = {
+  getAttachmentRuntime().toolOutputPressure = {
     windowStartedAt: now,
     resultCount: 0,
     totalBytes: 0,
@@ -866,7 +936,7 @@ function resetToolOutputPressureWindow(now = Date.now()): void {
     recapReason: "",
     lastToolName: "",
     lastEventAt: now,
-    lastRecapAt: S.toolOutputPressure?.lastRecapAt || 0,
+    lastRecapAt: getAttachmentRuntime().toolOutputPressure?.lastRecapAt || 0,
   };
 }
 
@@ -877,12 +947,12 @@ export function recordToolOutputPressure(
 ): PiToolOutputPressure {
   const now = Date.now();
   if (
-    !S.toolOutputPressure.windowStartedAt ||
-    now - S.toolOutputPressure.windowStartedAt > TOOL_OUTPUT_FLOOD_WINDOW_MS
+    !getAttachmentRuntime().toolOutputPressure.windowStartedAt ||
+    now - getAttachmentRuntime().toolOutputPressure.windowStartedAt > TOOL_OUTPUT_FLOOD_WINDOW_MS
   ) {
     resetToolOutputPressureWindow(now);
   }
-  const pressure = S.toolOutputPressure;
+  const pressure = getAttachmentRuntime().toolOutputPressure;
   pressure.resultCount += 1;
   pressure.totalBytes += Math.max(0, bytes || 0);
   pressure.totalTokens += Math.max(0, tokens || 0);
@@ -937,16 +1007,16 @@ export function recordToolOutputPressure(
 }
 
 export function toolOutputVisibleRecapReason(): string {
-  if (!S.toolOutputPressure?.recapRequired) return "";
+  if (!getAttachmentRuntime().toolOutputPressure?.recapRequired) return "";
   if (
-    S.toolOutputPressure.windowStartedAt &&
-    Date.now() - S.toolOutputPressure.windowStartedAt > TOOL_OUTPUT_FLOOD_WINDOW_MS
+    getAttachmentRuntime().toolOutputPressure.windowStartedAt &&
+    Date.now() - getAttachmentRuntime().toolOutputPressure.windowStartedAt > TOOL_OUTPUT_FLOOD_WINDOW_MS
   ) {
     resetToolOutputPressureWindow(Date.now());
     persistState();
     return "";
   }
-  return S.toolOutputPressure.recapReason;
+  return getAttachmentRuntime().toolOutputPressure.recapReason;
 }
 
 export function formatToolOutputVisibleRecapLines(reason = toolOutputVisibleRecapReason()): string[] {
@@ -976,7 +1046,7 @@ export function markVisibleRecapEmittedIfPresent(assistantOutput: string): boole
     },
   });
   if (!recapped) return false;
-  S.toolOutputPressure.lastRecapAt = Date.now();
+  getAttachmentRuntime().toolOutputPressure.lastRecapAt = Date.now();
   resetToolOutputPressureWindow(Date.now());
   persistState();
   return true;
@@ -1047,8 +1117,8 @@ export function observeProjectThreadEvidence(input: {
   if (!projectRoot && !alias) return null;
   const now = Date.now();
   const keyRoot = projectRoot || `alias:${alias.toLowerCase()}`;
-  const existing = S.projectSwitchLedger.find(
-    (entry) =>
+  const existing = getAttachmentRuntime().projectSwitchLedger.find(
+    (entry: PiProjectThreadObservation) =>
       (entry.project_root && entry.project_root === projectRoot) ||
       entry.project_alias.toLowerCase() === alias.toLowerCase()
   );
@@ -1061,7 +1131,7 @@ export function observeProjectThreadEvidence(input: {
         remote_host: input.remote_host || existing.remote_host,
         evidence_ref: boundedAttentionText(input.evidence_ref || existing.evidence_ref, 160),
         last_seen_turn: input.turn_id,
-        recent_actions: [action, ...existing.recent_actions.filter((item) => item !== action)].slice(
+        recent_actions: [action, ...existing.recent_actions.filter((item: string) => item !== action)].slice(
           0,
           PROJECT_SWITCH_LEDGER_MAX_ACTIONS
         ),
@@ -1081,8 +1151,13 @@ export function observeProjectThreadEvidence(input: {
         source: input.source,
         updatedAt: now,
       };
-  S.projectSwitchLedger = [observation, ...S.projectSwitchLedger.filter((entry) => entry !== existing)]
-    .sort((a, b) => b.updatedAt - a.updatedAt)
+  getAttachmentRuntime().projectSwitchLedger = [
+    observation,
+    ...getAttachmentRuntime().projectSwitchLedger.filter(
+      (entry: PiProjectThreadObservation) => entry !== existing
+    ),
+  ]
+    .sort((a: PiProjectThreadObservation, b: PiProjectThreadObservation) => b.updatedAt - a.updatedAt)
     .slice(0, PROJECT_SWITCH_LEDGER_MAX_OBSERVATIONS);
   persistProjectSwitchLedgerAnchor();
   persistState();
@@ -1098,8 +1173,9 @@ export function markObservationAsSupportingWork(
   whyRelated: string
 ): boolean {
   const lower = alias.toLowerCase().trim();
-  const entry = S.projectSwitchLedger.find(
-    (e) => e.project_alias.toLowerCase() === lower || e.project_root.toLowerCase().includes(lower)
+  const entry = getAttachmentRuntime().projectSwitchLedger.find(
+    (e: PiProjectThreadObservation) =>
+      e.project_alias.toLowerCase() === lower || e.project_root.toLowerCase().includes(lower)
   );
   if (!entry) return false;
   entry.relationship_kind = "supporting_work";
@@ -1131,7 +1207,7 @@ export function groupObservationsByRelationship(): {
     scope_switch: [] as PiProjectThreadObservation[],
     uncategorized: [] as PiProjectThreadObservation[],
   };
-  for (const entry of S.projectSwitchLedger) {
+  for (const entry of getAttachmentRuntime().projectSwitchLedger as PiProjectThreadObservation[]) {
     switch (entry.relationship_kind) {
       case "active_scope":
         result.active_scope.push(entry);
@@ -1170,13 +1246,13 @@ function rememberedProjectRootForAlias(alias: string): string {
       score: last.confidence === "high" ? 1 : 0.8,
     });
   }
-  for (const entry of S.projectSwitchLedger || []) {
+  for (const entry of getAttachmentRuntime().projectSwitchLedger || []) {
     const entryText = `${entry.project_alias || ""} ${entry.project_root || ""}`.toLowerCase();
     if (entry.project_root && entryText.includes(lower)) {
       scored.push({ root: normalizeProjectRoot(entry.project_root), score: entry.confidence || 0.5 });
     }
   }
-  scored.sort((a, b) => b.score - a.score);
+  scored.sort((a: { score: number }, b: { score: number }) => b.score - a.score);
   if (scored[0]?.root) return scored[0].root;
 
   // Core directory detector: when no project_root is stored for this alias/domain,
@@ -1329,11 +1405,11 @@ function projectSwitchLedgerCandidateForAsk(
   savedProjectRoot: string
 ): PiProjectThreadObservation | null {
   const ask = stripQuotedFocusaContext(currentAskText || "");
-  if (!ask.trim() || !S.projectSwitchLedger.length) return null;
+  if (!ask.trim() || !getAttachmentRuntime().projectSwitchLedger.length) return null;
   const lower = ask.toLowerCase();
   const savedRoot = normalizeProjectRoot(savedProjectRoot);
-  const scored = S.projectSwitchLedger
-    .map((entry) => {
+  const scored = getAttachmentRuntime()
+    .projectSwitchLedger.map((entry: PiProjectThreadObservation) => {
       let score = entry.confidence || 0;
       const alias = entry.project_alias.toLowerCase();
       const entryRoot = normalizeProjectRoot(entry.project_root);
@@ -1357,7 +1433,7 @@ function projectSwitchLedgerCandidateForAsk(
       score += Math.max(0, 0.2 - ((Date.now() - entry.updatedAt) / 86_400_000) * 0.05);
       return { entry, score };
     })
-    .sort((a, b) => b.score - a.score);
+    .sort((a: { score: number }, b: { score: number }) => b.score - a.score);
   const best = scored[0];
   if (!best || best.score < PROJECT_SWITCH_LEDGER_MIN_CONFLICT_CONFIDENCE) return null;
   const bestRoot = normalizeProjectRoot(best.entry.project_root);
@@ -1371,30 +1447,39 @@ function projectSwitchLedgerCandidateForAsk(
   return best.entry;
 }
 
-export function formatProjectSwitchLedgerLines(currentAskText = S.currentAsk?.text || ""): string[] {
+export function formatProjectSwitchLedgerLines(
+  currentAskText = getAttachmentRuntime().currentAsk?.text || ""
+): string[] {
   const candidate = projectSwitchLedgerCandidateForAsk(
     currentAskText,
-    getScopedWorkpointPacket()?.project_root || S.sessionCwd || ""
+    getScopedWorkpointPacket()?.project_root || getAttachmentRuntime().sessionCwd || ""
   );
   const entries = (
     candidate
-      ? [candidate, ...S.projectSwitchLedger.filter((entry) => entry !== candidate)]
-      : S.projectSwitchLedger
+      ? [
+          candidate,
+          ...getAttachmentRuntime().projectSwitchLedger.filter(
+            (entry: PiProjectThreadObservation) => entry !== candidate
+          ),
+        ]
+      : getAttachmentRuntime().projectSwitchLedger
   ).slice(0, 4);
   return entries.map(
-    (entry) =>
+    (entry: PiProjectThreadObservation) =>
       `${entry.project_alias} root=${entry.project_root || "unknown"} confidence=${entry.confidence.toFixed(2)} evidence=${entry.evidence_ref} recent=${entry.recent_actions.slice(0, 2).join(" | ")}`
   );
 }
 
 export function emitCurrentAskScopeVerdictTelemetry(
   verdict: PiCurrentAskScopeVerdict,
-  sourceTurnId = S.currentAsk?.sourceTurnId || S.sessionFrameKey || "pi-current-ask-scope"
+  sourceTurnId = getAttachmentRuntime().currentAsk?.sourceTurnId ||
+    getAttachmentRuntime().sessionFrameKey ||
+    "pi-current-ask-scope"
 ): void {
-  if (!S.focusaAvailable || verdict.status !== "conflict") return;
+  if (!getAttachmentRuntime().focusaAvailable || verdict.status !== "conflict") return;
   const key = `${sourceTurnId}:${verdict.status}:${verdict.saved_scope.project_root}:${verdict.current_ask_scope.project_root}:${verdict.reason}`;
-  if (S.lastCurrentAskScopeTelemetryKey === key) return;
-  S.lastCurrentAskScopeTelemetryKey = key;
+  if (getAttachmentRuntime().lastCurrentAskScopeTelemetryKey === key) return;
+  getAttachmentRuntime().lastCurrentAskScopeTelemetryKey = key;
   focusaPost("/telemetry/trace", {
     event_type: "scope_conflict_detected",
     turn_id: sourceTurnId,
@@ -1419,13 +1504,18 @@ export function buildCurrentAskScopeVerdict(
     continuityId?: string;
   } = {}
 ): PiCurrentAskScopeVerdict {
-  const ask = stripQuotedFocusaContext(options.currentAskText ?? S.currentAsk?.text ?? "");
+  const ask = stripQuotedFocusaContext(
+    options.currentAskText ?? getAttachmentRuntime().currentAsk?.text ?? ""
+  );
   const packet = options.workpointPacket || getScopedWorkpointPacket() || {};
   const savedRoot = normalizeProjectRoot(
-    workpointValue(packet, "project_root") || options.projectRoot || S.sessionCwd || ""
+    workpointValue(packet, "project_root") || options.projectRoot || getAttachmentRuntime().sessionCwd || ""
   );
   const continuityId = String(
-    options.continuityId || S.continuityId || workpointValue(packet, "continuity_id") || ""
+    options.continuityId ||
+      getAttachmentRuntime().continuityId ||
+      workpointValue(packet, "continuity_id") ||
+      ""
   ).trim();
   const explicitRoot = projectRootFromAbsolutePath(ask);
   const aliases = projectAliasesForText(ask, explicitRoot);
@@ -1561,21 +1651,29 @@ export function buildAttentionRecallVerdict(
   } = {}
 ): PiAttentionRecallVerdict {
   const packet = options.workpointPacket || getScopedWorkpointPacket() || {};
-  const askText = stripQuotedFocusaContext(options.currentAskText ?? S.currentAsk?.text ?? "");
+  const askText = stripQuotedFocusaContext(
+    options.currentAskText ?? getAttachmentRuntime().currentAsk?.text ?? ""
+  );
   const projectRoot = normalizeProjectRoot(
-    options.projectRoot || S.sessionCwd || workpointValue(packet, "project_root")
+    options.projectRoot || getAttachmentRuntime().sessionCwd || workpointValue(packet, "project_root")
   );
   const packetProjectRoot = normalizeProjectRoot(workpointValue(packet, "project_root"));
   const continuityId = String(
-    options.continuityId || S.continuityId || workpointValue(packet, "continuity_id") || ""
+    options.continuityId ||
+      getAttachmentRuntime().continuityId ||
+      workpointValue(packet, "continuity_id") ||
+      ""
   ).trim();
   const mission =
-    workpointValue(packet, "mission") || S.activeFrameGoal || S.activeFrameTitle || "current Focusa task";
+    workpointValue(packet, "mission") ||
+    getAttachmentRuntime().activeFrameGoal ||
+    getAttachmentRuntime().activeFrameTitle ||
+    "current Focusa task";
   const nextAction =
     workpointValue(packet, "next_slice") ||
-    S.lastCompactDecision ||
+    getAttachmentRuntime().lastCompactDecision ||
     askText ||
-    S.lastFocusSnapshot.currentFocus ||
+    getAttachmentRuntime().lastFocusSnapshot.currentFocus ||
     "continue bounded current task";
   const ledgerCandidate = projectSwitchLedgerCandidateForAsk(askText, projectRoot || packetProjectRoot);
   const conflictReason = currentAskProjectConflictReason(askText, projectRoot, packetProjectRoot);
@@ -1707,7 +1805,7 @@ export function maybeCaptureReportSummaryFromAssistantOutput(
   };
   setLatestReportSummary(captured);
   try {
-    S.pi?.appendEntry("focusa-report-summary", captured);
+    getAttachmentRuntime().pi?.appendEntry("focusa-report-summary", captured);
   } catch {
     /* best effort */
   }
@@ -2061,34 +2159,42 @@ async function sleep(ms: number): Promise<void> {
 }
 
 export async function kickstartFocusaDaemon(reason = "health_check"): Promise<boolean> {
-  if (!S.cfg?.daemonAutoRestart || !S.pi) return false;
-  if (S.daemonRestartInFlight) return S.daemonRestartInFlight;
+  if (!getAttachmentRuntime().cfg?.daemonAutoRestart || !getAttachmentRuntime().pi) return false;
+  if (getAttachmentRuntime().daemonRestartInFlight) return getAttachmentRuntime().daemonRestartInFlight;
   const now = Date.now();
   const hourAgo = now - 3_600_000;
-  S.daemonRestartAttempts = S.daemonRestartAttempts.filter((t) => t >= hourAgo);
-  if (S.daemonRestartAttempts.length >= (S.cfg.daemonRestartMaxPerHour || 20)) return false;
-  const last = S.daemonRestartAttempts[S.daemonRestartAttempts.length - 1] || 0;
-  if (now - last < (S.cfg.daemonRestartCooldownMs || 5_000)) return false;
+  getAttachmentRuntime().daemonRestartAttempts = getAttachmentRuntime().daemonRestartAttempts.filter(
+    (t: number) => t >= hourAgo
+  );
+  if (
+    getAttachmentRuntime().daemonRestartAttempts.length >=
+    (getAttachmentRuntime().cfg.daemonRestartMaxPerHour || 20)
+  )
+    return false;
+  const last =
+    getAttachmentRuntime().daemonRestartAttempts[getAttachmentRuntime().daemonRestartAttempts.length - 1] ||
+    0;
+  if (now - last < (getAttachmentRuntime().cfg.daemonRestartCooldownMs || 5_000)) return false;
 
-  S.daemonRestartAttempts.push(now);
-  const cmd = S.cfg.daemonRestartCommand || DEFAULT_DAEMON_RESTART_COMMAND;
-  S.daemonRestartInFlight = (async () => {
+  getAttachmentRuntime().daemonRestartAttempts.push(now);
+  const cmd = getAttachmentRuntime().cfg.daemonRestartCommand || DEFAULT_DAEMON_RESTART_COMMAND;
+  getAttachmentRuntime().daemonRestartInFlight = (async () => {
     try {
       if (cmd !== DEFAULT_DAEMON_RESTART_COMMAND) return false;
-      await S.pi!.exec("systemctl", ["restart", "focusa-daemon"]);
+      await getAttachmentRuntime().pi!.exec("systemctl", ["restart", "focusa-daemon"]);
       for (let i = 0; i < 12; i++) {
-        await sleep(S.cfg?.daemonRecoveryProbeMs || 750);
+        await sleep(getAttachmentRuntime().cfg?.daemonRecoveryProbeMs || 750);
         const h = await focusaFetch("/health");
         if (h?.ok === true) return true;
       }
     } catch {
       return false;
     } finally {
-      S.daemonRestartInFlight = null;
+      getAttachmentRuntime().daemonRestartInFlight = null;
     }
     return false;
   })();
-  const ok = await S.daemonRestartInFlight;
+  const ok = await getAttachmentRuntime().daemonRestartInFlight;
   if (ok) {
     focusaPost("/telemetry/ops", { event: "daemon_kickstart_recovered", surface: "pi", reason });
   }
@@ -2099,10 +2205,10 @@ export async function checkFocusa(): Promise<boolean> {
   const h = await focusaFetch("/health");
   const status = h?.ok === true ? null : await focusaFetch(HEALTHCHECK_STATUS_FALLBACK_PATH);
   const fallbackHotOk = status?.status === "ok" && status?.summary_only !== false;
-  const wasAvailable = S.focusaAvailable;
-  S.focusaAvailable = h?.ok === true || fallbackHotOk || status?.session != null;
+  const wasAvailable = getAttachmentRuntime().focusaAvailable;
+  getAttachmentRuntime().focusaAvailable = h?.ok === true || fallbackHotOk || status?.session != null;
 
-  if (S.focusaAvailable && h?.ok !== true && fallbackHotOk) {
+  if (getAttachmentRuntime().focusaAvailable && h?.ok !== true && fallbackHotOk) {
     focusaPost("/telemetry/ops", {
       event: "healthcheck_hot_fallback_ok",
       surface: "pi",
@@ -2112,29 +2218,32 @@ export async function checkFocusa(): Promise<boolean> {
     });
   }
 
-  if (S.focusaAvailable) {
-    S.healthFailCount = 0;
-    S.healthBackoffMs = 30_000;
-    S.daemonHoldoverMode = false;
+  if (getAttachmentRuntime().focusaAvailable) {
+    getAttachmentRuntime().healthFailCount = 0;
+    getAttachmentRuntime().healthBackoffMs = 30_000;
+    getAttachmentRuntime().daemonHoldoverMode = false;
     // §11: Outage recovery — record audit event
-    if (!wasAvailable && S.outageStart) {
-      const durationMs = Date.now() - S.outageStart;
+    if (!wasAvailable && getAttachmentRuntime().outageStart) {
+      const durationMs = Date.now() - getAttachmentRuntime().outageStart;
       focusaPost("/telemetry/ops", {
         event: "outage_recovered",
         surface: "pi",
         duration_ms: durationMs,
         missed_turns: getTurnCount(),
       });
-      S.outageStart = null;
+      getAttachmentRuntime().outageStart = null;
     }
   } else {
-    S.healthFailCount++;
-    S.daemonHoldoverMode = true;
+    getAttachmentRuntime().healthFailCount++;
+    getAttachmentRuntime().daemonHoldoverMode = true;
     // During daemon outage, probe quickly enough to recover inside the same Pi session.
-    S.healthBackoffMs = Math.min(1_000 * Math.pow(2, Math.min(S.healthFailCount - 1, 4)), 15_000);
+    getAttachmentRuntime().healthBackoffMs = Math.min(
+      1_000 * Math.pow(2, Math.min(getAttachmentRuntime().healthFailCount - 1, 4)),
+      15_000
+    );
     // §11: Record outage start
-    if (wasAvailable && !S.outageStart) {
-      S.outageStart = Date.now();
+    if (wasAvailable && !getAttachmentRuntime().outageStart) {
+      getAttachmentRuntime().outageStart = Date.now();
       // Fire-and-forget — may fail since Focusa is down
       focusaFetch("/telemetry/ops", {
         method: "POST",
@@ -2142,7 +2251,7 @@ export async function checkFocusa(): Promise<boolean> {
       }).catch(() => {});
     }
   }
-  return S.focusaAvailable;
+  return getAttachmentRuntime().focusaAvailable;
 }
 
 // ── Extract text from TextContent[] | string ─────────────────────────────────
@@ -2154,11 +2263,12 @@ export function extractText(content: any): string {
 
 async function loadFocusState(): Promise<{ frame: any; fs: any; stack: any } | null> {
   const scopedQs = new URLSearchParams();
-  if (S.activeFrameId) scopedQs.set("frame_id", S.activeFrameId);
-  if (S.continuityId) scopedQs.set("continuity_id", S.continuityId);
-  if (isProjectRootAuthoritySafe(S.sessionCwd))
-    scopedQs.set("project_root", normalizeProjectRoot(S.sessionCwd));
-  if (S.sessionFrameKey) scopedQs.set("session_key", S.sessionFrameKey);
+  if (getAttachmentRuntime().activeFrameId) scopedQs.set("frame_id", getAttachmentRuntime().activeFrameId);
+  if (getAttachmentRuntime().continuityId) scopedQs.set("continuity_id", getAttachmentRuntime().continuityId);
+  if (isProjectRootAuthoritySafe(getAttachmentRuntime().sessionCwd))
+    scopedQs.set("project_root", normalizeProjectRoot(getAttachmentRuntime().sessionCwd));
+  if (getAttachmentRuntime().sessionFrameKey)
+    scopedQs.set("session_key", getAttachmentRuntime().sessionFrameKey);
   const scopedPath = scopedQs.size > 0 ? `/focus/frame/current?${scopedQs.toString()}` : null;
 
   const [scoped, asccState] = await Promise.all([
@@ -2177,7 +2287,7 @@ async function loadFocusState(): Promise<{ frame: any; fs: any; stack: any } | n
   // Explicit frame_id can become stale after frame rescope/compaction. If the
   // scoped frame is no longer active, fall back to stack lookup so the session
   // key can find the current active Pi frame before reads/writes.
-  if (frame && frame.status !== "active" && S.sessionFrameKey) {
+  if (frame && frame.status !== "active" && getAttachmentRuntime().sessionFrameKey) {
     frame = null;
     stack = null;
   }
@@ -2186,9 +2296,14 @@ async function loadFocusState(): Promise<{ frame: any; fs: any; stack: any } | n
     stack = await focusaFetch("/focus/stack");
     if (!stack?.stack?.frames?.length) return null;
     const frames = stack.stack.frames;
-    frame = S.activeFrameId ? frames.find((f: any) => f.id === S.activeFrameId) || null : null;
+    frame = getAttachmentRuntime().activeFrameId
+      ? frames.find((f: any) => f.id === getAttachmentRuntime().activeFrameId) || null
+      : null;
 
-    if ((!frame || frame.status !== "active" || isContaminatedFrameIdentity(frame)) && S.sessionFrameKey) {
+    if (
+      (!frame || frame.status !== "active" || isContaminatedFrameIdentity(frame)) &&
+      getAttachmentRuntime().sessionFrameKey
+    ) {
       const scopedActive =
         [...frames]
           .reverse()
@@ -2196,25 +2311,25 @@ async function loadFocusState(): Promise<{ frame: any; fs: any; stack: any } | n
             (f: any) =>
               f.status === "active" &&
               Array.isArray(f.tags) &&
-              f.tags.includes(S.sessionFrameKey || "") &&
+              f.tags.includes(getAttachmentRuntime().sessionFrameKey || "") &&
               !isContaminatedFrameIdentity(f)
           ) || null;
       if (scopedActive) {
         frame = scopedActive;
-        S.activeFrameId = scopedActive.id;
+        getAttachmentRuntime().activeFrameId = scopedActive.id;
       } else if (frame && isContaminatedFrameIdentity(frame)) {
-        S.activeFrameId = null;
-        S.activeFrameTitle = "";
-        S.activeFrameGoal = "";
+        getAttachmentRuntime().activeFrameId = null;
+        getAttachmentRuntime().activeFrameTitle = "";
+        getAttachmentRuntime().activeFrameGoal = "";
         return null;
       }
     }
   }
 
   if (!frame || isContaminatedFrameIdentity(frame)) {
-    S.activeFrameId = null;
-    S.activeFrameTitle = "";
-    S.activeFrameGoal = "";
+    getAttachmentRuntime().activeFrameId = null;
+    getAttachmentRuntime().activeFrameTitle = "";
+    getAttachmentRuntime().activeFrameGoal = "";
     return null;
   }
 
@@ -2239,10 +2354,10 @@ async function loadFocusState(): Promise<{ frame: any; fs: any; stack: any } | n
       "",
   };
 
-  S.activeFrameId = frame.id || S.activeFrameId;
-  S.activeFrameTitle = frame.title || S.activeFrameTitle || "";
-  S.activeFrameGoal = frame.goal || S.activeFrameGoal || "";
-  S.lastFocusSnapshot = {
+  getAttachmentRuntime().activeFrameId = frame.id || getAttachmentRuntime().activeFrameId;
+  getAttachmentRuntime().activeFrameTitle = frame.title || getAttachmentRuntime().activeFrameTitle || "";
+  getAttachmentRuntime().activeFrameGoal = frame.goal || getAttachmentRuntime().activeFrameGoal || "";
+  getAttachmentRuntime().lastFocusSnapshot = {
     decisions: Array.isArray(fs?.decisions) ? fs.decisions : [],
     constraints: Array.isArray(fs?.constraints) ? fs.constraints : [],
     failures: sanitizeFocusFailures(Array.isArray(fs?.failures) ? fs.failures : []),
@@ -2257,75 +2372,89 @@ async function loadFocusState(): Promise<{ frame: any; fs: any; stack: any } | n
 // CRITICAL: Never use Focusa's global active_frame_id — that belongs to Wirebot.
 // Pi sessions must only read their own frame. If Pi has no frame, return empty.
 export async function getFocusState(): Promise<{ frame: any; fs: any; stack: any } | null> {
-  if (!S.activeFrameId && !S.sessionFrameKey) return null;
+  if (!getAttachmentRuntime().activeFrameId && !getAttachmentRuntime().sessionFrameKey) return null;
 
-  const cacheKey = `${S.activeFrameId || ""}|${S.sessionFrameKey || ""}`;
+  const cacheKey = `${getAttachmentRuntime().activeFrameId || ""}|${getAttachmentRuntime().sessionFrameKey || ""}`;
   const now = Date.now();
   if (
-    S.focusStateCache.data &&
-    S.focusStateCache.key === cacheKey &&
-    now - S.focusStateCache.at < FOCUS_STATE_CACHE_TTL_MS
+    getAttachmentRuntime().focusStateCache.data &&
+    getAttachmentRuntime().focusStateCache.key === cacheKey &&
+    now - getAttachmentRuntime().focusStateCache.at < FOCUS_STATE_CACHE_TTL_MS
   ) {
-    return S.focusStateCache.data;
+    return getAttachmentRuntime().focusStateCache.data;
   }
-  if (S.focusStateCache.inflight && S.focusStateCache.key === cacheKey) {
-    return await S.focusStateCache.inflight;
+  if (
+    getAttachmentRuntime().focusStateCache.inflight &&
+    getAttachmentRuntime().focusStateCache.key === cacheKey
+  ) {
+    return await getAttachmentRuntime().focusStateCache.inflight;
   }
 
   const inflight = loadFocusState();
-  S.focusStateCache.key = cacheKey;
-  S.focusStateCache.inflight = inflight;
+  getAttachmentRuntime().focusStateCache.key = cacheKey;
+  getAttachmentRuntime().focusStateCache.inflight = inflight;
   try {
     const data = await inflight;
     if (data) {
-      S.focusStateCache.data = data;
-      S.focusStateCache.at = Date.now();
+      getAttachmentRuntime().focusStateCache.data = data;
+      getAttachmentRuntime().focusStateCache.at = Date.now();
     }
     return data;
   } finally {
-    if (S.focusStateCache.inflight === inflight) S.focusStateCache.inflight = null;
+    if (getAttachmentRuntime().focusStateCache.inflight === inflight)
+      getAttachmentRuntime().focusStateCache.inflight = null;
   }
 }
 
 export async function getSemanticMemorySummary(): Promise<any> {
   const now = Date.now();
-  if (S.semanticMemoryCache.data && now - S.semanticMemoryCache.at < AUX_CONTEXT_CACHE_TTL_MS) {
-    return S.semanticMemoryCache.data;
+  if (
+    getAttachmentRuntime().semanticMemoryCache.data &&
+    now - getAttachmentRuntime().semanticMemoryCache.at < AUX_CONTEXT_CACHE_TTL_MS
+  ) {
+    return getAttachmentRuntime().semanticMemoryCache.data;
   }
-  if (S.semanticMemoryCache.inflight) return await S.semanticMemoryCache.inflight;
+  if (getAttachmentRuntime().semanticMemoryCache.inflight)
+    return await getAttachmentRuntime().semanticMemoryCache.inflight;
 
   const inflight = focusaFetch(`/memory/semantic?limit=${CONTEXT_SEMANTIC_LIMIT}&summary_only=true`);
-  S.semanticMemoryCache.inflight = inflight;
+  getAttachmentRuntime().semanticMemoryCache.inflight = inflight;
   try {
     const data = await inflight;
     if (data) {
-      S.semanticMemoryCache.data = data;
-      S.semanticMemoryCache.at = Date.now();
+      getAttachmentRuntime().semanticMemoryCache.data = data;
+      getAttachmentRuntime().semanticMemoryCache.at = Date.now();
     }
     return data;
   } finally {
-    if (S.semanticMemoryCache.inflight === inflight) S.semanticMemoryCache.inflight = null;
+    if (getAttachmentRuntime().semanticMemoryCache.inflight === inflight)
+      getAttachmentRuntime().semanticMemoryCache.inflight = null;
   }
 }
 
 export async function getEcsHandlesSummary(): Promise<any> {
   const now = Date.now();
-  if (S.ecsHandlesCache.data && now - S.ecsHandlesCache.at < AUX_CONTEXT_CACHE_TTL_MS) {
-    return S.ecsHandlesCache.data;
+  if (
+    getAttachmentRuntime().ecsHandlesCache.data &&
+    now - getAttachmentRuntime().ecsHandlesCache.at < AUX_CONTEXT_CACHE_TTL_MS
+  ) {
+    return getAttachmentRuntime().ecsHandlesCache.data;
   }
-  if (S.ecsHandlesCache.inflight) return await S.ecsHandlesCache.inflight;
+  if (getAttachmentRuntime().ecsHandlesCache.inflight)
+    return await getAttachmentRuntime().ecsHandlesCache.inflight;
 
   const inflight = focusaFetch(`/ecs/handles?limit=${CONTEXT_ECS_HANDLES_LIMIT}&summary_only=true`);
-  S.ecsHandlesCache.inflight = inflight;
+  getAttachmentRuntime().ecsHandlesCache.inflight = inflight;
   try {
     const data = await inflight;
     if (data) {
-      S.ecsHandlesCache.data = data;
-      S.ecsHandlesCache.at = Date.now();
+      getAttachmentRuntime().ecsHandlesCache.data = data;
+      getAttachmentRuntime().ecsHandlesCache.at = Date.now();
     }
     return data;
   } finally {
-    if (S.ecsHandlesCache.inflight === inflight) S.ecsHandlesCache.inflight = null;
+    if (getAttachmentRuntime().ecsHandlesCache.inflight === inflight)
+      getAttachmentRuntime().ecsHandlesCache.inflight = null;
   }
 }
 
@@ -2339,8 +2468,8 @@ export function trimFrameText(text: string, max = 80): string {
 
 function derivePiFrameIntent(cwd: string): { projectName: string; title: string; goal: string } {
   const projectName = cwd.split("/").filter(Boolean).pop() || "root";
-  const ask = trimFrameText(S.currentAsk?.text || "", 100);
-  const askKind = S.currentAsk?.kind || "unknown";
+  const ask = trimFrameText(getAttachmentRuntime().currentAsk?.text || "", 100);
+  const askKind = getAttachmentRuntime().currentAsk?.kind || "unknown";
 
   if (ask && askKind !== "meta") {
     const titlePrefix =
@@ -2360,9 +2489,9 @@ function derivePiFrameIntent(cwd: string): { projectName: string; title: string;
 }
 
 export function ensureContinuityId(cwd?: string): string {
-  if (S.continuityId) return S.continuityId;
+  if (getAttachmentRuntime().continuityId) return getAttachmentRuntime().continuityId;
   const root =
-    String(cwd || S.sessionCwd || process.cwd())
+    String(cwd || getAttachmentRuntime().sessionCwd || process.cwd())
       .split("/")
       .filter(Boolean)
       .pop() || "root";
@@ -2372,8 +2501,10 @@ export function ensureContinuityId(cwd?: string): string {
   } catch {
     /* fallback above */
   }
-  S.continuityId = `focusa-cont-${root}-${randomPart}`.replace(/[^a-zA-Z0-9._:-]/g, "-").slice(0, 140);
-  return S.continuityId;
+  getAttachmentRuntime().continuityId = `focusa-cont-${root}-${randomPart}`
+    .replace(/[^a-zA-Z0-9._:-]/g, "-")
+    .slice(0, 140);
+  return getAttachmentRuntime().continuityId;
 }
 
 function projectBeadsIssueJsonlPaths(projectRoot: string): string[] {
@@ -2460,12 +2591,12 @@ function ensureAutocreatedBeadsIssueForProject(projectRoot: string): string | nu
 }
 
 export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<string | null> {
-  S.sessionCwd = cwd;
+  getAttachmentRuntime().sessionCwd = cwd;
   const { projectName, title, goal } = derivePiFrameIntent(cwd);
-  S.activeFrameTitle = title;
-  S.activeFrameGoal = goal;
-  const sessionKey = S.sessionFrameKey || `pi-${process.pid}-${Date.now()}`;
-  S.sessionFrameKey = sessionKey;
+  getAttachmentRuntime().activeFrameTitle = title;
+  getAttachmentRuntime().activeFrameGoal = goal;
+  const sessionKey = getAttachmentRuntime().sessionFrameKey || `pi-${process.pid}-${Date.now()}`;
+  getAttachmentRuntime().sessionFrameKey = sessionKey;
   const continuityId = ensureContinuityId(cwd);
   const beadsIssueId = selectExistingBeadsIssueIdForFocusFrame(cwd);
   if (!beadsIssueId) {
@@ -2499,7 +2630,7 @@ export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<st
       }),
     });
     if (r?.frame_id) {
-      S.activeFrameId = r.frame_id;
+      getAttachmentRuntime().activeFrameId = r.frame_id;
       return r.frame_id;
     }
 
@@ -2519,9 +2650,9 @@ export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<st
               f.tags.includes(`continuity_id:${continuityId}`))
         );
       if (match?.id) {
-        S.activeFrameId = match.id;
-        S.activeFrameTitle = match.title || title;
-        S.activeFrameGoal = match.goal || goal;
+        getAttachmentRuntime().activeFrameId = match.id;
+        getAttachmentRuntime().activeFrameTitle = match.title || title;
+        getAttachmentRuntime().activeFrameGoal = match.goal || goal;
         return match.id;
       }
     }
@@ -2699,7 +2830,7 @@ export function resolvePiProjectRootCandidate(
     };
   }
 
-  const sessionRoot = normalizeProjectRoot(S.sessionCwd);
+  const sessionRoot = normalizeProjectRoot(getAttachmentRuntime().sessionCwd);
   const sessionCandidates =
     sessionRoot && sessionRoot !== explicit ? findAncestorProjectRootCandidates(sessionRoot) : [];
   const sessionCandidate = sessionCandidates[0] || null;
@@ -2721,7 +2852,7 @@ export function resolvePiProjectRootCandidate(
   const packet = persistedPacket?.resume_packet?.workpoint || persistedPacket?.workpoint || persistedPacket;
   const packetRoot = normalizeProjectRoot(packet?.project_root);
   const packetSessionKey = String(packet?.pi_session_frame_key || packet?.session_id || "").trim();
-  const currentSessionKey = String(S.sessionFrameKey || "").trim();
+  const currentSessionKey = String(getAttachmentRuntime().sessionFrameKey || "").trim();
   if (
     packetRoot &&
     isProjectRootAuthoritySafe(packetRoot) &&
@@ -2814,7 +2945,7 @@ export function projectRootConfirmationSummary(projectRoot?: string): string {
 export function adoptPiProjectRoot(cwdInput?: unknown, persistedPacket?: any): string {
   const resolution = resolvePiProjectRootCandidate(cwdInput, persistedPacket);
   setLastProjectRootResolution(resolution);
-  S.sessionCwd = resolution.projectRoot;
+  getAttachmentRuntime().sessionCwd = resolution.projectRoot;
   return resolution.projectRoot;
 }
 
@@ -2839,7 +2970,7 @@ export function confirmPiProjectRoot(
       : [{ projectRoot, confidenceScore: 0.95, markers: base.markers || ["operator_confirmed"], source }],
   };
   setLastProjectRootResolution(confirmed);
-  S.sessionCwd = projectRoot;
+  getAttachmentRuntime().sessionCwd = projectRoot;
   return projectRoot;
 }
 
@@ -2870,12 +3001,14 @@ export async function buildFocusaSessionIdentity(
     | "unknown" = "manual",
   overrides: { continuityId?: string; sessionId?: string } = {}
 ): Promise<Record<string, unknown>> {
-  const projectRoot = normalizeProjectRoot(projectRootInput || S.sessionCwd || process.cwd());
+  const projectRoot = normalizeProjectRoot(
+    projectRootInput || getAttachmentRuntime().sessionCwd || process.cwd()
+  );
   const safe = isProjectRootAuthoritySafe(projectRoot);
-  const ambientCwd = normalizeProjectRoot(S.sessionCwd || process.cwd());
+  const ambientCwd = normalizeProjectRoot(getAttachmentRuntime().sessionCwd || process.cwd());
   const ambientInsideProject = ambientCwd === projectRoot || ambientCwd.startsWith(`${projectRoot}/`);
   const cwdForIdentity = safe && !ambientInsideProject ? projectRoot : ambientCwd;
-  const sessionId = String(overrides.sessionId || S.sessionFrameKey || "").trim();
+  const sessionId = String(overrides.sessionId || getAttachmentRuntime().sessionFrameKey || "").trim();
   const continuityId = String(
     overrides.continuityId || ensureContinuityId(projectRoot || process.cwd()) || ""
   ).trim();
@@ -2908,13 +3041,13 @@ export async function buildFocusaSessionIdentity(
     project_identity: projectIdentity,
     pi_session_id: sessionId || undefined,
     session_frame_key: sessionId || "unknown-session",
-    session_incarnation_id: `${sessionId || "unknown"}:${process.pid}:${S.sessionStartTime}`,
+    session_incarnation_id: `${sessionId || "unknown"}:${process.pid}:${getAttachmentRuntime().sessionStartTime}`,
     continuity_id: continuityId || undefined,
     project_root: projectRoot,
     cwd: cwdForIdentity,
     workspace_id: rootParts[rootParts.length - 1] || "workspace",
     process_id: process.pid,
-    started_at: new Date(S.sessionStartTime).toISOString(),
+    started_at: new Date(getAttachmentRuntime().sessionStartTime).toISOString(),
     resume_source: resumeSource,
     canonical_scope: safe && !resolution.requiresOperatorConfirmation,
     scope_failure: safe
@@ -2934,8 +3067,10 @@ export async function refreshTrajectoryClarityLifecycle(
   reason: string,
   projectRootInput?: string
 ): Promise<Record<string, unknown> | null> {
-  if (!S.focusaAvailable) return null;
-  const projectRoot = normalizeProjectRoot(projectRootInput || S.sessionCwd || process.cwd());
+  if (!getAttachmentRuntime().focusaAvailable) return null;
+  const projectRoot = normalizeProjectRoot(
+    projectRootInput || getAttachmentRuntime().sessionCwd || process.cwd()
+  );
   if (!isProjectRootAuthoritySafe(projectRoot)) {
     setLastTrajectoryClarity({
       reason,
@@ -2950,8 +3085,8 @@ export async function refreshTrajectoryClarityLifecycle(
   query.set("mode", "summary");
   query.set("project_root", projectRoot);
   query.set("allow_prior_project_trajectory", "true");
-  if (S.sessionFrameKey) query.set("session_id", S.sessionFrameKey);
-  if (S.continuityId) query.set("continuity_id", S.continuityId);
+  if (getAttachmentRuntime().sessionFrameKey) query.set("session_id", getAttachmentRuntime().sessionFrameKey);
+  if (getAttachmentRuntime().continuityId) query.set("continuity_id", getAttachmentRuntime().continuityId);
   try {
     const view = await focusaFetch(`/trajectory/view?${query.toString()}`);
     const clarity = view?.intelligence_view?.clarity_gate || {};
@@ -2959,8 +3094,8 @@ export async function refreshTrajectoryClarityLifecycle(
       reason,
       refreshed_at: Date.now(),
       project_root: projectRoot,
-      continuity_id: S.continuityId || null,
-      session_id: S.sessionFrameKey || null,
+      continuity_id: getAttachmentRuntime().continuityId || null,
+      session_id: getAttachmentRuntime().sessionFrameKey || null,
       status: String(clarity.status || view?.trajectory?.definition_status || "unknown"),
       recommended_action: String(
         clarity.recommended_action ||
@@ -3007,8 +3142,8 @@ export async function refreshTrajectoryClarityLifecycle(
       provenance: {
         source: "trajectory_view_api",
         project_root: projectRoot,
-        session_id: S.sessionFrameKey || null,
-        continuity_id: S.continuityId || null,
+        session_id: getAttachmentRuntime().sessionFrameKey || null,
+        continuity_id: getAttachmentRuntime().continuityId || null,
         refreshed_at: Date.now(),
       },
       next_tools: view?.next_tools || [
@@ -3045,13 +3180,13 @@ export async function refreshTrajectoryClarityLifecycle(
 export function clearScopedWorkpointForUnsafeCwd(reason = "unsafe_cwd_scope_guard"): void {
   setActiveWorkpointPacket(null);
   setActiveWorkpointSummary("");
-  S.continuityId = "";
-  S.activeFrameId = null;
-  S.activeFrameTitle = "";
-  S.activeFrameGoal = "";
+  getAttachmentRuntime().continuityId = "";
+  getAttachmentRuntime().activeFrameId = null;
+  getAttachmentRuntime().activeFrameTitle = "";
+  getAttachmentRuntime().activeFrameGoal = "";
   focusaPost("/telemetry/trace", {
     event_type: "pi_scope_rejected_unsafe_cwd",
-    payload: { reason, cwd: S.sessionCwd || process.cwd() },
+    payload: { reason, cwd: getAttachmentRuntime().sessionCwd || process.cwd() },
   });
 }
 
@@ -3059,16 +3194,16 @@ export function stampWorkpointPacketForCurrentPiSession(packet: any): any {
   if (!packet || typeof packet !== "object") return packet;
   return {
     ...packet,
-    pi_session_frame_key: S.sessionFrameKey || null,
+    pi_session_frame_key: getAttachmentRuntime().sessionFrameKey || null,
     pi_session_scope_checked_at: new Date().toISOString(),
   };
 }
 
 export function isWorkpointPacketScopedToCurrentSession(packet: any): boolean {
   if (!packet || typeof packet !== "object") return false;
-  const currentProjectRoot = resolvePiProjectRoot(S.sessionCwd || process.cwd());
-  const currentContinuityId = String(S.continuityId || "").trim();
-  const currentSessionKey = String(S.sessionFrameKey || "").trim();
+  const currentProjectRoot = resolvePiProjectRoot(getAttachmentRuntime().sessionCwd || process.cwd());
+  const currentContinuityId = String(getAttachmentRuntime().continuityId || "").trim();
+  const currentSessionKey = String(getAttachmentRuntime().sessionFrameKey || "").trim();
   const packetProjectRoot = normalizeProjectRoot(packet.project_root);
   const packetContinuityId = String(packet.continuity_id || "").trim();
   const packetPiSessionKey = String(packet.pi_session_frame_key || "").trim();
@@ -3104,7 +3239,7 @@ export function adoptPersistedContinuityForSession(data: any, eventSessionId: st
     setActiveWorkpointSummary("");
     return;
   }
-  S.continuityId = persistedContinuityId;
+  getAttachmentRuntime().continuityId = persistedContinuityId;
   const packet = data?.activeWorkpointPacket || null;
   const packetProjectRoot = normalizeProjectRoot(packet?.project_root);
   const packetContinuityId = String(packet?.continuity_id || "").trim();
@@ -3120,7 +3255,7 @@ export function adoptPersistedContinuityForSession(data: any, eventSessionId: st
   ) {
     setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(packet));
     setActiveWorkpointSummary(String(data?.activeWorkpointSummary || ""));
-    S.lastWorkpointUpdate = Date.now();
+    getAttachmentRuntime().lastWorkpointUpdate = Date.now();
   } else {
     setActiveWorkpointPacket(null);
     setActiveWorkpointSummary("");
@@ -3129,19 +3264,29 @@ export function adoptPersistedContinuityForSession(data: any, eventSessionId: st
 
 // ── Build compact instructions with local shadow (§33.10) ────────────────────
 export function buildCompactInstructions(prefix: string): string {
-  const base = S.cfg?.compactInstructions || "Preserve intent, decisions, constraints, next_steps, failures.";
+  const base =
+    getAttachmentRuntime().cfg?.compactInstructions ||
+    "Preserve intent, decisions, constraints, next_steps, failures.";
   const workpoint = getScopedWorkpointPacket() || {};
   const mission = String(
-    workpoint?.mission || S.currentAsk?.text || S.activeFrameGoal || S.activeFrameTitle || ""
+    workpoint?.mission ||
+      getAttachmentRuntime().currentAsk?.text ||
+      getAttachmentRuntime().activeFrameGoal ||
+      getAttachmentRuntime().activeFrameTitle ||
+      ""
   ).trim();
-  const nextSlice = String(workpoint?.next_slice || S.lastCompactDecision || "").trim();
+  const nextSlice = String(workpoint?.next_slice || getAttachmentRuntime().lastCompactDecision || "").trim();
   const projectRoot = String(
-    workpoint?.project_root || (isProjectRootAuthoritySafe(S.sessionCwd) ? S.sessionCwd : "") || ""
+    workpoint?.project_root ||
+      (isProjectRootAuthoritySafe(getAttachmentRuntime().sessionCwd)
+        ? getAttachmentRuntime().sessionCwd
+        : "") ||
+      ""
   ).trim();
   const attentionLines = formatAttentionRecallFocusSliceLines(
     buildAttentionRecallVerdict({
       workpointPacket: workpoint,
-      currentAskText: S.currentAsk?.text,
+      currentAskText: getAttachmentRuntime().currentAsk?.text,
       projectRoot,
     })
   );
@@ -3154,18 +3299,32 @@ export function buildCompactInstructions(prefix: string): string {
   if (mission) parts.push(`Fallback Mission:\n- ${mission}`);
   if (nextSlice) parts.push(`Fallback Next Step:\n- ${nextSlice}`);
   if (projectRoot) parts.push(`Fallback Scope:\n- project_root:${projectRoot}`);
-  if (S.localDecisions.length) parts.push(`Decisions:\n${S.localDecisions.map((d) => `- ${d}`).join("\n")}`);
-  if (S.localConstraints.length)
-    parts.push(`Constraints:\n${S.localConstraints.map((c) => `- ${c}`).join("\n")}`);
-  if (S.localFailures.length) parts.push(`Failures:\n${S.localFailures.map((f) => `- ${f}`).join("\n")}`);
+  if (getAttachmentRuntime().localDecisions.length)
+    parts.push(
+      `Decisions:\n${getAttachmentRuntime()
+        .localDecisions.map((d: string) => `- ${d}`)
+        .join("\n")}`
+    );
+  if (getAttachmentRuntime().localConstraints.length)
+    parts.push(
+      `Constraints:\n${getAttachmentRuntime()
+        .localConstraints.map((c: string) => `- ${c}`)
+        .join("\n")}`
+    );
+  if (getAttachmentRuntime().localFailures.length)
+    parts.push(
+      `Failures:\n${getAttachmentRuntime()
+        .localFailures.map((f: string) => `- ${f}`)
+        .join("\n")}`
+    );
   return parts.join("\n");
 }
 
 // ── wb CLI with HTTP fallback (§38.2) ────────────────────────────────────────
 export async function wbExec(args: string[], fallbackUrl?: string, fallbackBody?: any): Promise<any> {
-  if (S.pi) {
+  if (getAttachmentRuntime().pi) {
     try {
-      const r = await S.pi.exec("wb", args, { timeout: 5000 });
+      const r = await getAttachmentRuntime().pi.exec("wb", args, { timeout: 5000 });
       if (r.code === 0) {
         try {
           return JSON.parse(r.stdout);
@@ -3178,7 +3337,7 @@ export async function wbExec(args: string[], fallbackUrl?: string, fallbackBody?
     }
   }
   if (fallbackUrl) {
-    const token = S.cfg?.scoreboardToken || "";
+    const token = getAttachmentRuntime().cfg?.scoreboardToken || "";
     try {
       const r = await fetch(fallbackUrl, {
         method: "POST",
@@ -3211,8 +3370,8 @@ export function adoptWorkpointScopeForFrameRecovery(packet: any, source: string)
     workpoint.pi_session_frame_key || packet.pi_session_frame_key || ""
   ).trim();
   const packetSessionId = String(workpoint.session_id || packet.session_id || "").trim();
-  const currentSessionKey = String(S.sessionFrameKey || "").trim();
-  const currentContinuityId = String(S.continuityId || "").trim();
+  const currentSessionKey = String(getAttachmentRuntime().sessionFrameKey || "").trim();
+  const currentContinuityId = String(getAttachmentRuntime().continuityId || "").trim();
   if (!packetProjectRoot || !packetContinuityId || !isProjectRootAuthoritySafe(packetProjectRoot))
     return null;
   if (
@@ -3227,9 +3386,9 @@ export function adoptWorkpointScopeForFrameRecovery(packet: any, source: string)
   if (currentSessionKey && !packetPiSessionKey && packetSessionId && packetSessionId !== currentSessionKey)
     return null;
   if (currentSessionKey && !packetPiSessionKey && !packetSessionId) return null;
-  S.continuityId = packetContinuityId;
+  getAttachmentRuntime().continuityId = packetContinuityId;
   setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(workpoint));
-  S.lastWorkpointUpdate = Date.now();
+  getAttachmentRuntime().lastWorkpointUpdate = Date.now();
   return packetProjectRoot;
 }
 
@@ -3242,9 +3401,9 @@ async function adoptExistingSafeFrameForRecovery(): Promise<string | null> {
   const frame = data?.frame;
   const frameProjectRoot = normalizeProjectRoot(frame?.project_root);
   if (!frame?.id || !frameProjectRoot || !isProjectRootAuthoritySafe(frameProjectRoot)) return null;
-  S.activeFrameId = frame.id;
-  S.sessionCwd = frameProjectRoot;
-  if (frame.continuity_id) S.continuityId = String(frame.continuity_id);
+  getAttachmentRuntime().activeFrameId = frame.id;
+  getAttachmentRuntime().sessionCwd = frameProjectRoot;
+  if (frame.continuity_id) getAttachmentRuntime().continuityId = String(frame.continuity_id);
   return frame.id;
 }
 
@@ -3254,7 +3413,7 @@ export async function ensurePiFrame(
   sessionId?: string,
   source = "pi-auto"
 ): Promise<string | null> {
-  if (!S.focusaAvailable) return S.activeFrameId;
+  if (!getAttachmentRuntime().focusaAvailable) return getAttachmentRuntime().activeFrameId;
 
   const requestedResolution = resolvePiProjectRootCandidate(cwd || getSessionCwd() || process.cwd());
   setLastProjectRootResolution(requestedResolution);
@@ -3305,17 +3464,21 @@ export async function ensurePiFrame(
     }
   }
 
-  if (S.activeFrameId && isProjectRootAuthoritySafe(S.sessionCwd || resolvedCwd)) return S.activeFrameId;
-  if (S.activeFramePromise) return await S.activeFramePromise;
+  if (
+    getAttachmentRuntime().activeFrameId &&
+    isProjectRootAuthoritySafe(getAttachmentRuntime().sessionCwd || resolvedCwd)
+  )
+    return getAttachmentRuntime().activeFrameId;
+  if (getAttachmentRuntime().activeFramePromise) return await getAttachmentRuntime().activeFramePromise;
 
   if (!isProjectRootAuthoritySafe(resolvedCwd)) return null;
-  S.sessionCwd = resolvedCwd;
+  getAttachmentRuntime().sessionCwd = resolvedCwd;
 
-  S.activeFramePromise = (async () => {
+  getAttachmentRuntime().activeFramePromise = (async () => {
     focusaPost("/instance/connect", {
       instance_id: `pi-${process.pid}`,
       surface: "pi",
-      session_id: sessionId || S.sessionFrameKey || `pi-session-${Date.now()}`,
+      session_id: sessionId || getAttachmentRuntime().sessionFrameKey || `pi-session-${Date.now()}`,
       cwd: resolvedCwd,
     });
 
@@ -3325,9 +3488,9 @@ export async function ensurePiFrame(
   })();
 
   try {
-    return await S.activeFramePromise;
+    return await getAttachmentRuntime().activeFramePromise;
   } finally {
-    S.activeFramePromise = null;
+    getAttachmentRuntime().activeFramePromise = null;
   }
 }
 
@@ -3335,22 +3498,30 @@ export async function rescopePiFrameFromCurrentAsk(
   cwd?: string,
   source = "pi-ask-rescope"
 ): Promise<string | null> {
-  if (!S.focusaAvailable || !S.activeFrameId) return S.activeFrameId;
-  const resolvedCwd = cwd || S.sessionCwd || process.cwd();
-  const ask = trimFrameText(stripQuotedFocusaContext(S.currentAsk?.text || ""), 100);
-  const askKind = S.currentAsk?.kind || "unknown";
-  if (!ask || askKind === "meta" || isNonTaskStatusLikeText(ask)) return S.activeFrameId;
+  if (!getAttachmentRuntime().focusaAvailable || !getAttachmentRuntime().activeFrameId)
+    return getAttachmentRuntime().activeFrameId;
+  const resolvedCwd = cwd || getAttachmentRuntime().sessionCwd || process.cwd();
+  const ask = trimFrameText(stripQuotedFocusaContext(getAttachmentRuntime().currentAsk?.text || ""), 100);
+  const askKind = getAttachmentRuntime().currentAsk?.kind || "unknown";
+  if (!ask || askKind === "meta" || isNonTaskStatusLikeText(ask)) return getAttachmentRuntime().activeFrameId;
 
-  const activeGoal = trimFrameText(stripQuotedFocusaContext(S.activeFrameGoal || ""), 100).toLowerCase();
+  const activeGoal = trimFrameText(
+    stripQuotedFocusaContext(getAttachmentRuntime().activeFrameGoal || ""),
+    100
+  ).toLowerCase();
   const askNorm = ask.toLowerCase();
   const sameMission =
     Boolean(activeGoal) &&
     (askNorm === activeGoal || askNorm.includes(activeGoal) || activeGoal.includes(askNorm));
 
-  const genericFrame = isGenericPiFrameForCwd(resolvedCwd, S.activeFrameTitle, S.activeFrameGoal);
+  const genericFrame = isGenericPiFrameForCwd(
+    resolvedCwd,
+    getAttachmentRuntime().activeFrameTitle,
+    getAttachmentRuntime().activeFrameGoal
+  );
   const explicitContinuation = isExplicitContinuationAsk(ask);
   const shouldRescope = genericFrame || (!explicitContinuation && !sameMission && askNorm.length >= 6);
-  if (!shouldRescope) return S.activeFrameId;
+  if (!shouldRescope) return getAttachmentRuntime().activeFrameId;
 
   try {
     await focusaFetch("/focus/pop", {
@@ -3362,10 +3533,10 @@ export async function rescopePiFrameFromCurrentAsk(
       }),
     });
   } catch {
-    return S.activeFrameId;
+    return getAttachmentRuntime().activeFrameId;
   }
 
-  S.activeFrameId = null;
+  getAttachmentRuntime().activeFrameId = null;
   return await createPiFrame(resolvedCwd, source);
 }
 
@@ -3377,14 +3548,24 @@ export function getEffectiveFocusSnapshot(fs?: any): {
   currentFocus: string;
 } {
   return {
-    decisions: fs?.decisions || S.lastFocusSnapshot.decisions || S.localDecisions,
-    constraints: fs?.constraints || S.lastFocusSnapshot.constraints || S.localConstraints,
-    failures: sanitizeFocusFailures(fs?.failures || S.lastFocusSnapshot.failures || S.localFailures),
-    intent: fs?.intent || S.lastFocusSnapshot.intent || "",
+    decisions:
+      fs?.decisions ||
+      getAttachmentRuntime().lastFocusSnapshot.decisions ||
+      getAttachmentRuntime().localDecisions,
+    constraints:
+      fs?.constraints ||
+      getAttachmentRuntime().lastFocusSnapshot.constraints ||
+      getAttachmentRuntime().localConstraints,
+    failures: sanitizeFocusFailures(
+      fs?.failures ||
+        getAttachmentRuntime().lastFocusSnapshot.failures ||
+        getAttachmentRuntime().localFailures
+    ),
+    intent: fs?.intent || getAttachmentRuntime().lastFocusSnapshot.intent || "",
     currentFocus:
       fs?.current_focus ||
       fs?.current_state ||
-      S.lastFocusSnapshot.currentFocus ||
+      getAttachmentRuntime().lastFocusSnapshot.currentFocus ||
       getLastTrajectoryClarity()?.short_term_goal ||
       "",
   };
@@ -3417,7 +3598,9 @@ function pruneEcsRegistry(now = Date.now()): void {
   type Flat = { kind: string; id: string; storedAt: number; bytes: number };
   const flat: Flat[] = [];
 
-  for (const [kind, bucket] of Object.entries(S.ecsRegistry || {})) {
+  for (const [kind, bucket] of Object.entries(getAttachmentRuntime().ecsRegistry || {}) as Array<
+    [string, Record<string, { content: string; storedAt: number }>]
+  >) {
     for (const [id, record] of Object.entries(bucket || {})) {
       const age = now - (record?.storedAt || 0);
       if (!record || typeof record.content !== "string" || age > ECS_TTL_MS) {
@@ -3427,7 +3610,7 @@ function pruneEcsRegistry(now = Date.now()): void {
       const bytes = Buffer.byteLength(record.content, "utf8");
       flat.push({ kind, id, storedAt: record.storedAt || 0, bytes });
     }
-    if (!Object.keys(bucket || {}).length) delete S.ecsRegistry[kind];
+    if (!Object.keys(bucket || {}).length) delete getAttachmentRuntime().ecsRegistry[kind];
   }
 
   flat.sort((a, b) => a.storedAt - b.storedAt);
@@ -3437,9 +3620,10 @@ function pruneEcsRegistry(now = Date.now()): void {
   while (flat.length && (totalItems > MAX_ECS_ITEMS || totalBytes > MAX_ECS_TOTAL_BYTES)) {
     const victim = flat.shift();
     if (!victim) break;
-    if (S.ecsRegistry[victim.kind]?.[victim.id]) {
-      delete S.ecsRegistry[victim.kind][victim.id];
-      if (!Object.keys(S.ecsRegistry[victim.kind]).length) delete S.ecsRegistry[victim.kind];
+    if (getAttachmentRuntime().ecsRegistry[victim.kind]?.[victim.id]) {
+      delete getAttachmentRuntime().ecsRegistry[victim.kind][victim.id];
+      if (!Object.keys(getAttachmentRuntime().ecsRegistry[victim.kind]).length)
+        delete getAttachmentRuntime().ecsRegistry[victim.kind];
       totalItems -= 1;
       totalBytes = Math.max(0, totalBytes - victim.bytes);
     }
@@ -3447,7 +3631,7 @@ function pruneEcsRegistry(now = Date.now()): void {
 }
 
 export async function persistAuthoritativeState(): Promise<void> {
-  if (S.focusaAvailable && S.activeFrameId) {
+  if (getAttachmentRuntime().focusaAvailable && getAttachmentRuntime().activeFrameId) {
     await getFocusState().catch(() => null);
   }
   persistState();
@@ -3509,24 +3693,32 @@ function boundedVitalInfoPrompted(value: Record<string, number>): Record<string,
 function buildPersistedRecoveryState(): Record<string, any> {
   const workpoint = getScopedWorkpointPacket();
   return {
-    sessionId: S.sessionFrameKey,
-    continuityId: S.continuityId,
+    sessionId: getAttachmentRuntime().sessionFrameKey,
+    continuityId: getAttachmentRuntime().continuityId,
     projectRoot: normalizeProjectRoot(
-      getLastProjectRootResolution()?.projectRoot || S.sessionCwd || process.cwd()
+      getLastProjectRootResolution()?.projectRoot || getAttachmentRuntime().sessionCwd || process.cwd()
     ),
-    frameId: S.activeFrameId,
-    frameTitle: trimPersistText(S.activeFrameTitle),
-    frameGoal: trimPersistText(S.activeFrameGoal),
-    currentAsk: S.currentAsk ? { ...S.currentAsk, text: trimPersistText(S.currentAsk.text) } : null,
-    queryScope: S.queryScope,
-    decisions: tailBounded(S.localDecisions),
-    constraints: tailBounded(S.localConstraints),
-    failures: tailBounded(sanitizeFocusFailures(S.localFailures), 20),
-    authoritativeDecisions: tailBounded(S.lastFocusSnapshot.decisions),
-    authoritativeConstraints: tailBounded(S.lastFocusSnapshot.constraints),
-    authoritativeFailures: tailBounded(sanitizeFocusFailures(S.lastFocusSnapshot.failures), 20),
-    intent: trimPersistText(S.lastFocusSnapshot.intent),
-    currentFocus: trimPersistText(S.lastFocusSnapshot.currentFocus),
+    frameId: getAttachmentRuntime().activeFrameId,
+    frameTitle: trimPersistText(getAttachmentRuntime().activeFrameTitle),
+    frameGoal: trimPersistText(getAttachmentRuntime().activeFrameGoal),
+    currentAsk: getAttachmentRuntime().currentAsk
+      ? {
+          ...getAttachmentRuntime().currentAsk,
+          text: trimPersistText(getAttachmentRuntime().currentAsk.text),
+        }
+      : null,
+    queryScope: getAttachmentRuntime().queryScope,
+    decisions: tailBounded(getAttachmentRuntime().localDecisions),
+    constraints: tailBounded(getAttachmentRuntime().localConstraints),
+    failures: tailBounded(sanitizeFocusFailures(getAttachmentRuntime().localFailures), 20),
+    authoritativeDecisions: tailBounded(getAttachmentRuntime().lastFocusSnapshot.decisions),
+    authoritativeConstraints: tailBounded(getAttachmentRuntime().lastFocusSnapshot.constraints),
+    authoritativeFailures: tailBounded(
+      sanitizeFocusFailures(getAttachmentRuntime().lastFocusSnapshot.failures),
+      20
+    ),
+    intent: trimPersistText(getAttachmentRuntime().lastFocusSnapshot.intent),
+    currentFocus: trimPersistText(getAttachmentRuntime().lastFocusSnapshot.currentFocus),
     projectRootResolution: getLastProjectRootResolution(),
     activeWorkpointPacket: boundedObject(workpoint, 64 * 1024, compactWorkpointPacket(workpoint)),
     activeWorkpointSummary: workpoint ? trimPersistText(getActiveWorkpointSummary()) : "",
@@ -3547,22 +3739,25 @@ function buildPersistedRecoveryState(): Record<string, any> {
       status: getLastProjectVerify()?.status || null,
     }),
     latestReportSummary: getLatestReportSummary(),
-    toolOutputPressure: S.toolOutputPressure?.recapRequired
+    toolOutputPressure: getAttachmentRuntime().toolOutputPressure?.recapRequired
       ? {
           recapRequired: true,
-          recapReason: trimPersistText(S.toolOutputPressure.recapReason),
-          lastToolName: trimPersistText(S.toolOutputPressure.lastToolName),
+          recapReason: trimPersistText(getAttachmentRuntime().toolOutputPressure.recapReason),
+          lastToolName: trimPersistText(getAttachmentRuntime().toolOutputPressure.lastToolName),
         }
       : null,
-    projectSwitchLedger: S.projectSwitchLedger.slice(0, PROJECT_SWITCH_LEDGER_MAX_OBSERVATIONS),
-    vitalInfoPrompted: boundedVitalInfoPrompted(S.vitalInfoPrompted),
-    lastCompactResumeKey: S.lastCompactResumeKey,
-    lastCompactResumeAt: S.lastCompactResumeAt,
+    projectSwitchLedger: getAttachmentRuntime().projectSwitchLedger.slice(
+      0,
+      PROJECT_SWITCH_LEDGER_MAX_OBSERVATIONS
+    ),
+    vitalInfoPrompted: boundedVitalInfoPrompted(getAttachmentRuntime().vitalInfoPrompted),
+    lastCompactResumeKey: getAttachmentRuntime().lastCompactResumeKey,
+    lastCompactResumeAt: getAttachmentRuntime().lastCompactResumeAt,
     turnCount: getTurnCount(),
-    wbmEnabled: S.wbmEnabled,
-    wbmNoCatalogue: S.wbmNoCatalogue,
-    cataloguedDecisions: tailBounded(S.cataloguedDecisions),
-    cataloguedFacts: tailBounded(S.cataloguedFacts),
+    wbmEnabled: getAttachmentRuntime().wbmEnabled,
+    wbmNoCatalogue: getAttachmentRuntime().wbmNoCatalogue,
+    cataloguedDecisions: tailBounded(getAttachmentRuntime().cataloguedDecisions),
+    cataloguedFacts: tailBounded(getAttachmentRuntime().cataloguedFacts),
     totalCompactions: getTotalCompactions(),
   };
 }
@@ -3576,13 +3771,18 @@ function appendBoundedNativeEntry(
   if (bytes > hardCap) {
     focusaPost("/telemetry/trace", {
       event_type: "pi_persistence_anchor_rejected_oversized",
-      payload: { custom_type: customType, bytes, hard_cap: hardCap, session_id: S.sessionFrameKey },
+      payload: {
+        custom_type: customType,
+        bytes,
+        hard_cap: hardCap,
+        session_id: getAttachmentRuntime().sessionFrameKey,
+      },
     });
     return false;
   }
-  if (!S.pi) return false;
+  if (!getAttachmentRuntime().pi) return false;
   try {
-    S.pi.appendEntry(customType, payload);
+    getAttachmentRuntime().pi.appendEntry(customType, payload);
     return true;
   } catch (error) {
     focusaPost("/telemetry/trace", {
@@ -3590,7 +3790,7 @@ function appendBoundedNativeEntry(
       payload: {
         custom_type: customType,
         bytes,
-        session_id: S.sessionFrameKey,
+        session_id: getAttachmentRuntime().sessionFrameKey,
         error: String((error as Error)?.message || error),
       },
     });
@@ -3600,15 +3800,18 @@ function appendBoundedNativeEntry(
 
 function projectSwitchSemanticPayload(): Record<string, any> {
   return {
-    observations: stableSemanticValue(S.projectSwitchLedger.slice(0, 6), "projectSwitchLedger"),
+    observations: stableSemanticValue(
+      getAttachmentRuntime().projectSwitchLedger.slice(0, 6),
+      "projectSwitchLedger"
+    ),
   };
 }
 
 function persistProjectSwitchLedgerAnchor(): void {
-  if (!S.pi) return;
+  if (!getAttachmentRuntime().pi) return;
   const semantic = projectSwitchSemanticPayload();
   const digest = semanticPersistenceDigest(semantic);
-  if (digest === S.lastProjectSwitchPersistHash) return;
+  if (digest === getAttachmentRuntime().lastProjectSwitchPersistHash) return;
   const payload: Record<string, any> = {
     schema: "focusa.project_switch_anchor.v1",
     semanticDigest: digest,
@@ -3624,18 +3827,18 @@ function persistProjectSwitchLedgerAnchor(): void {
   }
   if (Buffer.byteLength(JSON.stringify(payload), "utf8") > PROJECT_SWITCH_ANCHOR_MAX_BYTES) return;
   if (appendBoundedNativeEntry("focusa-project-switch-ledger", payload, PROJECT_SWITCH_ANCHOR_MAX_BYTES)) {
-    S.lastProjectSwitchPersistHash = digest;
+    getAttachmentRuntime().lastProjectSwitchPersistHash = digest;
   }
 }
 
 export function persistState(): void {
-  if (!S.sessionFrameKey) return;
+  if (!getAttachmentRuntime().sessionFrameKey) return;
   const recoveryState = buildPersistedRecoveryState();
   const semanticDigest = semanticPersistenceDigest(recoveryState);
-  const semanticChanged = semanticDigest !== S.lastPersistHash;
+  const semanticChanged = semanticDigest !== getAttachmentRuntime().lastPersistHash;
 
   if (semanticChanged) {
-    const revision = S.persistRevision + 1;
+    const revision = getAttachmentRuntime().persistRevision + 1;
     let sidecar: { key: string; bytes: number };
     try {
       sidecar = writeRecoverySidecar(recoveryState, semanticDigest, revision);
@@ -3643,30 +3846,34 @@ export function persistState(): void {
       focusaPost("/telemetry/trace", {
         event_type: "pi_persistence_sidecar_write_failed",
         payload: {
-          session_id: S.sessionFrameKey,
+          session_id: getAttachmentRuntime().sessionFrameKey,
           error: String((error as Error)?.message || error),
         },
       });
       return;
     }
 
-    S.lastPersistHash = semanticDigest;
-    S.persistRevision = revision;
-    S.lastPersistSidecarKey = sidecar.key;
-    S.lastPersistSidecarBytes = sidecar.bytes;
-    S.pendingPersistAnchor = true;
+    getAttachmentRuntime().lastPersistHash = semanticDigest;
+    getAttachmentRuntime().persistRevision = revision;
+    getAttachmentRuntime().lastPersistSidecarKey = sidecar.key;
+    getAttachmentRuntime().lastPersistSidecarBytes = sidecar.bytes;
+    getAttachmentRuntime().pendingPersistAnchor = true;
   }
 
-  if (!S.pendingPersistAnchor || !S.lastPersistSidecarKey) return;
+  if (!getAttachmentRuntime().pendingPersistAnchor || !getAttachmentRuntime().lastPersistSidecarKey) return;
   const now = Date.now();
-  if (S.lastPersistAt > 0 && now - S.lastPersistAt < PERSIST_MIN_INTERVAL_MS) return;
+  if (
+    getAttachmentRuntime().lastPersistAt > 0 &&
+    now - getAttachmentRuntime().lastPersistAt < PERSIST_MIN_INTERVAL_MS
+  )
+    return;
 
   const workpoint = compactWorkpointPacket(recoveryState.activeWorkpointPacket);
   const trajectory = compactTrajectoryClarity(recoveryState.lastTrajectoryClarity);
   const anchor = {
     schema: COMPACTION_PERSISTENCE_ANCHOR_SCHEMA,
-    anchorRevision: S.persistRevision,
-    semanticDigest: S.lastPersistHash,
+    anchorRevision: getAttachmentRuntime().persistRevision,
+    semanticDigest: getAttachmentRuntime().lastPersistHash,
     sessionId: recoveryState.sessionId,
     continuityId: recoveryState.continuityId,
     projectRoot: recoveryState.projectRoot,
@@ -3683,30 +3890,30 @@ export function persistState(): void {
     checkpointId: workpoint?.checkpoint_id || null,
     trajectoryId: trajectory?.trajectory_id || null,
     hltStatus: trajectory?.hlt_status || null,
-    sidecarKey: S.lastPersistSidecarKey,
-    sidecarBytes: S.lastPersistSidecarBytes,
+    sidecarKey: getAttachmentRuntime().lastPersistSidecarKey,
+    sidecarBytes: getAttachmentRuntime().lastPersistSidecarBytes,
     createdAt: new Date(now).toISOString(),
   };
   if (!appendBoundedNativeEntry("focusa-state", anchor, NATIVE_ANCHOR_MAX_BYTES)) return;
 
-  if (S.wbmEnabled) {
+  if (getAttachmentRuntime().wbmEnabled) {
     appendBoundedNativeEntry(
       "focusa-wbm-state",
       {
         schema: COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA,
-        anchorRevision: S.persistRevision,
-        semanticDigest: S.lastPersistHash,
+        anchorRevision: getAttachmentRuntime().persistRevision,
+        semanticDigest: getAttachmentRuntime().lastPersistHash,
         sessionId: recoveryState.sessionId,
         continuityId: recoveryState.continuityId,
         projectRoot: recoveryState.projectRoot,
-        sidecarKey: S.lastPersistSidecarKey,
+        sidecarKey: getAttachmentRuntime().lastPersistSidecarKey,
         createdAt: new Date(now).toISOString(),
       },
       NATIVE_ANCHOR_MAX_BYTES
     );
   }
-  S.pendingPersistAnchor = false;
-  S.lastPersistAt = now;
+  getAttachmentRuntime().pendingPersistAnchor = false;
+  getAttachmentRuntime().lastPersistAt = now;
 }
 
 // ── Estimate tokens from bytes (§7.4) ────────────────────────────────────────
@@ -3723,20 +3930,20 @@ let _handleCounter = 0;
 
 export function storeEcsArtifact(kind: string, content: string): string {
   const id = `local-${Date.now()}-${++_handleCounter}`;
-  if (!S.ecsRegistry[kind]) S.ecsRegistry[kind] = {};
+  if (!getAttachmentRuntime().ecsRegistry[kind]) getAttachmentRuntime().ecsRegistry[kind] = {};
   const raw = String(content || "");
   const clipped =
     Buffer.byteLength(raw, "utf8") > MAX_ECS_ITEM_BYTES
       ? `${raw.slice(0, MAX_ECS_ITEM_BYTES)}\n...[local ECS clipped due to memory cap]`
       : raw;
-  S.ecsRegistry[kind][id] = { content: clipped, storedAt: Date.now() };
+  getAttachmentRuntime().ecsRegistry[kind][id] = { content: clipped, storedAt: Date.now() };
   pruneEcsRegistry();
   return id;
 }
 
 export function getEcsArtifact(kind: string, id: string): string | null {
   pruneEcsRegistry();
-  return S.ecsRegistry[kind]?.[id]?.content ?? null;
+  return getAttachmentRuntime().ecsRegistry[kind]?.[id]?.content ?? null;
 }
 
 export function extractHandles(text: string): Array<{ kind: string; id: string }> {
@@ -3751,9 +3958,9 @@ export function extractHandles(text: string): Array<{ kind: string; id: string }
 // Spec 104 — Typed Scoped Runtime Stores (PI-01 foundation)
 // ═══════════════════════════════════════════════════════════════════════════════
 //
-// Migration path from `const S` singleton to typed scope-keyed stores.
+// Migration path from `the mutable runtime object to typed scope-keyed stores.
 // Each scope (project, host, workstream) gets its own TypedScopeStore instance.
-// Consumers eventually read from getScopeStore() instead of S directly.
+// Consumers eventually read from getScopeStore() through typed runtime accessors.
 //
 // The registry (ScopeStoreRegistry) is an infra-only singleton — it is NOT
 // an authority-bearing global. It simply manages lifecycle of stores.
@@ -3770,7 +3977,7 @@ export interface TypedScopeIdentity {
 
 /**
  * A typed, scoped runtime store containing all state relevant to one scope.
- * This replaces ad-hoc S fields with explicit typed accessors.
+ * This replaces ad-hoc mutable fields with explicit typed accessors.
  */
 export class TypedScopeStore {
   readonly identity: TypedScopeIdentity;
@@ -3944,19 +4151,18 @@ export const scopeStoreRegistry = new ScopeStoreRegistry();
  * Returns null if no verified scope exists (caller must handle blocked state).
  */
 export function getCurrentScopeStore(): TypedScopeStore | null {
-  const resolution = S.lastProjectRootResolution;
-  if (!resolution?.projectRoot || !S.sessionCwd) return null;
+  const rootPath = normalizeProjectRoot(getAttachmentRuntime().sessionCwd || "");
+  if (!rootPath) return null;
   const identity: TypedScopeIdentity = {
     scopeKind: "project",
-    rootPath: resolution.projectRoot,
-    continuityId: S.continuityId || undefined,
-    sessionId: S.sessionFrameKey || undefined,
+    rootPath,
+    continuityId: getAttachmentRuntime().continuityId || undefined,
+    sessionId: getAttachmentRuntime().sessionFrameKey || undefined,
   };
   const store = scopeStoreRegistry.getOrCreate(identity);
-  if (!store.lastProjectRootResolution) store.lastProjectRootResolution = resolution;
-  if (!store.sessionCwd) store.sessionCwd = S.sessionCwd;
-  if (!store.continuityId) store.continuityId = S.continuityId;
-  if (!store.sessionFrameKey) store.sessionFrameKey = S.sessionFrameKey;
+  if (!store.sessionCwd) store.sessionCwd = getAttachmentRuntime().sessionCwd;
+  if (!store.continuityId) store.continuityId = getAttachmentRuntime().continuityId;
+  if (!store.sessionFrameKey) store.sessionFrameKey = getAttachmentRuntime().sessionFrameKey;
   return store;
 }
 
@@ -3978,34 +4184,35 @@ export function setCurrentScopeEnvelope(envelope: {
 }
 
 /**
- * Sync current S fields into the active TypedScopeStore.
- * Call this after S.sessionCwd/S.continuityId/S.sessionFrameKey are set
+ * Sync current runtime fields into the active TypedScopeStore.
+ * Call this after getAttachmentRuntime().sessionCwd/getAttachmentRuntime().continuityId/getAttachmentRuntime().sessionFrameKey are set
  * (e.g., at session start/resume) so scope-keyed consumers are consistent.
  */
-export function syncSFieldsToScopeStore(): void {
+export function syncRuntimeFieldsToScopeStore(): void {
   const store = getCurrentScopeStore();
   if (!store) return;
-  store.sessionCwd = S.sessionCwd;
-  store.continuityId = S.continuityId;
-  store.sessionFrameKey = S.sessionFrameKey;
-  // turnCount migrated to scope store (PI-07, no longer synced from S)
-  store.activeFrameId = S.activeFrameId;
-  store.focusaAvailable = S.focusaAvailable;
+  store.sessionCwd = getAttachmentRuntime().sessionCwd;
+  store.continuityId = getAttachmentRuntime().continuityId;
+  store.sessionFrameKey = getAttachmentRuntime().sessionFrameKey;
+  // turnCount migrated to scope store (PI-07, no longer synced from runtime)
+  store.activeFrameId = getAttachmentRuntime().activeFrameId;
+  store.focusaAvailable = getAttachmentRuntime().focusaAvailable;
 }
 
 /**
- * Sync current TypedScopeStore fields back into S.
+ * Sync current TypedScopeStore fields back into getAttachmentRuntime().
  * Call this after scope-keyed operations update the store.
  */
-export function syncScopeStoreFieldsToS(): void {
+export function syncScopeStoreFieldsToRuntime(): void {
   const store = getCurrentScopeStore();
   if (!store) return;
-  S.sessionCwd = store.sessionCwd || S.sessionCwd;
-  S.continuityId = store.continuityId || S.continuityId;
-  S.sessionFrameKey = store.sessionFrameKey || S.sessionFrameKey;
+  getAttachmentRuntime().sessionCwd = store.sessionCwd || getAttachmentRuntime().sessionCwd;
+  getAttachmentRuntime().continuityId = store.continuityId || getAttachmentRuntime().continuityId;
+  getAttachmentRuntime().sessionFrameKey = store.sessionFrameKey || getAttachmentRuntime().sessionFrameKey;
   // turnCount synced via scope store only (PI-07, removed from singleton)
-  if (store.activeFrameId !== null) S.activeFrameId = store.activeFrameId;
-  if (store.focusaAvailable !== S.focusaAvailable) S.focusaAvailable = store.focusaAvailable;
+  if (store.activeFrameId !== null) getAttachmentRuntime().activeFrameId = store.activeFrameId;
+  if (store.focusaAvailable !== getAttachmentRuntime().focusaAvailable)
+    getAttachmentRuntime().focusaAvailable = store.focusaAvailable;
 }
 
 /**
@@ -4033,60 +4240,66 @@ export function incrementTurnCount(): void {
 }
 
 /**
- * Convenience: get active frame id from scope store (preferred) or S fallback.
+ * Convenience: get active frame id from scope store (preferred) or runtime value.
  */
 export function getActiveFrameId(): string | null {
   const store = getCurrentScopeStore();
-  return store?.activeFrameId ?? S.activeFrameId;
+  return store?.activeFrameId ?? getAttachmentRuntime().activeFrameId;
 }
 
 /**
- * Convenience: get continuity id from scope store (preferred) or S fallback.
+ * Convenience: get continuity id from scope store (preferred) or runtime value.
  */
 export function getContinuityId(): string {
   const store = getCurrentScopeStore();
-  return store?.continuityId || S.continuityId || "";
+  return store?.continuityId || getAttachmentRuntime().continuityId || "";
 }
 
 /**
- * Convenience: get session frame key from scope store (preferred) or S fallback.
+ * Convenience: get session frame key from scope store (preferred) or runtime value.
  */
 export function getSessionFrameKey(): string {
   const store = getCurrentScopeStore();
-  return store?.sessionFrameKey || S.sessionFrameKey || "";
+  return store?.sessionFrameKey || getAttachmentRuntime().sessionFrameKey || "";
 }
 
 /**
- * Convenience: get session cwd from scope store (preferred) or S fallback.
+ * Convenience: get session cwd from scope store (preferred) or runtime value.
  */
 export function getSessionCwd(): string {
   const store = getCurrentScopeStore();
-  return store?.sessionCwd || S.sessionCwd || "";
+  return store?.sessionCwd || getAttachmentRuntime().sessionCwd || "";
 }
 
 /**
- * Convenience: get focusa available flag from scope store (preferred) or S fallback.
+ * Convenience: get focusa available flag from scope store (preferred) or runtime value.
  */
 export function getFocusaAvailable(): boolean {
   const store = getCurrentScopeStore();
-  return store?.focusaAvailable ?? S.focusaAvailable;
+  return store?.focusaAvailable ?? getAttachmentRuntime().focusaAvailable;
 }
 
 /**
- * PI-02: Get the last project root resolution from scope store (preferred) or S fallback.
+ * PI-02: Get the last project root resolution from the typed scope store only.
  */
 export function getLastProjectRootResolution(): TypedScopeStore["lastProjectRootResolution"] {
   const store = getCurrentScopeStore();
-  return store?.lastProjectRootResolution ?? S.lastProjectRootResolution;
+  return store?.lastProjectRootResolution ?? null;
 }
 
 /**
- * PI-02: Set lastProjectRootResolution on both scope store and S singleton.
+ * PI-02: Set lastProjectRootResolution on the typed scope store only.
  */
 export function setLastProjectRootResolution(resolution: TypedScopeStore["lastProjectRootResolution"]): void {
-  S.lastProjectRootResolution = resolution;
-  const store = getCurrentScopeStore();
-  if (store) store.lastProjectRootResolution = resolution;
+  if (!resolution?.projectRoot) return;
+  const identity: TypedScopeIdentity = {
+    scopeKind: "project",
+    rootPath: normalizeProjectRoot(resolution.projectRoot),
+    continuityId: getAttachmentRuntime().continuityId || undefined,
+    sessionId: getAttachmentRuntime().sessionFrameKey || undefined,
+  };
+  const store = scopeStoreRegistry.getOrCreate(identity);
+  store.lastProjectRootResolution = resolution;
 }
 
 /**
@@ -4287,7 +4500,7 @@ export function setCompilationErrors(arr: Array<number>): void {
   if (store) store.compilationErrors = arr;
 }
 
-/** PI-07: Reset file edit counts on both scope store and S. */
+/** PI-07: Reset file edit counts on both scope store and getAttachmentRuntime(). */
 export function resetFileEditCounts(): void {
   const store = getCurrentScopeStore();
   if (store) store.fileEditCounts = {};
@@ -4299,13 +4512,13 @@ export function setFileEditCounts(rec: Record<string, number>): void {
   if (store) store.fileEditCounts = rec;
 }
 
-/** PI-08: Get in-tool-context flag from scope store (no S fallback — new field). */
+/** PI-08: Get in-tool-context flag from scope store (no global fallback — new field). */
 export function getInToolContext(): boolean {
   const store = getCurrentScopeStore();
   return store ? store.inToolContext : false;
 }
 
-/** PI-08: Set in-tool-context flag on scope store only (no S fallback — new field). */
+/** PI-08: Set in-tool-context flag on scope store only (no global fallback — new field). */
 export function setInToolContext(v: boolean): void {
   const store = getCurrentScopeStore();
   if (store) store.inToolContext = v;

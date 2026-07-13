@@ -2,14 +2,26 @@
 // Pi's native threshold compaction remains primary. This guard prevents silent
 // regressions when host auto-compaction is disabled or misconfigured.
 
-import type {
-  ContextUsage,
-  ExtensionAPI,
-  ExtensionContext,
-} from "@mariozechner/pi-coding-agent";
+import type { ContextUsage, ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
+
+// The deployed Pi runtime exposes agent_settled (documented public event), while
+// the extension's pinned 0.64 development declarations predate that overload.
+declare module "@mariozechner/pi-coding-agent" {
+  interface ExtensionAPI {
+    on(
+      event: "agent_settled",
+      handler: (event: { type: "agent_settled" }, ctx: ExtensionContext) => Promise<void> | void
+    ): void;
+  }
+}
 
 export const PROACTIVE_COMPACTION_MIN_RESERVE_TOKENS = 16_384;
 export const PROACTIVE_COMPACTION_RESERVE_FRACTION = 0.1;
+// Provider-advertised windows can be hundreds of thousands of tokens. Waiting
+// until the final reserve window caused real sessions to reach 371K before a
+// manual /compact. Focusa's balanced policy compacts at 70% instead.
+export const PROACTIVE_COMPACTION_TRIGGER_FRACTION = 0.7;
+export const PROACTIVE_COMPACTION_ABSOLUTE_TOKEN_CAP = 256_000;
 export const PROACTIVE_COMPACTION_COOLDOWN_MS = 60_000;
 
 export interface ProactiveCompactionDecision {
@@ -22,9 +34,7 @@ export interface ProactiveCompactionDecision {
   reason: "unknown_usage" | "below_threshold" | "context_pressure";
 }
 
-export function proactiveCompactionDecision(
-  usage: ContextUsage | undefined
-): ProactiveCompactionDecision {
+export function proactiveCompactionDecision(usage: ContextUsage | undefined): ProactiveCompactionDecision {
   const tokens = usage?.tokens ?? null;
   const contextWindow = Math.max(0, usage?.contextWindow ?? 0);
   const reserveTokens =
@@ -37,11 +47,19 @@ export function proactiveCompactionDecision(
           )
         )
       : 0;
-  const triggerAtTokens = Math.max(0, contextWindow - reserveTokens);
+  const triggerAtTokens =
+    contextWindow > 0
+      ? Math.max(
+          1,
+          Math.min(
+            contextWindow - reserveTokens,
+            Math.ceil(contextWindow * PROACTIVE_COMPACTION_TRIGGER_FRACTION),
+            PROACTIVE_COMPACTION_ABSOLUTE_TOKEN_CAP
+          )
+        )
+      : 0;
   const percent =
-    tokens !== null && contextWindow > 0
-      ? Math.round((tokens / contextWindow) * 10_000) / 100
-      : null;
+    tokens !== null && contextWindow > 0 ? Math.round((tokens / contextWindow) * 10_000) / 100 : null;
   if (tokens === null || contextWindow <= 0) {
     return {
       trigger: false,
@@ -84,10 +102,7 @@ export function registerAutoCompaction(pi: ExtensionAPI): void {
 
     pending = true;
     lastTriggeredAt = now;
-    ctx.ui.setStatus(
-      "focusa-auto-compaction",
-      `auto-compacting · ${decision.percent ?? "?"}% context`
-    );
+    ctx.ui.setStatus("focusa-auto-compaction", `auto-compacting · ${decision.percent ?? "?"}% context`);
     ctx.ui.notify(
       `Focusa auto-compaction triggered at ${decision.percent ?? "unknown"}% context usage.`,
       "info"

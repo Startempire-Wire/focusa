@@ -8,13 +8,13 @@ function assert(condition: any, message: string): asserts condition {
 }
 
 const below = proactiveCompactionDecision({
-  tokens: 300_000,
+  tokens: 250_000,
   contextWindow: 372_000,
-  percent: 80.65,
+  percent: 67.2,
 });
 assert(!below.trigger, "below-threshold context triggered compaction");
 assert(below.reserveTokens === 37_200, "adaptive reserve mismatch");
-assert(below.triggerAtTokens === 334_800, "adaptive trigger mismatch");
+assert(below.triggerAtTokens === 256_000, "balanced/absolute trigger mismatch");
 
 const pressured = proactiveCompactionDecision({
   tokens: 371_566,
@@ -30,6 +30,10 @@ const smallWindow = proactiveCompactionDecision({
   percent: 87.5,
 });
 assert(smallWindow.reserveTokens === 16_384, "minimum reserve mismatch");
+assert(
+  smallWindow.triggerAtTokens === 89_600,
+  "small-window balanced trigger mismatch",
+);
 assert(smallWindow.trigger, "small-window pressure did not trigger");
 
 const unknown = proactiveCompactionDecision({
@@ -37,7 +41,10 @@ const unknown = proactiveCompactionDecision({
   contextWindow: 372_000,
   percent: null,
 });
-assert(!unknown.trigger && unknown.reason === "unknown_usage", "unknown usage was not fail-open");
+assert(
+  !unknown.trigger && unknown.reason === "unknown_usage",
+  "unknown usage was not fail-open",
+);
 
 const handlers = new Map<string, Function[]>();
 const pi = {
@@ -49,7 +56,10 @@ const pi = {
 };
 registerAutoCompaction(pi as any);
 assert(handlers.has("agent_end"), "agent_end fallback not registered");
-assert(handlers.has("agent_settled"), "agent_settled idle-boundary fallback not registered");
+assert(
+  handlers.has("agent_settled"),
+  "agent_settled idle-boundary fallback not registered",
+);
 assert(handlers.has("session_compact"), "session_compact reset not registered");
 
 let usage: any = { tokens: 371_566, contextWindow: 372_000, percent: 99.88 };
@@ -80,9 +90,15 @@ await invoke("session_start", {}, ctx);
 await invoke("agent_end", {}, ctx);
 await waitForTimer();
 assert(compactCalls === 1, "pressure fallback did not invoke ctx.compact");
-assert(typeof compactOptions.onComplete === "function", "completion callback missing");
+assert(
+  typeof compactOptions.onComplete === "function",
+  "completion callback missing",
+);
 assert(typeof compactOptions.onError === "function", "error callback missing");
-assert(statuses.some(([key]) => key === "focusa-auto-compaction"), "status not exposed");
+assert(
+  statuses.some(([key]) => key === "focusa-auto-compaction"),
+  "status not exposed",
+);
 
 await invoke("agent_end", {}, ctx);
 await waitForTimer();
@@ -100,7 +116,10 @@ await waitForTimer();
 assert(compactCalls === 1, "busy agent_end should not compact");
 idle = true;
 await invoke("agent_settled", {}, ctx);
-assert(compactCalls === 2, "settled idle boundary did not recover skipped compaction");
+assert(
+  compactCalls === 2,
+  "settled idle boundary did not recover skipped compaction",
+);
 compactOptions.onComplete({});
 
 // Native Pi compaction gets first chance: usage becomes unknown before the

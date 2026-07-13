@@ -2,11 +2,11 @@
 // Spec: §29 (full WBM), §29 --no-catalogue flag, §29 objectives.yaml, §29 LLM extraction
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, wbExec, extractText } from "./state.js";
+import { getAttachmentRuntime, focusaFetch, wbExec, extractText } from "./state.js";
 
 // ── Inbound: Fetch Wirebot context for before_agent_start injection (§29) ────
 export async function fetchWbmContext(): Promise<string> {
-  const cfg = S.cfg;
+  const cfg = getAttachmentRuntime().cfg;
   const ccUrl = cfg?.contextCoreUrl || "http://127.0.0.1:7400";
   const sbUrl = cfg?.scoreboardUrl || "http://127.0.0.1:8100";
   const sbToken = cfg?.scoreboardToken || "";
@@ -91,7 +91,7 @@ export async function fetchWbmContext(): Promise<string> {
   }
 
   // Deep mode extras: wiki decisions, Mem0
-  if (S.wbmDeep) {
+  if (getAttachmentRuntime().wbmDeep) {
     const wiki = await wbExec(["wiki", "search", "tag:decision", "--limit", "3", "--format", "json"]);
     if (wiki?.results?.length) {
       parts.push(
@@ -112,8 +112,8 @@ export async function fetchWbmContext(): Promise<string> {
 // ── Outbound: Catalogue work meta via WINS queue (§29) ───────────────────────
 // §29: Uses LLM extraction (MiniMax M2.7) with regex fallback
 export async function catalogueFromMessages(messages: any[]): Promise<number> {
-  if (S.wbmNoCatalogue) return 0;
-  const sbUrl = S.cfg?.scoreboardUrl || "http://127.0.0.1:8100";
+  if (getAttachmentRuntime().wbmNoCatalogue) return 0;
+  const sbUrl = getAttachmentRuntime().cfg?.scoreboardUrl || "http://127.0.0.1:8100";
 
   // Collect user + assistant messages with >50 chars (§29: "keep user + assistant")
   const allChunks: string[] = [];
@@ -133,7 +133,7 @@ export async function catalogueFromMessages(messages: any[]): Promise<number> {
 
   // §29: Try LLM extraction first (MiniMax M2.7 via Focusa) — per window
   const extracted: { type: string; text: string }[] = [];
-  if (S.focusaAvailable) {
+  if (getAttachmentRuntime().focusaAvailable) {
     for (const window of windows) {
       try {
         const r = await focusaFetch("/extract/work-meta", {
@@ -182,8 +182,8 @@ export async function catalogueFromMessages(messages: any[]): Promise<number> {
     );
     if (ok) {
       count++;
-      if (item.type === "decision") S.cataloguedDecisions.push(item.text);
-      else S.cataloguedFacts.push(item.text);
+      if (item.type === "decision") getAttachmentRuntime().cataloguedDecisions.push(item.text);
+      else getAttachmentRuntime().cataloguedFacts.push(item.text);
     }
   }
   return count;
@@ -196,74 +196,81 @@ export function registerWbm(pi: ExtensionAPI) {
     handler: async (args, ctx) => {
       const parts = (args || "").trim().toLowerCase().split(/\s+/);
       const sub = parts[0] || "toggle";
-      const sbUrl = S.cfg?.scoreboardUrl || "http://127.0.0.1:8100";
+      const sbUrl = getAttachmentRuntime().cfg?.scoreboardUrl || "http://127.0.0.1:8100";
 
       switch (sub) {
         case "on": {
-          S.wbmEnabled = true;
-          S.wbmDeep = false;
+          getAttachmentRuntime().wbmEnabled = true;
+          getAttachmentRuntime().wbmDeep = false;
           // §29: --no-catalogue flag
-          S.wbmNoCatalogue = parts.includes("--no-catalogue") || parts.includes("--no-catalog");
-          const suffix = S.wbmNoCatalogue ? " (no catalogue)" : "";
+          getAttachmentRuntime().wbmNoCatalogue =
+            parts.includes("--no-catalogue") || parts.includes("--no-catalog");
+          const suffix = getAttachmentRuntime().wbmNoCatalogue ? " (no catalogue)" : "";
           ctx.ui.notify(`Wirebot Mode: ON${suffix}`, "info");
           ctx.ui.setStatus("focusa", `🤖 Focusa WBM${suffix}`);
           break;
         }
         case "off":
-          S.wbmEnabled = false;
-          S.wbmDeep = false;
-          S.wbmNoCatalogue = false;
-          S.cataloguedDecisions = [];
-          S.cataloguedFacts = [];
+          getAttachmentRuntime().wbmEnabled = false;
+          getAttachmentRuntime().wbmDeep = false;
+          getAttachmentRuntime().wbmNoCatalogue = false;
+          getAttachmentRuntime().cataloguedDecisions = [];
+          getAttachmentRuntime().cataloguedFacts = [];
           ctx.ui.notify("Wirebot Mode: OFF", "info");
           ctx.ui.setStatus("focusa", "🧭 Focusa");
           break;
 
         case "status":
           ctx.ui.notify(
-            `WBM: ${S.wbmEnabled ? (S.wbmDeep ? "DEEP" : "ON") : "OFF"}` +
-              `${S.wbmNoCatalogue ? " (no-catalogue)" : ""}\n` +
-              `Catalogued: ${S.cataloguedDecisions.length} decisions, ${S.cataloguedFacts.length} facts`,
+            `WBM: ${getAttachmentRuntime().wbmEnabled ? (getAttachmentRuntime().wbmDeep ? "DEEP" : "ON") : "OFF"}` +
+              `${getAttachmentRuntime().wbmNoCatalogue ? " (no-catalogue)" : ""}\n` +
+              `Catalogued: ${getAttachmentRuntime().cataloguedDecisions.length} decisions, ${getAttachmentRuntime().cataloguedFacts.length} facts`,
             "info"
           );
           break;
 
         case "deep":
-          S.wbmEnabled = true;
-          S.wbmDeep = true;
+          getAttachmentRuntime().wbmEnabled = true;
+          getAttachmentRuntime().wbmDeep = true;
           const wbmCtx = await fetchWbmContext();
           ctx.ui.notify(`WBM Deep: context loaded (${wbmCtx.length} chars)`, "info");
           ctx.ui.setStatus("focusa", "⚡ Focusa WBM deep");
           break;
 
         case "flush": {
-          const total = S.cataloguedDecisions.length + S.cataloguedFacts.length;
-          for (const d of S.cataloguedDecisions) {
+          const total =
+            getAttachmentRuntime().cataloguedDecisions.length + getAttachmentRuntime().cataloguedFacts.length;
+          for (const d of getAttachmentRuntime().cataloguedDecisions) {
             await wbExec(
               ["memory", "queue", "--source", "pi_session", "--type", "decision", d],
               `${sbUrl}/v1/memory/queue`,
               { memory_text: d, source_type: "pi_session", confidence: 0.85, type: "decision" }
             );
           }
-          for (const f of S.cataloguedFacts) {
+          for (const f of getAttachmentRuntime().cataloguedFacts) {
             await wbExec(
               ["memory", "queue", "--source", "pi_session", "--type", "fact", f],
               `${sbUrl}/v1/memory/queue`,
               { memory_text: f, source_type: "pi_session", confidence: 0.85, type: "fact" }
             );
           }
-          S.cataloguedDecisions = [];
-          S.cataloguedFacts = [];
+          getAttachmentRuntime().cataloguedDecisions = [];
+          getAttachmentRuntime().cataloguedFacts = [];
           ctx.ui.notify(`Flushed ${total} items to WINS queue`, "info");
           break;
         }
 
         case "decisions":
-          if (!S.cataloguedDecisions.length) {
+          if (!getAttachmentRuntime().cataloguedDecisions.length) {
             ctx.ui.notify("No decisions catalogued this session", "info");
             break;
           }
-          ctx.ui.notify(S.cataloguedDecisions.map((d, i) => `${i + 1}. ${d}`).join("\n"), "info");
+          ctx.ui.notify(
+            getAttachmentRuntime()
+              .cataloguedDecisions.map((d: string, i: number) => `${i + 1}. ${d}`)
+              .join("\n"),
+            "info"
+          );
           break;
 
         case "ships": {
@@ -283,9 +290,9 @@ export function registerWbm(pi: ExtensionAPI) {
         }
 
         default:
-          S.wbmEnabled = !S.wbmEnabled;
-          ctx.ui.notify(`WBM: ${S.wbmEnabled ? "ON" : "OFF"}`, "info");
-          ctx.ui.setStatus("focusa", S.wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
+          getAttachmentRuntime().wbmEnabled = !getAttachmentRuntime().wbmEnabled;
+          ctx.ui.notify(`WBM: ${getAttachmentRuntime().wbmEnabled ? "ON" : "OFF"}`, "info");
+          ctx.ui.setStatus("focusa", getAttachmentRuntime().wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
       }
     },
   });

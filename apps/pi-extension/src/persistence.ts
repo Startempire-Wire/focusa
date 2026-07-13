@@ -36,8 +36,7 @@ export function stableSemanticValue(value: any, key = ""): any {
         project_alias: entry.project_alias,
         project_root: entry.project_root,
         remote_host: entry.remote_host || null,
-        confidence_class:
-          entry.confidence >= 0.8 ? "high" : entry.confidence >= 0.55 ? "medium" : "low",
+        confidence_class: entry.confidence >= 0.8 ? "high" : entry.confidence >= 0.55 ? "medium" : "low",
         source: entry.source,
         relationship_kind: entry.relationship_kind || null,
         primary_scope_ref: entry.primary_scope_ref || null,

@@ -68,11 +68,11 @@ export function isScopeRef(value: unknown): value is ScopeRef {
   const scope = value as ScopeRef | null;
   return Boolean(
     scope &&
-      (scope.scope_kind === "project" || scope.scope_kind === "host") &&
-      nonempty(scope.scope_id) &&
-      nonempty(scope.root_path) &&
-      nonempty(scope.canonical_name) &&
-      nonempty(scope.fingerprint)
+    (scope.scope_kind === "project" || scope.scope_kind === "host") &&
+    nonempty(scope.scope_id) &&
+    nonempty(scope.root_path) &&
+    nonempty(scope.canonical_name) &&
+    nonempty(scope.fingerprint)
   );
 }
 
@@ -86,7 +86,9 @@ export function buildProjectWorkstreamKey(
   continuityId: string,
   canonicalName?: string
 ): WorkstreamKey {
-  const root = String(projectRoot || "").trim().replace(/\/+$/, "");
+  const root = String(projectRoot || "")
+    .trim()
+    .replace(/\/+$/, "");
   const continuity = String(continuityId || "").trim();
   if (!root || !continuity) throw new Error("typed_scope_required");
   const fingerprint = `sha256:${createHash("sha256").update(root).digest("hex")}`;
@@ -209,8 +211,7 @@ export function renderScopedResultHuman<T>(envelope: ScopedResultEnvelope<T>): s
     `Next action: ${envelope.human.next_action}`,
     `Why: ${envelope.human.why || envelope.authority.why}`,
   ];
-  if (envelope.human.warnings.length)
-    lines.push(`Warnings: ${envelope.human.warnings.join(" | ")}`);
+  if (envelope.human.warnings.length) lines.push(`Warnings: ${envelope.human.warnings.join(" | ")}`);
   if (envelope.human.evidence_refs.length)
     lines.push(`Evidence: ${envelope.human.evidence_refs.join(" | ")}`);
   return lines.join("\n");

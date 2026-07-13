@@ -13,14 +13,13 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-
 const KEYCHAIN_SERVICE: &str = "Focusa Menubar Device Token";
 const BRIDGE_CALLBACK_MAX_BODY: usize = 64 * 1024;
 
 use std::collections::{HashMap, HashSet};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream, UdpSocket};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 /// Spec104 MBN-01 typed scope envelope for bridge messages.
@@ -32,15 +31,29 @@ struct BridgeScope {
     scope_status: Option<String>,
 }
 
-static BRIDGE_COMPLETIONS: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
-static BRIDGE_LISTENERS: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
-
-fn bridge_completions() -> &'static Mutex<HashMap<String, String>> {
-    BRIDGE_COMPLETIONS.get_or_init(|| Mutex::new(HashMap::new()))
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct BridgeAttachmentKey {
+    root_scope: String,
+    workstream: String,
+    session_id: String,
+    attachment_id: String,
 }
 
-fn bridge_listeners() -> &'static Mutex<HashSet<String>> {
-    BRIDGE_LISTENERS.get_or_init(|| Mutex::new(HashSet::new()))
+impl BridgeAttachmentKey {
+    fn from_nonce(nonce: &str) -> Self {
+        Self {
+            root_scope: "host:menubar-bridge".to_string(),
+            workstream: "phone-pairing-callback".to_string(),
+            session_id: "local-tauri".to_string(),
+            attachment_id: nonce.to_string(),
+        }
+    }
+}
+
+#[derive(Default)]
+struct BridgeRuntimeState {
+    completions_by_attachment: Mutex<HashMap<BridgeAttachmentKey, String>>,
+    listeners_by_attachment: Mutex<HashSet<BridgeAttachmentKey>>,
 }
 
 fn best_local_ip() -> String {
@@ -67,9 +80,13 @@ fn read_http_body(stream: &mut TcpStream) -> Result<(String, String), String> {
             break;
         }
         read += n;
-        if read >= 4 && buffer[..read].windows(4).any(|w| w == b"
+        if read >= 4
+            && buffer[..read].windows(4).any(|w| {
+                w == b"
 
-") {
+"
+            })
+        {
             break;
         }
         if read == buffer.len() {
@@ -81,9 +98,11 @@ fn read_http_body(stream: &mut TcpStream) -> Result<(String, String), String> {
     }
     let header_end = buffer[..read]
         .windows(4)
-        .position(|w| w == b"
+        .position(|w| {
+            w == b"
 
-")
+"
+        })
         .ok_or_else(|| "callback missing HTTP header terminator".to_string())?
         + 4;
     let header = String::from_utf8_lossy(&buffer[..header_end]).to_string();
@@ -111,7 +130,11 @@ fn read_http_body(stream: &mut TcpStream) -> Result<(String, String), String> {
     Ok((header, String::from_utf8_lossy(&body).to_string()))
 }
 
-fn handle_bridge_callback(mut stream: TcpStream, nonce: String) {
+fn handle_bridge_callback(
+    mut stream: TcpStream,
+    nonce: String,
+    bridge_state: Arc<BridgeRuntimeState>,
+) {
     // V2 P1.5 hardening: validate Content-Type, body shape, role/protocol,
     // and nonce binding before storing the completion payload. The Mac
     // holds the secret; the LAN bridge only forwards.
@@ -143,14 +166,18 @@ fn handle_bridge_callback(mut stream: TcpStream, nonce: String) {
                     let payload_nonce = v.get("mac_nonce").and_then(|x| x.as_str());
                     if payload_nonce != Some(nonce.as_str()) {
                         "HTTP/1.1 422 Unprocessable Entity\r\nconnection: close\r\n\r\nmac_nonce mismatch"
-                    } else if let Ok(mut completions) = bridge_completions().lock() {
-                        completions.insert(nonce, body);
+                    } else if let Ok(mut completions) =
+                        bridge_state.completions_by_attachment.lock()
+                    {
+                        completions.insert(BridgeAttachmentKey::from_nonce(&nonce), body);
                         "HTTP/1.1 200 OK\r\ncontent-type: text/plain\r\nconnection: close\r\n\r\nFocusa Phone Bridge completion received. You can return to the Mac app."
                     } else {
                         "HTTP/1.1 500 Internal Server Error\r\nconnection: close\r\n\r\ncompletion store poisoned"
                     }
                 }
-                _ => "HTTP/1.1 422 Unprocessable Entity\r\nconnection: close\r\n\r\ninvalid completion payload",
+                _ => {
+                    "HTTP/1.1 422 Unprocessable Entity\r\nconnection: close\r\n\r\ninvalid completion payload"
+                }
             }
         }
         _ => "HTTP/1.1 404 Not Found\r\nconnection: close\r\n\r\nNot found",
@@ -165,7 +192,12 @@ fn content_type_is(header: &str, prefix: &str) -> bool {
         .split('\r')
         .filter_map(|line| line.split_once(':').map(|(k, v)| (k.trim(), v.trim())))
         .find(|(k, _)| k.eq_ignore_ascii_case("content-type"))
-        .map(|(_, v)| v.split(';').next().map(|m| m.trim().starts_with(prefix)).unwrap_or(false))
+        .map(|(_, v)| {
+            v.split(';')
+                .next()
+                .map(|m| m.trim().starts_with(prefix))
+                .unwrap_or(false)
+        })
         .unwrap_or(false)
 }
 
@@ -176,7 +208,10 @@ fn body_bytes_are_valid_json(body: &str) -> bool {
 }
 
 #[tauri::command]
-fn focusa_start_bridge_callback(nonce: String) -> Result<Option<String>, String> {
+fn focusa_start_bridge_callback(
+    nonce: String,
+    bridge_state: tauri::State<'_, Arc<BridgeRuntimeState>>,
+) -> Result<Option<String>, String> {
     if nonce.trim().is_empty() {
         return Err("nonce is required".to_string());
     }
@@ -187,20 +222,28 @@ fn focusa_start_bridge_callback(nonce: String) -> Result<Option<String>, String>
     if std::env::var("FOCUSA_PHONE_BRIDGE_LAN_CALLBACK").as_deref() != Ok("1") {
         return Ok(None);
     }
-    if let Ok(mut listeners) = bridge_listeners().lock() {
-        if listeners.contains(&nonce) {
+    let attachment_key = BridgeAttachmentKey::from_nonce(&nonce);
+    if let Ok(mut listeners) = bridge_state.listeners_by_attachment.lock() {
+        if listeners.contains(&attachment_key) {
             return Err("callback listener already active for nonce".to_string());
         }
-        listeners.insert(nonce.clone());
+        listeners.insert(attachment_key.clone());
     }
-    let listener = TcpListener::bind("0.0.0.0:0").map_err(|e| format!("callback bind failed: {e}"))?;
+    let listener =
+        TcpListener::bind("0.0.0.0:0").map_err(|e| format!("callback bind failed: {e}"))?;
     let port = listener
         .local_addr()
         .map_err(|e| format!("callback local addr failed: {e}"))?
         .port();
-    let callback_url = format!("http://{}:{}/focusa-phone-bridge/{}", best_local_ip(), port, nonce);
+    let callback_url = format!(
+        "http://{}:{}/focusa-phone-bridge/{}",
+        best_local_ip(),
+        port,
+        nonce
+    );
     std::thread::spawn({
         let nonce = nonce.clone();
+        let bridge_state = Arc::clone(bridge_state.inner());
         move || {
             // V2 P1.5: bound the listener to 30s so a missed callback doesn't
             // pin an ephemeral port. After 30s without success, the
@@ -218,8 +261,8 @@ fn focusa_start_bridge_callback(nonce: String) -> Result<Option<String>, String>
             // blocking the thread when no connection is pending.
             if let Err(e) = listener.set_nonblocking(true) {
                 tracing::error!(nonce = %nonce, error = %e, "V2 P0: set_nonblocking(true) failed; aborting listener");
-                if let Ok(mut listeners) = bridge_listeners().lock() {
-                    listeners.remove(&nonce);
+                if let Ok(mut listeners) = bridge_state.listeners_by_attachment.lock() {
+                    listeners.remove(&BridgeAttachmentKey::from_nonce(&nonce));
                 }
                 return;
             }
@@ -229,7 +272,7 @@ fn focusa_start_bridge_callback(nonce: String) -> Result<Option<String>, String>
                 }
                 match listener.accept() {
                     Ok((stream, _peer)) => {
-                        handle_bridge_callback(stream, nonce.clone());
+                        handle_bridge_callback(stream, nonce.clone(), Arc::clone(&bridge_state));
                         handled = true;
                     }
                     Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
@@ -244,8 +287,8 @@ fn focusa_start_bridge_callback(nonce: String) -> Result<Option<String>, String>
                     }
                 }
             }
-            if let Ok(mut listeners) = bridge_listeners().lock() {
-                listeners.remove(&nonce);
+            if let Ok(mut listeners) = bridge_state.listeners_by_attachment.lock() {
+                listeners.remove(&BridgeAttachmentKey::from_nonce(&nonce));
             }
         }
     });
@@ -253,16 +296,19 @@ fn focusa_start_bridge_callback(nonce: String) -> Result<Option<String>, String>
 }
 
 #[tauri::command]
-fn focusa_take_bridge_completion(nonce: String) -> Result<Option<String>, String> {
+fn focusa_take_bridge_completion(
+    nonce: String,
+    bridge_state: tauri::State<'_, Arc<BridgeRuntimeState>>,
+) -> Result<Option<String>, String> {
     if nonce.trim().is_empty() {
         return Err("nonce is required".to_string());
     }
-    bridge_completions()
+    bridge_state
+        .completions_by_attachment
         .lock()
-        .map(|mut completions| completions.remove(&nonce))
+        .map(|mut completions| completions.remove(&BridgeAttachmentKey::from_nonce(&nonce)))
         .map_err(|_| "bridge completion store poisoned".to_string())
 }
-
 
 #[cfg(target_os = "macos")]
 fn run_security(args: &[&str]) -> Result<String, String> {
@@ -357,9 +403,9 @@ fn focusa_clear_pairing_token(device_id: String) -> Result<(), String> {
 }
 
 use tauri::{
+    Manager, WindowEvent,
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager, WindowEvent,
 };
 
 /// Result of a Bonjour / mDNS browse for `_focusa._tcp.local` services.
@@ -393,11 +439,8 @@ async fn focusa_discover_via_bonjour(
         // tokio::time::timeout produces a Result<_, Elapsed>. recv_async
         // itself returns Result<ServiceEvent, flume::RecvError>. So we
         // need double-Result matching: timeout OK + recv OK.
-        if let Ok(Ok(event)) = tokio::time::timeout(
-            std::time::Duration::from_millis(250),
-            receiver.recv_async(),
-        )
-        .await
+        if let Ok(Ok(event)) =
+            tokio::time::timeout(std::time::Duration::from_millis(250), receiver.recv_async()).await
         {
             if let mdns_sd::ServiceEvent::ServiceResolved(info) = event {
                 let name = info.get_fullname().to_string();
@@ -423,9 +466,7 @@ async fn focusa_discover_via_bonjour(
                 let url = txt
                     .get("url")
                     .cloned()
-                    .unwrap_or_else(|| {
-                        format!("http://{}:{}", host.trim_end_matches('.'), port)
-                    });
+                    .unwrap_or_else(|| format!("http://{}:{}", host.trim_end_matches('.'), port));
                 let _ = daemon.shutdown();
                 return Ok(Some(BonjourDiscovery { url, host, port }));
             }
@@ -437,6 +478,7 @@ async fn focusa_discover_via_bonjour(
 
 fn main() {
     tauri::Builder::default()
+        .manage(Arc::new(BridgeRuntimeState::default()))
         .plugin(tauri_plugin_positioner::init())
         .invoke_handler(tauri::generate_handler![
             focusa_save_pairing_token,
