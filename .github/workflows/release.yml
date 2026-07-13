@@ -142,6 +142,9 @@ jobs:
             rust_target: x86_64-apple-darwin
 
     runs-on: ${{ matrix.platform }}
+    # Menubar remains an explicitly unnotarized preview until revenue funds Apple membership.
+    # Core CLI/daemon/TUI/Pi release integrity must not be blocked by optional Apple credentials.
+    continue-on-error: true
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v6
@@ -204,8 +207,8 @@ jobs:
           set -euo pipefail
           for required in APPLE_CERTIFICATE_BASE64 APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_API_KEY_ID APPLE_API_KEY_P8; do
             if [ -z "${!required:-}" ]; then
-              echo "::error::Missing required Apple release secret: ${required}"
-              exit 1
+              echo "::notice::Apple secret ${required} is absent; publishing only an UNNOTARIZED-PREVIEW menubar artifact."
+              exit 0
             fi
           done
           KEYCHAIN_PATH="${RUNNER_TEMP}/focusa-signing.keychain-db"

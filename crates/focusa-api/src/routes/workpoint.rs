@@ -1841,7 +1841,11 @@ async fn current(
     let (effective_project_root, effective_continuity_id, selected_project_used) =
         if effective_project_root.is_none() {
             if let Some(selected) = crate::routes::project::selected_project_payload() {
-                let sel_root = selected.get("project_root").and_then(Value::as_str).unwrap_or("").to_string();
+                let sel_root = selected
+                    .get("project_root")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string();
                 let sel_cont = read_continuity_id_from_marker(&sel_root);
                 (Some(sel_root), sel_cont, true)
             } else {

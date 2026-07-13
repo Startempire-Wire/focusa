@@ -1,6 +1,6 @@
-[1;33mINFO[0m: artifact capture enabled: /tmp/doc78-series-run4-1776478914/run-03
+[1;33mINFO[0m: artifact capture enabled: /home/wirebot/focusa/docs/evidence/doc78-production-runtime-series-latest/run-03
 === DOC78 PRODUCTION RUNTIME GOVERNANCE + REPLAY SMOKE ===
-Base URL: http://127.0.0.1:18799
+Base URL: http://127.0.0.1:8787
 
 [0;32m✓ PASS[0m: daemon health route is ready
 [0;32m✓ PASS[0m: status exposes governance owner + continuity gate + objective profile

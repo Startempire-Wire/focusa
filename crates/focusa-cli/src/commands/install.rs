@@ -16,21 +16,21 @@
 //! The shell installers become thin bootstrappers that download `focusa` and
 //! `exec focusa install --target=<detected>`. See docs §15A.
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use clap::Args;
 use focusa_terminal_ui::install::completion::InstallCompletionSummary;
 use focusa_terminal_ui::install::event::NullEventSink;
-use focusa_terminal_ui::install::presenter::{presenter_for_mode, PlainPresenter, Presenter};
+use focusa_terminal_ui::install::presenter::{PlainPresenter, Presenter, presenter_for_mode};
 use focusa_terminal_ui::{
-    detect_capabilities, install_signal_handlers, validate_environment, AnimatedPresenterState,
-    AnimatedRenderLoop, CancellationToken, InstallEvent, InstallEventSink, InstallPhase,
-    InstallRendererMode,
+    AnimatedPresenterState, AnimatedRenderLoop, CancellationToken, InstallEvent, InstallEventSink,
+    InstallPhase, InstallRendererMode, detect_capabilities, install_signal_handlers,
+    validate_environment,
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
 use std::thread::JoinHandle;
 
 struct UiChannel {
@@ -499,7 +499,9 @@ fn find_command(name: &str) -> Option<String> {
     }
     #[cfg(not(windows))]
     {
-        which::which(name).ok().map(|path| path.display().to_string())
+        which::which(name)
+            .ok()
+            .map(|path| path.display().to_string())
     }
 }
 
@@ -795,43 +797,49 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         cleanup_staged_downloads(&install_root);
         return cancellation_result(&install_root, &stash_path, stashed, &ui);
     }
-    let result =
-        match execute_real_install(&args, target, channel, &install_root, &cancellation, sink)
-            .await
-        {
-            Ok(result) => result,
-            Err(e) if cancellation.is_cancelled() => {
-                cleanup_staged_downloads(&install_root);
-                return cancellation_result(&install_root, &stash_path, stashed, &ui);
+    let result = match execute_real_install(
+        &args,
+        target,
+        channel,
+        &install_root,
+        &cancellation,
+        sink,
+    )
+    .await
+    {
+        Ok(result) => result,
+        Err(e) if cancellation.is_cancelled() => {
+            cleanup_staged_downloads(&install_root);
+            return cancellation_result(&install_root, &stash_path, stashed, &ui);
+        }
+        Err(e) => {
+            sink.emit(InstallEvent::PhaseFailed {
+                phase: InstallPhase::Finalize,
+                message: "Installer phase failed".into(),
+                recovery_hint: Some(e.to_string()),
+            });
+            cleanup_staged_downloads(&install_root);
+            sink.emit(InstallEvent::RollbackStarted {
+                reason: "recovering from installer phase failure".into(),
+            });
+            let rollback = if stashed {
+                phase_atomic_rollback(&install_root, &stash_path)
+            } else {
+                Ok(())
+            };
+            match rollback {
+                Ok(()) => sink.emit(InstallEvent::RollbackSucceeded),
+                Err(rollback_error) => sink.emit(InstallEvent::RollbackFailed {
+                    message: rollback_error.to_string(),
+                    recovery_hint: format!(
+                        "restore the prior install from {}",
+                        stash_path.display()
+                    ),
+                }),
             }
-            Err(e) => {
-                sink.emit(InstallEvent::PhaseFailed {
-                    phase: InstallPhase::Finalize,
-                    message: "Installer phase failed".into(),
-                    recovery_hint: Some(e.to_string()),
-                });
-                cleanup_staged_downloads(&install_root);
-                sink.emit(InstallEvent::RollbackStarted {
-                    reason: "recovering from installer phase failure".into(),
-                });
-                let rollback = if stashed {
-                    phase_atomic_rollback(&install_root, &stash_path)
-                } else {
-                    Ok(())
-                };
-                match rollback {
-                    Ok(()) => sink.emit(InstallEvent::RollbackSucceeded),
-                    Err(rollback_error) => sink.emit(InstallEvent::RollbackFailed {
-                        message: rollback_error.to_string(),
-                        recovery_hint: format!(
-                            "restore the prior install from {}",
-                            stash_path.display()
-                        ),
-                    }),
-                }
-                return Err(e);
-            }
-        };
+            return Err(e);
+        }
+    };
     let bin_dir = install_root.join("bin");
     if let Err(e) = phase_smoke_test(&bin_dir).await {
         sink.emit(InstallEvent::PhaseFailed {
@@ -939,7 +947,7 @@ pub async fn run(args: InstallArgs) -> Result<()> {
 
 // ----- Phase 1: License re-validation (focusa-112-license-revalidate) -----
 async fn phase_license(args: &InstallArgs) -> Result<String> {
-    use crate::commands::license::{registry_validate, RegistryValidateOutcome};
+    use crate::commands::license::{RegistryValidateOutcome, registry_validate};
     if args.eval {
         return Ok("eval".to_string());
     }
@@ -1112,7 +1120,9 @@ async fn phase_asset_download(
             .map_err(|e| anyhow!("download {expected} from {}: {e}", redact_url(&asset_url)))?
             .error_for_status()
             .map_err(|e| anyhow!("download {expected} from {}: {e}", redact_url(&asset_url)))?;
-        let existing_mode = std::fs::metadata(&install_path).ok().map(|metadata| file_mode(&metadata));
+        let existing_mode = std::fs::metadata(&install_path)
+            .ok()
+            .map(|metadata| file_mode(&metadata));
         stream_asset_to_staged(response, &staged, &expected, sink, cancellation).await?;
         set_asset_permissions(&staged, existing_mode)?;
         std::fs::rename(&staged, &install_path).map_err(|error| {
@@ -2358,15 +2368,17 @@ mod tests {
         .unwrap();
         assert_eq!(plan.assets_planned.len(), 4);
         assert!(plan.assets_planned.iter().any(|a| a.name == "focusa"));
-        assert!(plan
-            .assets_planned
-            .iter()
-            .any(|a| a.name == "focusa-daemon"));
+        assert!(
+            plan.assets_planned
+                .iter()
+                .any(|a| a.name == "focusa-daemon")
+        );
         assert!(plan.assets_planned.iter().any(|a| a.name == "focusa-tui"));
-        assert!(plan
-            .assets_planned
-            .iter()
-            .any(|a| a.name == "focusa-agent-context" && a.triple == "all"));
+        assert!(
+            plan.assets_planned
+                .iter()
+                .any(|a| a.name == "focusa-agent-context" && a.triple == "all")
+        );
         assert_eq!(plan.license_mode, "missing");
     }
 
@@ -2411,8 +2423,11 @@ mod tests {
         let extensions = fixture.join("extensions");
         std::fs::create_dir_all(&package).unwrap();
         std::fs::create_dir_all(&fake_bin).unwrap();
-        std::fs::write(package.join("package.json"), r#"{"name":"focusa-pi-bridge"}"#)
-            .unwrap();
+        std::fs::write(
+            package.join("package.json"),
+            r#"{"name":"focusa-pi-bridge"}"#,
+        )
+        .unwrap();
         let npm = fake_bin.join("npm");
         std::fs::write(
             &npm,
@@ -2445,7 +2460,11 @@ mod tests {
         };
         let old_path = std::env::var_os("PATH");
         let old_destination = std::env::var_os("FOCUSA_PI_EXT_DIR");
-        let path = format!("{}:{}", fake_bin.display(), old_path.as_deref().unwrap_or_default().to_string_lossy());
+        let path = format!(
+            "{}:{}",
+            fake_bin.display(),
+            old_path.as_deref().unwrap_or_default().to_string_lossy()
+        );
         // Environment mutation is scoped to this single process-local test.
         unsafe {
             std::env::set_var("PATH", path);
@@ -2454,7 +2473,11 @@ mod tests {
         let destination = integrate_pi_extension(&asset, &fixture).unwrap();
         assert_eq!(destination, extensions.join("focusa").display().to_string());
         assert!(extensions.join("focusa/package.json").is_file());
-        assert!(extensions.join("focusa/node_modules/.focusa-smoke").is_file());
+        assert!(
+            extensions
+                .join("focusa/node_modules/.focusa-smoke")
+                .is_file()
+        );
         unsafe {
             match old_path {
                 Some(value) => std::env::set_var("PATH", value),
@@ -2574,10 +2597,12 @@ mod tests {
         let result: Result<()> =
             cancellation_result(&root, &root.join("missing.stash"), false, &sink);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("no prior installation existed"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("no prior installation existed")
+        );
         let _ = std::fs::remove_dir_all(root);
     }
 

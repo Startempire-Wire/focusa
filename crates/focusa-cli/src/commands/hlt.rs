@@ -813,13 +813,16 @@ async fn run_sessions(
     }
     let sessions: Vec<Value> = seen.into_values().collect();
     if json_output {
-        println!("{}", serde_json::to_string_pretty(&json!({
-            "status": "completed",
-            "project_root": project_root,
-            "continuity_id": continuity_id,
-            "count": sessions.len(),
-            "sessions": sessions,
-        }))?);
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&json!({
+                "status": "completed",
+                "project_root": project_root,
+                "continuity_id": continuity_id,
+                "count": sessions.len(),
+                "sessions": sessions,
+            }))?
+        );
         return Ok(());
     }
     println!("╔══════════════════════════════════════════════════════════════╗");
@@ -830,9 +833,18 @@ async fn run_sessions(
     println!("  Sessions: {}", sessions.len());
     println!();
     for session in &sessions {
-        let sid = session.get("session_id").and_then(|v| v.as_str()).unwrap_or("?");
-        let hlt = session.get("new_hlt").and_then(|v| v.as_str()).unwrap_or("?");
-        let ts = session.get("timestamp").and_then(|v| v.as_str()).unwrap_or("?");
+        let sid = session
+            .get("session_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("?");
+        let hlt = session
+            .get("new_hlt")
+            .and_then(|v| v.as_str())
+            .unwrap_or("?");
+        let ts = session
+            .get("timestamp")
+            .and_then(|v| v.as_str())
+            .unwrap_or("?");
         println!("  {} │ {} │ {}", sid, &hlt[..hlt.len().min(50)], ts);
     }
     println!();
@@ -855,18 +867,21 @@ async fn run_fallback(
     }
     let response: Value = api.get(&url).await?;
     if json_output {
-        println!("{}", serde_json::to_string_pretty(&json!({
-            "status": "completed",
-            "project_root": project_root,
-            "continuity_id": continuity_id,
-            "session_id": session_id,
-            "fallback_candidates": response.get("fallback_candidates"),
-            "latest_valid_for_session": response.get("latest_valid_for_session"),
-            "latest_valid_for_continuity": response.get("latest_valid_for_continuity"),
-            "latest_valid_for_project": response.get("latest_valid_for_project"),
-            "generic_skipped": response.get("generic_skipped"),
-            "warnings": response.get("warnings"),
-        }))?);
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&json!({
+                "status": "completed",
+                "project_root": project_root,
+                "continuity_id": continuity_id,
+                "session_id": session_id,
+                "fallback_candidates": response.get("fallback_candidates"),
+                "latest_valid_for_session": response.get("latest_valid_for_session"),
+                "latest_valid_for_continuity": response.get("latest_valid_for_continuity"),
+                "latest_valid_for_project": response.get("latest_valid_for_project"),
+                "generic_skipped": response.get("generic_skipped"),
+                "warnings": response.get("warnings"),
+            }))?
+        );
         return Ok(());
     }
     println!("╔══════════════════════════════════════════════════════════════╗");
@@ -881,20 +896,24 @@ async fn run_fallback(
         println!("  Session: {}", sid);
     }
     println!();
-    let print_latest = |label: &str, val: &Value| {
-        match val.get("latest_valid_for_".to_string() + label).or_else(|| val.as_str().map(|_| val)) {
-            Some(v) if !v.is_null() => {
-                let hlt = v.as_str().unwrap_or("?");
-                println!("  Latest valid HLT for {}: {}", label, hlt);
-            }
-            _ => println!("  Latest valid HLT for {}: (none)", label),
+    let print_latest = |label: &str, val: &Value| match val
+        .get("latest_valid_for_".to_string() + label)
+        .or_else(|| val.as_str().map(|_| val))
+    {
+        Some(v) if !v.is_null() => {
+            let hlt = v.as_str().unwrap_or("?");
+            println!("  Latest valid HLT for {}: {}", label, hlt);
         }
+        _ => println!("  Latest valid HLT for {}: (none)", label),
     };
     print_latest("session", &response);
     print_latest("continuity", &response);
     print_latest("project", &response);
     println!();
-    if let Some(candidates) = response.get("fallback_candidates").and_then(|v| v.as_array()) {
+    if let Some(candidates) = response
+        .get("fallback_candidates")
+        .and_then(|v| v.as_array())
+    {
         if candidates.is_empty() {
             println!("  Fallback: unavailable");
         } else {

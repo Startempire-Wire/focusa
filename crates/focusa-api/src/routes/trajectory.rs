@@ -18,10 +18,9 @@ use focusa_core::reducer;
 use focusa_core::types::{
     EventLogEntry, FocusState, FocusaEvent, FocusaSessionIdentity, FocusaState, FrameRecord,
     HltLedgerEntry, HltStatus, SignalOrigin, TrajectoryConfidence,
-    TrajectoryDefinitionOfDoneRecord, TrajectoryDefinitionStatus,
-    TrajectoryGoalProvenanceRecord, TrajectoryMilestoneRecord, TrajectoryMilestoneStatus,
-    TrajectoryProjectionRecord, WorkpointRecord, WorkpointStatus, classify_hlt,
-    trajectory_caps,
+    TrajectoryDefinitionOfDoneRecord, TrajectoryDefinitionStatus, TrajectoryGoalProvenanceRecord,
+    TrajectoryMilestoneRecord, TrajectoryMilestoneStatus, TrajectoryProjectionRecord,
+    WorkpointRecord, WorkpointStatus, classify_hlt, trajectory_caps,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -1657,9 +1656,17 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
 
     // Spec 125 §3.3/3.4/6.3: compute loud warning and mandatory HLT fields.
     let loud_warning = match hlt_status {
-        HltStatus::MissingRequired => Some("HLT_REQUIRED: no valid High-Level Trajectory is set for this verified scope.".to_string()),
-        HltStatus::GenericDegraded => Some("GENERIC_HLT_DEGRADED: this is a placeholder, not a real project trajectory.".to_string()),
-        HltStatus::Conflicted => Some("HLT_CONFLICTED: multiple conflicting HLT sources detected.".to_string()),
+        HltStatus::MissingRequired => Some(
+            "HLT_REQUIRED: no valid High-Level Trajectory is set for this verified scope."
+                .to_string(),
+        ),
+        HltStatus::GenericDegraded => Some(
+            "GENERIC_HLT_DEGRADED: this is a placeholder, not a real project trajectory."
+                .to_string(),
+        ),
+        HltStatus::Conflicted => {
+            Some("HLT_CONFLICTED: multiple conflicting HLT sources detected.".to_string())
+        }
         _ => None,
     };
     let trajectory_required = !hlt_status.is_action_ready();
@@ -1675,9 +1682,14 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
     } else if using_prior_project_trajectory {
         vec!["using prior project trajectory as reload fallback; refresh short-term goal/current state when needed".to_string()]
     } else if status == "not_found" {
-        vec!["trajectory is not set for this project folder; define or confirm the goal".to_string()]
+        vec![
+            "trajectory is not set for this project folder; define or confirm the goal".to_string(),
+        ]
     } else {
-        vec!["trajectory projection is degraded or provisional; verify before treating as canonical".to_string()]
+        vec![
+            "trajectory projection is degraded or provisional; verify before treating as canonical"
+                .to_string(),
+        ]
     };
     if let Some(ref lw) = loud_warning {
         trajectory_warnings.push(lw.clone());
@@ -2200,20 +2212,31 @@ fn resume_payload(state: &FocusaState, body: &TrajectoryResumeRequest) -> Value 
     let warnings: Vec<String> = view
         .get("warnings")
         .and_then(Value::as_array)
-        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
         .unwrap_or_default();
 
     // Spec 125 §9.3: if trajectory is generic or missing, check for previous-valid fallback.
     let fallback_source = if generic_bootstrap || hlt_status.as_str() == Some("missing_required") {
         // Look in trajectory history for a previous valid HLT.
         let history = &state.trajectory;
-        history.records.iter().rev().find(|r| {
-            !r.long_term_goal.trim().is_empty() && !is_generic_bootstrap_hlt(&r.long_term_goal)
-        }).map(|r| json!({
-            "hlt": r.long_term_goal,
-            "source": "previous_valid_fallback",
-            "continuity_id": r.continuity_id,
-        }))
+        history
+            .records
+            .iter()
+            .rev()
+            .find(|r| {
+                !r.long_term_goal.trim().is_empty() && !is_generic_bootstrap_hlt(&r.long_term_goal)
+            })
+            .map(|r| {
+                json!({
+                    "hlt": r.long_term_goal,
+                    "source": "previous_valid_fallback",
+                    "continuity_id": r.continuity_id,
+                })
+            })
     } else {
         None
     };
@@ -2786,17 +2809,17 @@ async fn hlt_history(
             .unwrap_or(false)
             && !is_generic_bootstrap_hlt(e.new_hlt.as_str())
     });
-    let latest_valid_for_continuity = filtered.iter().find(|e| {
-        !is_generic_bootstrap_hlt(e.new_hlt.as_str())
-    });
+    let latest_valid_for_continuity = filtered
+        .iter()
+        .find(|e| !is_generic_bootstrap_hlt(e.new_hlt.as_str()));
     // For project-level, fetch all entries across continuities.
     let project_entries = state
         .persistence
         .read_hlt_ledger_entries(project_root, None, limit)
         .unwrap_or_default();
-    let latest_valid_for_project = project_entries.iter().find(|e| {
-        !is_generic_bootstrap_hlt(e.new_hlt.as_str())
-    });
+    let latest_valid_for_project = project_entries
+        .iter()
+        .find(|e| !is_generic_bootstrap_hlt(e.new_hlt.as_str()));
     // Spec 125 §7.3: fallback candidates.
     let mut fallback_candidates = Vec::new();
     if let Some(e) = latest_valid_for_session {
@@ -2808,7 +2831,9 @@ async fn hlt_history(
         }));
     }
     if !include_cross_session {
-        warnings.push("include_cross_session_fallbacks=false; cross-session candidates omitted".to_string());
+        warnings.push(
+            "include_cross_session_fallbacks=false; cross-session candidates omitted".to_string(),
+        );
     } else if let Some(e) = latest_valid_for_continuity {
         let same_as_session = latest_valid_for_session
             .map(|s| s.event_id == e.event_id)

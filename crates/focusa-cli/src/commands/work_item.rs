@@ -343,7 +343,9 @@ async fn run_close(args: CloseArgs) -> Result<()> {
             print_block(&block);
             anyhow::bail!("override provider submission blocked");
         }
-        let reconciled = lifecycle.reconcile(submitted.claim.claim_id.clone()).await?;
+        let reconciled = lifecycle
+            .reconcile(submitted.claim.claim_id.clone())
+            .await?;
         if let Some(block) = reconciled.block {
             print_block(&block);
             anyhow::bail!("override reconciliation blocked");
@@ -351,7 +353,10 @@ async fn run_close(args: CloseArgs) -> Result<()> {
         print_claim(&reconciled.claim);
         print_kv("action", &format!("close {} OVERRIDE by {actor}", args.id));
         print_kv("reason", reason);
-        print_kv("audit_log", &ClosureAuditLog::default_path().display().to_string());
+        print_kv(
+            "audit_log",
+            &ClosureAuditLog::default_path().display().to_string(),
+        );
         return Ok(());
     }
 
