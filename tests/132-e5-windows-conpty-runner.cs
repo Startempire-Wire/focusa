@@ -16,6 +16,7 @@ public static class Spec132ConPtyRunner
     const uint PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016;
     const uint EXTENDED_STARTUPINFO_PRESENT = 0x00080000;
     const uint CREATE_UNICODE_ENVIRONMENT = 0x00000400;
+    const uint CREATE_NO_WINDOW = 0x08000000;
     const uint WAIT_OBJECT_0 = 0x00000000;
     const uint WAIT_TIMEOUT = 0x00000102;
     const uint CONPTY_TIMEOUT_MS = 60000;
@@ -51,7 +52,7 @@ public static class Spec132ConPtyRunner
         Check(CreatePipe(out outRead, out outWrite, ref pipeAttributes, 0), "CreatePipe output");
         Check(SetHandleInformation(inWrite, HANDLE_FLAG_INHERIT, 0), "SetHandleInformation input");
         Check(SetHandleInformation(outRead, HANDLE_FLAG_INHERIT, 0), "SetHandleInformation output");
-        IntPtr pty = IntPtr.Zero, list = IntPtr.Zero, ptyValue = IntPtr.Zero;
+        IntPtr pty = IntPtr.Zero, list = IntPtr.Zero;
         PROCESS_INFORMATION pi = default;
         try
         {
@@ -62,12 +63,8 @@ public static class Spec132ConPtyRunner
             InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref bytes);
             list = Marshal.AllocHGlobal(bytes);
             Check(InitializeProcThreadAttributeList(list, 1, 0, ref bytes), "InitializeProcThreadAttributeList");
-            // PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE expects lpValue to point to
-            // an HPCON-sized value. Passing HPCON itself as lpValue attaches an
-            // invalid attribute and lets child output escape the capture pipe.
-            ptyValue = Marshal.AllocHGlobal(IntPtr.Size);
-            Marshal.WriteIntPtr(ptyValue, pty);
-            Check(UpdateProcThreadAttribute(list, 0, new IntPtr(unchecked((long)PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE)), ptyValue, IntPtr.Size, IntPtr.Zero, IntPtr.Zero), "UpdateProcThreadAttribute");
+            // Per the ConPTY API, lpValue is the HPCON handle itself.
+            Check(UpdateProcThreadAttribute(list, 0, new IntPtr(unchecked((long)PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE)), pty, IntPtr.Size, IntPtr.Zero, IntPtr.Zero), "UpdateProcThreadAttribute");
             var startup = new STARTUPINFOEX {
                 StartupInfo = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFOEX>() },
                 lpAttributeList = list,
@@ -75,7 +72,7 @@ public static class Spec132ConPtyRunner
             var fullExecutable = Path.GetFullPath(executable);
             var command = new StringBuilder("\"" + fullExecutable.Replace("\"", "\\\"") + "\" " + arguments);
             var workingDirectory = Path.GetDirectoryName(fullExecutable);
-            Check(CreateProcess(fullExecutable, command, IntPtr.Zero, IntPtr.Zero, false, EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT, IntPtr.Zero, workingDirectory, ref startup, out pi), "CreateProcess");
+            Check(CreateProcess(fullExecutable, command, IntPtr.Zero, IntPtr.Zero, false, EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT | CREATE_NO_WINDOW, IntPtr.Zero, workingDirectory, ref startup, out pi), "CreateProcess");
             Close(pi.hThread); pi.hThread = IntPtr.Zero;
             var output = new StringBuilder();
             using (var stream = new FileStream(new SafeFileHandle(outRead, false), FileAccess.Read, 4096, false))
@@ -113,7 +110,6 @@ public static class Spec132ConPtyRunner
             Close(pi.hThread); Close(pi.hProcess); Close(inRead); Close(inWrite); Close(outRead); Close(outWrite);
             if (pty != IntPtr.Zero) ClosePseudoConsole(pty);
             if (list != IntPtr.Zero) { Marshal.FreeHGlobal(list); }
-            if (ptyValue != IntPtr.Zero) { Marshal.FreeHGlobal(ptyValue); }
 
         }
     }
