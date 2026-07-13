@@ -1302,6 +1302,32 @@ async fn execute_verified_apply(plan: &UpdatePlanEnvelope) -> anyhow::Result<Vec
     result
 }
 
+type PromotedPart = (String, PathBuf, PathBuf, String);
+
+fn rollback_promoted_parts(promoted: &[PromotedPart]) -> anyhow::Result<Vec<String>> {
+    let mut restored = Vec::new();
+    for (part, target, backup, _) in promoted.iter().rev() {
+        if !backup.exists() {
+            continue;
+        }
+        let failed = target.with_extension("focusa-failed");
+        if target.exists() {
+            std::fs::rename(target, &failed)?;
+        }
+        if let Err(error) = std::fs::rename(backup, target) {
+            if failed.exists() {
+                let _ = std::fs::rename(&failed, target);
+            }
+            return Err(error.into());
+        }
+        if failed.exists() {
+            std::fs::remove_file(&failed)?;
+        }
+        restored.push(part.clone());
+    }
+    Ok(restored)
+}
+
 async fn execute_verified_apply_locked(
     plan: &UpdatePlanEnvelope,
     state: &Path,
@@ -1319,7 +1345,7 @@ async fn execute_verified_apply_locked(
         }))?,
     )?;
     // part, target path, backup path, SHA-256 of the pre-update target.
-    let mut promoted: Vec<(String, PathBuf, PathBuf, String)> = Vec::new();
+    let mut promoted: Vec<PromotedPart> = Vec::new();
     let operation = async {
         for part in plan
             .parts
@@ -1414,20 +1440,18 @@ async fn execute_verified_apply_locked(
     }
     .await;
     if let Err(error) = operation {
-        for (_, target, backup, _) in promoted.iter().rev() {
-            if backup.exists() {
-                let failed = target.with_extension("focusa-failed");
-                let _ = std::fs::rename(target, &failed);
-                let _ = std::fs::rename(backup, target);
-                let _ = std::fs::remove_file(failed);
-            }
-        }
+        let rollback_result = rollback_promoted_parts(&promoted);
         std::fs::write(
             &journal,
             serde_json::to_vec_pretty(
                 &json!({"schema":"focusa.update_journal.v1","state":"rolled_back","error":error.to_string()}),
             )?,
         )?;
+        if let Err(rollback_error) = rollback_result {
+            return Err(anyhow::anyhow!(
+                "update failed: {error}; rollback also failed: {rollback_error}"
+            ));
+        }
         return Err(error);
     }
     let names = promoted
@@ -2482,12 +2506,60 @@ fn print_human(envelope: &UpdateInventoryEnvelope) {
 
 #[cfg(test)]
 mod tests {
-    use super::normalize_version;
+    use super::{PromotedPart, normalize_version, rollback_promoted_parts};
 
     #[test]
     fn normalizes_common_version_outputs() {
         assert_eq!(normalize_version("focusa 0.9.74-dev"), "0.9.74-dev");
         assert_eq!(normalize_version("v0.9.80-dev"), "0.9.80-dev");
         assert_eq!(normalize_version("0.9.80-dev"), "0.9.80-dev");
+    }
+
+    #[test]
+    fn atomic_rollback_restores_previous_binary_and_removes_failed_candidate() {
+        let root = std::env::temp_dir().join(format!(
+            "focusa-update-rollback-{}-{}",
+            std::process::id(),
+            super::chrono_like_timestamp()
+        ));
+        std::fs::create_dir_all(&root).expect("create rollback fixture");
+        let target = root.join("focusa");
+        let backup = root.join("focusa.backup");
+        std::fs::write(&target, b"new-broken").expect("write promoted target");
+        std::fs::write(&backup, b"old-known-good").expect("write backup");
+        let promoted: Vec<PromotedPart> = vec![(
+            "cli".into(),
+            target.clone(),
+            backup.clone(),
+            "old-digest".into(),
+        )];
+        let restored = rollback_promoted_parts(&promoted).expect("rollback succeeds");
+        assert_eq!(restored, vec!["cli"]);
+        assert_eq!(
+            std::fs::read(&target).expect("read restored"),
+            b"old-known-good"
+        );
+        assert!(!backup.exists());
+        assert!(!target.with_extension("focusa-failed").exists());
+        std::fs::remove_dir_all(root).expect("remove rollback fixture");
+    }
+
+    #[test]
+    fn rollback_without_backup_never_removes_current_target() {
+        let root = std::env::temp_dir().join(format!(
+            "focusa-update-no-backup-{}-{}",
+            std::process::id(),
+            super::chrono_like_timestamp()
+        ));
+        std::fs::create_dir_all(&root).expect("create rollback fixture");
+        let target = root.join("focusa");
+        let backup = root.join("missing.backup");
+        std::fs::write(&target, b"current").expect("write target");
+        let promoted: Vec<PromotedPart> =
+            vec![("cli".into(), target.clone(), backup, String::new())];
+        let restored = rollback_promoted_parts(&promoted).expect("rollback no-op succeeds");
+        assert!(restored.is_empty());
+        assert_eq!(std::fs::read(&target).expect("read target"), b"current");
+        std::fs::remove_dir_all(root).expect("remove rollback fixture");
     }
 }
