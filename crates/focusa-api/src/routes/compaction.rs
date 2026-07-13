@@ -416,6 +416,7 @@ fn inspect_payload(packet: &Value) -> Value {
         "schema": "focusa.compaction_inspect.v1",
         "packet_id": packet["packet_id"],
         "status": packet["status"],
+        "resume_state": packet["resume_state"],
         "kept": {
             "current_ask": packet["current_ask"],
             "scope": packet["scope"],
