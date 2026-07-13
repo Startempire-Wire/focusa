@@ -1165,6 +1165,7 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-core/src/threads/mod.rs`
 - `crates/focusa-core/src/training/mod.rs`
 - `crates/focusa-core/src/types.rs`
+- `crates/focusa-core/src/update.rs`
 - `crates/focusa-core/src/utility_card.rs`
 - `crates/focusa-core/src/work_item/mod.rs`
 - `crates/focusa-core/src/work_item/adapter.rs`

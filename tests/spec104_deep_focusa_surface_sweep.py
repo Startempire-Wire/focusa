@@ -322,11 +322,19 @@ def static_audit() -> None:
     rust_files = list(ROOT.rglob("*.rs")) + list(ROOT.rglob("*.ts"))
     rust_files = [f for f in rust_files if "target" not in f.parts and "node_modules" not in f.parts]
     new_globals: list[str] = []
+    spec_path = ROOT / "docs/104-typed-scoped-runtime-and-singleton-elimination-spec.md"
+    spec_text = spec_path.read_text()
+    documented_global_files = set(
+        re.findall(
+            r"`(?:crates|apps)/[^`]+/([^`/:]+\.(?:rs|ts))(?::\d+)?`",
+            spec_text,
+        )
+    )
     known_global_files = {
         "bounded.rs", "device_pairing.rs", "license.rs", "metacognition.rs", "ontology.rs",
         "predictions.rs", "project.rs", "proxy.rs", "rate_limit.rs", "snapshots.rs",
         "turn.rs", "workpoint.rs", "server.rs", "main.rs", "state.ts", "tools.ts",
-    }
+    } | documented_global_files
     for f in rust_files:
         if f.name in known_global_files:
             continue
@@ -343,8 +351,6 @@ def static_audit() -> None:
     # 2. Verify Annex B route inventory matches actual route files
     route_files = sorted((ROOT / "crates/focusa-api/src/routes").glob("*.rs"))
     actual_routes = {f.name for f in route_files}
-    with open(ROOT / "docs/104-typed-scoped-runtime-and-singleton-elimination-spec.md") as spec:
-        spec_text = spec.read()
     b2_section = spec_text[spec_text.index("#### Route families"):spec_text.index("### B.3", spec_text.index("#### Route families"))]
     listed_routes = set()
     for l in b2_section.split("\n"):
