@@ -337,6 +337,7 @@ mod probe_tests {
 }
 
 #[cfg(test)]
+#[allow(clippy::assertions_on_constants)]
 mod tests {
     use super::*;
 
@@ -501,7 +502,8 @@ fn spec_5_11_9_image_input_rejected_falls_back() {
 fn spec_5_11_9_model_allowlist_required() {
     // POSTURE.verified_models_only must be true so the transform only runs
     // against Focusa-verified models.
-    assert!(POSTURE.verified_models_only);
+    let verified_models_only = POSTURE.verified_models_only;
+    assert!(verified_models_only);
 }
 
 #[test]
@@ -523,7 +525,8 @@ fn spec_5_11_9_active_blocker_kept_as_text() {
 
 #[test]
 fn spec_5_11_9_profitability_gate_required() {
-    assert!(POSTURE.profitability_gate_required);
+    let profitability_gate_required = POSTURE.profitability_gate_required;
+    assert!(profitability_gate_required);
     let unprofitable_ctx = FallbackContext {
         policy_status_allowed: true,
         all_probes_pass: true,
@@ -534,12 +537,14 @@ fn spec_5_11_9_profitability_gate_required() {
         choose_fallback(&unprofitable_ctx),
         FALLBACK_TEXT_PASSTHROUGH
     );
-    assert!(POSTURE.min_net_savings >= 0.30);
+    let min_net_savings = POSTURE.min_net_savings;
+    assert!(min_net_savings >= 0.30);
 }
 
 #[test]
 fn spec_5_11_9_recoverable_ref_required() {
-    assert!(POSTURE.recoverable_store_required);
+    let recoverable_store_required = POSTURE.recoverable_store_required;
+    assert!(recoverable_store_required);
     let b = empty_imaged_block("evidence:test123");
     assert!(!b.rehydrate_ref.is_empty());
     assert!(b.fallback_used == "text_passthrough" || b.fallback_used.is_empty());
@@ -576,7 +581,8 @@ fn spec_5_11_9_context_cognition_no_canonical_mutation() {
 #[test]
 fn spec_5_11_9_focus_slice_no_raw_blob_default() {
     // Bloatgaurd keeps verbatim text by default; raw blob injection is cold opt-in.
-    assert!(POSTURE.keep_verbatim_text);
+    let keep_verbatim_text = POSTURE.keep_verbatim_text;
+    assert!(keep_verbatim_text);
     assert_eq!(POSTURE.full_payload_policy, "cold_opt_in");
 }
 

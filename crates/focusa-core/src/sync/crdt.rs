@@ -366,7 +366,7 @@ mod tests {
         }
 
         // Merge log2 into log1
-        let added = log1.merge_remote(&log2.all_events().to_vec());
+        let added = log1.merge_remote(log2.all_events());
         assert_eq!(added, 10);
         assert_eq!(log1.len(), 20);
     }

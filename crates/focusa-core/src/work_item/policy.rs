@@ -99,7 +99,9 @@ impl ClosureProfile {
                 required_kinds: vec![EvidenceKind::Code, EvidenceKind::Test],
                 endpoint_status_in: vec![],
                 run_tests: true,
-                description: "Code with test: at least one code citation and one executed passing test.".into(),
+                description:
+                    "Code with test: at least one code citation and one executed passing test."
+                        .into(),
             },
             default_for: vec![ClosureKind::Code],
         }
@@ -372,7 +374,10 @@ mod tests {
             "doc_change",
             "deploy_only",
         ] {
-            assert!(names.contains(&required), "missing built-in profile {required}");
+            assert!(
+                names.contains(&required),
+                "missing built-in profile {required}"
+            );
         }
     }
 

@@ -165,72 +165,6 @@ pub fn node_counts(clt: &CltState) -> (usize, usize, usize) {
     (interactions, summaries, markers)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_append_interaction() {
-        let mut clt = CltState::default();
-        let id = append_interaction(
-            &mut clt,
-            None,
-            "user",
-            Some("ref://abc"),
-            CltMetadata::default(),
-        );
-        assert_eq!(clt.head_id, Some(id));
-        assert_eq!(clt.nodes.len(), 1);
-        assert!(clt.nodes[0].parent_id.is_none());
-    }
-
-    #[test]
-    fn test_lineage_chain() {
-        let mut clt = CltState::default();
-        append_interaction(&mut clt, None, "user", None, CltMetadata::default());
-        append_interaction(&mut clt, None, "assistant", None, CltMetadata::default());
-        append_interaction(&mut clt, None, "user", None, CltMetadata::default());
-        let path = lineage_path(&clt);
-        assert_eq!(path.len(), 3);
-        // Head is first in path.
-        assert_eq!(path[0].node_id, "clt_000002");
-    }
-
-    #[test]
-    fn test_summary_does_not_delete() {
-        let mut clt = CltState::default();
-        append_interaction(&mut clt, None, "user", None, CltMetadata::default());
-        append_interaction(&mut clt, None, "assistant", None, CltMetadata::default());
-        let before = clt.nodes.len();
-        insert_summary(&mut clt, None, "summarized", vec!["clt_000000".into()], 0.5);
-        assert_eq!(clt.nodes.len(), before + 1); // Inserted, not deleted.
-    }
-
-    #[test]
-    fn test_node_counts() {
-        let mut clt = CltState::default();
-        append_interaction(&mut clt, None, "user", None, CltMetadata::default());
-        insert_summary(&mut clt, None, "sum", vec![], 1.0);
-        insert_branch_marker(&mut clt, "fork", vec!["a".into(), "b".into()]);
-        let (i, s, b) = node_counts(&clt);
-        assert_eq!((i, s, b), (1, 1, 1));
-    }
-
-    #[test]
-    fn retain_hot_window_preserves_head_and_monotonic_ids() {
-        let mut clt = CltState::default();
-        for _ in 0..5 {
-            append_interaction(&mut clt, None, "user", None, CltMetadata::default());
-        }
-        assert_eq!(retain_hot_window(&mut clt, 2), 3);
-        assert_eq!(clt.nodes.len(), 2);
-        assert_eq!(clt.head_id.as_deref(), Some("clt_000004"));
-        assert!(clt.nodes[0].parent_id.is_none());
-        let next = append_interaction(&mut clt, None, "assistant", None, CltMetadata::default());
-        assert_eq!(next, "clt_000005");
-    }
-}
-
 /// Compact the CLT when interaction nodes exceed threshold.
 ///
 /// Per docs/17 rule 5: "Compaction inserts — never deletes."
@@ -348,4 +282,70 @@ pub async fn compact_if_needed(
         count
     );
     count
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_append_interaction() {
+        let mut clt = CltState::default();
+        let id = append_interaction(
+            &mut clt,
+            None,
+            "user",
+            Some("ref://abc"),
+            CltMetadata::default(),
+        );
+        assert_eq!(clt.head_id, Some(id));
+        assert_eq!(clt.nodes.len(), 1);
+        assert!(clt.nodes[0].parent_id.is_none());
+    }
+
+    #[test]
+    fn test_lineage_chain() {
+        let mut clt = CltState::default();
+        append_interaction(&mut clt, None, "user", None, CltMetadata::default());
+        append_interaction(&mut clt, None, "assistant", None, CltMetadata::default());
+        append_interaction(&mut clt, None, "user", None, CltMetadata::default());
+        let path = lineage_path(&clt);
+        assert_eq!(path.len(), 3);
+        // Head is first in path.
+        assert_eq!(path[0].node_id, "clt_000002");
+    }
+
+    #[test]
+    fn test_summary_does_not_delete() {
+        let mut clt = CltState::default();
+        append_interaction(&mut clt, None, "user", None, CltMetadata::default());
+        append_interaction(&mut clt, None, "assistant", None, CltMetadata::default());
+        let before = clt.nodes.len();
+        insert_summary(&mut clt, None, "summarized", vec!["clt_000000".into()], 0.5);
+        assert_eq!(clt.nodes.len(), before + 1); // Inserted, not deleted.
+    }
+
+    #[test]
+    fn test_node_counts() {
+        let mut clt = CltState::default();
+        append_interaction(&mut clt, None, "user", None, CltMetadata::default());
+        insert_summary(&mut clt, None, "sum", vec![], 1.0);
+        insert_branch_marker(&mut clt, "fork", vec!["a".into(), "b".into()]);
+        let (i, s, b) = node_counts(&clt);
+        assert_eq!((i, s, b), (1, 1, 1));
+    }
+
+    #[test]
+    fn retain_hot_window_preserves_head_and_monotonic_ids() {
+        let mut clt = CltState::default();
+        for _ in 0..5 {
+            append_interaction(&mut clt, None, "user", None, CltMetadata::default());
+        }
+        assert_eq!(retain_hot_window(&mut clt, 2), 3);
+        assert_eq!(clt.nodes.len(), 2);
+        assert_eq!(clt.head_id.as_deref(), Some("clt_000004"));
+        assert!(clt.nodes[0].parent_id.is_none());
+        let next = append_interaction(&mut clt, None, "assistant", None, CltMetadata::default());
+        assert_eq!(next, "clt_000005");
+    }
 }

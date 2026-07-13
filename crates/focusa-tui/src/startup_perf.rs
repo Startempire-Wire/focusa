@@ -69,7 +69,8 @@ mod tests {
 
     #[test]
     fn first_paint_budget_is_bounded() {
-        assert!(FIRST_PAINT_BUDGET_MS <= 250);
+        let configured_budget = FIRST_PAINT_BUDGET_MS;
+        assert!(configured_budget <= 250);
         assert!(StartupReport::meets_first_paint_budget(
             FIRST_PAINT_BUDGET_MS
         ));

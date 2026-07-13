@@ -10,21 +10,21 @@ pub mod sanitize;
 pub mod terminal_guard;
 
 pub use capabilities::{
-    animation_seed, detect_capabilities, validate_environment, InstallRendererMode,
-    TerminalCapabilities,
+    InstallRendererMode, TerminalCapabilities, animation_seed, detect_capabilities,
+    validate_environment,
 };
 pub use install::completion::InstallCompletionSummary;
 pub use install::event::{
     AssetProgress, InstallEvent, InstallEventSink, InstallPhase, VerificationScanOutcome,
 };
 pub use install::presenter::{
-    presenter_for_mode, AnimatedPresenter, AnimatedPresenterState, MonochromeAnimatedPresenter,
-    PlainPresenter, Presenter, ReducedMotionPresenter, SilentPresenter,
+    AnimatedPresenter, AnimatedPresenterState, MonochromeAnimatedPresenter, PlainPresenter,
+    Presenter, ReducedMotionPresenter, SilentPresenter, presenter_for_mode,
 };
 pub use install::renderer::{AnimatedRenderLoop, HybridRenderer};
 pub use install::state::InstallState;
 pub use sanitize::sanitize;
 pub use terminal_guard::{
-    install_signal_handlers, install_terminal_panic_hook, CancellationToken, PanicHookGuard,
-    SignalGuard, TerminalGuard,
+    CancellationToken, PanicHookGuard, SignalGuard, TerminalGuard, install_signal_handlers,
+    install_terminal_panic_hook,
 };

@@ -286,7 +286,7 @@ mod tests {
         let proposal = pre_state.proposals.into_iter().next().unwrap();
 
         let outcome = resolve_proposals(
-            &[proposal.clone()],
+            std::slice::from_ref(&proposal),
             &state,
             &config,
             Utc::now() - chrono::Duration::seconds(1),

@@ -156,79 +156,6 @@ fn validate_grounding(content: &str) -> bool {
     !hallucination_signals.iter().any(|s| lower.contains(s))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_ais_all_pass() {
-        let results = validate("some content", &[]);
-        let ais = compute_ais(&results);
-        assert_eq!(ais, 1.0);
-    }
-
-    #[test]
-    fn test_rfm_escalation() {
-        let mut state = RfmState::default();
-        let results = vec![
-            ValidatorResult {
-                validator: MicrocellValidator::Schema,
-                passed: true,
-                details: String::new(),
-                timestamp: Utc::now(),
-            },
-            ValidatorResult {
-                validator: MicrocellValidator::Constraint,
-                passed: false,
-                details: String::new(),
-                timestamp: Utc::now(),
-            },
-            ValidatorResult {
-                validator: MicrocellValidator::Consistency,
-                passed: false,
-                details: String::new(),
-                timestamp: Utc::now(),
-            },
-            ValidatorResult {
-                validator: MicrocellValidator::ReferenceGrounding,
-                passed: false,
-                details: String::new(),
-                timestamp: Utc::now(),
-            },
-        ];
-        let changed = update_rfm(&mut state, results);
-        assert!(changed);
-        assert!(state.level >= RfmLevel::R1);
-    }
-
-    #[test]
-    fn test_constraint_validation() {
-        assert!(validate_constraints("short", &["max_length:100".into()]));
-        assert!(!validate_constraints(
-            "long text here",
-            &["max_length:5".into()]
-        ));
-    }
-
-    #[test]
-    fn test_rfm_fallback_default_is_fail_closed() {
-        let (consistency, grounding, detail) =
-            rfm_fallback_result_for_mode("LLM unavailable", false);
-        assert!(!consistency);
-        assert!(!grounding);
-        assert!(detail.contains("fail_closed"));
-    }
-
-    #[test]
-    fn test_rfm_fallback_fail_open_mode_is_permissive() {
-        let (consistency, grounding, detail) =
-            rfm_fallback_result_for_mode("LLM unavailable", true);
-        assert!(consistency);
-        assert!(grounding);
-        assert!(detail.contains("fail_open"));
-    }
-}
-
 fn rfm_fail_open_enabled() -> bool {
     matches!(
         std::env::var("FOCUSA_RFM_LLM_FAIL_OPEN")
@@ -352,5 +279,78 @@ Return ONLY valid JSON:
             rfm_fallback_result("LLM response unparseable")
         }
         _ => rfm_fallback_result("LLM timeout"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ais_all_pass() {
+        let results = validate("some content", &[]);
+        let ais = compute_ais(&results);
+        assert_eq!(ais, 1.0);
+    }
+
+    #[test]
+    fn test_rfm_escalation() {
+        let mut state = RfmState::default();
+        let results = vec![
+            ValidatorResult {
+                validator: MicrocellValidator::Schema,
+                passed: true,
+                details: String::new(),
+                timestamp: Utc::now(),
+            },
+            ValidatorResult {
+                validator: MicrocellValidator::Constraint,
+                passed: false,
+                details: String::new(),
+                timestamp: Utc::now(),
+            },
+            ValidatorResult {
+                validator: MicrocellValidator::Consistency,
+                passed: false,
+                details: String::new(),
+                timestamp: Utc::now(),
+            },
+            ValidatorResult {
+                validator: MicrocellValidator::ReferenceGrounding,
+                passed: false,
+                details: String::new(),
+                timestamp: Utc::now(),
+            },
+        ];
+        let changed = update_rfm(&mut state, results);
+        assert!(changed);
+        assert!(state.level >= RfmLevel::R1);
+    }
+
+    #[test]
+    fn test_constraint_validation() {
+        assert!(validate_constraints("short", &["max_length:100".into()]));
+        assert!(!validate_constraints(
+            "long text here",
+            &["max_length:5".into()]
+        ));
+    }
+
+    #[test]
+    fn test_rfm_fallback_default_is_fail_closed() {
+        let (consistency, grounding, detail) =
+            rfm_fallback_result_for_mode("LLM unavailable", false);
+        assert!(!consistency);
+        assert!(!grounding);
+        assert!(detail.contains("fail_closed"));
+    }
+
+    #[test]
+    fn test_rfm_fallback_fail_open_mode_is_permissive() {
+        let (consistency, grounding, detail) =
+            rfm_fallback_result_for_mode("LLM unavailable", true);
+        assert!(consistency);
+        assert!(grounding);
+        assert!(detail.contains("fail_open"));
     }
 }

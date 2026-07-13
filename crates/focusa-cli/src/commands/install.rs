@@ -437,7 +437,7 @@ fn terminal_ux_preflight(no_animation: bool) -> TerminalUxPreflight {
     let capabilities = detect_capabilities(no_animation, false, false);
     let interactive_tty = capabilities.stderr_is_terminal
         && !capabilities.ci
-        && capabilities.term != ""
+        && !capabilities.term.is_empty()
         && capabilities.term != "dumb";
     let disabled_reason = if no_animation {
         Some("--no-animation".into())

@@ -404,6 +404,7 @@ fn extract_contrastive_example(
 }
 
 #[cfg(test)]
+#[allow(clippy::field_reassign_with_default)]
 mod tests {
     use super::*;
     use crate::runtime::persistence_sqlite::SqlitePersistence;

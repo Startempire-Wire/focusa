@@ -400,7 +400,7 @@ async fn run_wizard(args: WizardArgs) -> Result<()> {
     );
     println!(
         "✓  Room {}…  expires in {}s",
-        &room.room_id.chars().take(8).collect::<String>(),
+        room.room_id.chars().take(8).collect::<String>(),
         room.expires_in_secs
     );
 

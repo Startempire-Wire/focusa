@@ -171,6 +171,7 @@ pub fn apply_delta(state: &mut FocusState, delta: &FocusStateDelta) {
 }
 
 #[cfg(test)]
+#[allow(clippy::field_reassign_with_default)]
 mod tests {
     use super::*;
 

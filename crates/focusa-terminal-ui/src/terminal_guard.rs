@@ -6,12 +6,12 @@
 use crossterm::{
     cursor::Show,
     execute,
-    terminal::{disable_raw_mode, size, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, size},
 };
 use signal_hook::consts::SIGINT;
 #[cfg(unix)]
 use signal_hook::consts::SIGTERM;
-use std::io::{self, stderr, Write};
+use std::io::{self, Write, stderr};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 

@@ -1,3 +1,5 @@
+#![allow(clippy::field_reassign_with_default)]
+
 use crate::runtime::persistence_sqlite::SqlitePersistence;
 use crate::types::{EventLogEntry, FocusaConfig, FocusaEvent, SignalOrigin};
 use chrono::Utc;
@@ -171,7 +173,7 @@ fn sqlite_crdt_import_is_scoped_and_idempotent() {
             "peer-a",
             "/tmp/focusa-portable-fixture/project",
             "main",
-            &[event.clone()],
+            std::slice::from_ref(&event),
         )
         .unwrap();
     assert_eq!(imported, 1);
@@ -180,7 +182,7 @@ fn sqlite_crdt_import_is_scoped_and_idempotent() {
             "peer-a",
             "/tmp/focusa-portable-fixture/project",
             "main",
-            &[event.clone()],
+            std::slice::from_ref(&event),
         )
         .unwrap();
     assert_eq!(imported_again, 0);

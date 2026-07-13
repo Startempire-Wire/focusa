@@ -722,7 +722,7 @@ mod tests {
     fn plan_includes_all_default_steps() {
         let target = crate::commands::install::InstallTarget::Auto;
         let args = UninstallArgs {
-            target: target.clone(),
+            target,
             dry_run: true,
             keep_license: false,
             keep_data: false,
@@ -764,7 +764,7 @@ mod tests {
         // Pure Linux run should NOT include RemoveLaunchAgentPlist (gated to Darwin/Auto).
         let target = crate::commands::install::InstallTarget::Linux;
         let args = UninstallArgs {
-            target: target.clone(),
+            target,
             dry_run: true,
             keep_license: false,
             keep_data: false,
@@ -788,7 +788,7 @@ mod tests {
     fn keep_license_marks_license_step_skipped() {
         let target = crate::commands::install::InstallTarget::Linux;
         let args = UninstallArgs {
-            target: target.clone(),
+            target,
             dry_run: true,
             keep_license: true,
             keep_data: false,
@@ -812,7 +812,7 @@ mod tests {
     fn keep_data_marks_install_root_skipped() {
         let target = crate::commands::install::InstallTarget::Linux;
         let args = UninstallArgs {
-            target: target.clone(),
+            target,
             dry_run: true,
             keep_license: false,
             keep_data: true,
@@ -839,7 +839,7 @@ mod tests {
     fn keep_path_modifications_skips_rc_steps() {
         let target = crate::commands::install::InstallTarget::Linux;
         let args = UninstallArgs {
-            target: target.clone(),
+            target,
             dry_run: true,
             keep_license: false,
             keep_data: false,
@@ -867,7 +867,7 @@ mod tests {
     fn purge_adds_purge_step() {
         let target = crate::commands::install::InstallTarget::Linux;
         let args = UninstallArgs {
-            target: target.clone(),
+            target,
             dry_run: true,
             keep_license: false,
             keep_data: false,

@@ -274,10 +274,9 @@ pub fn menubar_cors_layer() -> CorsLayer {
         let s = s.trim().trim_end_matches('/');
         let (scheme, rest) = if let Some(r) = s.strip_prefix("https://") {
             ("https", r)
-        } else if let Some(r) = s.strip_prefix("http://") {
-            ("http", r)
         } else {
-            return None;
+            let r = s.strip_prefix("http://")?;
+            ("http", r)
         };
         // rest is host[:port][/path]
         let host_port = rest.split('/').next().unwrap_or(rest);

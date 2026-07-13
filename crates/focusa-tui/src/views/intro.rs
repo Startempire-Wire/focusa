@@ -155,8 +155,9 @@ mod tests {
         const COLS_PER_CHAR_HALFWIDTH: u16 = 4; // 2 glyph pixels per cell, 8-px font
         const RENDERED_WIDTH: u16 = LOGO_CHARS as u16 * COLS_PER_CHAR_HALFWIDTH;
         const LAYOUT_SLOT: u16 = 30; // matches Constraint::Length(30) in render()
+        let rendered_width = RENDERED_WIDTH;
         assert!(
-            RENDERED_WIDTH <= LAYOUT_SLOT,
+            rendered_width <= LAYOUT_SLOT,
             "BigText HalfWidth 'FOCUSA' needs {RENDERED_WIDTH} cols, layout slot is {LAYOUT_SLOT}. \
              Either widen the slot or pick a smaller pixel size (e.g., Quadrant=2x2 → 12 cols)."
         );
