@@ -11,6 +11,7 @@ pub mod capabilities;
 pub mod capabilities_extra;
 pub mod clt;
 pub mod commands;
+pub mod compaction;
 pub mod constitution;
 pub mod context_cognition;
 pub mod deck;
