@@ -8336,7 +8336,8 @@ async fn contracts() -> Json<Value> {
 }
 
 fn ontology_world_default_object_limit() -> usize {
-    env_limit("FOCUSA_ONTOLOGY_WORLD_DEFAULT_OBJECT_LIMIT", 256)
+    // Hot/default ontology reads are orientation packets, not graph dumps.
+    env_limit("FOCUSA_ONTOLOGY_WORLD_DEFAULT_OBJECT_LIMIT", 16)
 }
 
 fn ontology_world_full_object_limit() -> usize {
@@ -8345,7 +8346,7 @@ fn ontology_world_full_object_limit() -> usize {
 }
 
 fn ontology_world_default_link_limit() -> usize {
-    env_limit("FOCUSA_ONTOLOGY_WORLD_DEFAULT_LINK_LIMIT", 512)
+    env_limit("FOCUSA_ONTOLOGY_WORLD_DEFAULT_LINK_LIMIT", 24)
 }
 
 fn ontology_world_full_link_limit() -> usize {

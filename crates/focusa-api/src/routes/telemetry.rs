@@ -64,9 +64,9 @@ fn current_process_memory() -> Value {
 
 fn route_budget_profile() -> Value {
     let ontology_object_default =
-        budgeted_default_limit("FOCUSA_ONTOLOGY_WORLD_DEFAULT_OBJECT_LIMIT", 256);
+        budgeted_default_limit("FOCUSA_ONTOLOGY_WORLD_DEFAULT_OBJECT_LIMIT", 16);
     let ontology_link_default =
-        budgeted_default_limit("FOCUSA_ONTOLOGY_WORLD_DEFAULT_LINK_LIMIT", 512);
+        budgeted_default_limit("FOCUSA_ONTOLOGY_WORLD_DEFAULT_LINK_LIMIT", 24);
     let ecs_default = budgeted_default_limit("FOCUSA_ECS_HANDLES_DEFAULT_LIMIT", 100);
     let semantic_default = budgeted_default_limit("FOCUSA_MEMORY_SEMANTIC_DEFAULT_LIMIT", 100);
     let telemetry_default = budgeted_default_limit("FOCUSA_TELEMETRY_EVENTS_DEFAULT_LIMIT", 100);
