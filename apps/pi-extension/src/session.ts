@@ -57,6 +57,7 @@ import {
   getSessionCwd,
   getContinuityId,
 } from "./state.js";
+import { loadPersistedRecoveryState } from "./persistence.js";
 import { pushDelta } from "./tools.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
@@ -855,36 +856,38 @@ export function registerSession(pi: ExtensionAPI) {
         e.data &&
         String(e.data.sessionId || "") === eventSessionId
       ) {
+        const d = loadPersistedRecoveryState(e.data);
+        if (!d) continue;
         // §33.5 + §33.7: restore resumable session metadata and safe local shadow,
         // but do not blindly reuse stale frame identity outside WBM mode.
-        S.localDecisions = e.data.decisions || [];
-        setTurnCount(e.data.turnCount || 0);
-        S.wbmEnabled = e.data.wbmEnabled || S.wbmEnabled;
-        S.wbmNoCatalogue = e.data.wbmNoCatalogue || false;
-        S.cataloguedDecisions = e.data.cataloguedDecisions || [];
-        S.cataloguedFacts = e.data.cataloguedFacts || [];
-        setTotalCompactions(e.data.totalCompactions || 0);
-        S.lastCompactResumeKey = e.data.lastCompactResumeKey || "";
-        S.lastCompactResumeAt = e.data.lastCompactResumeAt || 0;
-        S.activeFrameTitle = e.data.frameTitle || "";
-        S.activeFrameGoal = e.data.frameGoal || "";
-        seedCurrentAskFromPersistedState(ctx, e.data);
+        S.localDecisions = d.decisions || [];
+        setTurnCount(d.turnCount || 0);
+        S.wbmEnabled = d.wbmEnabled || S.wbmEnabled;
+        S.wbmNoCatalogue = d.wbmNoCatalogue || false;
+        S.cataloguedDecisions = d.cataloguedDecisions || [];
+        S.cataloguedFacts = d.cataloguedFacts || [];
+        setTotalCompactions(d.totalCompactions || 0);
+        S.lastCompactResumeKey = d.lastCompactResumeKey || "";
+        S.lastCompactResumeAt = d.lastCompactResumeAt || 0;
+        S.activeFrameTitle = d.frameTitle || "";
+        S.activeFrameGoal = d.frameGoal || "";
+        seedCurrentAskFromPersistedState(ctx, d);
         S.lastFocusSnapshot = {
-          decisions: e.data.authoritativeDecisions || [],
-          constraints: e.data.authoritativeConstraints || [],
-          failures: e.data.authoritativeFailures || [],
-          intent: e.data.intent || "",
-          currentFocus: e.data.currentFocus || "",
+          decisions: d.authoritativeDecisions || [],
+          constraints: d.authoritativeConstraints || [],
+          failures: d.authoritativeFailures || [],
+          intent: d.intent || "",
+          currentFocus: d.currentFocus || "",
         };
-        if (e.data.projectRootResolution) setLastProjectRootResolution(e.data.projectRootResolution);
-        if (e.data.lastProjectIdentity) {
-          const pi = e.data.lastProjectIdentity;
+        if (d.projectRootResolution) setLastProjectRootResolution(d.projectRootResolution);
+        if (d.lastProjectIdentity) {
+          const pi = d.lastProjectIdentity;
           const piRoot = pi.project_root ? normalizeProjectRoot(pi.project_root) : "";
           const cwdRoot = normalizeProjectRoot(ctx.cwd);
           setLastProjectIdentity(piRoot && piRoot === cwdRoot ? pi : null);
         }
-        if (e.data.lastTrajectoryClarity) {
-          const c = e.data.lastTrajectoryClarity;
+        if (d.lastTrajectoryClarity) {
+          const c = d.lastTrajectoryClarity;
           const cRoot = c.project_root ? adoptPiProjectRoot(c.project_root) : "";
           const cwdRoot = adoptPiProjectRoot(ctx.cwd);
           setLastTrajectoryClarity(
@@ -896,16 +899,16 @@ export function registerSession(pi: ExtensionAPI) {
               : null
           );
         }
-        if (e.data.lastProjectVerify) setLastProjectVerify(e.data.lastProjectVerify);
-        if (e.data.latestReportSummary?.handle) setLatestReportSummary(e.data.latestReportSummary);
-        if (e.data.toolOutputPressure?.recapRequired) S.toolOutputPressure = e.data.toolOutputPressure;
-        if (Array.isArray(e.data.projectSwitchLedger))
-          S.projectSwitchLedger = e.data.projectSwitchLedger.slice(0, 12);
-        if (e.data.vitalInfoPrompted) S.vitalInfoPrompted = e.data.vitalInfoPrompted;
+        if (d.lastProjectVerify) setLastProjectVerify(d.lastProjectVerify);
+        if (d.latestReportSummary?.handle) setLatestReportSummary(d.latestReportSummary);
+        if (d.toolOutputPressure?.recapRequired) S.toolOutputPressure = d.toolOutputPressure;
+        if (Array.isArray(d.projectSwitchLedger))
+          S.projectSwitchLedger = d.projectSwitchLedger.slice(0, 12);
+        if (d.vitalInfoPrompted) S.vitalInfoPrompted = d.vitalInfoPrompted;
         adoptPersistedContinuityForSession(
-          e.data,
+          d,
           eventSessionId,
-          adoptPiProjectRoot(ctx.cwd, e.data.activeWorkpointPacket)
+          adoptPiProjectRoot(ctx.cwd, d.activeWorkpointPacket)
         );
         // Explicitly clear stale pollution — do NOT carry across sessions
         S.localConstraints = [];
@@ -1143,7 +1146,8 @@ export function registerSession(pi: ExtensionAPI) {
         switchEntries[i].data &&
         String(switchEntries[i].data.sessionId || "") === eventSessionId
       ) {
-        const d = switchEntries[i].data;
+        const d = loadPersistedRecoveryState(switchEntries[i].data);
+        if (!d) continue;
         S.localDecisions = d.decisions || [];
         S.localConstraints = d.constraints || [];
         S.localFailures = d.failures || [];

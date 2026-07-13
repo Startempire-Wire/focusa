@@ -6,6 +6,24 @@ import { homedir } from "os";
 import { dirname, join, resolve } from "path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { DEFAULT_DAEMON_RESTART_COMMAND, type FocusaConfig } from "./config.js";
+import {
+  COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA,
+  COMPACTION_PERSISTENCE_ANCHOR_SCHEMA,
+  NATIVE_ANCHOR_MAX_BYTES,
+  PROJECT_SWITCH_ANCHOR_MAX_BYTES,
+  loadPersistedRecoveryState,
+  semanticPersistenceDigest,
+  stableSemanticValue,
+  writeRecoverySidecar,
+} from "./persistence.js";
+export {
+  COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA,
+  COMPACTION_PERSISTENCE_ANCHOR_SCHEMA,
+  NATIVE_ANCHOR_MAX_BYTES,
+  PROJECT_SWITCH_ANCHOR_MAX_BYTES,
+  loadPersistedRecoveryState,
+  semanticPersistenceDigest,
+} from "./persistence.js";
 
 export type PiCurrentAskKind = "question" | "instruction" | "correction" | "meta" | "unknown";
 
@@ -320,6 +338,11 @@ export const S = {
   // Persistence dedup/throttle for appendEntry pressure
   lastPersistAt: 0,
   lastPersistHash: "",
+  persistRevision: 0,
+  pendingPersistAnchor: false,
+  lastPersistSidecarKey: "",
+  lastPersistSidecarBytes: 0,
+  lastProjectSwitchPersistHash: "",
   // Hot-path caches for context injection latency control
   focusStateCache: {
     key: "",
@@ -495,6 +518,11 @@ export function resetPiSessionScopedState(reason = "session_boundary"): void {
   S.ecsHandlesCache = { at: 0, data: null, inflight: null };
   S.lastPersistAt = 0;
   S.lastPersistHash = "";
+  S.persistRevision = 0;
+  S.pendingPersistAnchor = false;
+  S.lastPersistSidecarKey = "";
+  S.lastPersistSidecarBytes = 0;
+  S.lastProjectSwitchPersistHash = "";
   S.wbmEnabled = false;
   S.wbmDeep = false;
   S.wbmNoCatalogue = false;
@@ -1055,11 +1083,7 @@ export function observeProjectThreadEvidence(input: {
   S.projectSwitchLedger = [observation, ...S.projectSwitchLedger.filter((entry) => entry !== existing)]
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .slice(0, PROJECT_SWITCH_LEDGER_MAX_OBSERVATIONS);
-  try {
-    S.pi?.appendEntry("focusa-project-switch-ledger", { observations: S.projectSwitchLedger.slice(0, 6) });
-  } catch {
-    /* best effort */
-  }
+  persistProjectSwitchLedgerAnchor();
   persistState();
   return observation;
 }
@@ -1086,11 +1110,7 @@ export function markObservationAsSupportingWork(
     `why=${whyRelated.slice(0, 80)}`,
     ...entry.recent_actions,
   ].slice(0, PROJECT_SWITCH_LEDGER_MAX_ACTIONS);
-  try {
-    S.pi?.appendEntry("focusa-project-switch-ledger", { observations: S.projectSwitchLedger.slice(0, 6) });
-  } catch {
-    /* best effort */
-  }
+  persistProjectSwitchLedgerAnchor();
   persistState();
   return true;
 }
@@ -3464,14 +3484,73 @@ export async function persistAuthoritativeState(): Promise<void> {
   persistState();
 }
 
-export function persistState(): void {
-  const payload = {
+function boundedObject(value: any, maxBytes: number, fallback: Record<string, any>): any {
+  if (value == null) return value;
+  try {
+    if (Buffer.byteLength(JSON.stringify(value), "utf8") <= maxBytes) return value;
+  } catch {
+    return fallback;
+  }
+  return fallback;
+}
+
+function compactWorkpointPacket(packet: any): any {
+  const workpoint = packet?.resume_packet?.workpoint || packet?.workpoint || packet || {};
+  return {
+    workpoint_id: workpoint.workpoint_id || packet?.workpoint_id || null,
+    revision: workpoint.revision || packet?.revision || null,
+    checkpoint_id: workpoint.checkpoint_id || packet?.checkpoint_id || null,
+    project_root: workpoint.project_root || packet?.project_root || null,
+    continuity_id: workpoint.continuity_id || packet?.continuity_id || null,
+    mission: trimPersistText(workpoint.mission || packet?.mission || ""),
+    current_action: workpoint.current_action || packet?.current_action || null,
+    next_slice: trimPersistText(workpoint.next_slice || packet?.next_slice || ""),
+    blockers: Array.isArray(workpoint.blockers) ? workpoint.blockers.slice(0, 8) : [],
+    evidence_refs: Array.isArray(workpoint.evidence_refs) ? workpoint.evidence_refs.slice(0, 12) : [],
+    canonical: packet?.canonical !== false,
+  };
+}
+
+function compactTrajectoryClarity(trajectory: any): any {
+  if (!trajectory) return null;
+  return {
+    trajectory_id: trajectory.trajectory_id || trajectory.id || null,
+    project_root: trajectory.project_root || null,
+    continuity_id: trajectory.continuity_id || null,
+    session_id: trajectory.session_id || null,
+    status: trajectory.status || null,
+    hlt_status: trajectory.hlt_status || null,
+    long_term_goal: trimPersistText(trajectory.long_term_goal || trajectory.hlt || ""),
+    mid_level_goal: trimPersistText(trajectory.mid_level_goal || trajectory.mlg || ""),
+    short_term_goal: trimPersistText(trajectory.short_term_goal || trajectory.stg || ""),
+    current_state: trimPersistText(trajectory.current_state || ""),
+    recommended_action: trimPersistText(trajectory.recommended_action || ""),
+    fallback_prior_project_trajectory: trajectory.fallback_prior_project_trajectory === true,
+  };
+}
+
+function boundedVitalInfoPrompted(value: Record<string, number>): Record<string, number> {
+  return Object.fromEntries(
+    Object.entries(value || {})
+      .sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0))
+      .slice(0, 40)
+  );
+}
+
+function buildPersistedRecoveryState(): Record<string, any> {
+  const workpoint = getScopedWorkpointPacket();
+  return {
     sessionId: S.sessionFrameKey,
     continuityId: S.continuityId,
+    projectRoot: normalizeProjectRoot(
+      getLastProjectRootResolution()?.projectRoot || S.sessionCwd || process.cwd()
+    ),
     frameId: S.activeFrameId,
     frameTitle: trimPersistText(S.activeFrameTitle),
     frameGoal: trimPersistText(S.activeFrameGoal),
-    currentAsk: S.currentAsk ? { ...S.currentAsk, text: trimPersistText(S.currentAsk.text) } : null,
+    currentAsk: S.currentAsk
+      ? { ...S.currentAsk, text: trimPersistText(S.currentAsk.text) }
+      : null,
     queryScope: S.queryScope,
     decisions: tailBounded(S.localDecisions),
     constraints: tailBounded(S.localConstraints),
@@ -3482,15 +3561,34 @@ export function persistState(): void {
     intent: trimPersistText(S.lastFocusSnapshot.intent),
     currentFocus: trimPersistText(S.lastFocusSnapshot.currentFocus),
     projectRootResolution: getLastProjectRootResolution(),
-    activeWorkpointPacket: getScopedWorkpointPacket(),
-    activeWorkpointSummary: getScopedWorkpointPacket() ? trimPersistText(getActiveWorkpointSummary()) : "",
-    lastTrajectoryClarity: getLastTrajectoryClarity(),
-    lastProjectIdentity: S.lastProjectIdentity,
-    lastProjectVerify: getLastProjectVerify(),
+    activeWorkpointPacket: boundedObject(workpoint, 64 * 1024, compactWorkpointPacket(workpoint)),
+    activeWorkpointSummary: workpoint ? trimPersistText(getActiveWorkpointSummary()) : "",
+    lastTrajectoryClarity: boundedObject(
+      getLastTrajectoryClarity(),
+      48 * 1024,
+      compactTrajectoryClarity(getLastTrajectoryClarity())
+    ),
+    lastProjectIdentity: boundedObject(S.lastProjectIdentity, 16 * 1024, {
+      project_root: S.lastProjectIdentity?.project_root || null,
+      project_id: S.lastProjectIdentity?.project_id || null,
+      canonical_name: S.lastProjectIdentity?.canonical_name || null,
+      status: S.lastProjectIdentity?.status || null,
+    }),
+    lastProjectVerify: boundedObject(getLastProjectVerify(), 16 * 1024, {
+      project_root: getLastProjectVerify()?.project_root || null,
+      verified: getLastProjectVerify()?.verified === true,
+      status: getLastProjectVerify()?.status || null,
+    }),
     latestReportSummary: getLatestReportSummary(),
-    toolOutputPressure: S.toolOutputPressure?.recapRequired ? S.toolOutputPressure : null,
+    toolOutputPressure: S.toolOutputPressure?.recapRequired
+      ? {
+          recapRequired: true,
+          recapReason: trimPersistText(S.toolOutputPressure.recapReason),
+          lastToolName: trimPersistText(S.toolOutputPressure.lastToolName),
+        }
+      : null,
     projectSwitchLedger: S.projectSwitchLedger.slice(0, PROJECT_SWITCH_LEDGER_MAX_OBSERVATIONS),
-    vitalInfoPrompted: S.vitalInfoPrompted,
+    vitalInfoPrompted: boundedVitalInfoPrompted(S.vitalInfoPrompted),
     lastCompactResumeKey: S.lastCompactResumeKey,
     lastCompactResumeAt: S.lastCompactResumeAt,
     turnCount: getTurnCount(),
@@ -3499,20 +3597,155 @@ export function persistState(): void {
     cataloguedDecisions: tailBounded(S.cataloguedDecisions),
     cataloguedFacts: tailBounded(S.cataloguedFacts),
     totalCompactions: getTotalCompactions(),
-    timestamp: Date.now(),
   };
+}
 
-  const now = Date.now();
-  const payloadHash = JSON.stringify(payload);
-  if (S.lastPersistHash === payloadHash && now - S.lastPersistAt < PERSIST_MIN_INTERVAL_MS) {
-    return;
+function appendBoundedNativeEntry(
+  customType: string,
+  payload: Record<string, any>,
+  hardCap: number
+): boolean {
+  const bytes = Buffer.byteLength(JSON.stringify(payload), "utf8");
+  if (bytes > hardCap) {
+    focusaPost("/telemetry/trace", {
+      event_type: "pi_persistence_anchor_rejected_oversized",
+      payload: { custom_type: customType, bytes, hard_cap: hardCap, session_id: S.sessionFrameKey },
+    });
+    return false;
+  }
+  if (!S.pi) return false;
+  try {
+    S.pi.appendEntry(customType, payload);
+    return true;
+  } catch (error) {
+    focusaPost("/telemetry/trace", {
+      event_type: "pi_persistence_native_append_failed",
+      payload: {
+        custom_type: customType,
+        bytes,
+        session_id: S.sessionFrameKey,
+        error: String((error as Error)?.message || error),
+      },
+    });
+    return false;
+  }
+}
+
+function projectSwitchSemanticPayload(): Record<string, any> {
+  return {
+    observations: stableSemanticValue(S.projectSwitchLedger.slice(0, 6), "projectSwitchLedger"),
+  };
+}
+
+function persistProjectSwitchLedgerAnchor(): void {
+  if (!S.pi) return;
+  const semantic = projectSwitchSemanticPayload();
+  const digest = semanticPersistenceDigest(semantic);
+  if (digest === S.lastProjectSwitchPersistHash) return;
+  const payload: Record<string, any> = {
+    schema: "focusa.project_switch_anchor.v1",
+    semanticDigest: digest,
+    ...semantic,
+    createdAt: new Date().toISOString(),
+  };
+  while (
+    Array.isArray(payload.observations) &&
+    payload.observations.length > 1 &&
+    Buffer.byteLength(JSON.stringify(payload), "utf8") > PROJECT_SWITCH_ANCHOR_MAX_BYTES
+  ) {
+    payload.observations.pop();
+  }
+  if (Buffer.byteLength(JSON.stringify(payload), "utf8") > PROJECT_SWITCH_ANCHOR_MAX_BYTES) return;
+  if (
+    appendBoundedNativeEntry(
+      "focusa-project-switch-ledger",
+      payload,
+      PROJECT_SWITCH_ANCHOR_MAX_BYTES
+    )
+  ) {
+    S.lastProjectSwitchPersistHash = digest;
+  }
+}
+
+export function persistState(): void {
+  if (!S.sessionFrameKey) return;
+  const recoveryState = buildPersistedRecoveryState();
+  const semanticDigest = semanticPersistenceDigest(recoveryState);
+  const semanticChanged = semanticDigest !== S.lastPersistHash;
+
+  if (semanticChanged) {
+    const revision = S.persistRevision + 1;
+    let sidecar: { key: string; bytes: number };
+    try {
+      sidecar = writeRecoverySidecar(recoveryState, semanticDigest, revision);
+    } catch (error) {
+      focusaPost("/telemetry/trace", {
+        event_type: "pi_persistence_sidecar_write_failed",
+        payload: {
+          session_id: S.sessionFrameKey,
+          error: String((error as Error)?.message || error),
+        },
+      });
+      return;
+    }
+
+    S.lastPersistHash = semanticDigest;
+    S.persistRevision = revision;
+    S.lastPersistSidecarKey = sidecar.key;
+    S.lastPersistSidecarBytes = sidecar.bytes;
+    S.pendingPersistAnchor = true;
   }
 
-  S.lastPersistHash = payloadHash;
-  S.lastPersistAt = now;
+  if (!S.pendingPersistAnchor || !S.lastPersistSidecarKey) return;
+  const now = Date.now();
+  if (S.lastPersistAt > 0 && now - S.lastPersistAt < PERSIST_MIN_INTERVAL_MS) return;
 
-  S.pi?.appendEntry("focusa-state", payload);
-  if (S.wbmEnabled) S.pi?.appendEntry("focusa-wbm-state", payload);
+  const workpoint = compactWorkpointPacket(recoveryState.activeWorkpointPacket);
+  const trajectory = compactTrajectoryClarity(recoveryState.lastTrajectoryClarity);
+  const anchor = {
+    schema: COMPACTION_PERSISTENCE_ANCHOR_SCHEMA,
+    anchorRevision: S.persistRevision,
+    semanticDigest: S.lastPersistHash,
+    sessionId: recoveryState.sessionId,
+    continuityId: recoveryState.continuityId,
+    projectRoot: recoveryState.projectRoot,
+    frameId: recoveryState.frameId,
+    currentAsk: recoveryState.currentAsk
+      ? {
+          text: trimPersistText(recoveryState.currentAsk.text || ""),
+          kind: recoveryState.currentAsk.kind || "unknown",
+          sourceTurnId: recoveryState.currentAsk.sourceTurnId || "",
+        }
+      : null,
+    workpointId: workpoint?.workpoint_id || null,
+    workpointRevision: workpoint?.revision || null,
+    checkpointId: workpoint?.checkpoint_id || null,
+    trajectoryId: trajectory?.trajectory_id || null,
+    hltStatus: trajectory?.hlt_status || null,
+    sidecarKey: S.lastPersistSidecarKey,
+    sidecarBytes: S.lastPersistSidecarBytes,
+    createdAt: new Date(now).toISOString(),
+  };
+  if (!appendBoundedNativeEntry("focusa-state", anchor, NATIVE_ANCHOR_MAX_BYTES)) return;
+
+  if (S.wbmEnabled) {
+    appendBoundedNativeEntry(
+      "focusa-wbm-state",
+      {
+        schema: COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA,
+        anchorRevision: S.persistRevision,
+        semanticDigest: S.lastPersistHash,
+        sessionId: recoveryState.sessionId,
+        continuityId: recoveryState.continuityId,
+        projectRoot: recoveryState.projectRoot,
+        sidecarKey: S.lastPersistSidecarKey,
+        createdAt: new Date(now).toISOString(),
+      },
+      NATIVE_ANCHOR_MAX_BYTES
+    );
+  }
+  S.pendingPersistAnchor = false;
+  S.lastPersistAt = now;
 }
 
 // ── Estimate tokens from bytes (§7.4) ────────────────────────────────────────

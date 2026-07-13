@@ -2773,6 +2773,7 @@ Primary files:
 
 ```text
 apps/pi-extension/src/state.ts
+apps/pi-extension/src/persistence.ts
 apps/pi-extension/src/session.ts
 apps/pi-extension/src/config.ts
 apps/pi-extension/src/compaction.ts

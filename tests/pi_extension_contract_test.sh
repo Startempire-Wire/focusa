@@ -48,16 +48,18 @@ STATE_FILE="${ROOT_DIR}/apps/pi-extension/src/state.ts"
 SESSION_FILE="${ROOT_DIR}/apps/pi-extension/src/session.ts"
 TOOLS_FILE="${ROOT_DIR}/apps/pi-extension/src/tools.ts"
 
-if rg -n 'appendEntry\("focusa-wbm-state"' "$STATE_FILE" >/dev/null 2>&1; then
-  log_pass "Pi persists resumable WBM state via focusa-wbm-state"
+if rg -n 'appendBoundedNativeEntry\(' "$STATE_FILE" >/dev/null 2>&1 \
+  && rg -n '"focusa-wbm-state"' "$STATE_FILE" >/dev/null 2>&1 \
+  && rg -n 'COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA' "$STATE_FILE" >/dev/null 2>&1; then
+  log_pass "Pi persists WBM as a bounded reference to the shared recovery sidecar"
 else
-  log_fail "Pi does not persist resumable WBM state via focusa-wbm-state"
+  log_fail "Pi WBM persistence does not use a bounded shared reference"
 fi
 
-if rg -n 'appendEntry\("focusa-state"|authoritativeDecisions|authoritativeConstraints|authoritativeFailures|persistAuthoritativeState' "$STATE_FILE" >/dev/null 2>&1; then
-  log_pass "Pi persists authoritative Focusa snapshot alongside local shadow"
+if rg -n 'COMPACTION_PERSISTENCE_ANCHOR_SCHEMA|writeRecoverySidecar|semanticPersistenceDigest|persistAuthoritativeState' "$STATE_FILE" >/dev/null 2>&1; then
+  log_pass "Pi persists authoritative recovery state through bounded anchors and an atomic sidecar"
 else
-  log_fail "Pi missing authoritative Focusa snapshot persistence"
+  log_fail "Pi missing bounded authoritative recovery persistence"
 fi
 
 if rg -n 'sessionId: S\.sessionFrameKey' "$STATE_FILE" >/dev/null 2>&1; then

@@ -1,0 +1,34 @@
+Spec 130 A2 — bounded semantic persistence proof
+Date: 2026-07-13
+Work item: focusa-w26jj.3.9
+
+Implemented:
+- stable semantic digest excluding volatile timestamps/telemetry counters
+- zero native append for unchanged semantic state
+- 8 KiB native anchor hard cap
+- 2 KiB project-switch anchor hard cap and semantic coalescing
+- atomic fsync+rename sidecar generations with 0600 files and three-generation cap
+- WBM reference reuse instead of duplicated full state
+- legacy focusa-state read compatibility
+- integrity fallback to older sidecar generation and fail-closed behavior when all generations corrupt
+- same-session restore hydration through bounded anchors
+
+Proof commands/results:
+PASS  npm --prefix apps/pi-extension run typecheck
+PASS  npm --prefix apps/pi-extension run lint -- --quiet
+PASS  bash tests/spec130_compaction_mission_packet_static_test.sh
+PASS  bash tests/spec130_bounded_persistence_test.sh
+PASS  bash tests/spec104_pi_runtime_scope_integrity_test.sh
+PASS  bash tests/pi_session_project_switch_ledger_static_test.sh
+PASS  git diff --check
+
+Runtime assertions:
+- one focusa-state anchor for initial semantic revision
+- one bounded WBM reference to the shared sidecar
+- timestamp-only changes append zero entries
+- semantic changes coalesce during the write interval and remain recoverable through the prior anchor
+- pending semantic revision anchors after the interval
+- 1,000 duplicate project observations append one project-switch anchor
+- oversized Workpoint/Trajectory blobs do not enter native anchors or sidecars
+- sidecar generations remain <= 3
+- corrupt newest generation falls back; all-corrupt generations fail closed
