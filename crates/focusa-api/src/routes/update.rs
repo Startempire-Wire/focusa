@@ -9,6 +9,7 @@ use axum::{
     Json, Router,
     routing::{get, post},
 };
+use chrono::Utc;
 use focusa_core::license::load_license_status;
 use focusa_core::update::{ReleaseChannel, UPDATE_POLICY_SCHEMA_V1, UpdateMode, UpdatePolicy};
 use serde::Deserialize;
@@ -252,6 +253,12 @@ async fn build_update_inventory(command: &'static str, query: UpdateQuery) -> Va
         .filter(|part| part.get("stale") == Some(&Value::Bool(true)))
         .filter_map(|part| part.get("part").and_then(Value::as_str))
         .collect::<Vec<_>>();
+    let stale_count = stale_parts.len();
+    let inventory_interval_seconds = std::env::var("FOCUSA_UPDATE_INVENTORY_INTERVAL_SECONDS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(21_600)
+        .clamp(300, 604_800);
     json!({
         "schema": "focusa.update_inventory.v1",
         "status": "completed",
@@ -269,6 +276,19 @@ async fn build_update_inventory(command: &'static str, query: UpdateQuery) -> Va
         "license": license_summary_json(),
         "parts": parts,
         "stale_parts": stale_parts,
+        "stale_count": stale_count,
+        "fleet_truth_status": if stale_count == 0 { "current" } else { "drift_detected" },
+        "continuous_currency": {
+            "enabled": true,
+            "checked_at": Utc::now().to_rfc3339(),
+            "interval_seconds": inventory_interval_seconds,
+            "trigger_surfaces": ["update/status", "update/check", "update/notifications", "admin poll"],
+            "notification_required": stale_count > 0,
+            "policy_driven": true,
+            "blind_latest_allowed": false,
+            "pin_override_env": "FOCUSA_UPDATE_LATEST_VERSION",
+            "interval_override_env": "FOCUSA_UPDATE_INVENTORY_INTERVAL_SECONDS"
+        },
         "warnings": [
             "read-only inventory only; no update apply, download, binary replacement, or daemon restart was attempted",
             "release manifest eligibility/signature/provenance is required before trusted auto-apply"
@@ -928,11 +948,34 @@ fn normalize_version(raw: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::normalize_version;
+    use super::{UpdateQuery, build_update_inventory, normalize_version};
 
     #[test]
     fn normalizes_common_version_outputs() {
         assert_eq!(normalize_version("focusa 0.9.74-dev"), "0.9.74-dev");
         assert_eq!(normalize_version("v0.9.80-dev"), "0.9.80-dev");
+    }
+
+    #[tokio::test]
+    async fn inventory_exposes_continuous_currency_and_drift_policy() {
+        let inventory = build_update_inventory(
+            "status",
+            UpdateQuery {
+                channel: Some("dev".into()),
+                latest_version: Some(env!("CARGO_PKG_VERSION").into()),
+            },
+        )
+        .await;
+        assert_eq!(inventory["continuous_currency"]["enabled"], true);
+        assert_eq!(
+            inventory["continuous_currency"]["blind_latest_allowed"],
+            false
+        );
+        assert!(inventory["continuous_currency"]["interval_seconds"].is_u64());
+        assert!(inventory["stale_count"].is_u64());
+        assert!(matches!(
+            inventory["fleet_truth_status"].as_str(),
+            Some("current" | "drift_detected")
+        ));
     }
 }

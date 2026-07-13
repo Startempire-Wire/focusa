@@ -23,7 +23,7 @@
     "@sinclair/typebox": "^0.34.0"
   },
   "devDependencies": {
-    "@mariozechner/pi-coding-agent": "latest",
+    "@mariozechner/pi-coding-agent": "0.64.0",
     "@typescript-eslint/eslint-plugin": "^8.63.0",
     "@typescript-eslint/parser": "^8.63.0",
     "eslint": "^9.39.4",
