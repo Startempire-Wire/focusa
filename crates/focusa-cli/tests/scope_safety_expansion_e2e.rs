@@ -27,8 +27,8 @@ fn cleanup_rejects_unsafe_project_root_before_cleanup() {
         "--dry-run",
     ]);
     assert!(
-        output.status.success(),
-        "scope reject envelope should exit 0: {out}"
+        !output.status.success(),
+        "scope rejection must return nonzero: {out}"
     );
     assert!(
         out.contains("CLI_SCOPE_REJECT"),
@@ -54,8 +54,8 @@ fn context_cognition_rejects_unsafe_project_root_before_api_call() {
         "--json",
     ]);
     assert!(
-        output.status.success(),
-        "scope reject envelope should exit 0: {out}"
+        !output.status.success(),
+        "scope rejection must return nonzero: {out}"
     );
     assert!(
         out.contains("CLI_SCOPE_REJECT"),
@@ -83,8 +83,8 @@ fn call_stack_rejects_unsafe_project_root_before_api_call() {
         "--json",
     ]);
     assert!(
-        output.status.success(),
-        "scope reject envelope should exit 0: {out}"
+        !output.status.success(),
+        "scope rejection must return nonzero: {out}"
     );
     assert!(
         out.contains("CLI_SCOPE_REJECT"),

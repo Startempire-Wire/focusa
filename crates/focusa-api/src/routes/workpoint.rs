@@ -1427,6 +1427,14 @@ async fn materialize_workpoint_events(
         }
     }
 
+    // This route reduces Workpoint events directly instead of sending them
+    // through the daemon action loop. Persist the resulting canonical state
+    // before publishing it in memory, otherwise checkpoints disappear after
+    // a daemon restart even though the request returned canonical=true.
+    state.persistence.save_state(&current).map_err(|error| {
+        tracing::error!(error = %error, correlation_id, "failed to persist canonical workpoint state");
+        workpoint_persistence_failed(error)
+    })?;
     *state.focusa.write().await = current.clone();
     state.mark_external_mutation();
     Ok(current)
