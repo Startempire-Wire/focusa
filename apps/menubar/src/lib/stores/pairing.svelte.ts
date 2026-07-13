@@ -114,7 +114,7 @@ function loadStoredDevice(): StoredDeviceMeta | null {
       deviceName: String(parsed.device_name || 'paired-device'),
       tokenPreview: String(parsed.token_preview || ''),
       tokenExpiresAt: String(parsed.token_expires_at || ''),
-      host: String(parsed.host || 'operator-vps'),
+      host: String(parsed.host || 'operator-host'),
     };
   } catch {
     return null;
@@ -221,7 +221,7 @@ function createPairingStore() {
             deviceName: String(result.device_name || 'operator-mac'),
             tokenPreview: token.slice(0, 8),
             tokenExpiresAt: String(result.token_expires_at || ''),
-            host: String(result.host || 'operator-vps'),
+            host: String(result.host || 'operator-host'),
             completedAt: Date.now(),
           };
           await savePairingToken(deviceId, token);
@@ -235,7 +235,7 @@ function createPairingStore() {
           });
           state = completed;
           stopPolling();
-          void list('operator-vps');
+          void list('operator-host');
         } else if (status === 'expired') {
           state = { kind: 'expired', code, deviceId, deviceName: String(result.device_name || 'operator-mac'), reason: 'Code expired' };
           stopPolling();
@@ -299,7 +299,7 @@ function createPairingStore() {
     }
   }
 
-  async function list(host: string = 'operator-vps'): Promise<void> {
+  async function list(host: string = 'operator-host'): Promise<void> {
     try {
       const result = await fetchJson<any>(`/device/pair/list?host=${encodeURIComponent(host)}&limit=50`);
       const devices = Array.isArray(result.devices) ? result.devices : [];
@@ -320,7 +320,7 @@ function createPairingStore() {
     }
   }
 
-  async function revoke(deviceId: string, host: string = 'operator-vps', reason?: string): Promise<void> {
+  async function revoke(deviceId: string, host: string = 'operator-host', reason?: string): Promise<void> {
     try {
       await fetchJson<any>('/device/pair/revoke', {
         method: 'POST',

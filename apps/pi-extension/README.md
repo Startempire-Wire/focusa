@@ -43,10 +43,10 @@ When adding a new `FocusaToolFamily`, update all family-indexed registries toget
 From the repository root or `apps/pi-extension`:
 
 ```bash
-cd /home/wirebot/focusa/apps/pi-extension
+cd /path/to/focusa/apps/pi-extension
 npm run typecheck -- --pretty false
 
-cd /home/wirebot/focusa
+cd /path/to/focusa
 PI_SKIP_VERSION_CHECK=1 pi -p --mode text --no-session --no-context-files --no-skills "Reply only: extension load ok"
 PI_SKIP_VERSION_CHECK=1 pi -p --mode text --no-session "Reply only: full resource ok"
 PI_SKIP_VERSION_CHECK=1 pi -p --mode text --no-session --no-context-files "/skill:focusa\nReply only: focusa skill load ok"

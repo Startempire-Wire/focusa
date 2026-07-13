@@ -10887,7 +10887,7 @@ export function registerTools(pi: ExtensionAPI) {
       "Use on the VPS side to complete a pending pairing initiated by focusa_device_pair_start. Returns the long-lived token that the Mac app will use for subsequent calls.",
     parameters: strictObject({
       code: Type.String({ description: "The FOCUS-XXXX-XXXX code from focusa_device_pair_start." }),
-      host: Type.Optional(Type.String({ description: "Host label (default: 'operator-vps')." })),
+      host: Type.Optional(Type.String({ description: "Host label (default: 'operator-host')." })),
       operator_id: Type.Optional(Type.String({ description: "Operator id (e.g. 'verious')." })),
       completed_by: Type.Optional(
         Type.String({ description: "Who/what completed the pairing. Default: 'vps-cli'." })
@@ -10898,7 +10898,7 @@ export function registerTools(pi: ExtensionAPI) {
         code: String(params.code || "")
           .trim()
           .toUpperCase(),
-        host: params.host ?? "operator-vps",
+        host: params.host ?? "operator-host",
         operator_id: params.operator_id ?? null,
         completed_by: params.completed_by ?? "vps-cli",
       };
@@ -11070,13 +11070,13 @@ export function registerTools(pi: ExtensionAPI) {
     promptSnippet:
       "Use to see which devices are currently paired with this Focusa daemon, and which have been revoked.",
     parameters: strictObject({
-      host: Type.Optional(Type.String({ description: "Host label (default: 'operator-vps')." })),
+      host: Type.Optional(Type.String({ description: "Host label (default: 'operator-host')." })),
       limit: Type.Optional(
         Type.Integer({ minimum: 1, maximum: 200, description: "Max records to return. Default: 50." })
       ),
     }),
     async execute(_id, params) {
-      const host = params.host ?? "operator-vps";
+      const host = params.host ?? "operator-host";
       const limit = Math.max(1, Math.min(200, Number(params.limit ?? 50)));
       const res = await focusaFetchDetailed(
         `/device/pair/list?host=${encodeURIComponent(host)}&limit=${limit}`
@@ -11161,7 +11161,7 @@ export function registerTools(pi: ExtensionAPI) {
       "Use to remove a paired device (lost laptop, rotation, security incident). The device will need to re-pair.",
     parameters: strictObject({
       device_id: Type.String({ description: "Device id to revoke." }),
-      host: Type.Optional(Type.String({ description: "Host label (default: 'operator-vps')." })),
+      host: Type.Optional(Type.String({ description: "Host label (default: 'operator-host')." })),
       reason: Type.Optional(
         Type.String({ description: "Optional human-readable reason (audit). Stored in the ledger." })
       ),
@@ -11178,7 +11178,7 @@ export function registerTools(pi: ExtensionAPI) {
       }
       const body = {
         device_id: String(params.device_id),
-        host: params.host ?? "operator-vps",
+        host: params.host ?? "operator-host",
         reason: params.reason ?? null,
       };
       const res = await focusaFetchDetailed("/device/pair/revoke", {

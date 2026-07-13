@@ -225,7 +225,7 @@
   {:else if activeTab === 'sync'}
     <SyncPanel />
   {:else if activeTab === 'pair'}
-    <PairingPanel host="operator-vps" />
+    <PairingPanel host="operator-host" />
   {:else if activeTab === 'settings'}
     <Settings />
   {/if}

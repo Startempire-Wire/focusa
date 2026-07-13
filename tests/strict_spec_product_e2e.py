@@ -189,6 +189,9 @@ class StrictSpecProductE2E(unittest.TestCase):
             "release_assets", "desktop_app", "agent_extension", "public_installer",
         }
         self.assertFalse(expected - actual, {"missing": sorted(expected - actual), "actual": sorted(str(x) for x in actual)})
+        serialized = json.dumps(inventory)
+        for forbidden in ("/home/wirebot", "operator-vps", "focusa-build-ovh", "KH platform", "OVH runner"):
+            self.assertNotIn(forbidden, serialized)
 
 
 if __name__ == "__main__":
