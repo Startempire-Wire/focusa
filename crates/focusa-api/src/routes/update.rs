@@ -15,7 +15,7 @@ use focusa_core::update::{ReleaseChannel, UPDATE_POLICY_SCHEMA_V1, UpdateMode, U
 use serde::Deserialize;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::process::Command;
@@ -241,13 +241,164 @@ async fn update_policy_set(Json(body): Json<UpdatePolicySetBody>) -> Json<Value>
     }
 }
 
+fn env_path(name: &str, fallback: PathBuf) -> PathBuf {
+    std::env::var_os(name)
+        .map(PathBuf::from)
+        .unwrap_or(fallback)
+}
+
+fn platform_config_home() -> PathBuf {
+    if let Some(path) = std::env::var_os("FOCUSA_CONFIG_DIR") {
+        return PathBuf::from(path);
+    }
+    #[cfg(target_os = "windows")]
+    {
+        return env_path("APPDATA", PathBuf::from(".")).join("Focusa");
+    }
+    #[cfg(target_os = "macos")]
+    {
+        return env_path("HOME", PathBuf::from(".")).join("Library/Application Support/Focusa");
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    {
+        env_path(
+            "XDG_CONFIG_HOME",
+            env_path("HOME", PathBuf::from(".")).join(".config"),
+        )
+        .join("focusa")
+    }
+}
+
+fn platform_install_prefix() -> PathBuf {
+    if let Some(path) = std::env::var_os("FOCUSA_INSTALL_PREFIX") {
+        return PathBuf::from(path);
+    }
+    #[cfg(target_os = "windows")]
+    {
+        return env_path("LOCALAPPDATA", PathBuf::from(".")).join("Focusa");
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        PathBuf::from("/usr/local")
+    }
+}
+
+fn platform_service_paths() -> (Option<PathBuf>, Option<PathBuf>, &'static str) {
+    #[cfg(target_os = "linux")]
+    {
+        return (
+            Some(PathBuf::from("/etc/systemd/system/focusa-daemon.service")),
+            Some(PathBuf::from("/etc/systemd/system/focusa-daemon.service.d")),
+            "systemd",
+        );
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let agents = env_path("HOME", PathBuf::from(".")).join("Library/LaunchAgents");
+        return (
+            Some(agents.join("com.focusa.daemon.plist")),
+            None,
+            "launchd",
+        );
+    }
+    #[cfg(target_os = "windows")]
+    {
+        (None, None, "windows_service")
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+    {
+        (None, None, "unsupported")
+    }
+}
+
 async fn build_update_inventory(command: &'static str, query: UpdateQuery) -> Value {
     let latest = resolve_latest(query.latest_version.as_deref());
-    let parts = vec![
-        inspect_binary("cli", "/usr/local/bin/focusa", &latest).await,
-        inspect_daemon(&latest),
-        inspect_binary("tui", "/usr/local/bin/focusa-tui", &latest).await,
+    let prefix = platform_install_prefix();
+    let bin_dir = if cfg!(target_os = "windows") {
+        prefix.clone()
+    } else {
+        prefix.join("bin")
+    };
+    let executable_suffix = if cfg!(target_os = "windows") {
+        ".exe"
+    } else {
+        ""
+    };
+    let cli_path = bin_dir.join(format!("focusa{executable_suffix}"));
+    let daemon_path = bin_dir.join(format!("focusa-daemon{executable_suffix}"));
+    let tui_path = bin_dir.join(format!("focusa-tui{executable_suffix}"));
+    let config_home = platform_config_home();
+    let source_root = env_path(
+        "FOCUSA_SOURCE_ROOT",
+        std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+    );
+    let (service_definition, service_overrides, service_manager) = platform_service_paths();
+    let mut parts = vec![
+        inspect_binary("cli", &cli_path.to_string_lossy(), &latest).await,
+        inspect_daemon(&latest, &daemon_path.to_string_lossy()),
+        inspect_binary("tui", &tui_path.to_string_lossy(), &latest).await,
     ];
+    parts.extend([
+        inspect_optional_path(
+            "service_definition",
+            service_definition.as_deref(),
+            "service_contract_only",
+            service_manager,
+        ),
+        inspect_optional_path(
+            "service_overrides",
+            service_overrides.as_deref(),
+            "preserve_local_overrides",
+            service_manager,
+        ),
+        inspect_protected_path(
+            "runtime_home",
+            &prefix.join("lib/focusa").to_string_lossy(),
+            "never_wholesale_replace",
+        ),
+        inspect_protected_path(
+            "env",
+            &env_path("FOCUSA_ENV_FILE", config_home.join("focusa.env")).to_string_lossy(),
+            "never_auto_overwrite",
+        ),
+        inspect_protected_path(
+            "license_files",
+            &config_home.to_string_lossy(),
+            "validate_never_downgrade",
+        ),
+        inspect_protected_path(
+            "source_checkout",
+            &source_root.to_string_lossy(),
+            "git_managed_source",
+        ),
+        inspect_external_part(
+            "release_assets",
+            "signed release manifest assets",
+            "accepted_release_only",
+        ),
+        inspect_optional_path(
+            "desktop_app",
+            std::env::var_os("FOCUSA_DESKTOP_APP_PATH")
+                .as_deref()
+                .map(Path::new),
+            "client_update_channel",
+            std::env::consts::OS,
+        ),
+        inspect_protected_path(
+            "agent_extension",
+            &env_path(
+                "FOCUSA_AGENT_EXTENSION_PATH",
+                source_root.join("apps/pi-extension"),
+            )
+            .to_string_lossy(),
+            "package_contract_channel",
+        ),
+        inspect_external_part(
+            "public_installer",
+            "configured installer release channel",
+            "installer_release_only",
+        ),
+    ]);
     let stale_parts = parts
         .iter()
         .filter(|part| part.get("stale") == Some(&Value::Bool(true)))
@@ -845,6 +996,81 @@ fn resolve_latest(override_value: Option<&str>) -> Latest {
     }
 }
 
+fn inspect_optional_path(
+    part: &'static str,
+    expected_path: Option<&Path>,
+    update_policy: &'static str,
+    platform_capability: &str,
+) -> Value {
+    match expected_path {
+        Some(path) => {
+            let mut value = inspect_protected_path(part, &path.to_string_lossy(), update_policy);
+            value["platform_capability"] = json!(platform_capability);
+            value
+        }
+        None => json!({
+            "part": part,
+            "expected_path": Value::Null,
+            "resolved_path": Value::Null,
+            "exists": Value::Null,
+            "version": Value::Null,
+            "version_source": "platform_capability",
+            "version_probe_safe": true,
+            "sha256": Value::Null,
+            "stale": Value::Null,
+            "stale_reason": "surface is not file-backed on this platform",
+            "update_policy": update_policy,
+            "auto_replace_allowed": false,
+            "platform_capability": platform_capability,
+        }),
+    }
+}
+
+fn inspect_protected_path(
+    part: &'static str,
+    expected_path: &str,
+    update_policy: &'static str,
+) -> Value {
+    let path = Path::new(expected_path);
+    let exists = path.exists();
+    json!({
+        "part": part,
+        "expected_path": expected_path,
+        "resolved_path": if exists { Some(expected_path) } else { None },
+        "exists": exists,
+        "version": Value::Null,
+        "version_source": "protected_or_contract_surface",
+        "version_probe_safe": true,
+        "sha256": Value::Null,
+        "stale": Value::Null,
+        "stale_reason": if exists { "protected surface inventoried" } else { "protected surface not present on this platform/install" },
+        "update_policy": update_policy,
+        "auto_replace_allowed": false,
+    })
+}
+
+fn inspect_external_part(
+    part: &'static str,
+    location: &'static str,
+    update_policy: &'static str,
+) -> Value {
+    json!({
+        "part": part,
+        "expected_path": Value::Null,
+        "resolved_path": Value::Null,
+        "external_location": location,
+        "exists": Value::Null,
+        "version": Value::Null,
+        "version_source": "signed_manifest_or_external_channel",
+        "version_probe_safe": true,
+        "sha256": Value::Null,
+        "stale": Value::Null,
+        "stale_reason": "external surface requires signed channel metadata",
+        "update_policy": update_policy,
+        "auto_replace_allowed": false,
+    })
+}
+
 async fn inspect_binary(part: &'static str, expected_path: &str, latest: &Latest) -> Value {
     let path = Path::new(expected_path);
     let exists = path.exists();
@@ -870,8 +1096,7 @@ async fn inspect_binary(part: &'static str, expected_path: &str, latest: &Latest
     })
 }
 
-fn inspect_daemon(latest: &Latest) -> Value {
-    let expected_path = "/usr/local/bin/focusa-daemon";
+fn inspect_daemon(latest: &Latest, expected_path: &str) -> Value {
     let path = Path::new(expected_path);
     let exists = path.exists();
     let version = normalize_version(env!("CARGO_PKG_VERSION"));
