@@ -8,6 +8,7 @@ MOD="$ROOT/crates/focusa-api/src/routes/mod.rs"
 SERVER="$ROOT/crates/focusa-api/src/server.rs"
 CLI="$ROOT/crates/focusa-cli/src/commands/compaction.rs"
 MAIN="$ROOT/crates/focusa-cli/src/main.rs"
+SUBAGENT="$ROOT/crates/focusa-api/src/routes/subagent.rs"
 
 require() { grep -Fq "$2" "$1" || { echo "missing: $2 in $1" >&2; exit 1; }; }
 
@@ -48,5 +49,9 @@ require "$CLI" '/v1/ecs/rehydrate/'
 require "$CLI" 'RestoreContext'
 require "$CLI" 'CompactionCmd::Why'
 require "$MAIN" 'Compaction(commands::compaction::CompactionCmd)'
+require "$SUBAGENT" 'focusa.subagent_result.v1'
+require "$SUBAGENT" '/v1/subagent/result'
+require "$SUBAGENT" 'omitted_raw_without_rehydrate_ref'
+require "$SUBAGENT" 'unbounded_summary'
 
 echo 'PASS: Spec 130 CompactionMissionPacket API and Pi wiring'

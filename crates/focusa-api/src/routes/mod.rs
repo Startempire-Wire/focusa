@@ -54,6 +54,7 @@ pub mod session;
 pub mod skills;
 pub mod snapshots;
 pub mod sse;
+pub mod subagent;
 pub mod telemetry;
 pub mod threads;
 pub mod tokens;
