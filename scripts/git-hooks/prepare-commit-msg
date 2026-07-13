@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# FOCUSA_COMMIT_MESSAGE_HOOK: preserve meaningful subjects; bead IDs are trailers only.
+# Never rewrite the human-authored subject.
+# Bead references may be added manually below the subject as body trailers.
+exit 0

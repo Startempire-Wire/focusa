@@ -172,6 +172,15 @@ fi
 
 echo "Next dev release tag: ${TAG}"
 
+PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+if [[ -n "$PREVIOUS_TAG" ]]; then
+  echo "Validating meaningful commit subjects in ${PREVIOUS_TAG}..HEAD..."
+  scripts/validate-commit-messages.sh --range "${PREVIOUS_TAG}..HEAD"
+else
+  echo "No previous tag found; validating the current commit subject."
+  scripts/validate-commit-messages.sh --range "HEAD^..HEAD"
+fi
+
 if [[ "$FORCE_RELEASE" -eq 1 && -z "$RELEASE_REASON" && "$DRY_RUN" -eq 0 ]]; then
   echo "Blocked: --force-release requires --release-reason with a plain-language reason." >&2
   exit 2
