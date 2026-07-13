@@ -67,6 +67,18 @@ pub struct ProjectSessionTransferRequest {
     pub project_root: Option<String>,
     pub current_ask: Option<String>,
     pub continuity_id: Option<String>,
+    pub source_scope: Option<WorkstreamKey>,
+    pub target_scope: Option<WorkstreamKey>,
+    pub target_continuity_id: Option<String>,
+    pub source_session_id: Option<String>,
+    pub target_session_id: Option<String>,
+    pub target_workpoint_id: Option<String>,
+    pub target_resume_canonical: Option<bool>,
+    pub source_checkpoint_id: Option<String>,
+    pub compaction_packet_id: Option<String>,
+    pub adapter: Option<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
     pub mission: Option<String>,
     pub next_action: Option<String>,
     pub write_preload: Option<bool>,
@@ -4003,7 +4015,7 @@ fn session_transfer_preload_bundle(
 }
 
 async fn session_transfer(
-    _scope: ScopeContext,
+    request_scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(body): Json<ProjectSessionTransferRequest>,
 ) -> Json<Value> {
@@ -4020,18 +4032,106 @@ async fn session_transfer(
         }),
         ..Default::default()
     };
-    let card_payload = card(ScopeContext::default(), State(state), Query(query))
+    let card_payload = card(request_scope.clone(), State(state), Query(query))
         .await
         .0;
     let project_root = card_payload
         .pointer("/project_identity/project_root")
         .and_then(Value::as_str)
         .or(body.project_root.as_deref())
-        .unwrap_or("unknown");
-    let continuity_id = body.continuity_id.clone().unwrap_or_else(|| {
-        stable_fingerprint(&[project_root.to_string()])
-            .replace("project-fnv1a64", "focusa-cont-project")
-    });
+        .or(request_scope.project_root.as_deref())
+        .unwrap_or("")
+        .to_string();
+    let continuity_id = body
+        .source_scope
+        .as_ref()
+        .map(|scope| scope.continuity_id.clone())
+        .or_else(|| body.continuity_id.clone())
+        .or_else(|| request_scope.continuity_id.clone())
+        .unwrap_or_default();
+    if project_root.is_empty() || continuity_id.trim().is_empty() {
+        return Json(json!({
+            "status": "blocked",
+            "schema": "focusa.project_session_transfer_response.v2",
+            "failure_class": "scope_mismatch",
+            "reason": "typed source project_root and continuity_id are required; static continuity fallback is forbidden",
+            "next_tools": ["focusa_project_identity", "focusa_workpoint_resume"]
+        }));
+    }
+    let canonical_name = card_payload
+        .pointer("/project_identity/canonical_name")
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| project_root.rsplit('/').next().unwrap_or("project"));
+    let fingerprint = card_payload
+        .pointer("/project_identity/fingerprint")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .unwrap_or_else(|| stable_fingerprint(&[project_root.clone()]));
+    let source_scope = match body.source_scope.clone() {
+        Some(scope) if scope.validate().is_ok() => scope,
+        Some(_) => {
+            return Json(
+                json!({"status":"blocked","failure_class":"scope_mismatch","reason":"invalid source_scope"}),
+            );
+        }
+        None => {
+            let root_scope = match ScopeRef::project(
+                format!("project:{fingerprint}"),
+                &project_root,
+                canonical_name,
+                &fingerprint,
+            ) {
+                Ok(scope) => scope,
+                Err(error) => {
+                    return Json(
+                        json!({"status":"blocked","failure_class":"scope_mismatch","reason":error.to_string()}),
+                    );
+                }
+            };
+            match WorkstreamKey::new(root_scope, continuity_id.clone()) {
+                Ok(scope) => scope,
+                Err(error) => {
+                    return Json(
+                        json!({"status":"blocked","failure_class":"scope_mismatch","reason":error.to_string()}),
+                    );
+                }
+            }
+        }
+    };
+    let target_scope = if action == "rollover" {
+        let target = match body.target_scope.clone() {
+            Some(scope) => scope,
+            None => {
+                let target_continuity = body.target_continuity_id.clone().unwrap_or_default();
+                if target_continuity.trim().is_empty() {
+                    return Json(
+                        json!({"status":"blocked","failure_class":"scope_mismatch","reason":"rollover requires target_scope or target_continuity_id"}),
+                    );
+                }
+                match WorkstreamKey::new(source_scope.root_scope.clone(), target_continuity) {
+                    Ok(scope) => scope,
+                    Err(error) => {
+                        return Json(
+                            json!({"status":"blocked","failure_class":"scope_mismatch","reason":error.to_string()}),
+                        );
+                    }
+                }
+            }
+        };
+        if target.validate().is_err()
+            || target.root_scope != source_scope.root_scope
+            || target.continuity_id == source_scope.continuity_id
+        {
+            return Json(json!({
+                "status":"blocked",
+                "failure_class":"scope_mismatch",
+                "reason":"target scope must share the verified project root and use a new continuity_id"
+            }));
+        }
+        Some(target)
+    } else {
+        body.target_scope.clone()
+    };
     let inferred = card_payload
         .get("inferred_workpoint_candidate")
         .cloned()
@@ -4075,14 +4175,34 @@ async fn session_transfer(
         })
         .unwrap_or_else(|| "Continue from session-transfer packet".to_string());
     let transfer_id = uuid::Uuid::now_v7().to_string();
-    let latest_prior = recent_jsonl_values(project_session_transfers_path(), 1)
-        .pop()
+    let latest_prior = recent_jsonl_values(project_session_transfers_path(), 256)
+        .into_iter()
+        .rev()
+        .find(|record| {
+            let source_matches = record
+                .pointer("/source_scope/root_scope/root_path")
+                .and_then(Value::as_str)
+                == Some(project_root.as_str())
+                && record
+                    .pointer("/source_scope/continuity_id")
+                    .and_then(Value::as_str)
+                    == Some(source_scope.continuity_id.as_str());
+            let target_matches = record
+                .pointer("/target_scope/root_scope/root_path")
+                .and_then(Value::as_str)
+                == Some(project_root.as_str())
+                && record
+                    .pointer("/target_scope/continuity_id")
+                    .and_then(Value::as_str)
+                    == Some(source_scope.continuity_id.as_str());
+            source_matches || target_matches
+        })
         .unwrap_or(Value::Null);
     let preload_target = body.preload_target.as_deref().unwrap_or("cursor");
     let preload_mode = body.preload_mode.as_deref().unwrap_or("session_transfer");
     let preload = session_transfer_preload_bundle(
         &action,
-        project_root,
+        &project_root,
         &continuity_id,
         &mission,
         &next_action,
@@ -4103,8 +4223,22 @@ async fn session_transfer(
         "authority_boundary": "project_root_plus_continuity_id"
     });
     let record = json!({
-        "schema": "focusa.project_session_transfer.v1",
+        "schema": "focusa.project_session_transfer.v2",
         "transfer_id": transfer_id,
+        "source_scope": source_scope,
+        "target_scope": target_scope,
+        "transition": {
+            "status": if action == "rollover" { "target_attachment_pending" } else { "saved" },
+            "source_session_id": body.source_session_id,
+            "target_session_id": body.target_session_id,
+            "target_workpoint_id": body.target_workpoint_id,
+            "target_resume_canonical": body.target_resume_canonical,
+            "source_checkpoint_id": body.source_checkpoint_id,
+            "compaction_packet_id": body.compaction_packet_id,
+            "adapter": body.adapter.as_deref().unwrap_or("unknown"),
+            "evidence_refs": body.evidence_refs,
+            "requires_target_resume_verification": action == "rollover"
+        },
         "action": action,
         "ts": chrono::Utc::now().to_rfc3339(),
         "project_root": project_root,
@@ -4120,13 +4254,45 @@ async fn session_transfer(
         "preload": preload,
         "operator_handoff": operator_handoff
     });
-    if action == "save" {
+    if action == "save" || action == "rollover" {
         append_project_session_transfer(&record);
     }
-    let transfer = if action == "continue" && !latest_prior.is_null() {
+    let transfer = if (action == "continue" || action == "verify_target") && !latest_prior.is_null()
+    {
         let mut prior = latest_prior.clone();
         prior["preload"] = preload.clone();
         prior["operator_handoff"] = operator_handoff.clone();
+        if action == "verify_target" {
+            let verified = body.target_resume_canonical == Some(true)
+                && body
+                    .target_workpoint_id
+                    .as_deref()
+                    .is_some_and(|value| !value.trim().is_empty())
+                && body
+                    .target_session_id
+                    .as_deref()
+                    .is_some_and(|value| !value.trim().is_empty());
+            let receipt = json!({
+                "schema": "focusa.project_session_transition_receipt.v1",
+                "receipt_id": Uuid::now_v7().to_string(),
+                "transfer_id": prior.get("transfer_id"),
+                "source_scope": prior.get("source_scope"),
+                "target_scope": prior.get("target_scope"),
+                "target_session_id": body.target_session_id,
+                "target_workpoint_id": body.target_workpoint_id,
+                "target_resume_canonical": body.target_resume_canonical,
+                "status": if verified { "target_resume_verified" } else { "target_resume_degraded" },
+                "verified_at": Utc::now().to_rfc3339(),
+                "evidence_refs": body.evidence_refs,
+            });
+            append_project_session_transfer(&receipt);
+            prior["transition_receipt"] = receipt;
+            prior["transition"]["status"] = json!(if verified {
+                "target_resume_verified"
+            } else {
+                "target_resume_degraded"
+            });
+        }
         prior
     } else {
         record
@@ -4135,7 +4301,7 @@ async fn session_transfer(
         "status": transfer_status,
         "schema": "focusa.project_session_transfer_response.v1",
         "action": action,
-        "saved": action == "save",
+        "saved": action == "save" || action == "rollover",
         "transfer": transfer,
         "latest_prior_save": latest_prior,
         "preload": preload,
