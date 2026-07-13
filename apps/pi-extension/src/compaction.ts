@@ -160,6 +160,61 @@ function semanticCurrentAsk(): string {
   return text;
 }
 
+function renderCompactionMissionPacket(packet: any): string {
+  const trajectory = packet?.trajectory || {};
+  const workpoint = packet?.workpoint || {};
+  const scope = packet?.scope || {};
+  const next = packet?.next || {};
+  const warnings = compactLines(trajectory?.warnings).slice(0, 6);
+  return [
+    "## CompactionMissionPacket",
+    `STATUS: ${compactText(packet?.status, "blocked", 32)}`,
+    `SCOPE_STATUS: ${compactText(scope?.scope_status, "missing", 32)}`,
+    `HLT_STATUS: ${compactText(trajectory?.hlt_status, "missing_required", 48)}`,
+    `ACTION_AUTHORITY_FROM_TRAJECTORY: ${trajectory?.action_authority_from_trajectory === true}`,
+    `WORKPOINT_STATUS: ${compactText(workpoint?.status, "missing", 32)}`,
+    `WORKPOINT_ACTION_AUTHORITY: ${workpoint?.action_authority === true}`,
+    `HLT: ${compactText(trajectory?.hlt, "missing", 300)}`,
+    `MISSION: ${compactText(workpoint?.mission, "missing", 300)}`,
+    `NEXT_SLICE: ${compactText(workpoint?.next_slice, "missing", 300)}`,
+    `EXACT_NEXT_TOOL: ${compactText(next?.exact_next_tool, "focusa_workpoint_resume", 80)}`,
+    `WARNINGS: ${warnings.length ? warnings.join(" | ") : "none"}`,
+    `PACKET_ID: ${compactText(packet?.packet_id, "missing", 80)}`,
+    "AUTHORITY: advisory packet only; Trajectory, Workpoint, Focus State, and evidence remain canonical.",
+    "DO_NOT_USE: transcript tail, raw tool history, or generic trajectory as authority.",
+  ].join("\n");
+}
+
+async function buildCompactionMissionPacket(resumeSource: string): Promise<any | null> {
+  if (!S.focusaAvailable) return null;
+  try {
+    const visibleRecapReason = toolOutputVisibleRecapReason();
+    const packet = await focusaFetch("/compaction/build", {
+      method: "POST",
+      body: JSON.stringify({
+        resume_source: resumeSource,
+        project_root: normalizeProjectRoot(getSessionCwd() || process.cwd()),
+        continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
+        session_id: getSessionFrameKey() || undefined,
+        current_ask: semanticCurrentAsk() || undefined,
+        ask_kind: S.currentAsk?.kind || "unknown",
+        source_turn_id: `pi-turn-${getTurnCount()}`,
+        omitted_sections: visibleRecapReason ? ["raw_tool_history"] : [],
+        rehydrate_refs: [
+          "focusa_workpoint_resume",
+          "focusa_trajectory_view",
+          "focusa_traverse",
+        ],
+      }),
+    });
+    if (packet?.schema_version !== "focusa.compaction_mission_packet.v1") return null;
+    (S as any).lastCompactionMissionPacket = packet;
+    return packet;
+  } catch {
+    return null;
+  }
+}
+
 async function buildCompactionFallbackSummary(fs: any, workpointPacket: any): Promise<string> {
   const candidatePacket =
     normalizeWorkpointResumePacketEnvelope(workpointPacket) || getScopedWorkpointPacket() || {};
@@ -744,9 +799,23 @@ export function registerCompaction(pi: ExtensionAPI) {
     const trajectoryPacket = await refreshTrajectoryResumePacket("before_compaction");
     void trajectoryPacket;
     const workpointPacket = await refreshWorkpointResumePacket("compact_prompt");
+    const missionPacket = await buildCompactionMissionPacket("before_compaction");
 
     // Always persist to Pi session entries as backup
     await persistAuthoritativeState();
+
+    // Spec 130: a bounded typed mission packet supersedes ad-hoc prompt
+    // reconstruction when the daemon can build one for the verified scope.
+    if (missionPacket) {
+      const ev = event as any;
+      return {
+        compaction: {
+          summary: renderCompactionMissionPacket(missionPacket),
+          firstKeptEntryId: ev.preparation?.firstKeptEntryId,
+          tokensBefore: ev.preparation?.tokensBefore,
+        },
+      };
+    }
 
     // §33.1: Try Focusa ASCC replacement FIRST
     if (S.focusaAvailable) {
@@ -847,6 +916,7 @@ export function registerCompaction(pi: ExtensionAPI) {
       await refreshWorkpointResumePacket("compact_prompt");
       await refreshTrajectoryClarityLifecycle("after_compaction", getSessionCwd() || process.cwd());
       const trajectoryPacket = await refreshTrajectoryResumePacket("after_compaction");
+      const missionPacket = await buildCompactionMissionPacket("after_compaction");
       S.lastCompactResumeKey = compactResumeKey;
       S.lastCompactResumeAt = Date.now();
       persistState();
@@ -891,7 +961,11 @@ export function registerCompaction(pi: ExtensionAPI) {
             ? `Call focusa_workpoint_resume first if uncertain; treat WorkpointResumePacketV2 as canonical only when canonical=true and project_root+continuity_id match. Use the injected TrajectoryResumePacket as TL north-star context, then use focusa_trajectory_view for refresh and focusa_traverse for bounded supporting slices. Include prediction/metacog context in trajectory review and final task report. Never use transcript tail as authority.`
             : `No verified WorkpointResumePacketV2 is available for this exact project_root+continuity_id; call focusa_workpoint_resume, focusa_trajectory_view, focusa_metacog_doctor, focusa_predict_recent/stats, or focusa_tool_doctor before trusting any carryover.`;
           const note = getTotalCompactions() > 0 ? ` [compaction #${getTotalCompactions()}]` : "";
+          const missionPrompt = missionPacket
+            ? renderCompactionMissionPacket(missionPacket)
+            : "## CompactionMissionPacket\nUNAVAILABLE; rehydrate from canonical Workpoint and Trajectory routes.";
           const steerMessage = `# Compaction Complete${note}
+${missionPrompt}
 ## Last Active Focus
 ${S.lastCompactDecision || "pre-compaction work"}
 ## AttentionRecallVerdict
