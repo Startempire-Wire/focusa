@@ -6,6 +6,7 @@
 //! exists.
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
 pub const RELEASE_MANIFEST_SCHEMA_V1: &str = "focusa.release_manifest.v1";
@@ -322,6 +323,46 @@ pub struct AssetSignature {
     pub signature: String,
     #[serde(default)]
     pub certificate_sha256: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AssetDigestVerification {
+    pub valid: bool,
+    pub expected_sha256: String,
+    pub actual_sha256: String,
+    pub expected_size_bytes: Option<u64>,
+    pub actual_size_bytes: u64,
+    #[serde(default)]
+    pub failures: Vec<String>,
+}
+
+/// Verify staged bytes against the signed manifest metadata before any install
+/// or service action. Signature verification is a separate mandatory gate.
+pub fn verify_release_asset_bytes(asset: &ReleaseAsset, bytes: &[u8]) -> AssetDigestVerification {
+    let actual_sha256 = format!("{:x}", Sha256::digest(bytes));
+    let expected_sha256 = asset.sha256.trim().to_ascii_lowercase();
+    let actual_size_bytes = bytes.len() as u64;
+    let mut failures = Vec::new();
+    if expected_sha256.len() != 64 || !expected_sha256.bytes().all(|byte| byte.is_ascii_hexdigit())
+    {
+        failures.push("manifest_sha256_invalid".to_string());
+    } else if expected_sha256 != actual_sha256 {
+        failures.push("asset_sha256_mismatch".to_string());
+    }
+    if asset
+        .size_bytes
+        .is_some_and(|expected| expected != actual_size_bytes)
+    {
+        failures.push("asset_size_mismatch".to_string());
+    }
+    AssetDigestVerification {
+        valid: failures.is_empty(),
+        expected_sha256,
+        actual_sha256,
+        expected_size_bytes: asset.size_bytes,
+        actual_size_bytes,
+        failures,
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -924,5 +965,35 @@ mod tests {
         let report = evaluate_release_manifest(&m, &options());
         assert!(!report.eligible);
         assert!(codes(&report).contains(&"ci_success_required"));
+    }
+
+    #[test]
+    fn staged_asset_digest_and_size_must_match_manifest() {
+        let bytes = b"verified focusa release asset";
+        let mut release_asset = asset("x86_64-unknown-linux-gnu");
+        release_asset.sha256 = format!("{:x}", Sha256::digest(bytes));
+        release_asset.size_bytes = Some(bytes.len() as u64);
+        let verification = verify_release_asset_bytes(&release_asset, bytes);
+        assert!(verification.valid, "{verification:?}");
+        assert!(verification.failures.is_empty());
+    }
+
+    #[test]
+    fn staged_asset_digest_mismatch_blocks_install() {
+        let mut release_asset = asset("x86_64-unknown-linux-gnu");
+        release_asset.sha256 = "0".repeat(64);
+        release_asset.size_bytes = Some(999);
+        let verification = verify_release_asset_bytes(&release_asset, b"tampered");
+        assert!(!verification.valid);
+        assert!(
+            verification
+                .failures
+                .contains(&"asset_sha256_mismatch".to_string())
+        );
+        assert!(
+            verification
+                .failures
+                .contains(&"asset_size_mismatch".to_string())
+        );
     }
 }
