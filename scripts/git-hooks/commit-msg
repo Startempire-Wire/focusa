@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# FOCUSA_COMMIT_MESSAGE_HOOK: preserve meaningful subjects; bead IDs are trailers only.
+set -eu
+ROOT=$(git rev-parse --show-toplevel)
+exec "$ROOT/scripts/validate-commit-messages.sh" --message-file "$1"

@@ -3,6 +3,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+bash tests/commit_message_policy_test.sh >/dev/null
 bash tests/spec125_hlt_status_model_static_test.sh >/dev/null
 bash tests/spec130_compaction_mission_packet_static_test.sh >/dev/null
 bash tests/spec82_low_resource_efficiency_static_test.sh >/dev/null

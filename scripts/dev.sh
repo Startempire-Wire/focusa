@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Focusa development script.
 #
-# Usage: ./scripts/dev.sh [daemon|cli|test|check]
+# Usage: ./scripts/dev.sh [daemon|cli|test|check|hooks]
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -26,8 +26,11 @@ case "${1:-check}" in
     cargo clippy --workspace -- -W clippy::all
     echo "✓ All checks passed"
     ;;
+  hooks)
+    scripts/install-commit-message-hooks.sh
+    ;;
   *)
-    echo "Usage: $0 {daemon|cli|test|check}"
+    echo "Usage: $0 {daemon|cli|test|check|hooks}"
     exit 1
     ;;
 esac

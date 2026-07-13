@@ -7,6 +7,22 @@ on:
     branches: [main]
 
 jobs:
+  commit-messages:
+    name: Meaningful commit messages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Reject Beads-only and generic commit subjects
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [[ -z "${BASE_SHA:-}" || "$BASE_SHA" =~ ^0+$ ]]; then
+            BASE_SHA="HEAD^"
+          fi
+          scripts/validate-commit-messages.sh --range "${BASE_SHA}..HEAD"
+
   rust:
     name: Rust
     runs-on: ubuntu-latest

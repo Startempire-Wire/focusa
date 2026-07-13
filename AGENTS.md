@@ -31,6 +31,14 @@ See `docs/canonical-live-release-pipeline.md` before any build/deploy work.
 
 This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
 
+## Commit message policy
+
+Run `scripts/dev.sh hooks` after cloning or after any Beads hook reinstall.
+Commit subjects must remain meaningful Conventional Commit descriptions because
+GitHub changelogs and tagged release summaries use the first line. Bead IDs may
+appear only below the subject as a `Beads:` body trailer; ID-only subjects are
+rejected by local hooks, CI, and the release-tag gate.
+
 ## Quick Reference
 
 ```bash
