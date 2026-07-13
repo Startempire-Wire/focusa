@@ -51,7 +51,7 @@ public static class Spec132ConPtyRunner
         Check(CreatePipe(out outRead, out outWrite, ref pipeAttributes, 0), "CreatePipe output");
         Check(SetHandleInformation(inWrite, HANDLE_FLAG_INHERIT, 0), "SetHandleInformation input");
         Check(SetHandleInformation(outRead, HANDLE_FLAG_INHERIT, 0), "SetHandleInformation output");
-        IntPtr pty = IntPtr.Zero, list = IntPtr.Zero;
+        IntPtr pty = IntPtr.Zero, list = IntPtr.Zero, ptyValue = IntPtr.Zero;
         PROCESS_INFORMATION pi = default;
         try
         {
@@ -62,9 +62,12 @@ public static class Spec132ConPtyRunner
             InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref bytes);
             list = Marshal.AllocHGlobal(bytes);
             Check(InitializeProcThreadAttributeList(list, 1, 0, ref bytes), "InitializeProcThreadAttributeList");
-            // PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE expects the HPCON handle
-            // value directly as lpValue, not a pointer to a second allocation.
-            Check(UpdateProcThreadAttribute(list, 0, new IntPtr(unchecked((long)PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE)), pty, IntPtr.Size, IntPtr.Zero, IntPtr.Zero), "UpdateProcThreadAttribute");
+            // PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE expects lpValue to point to
+            // an HPCON-sized value. Passing HPCON itself as lpValue attaches an
+            // invalid attribute and lets child output escape the capture pipe.
+            ptyValue = Marshal.AllocHGlobal(IntPtr.Size);
+            Marshal.WriteIntPtr(ptyValue, pty);
+            Check(UpdateProcThreadAttribute(list, 0, new IntPtr(unchecked((long)PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE)), ptyValue, IntPtr.Size, IntPtr.Zero, IntPtr.Zero), "UpdateProcThreadAttribute");
             var startup = new STARTUPINFOEX {
                 StartupInfo = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFOEX>() },
                 lpAttributeList = list,
@@ -110,6 +113,7 @@ public static class Spec132ConPtyRunner
             Close(pi.hThread); Close(pi.hProcess); Close(inRead); Close(inWrite); Close(outRead); Close(outWrite);
             if (pty != IntPtr.Zero) ClosePseudoConsole(pty);
             if (list != IntPtr.Zero) { Marshal.FreeHGlobal(list); }
+            if (ptyValue != IntPtr.Zero) { Marshal.FreeHGlobal(ptyValue); }
 
         }
     }

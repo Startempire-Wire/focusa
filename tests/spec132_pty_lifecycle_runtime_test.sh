@@ -23,8 +23,8 @@ grep -q 'install preflight' "$TMP/pty.out"
 
 # The source-level fallback/guard contract complements the executable plain
 # and JSON paths above; these are implementation checks, not success markers.
-rg -q 'TerminalGuard' "$ROOT/crates/focusa-terminal-ui/src/install/renderer.rs"
-rg -q 'PlainPresenter' "$ROOT/crates/focusa-terminal-ui/src/install/presenter.rs"
-rg -q 'channel.fail' "$ROOT/crates/focusa-cli/src/commands/install.rs"
+grep -q 'TerminalGuard' "$ROOT/crates/focusa-terminal-ui/src/install/renderer.rs"
+grep -q 'PlainPresenter' "$ROOT/crates/focusa-terminal-ui/src/install/presenter.rs"
+grep -q 'channel.fail' "$ROOT/crates/focusa-cli/src/commands/install.rs"
 
 echo "PASS: E4 JSON isolation, non-alternate plain PTY lifecycle, and fallback contract"
