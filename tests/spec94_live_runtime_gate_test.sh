@@ -29,7 +29,7 @@ DUP=$!
 sleep 0.5
 if kill -0 "$DUP" 2>/dev/null; then kill "$DUP" 2>/dev/null || true; wait "$DUP" 2>/dev/null || true; fail "duplicate daemon was allowed for same data dir"; fi
 wait "$DUP" 2>/dev/null || true
-rg -n 'DAEMON_ALREADY_RUNNING|already running|lock=' "$TMP_DIR/duplicate.log" >/dev/null || fail "duplicate daemon did not report lock owner"
+grep -Eq 'DAEMON_ALREADY_RUNNING|already running|lock=' "$TMP_DIR/duplicate.log" || fail "duplicate daemon did not report lock owner"
 pass "duplicate daemon startup blocked by lock"
 python3 - "$BASE" <<'PY'
 import json, sys, urllib.request, urllib.parse
