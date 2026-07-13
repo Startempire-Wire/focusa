@@ -75,6 +75,52 @@ function packetField(packet: any, key: string): string {
   return String(packet?.[key] || "").trim();
 }
 
+type CompactionMemorySample = {
+  at: number;
+  rssBytes: number;
+  heapUsedBytes: number;
+  externalBytes: number;
+};
+
+function compactionMemorySample(): CompactionMemorySample {
+  const usage = process.memoryUsage();
+  return {
+    at: Date.now(),
+    rssBytes: usage.rss,
+    heapUsedBytes: usage.heapUsed,
+    externalBytes: usage.external,
+  };
+}
+
+function scheduleCompactionMemoryEvaluation() {
+  const before = (S as any).compactionMemoryBefore as CompactionMemorySample | undefined;
+  if (!before) return;
+  setTimeout(() => {
+    const after = compactionMemorySample();
+    const warningMiB = Number(process.env.FOCUSA_PI_COMPACTION_RSS_WARN_MIB || 2500);
+    const rssWarnBytes = Math.max(512, warningMiB) * 1024 * 1024;
+    const rssRatio = before.rssBytes > 0 ? after.rssBytes / before.rssBytes : 0;
+    const heapRatio = before.heapUsedBytes > 0 ? after.heapUsedBytes / before.heapUsedBytes : 0;
+    const retainedUnderPressure = after.rssBytes >= rssWarnBytes && rssRatio >= 0.9;
+    (S as any).lastCompactionMemory = {
+      schema: "focusa.compaction_memory_verdict.v1",
+      before,
+      after,
+      rssRatio,
+      heapRatio,
+      status: retainedUnderPressure ? "warn_retained_under_pressure" : "within_budget",
+      warningThresholdMiB: warningMiB,
+    };
+    delete (S as any).compactionMemoryBefore;
+    persistState();
+    if (retainedUnderPressure) {
+      console.warn(
+        `[focusa] compaction retained ${Math.round(after.rssBytes / 1024 / 1024)} MiB RSS; checkpoint and start a bounded fresh Pi session before host OOM`
+      );
+    }
+  }, 5_000);
+}
+
 function compactText(value: unknown, fallback = "unknown", max = 180): string {
   const text = String(value ?? "")
     .replace(/\s+/g, " ")
@@ -782,6 +828,7 @@ function scheduleCompactionResumeWatchdog(ctx: any, steerMessage: string) {
 export function registerCompaction(pi: ExtensionAPI) {
   // ── session_before_compact (§33.1 ASCC replacement, §33.10 fallback) ───────
   pi.on("session_before_compact", async (event, _ctx) => {
+    (S as any).compactionMemoryBefore = compactionMemorySample();
     // Sync local shadow → Focusa before compaction
     // §33.1 + N5: Use pushDelta() for ALL writes — enforces validateSlot() on every delta.
     // session_compact bypassed validation before this fix — every compaction refilled
@@ -895,6 +942,8 @@ export function registerCompaction(pi: ExtensionAPI) {
       }).catch(() => {});
       await persistAuthoritativeState();
     }
+
+    scheduleCompactionMemoryEvaluation();
 
     // §38.3 CRITICAL FIX: queueMicrotask defers to next event-loop tick,
     // AFTER compaction_end fires (which calls flushCompactionQueue first,

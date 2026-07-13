@@ -1,6 +1,6 @@
 # Spec 130 — HLT-Aware Compaction Mission Packet and Bloatgaurd Context Firewall
 
-Status: draft-for-implementation  
+Status: implementation-complete — closed 2026-07-12 with typed packet/API/Pi/CLI, fidelity/cascade, bounded context/subagent, durable replay, memory telemetry, lint/typecheck and runtime memory guard evidence  
 Target file: `docs/130-hlt-aware-compaction-mission-packet-and-bloatgaurd-context-firewall-spec.md`  
 Canonical label: Spec 130 Compaction Mission Packet  
 Depends on: Spec 88, Spec 96, Spec 98, Spec 100, Spec 101, Spec 104, Spec 111, Spec 112, Spec 115, Spec 116, Spec 119, Spec 125, Spec 129  
