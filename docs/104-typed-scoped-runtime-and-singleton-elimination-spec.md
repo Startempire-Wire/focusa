@@ -700,6 +700,7 @@ This spec does **not** require:
 | API-08 | device pairing runtime | `crates/focusa-api/src/routes/device_pairing.rs:455` | `STATE: OnceLock<SharedPairingState>` | valid runtime singleton but could drift into authority if reused carelessly | explicitly classify as runtime infra, not project/workstream authority | P2 | pairing state changes do not affect project identity / workpoint / trajectory authority |
 | API-09 | ontology read index | `crates/focusa-api/src/routes/ontology.rs:1712` | `ONTOLOGY_READ_INDEX` caches read model globally | stale/global ontology index if ontology becomes scope-relative | scope-partition or scoped invalidation rules | P1 | ontology reads vary only by explicit scope, never by prior request |
 | API-10 | proxy client | `crates/focusa-api/src/routes/proxy.rs:39` | `UPSTREAM_CLIENT` shared client | infra singleton; low risk but must be classified | keep as infra-only singleton | P3 | static audit allows only infra-allowlisted globals like shared HTTP clients |
+| API-12 | compaction packet hot cache | `crates/focusa-api/src/routes/compaction.rs:72` | `STORE: OnceLock<Mutex<VecDeque<_>>>` caches bounded recent packets while SQLite remains durable truth | in-memory cache could be mistaken for replay authority | keep bounded cache advisory; packet replay and restart recovery must use durable scoped storage | P2 | packet survives restart through SQLite; cache eviction cannot remove durable packet |
 | API-11 | mutation rate limit | `crates/focusa-api/src/middleware/rate_limit.rs:23` | `MUTATION_BUCKETS` global buckets
 | BND-01 | resource mode / pressure tracking | `crates/focusa-api/src/routes/bounded.rs:14-24,143-146` | `TEST_PRESSURE_THRESHOLD_KB`, `RUNTIME_RESOURCE_MODE_OVERRIDE`, `RESOURCE_MODE_LAST_OBSERVED`, `RESOURCE_MODE_TRANSITIONS`, `RESOURCE_MODE_TRANSITION_OMITTED`, `RESOURCE_MODE_HYSTERESIS`, `PRESSURE_LAST_ACTIVE`, `PRESSURE_TRACKED_BUCKETS` are process-global | resource mode and pressure metrics are runtime infra affecting canonical route behavior; globals survive across scopes | scope-keyed runtime mode/pressure stores; transient values only; no canonical decision depends on global mode without typed scope | P2 | resource mode under one root never redefines behavior for another root | | caller/route throttling might be confused with project authority | classify as infra-only; no canonical scope dependence | P3 | throttling never changes project/workstream resolution outcome |
 
@@ -953,6 +954,7 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-api/src/routes/capabilities_extra.rs`
 - `crates/focusa-api/src/routes/clt.rs`
 - `crates/focusa-api/src/routes/commands.rs`
+- `crates/focusa-api/src/routes/compaction.rs`
 - `crates/focusa-api/src/routes/constitution.rs`
 - `crates/focusa-api/src/routes/context_cognition.rs`
 - `crates/focusa-api/src/routes/deck.rs`
@@ -991,6 +993,7 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-api/src/routes/skills.rs`
 - `crates/focusa-api/src/routes/snapshots.rs`
 - `crates/focusa-api/src/routes/sse.rs`
+- `crates/focusa-api/src/routes/subagent.rs`
 - `crates/focusa-api/src/routes/sync.rs`
 - `crates/focusa-api/src/routes/sync_receive.rs`
 - `crates/focusa-api/src/routes/sync_transfer.rs`
@@ -1004,6 +1007,7 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-api/src/routes/turn.rs`
 - `crates/focusa-api/src/routes/turn_recent.rs`
 - `crates/focusa-api/src/routes/utility.rs`
+- `crates/focusa-api/src/routes/update.rs`
 - `crates/focusa-api/src/routes/uxp.rs`
 - `crates/focusa-api/src/routes/visual_workflow.rs`
 - `crates/focusa-api/src/routes/work_loop.rs`
@@ -1027,6 +1031,7 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-cli/src/commands/call_stack.rs`
 - `crates/focusa-cli/src/commands/claim.rs`
 - `crates/focusa-cli/src/commands/cleanup.rs`
+- `crates/focusa-cli/src/commands/compaction.rs`
 - `crates/focusa-cli/src/commands/clt.rs`
 - `crates/focusa-cli/src/commands/codesign.rs`
 - `crates/focusa-cli/src/commands/constitution.rs`
@@ -1042,8 +1047,10 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-cli/src/commands/ecs.rs`
 - `crates/focusa-cli/src/commands/env.rs`
 - `crates/focusa-cli/src/commands/export.rs`
+- `crates/focusa-cli/src/commands/first_mission.rs`
 - `crates/focusa-cli/src/commands/focus.rs`
 - `crates/focusa-cli/src/commands/gate.rs`
+- `crates/focusa-cli/src/commands/help.rs`
 - `crates/focusa-cli/src/commands/hlt.rs`
 - `crates/focusa-cli/src/commands/init.rs`
 - `crates/focusa-cli/src/commands/install.rs`
@@ -1072,7 +1079,9 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-cli/src/commands/rfm.rs`
 - `crates/focusa-cli/src/commands/runtime.rs`
 - `crates/focusa-cli/src/commands/scope.rs`
+- `crates/focusa-cli/src/commands/scope_resolver.rs`
 - `crates/focusa-cli/src/commands/service.rs`
+- `crates/focusa-cli/src/commands/setup.rs`
 - `crates/focusa-cli/src/commands/skills.rs`
 - `crates/focusa-cli/src/commands/telemetry.rs`
 - `crates/focusa-cli/src/commands/threads.rs`
@@ -1081,6 +1090,7 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-cli/src/commands/traverse.rs`
 - `crates/focusa-cli/src/commands/turns.rs`
 - `crates/focusa-cli/src/commands/tui.rs`
+- `crates/focusa-cli/src/commands/update.rs`
 - `crates/focusa-cli/src/commands/utility.rs`
 - `crates/focusa-cli/src/commands/uninstall.rs`
 - `crates/focusa-cli/src/commands/upgrade.rs`

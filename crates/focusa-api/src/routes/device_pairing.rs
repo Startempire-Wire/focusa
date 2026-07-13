@@ -1267,10 +1267,7 @@ async fn connect_room_mac_offer(
     // V2 P0/P1.4: route through the shared mac_offer binding helper so
     // /mac-offer and /join have identical validation (LAN/Tailscale
     // aware) and identical nonce-mismatch protection.
-    let mac_callback = body
-        .mac_callback
-        .clone()
-        .and_then(|s| if s.trim().is_empty() { None } else { Some(s) });
+    let mac_callback = body.mac_callback.clone().filter(|s| !s.trim().is_empty());
     let bound = bind_mac_offer_to_room_fields(
         &room_id,
         body.mac_name.unwrap_or_else(|| "Focusa Mac".to_string()),
@@ -2334,7 +2331,10 @@ async fn pair_status(
     if let Some(device_id) = query.device_id.as_deref() {
         let host = query.host.as_deref().unwrap_or("operator-host");
         if let Ok(records) = state.persistence.read_device_records(host, usize::MAX)
-            && let Some(record) = records.iter().rev().find(|record| record.device_id == device_id)
+            && let Some(record) = records
+                .iter()
+                .rev()
+                .find(|record| record.device_id == device_id)
             && record.revoked
         {
             return Ok(Json(json!({
@@ -3326,10 +3326,7 @@ async fn connect_room_firstrun(
     // V2 mac_offer JSON (from docs/55) is accepted without translation.
     let mac_nonce = body.mac_nonce.clone().unwrap_or_default();
     let mac_pubkey = body.mac_pubkey.clone();
-    let mac_callback = body
-        .mac_callback
-        .clone()
-        .and_then(|s| if s.trim().is_empty() { None } else { Some(s) });
+    let mac_callback = body.mac_callback.clone().filter(|s| !s.trim().is_empty());
     if let Some(cb) = &mac_callback {
         validate_mac_callback_url(cb, "mac_callback")?;
     }
@@ -3578,10 +3575,7 @@ async fn connect_room_join(
         .or(body.mac_nonce_v2.clone())
         .unwrap_or_default();
     let mac_pubkey_in = body.mac_pubkey.clone().or(body.mac_pubkey_v2.clone());
-    let mac_callback_in = body
-        .mac_callback
-        .clone()
-        .and_then(|s| if s.trim().is_empty() { None } else { Some(s) });
+    let mac_callback_in = body.mac_callback.clone().filter(|s| !s.trim().is_empty());
 
     // V2 P0: route the mac_offer binding through the shared helper so
     // /join uses validate_mac_callback_url (LAN/Tailscale aware) instead

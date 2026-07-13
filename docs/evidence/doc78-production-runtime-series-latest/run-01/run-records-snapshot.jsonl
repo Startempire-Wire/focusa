@@ -2,12 +2,12 @@
   "run_index": 1,
   "run_name": "run-01",
   "run_dir": "/home/wirebot/focusa/docs/evidence/doc78-production-runtime-series-latest/run-01",
-  "run_started_at": "2026-06-08T08:19:36Z",
-  "run_finished_at": "2026-06-08T08:20:01Z",
-  "exit_code": 1,
-  "tests_passed": 13,
-  "tests_failed": 3,
-  "non_closure_objective_events": 24,
-  "governance_marker_events": 0,
-  "ok": false
+  "run_started_at": "2026-07-13T05:38:47Z",
+  "run_finished_at": "2026-07-13T05:39:47Z",
+  "exit_code": 0,
+  "tests_passed": 16,
+  "tests_failed": 0,
+  "non_closure_objective_events": 2,
+  "governance_marker_events": 2,
+  "ok": true
 }
