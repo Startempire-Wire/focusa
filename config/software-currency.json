@@ -1,0 +1,122 @@
+{
+  "schema": "focusa.software_currency_inventory.v1",
+  "captured_at": "2026-07-12T19:00:00-07:00",
+  "policy": {
+    "blind_latest_allowed": false,
+    "approval_rule": "compatible, tested, pinned or minimum-bounded; registry newest alone is not approval",
+    "staging": "OVH isolated runner before KH adoption",
+    "rollback": "git revert for source/lock changes; Spec128 atomic backup restore for shipped Focusa parts"
+  },
+  "rollback_drills": [
+    {
+      "surface": "focusa-cross-part-ota",
+      "outcome": "pass",
+      "evidence": "atomic_rollback_restores_previous_binary_and_removes_failed_candidate; rollback_without_backup_never_removes_current_target"
+    },
+    {
+      "surface": "pi-sdk-source-and-lock",
+      "outcome": "pass",
+      "evidence": "package.json and package-lock.json exact 0.64.0 pin; git revert is deterministic; lint/typecheck pass"
+    },
+    {
+      "surface": "rust-build-toolchain",
+      "outcome": "pass",
+      "evidence": "workspace minimum 1.91, KH 1.96.1 rollback pin, OVH 1.97 all-target check pass"
+    },
+    {
+      "surface": "uiai-worker-runtime",
+      "outcome": "not_applicable_unmanaged_no_update_adopted",
+      "evidence": "uiai_health healthy; version unreported and managed outside Focusa repository"
+    },
+    {
+      "surface": "cross-part-version-skew",
+      "outcome": "pass",
+      "evidence": "Spec128 update status/runtime detects stale parts and plans non-daemon parts before daemon"
+    }
+  ],
+  "components": [
+    {
+      "id": "focusa",
+      "installed": "0.9.94-dev",
+      "packaged": "0.9.94-dev",
+      "channel": "dev",
+      "approved": "0.9.94-dev",
+      "owner": "Focusa release",
+      "check": "focusa --version plus Spec128 status/runtime gates",
+      "rollback": "signed previous release asset via Spec128 atomic rollback",
+      "status": "current"
+    },
+    {
+      "id": "focusa-pi-bridge",
+      "installed": "0.9.15-dev",
+      "packaged": "0.9.15-dev",
+      "runtime": "Pi fork 0.80.6 on Node 22.22.3",
+      "approved": "0.9.15-dev",
+      "owner": "Focusa Pi integration",
+      "check": "npm lint and typecheck; compaction/runtime suites",
+      "rollback": "git revert package and extension source",
+      "status": "current"
+    },
+    {
+      "id": "pi-sdk-devdependency",
+      "installed": "0.64.0",
+      "packaged": "0.64.0",
+      "registry_observed": "0.73.1",
+      "approved": "0.64.0",
+      "owner": "Focusa Pi integration",
+      "reason": "Exact currently-tested SDK type surface; runtime uses the separately managed @earendil-works Pi fork",
+      "check": "npm lint and typecheck",
+      "rollback": "restore package.json and package-lock.json",
+      "status": "pinned-compatible"
+    },
+    {
+      "id": "rust",
+      "installed": "1.96.1",
+      "minimum": "1.91",
+      "available_observed": "1.97.0",
+      "approved": ">=1.91,<2",
+      "owner": "Focusa Rust workspace",
+      "reason": "Installed compiler satisfies workspace rust-version; OVH Cargo 1.97 build/test runner passes",
+      "check": "cargo check/test on isolated OVH runner",
+      "rollback": "rustup toolchain install/set 1.96.1",
+      "status": "compatible-update-available"
+    },
+    {
+      "id": "node",
+      "installed": "22.22.3",
+      "minimum": "20",
+      "approved": ">=20,<23",
+      "owner": "Pi and menubar runtime",
+      "check": "extension lint/typecheck and package engines",
+      "rollback": "restore prior managed Node 22 runtime",
+      "status": "current-compatible"
+    },
+    {
+      "id": "uiai-engine",
+      "installed": "unreported-by-health-api",
+      "managed": false,
+      "owner": "UIAI service",
+      "check": "uiai_health readiness/capacity and UIAI agent-card contract",
+      "rollback": "UIAI service package rollback outside Focusa repository",
+      "status": "healthy-unmanaged-version"
+    },
+    {
+      "id": "host",
+      "installed": "AlmaLinux 8.10; kernel 3.10.0-1160.105.1.vz7.214.3",
+      "managed": false,
+      "owner": "KH platform",
+      "check": "Focusa isolated and live runtime gates",
+      "rollback": "provider/platform snapshot procedure",
+      "status": "supported-unmanaged"
+    },
+    {
+      "id": "sqlite",
+      "installed": "3.26.0",
+      "managed": false,
+      "owner": "host platform",
+      "check": "Focusa SQLite integration/runtime suites",
+      "rollback": "host package rollback",
+      "status": "compatible-unmanaged"
+    }
+  ]
+}
