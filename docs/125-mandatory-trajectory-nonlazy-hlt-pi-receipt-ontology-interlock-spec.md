@@ -1,6 +1,6 @@
 SPEC:  # Spec 125 V3 — Mandatory Trajectory, Non-Lazy HLT, Pi Bootstrap/Compaction, Receipt/Ontology Interlock
 
-Status: draft-for-implementation
+Status: implementation-complete — revalidated 2026-07-12 (16 trajectory tests, 22 Workpoint reconciliation tests, §15.1 static suite, §15.2 isolated runtime suite)
 Target file: `docs/125-mandatory-trajectory-nonlazy-hlt-pi-receipt-ontology-interlock-spec.md`
 Supersedes: Spec 125 V2 draft
 Strong dependencies: Spec 88, Spec 96, Spec 98, Spec 102, Spec 104, Spec 106, Spec 112, Spec 115, Spec 116, Spec 119, ontology docs 58–77, Spec 80.
