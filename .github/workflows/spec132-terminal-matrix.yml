@@ -37,3 +37,61 @@ jobs:
         run: bash tests/132-e5-platform-matrix-runtime-test.sh
         env:
           FOCUSA_BIN: ${{ github.workspace }}/target/debug/focusa
+
+  release-target-build:
+    name: Release target build (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            musl: true
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Install cross for musl target
+        if: ${{ matrix.musl == true }}
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+      - name: Build all release binaries without publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.musl || false }}" = "true" ]; then
+            cross build --release --target "${{ matrix.target }}" --bins
+          else
+            cargo build --release --target "${{ matrix.target }}" --bins
+          fi
+
+  pi-extension-gate:
+    name: Pi extension package/typecheck/lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install locked dependencies
+        run: bun install --cwd apps/pi-extension --frozen-lockfile
+      - name: Typecheck and lint
+        run: |
+          bun --cwd apps/pi-extension run typecheck
+          bun --cwd apps/pi-extension run lint
+      - name: Prove package contents
+        run: |
+          set -euo pipefail
+          tar -C apps -czf /tmp/focusa-pi-extension-test.tar.gz pi-extension
+          tar -tzf /tmp/focusa-pi-extension-test.tar.gz | grep -q 'pi-extension/package.json'
