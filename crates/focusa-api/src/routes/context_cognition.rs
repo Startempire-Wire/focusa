@@ -329,9 +329,21 @@ fn is_unsafe_agent_runtime_path_inline(path: &str) -> bool {
         "/root/.letta",
         "$HOME/.cargo",
     ];
-    BLOCKED
+    if BLOCKED
         .iter()
         .any(|p| trimmed == *p || trimmed.starts_with(&format!("{}/", p)))
+    {
+        return true;
+    }
+    // Agent runtime homes are unsafe regardless of the account name. The
+    // previous root-only list allowed /home/<agent>/.cargo and peers.
+    const BLOCKED_COMPONENTS: &[&str] = &[".cargo", ".pi", ".claude", ".opencode", ".letta"];
+    std::path::Path::new(trimmed).components().any(|component| {
+        component
+            .as_os_str()
+            .to_str()
+            .is_some_and(|value| BLOCKED_COMPONENTS.contains(&value))
+    })
 }
 
 fn require_continuity_id(
@@ -537,6 +549,16 @@ mod tests {
         assert!(p.advisory);
         assert!(!p.canonical);
         assert_eq!(p.scope_status, "matched");
+    }
+
+    #[test]
+    fn agent_runtime_paths_are_unsafe_for_any_account() {
+        assert!(is_unsafe_agent_runtime_path_inline("/root/.cargo"));
+        assert!(is_unsafe_agent_runtime_path_inline("/home/wirebot/.cargo"));
+        assert!(is_unsafe_agent_runtime_path_inline(
+            "/Users/dev/.pi/sessions"
+        ));
+        assert!(!is_unsafe_agent_runtime_path_inline("/home/wirebot/focusa"));
     }
 
     #[test]
