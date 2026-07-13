@@ -25,6 +25,17 @@ use uuid::Uuid;
 
 const PACKET_SCHEMA: &str = "focusa.compaction_mission_packet.v1";
 const PACKET_CAP: usize = 64;
+const RESUME_SOURCES: &[&str] = &[
+    "session_start",
+    "session_switch",
+    "before_compaction",
+    "after_compaction",
+    "model_switch",
+    "fork",
+    "handoff",
+    "manual",
+    "provider_overflow",
+];
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct BuildCompactionPacketRequest {
@@ -181,11 +192,22 @@ fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Valu
         ]
     };
 
+    let resume_state = if active_blocker.is_some() {
+        "blocked_resume"
+    } else if workpoint_ready {
+        "exact_workpoint_resume"
+    } else if hlt_ready {
+        "trajectory_only_resume"
+    } else {
+        "bootstrap_required"
+    };
+
     json!({
         "schema_version": PACKET_SCHEMA,
         "packet_id": packet_id,
         "generated_at": Utc::now().to_rfc3339(),
         "resume_source": req.resume_source.as_deref().unwrap_or("manual"),
+        "resume_state": resume_state,
         "status": status,
         "canonical": false,
         "advisory": true,
@@ -282,6 +304,26 @@ fn packet_by_id(packet_id: &str) -> Option<Value> {
         .map(|(_, packet)| packet.clone())
 }
 
+fn cascade_count(packet: &Value) -> usize {
+    let continuity = packet.pointer("/scope/continuity_id");
+    let next_slice = packet.pointer("/workpoint/next_slice");
+    packet_store()
+        .lock()
+        .ok()
+        .map(|store| {
+            store
+                .iter()
+                .rev()
+                .take(8)
+                .filter(|(_, prior)| {
+                    prior.pointer("/scope/continuity_id") == continuity
+                        && prior.pointer("/workpoint/next_slice") == next_slice
+                })
+                .count()
+        })
+        .unwrap_or(0)
+}
+
 fn store_packet(packet: &Value) {
     let Some(packet_id) = packet.get("packet_id").and_then(Value::as_str) else {
         return;
@@ -298,7 +340,19 @@ fn store_packet(packet: &Value) {
 async fn build(
     State(state): State<Arc<AppState>>,
     Json(req): Json<BuildCompactionPacketRequest>,
-) -> Json<Value> {
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let resume_source = req.resume_source.as_deref().unwrap_or("manual");
+    if !RESUME_SOURCES.contains(&resume_source) {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "schema": "focusa.compaction_error.v1",
+                "status": "blocked",
+                "error": "invalid_resume_source",
+                "allowed": RESUME_SOURCES
+            })),
+        ));
+    }
     let focusa = state.focusa.read().await;
     let mut packet = build_packet(&focusa, &req);
     drop(focusa);
@@ -333,8 +387,22 @@ async fn build(
             }
         }
     }
+    let repeated_without_progress = cascade_count(&packet);
+    packet["cascading_compaction"] = json!({
+        "detected": repeated_without_progress >= 2,
+        "same_mission_next_slice_prior_count": repeated_without_progress,
+        "finding_id": if repeated_without_progress >= 2 { Some("COMP-CASCADE-001") } else { None }
+    });
+    if repeated_without_progress >= 2 {
+        if let Some(warnings) = packet["trajectory"]["warnings"].as_array_mut() {
+            warnings.push(Value::String(
+                "Repeated compaction without mission/next-slice progress; inspect context pressure before continuing."
+                    .into(),
+            ));
+        }
+    }
     store_packet(&packet);
-    Json(packet)
+    Ok(Json(packet))
 }
 
 async fn get_packet(Path(packet_id): Path<String>) -> Result<Json<Value>, StatusCode> {
@@ -633,5 +701,39 @@ mod tests {
                 .is_some()
         );
         assert_eq!(evaluation["metrics"]["generic_hlt_authority_count"], 0);
+    }
+
+    #[test]
+    fn repeated_same_scope_and_next_slice_triggers_cascade_signal() {
+        let unique = Uuid::now_v7().to_string();
+        let mut packet = build_packet(
+            &FocusaState::new(),
+            &BuildCompactionPacketRequest {
+                resume_source: Some("before_compaction".into()),
+                project_root: Some("/tmp/safe-project".into()),
+                continuity_id: Some(unique),
+                session_id: None,
+                current_ask: None,
+                ask_kind: None,
+                source_turn_id: None,
+                omitted_sections: vec![],
+                omitted_bytes: 0,
+                omitted_tokens: 0,
+                rehydrate_refs: vec!["focusa_traverse".into()],
+            },
+        );
+        packet["workpoint"]["next_slice"] = json!("same-next-slice");
+        assert_eq!(cascade_count(&packet), 0);
+        store_packet(&packet);
+        assert_eq!(cascade_count(&packet), 1);
+        store_packet(&packet);
+        assert_eq!(cascade_count(&packet), 2);
+    }
+
+    #[test]
+    fn resume_source_contract_is_closed_enum() {
+        assert!(RESUME_SOURCES.contains(&"before_compaction"));
+        assert!(RESUME_SOURCES.contains(&"provider_overflow"));
+        assert!(!RESUME_SOURCES.contains(&"transcript_guess"));
     }
 }
