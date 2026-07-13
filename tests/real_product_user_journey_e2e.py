@@ -79,15 +79,22 @@ def stop_daemon(proc):
     except subprocess.TimeoutExpired:
         proc.kill()
         proc.wait(timeout=5)
+    if proc.stdout:
+        proc.stdout.close()
 
 
 with tempfile.TemporaryDirectory(prefix="focusa-real-e2e-") as root:
     project = Path(root) / "project"
     data_dir = Path(root) / "data"
     project.mkdir()
+    (project / ".beads").mkdir()
     data_dir.mkdir()
     (project / ".focusa-project.json").write_text(
-        json.dumps({"project_id": "real-e2e", "canonical_name": "Real E2E"})
+        json.dumps({
+            "schema": "focusa.project.v1", "project_id": "real-e2e",
+            "canonical_name": "Real E2E", "project_root": str(project),
+            "workspace_kind": "real-e2e",
+        })
     )
     continuity = f"real-e2e-{time.time_ns()}"
     quoted_root = urllib.parse.quote(str(project), safe="")

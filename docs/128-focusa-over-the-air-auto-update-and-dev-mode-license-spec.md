@@ -28,23 +28,25 @@ A Focusa host can have multiple installed parts at different versions. The daemo
 - No retagging or mutation of published releases.
 - No cloud-memory dependency for local updates.
 
-## Current server inventory model
+## Portable component inventory model
 
-| Part | Current server location | Update cadence | Notes |
+No inventory location may encode an operator username, host, or deployment topology. Paths resolve from platform conventions or explicit `FOCUSA_*` overrides.
+
+| Part | Portable location source | Update cadence | Notes |
 | --- | --- | --- | --- |
-| Focusa daemon | `/usr/local/bin/focusa-daemon` | every accepted release | systemd service binary |
-| Focusa CLI | `/usr/local/bin/focusa` | every accepted release | operator command surface |
-| Focusa TUI | `/usr/local/bin/focusa-tui` | every accepted release | needs version/self-test surface |
-| systemd unit | `/etc/systemd/system/focusa-daemon.service` | only on service contract change | not replaced by normal binary update |
-| systemd drop-ins | `/etc/systemd/system/focusa-daemon.service.d/*.conf` | only on policy/runtime change | preserve local overrides |
-| Focusa runtime home | `/usr/local/lib/focusa` | never wholesale replaced | state, rollback, update history |
-| Focusa env | `/home/wirebot/focusa/.env` or configured env file | never auto-overwritten | secrets/local config boundary |
-| License files | `/root/.config/focusa/license*.json` | refresh/validate, never overwrite with eval | entitlement boundary |
-| Repo checkout | `/home/wirebot/focusa` | git-managed source | live build/proof host |
-| Release assets | GitHub release `vX.Y.Z-dev` | source of tagged binaries | must pass CI/proof gates |
-| Menubar app | release `.dmg` / `.app.tar.gz` | client update channel | Mac-side updater, not server daemon |
-| Pi extension | `apps/pi-extension` / package install path | package/update channel | must match daemon tool contracts |
-| Public installer | install.focusa.dev installer path | only on installer release | bootstrap surface |
+| Focusa daemon | `FOCUSA_INSTALL_PREFIX` + platform executable directory | every accepted release | service-managed binary on supported platforms |
+| Focusa CLI | `FOCUSA_INSTALL_PREFIX` + platform executable directory | every accepted release | operator command surface |
+| Focusa TUI | `FOCUSA_INSTALL_PREFIX` + platform executable directory | every accepted release | version/self-test surface |
+| Service definition | systemd, launchd, or Windows Service capability | only on service contract change | not replaced by normal binary update |
+| Service overrides | platform service-manager override mechanism | only on policy/runtime change | preserve local overrides |
+| Focusa runtime home | install-prefix runtime directory | never wholesale replaced | state, rollback, update history |
+| Focusa env | `FOCUSA_ENV_FILE` or platform config directory | never auto-overwritten | secrets/local config boundary |
+| License files | `FOCUSA_CONFIG_DIR` or platform config directory | refresh/validate, never downgrade | entitlement boundary |
+| Source checkout | `FOCUSA_SOURCE_ROOT` or current workspace | git-managed source | optional developer surface |
+| Release assets | configured signed release channel | source of tagged binaries | must pass CI/proof gates |
+| Desktop app | `FOCUSA_DESKTOP_APP_PATH` or platform app mechanism | client update channel | macOS, Windows, and supported Linux packaging |
+| Agent extension | `FOCUSA_AGENT_EXTENSION_PATH` or workspace package path | package/update channel | must match daemon tool contracts |
+| Public installer | configured installer release channel | only on installer release | bootstrap surface |
 
 ## License levels
 

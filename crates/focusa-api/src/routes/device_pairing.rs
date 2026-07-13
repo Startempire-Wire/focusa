@@ -469,21 +469,16 @@ pub fn shared_state() -> SharedPairingState {
 
 fn is_unsafe_agent_runtime_path_inline(path: &str) -> bool {
     let trimmed = path.trim();
-    if trimmed == "/" || trimmed == "/root" {
+    if trimmed == "/" || trimmed == "/root" || trimmed.starts_with("/root/") {
         return true;
     }
-    const BLOCKED: &[&str] = &[
-        "/root/pi-mono",
-        "/root/.pi",
-        "/root/.cargo",
-        "/root/.claude",
-        "/root/.opencode",
-        "/root/.letta",
-        "$HOME/.cargo",
-    ];
-    BLOCKED
-        .iter()
-        .any(|p| trimmed == *p || trimmed.starts_with(&format!("{}/", p)))
+    const BLOCKED_COMPONENTS: &[&str] = &[".cargo", ".pi", ".claude", ".opencode", ".letta"];
+    std::path::Path::new(trimmed).components().any(|component| {
+        component
+            .as_os_str()
+            .to_str()
+            .is_some_and(|value| BLOCKED_COMPONENTS.contains(&value))
+    })
 }
 
 #[derive(Debug, Deserialize)]
@@ -1566,7 +1561,7 @@ async fn connect_approve(
             }),
         ));
     }
-    let host = body.host.unwrap_or_else(|| "operator-vps".to_string());
+    let host = body.host.unwrap_or_else(|| "operator-host".to_string());
     if is_unsafe_agent_runtime_path_inline(&host) {
         return Err(rejection(
             StatusCode::UNPROCESSABLE_ENTITY,
@@ -2130,7 +2125,7 @@ async fn pair_complete(
     let operator_id = body
         .operator_id
         .map(|id| bounded_label(Some(id), "operator", 128));
-    let raw_host = body.host.unwrap_or_else(|| "operator-vps".to_string());
+    let raw_host = body.host.unwrap_or_else(|| "operator-host".to_string());
     if is_unsafe_agent_runtime_path_inline(&raw_host) {
         let rejected_value = raw_host;
         return Err(rejection(
@@ -2143,7 +2138,7 @@ async fn pair_complete(
             }),
         ));
     }
-    let host = bounded_label(Some(raw_host), "operator-vps", 128);
+    let host = bounded_label(Some(raw_host), "operator-host", 128);
     if is_unsafe_agent_runtime_path_inline(&host) {
         return Err(rejection(
             StatusCode::UNPROCESSABLE_ENTITY,
@@ -2337,7 +2332,7 @@ async fn pair_status(
     axum::extract::Query(query): axum::extract::Query<PairStatusRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     if let Some(device_id) = query.device_id.as_deref() {
-        let host = query.host.as_deref().unwrap_or("operator-vps");
+        let host = query.host.as_deref().unwrap_or("operator-host");
         if let Ok(records) = state.persistence.read_device_records(host, usize::MAX)
             && let Some(record) = records.iter().rev().find(|record| record.device_id == device_id)
             && record.revoked
@@ -2520,7 +2515,7 @@ async fn pair_list(
         .as_deref()
         .map(str::trim)
         .filter(|s| !s.is_empty())
-        .unwrap_or("operator-vps");
+        .unwrap_or("operator-host");
     let limit = query.limit.unwrap_or(50).min(200);
     let records = state
         .persistence
@@ -2574,7 +2569,7 @@ async fn pair_revoke(
             }),
         ));
     }
-    let host = body.host.unwrap_or_else(|| "operator-vps".to_string());
+    let host = body.host.unwrap_or_else(|| "operator-host".to_string());
     if is_unsafe_agent_runtime_path_inline(&host) {
         return Err(rejection(
             StatusCode::UNPROCESSABLE_ENTITY,
@@ -2679,12 +2674,15 @@ mod tests {
 
     #[test]
     fn unsafe_paths_blocked() {
-        assert!(is_unsafe_agent_runtime_path_inline("/root/pi-mono"));
-        assert!(is_unsafe_agent_runtime_path_inline("/root/pi-mono/sub"));
+        assert!(is_unsafe_agent_runtime_path_inline("/root/any-project"));
+        assert!(is_unsafe_agent_runtime_path_inline("/home/example/.cargo"));
+        assert!(is_unsafe_agent_runtime_path_inline(
+            "/Users/example/.pi/sessions"
+        ));
         assert!(!is_unsafe_agent_runtime_path_inline(
             "/workspace/focusa-project"
         ));
-        assert!(!is_unsafe_agent_runtime_path_inline("/home/operator-vps"));
+        assert!(!is_unsafe_agent_runtime_path_inline("/home/example-host"));
     }
 }
 
@@ -2884,7 +2882,7 @@ fn connect_mediator_html() -> String {
         approveBtn.disabled = true;
         const response = await fetch(`/v1/connect/room/${encodeURIComponent(roomId)}/approve`, {
           method: 'POST', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ host: 'operator-vps', completed_by: 'phone-pwa-room' })
+          body: JSON.stringify({ host: 'operator-host', completed_by: 'phone-pwa-room' })
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.message || payload.failure_class || 'Approval failed');
