@@ -72,7 +72,15 @@ class StrictSpecProductE2E(unittest.TestCase):
 
     def start_daemon(self):
         env = os.environ.copy()
-        env.update({"FOCUSA_BIND": f"127.0.0.1:{self.port}", "FOCUSA_DATA_DIR": str(self.data)})
+        env.update({
+            "FOCUSA_BIND": f"127.0.0.1:{self.port}",
+            "FOCUSA_DATA_DIR": str(self.data),
+            "FOCUSA_INSTALL_PREFIX": str(self.root / "install"),
+            "FOCUSA_CONFIG_DIR": str(self.root / "config"),
+            "FOCUSA_SOURCE_ROOT": str(self.project),
+            "FOCUSA_ENV_FILE": str(self.root / "config" / "focusa.env"),
+            "FOCUSA_AGENT_EXTENSION_PATH": str(self.root / "extensions"),
+        })
         proc = subprocess.Popen([DAEMON], env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         for _ in range(150):
             try:
@@ -189,8 +197,18 @@ class StrictSpecProductE2E(unittest.TestCase):
             "release_assets", "desktop_app", "agent_extension", "public_installer",
         }
         self.assertFalse(expected - actual, {"missing": sorted(expected - actual), "actual": sorted(str(x) for x in actual)})
+        resolution = inventory.get("inventory_resolution", {})
+        self.assertEqual(Path(resolution.get("running_executable", "")).resolve(), Path(DAEMON).resolve(), resolution)
+        self.assertEqual(resolution.get("install_prefix"), str(self.root / "install"), resolution)
+        self.assertEqual(resolution.get("config_home"), str(self.root / "config"), resolution)
+        self.assertEqual(resolution.get("data_home"), str(self.data), resolution)
+        self.assertEqual(resolution.get("source_root"), str(self.project), resolution)
+        self.assertFalse(resolution.get("hashes_included"), resolution)
+        self.assertTrue(all(resolution.get("environment_overrides", {}).get(key) for key in (
+            "install_prefix", "config_dir", "data_dir", "source_root", "agent_extension"
+        )), resolution)
         serialized = json.dumps(inventory)
-        for forbidden in ("/home/wirebot", "operator-vps", "focusa-build-ovh", "KH platform", "OVH runner"):
+        for forbidden in ("operator-vps", "focusa-build-ovh", "KH platform", "OVH runner"):
             self.assertNotIn(forbidden, serialized)
 
 

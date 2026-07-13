@@ -47,6 +47,8 @@ struct UpdateQuery {
     channel: Option<String>,
     #[serde(default)]
     latest_version: Option<String>,
+    #[serde(default)]
+    include_hashes: bool,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -269,37 +271,90 @@ fn platform_config_home() -> PathBuf {
     }
 }
 
-fn platform_install_prefix() -> PathBuf {
+fn first_existing(candidates: impl IntoIterator<Item = PathBuf>) -> Option<PathBuf> {
+    candidates.into_iter().find(|path| path.exists())
+}
+
+fn discover_source_root() -> PathBuf {
+    if let Some(path) = std::env::var_os("FOCUSA_SOURCE_ROOT") {
+        return PathBuf::from(path);
+    }
+    let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    cwd.ancestors()
+        .find(|path| {
+            path.join(".focusa-project.json").is_file() || path.join("Cargo.toml").is_file()
+        })
+        .map(Path::to_path_buf)
+        .unwrap_or(cwd)
+}
+
+fn running_executable() -> PathBuf {
+    std::env::current_exe()
+        .unwrap_or_else(|_| PathBuf::from(std::env::args_os().next().unwrap_or_default()))
+}
+
+fn platform_install_prefix(running_exe: &Path) -> PathBuf {
     if let Some(path) = std::env::var_os("FOCUSA_INSTALL_PREFIX") {
         return PathBuf::from(path);
     }
-    #[cfg(target_os = "windows")]
-    {
-        return env_path("LOCALAPPDATA", PathBuf::from(".")).join("Focusa");
-    }
-    #[cfg(not(target_os = "windows"))]
-    {
-        PathBuf::from("/usr/local")
+    let executable_dir = running_exe.parent().unwrap_or_else(|| Path::new("."));
+    if executable_dir.file_name().and_then(|name| name.to_str()) == Some("bin") {
+        executable_dir
+            .parent()
+            .unwrap_or(executable_dir)
+            .to_path_buf()
+    } else {
+        executable_dir.to_path_buf()
     }
 }
 
+fn resolved_binary_path(env_name: &str, binary_name: &str, running_exe: &Path) -> PathBuf {
+    if let Some(path) = std::env::var_os(env_name) {
+        return PathBuf::from(path);
+    }
+    if binary_name == "focusa-daemon" {
+        return running_exe.to_path_buf();
+    }
+    let suffix = if cfg!(target_os = "windows") {
+        ".exe"
+    } else {
+        ""
+    };
+    running_exe
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join(format!("{binary_name}{suffix}"))
+}
+
 fn platform_service_paths() -> (Option<PathBuf>, Option<PathBuf>, &'static str) {
+    let explicit_definition = std::env::var_os("FOCUSA_SERVICE_DEFINITION").map(PathBuf::from);
+    let explicit_overrides = std::env::var_os("FOCUSA_SERVICE_OVERRIDES").map(PathBuf::from);
+    if explicit_definition.is_some() || explicit_overrides.is_some() {
+        return (explicit_definition, explicit_overrides, "configured");
+    }
     #[cfg(target_os = "linux")]
     {
-        return (
-            Some(PathBuf::from("/etc/systemd/system/focusa-daemon.service")),
-            Some(PathBuf::from("/etc/systemd/system/focusa-daemon.service.d")),
-            "systemd",
-        );
+        let user_units = env_path(
+            "XDG_CONFIG_HOME",
+            env_path("HOME", PathBuf::from(".")).join(".config"),
+        )
+        .join("systemd/user");
+        let definition = first_existing([
+            user_units.join("focusa-daemon.service"),
+            PathBuf::from("/etc/systemd/system/focusa-daemon.service"),
+            PathBuf::from("/usr/lib/systemd/system/focusa-daemon.service"),
+        ]);
+        let overrides = definition.as_ref().and_then(|path| {
+            let candidate = PathBuf::from(format!("{}.d", path.display()));
+            candidate.exists().then_some(candidate)
+        });
+        return (definition, overrides, "systemd");
     }
     #[cfg(target_os = "macos")]
     {
-        let agents = env_path("HOME", PathBuf::from(".")).join("Library/LaunchAgents");
-        return (
-            Some(agents.join("com.focusa.daemon.plist")),
-            None,
-            "launchd",
-        );
+        let candidate = env_path("HOME", PathBuf::from("."))
+            .join("Library/LaunchAgents/com.focusa.daemon.plist");
+        return (candidate.exists().then_some(candidate), None, "launchd");
     }
     #[cfg(target_os = "windows")]
     {
@@ -311,32 +366,79 @@ fn platform_service_paths() -> (Option<PathBuf>, Option<PathBuf>, &'static str) 
     }
 }
 
+fn discover_desktop_app() -> Option<PathBuf> {
+    if let Some(path) = std::env::var_os("FOCUSA_DESKTOP_APP_PATH") {
+        return Some(PathBuf::from(path));
+    }
+    #[cfg(target_os = "macos")]
+    {
+        return first_existing([
+            env_path("HOME", PathBuf::from(".")).join("Applications/Focusa.app"),
+            PathBuf::from("/Applications/Focusa.app"),
+        ]);
+    }
+    #[cfg(target_os = "windows")]
+    {
+        return first_existing([
+            env_path("LOCALAPPDATA", PathBuf::from(".")).join("Focusa/Focusa.exe"),
+            env_path("PROGRAMFILES", PathBuf::from(".")).join("Focusa/Focusa.exe"),
+        ]);
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        first_existing([
+            env_path(
+                "XDG_DATA_HOME",
+                env_path("HOME", PathBuf::from(".")).join(".local/share"),
+            )
+            .join("applications/focusa.desktop"),
+            PathBuf::from("/usr/share/applications/focusa.desktop"),
+        ])
+    }
+}
+
 async fn build_update_inventory(command: &'static str, query: UpdateQuery) -> Value {
     let latest = resolve_latest(query.latest_version.as_deref());
-    let prefix = platform_install_prefix();
-    let bin_dir = if cfg!(target_os = "windows") {
-        prefix.clone()
-    } else {
-        prefix.join("bin")
-    };
-    let executable_suffix = if cfg!(target_os = "windows") {
-        ".exe"
-    } else {
-        ""
-    };
-    let cli_path = bin_dir.join(format!("focusa{executable_suffix}"));
-    let daemon_path = bin_dir.join(format!("focusa-daemon{executable_suffix}"));
-    let tui_path = bin_dir.join(format!("focusa-tui{executable_suffix}"));
+    let running_exe = running_executable();
+    let prefix = platform_install_prefix(&running_exe);
+    let cli_path = resolved_binary_path("FOCUSA_CLI_PATH", "focusa", &running_exe);
+    let daemon_path = resolved_binary_path("FOCUSA_DAEMON_PATH", "focusa-daemon", &running_exe);
+    let tui_path = resolved_binary_path("FOCUSA_TUI_PATH", "focusa-tui", &running_exe);
     let config_home = platform_config_home();
-    let source_root = env_path(
-        "FOCUSA_SOURCE_ROOT",
-        std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
-    );
+    let source_root = discover_source_root();
+    let data_home = env_path("FOCUSA_DATA_DIR", config_home.join("data"));
+    let env_file = std::env::var_os("FOCUSA_ENV_FILE")
+        .map(PathBuf::from)
+        .or_else(|| first_existing([source_root.join(".env"), config_home.join("focusa.env")]))
+        .unwrap_or_else(|| config_home.join("focusa.env"));
+    let agent_extension = std::env::var_os("FOCUSA_AGENT_EXTENSION_PATH")
+        .map(PathBuf::from)
+        .or_else(|| {
+            let candidate = source_root.join("apps/pi-extension");
+            candidate.exists().then_some(candidate)
+        });
+    let desktop_app = discover_desktop_app();
     let (service_definition, service_overrides, service_manager) = platform_service_paths();
     let mut parts = vec![
-        inspect_binary("cli", &cli_path.to_string_lossy(), &latest).await,
-        inspect_daemon(&latest, &daemon_path.to_string_lossy()),
-        inspect_binary("tui", &tui_path.to_string_lossy(), &latest).await,
+        inspect_binary(
+            "cli",
+            &cli_path.to_string_lossy(),
+            &latest,
+            query.include_hashes,
+        )
+        .await,
+        inspect_daemon(
+            &latest,
+            &daemon_path.to_string_lossy(),
+            query.include_hashes,
+        ),
+        inspect_binary(
+            "tui",
+            &tui_path.to_string_lossy(),
+            &latest,
+            query.include_hashes,
+        )
+        .await,
     ];
     parts.extend([
         inspect_optional_path(
@@ -353,14 +455,10 @@ async fn build_update_inventory(command: &'static str, query: UpdateQuery) -> Va
         ),
         inspect_protected_path(
             "runtime_home",
-            &prefix.join("lib/focusa").to_string_lossy(),
+            &data_home.to_string_lossy(),
             "never_wholesale_replace",
         ),
-        inspect_protected_path(
-            "env",
-            &env_path("FOCUSA_ENV_FILE", config_home.join("focusa.env")).to_string_lossy(),
-            "never_auto_overwrite",
-        ),
+        inspect_protected_path("env", &env_file.to_string_lossy(), "never_auto_overwrite"),
         inspect_protected_path(
             "license_files",
             &config_home.to_string_lossy(),
@@ -378,20 +476,15 @@ async fn build_update_inventory(command: &'static str, query: UpdateQuery) -> Va
         ),
         inspect_optional_path(
             "desktop_app",
-            std::env::var_os("FOCUSA_DESKTOP_APP_PATH")
-                .as_deref()
-                .map(Path::new),
+            desktop_app.as_deref(),
             "client_update_channel",
             std::env::consts::OS,
         ),
-        inspect_protected_path(
+        inspect_optional_path(
             "agent_extension",
-            &env_path(
-                "FOCUSA_AGENT_EXTENSION_PATH",
-                source_root.join("apps/pi-extension"),
-            )
-            .to_string_lossy(),
+            agent_extension.as_deref(),
             "package_contract_channel",
+            "agent_extension",
         ),
         inspect_external_part(
             "public_installer",
@@ -425,6 +518,30 @@ async fn build_update_inventory(command: &'static str, query: UpdateQuery) -> Va
         },
         "policy": policy_summary_json(),
         "license": license_summary_json(),
+        "inventory_resolution": {
+            "platform": std::env::consts::OS,
+            "architecture": std::env::consts::ARCH,
+            "running_executable": running_exe,
+            "install_prefix": prefix,
+            "config_home": config_home,
+            "data_home": data_home,
+            "source_root": source_root,
+            "hashes_included": query.include_hashes,
+            "hash_opt_in": "?include_hashes=true",
+            "environment_overrides": {
+                "install_prefix": std::env::var_os("FOCUSA_INSTALL_PREFIX").is_some(),
+                "config_dir": std::env::var_os("FOCUSA_CONFIG_DIR").is_some(),
+                "data_dir": std::env::var_os("FOCUSA_DATA_DIR").is_some(),
+                "source_root": std::env::var_os("FOCUSA_SOURCE_ROOT").is_some(),
+                "cli_path": std::env::var_os("FOCUSA_CLI_PATH").is_some(),
+                "daemon_path": std::env::var_os("FOCUSA_DAEMON_PATH").is_some(),
+                "tui_path": std::env::var_os("FOCUSA_TUI_PATH").is_some(),
+                "service_definition": std::env::var_os("FOCUSA_SERVICE_DEFINITION").is_some(),
+                "service_overrides": std::env::var_os("FOCUSA_SERVICE_OVERRIDES").is_some(),
+                "desktop_app": std::env::var_os("FOCUSA_DESKTOP_APP_PATH").is_some(),
+                "agent_extension": std::env::var_os("FOCUSA_AGENT_EXTENSION_PATH").is_some()
+            }
+        },
         "parts": parts,
         "stale_parts": stale_parts,
         "stale_count": stale_count,
@@ -1071,7 +1188,12 @@ fn inspect_external_part(
     })
 }
 
-async fn inspect_binary(part: &'static str, expected_path: &str, latest: &Latest) -> Value {
+async fn inspect_binary(
+    part: &'static str,
+    expected_path: &str,
+    latest: &Latest,
+    include_hash: bool,
+) -> Value {
     let path = Path::new(expected_path);
     let exists = path.exists();
     let version = if exists {
@@ -1090,13 +1212,13 @@ async fn inspect_binary(part: &'static str, expected_path: &str, latest: &Latest
         "version": version,
         "version_source": "binary_--version",
         "version_probe_safe": true,
-        "sha256": if exists { sha256_file(path).ok() } else { None },
+        "sha256": if exists && include_hash { sha256_file(path).ok() } else { None },
         "stale": stale,
         "stale_reason": stale_reason(part, version.as_deref(), stale, &latest.version, exists),
     })
 }
 
-fn inspect_daemon(latest: &Latest, expected_path: &str) -> Value {
+fn inspect_daemon(latest: &Latest, expected_path: &str, include_hash: bool) -> Value {
     let path = Path::new(expected_path);
     let exists = path.exists();
     let version = normalize_version(env!("CARGO_PKG_VERSION"));
@@ -1109,7 +1231,7 @@ fn inspect_daemon(latest: &Latest, expected_path: &str) -> Value {
         "version": version,
         "version_source": "running_daemon_package_version",
         "version_probe_safe": true,
-        "sha256": if exists { sha256_file(path).ok() } else { None },
+        "sha256": if exists && include_hash { sha256_file(path).ok() } else { None },
         "stale": stale,
         "stale_reason": if stale {
             format!("running daemon package version differs from latest {}", latest.version)
@@ -1188,10 +1310,12 @@ mod tests {
             UpdateQuery {
                 channel: Some("dev".into()),
                 latest_version: Some(env!("CARGO_PKG_VERSION").into()),
+                include_hashes: false,
             },
         )
         .await;
         assert_eq!(inventory["continuous_currency"]["enabled"], true);
+        assert_eq!(inventory["inventory_resolution"]["hashes_included"], false);
         assert_eq!(
             inventory["continuous_currency"]["blind_latest_allowed"],
             false
