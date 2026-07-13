@@ -3,6 +3,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 API="$ROOT/crates/focusa-api/src/routes/compaction.rs"
 PI="$ROOT/apps/pi-extension/src/compaction.ts"
+RECENT="$ROOT/crates/focusa-api/src/routes/turn_recent.rs"
 MOD="$ROOT/crates/focusa-api/src/routes/mod.rs"
 SERVER="$ROOT/crates/focusa-api/src/server.rs"
 CLI="$ROOT/crates/focusa-cli/src/commands/compaction.rs"
@@ -23,6 +24,9 @@ require "$API" 'advisory": true'
 require "$API" 'transcript_tail_as_authority'
 require "$API" 'HltStatus::GenericDegraded'
 require "$API" 'PACKET_CAP: usize = 64'
+require "$API" 'read_recent_turns_bounded'
+require "$API" 'recent_turn:'
+require "$RECENT" 'pub(crate) fn read_recent_turns_bounded'
 require "$MOD" 'pub mod compaction;'
 require "$SERVER" '.merge(routes::compaction::router())'
 require "$PI" 'buildCompactionMissionPacket("before_compaction")'

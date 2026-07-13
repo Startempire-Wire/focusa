@@ -300,8 +300,39 @@ async fn build(
     Json(req): Json<BuildCompactionPacketRequest>,
 ) -> Json<Value> {
     let focusa = state.focusa.read().await;
-    let packet = build_packet(&focusa, &req);
+    let mut packet = build_packet(&focusa, &req);
     drop(focusa);
+    let recent_turns = req
+        .continuity_id
+        .as_deref()
+        .map(|continuity_id| {
+            crate::routes::turn_recent::read_recent_turns_bounded(
+                &state.config.data_dir,
+                continuity_id,
+                4,
+            )
+        })
+        .unwrap_or_default();
+    let recent_refs: Vec<String> = recent_turns
+        .iter()
+        .map(|turn| format!("recent_turn:{}:{}", turn.continuity_id, turn.turn_id))
+        .collect();
+    let recent_evidence: Vec<String> = recent_turns
+        .iter()
+        .flat_map(|turn| turn.evidence_refs.iter().cloned())
+        .take(32)
+        .collect();
+    packet["recent_turns"] = json!({
+        "count": recent_turns.len(),
+        "refs": recent_refs
+    });
+    if let Some(evidence) = packet["evidence"]["evidence_refs"].as_array_mut() {
+        for evidence_ref in recent_evidence {
+            if !evidence.iter().any(|existing| existing == &evidence_ref) {
+                evidence.push(Value::String(evidence_ref));
+            }
+        }
+    }
     store_packet(&packet);
     Json(packet)
 }
