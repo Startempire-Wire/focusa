@@ -1,0 +1,70 @@
+original_sha	old_subject	new_subject
+2e89f5581dcb9500b9214de8cd24a1dd6cda8f6c	Beads: focusa-7fn3 focusa-self focusa-signing.keychain	ci: import Apple Developer ID credentials for release
+8ba4d11035618cf00d22a49dc1dde63bb80cf21e	Beads: focusa-cli focusa-installer focusa-over focusa-pi focusa-slxpz focusa-slxpz.1 focusa-slxpz.2 focusa-slxpz.3 focusa-slxpz.4 focusa-slxpz.5 focusa-slxpz.6 focusa-terminal focusa-tui	docs: add and decompose Spec 132 installer animation
+1c16a4ba3d008a6fe46063e2ba70ae615924c629	Beads: focusa-api focusa-cli focusa-core focusa-installer focusa-pi focusa-slxpz.1 focusa-tui	docs: capture Spec 132 installer baseline drift
+dbf45089f8de8db72ebc78eb29550df321c24af7	Beads: focusa-terminal	feat: add shared installer terminal presentation foundation
+4c4dfa1cafc0889db85141de7aa9ce8cdf200b88	Beads: focusa-agent focusa-daemon	feat: expose installer renderer capability preflight
+fe7fbd05acfac45dc652e2205f2d2e4714ac10c4	Beads: focusa-silent	fix: persist SilentSession registry durably and atomically
+ebc5600bfaf8f6ff3b03e7ef1978936f3b9633a8	Beads: focusa-a6yq6 focusa-a6yq6.1 focusa-a6yq6.10 focusa-a6yq6.2 focusa-a6yq6.3 focusa-a6yq6.4 focusa-a6yq6.5 focusa-a6yq6.6 focusa-a6yq6.7 focusa-a6yq6.8 focusa-a6yq6.9 focusa-api focusa-cli focusa-core focusa-governed focusa-harness focusa-installer focusa-integration focusa-rpc focusa-session focusa-silent focusa-slxpz focusa-slxpz.4 focusa-slxpz.6 focusa-worktree	docs: add and decompose Spec 133 silent sessions
+ac850902d61a5745c64a3a4b7e16c19c41405353	Beads: focusa-agent focusa-daemon	fix: preserve failing status for invalid installer UI controls
+f5ecf915ba306a16c16ee4077969c4511a302be4	Beads: focusa-installer focusa-slxpz focusa-slxpz.1 focusa-slxpz.2 focusa-slxpz.3 focusa-terminal focusa-tui	chore: close Spec 132 phases B and C foundations
+36d1765d0fcde5a515d99af708f31c29ed2c21d7	Beads: focusa-daemon	feat: model per-asset verification scan outcomes
+745d062496942b27071c1882311fa88e8710d10a	Beads: focusa-slxpz.2 focusa-slxpz.3 focusa-terminal	chore: close Spec 132 C4 glow and verification
+7fdc71bd83d93272a7a297de0f04974aa98a3929	Beads: focusa-slxpz.2 focusa-slxpz.3 focusa-terminal	feat: bound installer animation render loop
+db2271c542be9e71108a3be89d9ab1b219259724	Beads: focusa-slxpz.3 focusa-slxpz.4 focusa-terminal	docs: record Spec 132 Phase C gate proof
+64a2bdbd7824d04340367bfa6c76774c06f619d1	Beads: focusa-slxpz.3 focusa-slxpz.4	feat: stream installer assets into staged files
+1d19dba79ee3175864d63b9855cb9306a6d8786c	Beads: focusa-agent focusa-daemon focusa-tui focusa-version	feat: stream staged installer asset downloads
+32699b2045dbaeea52d8951ea3c790bfc9a7299f	Beads: focusa-backup focusa-pi focusa-slxpz.3 focusa-slxpz.4	feat: move Pi extension integration into Rust
+255636bb4a090d6cc7e8469acaca0c499f730f9b	Beads: focusa-cancel	feat: cancel installer phases safely
+dcc0d262ac91aa984be5448886cc34890fa13797	Beads: focusa-slxpz.3 focusa-slxpz.4	docs: define durable SilentSession contract
+244c8dc68fd34519ce12899511aef6c3765d1ed4	Beads: focusa-slxpz.4	fix: persist SilentSession state outside tmp
+8fe0acaa4ab8712469e48d1284d63c9a5605565d	Beads: focusa-slxpz.4	feat: add cursor-based durable SilentSession tail
+476e576452196d97ca8f97a77e1f5c7dd8980dd0	Beads: focusa-slxpz.4	feat: classify SilentSession lifecycle states
+34ab8c4cd5d20a9ddeff90f2c1ac37bbac35ba14	Beads: focusa-a6yq6 focusa-silent focusa-slxpz.4	chore: move SilentSession gaps from Spec 132 to Spec 133
+51683aa720e6bf8a6f32d5287027da82f775faca	Beads: focusa-slxpz focusa-slxpz.2 focusa-slxpz.3	chore: close Spec 132 Phase C
+4093c57101bd717a6d3db69d14c06bbc74ba27f0	Beads: focusa-cli focusa-slxpz.4 focusa-slxpz.5 focusa-terminal	test: add Spec 132 installer contract guards
+0b702000357c3dce4e08f80ef7503c2f73aa09a6	Beads: focusa-cli focusa-slxpz.3 focusa-slxpz.4	feat: map installer operations to phase events
+81382a866dcf0960fd8239cbfdb3bfb2eea29324	Beads: focusa-cli focusa-daemon focusa-slxpz.3 focusa-slxpz.4 focusa-tui	feat: gate installer completion on smoke test
+e9170adeb8eeb3ec8da5a3e6e7ee95fd79332e0d	Beads: focusa-cli focusa-qms8p	feat: integrate installer terminal UI
+1c18e6cec08efa893dc19c991f33bb88375a46fe	Beads: focusa-qms8p focusa-slxpz.4	chore: attach installer UI gap to Spec 132
+49dd34cad6a5c62569d0394f5fe9cb6384f65053	Beads: focusa-cli focusa-slxpz.3 focusa-slxpz.4	fix: make installer rollback presentation truthful
+529a9bbfdd387457309c2374b7f5f594762c52f3	Beads: focusa-cli focusa-slxpz.3 focusa-slxpz.4	feat: make Pi installer integration Rust-owned
+3f3e60ea74facff79a58582a1fcf1fbf54611d9b	Beads: focusa-cli focusa-pi focusa-smoke	test(spec132): execute D6 installer gate coverage
+a5dced047bb07c4a55430322dcd0e7edf164a01a	Beads: focusa-cli	fix(spec132): close installer archive test compile gaps
+bd54d75ad92e83951bcdf20a82827fa024e3bb19	Beads: focusa-a6yq6.10 focusa-ux2qx focusa-ux2qx.17	chore: gate live bootstrapper parity after Spec 133
+16ba531b7fd88da60da49d300b101d28273d77ad	Beads: focusa-qms8p focusa-slxpz.3 focusa-slxpz.4 focusa-ux2qx.17	chore(spec132): D6 and Phase D gates
+73c8b08f775d16da7e00e5c99db11538e1f5937a	Beads: focusa-slxpz.4 focusa-slxpz.5 focusa-terminal	test(spec132): complete E2 terminal unit matrix
+f6209317e4d094f6859523729577f46f838a5606	Beads: focusa-slxpz.4 focusa-slxpz.5 focusa-terminal	test(spec132): add deterministic E3 golden frames
+364ebdc84e07ef777b65617227e8b22de4fa30a5	Beads: focusa-cli focusa-slxpz.4 focusa-slxpz.5 focusa-terminal	test(spec132): prove E4 PTY lifecycle
+38be728bc3606b1fcb80a8a5d3ba5f01e8c895d2	Beads: focusa-installer focusa-terminal	test(spec132): add E5 platform matrix runtime proof
+938c2dbe1e6ee30725a3bc111ac56440ba79ab51	Beads: focusa-132 focusa-cli focusa-terminal	test(spec132): add hosted E5 ConPTY matrix
+c9c4de84a544856376bceaff5a9db3433d9365e8	Beads: focusa-cli focusa-installer focusa-terminal	fix(spec132): repair native E5 preflight matrix
+340bc0a7f55dfce9e85a8758bc053cd0e7c98489	Beads: focusa-main	fix(spec132): enlarge Windows CLI startup stack
+ad6660f621c8b0693a23a50128d4e404375deb67	Beads: focusa-deploy focusa-ovh	fix: align local workflows with OVH execution
+cebc82080e69dfea7ac803886b868592910c7a8d	Beads: focusa-0s9qo focusa-0s9qo.1 focusa-0s9qo.2 focusa-0s9qo.3 focusa-0s9qo.4 focusa-0s9qo.5 focusa-112 focusa-1an98 focusa-1an98.1 focusa-1an98.2 focusa-1an98.3 focusa-1an98.4 focusa-1an98.5 focusa-2aliq focusa-2g6v focusa-37qn2 focusa-3tr9 focusa-4vpj focusa-6bv0h focusa-7fn3 focusa-7n2f focusa-8304a focusa-8304a.1 focusa-8304a.10 focusa-8304a.11 focusa-8304a.12 focusa-8304a.13 focusa-8304a.14 focusa-8304a.15 focusa-8304a.2 focusa-8304a.3 focusa-8304a.4 focusa-8304a.5 focusa-8304a.6 focusa-8304a.7 focusa-8304a.8 focusa-8304a.9 focusa-88yx4 focusa-88yx4.1 focusa-88yx4.10 focusa-88yx4.11 focusa-88yx4.12 focusa-88yx4.13 focusa-88yx4.14 focusa-88yx4.15 focusa-88yx4.16 focusa-88yx4.17 focusa-88yx4.18 focusa-88yx4.19 focusa-88yx4.2 focusa-88yx4.3 focusa-88yx4.4 focusa-88yx4.5 focusa-88yx4.6 focusa-88yx4.7 focusa-88yx4.8 focusa-88yx4.9 focusa-9im1 focusa-9j8k focusa-9vwtb focusa-a6yq6 focusa-a6yq6.1 focusa-a6yq6.10 focusa-a6yq6.2 focusa-a6yq6.3 focusa-a6yq6.4 focusa-a6yq6.5 focusa-a6yq6.6 focusa-a6yq6.7 focusa-a6yq6.8 focusa-a6yq6.9 focusa-accomplished focusa-agent focusa-api focusa-cli focusa-cloud focusa-cont focusa-core focusa-covz focusa-daemon focusa-fcdu3 focusa-full focusa-installer focusa-intent focusa-kwyig focusa-license focusa-mvp focusa-ntnjm focusa-ota focusa-over focusa-p57b8 focusa-p57b8.1 focusa-p57b8.2 focusa-p57b8.3 focusa-p57b8.4 focusa-p57b8.5 focusa-phase5 focusa-pi focusa-private focusa-project.json focusa-qms8p focusa-self focusa-session focusa-silent focusa-slxpz focusa-slxpz.1 focusa-slxpz.2 focusa-slxpz.3 focusa-slxpz.4 focusa-slxpz.5 focusa-slxpz.6 focusa-spec110 focusa-su0gq focusa-su0gq.1 focusa-surface focusa-terminal focusa-tools focusa-ts2b focusa-tui focusa-update.timer focusa-ux2qx focusa-ux2qx.1 focusa-ux2qx.10 focusa-ux2qx.11 focusa-ux2qx.12 focusa-ux2qx.13 focusa-ux2qx.14 focusa-ux2qx.15 focusa-ux2qx.16 focusa-ux2qx.17 focusa-ux2qx.2 focusa-ux2qx.3 focusa-ux2qx.4 focusa-ux2qx.5 focusa-ux2qx.6 focusa-ux2qx.7 focusa-ux2qx.8 focusa-ux2qx.9 focusa-v7dbf focusa-v7dbf.1 focusa-v7dbf.2 focusa-v7dbf.3 focusa-v7dbf.4 focusa-v7dbf.5 focusa-v7dbf.6 focusa-vzsp focusa-w26jj focusa-w26jj.1 focusa-w26jj.2 focusa-w26jj.3 focusa-w26jj.4 focusa-w26jj.5 focusa-w26jj.6 focusa-w26jj.7 focusa-wefzg focusa-wefzg.1 focusa-wefzg.10 focusa-wefzg.11 focusa-wefzg.12 focusa-wefzg.13 focusa-wefzg.14 focusa-wefzg.15 focusa-wefzg.16 focusa-wefzg.17 focusa-wefzg.2 focusa-wefzg.3 focusa-wefzg.4 focusa-wefzg.5 focusa-wefzg.6 focusa-wefzg.7 focusa-wefzg.8 focusa-wefzg.9 focusa-workpoint focusa-wtl9	feat: add Spec 130 compaction mission packets
+bd77fd389c19dd25231c2e409033502d27b358c5	Beads: focusa-cli focusa-w26jj.3	feat: add Spec 130 compaction inspection CLI
+0ca670cf6440a50d20d23e2be02a8b8b5c2f8cee	Beads: focusa-api focusa-w26jj.3	feat: add bounded recent turns to compaction packets
+7e6a0892415d282dc48de97f287c63a28d67aca1	Beads: focusa-w26jj.3	feat: detect cascading compaction state
+67848d21cf1e541466fa515d0fbc8d57b86790c8	Beads: focusa-w26jj.3	feat: complete Spec 130 compaction CLI surface
+ba4a198cecdb0fb9100bc2becde7bc0a222362cf	Beads: focusa-compaction focusa-cont focusa-w26jj.3	feat: persist bounded compaction packets
+a9dcac548da8e46bdb5111fdf38203d805160ccf	Beads: focusa-88yx4 focusa-w26jj.2 focusa-w26jj.5	feat: verify OTA staged asset digests
+66741cfd510d0fcf5d49f09cb7d64514226e03cf	Beads: focusa-w26jj.5	feat: verify OTA Ed25519 asset signatures
+307328f471c8d717aba5c73fc892bafc4f7d7e78	Beads: focusa-w26jj.5	feat: add OTA Ed25519 trust verification
+d68cef8ec7394c3377de43b268eb463a45ec454d	Beads: focusa-failed focusa-update focusa-w26jj.5	test: prove OTA atomic rollback safety
+d731125e1372a2be55690377a869918e918b54ca	Beads: focusa-88yx4 focusa-w26jj focusa-w26jj.1 focusa-w26jj.2	docs: close Spec 125 trajectory strictness revalidation
+b8a26bdd5ccd9c774005f607116f80054e6c18d8	Beads: focusa-w26jj.3	fix: reject cross-account agent runtime scopes
+f0a3261386baa032d63f902096850245f8409c05	Beads: focusa-api focusa-cont focusa-w26jj.3	feat: enforce bounded subagent result isolation
+8ba1312dea0dd63a1fb4088441803d9ca5f0db56	Beads: focusa-w26jj.3	chore: close Spec 130 API and fidelity gates
+301fb42bfe3cd5fabf2b280949fa6dad806d9f28	Beads: focusa-w26jj focusa-w26jj.2 focusa-w26jj.3	feat: close Spec 130 compaction memory gate
+f3a0f91be06725ead636971e35ce7ff8c3c82c12	Beads: focusa-intent focusa-w26jj focusa-w26jj.3 focusa-w26jj.4	docs: close Specs 82 and 94 optimization lane
+eacb009ca9a063e5d9311e11e4adada734a6f759	Beads: focusa-over focusa-w26jj focusa-w26jj.4 focusa-w26jj.5	docs: close Spec 128 OTA lane
+16e0098d0669badb91a622efedf27b7a8b5a7d08	Beads: focusa-api focusa-cli focusa-core focusa-cross focusa-intent focusa-memory focusa-over focusa-pi focusa-pre focusa-w26jj focusa-w26jj.2 focusa-w26jj.3 focusa-w26jj.4 focusa-w26jj.5 focusa-w26jj.6 focusa-w26jj.7	feat: complete pre-MVP STG closure gate
+cac9d9e890b5e99579e9812048427406f14fd99b	Beads: focusa-project.json focusa-real	test: add real cross-surface product E2E
+d61f0426ccccd1b8a2eb39073387da25fbce2814	Beads: focusa-api focusa-cli focusa-daemon focusa-daemon.service focusa-keychain focusa-over focusa-project.json focusa-strict focusa-tui focusa-ui0y focusa-ui0y.15 focusa-w26jj focusa-w26jj.2 focusa-w26jj.3 focusa-w26jj.4 focusa-w26jj.5 focusa-w26jj.6 focusa-w26jj.7	test: enforce portable strict spec E2E
+3871959d01f7f9b50a235acc5e9cb597ffef04ba	Beads: focusa-build	refactor: remove deployment-specific product defaults
+cd4bcda7cc5f9843f3c10081bb180b25140abcae	Beads: focusa-build focusa-daemon focusa-daemon.service focusa-project.json focusa-tui focusa-w26jj focusa-w26jj.5	fix: discover update inventory from active host
+fa4da15bd9d03c0678900b770b128df1ab0138ca	Beads: focusa-slxpz focusa-slxpz.3 focusa-slxpz.4	chore: close Spec 132 orchestration phase
+72824452be03cfda40b2f6b6fdb9e0a1d4203d08	Beads: focusa-cli focusa-terminal	test: repair native ConPTY capture proof
+f4ea49b3237b6baf7e8ef98ddcf4f3449d28294d	Beads: focusa-audit.json focusa-audit.log focusa-cleanup focusa-context focusa-export focusa-slxpz.4 focusa-slxpz.5 focusa-trash	chore: clear strict workspace quality gates
+8e20d76c5bd48693de8ea462422b64d7bf9651d2	Beads: focusa-conpty	test: capture hosted ConPTY durable output
+a654c9603d752efc326acb5322825f8c1128a65b	Beads: focusa-pi	ci: prove every Spec 132 release target
