@@ -510,7 +510,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     name: "focusa_decide",
     label: "Record Decision",
     purpose:
-      "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=280 chars) \u2014 architectural choices only, not task lists.",
+      "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=160 chars) \u2014 architectural choices only, not task lists.",
     family: "focus_state",
     ontology_action: "focus_state.decide",
     ontology_objects: ["FocusState"],

@@ -45,6 +45,7 @@ run_gate ./tests/pi_extension_contract_test.sh
 run_gate ./tests/spec130_bounded_persistence_test.sh
 run_gate ./tests/spec130_native_session_pressure_test.sh
 run_gate ./tests/spec130_auto_compaction_test.sh
+run_gate ./tests/focusa_decide_scope_recovery_test.sh
 run_gate ./tests/behavioral_alignment_test.sh
 run_gate ./tests/channel_separation_test.sh
 run_gate ./tests/proxy_mode_b_parity_test.sh

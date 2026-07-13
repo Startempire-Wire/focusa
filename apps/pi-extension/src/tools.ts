@@ -23,11 +23,14 @@ import {
   buildFocusaSessionIdentity,
   normalizeProjectRoot,
   resolvePiProjectRoot,
+  resolveFocusWriteProjectRoot,
   confirmPiProjectRoot,
   projectRootConfirmationRequired,
   projectRootConfirmationSummary,
   refreshTrajectoryClarityLifecycle,
   stampWorkpointPacketForCurrentPiSession,
+  normalizeWorkpointResumePacketEnvelope,
+  adoptWorkpointScopeForFrameRecovery,
   persistState,
   estimateTokens,
   getTurnCount,
@@ -1881,7 +1884,9 @@ export async function pushDelta(delta: {
       emitWriteTelemetry("focusa_cwd_changed", { old: cachedCwd, new: liveCwd, targets });
       S.activeFrameId = null;
     }
-    const projectRoot = normalizeProjectRoot(resolvePiProjectRoot(process.cwd()) || cachedCwd || liveCwd);
+    const projectRoot = normalizeProjectRoot(
+      resolveFocusWriteProjectRoot(process.cwd(), cachedCwd || liveCwd)
+    );
     const continuityId = getContinuityId() || ensureContinuityId(projectRoot);
     if (!isProjectRootAuthoritySafe(projectRoot) || !continuityId) {
       emitWriteTelemetry("focusa_write_failed", {
@@ -1909,13 +1914,15 @@ export async function pushDelta(delta: {
       });
     let response = await postUpdate();
     if (
-      ["no_active_frame", "frame_unavailable", "rejected_scope_mismatch"].includes(
+      ["no_active_frame", "frame_unavailable", "rejected_scope_mismatch", "scope_mismatch"].includes(
         String(response?.status || "")
       )
     ) {
       emitWriteTelemetry("focusa_write_recovery_attempt", {
         targets,
-        reason: response?.status === "rejected_scope_mismatch" ? "scope_mismatch" : "stale_frame",
+        reason: ["rejected_scope_mismatch", "scope_mismatch"].includes(String(response?.status || ""))
+          ? "scope_mismatch"
+          : "stale_frame",
         stale_frame_id: getActiveFrameId(),
         active_frame_id: response?.active_frame_id,
         target_frame_id: response?.target_frame_id,
@@ -1951,7 +1958,7 @@ export async function pushDelta(delta: {
       });
       return { ok: false, reason: "frame_unavailable", api_reason: response.reason };
     }
-    if (response.status === "rejected_scope_mismatch") {
+    if (["rejected_scope_mismatch", "scope_mismatch"].includes(String(response.status))) {
       emitWriteTelemetry("focusa_write_failed", {
         targets,
         reason: "scope_mismatch",
@@ -7841,6 +7848,17 @@ export function registerTools(pi: ExtensionAPI) {
       const checkpointSummary = String(
         res.body?.rendered_summary || res.body?.checkpoint_summary?.one_line || ""
       );
+      if (res.ok && res.body?.canonical === true && res.body?.workpoint) {
+        const adoptedRoot = adoptWorkpointScopeForFrameRecovery(
+          res.body.workpoint,
+          "workpoint_checkpoint_tool"
+        );
+        if (adoptedRoot) {
+          setActiveWorkpointSummary(checkpointSummary);
+          S.lastWorkpointUpdate = Date.now();
+          persistState();
+        }
+      }
       const text = res.ok
         ? `workpoint checkpoint → ${summarizeWorkpointResponse(res.body)}${checkpointSummary ? `; ${checkpointSummary}` : ""}`
         : res.body?.status === "validation_rejected"
@@ -8145,6 +8163,20 @@ export function registerTools(pi: ExtensionAPI) {
       const scopeConflictReason = String(
         res.body?.scope_conflict_reason || v2?.scope_conflict_reason || "none"
       );
+      if (res.ok && canonical && actionAuthority && matchesCurrentAskScope) {
+        const candidate = normalizeWorkpointResumePacketEnvelope(res.body);
+        const adoptedRoot = adoptWorkpointScopeForFrameRecovery(
+          candidate,
+          "workpoint_resume_tool"
+        );
+        if (adoptedRoot) {
+          setActiveWorkpointSummary(
+            String(res.body?.rendered_summary || v2?.rendered_summary || "")
+          );
+          S.lastWorkpointUpdate = Date.now();
+          persistState();
+        }
+      }
       // FOCUSA_FIX-r4n9: When authority is suppressed, recoveryPacket blocks execution
       // and the Focus Slice in state.ts cuts next_action to force verification
       const authoritySuppressed = canonical && !actionAuthority;

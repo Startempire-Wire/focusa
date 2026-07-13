@@ -1,0 +1,41 @@
+focusa-57tht — focusa_decide project-bound frame recovery proof
+Date: 2026-07-13
+
+Observed symptom:
+- valid focusa_decide, focusa_failure, focusa_current_focus, and focusa_next_step calls fell back to scratch
+- returned reason was Focus State frame unavailable, not decision text validation
+- canonical project-bound Workpoint checkpoint/resume had already succeeded
+
+Root causes:
+1. ensurePiFrame rejected a broad agent launch cwd before attempting canonical same-session Workpoint recovery, making the intended recovery branch unreachable.
+2. pushDelta preferred the unsafe live cwd over the safe project scope adopted into session state.
+3. successful Workpoint checkpoint/resume tools returned canonical packets but did not cache them for subsequent frame recovery.
+4. API status scope_mismatch was not handled alongside rejected_scope_mismatch.
+5. the tool registry advertised a stale 280-character decision limit while the canonical validator enforces 160.
+
+Repair:
+- canonical same-session Workpoint recovery now precedes broad-cwd rejection
+- unsafe live cwd yields to a verified cached project root for Focus State writes
+- successful aligned canonical checkpoint/resume responses are stamped, cached, summarized, and persisted
+- both API scope mismatch status variants enter scoped recovery
+- focusa_decide registry limit matches the 160-character validator
+- cross-continuity packets remain rejected
+
+Proof:
+PASS bash tests/focusa_decide_scope_recovery_test.sh
+PASS bash tests/focus_frame_write_contract_test.sh (4/4)
+PASS bash tests/pi_extension_contract_test.sh (41/41)
+PASS bash tests/spec104_pi_runtime_scope_integrity_test.sh
+PASS bash tests/spec96_stale_focus_frame_validation_static_test.sh
+PASS bash tests/spec96_scope_recovery_feedback_static_test.sh
+PASS bash tests/tool_contract_test.sh (22/22)
+PASS npm --prefix apps/pi-extension run typecheck
+PASS npm --prefix apps/pi-extension run lint -- --quiet
+PASS git diff --check
+
+Runtime regression cases:
+- /root live cwd plus verified cached project resolves to the project
+- verified live project wins over a different cached project
+- two unsafe roots remain unsafe
+- canonical same-session Workpoint is adopted and stamped
+- cross-continuity Workpoint is rejected

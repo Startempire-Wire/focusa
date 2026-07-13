@@ -2849,6 +2849,29 @@ export function resolvePiProjectRoot(cwdInput?: unknown, persistedPacket?: any):
   return resolvePiProjectRootCandidate(cwdInput, persistedPacket).projectRoot;
 }
 
+export function resolveFocusWriteProjectRoot(
+  liveCwdInput: unknown,
+  cachedCwdInput: unknown
+): string {
+  const live = resolvePiProjectRootCandidate(liveCwdInput);
+  if (
+    live.safe === true &&
+    live.requiresOperatorConfirmation !== true &&
+    isProjectRootAuthoritySafe(live.projectRoot)
+  )
+    return live.projectRoot;
+
+  const cached = resolvePiProjectRootCandidate(cachedCwdInput);
+  if (
+    cached.safe === true &&
+    cached.requiresOperatorConfirmation !== true &&
+    isProjectRootAuthoritySafe(cached.projectRoot)
+  )
+    return cached.projectRoot;
+
+  return live.projectRoot;
+}
+
 export function projectRootConfirmationRequired(projectRoot?: string): boolean {
   const resolution = getLastProjectRootResolution();
   if (!resolution) return false;
@@ -3264,7 +3287,7 @@ export function isGenericPiFrameForCwd(cwd: string, title?: string | null, goal?
   return (title || "") === `Pi: ${projectName}` && (goal || "") === `Work on ${projectName}`;
 }
 
-function adoptWorkpointScopeForFrameRecovery(packet: any, source: string): string | null {
+export function adoptWorkpointScopeForFrameRecovery(packet: any, source: string): string | null {
   if (!packet || typeof packet !== "object") return null;
   const workpoint = packet.resume_packet?.workpoint || packet.workpoint || packet;
   const packetProjectRoot = normalizeProjectRoot(workpoint.project_root || packet.project_root);
@@ -3321,22 +3344,48 @@ export async function ensurePiFrame(
   const requestedResolution = resolvePiProjectRootCandidate(cwd || getSessionCwd() || process.cwd());
   setLastProjectRootResolution(requestedResolution);
   const requestedCwd = requestedResolution.projectRoot;
-  if (requestedResolution.requiresOperatorConfirmation || requestedResolution.safe !== true) {
-    focusaPost("/telemetry/trace", {
-      event_type: "pi_frame_creation_blocked_unconfirmed_project_root",
-      payload: { project_root: requestedCwd, summary: projectRootConfirmationSummary(requestedCwd), source },
-    });
-    return null;
-  }
   let resolvedCwd = requestedCwd;
-  if (!isProjectRootAuthoritySafe(resolvedCwd)) {
-    const adoptedFrameId = await adoptExistingSafeFrameForRecovery();
-    if (adoptedFrameId) return adoptedFrameId;
+  const requestedScopeUsable =
+    requestedResolution.safe === true &&
+    requestedResolution.requiresOperatorConfirmation !== true &&
+    isProjectRootAuthoritySafe(requestedCwd);
+
+  // Broad agent launch directories (especially /root) are not project authority,
+  // but a canonical same-session Workpoint is. Recover from that packet before
+  // rejecting the broad cwd; the previous order made this branch unreachable.
+  if (!requestedScopeUsable) {
     const packetCwd = scopedWorkpointFrameRecoveryCwd();
     if (packetCwd) {
       resolvedCwd = packetCwd;
+      setLastProjectRootResolution({
+        projectRoot: packetCwd,
+        confidence: "high",
+        confidenceScore: 0.95,
+        source: "canonical_session_workpoint_recovery",
+        reason: "canonical same-session Workpoint supplied project authority",
+        safe: true,
+        requiresOperatorConfirmation: false,
+        candidates: [
+          {
+            projectRoot: packetCwd,
+            confidenceScore: 0.95,
+            markers: ["canonical_workpoint"],
+            source: "canonical_session_workpoint_recovery",
+          },
+        ],
+      });
     } else {
-      clearScopedWorkpointForUnsafeCwd("ensure_pi_frame_unsafe_cwd");
+      const adoptedFrameId = await adoptExistingSafeFrameForRecovery();
+      if (adoptedFrameId) return adoptedFrameId;
+      focusaPost("/telemetry/trace", {
+        event_type: "pi_frame_creation_blocked_unconfirmed_project_root",
+        payload: {
+          project_root: requestedCwd,
+          summary: projectRootConfirmationSummary(requestedCwd),
+          source,
+        },
+      });
+      clearScopedWorkpointForUnsafeCwd("ensure_pi_frame_unconfirmed_scope");
       return null;
     }
   }
