@@ -15,6 +15,7 @@ use focusa_core::{
     scope_safety::classify_project_root,
     types::{FocusaState, HltStatus, WorkpointStatus},
 };
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::{
@@ -304,6 +305,66 @@ fn packet_by_id(packet_id: &str) -> Option<Value> {
         .map(|(_, packet)| packet.clone())
 }
 
+fn packet_db_path(data_dir: &str) -> std::path::PathBuf {
+    if let Some(rest) = data_dir.strip_prefix("~/")
+        && let Ok(home) = std::env::var("HOME")
+    {
+        return std::path::PathBuf::from(home)
+            .join(rest)
+            .join("focusa.sqlite");
+    }
+    std::path::PathBuf::from(data_dir).join("focusa.sqlite")
+}
+
+fn ensure_packet_table(conn: &Connection) -> rusqlite::Result<()> {
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS compaction_packets (
+            packet_id TEXT PRIMARY KEY,
+            packet_json TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS compaction_packets_created
+            ON compaction_packets(created_at DESC);",
+    )
+}
+
+fn persist_packet(data_dir: &str, packet: &Value) -> rusqlite::Result<()> {
+    let Some(packet_id) = packet.get("packet_id").and_then(Value::as_str) else {
+        return Ok(());
+    };
+    let conn = Connection::open(packet_db_path(data_dir))?;
+    ensure_packet_table(&conn)?;
+    conn.execute(
+        "INSERT OR REPLACE INTO compaction_packets(packet_id, packet_json, created_at)
+         VALUES (?1, ?2, strftime('%s','now'))",
+        params![packet_id, packet.to_string()],
+    )?;
+    conn.execute(
+        "DELETE FROM compaction_packets WHERE packet_id NOT IN (
+            SELECT packet_id FROM compaction_packets ORDER BY created_at DESC LIMIT ?1
+        )",
+        params![PACKET_CAP as i64],
+    )?;
+    Ok(())
+}
+
+fn packet_by_id_durable(data_dir: &str, packet_id: &str) -> Option<Value> {
+    if let Some(packet) = packet_by_id(packet_id) {
+        return Some(packet);
+    }
+    let conn = Connection::open(packet_db_path(data_dir)).ok()?;
+    ensure_packet_table(&conn).ok()?;
+    let raw: Option<String> = conn
+        .query_row(
+            "SELECT packet_json FROM compaction_packets WHERE packet_id = ?1",
+            params![packet_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .ok()?;
+    raw.and_then(|raw| serde_json::from_str(&raw).ok())
+}
+
 fn cascade_count(packet: &Value) -> usize {
     let continuity = packet.pointer("/scope/continuity_id");
     let next_slice = packet.pointer("/workpoint/next_slice");
@@ -402,11 +463,21 @@ async fn build(
         }
     }
     store_packet(&packet);
+    if let Err(error) = persist_packet(&state.config.data_dir, &packet) {
+        packet["persistence_warning"] = json!({
+            "status": "degraded",
+            "error": error.to_string(),
+            "recovery": "packet remains available in bounded process cache until restart"
+        });
+    }
     Ok(Json(packet))
 }
 
-async fn get_packet(Path(packet_id): Path<String>) -> Result<Json<Value>, StatusCode> {
-    packet_by_id(&packet_id)
+async fn get_packet(
+    State(state): State<Arc<AppState>>,
+    Path(packet_id): Path<String>,
+) -> Result<Json<Value>, StatusCode> {
+    packet_by_id_durable(&state.config.data_dir, &packet_id)
         .map(Json)
         .ok_or(StatusCode::NOT_FOUND)
 }
@@ -442,8 +513,11 @@ fn inspect_payload(packet: &Value) -> Value {
     })
 }
 
-async fn inspect(Path(packet_id): Path<String>) -> Result<Json<Value>, StatusCode> {
-    packet_by_id(&packet_id)
+async fn inspect(
+    State(state): State<Arc<AppState>>,
+    Path(packet_id): Path<String>,
+) -> Result<Json<Value>, StatusCode> {
+    packet_by_id_durable(&state.config.data_dir, &packet_id)
         .map(|packet| Json(inspect_payload(&packet)))
         .ok_or(StatusCode::NOT_FOUND)
 }
@@ -520,14 +594,20 @@ fn fidelity_eval(packet: &Value) -> Value {
     })
 }
 
-async fn evaluate(Json(req): Json<PacketIdRequest>) -> Result<Json<Value>, StatusCode> {
-    packet_by_id(&req.packet_id)
+async fn evaluate(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<PacketIdRequest>,
+) -> Result<Json<Value>, StatusCode> {
+    packet_by_id_durable(&state.config.data_dir, &req.packet_id)
         .map(|packet| Json(fidelity_eval(&packet)))
         .ok_or(StatusCode::NOT_FOUND)
 }
 
-async fn replay(Json(req): Json<PacketIdRequest>) -> Result<Json<Value>, StatusCode> {
-    packet_by_id(&req.packet_id)
+async fn replay(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<PacketIdRequest>,
+) -> Result<Json<Value>, StatusCode> {
+    packet_by_id_durable(&state.config.data_dir, &req.packet_id)
         .map(|packet| {
             Json(json!({
                 "schema": "focusa.compaction_replay.v1",
@@ -553,9 +633,14 @@ fn comparable_fields(packet: &Value) -> Value {
     })
 }
 
-async fn diff(Json(req): Json<DiffCompactionPacketRequest>) -> Result<Json<Value>, StatusCode> {
-    let before = packet_by_id(&req.before).ok_or(StatusCode::NOT_FOUND)?;
-    let after = packet_by_id(&req.after).ok_or(StatusCode::NOT_FOUND)?;
+async fn diff(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<DiffCompactionPacketRequest>,
+) -> Result<Json<Value>, StatusCode> {
+    let before =
+        packet_by_id_durable(&state.config.data_dir, &req.before).ok_or(StatusCode::NOT_FOUND)?;
+    let after =
+        packet_by_id_durable(&state.config.data_dir, &req.after).ok_or(StatusCode::NOT_FOUND)?;
     let before_fields = comparable_fields(&before);
     let after_fields = comparable_fields(&after);
     let changed: Vec<String> = before_fields
@@ -736,5 +821,39 @@ mod tests {
         assert!(RESUME_SOURCES.contains(&"before_compaction"));
         assert!(RESUME_SOURCES.contains(&"provider_overflow"));
         assert!(!RESUME_SOURCES.contains(&"transcript_guess"));
+    }
+
+    #[test]
+    fn packet_persistence_is_bounded_and_restart_readable() {
+        let dir = std::env::temp_dir().join(format!("focusa-compaction-{}", Uuid::now_v7()));
+        std::fs::create_dir_all(&dir).expect("temp data dir");
+        let packet = build_packet(
+            &FocusaState::new(),
+            &BuildCompactionPacketRequest {
+                resume_source: Some("manual".into()),
+                project_root: Some("/tmp/safe-project".into()),
+                continuity_id: Some("focusa-cont-persist".into()),
+                session_id: None,
+                current_ask: None,
+                ask_kind: None,
+                source_turn_id: None,
+                omitted_sections: vec![],
+                omitted_bytes: 0,
+                omitted_tokens: 0,
+                rehydrate_refs: vec!["focusa_traverse".into()],
+            },
+        );
+        persist_packet(dir.to_str().expect("utf8 path"), &packet).expect("persist packet");
+        let conn = Connection::open(dir.join("focusa.sqlite")).expect("open packet db");
+        let count: i64 = conn
+            .query_row("SELECT count(*) FROM compaction_packets", [], |row| {
+                row.get(0)
+            })
+            .expect("count packets");
+        assert_eq!(count, 1);
+        let packet_id = packet["packet_id"].as_str().expect("packet id");
+        assert!(packet_by_id_durable(dir.to_str().expect("utf8 path"), packet_id).is_some());
+        drop(conn);
+        std::fs::remove_dir_all(dir).expect("remove temp dir");
     }
 }
