@@ -186,6 +186,26 @@ fn list_recent_turns(
     Ok(rows)
 }
 
+/// Bounded internal reader used by Spec 130 packet construction. Failure is
+/// advisory and returns an empty slice; canonical recent-turn storage remains
+/// unchanged.
+pub(crate) fn read_recent_turns_bounded(
+    data_dir: &str,
+    continuity_id: &str,
+    n: usize,
+) -> Vec<RecentTurnSlice> {
+    if continuity_id.trim().is_empty() {
+        return vec![];
+    }
+    let Ok(conn) = Connection::open(recent_db_path(data_dir)) else {
+        return vec![];
+    };
+    if ensure_recent_turns_table(&conn).is_err() {
+        return vec![];
+    }
+    list_recent_turns(&conn, continuity_id, n).unwrap_or_default()
+}
+
 // ─── Handlers ─────────────────────────────────────────────────────────────
 
 async fn list_recent_handler(
