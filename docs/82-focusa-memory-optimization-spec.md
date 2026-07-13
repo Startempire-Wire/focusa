@@ -1,7 +1,7 @@
 # 82 — Focusa Memory Optimization Spec
 
 **Date:** 2026-04-21
-**Status:** active
+**Status:** implementation-complete — revalidated 2026-07-12 with bounded retrieval/persistence, lock, telemetry/degrade, and memory-SLO runtime gates
 **Priority:** critical
 
 ## 1) Objective
