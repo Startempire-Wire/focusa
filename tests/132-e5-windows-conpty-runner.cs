@@ -71,7 +71,7 @@ public static class Spec132ConPtyRunner
             var fullExecutable = Path.GetFullPath(executable);
             var command = new StringBuilder("\"" + fullExecutable.Replace("\"", "\\\"") + "\" " + arguments);
             var workingDirectory = Path.GetDirectoryName(fullExecutable);
-            Check(CreateProcess(fullExecutable, command, IntPtr.Zero, IntPtr.Zero, false, EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT | CREATE_NO_WINDOW, IntPtr.Zero, workingDirectory, ref startup, out pi), "CreateProcess");
+            Check(CreateProcess(fullExecutable, command, IntPtr.Zero, IntPtr.Zero, false, EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT, IntPtr.Zero, workingDirectory, ref startup, out pi), "CreateProcess");
             Close(pi.hThread); pi.hThread = IntPtr.Zero;
             var output = new StringBuilder();
             using (var stream = new FileStream(new SafeFileHandle(outRead, false), FileAccess.Read, 4096, false))
