@@ -8,6 +8,7 @@ bash tests/spec125_hlt_status_model_static_test.sh >/dev/null
 bash tests/spec130_compaction_mission_packet_static_test.sh >/dev/null
 bash tests/spec130_bounded_persistence_test.sh >/dev/null
 bash tests/spec130_native_session_pressure_test.sh >/dev/null
+bash tests/spec130_auto_compaction_test.sh >/dev/null
 bash tests/spec82_low_resource_efficiency_static_test.sh >/dev/null
 bash tests/spec94_response_size_and_metadata_contract_test.sh >/dev/null
 bash tests/spec128_update_status_static_test.sh >/dev/null

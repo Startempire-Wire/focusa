@@ -1,0 +1,43 @@
+Spec 130 A3.4 — automatic Pi compaction repair proof
+Date: 2026-07-13
+Work item: focusa-w26jj.3.10.4
+
+Observed failure:
+- operator had to invoke manual /compact
+- effective global Pi setting had compaction.enabled=false
+- Pi documentation and installed runtime both return before threshold/overflow checks when enabled=false
+- the manual compaction recorded tokensBefore=371566 against a 372K model context window
+
+Immediate operator-local repair (not repository content):
+- compaction.enabled=true
+- reserveTokens=32768
+- keepRecentTokens=20000
+- JSON validation passed; private file mode preserved
+- native threshold for the active 372K model is 339232 tokens
+
+Product hardening:
+- native Pi auto-compaction remains primary
+- Focusa registers a typed agent_end fallback
+- a zero-delay post-run recheck lets native Pi compaction run first
+- fallback threshold reserves max(16384 tokens, 10% of context)
+- fallback invokes only public ctx.getContextUsage() and ctx.compact() APIs
+- pending/cooldown guards prevent duplicate compactions
+- session_compact resets fallback state
+- native compaction rebuilding usage to unknown/low makes fallback a no-op
+- no unsafe event-context cast
+
+Proof:
+PASS bash tests/spec130_auto_compaction_test.sh
+PASS bash tests/pi_extension_contract_test.sh (41/41)
+PASS bash tests/spec130_compaction_mission_packet_static_test.sh
+PASS npm --prefix apps/pi-extension run typecheck
+PASS npm --prefix apps/pi-extension run lint -- --quiet
+PASS git diff --check
+
+Runtime regression cases:
+- 300000/372000 tokens does not trigger
+- 371566/372000 tokens triggers
+- 112000/128000 tokens triggers with 16384 minimum reserve
+- unknown post-compaction usage does not trigger
+- pending compaction is not duplicated
+- simulated native-first compaction suppresses fallback duplication
