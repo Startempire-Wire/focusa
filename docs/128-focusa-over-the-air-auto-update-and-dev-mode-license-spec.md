@@ -30,13 +30,13 @@ A Focusa host can have multiple installed parts at different versions. The daemo
 
 ## Portable component inventory model
 
-No inventory location may encode an operator username, host, or deployment topology. Paths resolve from platform conventions or explicit `FOCUSA_*` overrides.
+No inventory location may encode an operator username, host, or deployment topology. Resolution order is: explicit `FOCUSA_*` override → observed running executable/current data and workspace roots → existing platform service/app locations. Conventions are discovery candidates only and are never reported as installed unless present. Expensive binary hashes are cold opt-in (`include_hashes=true`), never part of hot status discovery.
 
 | Part | Portable location source | Update cadence | Notes |
 | --- | --- | --- | --- |
-| Focusa daemon | `FOCUSA_INSTALL_PREFIX` + platform executable directory | every accepted release | service-managed binary on supported platforms |
-| Focusa CLI | `FOCUSA_INSTALL_PREFIX` + platform executable directory | every accepted release | operator command surface |
-| Focusa TUI | `FOCUSA_INSTALL_PREFIX` + platform executable directory | every accepted release | version/self-test surface |
+| Focusa daemon | `FOCUSA_DAEMON_PATH` or observed running executable | every accepted release | service-managed binary on supported platforms |
+| Focusa CLI | `FOCUSA_CLI_PATH` or sibling of observed executable | every accepted release | operator command surface |
+| Focusa TUI | `FOCUSA_TUI_PATH` or sibling of observed executable | every accepted release | version/self-test surface |
 | Service definition | systemd, launchd, or Windows Service capability | only on service contract change | not replaced by normal binary update |
 | Service overrides | platform service-manager override mechanism | only on policy/runtime change | preserve local overrides |
 | Focusa runtime home | install-prefix runtime directory | never wholesale replaced | state, rollback, update history |
