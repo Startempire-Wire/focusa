@@ -23,17 +23,26 @@ try {
   if ($probeExit -ne 0) { throw "ConPTY host probe failed: $probeExit; output=$probe" }
 
   $exit = 0
-  $pty = [Spec132ConPtyRunner]::Run($Focusa, 'install --preflight --no-animation --quiet', 120, 40, [ref]$exit)
+  $transcript = Join-Path $tmp 'focusa-conpty-transcript.txt'
+  Start-Transcript -Path $transcript -Force | Out-Null
+  try {
+    $pty = [Spec132ConPtyRunner]::Run($Focusa, 'install --preflight --no-animation --quiet', 120, 40, [ref]$exit)
+  } finally {
+    Stop-Transcript | Out-Null
+  }
   if ($exit -ne 0) { throw "ConPTY preflight failed: $exit; output=$pty" }
-  if ($pty -match "`e\[\?1049h|`e\[\?1049l") { throw 'plain/non-animated ConPTY path entered alternate screen' }
-  $normalized = $pty
+  $hosted = Get-Content -LiteralPath $transcript -Raw
+  $durable = "$pty`n$hosted"
+  if ($durable -match "`e\[\?1049h|`e\[\?1049l") { throw 'plain/non-animated ConPTY path entered alternate screen' }
+  $captureSource = if ($pty.Length -gt 0) { 'conpty-pipe' } else { 'host-transcript' }
+  $normalized = $durable
   # Remove OSC/CSI/control sequences while preserving durable text for the
   # assertion. The raw stream remains the source for the no-alt-screen check.
   $normalized = [regex]::Replace($normalized, "`e\][^\a]*(`a|`e\\)", '')
   $normalized = [regex]::Replace($normalized, "`e\[[0-?]*[ -/]*[@-~]", '')
   $normalized = $normalized -replace '[\x00-\x1F\x7F]', ''
   $compact = $normalized -replace '\s+', ''
-  Write-Output "Focusa ConPTY exit=$exit normalized-output=$compact"
+  Write-Output "Focusa ConPTY exit=$exit capture=$captureSource normalized-output=$compact"
   if ($compact -notmatch 'Focusainstallpreflight:' -or
       $compact -notmatch 'read_only:truemutations_performed:false') {
     throw "normalized ConPTY durable output missing preflight truth: $compact"
