@@ -1,6 +1,6 @@
 # Spec 130 — HLT-Aware Compaction Mission Packet and Bloatgaurd Context Firewall
 
-Status: implementation-complete — closed 2026-07-12 with typed packet/API/Pi/CLI, fidelity/cascade, bounded context/subagent, durable replay, memory telemetry, lint/typecheck and runtime memory guard evidence  
+Status: implementation-reopened — original §§0–37 closure preserved; bounded-persistence/forever-session amendment §§38–54 specified 2026-07-13 after real Pi replay OOM; implementation and proof pending
 Target file: `docs/130-hlt-aware-compaction-mission-packet-and-bloatgaurd-context-firewall-spec.md`  
 Canonical label: Spec 130 Compaction Mission Packet  
 Depends on: Spec 88, Spec 96, Spec 98, Spec 100, Spec 101, Spec 104, Spec 111, Spec 112, Spec 115, Spec 116, Spec 119, Spec 125, Spec 129  
@@ -2115,4 +2115,898 @@ Always provide rehydrate refs.
 Always make omissions auditable.
 Always make Pi carry Trajectory through bootstrap and compaction.
 Always prove completion with Evidence and Receipts.
+```
+
+
+---
+
+## 38. 2026-07-13 bounded-persistence and forever-session amendment
+
+This amendment is normative. It extends §§0–37 without deleting, weakening, or
+renaming any existing requirement.
+
+The original implementation closure proved prompt compaction, semantic fidelity,
+context-firewall behavior, bounded route payloads, and runtime memory telemetry.
+It did **not** prove that a native coding-agent session file or its replay working
+set remained bounded over an indefinitely long workstream.
+
+### 38.1 Reopening evidence
+
+A real Pi session failed near the V8 heap limit after repeated successful
+compactions:
+
+```text
+native session bytes:             1,366,100,514
+native session entries:           70,279
+compaction entries:               19
+Focusa custom entries:            54,401
+focusa-state entries:             27,985
+focusa-state bytes:               1,268,921,044
+project-switch ledger entries:    26,359
+project-switch ledger bytes:      55,138,510
+observed V8 heap failure:          approximately 3.1 GiB
+```
+
+The semantic compactor ran, but Pi still had to deserialize the append-only
+session tree. Compaction reduced model context while repeated full Focusa state
+snapshots continued growing the physical session and replay heap.
+
+The implementation defect includes a semantic-deduplication failure:
+`persistState()` included a fresh timestamp inside the serialized payload before
+hash comparison, so an otherwise unchanged state could never have the same hash.
+
+### 38.2 Corrected scope
+
+Spec 130 now governs all four compaction boundaries:
+
+```text
+1. model prompt/context projection,
+2. Focusa semantic state projection,
+3. native coding-agent persistence and replay working set,
+4. crash-safe continuation across native session/agent boundaries.
+```
+
+Passing only boundary 1 or 2 is insufficient for closure.
+
+---
+
+## 39. Forever-session invariant
+
+```text
+Logical mission history may grow without a fixed lifetime limit.
+Prompt size, hot Focusa state, native active-segment size, replay working set,
+and process heap must remain bounded independently of total historical volume.
+Every omitted payload must remain integrity-verifiable and rehydratable.
+A crash, OOM kill, compaction, model switch, native session rollover, or agent
+handoff must resume from a verified Workpoint/Trajectory checkpoint rather than
+from transcript-tail inference.
+```
+
+“Forever session” means continuous logical mission/workstream continuity. It does
+not require one immortal provider-owned JSONL/database object. Physical native
+sessions are bounded segments and may rotate transactionally.
+
+### 39.1 Complexity requirements
+
+Let `H` be total historical events and `B` be the configured hot budget.
+
+```text
+normal resume heap:            O(B), not O(H)
+normal resume latency:         O(latest manifest + latest checkpoint + B)
+prompt compilation:            O(selected packet budget)
+Focusa native-session writes:  O(unique semantic revisions)
+raw evidence storage:          O(unique content)
+duplicate unchanged state:     O(1), with zero additional native entries
+```
+
+Historical inspection may be `O(H)` only behind an explicit cold-path operation
+using streaming/pagination and a declared resource budget.
+
+---
+
+## 40. Authority and identity with rotating continuity IDs
+
+This amendment does not introduce or assume a permanent Pi `continuity_id`.
+
+### 40.1 Existing authority hierarchy remains
+
+```text
+ProjectRootKey = verified_project_root + project_fingerprint
+WorkstreamKey  = ProjectRootKey + current continuity_id
+AttachmentKey  = WorkstreamKey + instance_id + session_id + attachment_id
+```
+
+The verified `ProjectRootKey` is stable project authority. A Pi or other adapter
+may generate a new `continuity_id` when creating a new native workstream/session.
+`session_id` and `attachment_id` remain temporal runtime metadata.
+
+### 40.2 Durable meaning across rotation
+
+Cross-continuity continuation is carried by existing typed authority objects:
+
+```text
+- source Project Session Transfer packet,
+- source Workpoint id + revision + checkpoint id,
+- source Trajectory id + HLT provenance/status,
+- CompactionMissionPacket id,
+- CLT/lineage refs,
+- evidence and receipt refs,
+- verified target ProjectRootKey,
+- reducer-approved target Workpoint materialization.
+```
+
+No target adapter may silently reuse an old `continuity_id`. No project-only,
+name-similarity, transcript-summary, or latest-global-pointer lookup may promote
+a target Workpoint.
+
+### 40.3 Continuity transition rule
+
+A continuity transition is valid only when:
+
+```text
+1. source project scope is verified;
+2. source Workpoint checkpoint is accepted and reducer-visible;
+3. source Trajectory/HLT posture is captured;
+4. a Project Session Transfer packet is durably saved;
+5. target project scope is independently verified;
+6. target adapter supplies its current generated continuity_id/session_id;
+7. reducer materializes or rebinds the target Workpoint from the explicit transfer;
+8. target Workpoint resume returns canonical=true for the target authority key;
+9. transfer receipt links source and target refs without claiming either id is static.
+```
+
+Cross-continuity HLT fallback from Spec 125 remains advisory at the documented
+fallback level. It does not substitute for Workpoint transfer authority.
+
+---
+
+## 41. Four-plane persistence architecture
+
+### 41.1 Canonical cognition plane
+
+Focusa daemon/core remains authoritative for:
+
+```text
+ProjectIdentity, Trajectory, Workpoint, Focus State, CLT, Evidence/ECS,
+Receipts, predictions, metacognition, and reducer-approved transitions.
+```
+
+### 41.2 Adapter hot-state plane
+
+Each coding-agent adapter holds only the bounded state required for the active
+turn, pressure detection, current attachment, and recovery initiation.
+
+### 41.3 Native session plane
+
+Provider/native sessions store:
+
+```text
+- native conversation entries required by that agent,
+- bounded Focusa anchor entries,
+- compaction entries required by the native runtime,
+- segment/transfer refs,
+- no repeated full canonical Focusa snapshot.
+```
+
+The native transcript is never Focusa authority.
+
+### 41.4 Cold content plane
+
+Large/raw material is content-addressed in Evidence/ECS or a provider-neutral
+artifact store:
+
+```text
+raw tool output, full Focus State snapshots when needed for audit, logs,
+large diagnostics, old native segments, migration indexes, screenshots,
+and exact replay artifacts.
+```
+
+The hot plane carries digest, byte count, media/type classification, encryption
+posture, and rehydrate handle—not the payload.
+
+---
+
+## 42. Bounded persistence schemas
+
+### 42.1 `CompactionPersistenceAnchorV1`
+
+The provider-native Focusa custom entry must use a bounded reference envelope:
+
+```json
+{
+  "schema": "focusa.compaction_persistence_anchor.v1",
+  "anchor_revision": 42,
+  "semantic_digest": "sha256:...",
+  "project_root": "/verified/project",
+  "project_fingerprint": "sha256:...",
+  "continuity_id": "current-generated-continuity",
+  "session_id": "current-native-session",
+  "workpoint_id": "wp_...",
+  "workpoint_revision": 7,
+  "checkpoint_id": "checkpoint_...",
+  "trajectory_id": "trajectory:...",
+  "hlt_status": "canonical_explicit",
+  "compaction_packet_id": "cmp_...",
+  "session_transfer_id": null,
+  "focus_state_ref": "ecs:json:...",
+  "evidence_refs": ["evidence:..."],
+  "rehydrate_refs": ["ecs:..."],
+  "created_at": "iso8601"
+}
+```
+
+Rules:
+
+```text
+hard serialized size: 8 KiB
+normal target:         4 KiB
+created_at excluded from semantic_digest
+arrays deterministically ordered before hashing
+secrets/raw tokens/raw logs forbidden
+missing refs represented explicitly, never by copied raw state
+```
+
+### 42.2 `NativeSessionPressureV1`
+
+```json
+{
+  "schema": "focusa.native_session_pressure.v1",
+  "adapter": "pi|claude|codex|opencode|other",
+  "native_session_ref": "opaque-provider-ref",
+  "session_bytes": 0,
+  "entry_count": 0,
+  "focusa_custom_bytes": 0,
+  "focusa_custom_entries": 0,
+  "duplicate_anchor_count": 0,
+  "heap_used_bytes": 0,
+  "heap_limit_bytes": 0,
+  "headroom_ratio": 1.0,
+  "posture": "normal|soft_pressure|hard_pressure|emergency|oversized_at_start",
+  "recommended_action": "continue|checkpoint|compact|rollover|stream_migrate|refuse_full_load",
+  "measured_at": "iso8601"
+}
+```
+
+### 42.3 Project-switch observation
+
+A project-switch observation is persisted only when its semantic tuple changes:
+
+```text
+(project_root, project_fingerprint, confidence class, authority status,
+ conflict status, source class)
+```
+
+Repeated observations update daemon telemetry/counters but do not append another
+native custom entry. The native envelope hard limit is 2 KiB.
+
+### 42.4 Transfer receipt extension
+
+Existing Project Session Transfer output must gain a typed transition receipt:
+
+```json
+{
+  "schema": "focusa.continuity_transition_receipt.v1",
+  "transfer_id": "transfer_...",
+  "source": {
+    "project_root_key": "...",
+    "continuity_id": "source-generated-id",
+    "session_id": "source-session",
+    "workpoint_id": "wp_...",
+    "workpoint_revision": 7,
+    "checkpoint_id": "checkpoint_..."
+  },
+  "target": {
+    "project_root_key": "...",
+    "continuity_id": "target-generated-id",
+    "session_id": "target-session",
+    "workpoint_id": "wp_...",
+    "workpoint_revision": 8
+  },
+  "trajectory_id": "trajectory:...",
+  "compaction_packet_id": "cmp_...",
+  "evidence_refs": ["evidence:..."],
+  "status": "prepared|materialized|verified|degraded|blocked",
+  "blocked_reason": null
+}
+```
+
+This receipt links dynamic authority epochs. It is not a new static session id.
+
+---
+
+## 43. Semantic revision, deduplication, and coalescing
+
+### 43.1 Stable digest
+
+The persistence digest must include only semantic recovery fields. It must exclude:
+
+```text
+timestamps, last-observed times, telemetry counters, request ids, process ids,
+heap samples, display-only animation state, repeated health polls, and other
+volatile values that do not change recovery meaning.
+```
+
+### 43.2 Write rule
+
+```text
+if semantic_digest == last_persisted_semantic_digest:
+    append nothing
+else:
+    externalize oversized/cold fields
+    append exactly one bounded anchor for the new semantic revision
+```
+
+A time interval may rate-limit changed writes. Time passage alone must never force
+an unchanged write.
+
+### 43.3 Coalescing
+
+Within one agent turn or one reducer transaction:
+
+```text
+- multiple state mutations coalesce to the final semantic revision;
+- project-switch observations coalesce by semantic tuple;
+- repeated warnings coalesce by finding id + posture;
+- WBM and normal persistence may reference the same anchor instead of duplicating payload;
+- tool-output pressure updates store counters separately from recovery anchors.
+```
+
+### 43.4 Offline shadow
+
+Offline recovery state must be stored atomically in a bounded local sidecar or
+Focusa artifact, not copied into every native session entry.
+
+Requirements:
+
+```text
+0600-equivalent permissions where supported
+atomic temp-write + fsync + rename
+project/continuity/session scope in envelope
+content digest verification on read
+bounded generations with latest verified pointer
+no canonical promotion while Focusa is unavailable
+reconciliation on reconnect
+```
+
+---
+
+## 44. Adaptive native-session budgets
+
+Defaults are bounded by both absolute size and runtime heap:
+
+```text
+anchor payload hard cap:          8 KiB
+project-switch payload hard cap:  2 KiB
+Focusa custom bytes soft cap:     min(8 MiB, 0.5% heap limit)
+Focusa custom bytes hard cap:     min(16 MiB, 1% heap limit)
+native segment soft cap:          min(64 MiB, 5% heap limit)
+native segment hard cap:          min(128 MiB, 10% heap limit)
+native startup migration cap:     min(256 MiB, 20% heap limit)
+soft heap headroom floor:         35%
+hard heap headroom floor:         20%
+emergency heap headroom floor:    10%
+```
+
+An operator may lower these values. Raising a hard cap requires explicit deep-dive
+configuration and must not disable preflight/migration.
+
+### 44.1 Postures
+
+`normal`:
+
+```text
+bounded anchors; ordinary Spec 130 behavior
+```
+
+`soft_pressure`:
+
+```text
+checkpoint if semantic progress changed; suppress cold hydration; compact prompt;
+prepare rollover/migration capability
+```
+
+`hard_pressure`:
+
+```text
+stop nonessential native persistence; checkpoint Workpoint and Trajectory;
+build CompactionMissionPacket; seal current segment; request/perform rollover
+```
+
+`emergency`:
+
+```text
+abort cold/full-payload work; write the minimum transactional recovery record;
+flush/fsync; stop agent loop before V8/OS exhaustion; supervisor restarts into a
+verified target attachment
+```
+
+`oversized_at_start`:
+
+```text
+do not ask the native runtime to deserialize the full session; invoke streaming
+migration/recovery first
+```
+
+---
+
+## 45. Cross-agent capability contract
+
+Every adapter must publish:
+
+```json
+{
+  "adapter": "pi",
+  "supports_compaction_hook": true,
+  "supports_bounded_custom_entry": true,
+  "supports_session_size_preflight": true,
+  "supports_automatic_native_rollover": false,
+  "supports_user_command_rollover": true,
+  "supports_rpc_rollover": true,
+  "supports_streaming_import": false,
+  "supports_external_rehydrate": true,
+  "supports_preload_receipt": true
+}
+```
+
+Capabilities are measured, versioned, and evidence-backed. An adapter must never
+claim a stronger tier than its actual API allows.
+
+### 45.1 Adapter tiers
+
+```text
+Tier A — automatic bounded rollover:
+  launcher/RPC/native API can checkpoint, replace physical session, inject target
+  packet, and verify resume without operator data entry.
+
+Tier B — command-gated rollover:
+  native API permits replacement only from an explicit user command; Focusa
+  checkpoints early and presents one exact command before hard pressure.
+
+Tier C — restart handoff:
+  adapter cannot replace sessions; Focusa saves transfer/preload receipt and
+  restarts a fresh native session under supervisor control.
+
+Tier D — observe-only:
+  no reliable injection/transfer; durable work is blocked or explicitly degraded.
+```
+
+### 45.2 Pi 0.64.0 verified boundary
+
+The tested Pi SDK provides:
+
+```text
+- pi.appendEntry() for custom persistence,
+- session_before_compact/session_compact hooks,
+- read-only sessionManager in ordinary extension contexts,
+- ctx.compact() in ordinary extension contexts,
+- newSession()/switchSession()/fork() only in ExtensionCommandContext,
+- RPC newSession/compact operations.
+```
+
+Therefore:
+
+```text
+- the Pi extension can immediately bound anchors and detect pressure;
+- it must not unsafe-cast an event context to call newSession();
+- foreground automatic Tier A rollover requires a launcher/RPC supervisor or a
+  future Pi API that explicitly permits safe idle-time session replacement;
+- /focusa-rollover may implement Tier B through ExtensionCommandContext;
+- oversized startup recovery must run before Pi loads the JSONL.
+```
+
+Claude, Codex, OpenCode, and future adapters must publish equivalent measured
+capabilities rather than inheriting Pi assumptions.
+
+---
+
+## 46. Transactional rollover state machine
+
+```text
+monitoring
+  -> soft_pressure
+  -> checkpointing
+  -> packet_built
+  -> source_segment_sealed
+  -> transfer_saved
+  -> target_attachment_created
+  -> target_workpoint_materialized
+  -> target_resume_verified
+  -> source_archived
+  -> resumed
+```
+
+Failure states:
+
+```text
+checkpoint_failed
+packet_build_failed
+segment_seal_failed
+transfer_save_failed
+target_create_failed
+target_scope_mismatch
+target_workpoint_pending
+target_resume_degraded
+archive_integrity_failed
+```
+
+### 46.1 Transaction ordering
+
+1. Stop accepting nonessential writes.
+2. Wait for an idle boundary or safely abort the active operation.
+3. Checkpoint Workpoint and Trajectory under source authority.
+4. Build/evaluate the Spec 130 CompactionMissionPacket.
+5. Flush and fsync the offline sidecar and native segment.
+6. Record source checksum, byte count, last entry id, checkpoint, and packet refs.
+7. Save Project Session Transfer.
+8. Ask the adapter/supervisor to create the target native attachment.
+9. Generate the target adapter’s current `continuity_id`; do not reuse source id.
+10. Verify ProjectRootKey.
+11. Materialize target Workpoint through reducer-approved transfer.
+12. Inject one bounded resume/preload packet.
+13. Require canonical target Workpoint resume before autonomous durable work.
+14. Mark transfer verified and source segment archived/read-only.
+
+A failed target transition leaves the source segment and checkpoint intact and
+retryable. It never deletes or mutates the only recovery copy.
+
+---
+
+## 47. Streaming migration of oversized native sessions
+
+### 47.1 Preflight
+
+Launcher/supervisor checks native session metadata and file size before starting
+the provider runtime. Files above the startup migration cap enter
+`oversized_at_start`.
+
+### 47.2 Migration algorithm
+
+Migration must use bounded memory:
+
+```text
+1. acquire a migration lock;
+2. hash and record the immutable source;
+3. stream JSONL/events line by line;
+4. build any parent/branch lookup in a bounded on-disk index;
+5. identify active branch, latest native compaction, latest valid Focusa anchor,
+   latest Workpoint/Trajectory/transfer refs, and bounded recent turns;
+6. query canonical Focusa state when available;
+7. build/evaluate a new CompactionMissionPacket;
+8. write a temporary target segment containing native header, bounded recovery
+   context, anchor/transfer refs, and the recent-turn budget;
+9. fsync and validate target parse/fidelity/integrity;
+10. atomically publish target segment/manifest;
+11. retain source as immutable cold evidence with rehydrate ref;
+12. start target adapter and verify canonical resume.
+```
+
+No migration path may parse the complete payload into one JavaScript object graph.
+
+### 47.3 Degraded migration
+
+If Focusa daemon is unavailable:
+
+```text
+use latest integrity-valid anchor + native compaction + bounded recent turns;
+mark canonical=false and degraded=true;
+retain exact source checksum/ref;
+require project verify + Workpoint checkpoint/resume reconciliation before durable work.
+```
+
+---
+
+## 48. Crash and OOM safety
+
+Absolute prevention of every process or hardware crash is not claimable. Spec 130
+requires that compaction/persistence pressure does not cause unrecoverable mission
+loss and that known OOM trajectories are intercepted before heap exhaustion.
+
+### 48.1 Required guards
+
+```text
+startup size preflight
+continuous native/custom byte accounting
+heap/headroom telemetry when exposed
+write amplification and duplicate ratio telemetry
+minimum recovery checkpoint before hard-pressure action
+watchdog/supervisor restart contract
+atomic sidecar/manifest writes
+checksummed immutable source segments
+idempotent transfer/migration ids
+bounded retry/circuit-breaker behavior
+```
+
+### 48.2 Forbidden behavior
+
+```text
+increase NODE_OPTIONS heap as the primary fix
+load a known oversized native session before migration
+append full Focusa state per hook/poll/turn
+hash volatile timestamp fields as semantic state
+silently reuse stale continuity authority
+rewrite/delete the sole source session during migration
+claim forever-session support from prompt compaction alone
+```
+
+A larger heap may be used once as a controlled forensic/migration aid, never as
+the product architecture.
+
+---
+
+## 49. Backward compatibility and rollback
+
+### 49.1 Dual read, bounded write
+
+Adapters must read legacy `focusa-state`/`focusa-wbm-state` entries for migration,
+but all new normal writes use bounded anchors/sidecars.
+
+```text
+legacy read: supported through a bounded latest-valid lookup or streaming migrator
+legacy write: forbidden after amendment activation
+new anchor read: required
+new anchor write: required
+```
+
+### 49.2 Rollback
+
+Rollback may disable automatic rollover or target-materialization changes, but it
+must not restore repeated full-state native writes.
+
+Rollback procedure:
+
+```text
+1. pause rollover initiation;
+2. preserve source/target segments and transfer receipt;
+3. select last verified source or target checkpoint;
+4. restore bounded anchor/sidecar reader;
+5. verify ProjectRootKey + Workpoint resume;
+6. resume in degraded Tier B/C if Tier A is unavailable.
+```
+
+---
+
+## 50. Implementation plan and exact surfaces
+
+### 50.1 Phase A — immediate write-amplification stop
+
+Primary files:
+
+```text
+apps/pi-extension/src/state.ts
+apps/pi-extension/src/session.ts
+apps/pi-extension/src/config.ts
+apps/pi-extension/src/compaction.ts
+tests/pi_extension_contract_test.sh
+tests/pi_extension_runtime_authority_test.mts
+tests/spec130_compaction_mission_packet_static_test.sh
+```
+
+Required changes:
+
+```text
+- separate semantic payload from volatile metadata;
+- stable deterministic digest;
+- zero append on unchanged digest;
+- bounded anchor writer and legacy reader;
+- WBM references the same anchor instead of duplicating full payload;
+- project-switch semantic dedupe/coalescing;
+- custom-entry byte/duplicate telemetry;
+- anchor payload hard-cap rejection/externalization;
+- regression fixture reproducing timestamp-hash defect.
+```
+
+### 50.2 Phase B — pressure and migration substrate
+
+Primary files/surfaces:
+
+```text
+apps/pi-extension/src/session.ts
+apps/pi-extension/src/compaction.ts
+apps/pi-extension/src/commands.ts
+apps/pi-extension/src/tools.ts
+crates/focusa-api/src/routes/compaction.rs
+crates/focusa-cli/src/commands/compaction.rs
+Project Session Transfer API/storage
+Focusa launcher/install integration
+```
+
+Required changes:
+
+```text
+- NativeSessionPressureV1 measurement/render;
+- /focusa-rollover Tier B command;
+- launcher preflight before Pi/native agent load;
+- streaming migration command and inspect/dry-run mode;
+- segment manifest and immutable archive refs;
+- pressure-triggered Workpoint/Trajectory/Compaction packet transaction;
+- no hidden native-session mutation from unsupported event contexts.
+```
+
+### 50.3 Phase C — rotating-continuity transfer
+
+Primary existing systems:
+
+```text
+Project Session Transfer route/tool
+Workpoint checkpoint/resume reducer
+Trajectory checkpoint/resume
+CLT lineage
+Preload packet/receipt
+agent capability registry
+```
+
+Required changes:
+
+```text
+- source-to-target transition receipt;
+- explicit target continuity/session binding;
+- reducer-approved target Workpoint materialization;
+- canonical target resume gate;
+- Pi launcher/RPC integration;
+- Claude/Codex/OpenCode capability manifests and adapter conformance fixtures.
+```
+
+### 50.4 Phase D — proof and closure
+
+```text
+real oversized-session migration
+multi-segment soak
+cross-agent handoff matrix
+crash injection at every transaction boundary
+bounded startup/replay memory profile
+semantic fidelity and exact evidence rehydration
+operator-visible recovery UX
+```
+
+---
+
+## 51. Security and privacy extension
+
+Segment manifests, anchors, sidecars, and transition receipts inherit §§20 and 27.
+
+Additional requirements:
+
+```text
+- source native session paths are never prompt-visible by default;
+- archived raw sessions use restricted local permissions;
+- secret-bearing tool output remains behind secure handles;
+- transfer receipts contain refs/digests, not raw credentials;
+- cross-device transfer authenticates device/operator and verifies project scope;
+- migration logs redact raw payload and local private topology;
+- content hashes do not become authorization tokens;
+- deletion/retention follows canonical retention policy and requires proof that a
+  verified successor plus immutable recovery reference exists.
+```
+
+---
+
+## 52. Amendment static, runtime, and soak tests
+
+### 52.1 Static tests
+
+```text
+spec130_no_volatile_fields_in_semantic_digest_static_test
+spec130_bounded_anchor_schema_static_test
+spec130_anchor_hard_cap_static_test
+spec130_no_full_state_native_write_static_test
+spec130_project_switch_semantic_dedupe_static_test
+spec130_dynamic_continuity_transition_static_test
+spec130_no_static_continuity_assumption_static_test
+spec130_adapter_capability_contract_static_test
+spec130_pi_command_context_boundary_static_test
+spec130_startup_preflight_static_test
+spec130_streaming_migration_static_test
+spec130_release_closure_reopened_static_test
+```
+
+### 52.2 Runtime tests
+
+```text
+1. Call persistence repeatedly with unchanged semantic state:
+   expect one native anchor, zero duplicate appends.
+
+2. Change only timestamp/telemetry/process fields:
+   expect unchanged semantic digest and zero append.
+
+3. Change Workpoint revision:
+   expect one bounded anchor with new revision and valid refs.
+
+4. Enable WBM:
+   expect reference reuse, not a second full payload.
+
+5. Repeat identical project observations 100,000 times:
+   expect bounded/coalesced native persistence.
+
+6. Exceed anchor payload cap:
+   expect externalization or fail-closed rejection, never oversized append.
+
+7. Hit soft/hard/emergency pressure:
+   expect the exact state-machine transitions and checkpoint ordering.
+
+8. Start with an oversized native session:
+   expect launcher refusal to full-load and streaming migration.
+
+9. Kill migration after every transaction step:
+   expect source remains intact and retry is idempotent.
+
+10. Rotate Pi continuity_id:
+    expect explicit transfer and canonical target Workpoint; no stale id reuse.
+
+11. Hand off Pi -> Claude -> Codex/OpenCode -> Pi:
+    expect same mission/Workpoint lineage, current target attachment authority,
+    exact blocker/evidence, and no transcript-tail inference.
+
+12. Run without daemon:
+    expect bounded degraded sidecar/anchor recovery and blocked canonical claims.
+```
+
+### 52.3 Real regression and soak gates
+
+The amendment cannot close without:
+
+```text
+- successful bounded-memory recovery of the observed 1.366 GB failure artifact;
+- source artifact checksum preserved;
+- no complete JavaScript object-graph load during migration;
+- peak migration RSS within declared budget;
+- active native segment remains below configured hard cap;
+- at least 1,000,000 synthetic semantic events across multiple physical segments;
+- at least 10,000 compaction/checkpoint/rollover cycles in stress simulation;
+- zero required-field fidelity loss;
+- zero lost blocker/evidence/receipt refs;
+- zero unchanged-state native appends;
+- startup/replay memory slope statistically flat relative to total history;
+- crash recovery succeeds at every transaction boundary;
+- adapter conformance passes for each claimed capability tier.
+```
+
+---
+
+## 53. Amended acceptance criteria
+
+All original §36 criteria remain mandatory. Spec 130 remains reopened until all of
+the following also pass:
+
+```text
+26. Full Focusa state is not repeatedly persisted into native agent sessions.
+27. Semantic dedupe excludes volatile fields and produces zero unchanged writes.
+28. Every native Focusa entry satisfies its hard byte cap.
+29. Project-switch persistence is semantic-change driven and coalesced.
+30. Native session/custom bytes and heap headroom have typed pressure telemetry.
+31. Startup preflight prevents full loading of known oversized sessions.
+32. Oversized migration is streaming, atomic, checksummed, and reversible.
+33. Logical continuity survives physical segment rotation.
+34. Pi continuity_id rotation is handled explicitly; no static-id assumption exists.
+35. Cross-continuity Workpoint authority requires reducer-approved transfer.
+36. Every adapter publishes measured capability posture.
+37. Unsupported event contexts never invoke native session replacement by cast/hack.
+38. Tier A/B/C behavior is truthful and operator-visible.
+39. Old native segments remain rehydratable and integrity-verifiable.
+40. The real 1.366 GB OOM artifact resumes under the declared memory budget.
+41. Million-event/multi-segment soak keeps hot memory and startup cost bounded.
+42. Crash injection proves deterministic recovery from every rollover boundary.
+43. Cross-agent handoff preserves mission, blocker, evidence, and receipt fidelity.
+44. Rollback never restores unbounded full-state native writes.
+45. Closure evidence includes exact commands, metrics, artifacts, and receipts.
+```
+
+---
+
+## 54. Amended final operating rule
+
+```text
+Compaction is controlled projection across prompt, semantic state, persistence,
+and replay—not only a model summary.
+
+Keep canonical meaning in Focusa.
+Keep provider-native hot state bounded.
+Keep raw history immutable, content-addressed, and rehydratable.
+Treat continuity_id as current workstream authority, not a permanent global id.
+Transfer Workpoint authority explicitly when continuity rotates.
+Checkpoint before pressure becomes failure.
+Migrate oversized sessions before native deserialization.
+Never trade semantic memory for heap safety.
+Never trade heap safety for transcript retention.
+Never claim forever-session support until real long-history, crash, migration, and
+cross-agent gates prove bounded continuation.
 ```
