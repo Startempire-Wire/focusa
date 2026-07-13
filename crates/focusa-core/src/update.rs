@@ -5,6 +5,8 @@
 //! trust, provenance, and eligibility substrate before any auto-apply logic
 //! exists.
 
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use ed25519_dalek::{Signature, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -365,11 +367,104 @@ pub fn verify_release_asset_bytes(asset: &ReleaseAsset, bytes: &[u8]) -> AssetDi
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AssetSignatureVerification {
+    pub valid: bool,
+    pub key_id: String,
+    pub algorithm: String,
+    #[serde(default)]
+    pub failures: Vec<String>,
+}
+
+/// Cryptographically verify staged bytes before install. Cosign-keyless uses a
+/// separate identity/Rekor verifier and is rejected by this Ed25519 path.
+pub fn verify_release_asset_signature(
+    asset: &ReleaseAsset,
+    bytes: &[u8],
+    trusted_keys: &[TrustedReleaseKey],
+) -> AssetSignatureVerification {
+    let signature = &asset.signature;
+    let mut failures = Vec::new();
+    if !signature.algorithm.eq_ignore_ascii_case("ed25519") {
+        failures.push("unsupported_signature_algorithm".to_string());
+    }
+    let Some(trusted) = trusted_keys
+        .iter()
+        .find(|key| key.key_id == signature.key_id)
+    else {
+        failures.push("trusted_key_missing".to_string());
+        return AssetSignatureVerification {
+            valid: false,
+            key_id: signature.key_id.clone(),
+            algorithm: signature.algorithm.clone(),
+            failures,
+        };
+    };
+    if trusted.revoked_at.is_some() {
+        failures.push("trusted_key_revoked".to_string());
+    }
+    if !trusted.signing_algorithm.eq_ignore_ascii_case("ed25519")
+        || !trusted
+            .signing_algorithm
+            .eq_ignore_ascii_case(&signature.algorithm)
+    {
+        failures.push("trusted_key_algorithm_mismatch".to_string());
+    }
+    let public_key = trusted
+        .public_key_base64
+        .as_deref()
+        .and_then(|encoded| BASE64.decode(encoded).ok())
+        .and_then(|decoded| <[u8; 32]>::try_from(decoded).ok());
+    let Some(public_key) = public_key else {
+        failures.push("trusted_public_key_missing_or_invalid".to_string());
+        return AssetSignatureVerification {
+            valid: false,
+            key_id: signature.key_id.clone(),
+            algorithm: signature.algorithm.clone(),
+            failures,
+        };
+    };
+    let fingerprint = format!("{:x}", Sha256::digest(public_key));
+    if !trusted
+        .public_key_fingerprint
+        .eq_ignore_ascii_case(&fingerprint)
+    {
+        failures.push("trusted_key_fingerprint_mismatch".to_string());
+    }
+    let parsed_signature = BASE64
+        .decode(signature.signature.trim())
+        .ok()
+        .and_then(|decoded| Signature::from_slice(&decoded).ok());
+    let Some(parsed_signature) = parsed_signature else {
+        failures.push("asset_signature_decode_failed".to_string());
+        return AssetSignatureVerification {
+            valid: false,
+            key_id: signature.key_id.clone(),
+            algorithm: signature.algorithm.clone(),
+            failures,
+        };
+    };
+    match VerifyingKey::from_bytes(&public_key) {
+        Ok(key) if key.verify_strict(bytes, &parsed_signature).is_ok() => {}
+        Ok(_) => failures.push("asset_signature_verification_failed".to_string()),
+        Err(_) => failures.push("trusted_public_key_invalid".to_string()),
+    }
+    AssetSignatureVerification {
+        valid: failures.is_empty(),
+        key_id: signature.key_id.clone(),
+        algorithm: signature.algorithm.clone(),
+        failures,
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrustedReleaseKey {
     pub key_id: String,
     pub public_key_fingerprint: String,
     pub signing_algorithm: String,
+    /// Base64 raw Ed25519 public key; required for mutation/apply verification.
+    #[serde(default)]
+    pub public_key_base64: Option<String>,
     #[serde(default)]
     pub revoked_at: Option<String>,
 }
@@ -743,12 +838,14 @@ fn is_sha256_hex(s: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ed25519_dalek::{Signer, SigningKey};
 
     fn trusted_key() -> TrustedReleaseKey {
         TrustedReleaseKey {
             key_id: "focusa-dev-2026".into(),
             public_key_fingerprint: "SHA256:focusadev".into(),
             signing_algorithm: "ed25519".into(),
+            public_key_base64: None,
             revoked_at: None,
         }
     }
@@ -994,6 +1091,53 @@ mod tests {
             verification
                 .failures
                 .contains(&"asset_size_mismatch".to_string())
+        );
+    }
+
+    #[test]
+    fn ed25519_signature_verifies_staged_asset_bytes() {
+        let bytes = b"signed focusa release asset";
+        let signing_key = SigningKey::from_bytes(&[7_u8; 32]);
+        let verifying_key = signing_key.verifying_key();
+        let signature = signing_key.sign(bytes);
+        let mut release_asset = asset("x86_64-unknown-linux-gnu");
+        release_asset.signature.signature = BASE64.encode(signature.to_bytes());
+        let trusted = TrustedReleaseKey {
+            key_id: release_asset.signature.key_id.clone(),
+            public_key_fingerprint: format!("{:x}", Sha256::digest(verifying_key.as_bytes())),
+            signing_algorithm: "ed25519".into(),
+            public_key_base64: Some(BASE64.encode(verifying_key.as_bytes())),
+            revoked_at: None,
+        };
+        let verification = verify_release_asset_signature(&release_asset, bytes, &[trusted]);
+        assert!(verification.valid, "{verification:?}");
+    }
+
+    #[test]
+    fn tampered_or_revoked_ed25519_signature_blocks_install() {
+        let bytes = b"signed focusa release asset";
+        let signing_key = SigningKey::from_bytes(&[9_u8; 32]);
+        let verifying_key = signing_key.verifying_key();
+        let mut release_asset = asset("x86_64-unknown-linux-gnu");
+        release_asset.signature.signature = BASE64.encode(signing_key.sign(bytes).to_bytes());
+        let trusted = TrustedReleaseKey {
+            key_id: release_asset.signature.key_id.clone(),
+            public_key_fingerprint: format!("{:x}", Sha256::digest(verifying_key.as_bytes())),
+            signing_algorithm: "ed25519".into(),
+            public_key_base64: Some(BASE64.encode(verifying_key.as_bytes())),
+            revoked_at: Some("2026-07-12T00:00:00Z".into()),
+        };
+        let verification = verify_release_asset_signature(&release_asset, b"tampered", &[trusted]);
+        assert!(!verification.valid);
+        assert!(
+            verification
+                .failures
+                .contains(&"trusted_key_revoked".to_string())
+        );
+        assert!(
+            verification
+                .failures
+                .contains(&"asset_signature_verification_failed".to_string())
         );
     }
 }
