@@ -18,6 +18,7 @@ public static class Spec132ConPtyRunner
     const uint CREATE_UNICODE_ENVIRONMENT = 0x00000400;
     const uint WAIT_OBJECT_0 = 0x00000000;
     const uint WAIT_TIMEOUT = 0x00000102;
+    const uint STARTF_USESTDHANDLES = 0x00000100;
     const uint CONPTY_TIMEOUT_MS = 60000;
 
     const uint HANDLE_FLAG_INHERIT = 0x00000001;
@@ -43,6 +44,7 @@ public static class Spec132ConPtyRunner
     public static string Run(string executable, string arguments, int width, int height, uint timeoutMs, out int exitCode)
     {
         IntPtr inRead, inWrite, outRead, outWrite;
+        IntPtr stdInRead, stdInWrite, stdOutRead, stdOutWrite;
         var pipeAttributes = new SECURITY_ATTRIBUTES {
             nLength = Marshal.SizeOf<SECURITY_ATTRIBUTES>(),
             bInheritHandle = 1,
@@ -51,6 +53,10 @@ public static class Spec132ConPtyRunner
         Check(CreatePipe(out outRead, out outWrite, ref pipeAttributes, 0), "CreatePipe output");
         Check(SetHandleInformation(inWrite, HANDLE_FLAG_INHERIT, 0), "SetHandleInformation input");
         Check(SetHandleInformation(outRead, HANDLE_FLAG_INHERIT, 0), "SetHandleInformation output");
+        Check(CreatePipe(out stdInRead, out stdInWrite, ref pipeAttributes, 0), "CreatePipe std input");
+        Check(CreatePipe(out stdOutRead, out stdOutWrite, ref pipeAttributes, 0), "CreatePipe std output");
+        Check(SetHandleInformation(stdInWrite, HANDLE_FLAG_INHERIT, 0), "SetHandleInformation std input");
+        Check(SetHandleInformation(stdOutRead, HANDLE_FLAG_INHERIT, 0), "SetHandleInformation std output");
         IntPtr pty = IntPtr.Zero, list = IntPtr.Zero;
         PROCESS_INFORMATION pi = default;
         try
@@ -65,19 +71,31 @@ public static class Spec132ConPtyRunner
             // Per the ConPTY API, lpValue is the HPCON handle itself.
             Check(UpdateProcThreadAttribute(list, 0, new IntPtr(unchecked((long)PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE)), pty, IntPtr.Size, IntPtr.Zero, IntPtr.Zero), "UpdateProcThreadAttribute");
             var startup = new STARTUPINFOEX {
-                StartupInfo = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFOEX>() },
+                StartupInfo = new STARTUPINFO {
+                    cb = Marshal.SizeOf<STARTUPINFOEX>(),
+                    dwFlags = STARTF_USESTDHANDLES,
+                    hStdInput = stdInRead,
+                    hStdOutput = stdOutWrite,
+                    hStdError = stdOutWrite,
+                },
                 lpAttributeList = list,
             };
             var fullExecutable = Path.GetFullPath(executable);
             var command = new StringBuilder("\"" + fullExecutable.Replace("\"", "\\\"") + "\" " + arguments);
             var workingDirectory = Path.GetDirectoryName(fullExecutable);
-            Check(CreateProcess(fullExecutable, command, IntPtr.Zero, IntPtr.Zero, false, EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT, IntPtr.Zero, workingDirectory, ref startup, out pi), "CreateProcess");
+            Check(CreateProcess(fullExecutable, command, IntPtr.Zero, IntPtr.Zero, true, EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT, IntPtr.Zero, workingDirectory, ref startup, out pi), "CreateProcess");
             Close(pi.hThread); pi.hThread = IntPtr.Zero;
+            Close(stdInRead); stdInRead = IntPtr.Zero;
+            Close(stdInWrite); stdInWrite = IntPtr.Zero;
+            Close(stdOutWrite); stdOutWrite = IntPtr.Zero;
             var output = new StringBuilder();
             using (var stream = new FileStream(new SafeFileHandle(outRead, false), FileAccess.Read, 4096, false))
             using (var reader = new StreamReader(stream, Encoding.UTF8))
+            using (var stdStream = new FileStream(new SafeFileHandle(stdOutRead, false), FileAccess.Read, 4096, false))
+            using (var stdReader = new StreamReader(stdStream, Encoding.UTF8))
             {
                 var task = reader.ReadToEndAsync();
+                var stdTask = stdReader.ReadToEndAsync();
                 var wait = WaitForSingleObject(pi.hProcess, timeoutMs);
                 if (wait == WAIT_TIMEOUT)
                 {
@@ -99,6 +117,7 @@ public static class Spec132ConPtyRunner
                 Close(inWrite); inWrite = IntPtr.Zero;
                 ClosePseudoConsole(pty); pty = IntPtr.Zero;
                 output.Append(task.GetAwaiter().GetResult());
+                output.Append(stdTask.GetAwaiter().GetResult());
             }
             Check(GetExitCodeProcess(pi.hProcess, out var code), "GetExitCodeProcess");
             exitCode = unchecked((int)code);
@@ -107,6 +126,7 @@ public static class Spec132ConPtyRunner
         finally
         {
             Close(pi.hThread); Close(pi.hProcess); Close(inRead); Close(inWrite); Close(outRead); Close(outWrite);
+            Close(stdInRead); Close(stdInWrite); Close(stdOutRead); Close(stdOutWrite);
             if (pty != IntPtr.Zero) ClosePseudoConsole(pty);
             if (list != IntPtr.Zero) { Marshal.FreeHGlobal(list); }
 
