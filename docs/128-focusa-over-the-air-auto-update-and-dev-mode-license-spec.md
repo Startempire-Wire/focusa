@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft v2 — expanded with OTA best-practice, installer intelligence, and customer-friendly auto-update requirements after `v0.9.80-dev` showed daemon current but local CLI/TUI stale.
+Implementation-complete — closed 2026-07-12 with signed manifest/provenance, eligibility, cross-part atomic install/rollback, platform preflight, status/API/CLI, 14 core update tests, installer/service tests, rollback fault tests, and end-to-end runtime evidence.
 
 ## Problem
 
