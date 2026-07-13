@@ -267,19 +267,22 @@ fn render_ladder_block(app: &App, frame: &mut ratatui::Frame, area: Rect) -> Rec
         .and_then(Value::as_bool)
         .unwrap_or(false);
 
-    let mut text = vec![
-        Line::from(format!(
-            "HLT  {}",
-            ladder_value(trajectory, &["long_term_goal", "hlt"])
-        )),
-    ];
+    let mut text = vec![Line::from(format!(
+        "HLT  {}",
+        ladder_value(trajectory, &["long_term_goal", "hlt"])
+    ))];
 
     // Spec 125 §6.2: loud warning when HLT is missing/generic/fallback.
-    if hlt_required && (hlt_status == "missing_required" || generic_bootstrap || fallback_level != "none") {
+    if hlt_required
+        && (hlt_status == "missing_required" || generic_bootstrap || fallback_level != "none")
+    {
         let warning = if generic_bootstrap {
             "⚠ HLT is generic bootstrap — define project-specific HLT"
         } else if fallback_level != "none" {
-            &format!("⚠ HLT fallback level: {} — verify trajectory", fallback_level)
+            &format!(
+                "⚠ HLT fallback level: {} — verify trajectory",
+                fallback_level
+            )
         } else {
             "⚠ HLT missing — use focusa_trajectory_define_goal"
         };

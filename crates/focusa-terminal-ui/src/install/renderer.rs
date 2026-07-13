@@ -13,15 +13,15 @@ use super::{
 };
 use crate::sanitize::sanitize;
 use crate::terminal_guard::{
-    install_signal_handlers, install_terminal_panic_hook, CancellationToken, TerminalGuard,
+    CancellationToken, TerminalGuard, install_signal_handlers, install_terminal_panic_hook,
 };
 use ratatui::{
+    Frame, Terminal,
     backend::CrosstermBackend,
     layout::{Alignment, Constraint, Direction, Layout as RLayout, Rect},
     style::{Color, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Gauge, Paragraph, Row, Table},
-    Frame, Terminal,
 };
 use std::io::stderr;
 use std::sync::mpsc::Receiver;
@@ -402,7 +402,7 @@ impl AnimatedRenderLoop {
 mod tests {
     use super::HybridRenderer;
     use crate::capabilities::InstallRendererMode;
-    use ratatui::{backend::TestBackend, Terminal};
+    use ratatui::{Terminal, backend::TestBackend};
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
 

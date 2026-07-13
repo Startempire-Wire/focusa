@@ -1770,18 +1770,29 @@ mod focusa_state_tests {
 
     #[test]
     fn classify_hlt_none_is_missing_required() {
-        assert_eq!(classify_hlt(None, false, false, false), HltStatus::MissingRequired);
+        assert_eq!(
+            classify_hlt(None, false, false, false),
+            HltStatus::MissingRequired
+        );
     }
 
     #[test]
     fn classify_hlt_empty_is_missing_required() {
-        assert_eq!(classify_hlt(Some(""), false, false, false), HltStatus::MissingRequired);
+        assert_eq!(
+            classify_hlt(Some(""), false, false, false),
+            HltStatus::MissingRequired
+        );
     }
 
     #[test]
     fn classify_hlt_generic_is_degraded() {
         assert_eq!(
-            classify_hlt(Some("Maintain and improve focusa within verified project scope"), false, false, false),
+            classify_hlt(
+                Some("Maintain and improve focusa within verified project scope"),
+                false,
+                false,
+                false
+            ),
             HltStatus::GenericDegraded
         );
         assert_eq!(
@@ -1793,7 +1804,12 @@ mod focusa_state_tests {
     #[test]
     fn classify_hlt_real_is_canonical_explicit() {
         assert_eq!(
-            classify_hlt(Some("Launch Focusa MVP with verified install/update flows"), false, false, false),
+            classify_hlt(
+                Some("Launch Focusa MVP with verified install/update flows"),
+                false,
+                false,
+                false
+            ),
             HltStatus::CanonicalExplicit
         );
     }
@@ -1817,7 +1833,12 @@ mod focusa_state_tests {
     #[test]
     fn classify_hlt_supersession_pending_takes_priority_over_generic() {
         assert_eq!(
-            classify_hlt(Some("Maintain and improve focusa within verified project scope"), false, true, false),
+            classify_hlt(
+                Some("Maintain and improve focusa within verified project scope"),
+                false,
+                true,
+                false
+            ),
             HltStatus::SupersessionPending
         );
     }

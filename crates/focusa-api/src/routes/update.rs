@@ -348,7 +348,7 @@ fn platform_service_paths() -> (Option<PathBuf>, Option<PathBuf>, &'static str) 
             let candidate = PathBuf::from(format!("{}.d", path.display()));
             candidate.exists().then_some(candidate)
         });
-        return (definition, overrides, "systemd");
+        (definition, overrides, "systemd")
     }
     #[cfg(target_os = "macos")]
     {

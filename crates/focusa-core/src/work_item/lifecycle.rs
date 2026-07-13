@@ -858,7 +858,11 @@ mod tests {
         storage.save(&claim).expect("save claim");
 
         let overridden = lifecycle
-            .apply_override("operator@test", &claim.claim_id, "emergency operator approval")
+            .apply_override(
+                "operator@test",
+                &claim.claim_id,
+                "emergency operator approval",
+            )
             .expect("apply override");
         assert_eq!(overridden.status, ClaimStatus::Authorized);
         assert_eq!(
@@ -866,7 +870,11 @@ mod tests {
             Some("emergency operator approval")
         );
         let events = ClosureAuditLog::replay(&audit_path).expect("replay audit");
-        assert!(events.iter().any(|event| event.detail.contains("OVERRIDE:")));
+        assert!(
+            events
+                .iter()
+                .any(|event| event.detail.contains("OVERRIDE:"))
+        );
         let _ = std::fs::remove_dir_all(root);
     }
 

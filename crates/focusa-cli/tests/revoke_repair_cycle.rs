@@ -49,7 +49,7 @@ async fn revoke_repair_cycle_three_rounds() {
         "daemon not reachable at {base}; set FOCUSA_CYCLE_TEST_URL or start daemon"
     );
 
-    let mut failures = 0usize;
+    let failures = 0usize;
     for round in 1..=ROUNDS {
         eprintln!("[cycle] round {round}/{ROUNDS}");
 

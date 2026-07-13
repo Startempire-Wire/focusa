@@ -594,7 +594,7 @@ mod tests {
 
     #[test]
     fn curator_exclusion_labeled() {
-        let excluded = vec![
+        let excluded = [
             ("routes.ts", "low_score: 0.2"),
             ("core.ts", "over_budget: 100 > 50"),
         ];

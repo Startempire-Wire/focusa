@@ -219,7 +219,7 @@ pub async fn run_history(args: HistoryArgs) -> Result<()> {
             "  {:<40}  {:<20}  {:<22}  {:<6}  {}",
             &e.device_id[..e.device_id.len().min(40)],
             &e.host[..e.host.len().min(20)],
-            &e.created_at,
+            e.created_at,
             if e.revoked { "yes" } else { "no" },
             e.token_preview
         );

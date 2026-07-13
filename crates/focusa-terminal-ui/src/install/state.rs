@@ -357,10 +357,12 @@ mod tests {
         assert!(state.set_active(InstallPhase::VerifyIntegrity));
         assert!(state.set_warning(InstallPhase::VerifyIntegrity, "checksum unavailable".into()));
         state.warnings.push("retry with a verified release".into());
-        assert!(state
-            .warnings
-            .iter()
-            .any(|warning| warning.contains("retry")));
+        assert!(
+            state
+                .warnings
+                .iter()
+                .any(|warning| warning.contains("retry"))
+        );
         let mut failed = InstallState::default();
         assert!(failed.set_active(InstallPhase::VerifyIntegrity));
         assert!(failed.set_failed(

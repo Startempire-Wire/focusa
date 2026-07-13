@@ -1543,7 +1543,7 @@ mod tests {
 
         let p2 = Request::builder()
             .method("GET")
-            .uri(&format!("/v1/reflect/history?limit=2&cursor_before={}", c1))
+            .uri(format!("/v1/reflect/history?limit=2&cursor_before={}", c1))
             .body(Body::empty())
             .expect("p2");
         let p2_resp = app.clone().oneshot(p2).await.expect("p2 resp");

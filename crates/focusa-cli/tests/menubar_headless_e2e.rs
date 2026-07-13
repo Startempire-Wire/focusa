@@ -21,7 +21,7 @@
 //! Run with:
 //!   cargo test --package focusa-cli --test menubar_headless_e2e -- --ignored --nocapture
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::Duration;
 
@@ -117,7 +117,7 @@ fn build_menubar() -> Result<PathBuf, String> {
     Ok(dist)
 }
 
-fn spawn_static_server(dist: &PathBuf) -> Result<Child, String> {
+fn spawn_static_server(dist: &Path) -> Result<Child, String> {
     let dir = dist.to_string_lossy().to_string();
     let child = Command::new(PYTHON)
         .args([

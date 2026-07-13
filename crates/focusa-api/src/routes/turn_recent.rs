@@ -300,6 +300,7 @@ pub fn router() -> Router<Arc<AppState>> {
 // ─── Tests ────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
+#[allow(clippy::assertions_on_constants)]
 mod tests {
     use super::*;
 

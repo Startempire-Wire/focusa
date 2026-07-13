@@ -195,79 +195,6 @@ fn expand_glob(pattern: &str) -> Vec<PathBuf> {
         .collect()
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn tmp_glob_match_is_prefix_suffix_only_under_tmp() {
-        assert!(simple_tmp_glob_match(
-            "focusa-audit.json",
-            "/tmp/*focusa*.json"
-        ));
-        assert!(simple_tmp_glob_match("specgates-123", "/tmp/specgates*"));
-        assert!(!simple_tmp_glob_match(
-            "../focusa-audit.json",
-            "/tmp/*focusa*.json"
-        ));
-        assert!(!simple_tmp_glob_match(
-            "focusa-audit.log",
-            "/tmp/*focusa*.json"
-        ));
-        assert!(!simple_tmp_glob_match(
-            "focusa-audit.json",
-            "../tmp/*focusa*.json"
-        ));
-    }
-
-    #[test]
-    fn safe_target_keeps_absolute_paths_inside_trash_root() {
-        let root = Path::new("/tmp/focusa-trash-root");
-        let target = safe_target(Path::new("/tmp/focusa-audit.json"), root);
-        assert!(target.starts_with(root));
-        assert_eq!(target, root.join("tmp/focusa-audit.json"));
-    }
-
-    #[test]
-    fn trash_roots_are_unique_per_invocation() {
-        assert_ne!(trash_root(), trash_root());
-    }
-
-    #[test]
-    fn recursive_copy_preserves_source_until_explicit_remove() {
-        let fixture =
-            std::env::temp_dir().join(format!("focusa-cleanup-copy-{}", uuid::Uuid::now_v7()));
-        let source = fixture.join("source");
-        let target = fixture.join("target");
-        fs::create_dir_all(source.join("nested")).unwrap();
-        fs::write(source.join("nested/proof.txt"), "proof").unwrap();
-        copy_path_no_follow(&source, &target).unwrap();
-        assert_eq!(
-            fs::read_to_string(target.join("nested/proof.txt")).unwrap(),
-            "proof"
-        );
-        assert!(source.join("nested/proof.txt").is_file());
-        remove_source_after_copy(&source).unwrap();
-        assert!(!source.exists());
-        let _ = fs::remove_dir_all(fixture);
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn recursive_copy_refuses_symlinks() {
-        use std::os::unix::fs::symlink;
-        let fixture =
-            std::env::temp_dir().join(format!("focusa-cleanup-symlink-{}", uuid::Uuid::now_v7()));
-        fs::create_dir_all(&fixture).unwrap();
-        fs::write(fixture.join("real"), "data").unwrap();
-        symlink(fixture.join("real"), fixture.join("link")).unwrap();
-        let error = copy_path_no_follow(&fixture.join("link"), &fixture.join("target"))
-            .expect_err("symlink must be refused");
-        assert_eq!(error.kind(), std::io::ErrorKind::Unsupported);
-        let _ = fs::remove_dir_all(fixture);
-    }
-}
-
 pub async fn run(args: CleanupArgs, json_mode: bool) -> anyhow::Result<()> {
     if !args.safe {
         anyhow::bail!(
@@ -366,4 +293,77 @@ pub async fn run(args: CleanupArgs, json_mode: bool) -> anyhow::Result<()> {
         println!("Docs: docs/92-agent-first-polish-hooks-efficiency-spec.md");
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tmp_glob_match_is_prefix_suffix_only_under_tmp() {
+        assert!(simple_tmp_glob_match(
+            "focusa-audit.json",
+            "/tmp/*focusa*.json"
+        ));
+        assert!(simple_tmp_glob_match("specgates-123", "/tmp/specgates*"));
+        assert!(!simple_tmp_glob_match(
+            "../focusa-audit.json",
+            "/tmp/*focusa*.json"
+        ));
+        assert!(!simple_tmp_glob_match(
+            "focusa-audit.log",
+            "/tmp/*focusa*.json"
+        ));
+        assert!(!simple_tmp_glob_match(
+            "focusa-audit.json",
+            "../tmp/*focusa*.json"
+        ));
+    }
+
+    #[test]
+    fn safe_target_keeps_absolute_paths_inside_trash_root() {
+        let root = Path::new("/tmp/focusa-trash-root");
+        let target = safe_target(Path::new("/tmp/focusa-audit.json"), root);
+        assert!(target.starts_with(root));
+        assert_eq!(target, root.join("tmp/focusa-audit.json"));
+    }
+
+    #[test]
+    fn trash_roots_are_unique_per_invocation() {
+        assert_ne!(trash_root(), trash_root());
+    }
+
+    #[test]
+    fn recursive_copy_preserves_source_until_explicit_remove() {
+        let fixture =
+            std::env::temp_dir().join(format!("focusa-cleanup-copy-{}", uuid::Uuid::now_v7()));
+        let source = fixture.join("source");
+        let target = fixture.join("target");
+        fs::create_dir_all(source.join("nested")).unwrap();
+        fs::write(source.join("nested/proof.txt"), "proof").unwrap();
+        copy_path_no_follow(&source, &target).unwrap();
+        assert_eq!(
+            fs::read_to_string(target.join("nested/proof.txt")).unwrap(),
+            "proof"
+        );
+        assert!(source.join("nested/proof.txt").is_file());
+        remove_source_after_copy(&source).unwrap();
+        assert!(!source.exists());
+        let _ = fs::remove_dir_all(fixture);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn recursive_copy_refuses_symlinks() {
+        use std::os::unix::fs::symlink;
+        let fixture =
+            std::env::temp_dir().join(format!("focusa-cleanup-symlink-{}", uuid::Uuid::now_v7()));
+        fs::create_dir_all(&fixture).unwrap();
+        fs::write(fixture.join("real"), "data").unwrap();
+        symlink(fixture.join("real"), fixture.join("link")).unwrap();
+        let error = copy_path_no_follow(&fixture.join("link"), &fixture.join("target"))
+            .expect_err("symlink must be refused");
+        assert_eq!(error.kind(), std::io::ErrorKind::Unsupported);
+        let _ = fs::remove_dir_all(fixture);
+    }
 }

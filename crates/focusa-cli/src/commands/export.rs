@@ -223,26 +223,6 @@ fn write_manifest(path: &str, manifest: &Value) -> anyhow::Result<String> {
     Ok(manifest_path)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn write_parquet_emits_valid_magic_header() {
-        let out_path =
-            std::env::temp_dir().join(format!("focusa-export-{}.parquet", uuid::Uuid::now_v7()));
-        let records = vec![json!({"dataset_type": "sft", "turn_id": "t1"})];
-
-        write_parquet(out_path.to_str().expect("utf8 path"), &records).expect("parquet write");
-
-        let bytes = fs::read(&out_path).expect("read parquet");
-        assert!(bytes.len() >= 4);
-        assert_eq!(&bytes[..4], b"PAR1");
-
-        let _ = fs::remove_file(out_path);
-    }
-}
-
 async fn run_export(
     api: &ApiClient,
     json_mode: bool,
@@ -542,4 +522,24 @@ pub async fn run(cmd: ExportCmd, json_mode: bool) -> anyhow::Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn write_parquet_emits_valid_magic_header() {
+        let out_path =
+            std::env::temp_dir().join(format!("focusa-export-{}.parquet", uuid::Uuid::now_v7()));
+        let records = vec![json!({"dataset_type": "sft", "turn_id": "t1"})];
+
+        write_parquet(out_path.to_str().expect("utf8 path"), &records).expect("parquet write");
+
+        let bytes = fs::read(&out_path).expect("read parquet");
+        assert!(bytes.len() >= 4);
+        assert_eq!(&bytes[..4], b"PAR1");
+
+        let _ = fs::remove_file(out_path);
+    }
 }

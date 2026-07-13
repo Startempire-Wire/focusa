@@ -980,7 +980,7 @@ mod tests {
 
     #[test]
     fn trace_batch_acceptance_is_hard_bounded() {
-        let accepted = 150usize.min(100);
+        let accepted = 100;
         assert_eq!(accepted, 100);
     }
 

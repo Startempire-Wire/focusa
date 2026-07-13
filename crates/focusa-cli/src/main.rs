@@ -482,7 +482,7 @@ fn main() -> anyhow::Result<()> {
     std::thread::Builder::new()
         .name("focusa-main".into())
         .stack_size(8 * 1024 * 1024)
-        .spawn(|| async_main())
+        .spawn(async_main)
         .map_err(|error| anyhow::anyhow!("start Focusa main worker: {error}"))?
         .join()
         .map_err(|_| anyhow::anyhow!("Focusa main worker panicked"))?

@@ -434,57 +434,6 @@ pub fn detect_ufi_signals(content: &str) -> Vec<UfiSignalType> {
     signals
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_classify_question() {
-        let result = classify_turn("What is the best approach?");
-        assert!(result.success);
-        assert_eq!(result.payload["classification"], "question");
-    }
-
-    #[test]
-    fn test_classify_task() {
-        let result = classify_turn("Implement the user authentication module");
-        assert_eq!(result.payload["classification"], "task");
-    }
-
-    #[test]
-    fn test_classify_correction() {
-        let result = classify_turn("This is wrong, fix the bug in login");
-        assert_eq!(result.payload["classification"], "correction");
-    }
-
-    #[test]
-    fn test_extract_delta() {
-        let content =
-            "Decided to use JWT tokens.\nNext: add refresh logic.\nConstraint: must support PKCE.";
-        let result = extract_ascc_delta(content);
-        assert!(result.success);
-        assert!(!result.payload["decisions"].as_array().unwrap().is_empty());
-        assert!(!result.payload["next_steps"].as_array().unwrap().is_empty());
-        assert!(!result.payload["constraints"].as_array().unwrap().is_empty());
-    }
-
-    #[test]
-    fn test_response_scaffold_not_extracted_as_focus_or_next_steps() {
-        let content = "Status: good — live process restarted.\nNext action: run /focusa-context now.\nBlocker: none.";
-        let result = extract_ascc_delta(content);
-        assert!(result.success);
-        assert_eq!(result.payload["current_state"], "");
-        assert!(result.payload["next_steps"].as_array().unwrap().is_empty());
-    }
-
-    #[test]
-    fn test_ufi_detection() {
-        let signals = detect_ufi_signals("No, undo that, I already said this");
-        assert!(signals.contains(&UfiSignalType::ExplicitRejection));
-        assert!(signals.contains(&UfiSignalType::UndoOrRevert));
-    }
-}
-
 /// Execute a worker job with LLM extraction (async).
 ///
 /// Tries bounded LLM-backed extraction first, then falls back to local heuristics on failure.
@@ -569,5 +518,56 @@ pub async fn execute_job_llm(job: &WorkerJob) -> JobResult {
             tracing::debug!(kind = ?job.kind, "LLM worker: timeout/error, falling back to regex");
             execute_job(job)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_classify_question() {
+        let result = classify_turn("What is the best approach?");
+        assert!(result.success);
+        assert_eq!(result.payload["classification"], "question");
+    }
+
+    #[test]
+    fn test_classify_task() {
+        let result = classify_turn("Implement the user authentication module");
+        assert_eq!(result.payload["classification"], "task");
+    }
+
+    #[test]
+    fn test_classify_correction() {
+        let result = classify_turn("This is wrong, fix the bug in login");
+        assert_eq!(result.payload["classification"], "correction");
+    }
+
+    #[test]
+    fn test_extract_delta() {
+        let content =
+            "Decided to use JWT tokens.\nNext: add refresh logic.\nConstraint: must support PKCE.";
+        let result = extract_ascc_delta(content);
+        assert!(result.success);
+        assert!(!result.payload["decisions"].as_array().unwrap().is_empty());
+        assert!(!result.payload["next_steps"].as_array().unwrap().is_empty());
+        assert!(!result.payload["constraints"].as_array().unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_response_scaffold_not_extracted_as_focus_or_next_steps() {
+        let content = "Status: good — live process restarted.\nNext action: run /focusa-context now.\nBlocker: none.";
+        let result = extract_ascc_delta(content);
+        assert!(result.success);
+        assert_eq!(result.payload["current_state"], "");
+        assert!(result.payload["next_steps"].as_array().unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_ufi_detection() {
+        let signals = detect_ufi_signals("No, undo that, I already said this");
+        assert!(signals.contains(&UfiSignalType::ExplicitRejection));
+        assert!(signals.contains(&UfiSignalType::UndoOrRevert));
     }
 }

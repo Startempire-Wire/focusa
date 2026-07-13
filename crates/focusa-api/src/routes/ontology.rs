@@ -8799,6 +8799,7 @@ pub fn router() -> Router<Arc<AppState>> {
 }
 
 #[cfg(test)]
+#[allow(clippy::field_reassign_with_default)]
 mod tests {
     use super::*;
     use chrono::Utc;

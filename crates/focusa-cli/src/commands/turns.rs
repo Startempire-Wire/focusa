@@ -125,42 +125,6 @@ fn collect_turns(events: &[Value]) -> Vec<TurnInfo> {
     turns
 }
 
-#[cfg(test)]
-mod tests {
-    use super::collect_turns;
-    use serde_json::json;
-
-    #[test]
-    fn collect_turns_accepts_pascal_case_persisted_event_types() {
-        let turn_id = "turn-1";
-        let events = vec![
-            json!({
-                "type": "TurnStarted",
-                "turn_id": turn_id,
-                "session_id": "session-1",
-                "timestamp": "2026-04-14T20:00:00Z",
-                "harness_name": "pi"
-            }),
-            json!({
-                "type": "TurnCompleted",
-                "turn_id": turn_id,
-                "session_id": "session-1",
-                "timestamp": "2026-04-14T20:00:05Z",
-                "harness_name": "pi",
-                "assistant_output": "done",
-                "errors": []
-            }),
-        ];
-
-        let turns = collect_turns(&events);
-        assert_eq!(turns.len(), 1);
-        assert_eq!(turns[0].turn_id, turn_id);
-        assert!(turns[0].started_at.is_some());
-        assert!(turns[0].completed_at.is_some());
-        assert_eq!(turns[0].output_len, Some(4));
-    }
-}
-
 async fn resolve_session_filter(
     api: &ApiClient,
     session: &Option<String>,
@@ -326,4 +290,40 @@ pub async fn run(cmd: TurnsCmd, json: bool) -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::collect_turns;
+    use serde_json::json;
+
+    #[test]
+    fn collect_turns_accepts_pascal_case_persisted_event_types() {
+        let turn_id = "turn-1";
+        let events = vec![
+            json!({
+                "type": "TurnStarted",
+                "turn_id": turn_id,
+                "session_id": "session-1",
+                "timestamp": "2026-04-14T20:00:00Z",
+                "harness_name": "pi"
+            }),
+            json!({
+                "type": "TurnCompleted",
+                "turn_id": turn_id,
+                "session_id": "session-1",
+                "timestamp": "2026-04-14T20:00:05Z",
+                "harness_name": "pi",
+                "assistant_output": "done",
+                "errors": []
+            }),
+        ];
+
+        let turns = collect_turns(&events);
+        assert_eq!(turns.len(), 1);
+        assert_eq!(turns[0].turn_id, turn_id);
+        assert!(turns[0].started_at.is_some());
+        assert!(turns[0].completed_at.is_some());
+        assert_eq!(turns[0].output_len, Some(4));
+    }
 }
