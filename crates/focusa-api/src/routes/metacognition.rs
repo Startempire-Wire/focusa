@@ -665,7 +665,10 @@ fn default_summary_only() -> bool {
 }
 
 fn retrieve_max_k() -> usize {
-    budgeted_hard_limit("FOCUSA_METACOG_RETRIEVE_MAX_K", 20, default_k())
+    // The hard cap must be allowed below the default; callers clamp the
+    // default/request to this value. Passing default_k() as a floor made
+    // FOCUSA_METACOG_RETRIEVE_MAX_K=2 silently become 5.
+    budgeted_hard_limit("FOCUSA_METACOG_RETRIEVE_MAX_K", 20, 1)
 }
 
 fn recent_artifacts_default_limit() -> usize {
@@ -755,7 +758,8 @@ async fn retrieve(
         .as_deref()
         .and_then(|c| c.parse::<usize>().ok())
         .unwrap_or(0);
-    let page_size = budgeted_requested_limit(Some(body.k), default_k(), retrieve_max_k());
+    let hard_limit = retrieve_max_k();
+    let page_size = budgeted_requested_limit(Some(body.k), default_k().min(hard_limit), hard_limit);
 
     let total = ranked.len();
     let page = ranked
