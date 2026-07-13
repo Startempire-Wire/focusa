@@ -2802,6 +2802,7 @@ Primary files/surfaces:
 
 ```text
 apps/pi-extension/src/session.ts
+apps/pi-extension/src/session-pressure.ts
 apps/pi-extension/src/compaction.ts
 apps/pi-extension/src/commands.ts
 apps/pi-extension/src/tools.ts

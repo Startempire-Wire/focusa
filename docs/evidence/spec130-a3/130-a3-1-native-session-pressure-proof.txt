@@ -1,0 +1,21 @@
+Spec 130 A3.1 — native session pressure proof
+Date: 2026-07-13
+Work item: focusa-w26jj.3.10.1
+
+Implemented:
+- typed focusa.native_session_pressure.v1 envelope
+- adaptive custom/session/startup budgets bounded by heap limit
+- normal, soft_pressure, hard_pressure, emergency and oversized_at_start postures
+- continue/checkpoint/rollover/stream_migrate/refuse_full_load actions
+- O(1) session file size measurement and bounded 2,048-entry custom sample
+- duplicate anchor detection
+- Pi session_start/session_switch/health integration
+- deduplicated operator warning/status and redacted telemetry path
+
+Proof:
+PASS bash tests/spec130_native_session_pressure_test.sh
+PASS npm --prefix apps/pi-extension run typecheck
+PASS npm --prefix apps/pi-extension run lint -- --quiet
+PASS git diff --check
+
+Runtime fixtures prove 1 MiB normal, 70 MiB soft, 140 MiB hard, 300 MiB oversized-at-start, <10% heap headroom emergency, bounded sampling, and duplicate-anchor detection.

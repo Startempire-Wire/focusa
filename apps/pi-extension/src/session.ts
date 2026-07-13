@@ -58,11 +58,47 @@ import {
   getContinuityId,
 } from "./state.js";
 import { loadPersistedRecoveryState } from "./persistence.js";
+import { measureNativeSessionPressure } from "./session-pressure.js";
 import { pushDelta } from "./tools.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
 let sseAbort: AbortController | null = null;
 let sseReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+function refreshNativeSessionPressure(ctx: any, reason: string, entries?: any[]): void {
+  const sessionFile = ctx?.sessionManager?.getSessionFile?.();
+  const pressure = measureNativeSessionPressure({
+    adapter: "pi",
+    sessionFile,
+    entries,
+  });
+  S.lastNativeSessionPressure = pressure;
+  const noticeKey = `${pressure.posture}:${pressure.recommended_action}`;
+  if (pressure.posture === "normal") {
+    if (S.lastNativeSessionPressureNoticeKey) ctx?.ui?.setStatus?.("focusa-pressure", undefined);
+    S.lastNativeSessionPressureNoticeKey = "";
+  } else if (noticeKey !== S.lastNativeSessionPressureNoticeKey) {
+    S.lastNativeSessionPressureNoticeKey = noticeKey;
+    const mib = Math.ceil(pressure.session_bytes / (1024 * 1024));
+    ctx?.ui?.setStatus?.("focusa-pressure", `session ${pressure.posture} · ${mib} MiB`);
+    if (pressure.posture !== "soft_pressure") {
+      ctx?.ui?.notify?.(
+        `Focusa session pressure: ${pressure.posture}; next=${pressure.recommended_action}. Checkpoint/rollover before durable continuation.`,
+        "warning"
+      );
+    }
+  }
+  if (reason === "session_start" || pressure.posture !== "normal") {
+    focusaPost("/telemetry/trace", {
+      event_type: "pi_native_session_pressure",
+      payload: {
+        ...pressure,
+        native_session_ref: pressure.native_session_ref === "unavailable" ? "unavailable" : "redacted",
+        reason,
+      },
+    });
+  }
+}
 
 function markerExistsAtCwd(cwd: string): boolean {
   try {
@@ -849,6 +885,7 @@ export function registerSession(pi: ExtensionAPI) {
     // points to Wirebot/TEP frames and pollutes Pi sessions with stale Wirebot
     // state. Pi ALWAYS gets its own FRESH frame. Only WBM mode may reuse frames.
     const entries = (event as any).entries || (ctx as any).sessionManager?.getEntries?.() || [];
+    refreshNativeSessionPressure(ctx, "session_start", entries);
     for (let i = entries.length - 1; i >= 0; i--) {
       const e = entries[i];
       if (
@@ -1005,6 +1042,7 @@ export function registerSession(pi: ExtensionAPI) {
     function scheduleHealthCheck() {
       if (S.healthInterval) clearTimeout(S.healthInterval);
       S.healthInterval = setTimeout(async () => {
+        refreshNativeSessionPressure(ctx, "health_tick");
         await checkFocusa();
 
         if (!S.focusaAvailable && !outageMode && S.healthFailCount >= offlineWarnThreshold) {
@@ -1138,6 +1176,7 @@ export function registerSession(pi: ExtensionAPI) {
     syncSFieldsToScopeStore();
 
     const switchEntries = (event as any).entries || (ctx as any).sessionManager?.getEntries?.() || [];
+    refreshNativeSessionPressure(ctx, "session_switch", switchEntries);
     S.forkSuggested = false;
     for (let i = switchEntries.length - 1; i >= 0; i--) {
       if (

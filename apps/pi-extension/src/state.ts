@@ -6,6 +6,7 @@ import { homedir } from "os";
 import { dirname, join, resolve } from "path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { DEFAULT_DAEMON_RESTART_COMMAND, type FocusaConfig } from "./config.js";
+import type { NativeSessionPressureV1 } from "./session-pressure.js";
 import {
   COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA,
   COMPACTION_PERSISTENCE_ANCHOR_SCHEMA,
@@ -343,6 +344,8 @@ export const S = {
   lastPersistSidecarKey: "",
   lastPersistSidecarBytes: 0,
   lastProjectSwitchPersistHash: "",
+  lastNativeSessionPressure: null as NativeSessionPressureV1 | null,
+  lastNativeSessionPressureNoticeKey: "",
   // Hot-path caches for context injection latency control
   focusStateCache: {
     key: "",
@@ -523,6 +526,8 @@ export function resetPiSessionScopedState(reason = "session_boundary"): void {
   S.lastPersistSidecarKey = "";
   S.lastPersistSidecarBytes = 0;
   S.lastProjectSwitchPersistHash = "";
+  S.lastNativeSessionPressure = null;
+  S.lastNativeSessionPressureNoticeKey = "";
   S.wbmEnabled = false;
   S.wbmDeep = false;
   S.wbmNoCatalogue = false;
