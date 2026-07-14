@@ -129,6 +129,8 @@ pub struct Daemon {
     worker_tx: priority_queue::PrioritySender,
     worker_rx: priority_queue::PriorityReceiver,
     event_bus: Option<crate::runtime::event_bus::EventBus>,
+    /// Throttle: last external state reconciliation (prevents full-state clone storms).
+    last_reconcile: std::time::Instant,
 }
 
 impl Daemon {
@@ -201,6 +203,7 @@ impl Daemon {
             checkpoints: std::collections::HashMap::new(),
             cache: crate::cache::CacheStore::new(),
             event_bus: None,
+            last_reconcile: std::time::Instant::now(),
         })
     }
 
@@ -4824,12 +4827,19 @@ Return:
             return;
         }
 
+        // Throttle: only adopt external state at most once per 200ms.
+        // Prevents CPU saturation when Pi tool calls rapidly increment the
+        // mutation epoch (12+ writes/sec), each triggering a full FocusaState clone.
+        if self.last_reconcile.elapsed() < std::time::Duration::from_millis(200) {
+            return;
+        }
+
         let shared_state = {
             let shared = self.shared_state.read().await;
             shared.clone()
         };
 
-        tracing::info!(
+        tracing::trace!(
             local_version = self.state.version,
             shared_version = shared_state.version,
             previous_external_epoch = self.observed_external_mutation_epoch,
@@ -4838,6 +4848,7 @@ Return:
         );
         self.state = shared_state;
         self.observed_external_mutation_epoch = external_epoch;
+        self.last_reconcile = std::time::Instant::now();
     }
 
     /// Sync internal state to the shared handle for API readers.
