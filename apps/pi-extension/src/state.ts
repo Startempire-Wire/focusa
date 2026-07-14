@@ -3426,8 +3426,9 @@ export async function ensurePiFrame(
   sessionId?: string,
   source = "pi-auto"
 ): Promise<string | null> {
-  if (!getAttachmentRuntime().focusaAvailable) return getAttachmentRuntime().activeFrameId;
-
+  // Cached health is advisory and can lag a healthy daemon after reload/restart.
+  // The scoped /focus/push request below is the authoritative frame-recovery
+  // check; stale focusaAvailable=false must not veto it before an API attempt.
   const requestedResolution = resolvePiProjectRootCandidate(cwd || getSessionCwd() || process.cwd());
   setLastProjectRootResolution(requestedResolution);
   const requestedCwd = requestedResolution.projectRoot;

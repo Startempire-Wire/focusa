@@ -23,3 +23,9 @@ Proven closures:
 - Bounded resource/pressure statics: converted from unkeyed mutable runtime cells to typed Host `ScopeRef` storage-key maps with no unkeyed process-global mutable fallback.
 
 Remaining open inventory: Pi extension `apps/pi-extension/src/state.ts::S` (intentionally untouched in this slice).
+
+## Work-loop scope enforcement — 2026-07-13
+
+- Every work-loop route now uses `WorkLoopScope`, which requires explicit request `WorkstreamKey` and exact canonical active-Workpoint root+continuity.
+- `routes::work_loop::tests::writer_scope_rejects_host_and_cross_continuity_authority` passed: exact project scope accepted; cross-continuity and Host `ScopeRef` rejected.
+- Full `focusa-api` suite passed 337 tests before the new targeted test; API check remains green after enforcement.

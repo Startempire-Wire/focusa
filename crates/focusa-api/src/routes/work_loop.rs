@@ -4,15 +4,17 @@ use crate::routes::bounded::{record_json_response_size, resource_mode_status};
 use crate::routes::permissions::{forbid, permission_context};
 use crate::scope::ScopeContext;
 use crate::server::AppState;
-use axum::extract::{Query, State};
-use axum::http::{HeaderMap, StatusCode};
+use axum::extract::{FromRequestParts, Query, State};
+use axum::http::{HeaderMap, StatusCode, request::Parts};
+use axum::response::{IntoResponse, Response};
 use axum::{
     Json, Router,
     routing::{get, post},
 };
 use chrono::Utc;
+use focusa_core::scoped_state::WorkstreamKey;
 use focusa_core::types::{
-    Action, BlockerClass, EventLogEntry, FocusaEvent, ProjectRunId, SignalOrigin,
+    Action, BlockerClass, EventLogEntry, FocusaEvent, FocusaState, ProjectRunId, SignalOrigin,
     SpecLinkedTaskPacket, TaskClass, WorkLoopPolicy, WorkLoopPolicyOverrides, WorkLoopPreset,
     WorkLoopStatus,
 };
@@ -29,6 +31,109 @@ use uuid::Uuid;
 
 const WRITER_HEADER: &str = "x-focusa-writer-id";
 const APPROVAL_HEADER: &str = "x-focusa-approval";
+
+#[derive(Clone)]
+struct WorkLoopScope(WorkstreamKey);
+
+struct WorkLoopScopeRejection {
+    status: StatusCode,
+    body: Value,
+}
+
+impl IntoResponse for WorkLoopScopeRejection {
+    fn into_response(self) -> Response {
+        (self.status, Json(self.body)).into_response()
+    }
+}
+
+fn work_loop_scope_matches(
+    key: &WorkstreamKey,
+    active_root: &str,
+    active_continuity: &str,
+) -> bool {
+    key.root_scope.scope_kind == focusa_core::scoped_state::ScopeKind::Project
+        && key
+            .root_scope
+            .root_path
+            .to_string_lossy()
+            .trim_end_matches('/')
+            == active_root
+        && key.continuity_id == active_continuity
+}
+
+fn active_work_loop_scope(focusa: &FocusaState) -> Option<(String, String)> {
+    let active_id = focusa.workpoint.active_workpoint_id?;
+    let record = focusa
+        .workpoint
+        .records
+        .iter()
+        .find(|record| record.workpoint_id == active_id && record.canonical)?;
+    let project_root = record.project_root.as_deref()?.trim().trim_end_matches('/');
+    let continuity_id = record.continuity_id.as_deref()?.trim();
+    if project_root.is_empty() || continuity_id.is_empty() {
+        return None;
+    }
+    Some((project_root.to_string(), continuity_id.to_string()))
+}
+
+impl FromRequestParts<Arc<AppState>> for WorkLoopScope {
+    type Rejection = WorkLoopScopeRejection;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &Arc<AppState>,
+    ) -> Result<Self, Self::Rejection> {
+        let request_scope = ScopeContext::from_request_parts(parts, state)
+            .await
+            .map_err(|error| WorkLoopScopeRejection {
+                status: StatusCode::BAD_REQUEST,
+                body: json!({
+                    "schema": "focusa.work_loop_scope_rejection.v1",
+                    "status": "blocked",
+                    "failure_class": "scope_mismatch",
+                    "error": format!("{error:?}"),
+                }),
+            })?;
+        let key =
+            request_scope
+                .require_workstream_key()
+                .map_err(|error| WorkLoopScopeRejection {
+                    status: StatusCode::BAD_REQUEST,
+                    body: json!({
+                        "schema": "focusa.work_loop_scope_rejection.v1",
+                        "status": "blocked",
+                        "failure_class": "scope_mismatch",
+                        "error": error,
+                    }),
+                })?;
+        let focusa = state.focusa.read().await;
+        let Some((active_root, active_continuity)) = active_work_loop_scope(&focusa) else {
+            return Err(WorkLoopScopeRejection {
+                status: StatusCode::CONFLICT,
+                body: json!({
+                    "schema": "focusa.work_loop_scope_rejection.v1",
+                    "status": "blocked",
+                    "failure_class": "scope_mismatch",
+                    "error": "canonical active Workpoint scope is required",
+                }),
+            });
+        };
+        if !work_loop_scope_matches(&key, &active_root, &active_continuity) {
+            return Err(WorkLoopScopeRejection {
+                status: StatusCode::CONFLICT,
+                body: json!({
+                    "schema": "focusa.work_loop_scope_rejection.v1",
+                    "status": "blocked",
+                    "failure_class": "scope_mismatch",
+                    "error": "request WorkstreamKey does not match canonical active Workpoint",
+                    "requested_scope": key,
+                }),
+            });
+        }
+        Ok(Self(key))
+    }
+}
+
 fn project_root() -> PathBuf {
     std::env::var_os("FOCUSA_PROJECT_ROOT")
         .map(PathBuf::from)
@@ -2059,7 +2164,7 @@ fn secondary_loop_closure_bundle_for_status(
 }
 
 async fn health(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -2113,7 +2218,7 @@ async fn health(
 }
 
 async fn status(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     Query(query): Query<WorkLoopStatusQuery>,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -2363,7 +2468,7 @@ async fn status(
 }
 
 async fn status_deep(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -2424,7 +2529,7 @@ async fn status_deep(
 }
 
 async fn closure_replay_evidence(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -2467,7 +2572,7 @@ async fn closure_replay_evidence(
 }
 
 async fn closure_replay_bundle(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -2499,7 +2604,7 @@ async fn closure_replay_bundle(
 }
 
 async fn enable(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<EnableWorkLoopRequest>,
@@ -2556,7 +2661,7 @@ async fn enable(
 }
 
 async fn pause(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<ReasonRequest>,
@@ -2592,7 +2697,7 @@ async fn pause(
 }
 
 async fn resume(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<ReasonRequest>,
@@ -2617,7 +2722,7 @@ async fn resume(
 }
 
 async fn select_next(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<SelectNextRequest>,
@@ -2678,7 +2783,7 @@ async fn select_next(
 }
 
 async fn set_decision_context(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<DecisionContextRequest>,
@@ -2751,7 +2856,7 @@ async fn set_decision_context(
 }
 
 async fn start_pi_driver(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<PiDriverStartRequest>,
@@ -2992,7 +3097,7 @@ async fn start_pi_driver(
 }
 
 async fn prompt_pi_driver(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<PiDriverPromptRequest>,
@@ -3026,7 +3131,7 @@ async fn prompt_pi_driver(
 }
 
 async fn abort_pi_driver(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -3050,7 +3155,7 @@ async fn abort_pi_driver(
 }
 
 async fn stop_pi_driver(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -3069,7 +3174,7 @@ async fn stop_pi_driver(
 }
 
 async fn attach_session(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<SessionAttachRequest>,
@@ -3129,7 +3234,7 @@ async fn attach_session(
 }
 
 async fn abort_session(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<ReasonRequest>,
@@ -3190,7 +3295,7 @@ async fn abort_session(
 }
 
 async fn ingest_transport_event(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<TransportEventRequest>,
@@ -3221,7 +3326,7 @@ async fn ingest_transport_event(
 }
 
 async fn set_pause_flags(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<PauseFlagsRequest>,
@@ -3294,7 +3399,7 @@ async fn set_pause_flags(
 }
 
 async fn delegate_authorship(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<DelegationRequest>,
@@ -3324,7 +3429,7 @@ async fn delegate_authorship(
 }
 
 async fn clear_delegated_authorship(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<ReasonRequest>,
@@ -3354,7 +3459,7 @@ async fn clear_delegated_authorship(
 }
 
 async fn transport_degraded(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<ReasonRequest>,
@@ -3380,7 +3485,7 @@ async fn transport_degraded(
 }
 
 async fn checkpoints(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let focusa = state.focusa.read().await;
@@ -3396,7 +3501,7 @@ async fn checkpoints(
 }
 
 async fn heartbeat(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -3417,7 +3522,7 @@ async fn heartbeat(
 }
 
 async fn checkpoint(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<CheckpointRequest>,
@@ -3442,7 +3547,7 @@ async fn checkpoint(
 }
 
 async fn stop(
-    _scope: ScopeContext,
+    _scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<ReasonRequest>,
@@ -3509,6 +3614,39 @@ pub fn router() -> Router<Arc<AppState>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use focusa_core::scoped_state::ScopeRef;
+
+    #[test]
+    fn writer_scope_rejects_host_and_cross_continuity_authority() {
+        let project = ScopeRef::project(
+            "project:focusa",
+            "/home/wirebot/focusa",
+            "Focusa",
+            "sha256:focusa",
+        )
+        .unwrap();
+        let exact = WorkstreamKey::new(project.clone(), "cont-focusa").unwrap();
+        let other_continuity = WorkstreamKey::new(project, "cont-other").unwrap();
+        let host =
+            ScopeRef::host("host:operator", "/root", "operator-host", "sha256:host").unwrap();
+        let host_key = WorkstreamKey::new(host, "cont-focusa").unwrap();
+
+        assert!(work_loop_scope_matches(
+            &exact,
+            "/home/wirebot/focusa",
+            "cont-focusa"
+        ));
+        assert!(!work_loop_scope_matches(
+            &other_continuity,
+            "/home/wirebot/focusa",
+            "cont-focusa"
+        ));
+        assert!(!work_loop_scope_matches(
+            &host_key,
+            "/home/wirebot/focusa",
+            "cont-focusa"
+        ));
+    }
 
     fn sample_ledger_entry(
         proposal_id: &str,

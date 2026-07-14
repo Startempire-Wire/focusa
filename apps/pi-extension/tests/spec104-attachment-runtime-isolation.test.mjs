@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const outDir = mkdtempSync(join(tmpdir(), "focusa-pi-runtime-"));
 try {
@@ -144,6 +144,41 @@ try {
   for (const route of ["metacognition", "turn", "snapshots"]) {
     assert(detailed.includes("scopeHeaders"), `${route} mocked requests use shared scoped headers`);
   }
+  const repoRoot = fileURLToPath(new URL("../../..", import.meta.url)).replace(/\/$/, "");
+  const recoveryKey = state.makeAttachmentKey({
+    projectRoot: repoRoot,
+    continuityId: "cont-frame-recovery",
+    sessionId: "session-frame-recovery",
+  });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    const body = url.includes("/focus/push") ? { frame_id: "frame-recovered-after-stale-health" } : {};
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return body;
+      },
+    };
+  };
+  try {
+    const recoveredFrame = await state.runWithAttachmentRuntime(recoveryKey, async () => {
+      const runtime = state.getAttachmentRuntime();
+      runtime.focusaAvailable = false;
+      runtime.sessionCwd = repoRoot;
+      runtime.sessionFrameKey = "session-frame-recovery";
+      return state.ensurePiFrame(repoRoot, "session-frame-recovery", "spec104-stale-health-proof");
+    });
+    assert.equal(
+      recoveredFrame,
+      "frame-recovered-after-stale-health",
+      "stale health cache must not veto authoritative scoped frame recovery"
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
   const legacyPredictionText = scopedState.renderScopedResultHuman({
     status: "ok",
     predictions: [{ prediction_id: "p1" }],
