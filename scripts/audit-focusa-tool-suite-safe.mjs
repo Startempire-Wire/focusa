@@ -139,9 +139,30 @@ for (const c of contracts) {
   if (!c.doc_path || !fs.existsSync(docAbs)) pushFailure('validation_rejected', c.name, 'Missing tool doc page', 'Create one doc page per official tool.', { doc_path: c.doc_path });
   else {
     const doc = fs.readFileSync(docAbs, 'utf8');
-    for (const marker of ['Purpose', 'Expected result']) {
-      if (!doc.includes(marker)) pushWarning('unknown_ambiguous_completion', c.name, `Doc missing ${marker} section`, 'Add model-facing purpose/result guidance.', { doc_path: c.doc_path });
-    }
+    const hasPurpose =
+      doc.includes('## Purpose') ||
+      /^Use (?:before|when|to|for)\b/m.test(doc) ||
+      /^# `?[^\n`]+`?\n\n(?![-#|])[A-Z][^\n]+/m.test(doc);
+    const hasExpectedResult =
+      doc.includes('## Expected result') ||
+      doc.includes('## Output') ||
+      /Result envelope:/i.test(doc);
+    if (!hasPurpose)
+      pushWarning(
+        'unknown_ambiguous_completion',
+        c.name,
+        'Doc missing Purpose section',
+        'Add model-facing purpose guidance.',
+        { doc_path: c.doc_path },
+      );
+    if (!hasExpectedResult)
+      pushWarning(
+        'unknown_ambiguous_completion',
+        c.name,
+        'Doc missing Expected result section',
+        'Add model-facing result guidance.',
+        { doc_path: c.doc_path },
+      );
     if (!doc.includes('failure_class')) pushWarning('unknown_ambiguous_completion', c.name, 'Doc does not mention failure_class', 'Document tool_result_v1 failure_class recovery.', { doc_path: c.doc_path });
   }
   for (const field of ['name','label','purpose','family','ontology_action','ontology_objects','side_effect_profile','result_envelope','live_check']) {

@@ -23,7 +23,7 @@ A `tool_result_v1` diagnostic envelope with bounded checks and next tools.
 
 ## Safety
 
-Read-state only. Failures use `FOCUSA_PRELOAD_FAIL`.
+Read-state only. Failures expose `failure_class` and use `FOCUSA_PRELOAD_FAIL`.
 
 ## Evidence
 

@@ -38,4 +38,4 @@ write receipt with idempotency_key, target_path, ok=true
 - All routes are read-only by default; only the `write` subcommand persists data.
 - `idempotency_key` is required for any write action and must be non-empty.
 - Target paths must use allowlisted prefixes (`/tmp/focusa-preload/`, `/var/cache/focusa/preload/`).
-- All failures return `FOCUSA_PRELOAD_FAIL` error code.
+- All failures expose `failure_class` and return the `FOCUSA_PRELOAD_FAIL` error code.

@@ -29,7 +29,7 @@ Same as `focusa_device_pair_start`:
 
 - **API route:** `POST /v1/device/pair/start` (shared with `focusa_device_pair_start`)
 - **CLI command:** `focusa device pair-qr` (shortcut for `focusa device pair-start` with QR handoff)
-- Result envelope: `tool_result_v1` (returns `ok=true`, `advisory=true`, plus the `pair_url`/`pair_url_qr_payload` fields and `next_tools`)
+- Result envelope: `tool_result_v1` (returns `ok=true`, `advisory=true`, plus the `pair_url`/`pair_url_qr_payload` fields and `next_tools`); failures expose a typed `failure_class`.
 
 ## Expected result
 

@@ -48,7 +48,7 @@ A structured response with the canonical reminder payload (for Pi clients, with 
 
 - Family: FocusState.
 - Side effects: `read_only`.
-- Result envelope: `tool_result_v1`.
+- Result envelope: `tool_result_v1`; failures expose a typed `failure_class` and recovery tools.
 - API route: `GET /v1/agent/prompt`.
 - CLI: none (Pi-only).
 - Parity: `pi_only`; exemptions: `pi_only`, `domain_cli_only`.

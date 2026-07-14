@@ -23,7 +23,7 @@ A `tool_result_v1` envelope with profile, integrity, and scope checks.
 
 ## Safety
 
-Read-state only. Failures use `FOCUSA_PRELOAD_FAIL`.
+Read-state only. Failures expose `failure_class` and use `FOCUSA_PRELOAD_FAIL`.
 
 ## Evidence
 

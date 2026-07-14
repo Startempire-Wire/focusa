@@ -23,7 +23,7 @@ A canonical `tool_result_v1` envelope containing the committed receipt or an ide
 
 ## Safety
 
-Writes only the per-user receipt ledger. Failures use `FOCUSA_PRELOAD_FAIL`.
+Writes only the per-user receipt ledger. Failures expose `failure_class` and use `FOCUSA_PRELOAD_FAIL`.
 
 ## Evidence
 

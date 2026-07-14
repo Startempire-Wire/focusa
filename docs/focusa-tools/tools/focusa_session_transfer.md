@@ -44,3 +44,4 @@ focusa_session_transfer action="rollover" \
 - Side effects: `save` or `rollover_action="checkpoint"` may checkpoint a Workpoint; `continue`/`status` are read/compose operations.
 - API routes composed: `POST /v1/project/session-transfer`, `GET /v1/project/card`, `POST /v1/workpoint/checkpoint`, `POST /v1/workpoint/resume`, `GET /v1/trajectory/view`.
 - Scope contract: explicit source/target typed scopes; no continuity fingerprint fallback.
+- Failure contract: `tool_result_v1` exposes a typed `failure_class`, bounded reason, and recovery tools.
