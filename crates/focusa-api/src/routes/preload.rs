@@ -71,6 +71,12 @@ async fn list_profiles() -> Json<Value> {
         "profiles": profiles,
         "default_profile": PROFILE_RULES_AND_CONTEXT,
         "read_only": true,
+        "human_readable": format!(
+            "{} preload profiles available: {}. Default: {}.",
+            PROFILE_IDS.len(),
+            PROFILE_IDS.join(", "),
+            PROFILE_RULES_AND_CONTEXT
+        ),
     }))
 }
 
@@ -101,12 +107,26 @@ struct PreloadBuildRequest {
 fn packet_response(step: &str, profile: Option<String>) -> Json<Value> {
     let profile = profile.unwrap_or_else(|| PROFILE_RULES_AND_CONTEXT.to_string());
     match build_packet_for_profile(&profile) {
-        Ok(packet) => Json(
-            json!({"schema":PRELOAD_SCHEMA,"step":step,"read_only":true,"status":"completed","packet":packet,"checks":["profile","integrity","scope"]}),
-        ),
-        Err(error) => Json(
-            json!({"schema":PRELOAD_SCHEMA,"step":step,"status":"failed","error":{"code":FAIL_CODE_PRELOAD,"message":error}}),
-        ),
+        Ok(packet) => Json(json!({
+            "schema": PRELOAD_SCHEMA,
+            "step": step,
+            "read_only": true,
+            "status": "completed",
+            "packet": packet,
+            "checks": ["profile", "integrity", "scope"],
+            "human_readable": format!(
+                "Preload {step} completed with profile {profile}. Next: verify before delivery."
+            )
+        })),
+        Err(error) => Json(json!({
+            "schema": PRELOAD_SCHEMA,
+            "step": step,
+            "status": "failed",
+            "error": {"code": FAIL_CODE_PRELOAD, "message": error},
+            "human_readable": format!(
+                "Preload {step} failed because profile {profile:?} is invalid. Next: call focusa_preload_profiles and retry with a listed profile."
+            )
+        })),
     }
 }
 
@@ -754,6 +774,27 @@ mod tests {
         assert!(PROFILE_IDS.contains(&PROFILE_RULES_AND_CONTEXT));
         assert!(PROFILE_IDS.contains(&PROFILE_BUDGET_LIGHT));
         assert!(PROFILE_IDS.contains(&PROFILE_BUDGET_DEEP));
+    }
+
+    #[tokio::test]
+    async fn profile_discovery_and_failures_are_human_readable() {
+        let Json(profiles) = list_profiles().await;
+        let readable = profiles
+            .get("human_readable")
+            .and_then(Value::as_str)
+            .expect("profile list human_readable");
+        for profile in PROFILE_IDS {
+            assert!(readable.contains(profile));
+        }
+
+        let Json(failed) = packet_response("doctor", Some("pi".to_string()));
+        assert_eq!(failed.get("status").and_then(Value::as_str), Some("failed"));
+        assert!(
+            failed
+                .get("human_readable")
+                .and_then(Value::as_str)
+                .is_some_and(|text| text.contains("focusa_preload_profiles"))
+        );
     }
 
     #[test]

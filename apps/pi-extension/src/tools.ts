@@ -13957,19 +13957,44 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     parameters: strictObject({}),
     async execute() {
       const res = await callSpec80Tool("focusa_preload_profiles", "/preload/profiles", {}, { method: "GET" });
+      const profiles = Array.isArray(res.body?.profiles) ? res.body.profiles : [];
+      const profileList = profiles
+        .map((profile: any) => `${String(profile.id || "unknown")} (${String(profile.label || "unlabeled")})`)
+        .join(", ");
+      const defaultProfile = String(res.body?.default_profile || "unknown");
       return spec80Result(
         "focusa_preload_profiles",
         "/v1/preload/profiles",
         {},
         res,
-        `preload profiles → ${res.body?.profiles?.length || 0} available`,
+        `preload profiles → ${profiles.length} available: ${profileList || "none"}; default=${defaultProfile}`,
         "preload profiles unavailable",
-        { kind: res.ok ? "ok" : "blocked", nextTools: ["focusa_preload_build"] }
+        {
+          kind: res.ok ? "ok" : "blocked",
+          fields: [
+            { label: "profiles", value: profileList || "none" },
+            { label: "default_profile", value: defaultProfile },
+            { label: "human_readable", value: res.body?.human_readable || null },
+          ],
+          nextTools: ["focusa_preload_build"],
+        }
       );
     },
   });
 
-  const preloadProfile = Type.Optional(Type.String({ minLength: 1, maxLength: 128 }));
+  const preloadProfile = Type.Optional(
+    Type.Union(
+      [
+        Type.Literal("rules_only"),
+        Type.Literal("rules_and_context"),
+        Type.Literal("budget_light"),
+        Type.Literal("budget_deep"),
+      ],
+      {
+        description: "Preload profile id from focusa_preload_profiles. Defaults to rules_and_context.",
+      }
+    )
+  );
   const preloadScopeParams = {
     profile: preloadProfile,
     project_root: Type.Optional(Type.String({ minLength: 1, maxLength: 4096 })),
@@ -14006,14 +14031,29 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       async execute(_id, params) {
         const request = params as Record<string, any>;
         const res = await callSpec80Tool(name, `/preload/${action}`, request, { method: "POST" });
+        const bodyStatus = String(res.body?.status || (res.ok ? "completed" : "failed")).toLowerCase();
+        const functionallyFailed = ["failed", "error", "blocked"].includes(bodyStatus);
+        const functionalResult = { ...res, ok: res.ok && !functionallyFailed };
+        const failureMessage = String(
+          res.body?.human_readable || res.body?.error?.message || `${action} preload unavailable`
+        );
         return spec80Result(
           name,
           `/v1/preload/${action}`,
           request,
-          res,
-          `${action} preload → ${res.body?.status || "completed"}`,
-          `${action} preload unavailable`,
-          { kind: res.ok ? "ok" : "blocked", nextTools: [...nextTools] }
+          functionalResult,
+          `${action} preload → ${bodyStatus}${res.body?.human_readable ? ` | ${res.body.human_readable}` : ""}`,
+          `${action} preload failed: ${failureMessage}`,
+          {
+            kind: functionallyFailed ? "blocked" : bodyStatus === "degraded" ? "advisory" : "ok",
+            failureClass: functionallyFailed ? "validation_rejected" : null,
+            fields: [
+              { label: "status", value: bodyStatus },
+              { label: "profile", value: request.profile || "rules_and_context" },
+              { label: "human_readable", value: res.body?.human_readable || null },
+            ],
+            nextTools: [...nextTools],
+          }
         );
       },
     });

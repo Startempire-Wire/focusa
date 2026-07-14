@@ -17,7 +17,17 @@ EXPLICIT_CONTRACTS=$(grep -oP 'name:\s*"focusa_\w+' "$CONTRACTS" | sed 's/name: 
 echo "explicit non-preload contracts: $EXPLICIT_CONTRACTS"
 
 # 2. Count PRELOAD_TOOL_CONTRACTS entries (array of tuples).
-PRELOAD_CONTRACT_SUFFIXES=$(sed -n '/^const PRELOAD_TOOL_CONTRACTS/,/^].map/p' "$CONTRACTS" | grep -oP '^\s*\["\w+' | sed 's/.*"//' | sort -u)
+PRELOAD_CONTRACT_SUFFIXES=$(python3 - "$CONTRACTS" <<'PY'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+block = text.split("const PRELOAD_TOOL_CONTRACTS", 1)[1].split("].map(", 1)[0]
+pattern = re.compile(
+    r'\[\s*"([a-z_]+)"\s*,\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"(?:GET|POST)"\s*,?\s*\]',
+    re.S,
+)
+print("\n".join(sorted(set(pattern.findall(block)))))
+PY
+)
 PRELOAD_CONTRACT_COUNT=$(echo "$PRELOAD_CONTRACT_SUFFIXES" | grep -c . || true)
 echo "preload contract suffixes ($PRELOAD_CONTRACT_COUNT): $PRELOAD_CONTRACT_SUFFIXES"
 
@@ -31,7 +41,17 @@ EXPLICIT_TOOL_COUNT=$(echo "$EXPLICIT_TOOLS" | grep -c . || true)
 echo "explicit registerTool names: $EXPLICIT_TOOL_COUNT"
 
 # 5. Count loop-generated preload tools from preloadReadTools array.
-LOOP_PRELOAD_NAMES=$(sed -n '/const preloadReadTools = \[/,/^\s*\] as const;/p' "$TOOLS" | grep -oP '^\s*\["focusa_preload_\w+' | sed 's/.*"//' | sort -u)
+LOOP_PRELOAD_NAMES=$(python3 - "$TOOLS" <<'PY'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+block = text.split("const preloadReadTools", 1)[1].split("for (const [name, label, action, nextTools]", 1)[0]
+pattern = re.compile(
+    r'\[\s*"(focusa_preload_[a-z_]+)"\s*,\s*"[^"]+"\s*,\s*"(?:build|render|verify|doctor)"\s*,',
+    re.S,
+)
+print("\n".join(sorted(set(pattern.findall(block)))))
+PY
+)
 LOOP_PRELOAD_COUNT=$(echo "$LOOP_PRELOAD_NAMES" | grep -c . || true)
 echo "loop-generated preload tools ($LOOP_PRELOAD_COUNT): $LOOP_PRELOAD_NAMES"
 
