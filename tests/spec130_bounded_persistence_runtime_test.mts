@@ -1,8 +1,10 @@
 import {
-  S,
+  getAttachmentRuntime,
+  makeAttachmentKey,
   observeProjectThreadEvidence,
   persistState,
   resetPiSessionScopedState,
+  runWithAttachmentRuntime,
 } from "../apps/pi-extension/src/state.ts";
 import {
   COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA,
@@ -23,10 +25,17 @@ function assert(condition: any, message: string): asserts condition {
 const dataDir = mkdtempSync(join(tmpdir(), "focusa-spec130-anchor-"));
 process.env.FOCUSA_DATA_DIR = dataDir;
 const entries: Array<{ customType: string; data: any }> = [];
+const attachmentKey = makeAttachmentKey({
+  projectRoot: "/tmp/focusa-spec130-project",
+  continuityId: "focusa-cont-dynamic-a",
+  sessionId: "pi-spec130-session",
+});
 
 try {
-  resetPiSessionScopedState("spec130_bounded_persistence_test");
-  Object.assign(S, {
+  runWithAttachmentRuntime(attachmentKey, () => {
+    const S = getAttachmentRuntime();
+    resetPiSessionScopedState("spec130_bounded_persistence_test");
+    Object.assign(S, {
     pi: {
       appendEntry(customType: string, data: any) {
         entries.push({ customType, data });
@@ -219,6 +228,7 @@ try {
   assert(loadPersistedRecoveryState(anchor) === null, "corrupt sidecar generations passed validation");
 
   console.log("PASS: Spec 130 bounded semantic persistence runtime contract");
+  });
 } finally {
   rmSync(dataDir, { recursive: true, force: true });
 }

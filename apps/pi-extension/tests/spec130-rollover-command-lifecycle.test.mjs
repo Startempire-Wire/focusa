@@ -11,14 +11,15 @@ const ordered = [
   "await ctx.waitForIdle()",
   "prepareCompactionRollover()",
   "migrateNativeSessionBounded",
-  'focusaFetch("/project/session-transfer"',
+  'action: "rollover",',
   "seal_source: true",
   "await ctx.newSession",
   "parentSession: sourceSessionId",
   "setup: async",
   "appendMessage",
   'focusaFetch("/workpoint/resume"',
-  'focusaFetch("/project/session-transfer/verify-target"',
+  'action: "verify_target",',
+  'target_workpoint_id:',
 ];
 let cursor = 0;
 for (const token of ordered) {

@@ -72,8 +72,8 @@ if [[ "$RC" -eq 0 ]]; then
   echo "✗ FAIL: second daemon unexpectedly started" >&2
   exit 1
 fi
-if grep -q "\[DAEMON_ALREADY_RUNNING\]" "$LOG2"; then
-  echo "✓ PASS: second daemon rejected with typed error"
+if grep -Eq '"code"[[:space:]]*:[[:space:]]*"DAEMON_ALREADY_RUNNING"|\[DAEMON_ALREADY_RUNNING\]|"error_code"[[:space:]]*:[[:space:]]*"DAEMON_ALREADY_RUNNING"' "$LOG2"; then
+  echo "✓ PASS: second daemon rejected with typed/structured error"
 else
   echo "✗ FAIL: second daemon rejection missing typed error" >&2
   tail -n 80 "$LOG2" >&2 || true

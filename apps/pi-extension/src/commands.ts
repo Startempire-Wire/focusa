@@ -807,20 +807,26 @@ export function registerCommands(pi: ExtensionAPI) {
             mode: "compact_prompt",
           }),
         });
-        await focusaFetch("/project/session-transfer/verify-target", {
+        const targetWorkpointId =
+          verifyResume?.body?.workpoint_id ||
+          verifyResume?.body?.resume_packet?.workpoint?.workpoint_id ||
+          verifyResume?.body?.resume_packet?.workpoint_id ||
+          "";
+        await focusaFetch("/project/session-transfer", {
           method: "POST",
           body: JSON.stringify({
-            schema: "focusa.pi_rollover_verify_target_receipt.v1",
+            action: "verify_target",
             source_scope: scope,
             target_scope: targetScope,
             source_session_id: sourceSessionId,
             target_session_id: targetSessionId,
+            target_workpoint_id: targetWorkpointId,
+            target_resume_canonical:
+              verifyResume?.status === "completed" || verifyResume?.canonical === true,
             checkpoint_ref: checkpointRef,
             workpoint_packet_ref: workpointPacketRef,
             compaction_packet_ref: compactionPacketRef,
             migration_manifest_ref: manifest.manifest_path,
-            target_resume_status: verifyResume?.status || "unknown",
-            verified: verifyResume?.status === "completed" || verifyResume?.canonical === true,
           }),
         });
         ctx.ui.notify(`Focusa rollover complete: target=${targetScope.continuity_id}`, "info");

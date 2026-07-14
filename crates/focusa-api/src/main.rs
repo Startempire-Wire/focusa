@@ -81,7 +81,7 @@ impl DaemonInstanceLock {
                     }
                     let owner = read_lock_pid(&path).unwrap_or(0);
                     return Err(anyhow!(
-                        "[DAEMON_ALREADY_RUNNING] pid={} lock={}",
+                        r#"[DAEMON_ALREADY_RUNNING] {{"code":"DAEMON_ALREADY_RUNNING","pid":{},"lock":"{}"}}"#,
                         owner,
                         path.display()
                     ));
