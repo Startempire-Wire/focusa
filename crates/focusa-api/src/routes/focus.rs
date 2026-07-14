@@ -177,6 +177,53 @@ fn unsafe_project_root_response(reason: &'static str, value: Option<&str>) -> se
     })
 }
 
+fn exact_request_scope_matches(
+    scope: &ScopeContext,
+    project_root: &str,
+    continuity_id: &str,
+) -> Result<(), Value> {
+    let Some(request_root) = clean_scope_value(scope.project_root.as_deref()) else {
+        return Err(json!({
+            "status": "rejected_missing_scope",
+            "canonical": false,
+            "failure_class": "scope_mismatch",
+            "missing": "x-scope-project-root",
+        }));
+    };
+    let Some(request_continuity) = clean_scope_value(scope.continuity_id.as_deref()) else {
+        return Err(json!({
+            "status": "rejected_missing_scope",
+            "canonical": false,
+            "failure_class": "scope_mismatch",
+            "missing": "x-scope-continuity-id",
+        }));
+    };
+    if unsafe_project_root_reason(Some(request_root.as_str())).is_some()
+        || normalize_project_root_authority(&request_root)
+            != normalize_project_root_authority(project_root)
+        || request_continuity != continuity_id.trim()
+    {
+        return Err(json!({
+            "status": "scope_mismatch",
+            "canonical": false,
+            "failure_class": "scope_mismatch",
+            "requested_project_root": request_root,
+            "requested_continuity_id": request_continuity,
+        }));
+    }
+    Ok(())
+}
+
+fn frame_matches_exact_request_scope(scope: &ScopeContext, frame: &FrameRecord) -> bool {
+    let Some(project_root) = frame.project_root.as_deref() else {
+        return false;
+    };
+    let Some(continuity_id) = frame.continuity_id.as_deref() else {
+        return false;
+    };
+    exact_request_scope_matches(scope, project_root, continuity_id).is_ok()
+}
+
 fn beads_issue_exists(project_root: &str, beads_issue_id: &str) -> bool {
     let issue_id = beads_issue_id.trim();
     if issue_id.is_empty() || unsafe_project_root_reason(Some(project_root)).is_some() {
@@ -349,13 +396,31 @@ async fn get_stack(
     State(state): State<Arc<AppState>>,
 ) -> Json<serde_json::Value> {
     let focusa = state.focusa.read().await;
-    let total = focusa.focus_stack.frames.len();
+    let mut scoped_stack = focusa.focus_stack.clone();
+    scoped_stack
+        .frames
+        .retain(|frame| frame_matches_exact_request_scope(&scope, frame));
+    scoped_stack
+        .stack_path_cache
+        .retain(|id| scoped_stack.frames.iter().any(|frame| frame.id == *id));
+    if scoped_stack
+        .root_id
+        .is_some_and(|id| !scoped_stack.frames.iter().any(|frame| frame.id == id))
+    {
+        scoped_stack.root_id = None;
+    }
+    if scoped_stack
+        .active_id
+        .is_some_and(|id| !scoped_stack.frames.iter().any(|frame| frame.id == id))
+    {
+        scoped_stack.active_id = None;
+    }
+    let total = scoped_stack.frames.len();
     let default_limit = 25usize;
     let hard_limit = 200usize;
     let limit = query.limit.unwrap_or(default_limit).clamp(1, hard_limit);
     let cursor = query.cursor.unwrap_or(0).min(total);
-    let frames_window = focusa
-        .focus_stack
+    let frames_window = scoped_stack
         .frames
         .iter()
         .skip(cursor)
@@ -365,10 +430,10 @@ async fn get_stack(
     let next_cursor =
         (cursor + frames_window.len() < total).then(|| (cursor + frames_window.len()).to_string());
     Json(json!({
-        "stack": focusa.focus_stack,
-        "active_frame_id": focusa.focus_stack.active_id,
+        "stack": &scoped_stack,
+        "active_frame_id": scoped_stack.active_id,
         "frames_window": frames_window,
-        "frames_authority_posture": focusa.focus_stack.frames.iter().skip(cursor).take(limit).map(focus_frame_authority_posture).collect::<Vec<_>>(),
+        "frames_authority_posture": scoped_stack.frames.iter().skip(cursor).take(limit).map(focus_frame_authority_posture).collect::<Vec<_>>(),
         "legacy_migration_policy": {
             "old_focus_state_records": "readable_with_safe_default_profile_and_frame_scope_when_available",
             "old_focus_stack_frames": "readable_history_noncanonical_when source Beads proof missing",
@@ -421,6 +486,16 @@ async fn get_scoped_frame(
         query.continuity_id.as_deref(),
         query.project_root.as_deref(),
     );
+    if let Some((frame, _)) = resolved
+        && !frame_matches_exact_request_scope(&scope, frame)
+    {
+        return Json(json!({
+            "status": "scope_mismatch",
+            "canonical": false,
+            "failure_class": "scope_mismatch",
+            "frame": null,
+        }));
+    }
     Json(json!({
         "frame": resolved.map(|(frame, _)| frame),
         "matched_by": resolved.map(|(_, matched_by)| matched_by).unwrap_or("none"),
@@ -606,6 +681,9 @@ async fn push_frame(
             "next_tools": ["focusa_project_identity", "focusa_workpoint_resume"],
         })));
     };
+    if let Err(response) = exact_request_scope_matches(&scope, &project_root, &continuity_id) {
+        return Ok(Json(response));
+    }
 
     let beads_issue_id = body.beads_issue_id.unwrap_or_default();
     let beads_issue_id = beads_issue_id.trim().to_string();
@@ -678,6 +756,23 @@ async fn pop_frame(
         if let Err(resp) = ensure_active_session(focusa.session.as_ref()) {
             return Ok(Json(resp));
         }
+        let Some(active_frame) = focusa.focus_stack.active_id.and_then(|id| {
+            focusa
+                .focus_stack
+                .frames
+                .iter()
+                .find(|frame| frame.id == id)
+        }) else {
+            return Ok(Json(json!({"status": "no_active_frame"})));
+        };
+        if !frame_matches_exact_request_scope(&scope, active_frame) {
+            return Ok(Json(json!({
+                "status": "scope_mismatch",
+                "canonical": false,
+                "failure_class": "scope_mismatch",
+                "reason": "request_scope_does_not_match_active_frame",
+            })));
+        }
         if let Err(resp) = validate_can_pop(&focusa.focus_stack) {
             return Ok(Json(resp));
         }
@@ -720,6 +815,24 @@ async fn set_active(
         let focusa = state.focusa.read().await;
         if let Err(resp) = ensure_active_session(focusa.session.as_ref()) {
             return Ok(Json(resp));
+        }
+        let Some(target_frame) = focusa
+            .focus_stack
+            .frames
+            .iter()
+            .find(|frame| frame.id == body.frame_id)
+        else {
+            return Ok(Json(
+                json!({"status": "rejected", "reason": "frame_not_found"}),
+            ));
+        };
+        if !frame_matches_exact_request_scope(&scope, target_frame) {
+            return Ok(Json(json!({
+                "status": "scope_mismatch",
+                "canonical": false,
+                "failure_class": "scope_mismatch",
+                "reason": "request_scope_does_not_match_target_frame",
+            })));
         }
         match validate_set_active(&focusa.focus_stack, body.frame_id) {
             Ok(true) => {}
@@ -1043,6 +1156,14 @@ async fn update_delta(
                     "safe_recovery": "checkpoint or create a project-workstream scoped Focus frame before writing Focus State"
                 })));
             }
+            if !frame_matches_exact_request_scope(&scope, frame) {
+                return Ok(Json(json!({
+                    "status": "scope_mismatch",
+                    "canonical": false,
+                    "failure_class": "scope_mismatch",
+                    "reason": "request_scope_does_not_match_frame",
+                })));
+            }
             if let Some(expected_project_root) = clean_scope_value(body.project_root.as_deref())
                 && frame
                     .project_root
@@ -1090,6 +1211,14 @@ async fn update_delta(
                 attach_focus_state_workpoint_bridge(&mut response, bridge);
                 return Ok(Json(response));
             };
+            if !frame_matches_exact_request_scope(&scope, frame) {
+                return Ok(Json(json!({
+                    "status": "scope_mismatch",
+                    "canonical": false,
+                    "failure_class": "scope_mismatch",
+                    "reason": "request_scope_does_not_match_frame",
+                })));
+            }
             (frame.id, !session_active)
         }
     };
@@ -1197,12 +1326,38 @@ pub fn router() -> Router<Arc<AppState>> {
 
 #[cfg(test)]
 mod tests {
-    use super::resolve_scoped_frame;
+    use super::{exact_request_scope_matches, resolve_scoped_frame};
+    use crate::scope::ScopeContext;
     use chrono::Utc;
     use focusa_core::types::{
         CompletionReason, FocusStackState, FocusState, FrameRecord, FrameStats, FrameStatus,
     };
     use uuid::Uuid;
+
+    #[test]
+    fn exact_request_scope_rejects_host_and_cross_workstream_mutation() {
+        let exact = ScopeContext {
+            project_root: Some("/home/wirebot/focusa".to_string()),
+            continuity_id: Some("cont-focusa".to_string()),
+            ..Default::default()
+        };
+        let host = ScopeContext {
+            project_root: Some("/root".to_string()),
+            continuity_id: Some("cont-focusa".to_string()),
+            ..Default::default()
+        };
+        let other = ScopeContext {
+            project_root: Some("/home/wirebot/focusa".to_string()),
+            continuity_id: Some("cont-other".to_string()),
+            ..Default::default()
+        };
+
+        assert!(exact_request_scope_matches(&exact, "/home/wirebot/focusa", "cont-focusa").is_ok());
+        assert!(exact_request_scope_matches(&host, "/home/wirebot/focusa", "cont-focusa").is_err());
+        assert!(
+            exact_request_scope_matches(&other, "/home/wirebot/focusa", "cont-focusa").is_err()
+        );
+    }
 
     fn frame(id: Uuid, status: FrameStatus, title: &str, tags: &[&str]) -> FrameRecord {
         FrameRecord {
