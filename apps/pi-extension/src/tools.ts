@@ -13538,13 +13538,8 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       const route =
         surface === "reload" ? "/v1/awareness/packet" : `/v1/awareness/packet/${encodeURIComponent(surface)}`;
       const result = await focusaFetch(route, { method: "GET" });
-      // Guard against null/empty result from focusaFetch — previously crashed with
-      // "Cannot read properties of null (reading 'value')" when the daemon is
-      // unreachable or returns a falsy result envelope.
-      // Guard: if focusaFetch returns null, undefined, or a non-object result,
-      // build an empty fallback so downstream code never reads properties of null.
-      // Previously crashed with 'Cannot read properties of null (reading value)'.
-      const raw = (result && (result as any).value) as any;
+      const resultOk = Boolean(result && typeof result === "object" && (result as any).ok === true);
+      const raw = result && typeof result === "object" ? (result as any).value : null;
       const packet = raw && typeof raw === "object" ? raw : {};
       const visibleCount = Array.isArray(packet.visibleLines) ? packet.visibleLines.length : 0;
       const textLines = [
@@ -13564,7 +13559,14 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       return {
         content: [{ type: "text" as const, text: textLines.join("\n") }],
         details: {
-          ok: result.ok,
+          ok: resultOk,
+          status: resultOk ? "completed" : "blocked",
+          canonical: resultOk,
+          degraded: !resultOk,
+          failure_class: resultOk ? null : "null_response",
+          human_readable: resultOk
+            ? `Awareness packet rendered for ${surface}.`
+            : `Awareness packet unavailable for ${surface}; retry with focusa_tool_doctor.`,
           surface,
           schema: packet.schema,
           mode: packet.mode,

@@ -14,6 +14,15 @@ def read(rel: str) -> str:
 
 def main() -> None:
     src = read("apps/pi-extension/src/awareness-substrate.ts")
+    tools = read("apps/pi-extension/src/tools.ts")
+
+    for token in [
+        "const resultOk = Boolean(result && typeof result === \"object\"",
+        'status: resultOk ? "completed" : "blocked"',
+        'failure_class: resultOk ? null : "null_response"',
+    ]:
+        if token not in tools:
+            fail(f"awareness Pi tool null-envelope guard missing: {token}")
 
     # Schema types
     for token in [

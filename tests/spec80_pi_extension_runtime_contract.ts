@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import http from "node:http";
 import { registerTools } from "../apps/pi-extension/src/tools.ts";
-import { S } from "../apps/pi-extension/src/state.ts";
+import {
+  getAttachmentRuntime,
+  makeAttachmentKey,
+  runWithAttachmentRuntime,
+} from "../apps/pi-extension/src/state.ts";
 
 type ToolDef = {
   name: string;
@@ -11,10 +15,19 @@ type ToolDef = {
 };
 
 async function main() {
+const attachmentKey = makeAttachmentKey({
+  projectRoot: "/tmp/focusa-spec80-runtime",
+  continuityId: "spec80-runtime",
+  sessionId: "spec80-runtime-session",
+});
+await runWithAttachmentRuntime(attachmentKey, async () => {
 const tools = new Map<string, ToolDef>();
 const pi = {
   registerTool(def: ToolDef) {
     tools.set(def.name, def);
+  },
+  on() {
+    // Runtime contract exercises tool registration/execution; lifecycle listeners are no-op.
   },
 } as any;
 
@@ -96,7 +109,7 @@ await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve
 const addr = server.address();
 assert.ok(addr && typeof addr === "object", "server not bound");
 const baseUrl = `http://127.0.0.1:${addr.port}/v1`;
-(S as any).cfg = { focusaApiBaseUrl: baseUrl, focusaApiTimeoutMs: 5000, focusaToken: "" };
+getAttachmentRuntime().cfg = { focusaApiBaseUrl: baseUrl, focusaApiTimeoutMs: 5000, focusaToken: "" };
 
 const checkEnvelope = (toolName: string, r: any, endpoint: string) => {
   assert.equal(r?.details?.ok, true, `${toolName} should succeed`);
@@ -185,6 +198,7 @@ assert.equal(invalidRestoreMode?.details?.code, "INVALID_REQUEST", "invalid rest
 
 server.close();
 console.log("SPEC80 extension runtime contract: PASS");
+});
 }
 
 main().catch((err) => {
