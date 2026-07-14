@@ -13789,6 +13789,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           ["focusa_workpoint_resume", "focusa_project_identity"]
         );
       const scope = buildProjectWorkstreamKey(projectRoot, continuityId);
+      const ontologyContext = p.ontology_context || {};
       const payload = {
         scope,
         prediction_type: p.prediction_type,
@@ -13797,7 +13798,14 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
         recommended_action: p.recommended_action,
         why: p.why,
         context_refs: p.context_refs || [],
-        ontology_context: p.ontology_context || {},
+        // Keep writes compatible with pre-default daemons during rolling upgrades.
+        ontology_context: {
+          object_refs: Array.isArray(ontologyContext.object_refs) ? ontologyContext.object_refs : [],
+          action_refs: Array.isArray(ontologyContext.action_refs) ? ontologyContext.action_refs : [],
+          tool_refs: Array.isArray(ontologyContext.tool_refs) ? ontologyContext.tool_refs : [],
+          evidence_refs: Array.isArray(ontologyContext.evidence_refs) ? ontologyContext.evidence_refs : [],
+          relation_refs: Array.isArray(ontologyContext.relation_refs) ? ontologyContext.relation_refs : [],
+        },
       };
       const res = await focusaFetchDetailed("/predictions", {
         method: "POST",

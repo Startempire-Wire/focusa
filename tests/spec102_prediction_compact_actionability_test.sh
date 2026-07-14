@@ -28,14 +28,18 @@ src = Path('apps/pi-extension/src/tools.ts').read_text()
 record = src[src.index('name: "focusa_predict_record"'):src.index('name: "focusa_predict_recent"')]
 recent = src[src.index('name: "focusa_predict_recent"'):src.index('name: "focusa_predict_evaluate"')]
 required = {
-    'record': ['prediction_id', 'confidence', 'project_root', 'continuity_id', 'evaluation_hint', 'renderScopedResultHuman'],
+    'record': [
+        'prediction_id', 'confidence', 'project_root', 'continuity_id', 'evaluation_hint',
+        'renderScopedResultHuman', 'object_refs', 'action_refs', 'tool_refs', 'evidence_refs',
+        'relation_refs',
+    ],
     'recent': ['predictions', 'next_prediction_id', 'evaluate_hint', 'scope', 'renderScopedResultHuman'],
 }
 for label, block in [('record', record), ('recent', recent)]:
     for term in required[label]:
         if term not in block:
             raise SystemExit(f'{label} block missing {term}')
-print('✓ PASS: prediction record/recent blocks are human-readable and self-evaluable')
+print('✓ PASS: prediction record/recent blocks are human-readable, rolling-compatible, and self-evaluable')
 PY
 
 echo "SPEC102 prediction compact actionability test: PASS"
