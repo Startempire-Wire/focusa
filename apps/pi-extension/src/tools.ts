@@ -2671,13 +2671,22 @@ export function registerTools(pi: ExtensionAPI) {
       route.includes("/state/dump") ||
       route.includes("worktree") ||
       route.includes("diagnostic") ||
+      route.includes("context-cognition/proof") ||
+      route.includes("context-cognition/optimizer/artifacts") ||
+      route.includes("call-stack/verify") ||
       route.includes("include_full_payload=true") ||
       route.includes("mode=full") ||
       /[?&]deep=true/.test(route)
     )
       return "cold";
     if (verb !== "GET") return "warm";
-    return "hot";
+    if (
+      route.startsWith("/health") ||
+      route.startsWith("/work-loop/status") ||
+      route.startsWith("/trajectory/view")
+    )
+      return "hot";
+    return "warm";
   }
 
   function timeoutFailureClassForRoute(path: string, method?: string): FocusaFailureClass {
@@ -2691,7 +2700,7 @@ export function registerTools(pi: ExtensionAPI) {
       return Math.min(Math.max(configured, 4000), 5000);
     if (tier === "hot") return Math.min(configured, 2500);
     if (tier === "cold") return Math.max(configured, 8000);
-    return configured;
+    return Math.max(configured, 2500);
   }
 
   function compactFallbackPacket(value: any): any {
@@ -3699,7 +3708,14 @@ export function registerTools(pi: ExtensionAPI) {
         ],
         details: {
           ok: stack.ok,
-          status: String(stack.status),
+          status: stack.ok ? "completed" : "blocked",
+          canonical: stack.ok,
+          degraded: !stack.ok,
+          failure_class: stack.ok ? null : scopedResponseFailureClass(stack, stack.body),
+          human_readable:
+            result.recommended_action === "no_hygiene_needed"
+              ? "Focus State hygiene is healthy; no cleanup is needed."
+              : "Focus State hygiene signals need a proposal review before any approved action.",
           response: result,
           next_tools: ["focusa_state_hygiene_plan", "focusa_workpoint_resume", "focusa_tool_doctor"],
         },
