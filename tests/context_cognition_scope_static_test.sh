@@ -14,9 +14,11 @@ for needle in \
   'missing_continuity_id' \
   'canonical Workpoint/Trajectory selection requires verified project_root + continuity_id' \
   'Do not treat Context Cognition as canonical without exact scope' \
-  'r.continuity_id.as_deref() == continuity_id.as_deref()' \
+  'active_workpoint_for_scope' \
   'record.continuity_id.as_deref() == continuity_id.as_deref()' \
-  'active trajectory omitted: scope mismatch or missing continuity_id'; do
+  'active trajectory omitted: scope mismatch or missing continuity_id' \
+  'continuity_query' \
+  'continuity_arg'; do
   rg -n -F "$needle" "$ROUTE" >/dev/null || fail "Context Cognition route missing exact-scope guard: $needle"
 done
 pass "Context Cognition route exact-matches project_root + continuity_id before Workpoint/Trajectory selection"

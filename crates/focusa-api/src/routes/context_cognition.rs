@@ -11,6 +11,7 @@
 //! - `GET /v1/context-cognition/proof?project_root=...` — map surfaces to proof commands
 
 use crate::routes::project::project_identity_payload_for_scope;
+use crate::routes::workpoint::active_workpoint_for_scope;
 use crate::server::AppState;
 use axum::{Json, extract::State, http::StatusCode};
 use chrono::Utc;
@@ -228,11 +229,7 @@ async fn view(
 
     // Wire active Workpoint/Trajectory only by exact project_root + continuity_id.
     let scoped_workpoint = if exact_scope_ready {
-        focusa_state.workpoint.records.iter().find(|r| {
-            r.project_root.as_deref() == Some(project_root)
-                && r.continuity_id.as_deref() == continuity_id.as_deref()
-                && r.canonical
-        })
+        active_workpoint_for_scope(&focusa_state, Some(project_root), continuity_id.as_deref())
     } else {
         None
     };
@@ -415,13 +412,14 @@ async fn render(
         ));
     }
 
+    let continuity_id = query
+        .continuity_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
     let focusa_state = state.focusa.read().await.clone();
-    let workpoint_id = focusa_state
-        .workpoint
-        .records
-        .iter()
-        .find(|r| r.project_root.as_deref() == Some(project_root))
-        .map(|r| r.workpoint_id.to_string());
+    let workpoint_id = active_workpoint_for_scope(&focusa_state, Some(project_root), continuity_id)
+        .map(|record| record.workpoint_id.to_string());
     let trajectory_id = focusa_state.trajectory.active_trajectory_id.clone();
 
     let mut lines: Vec<String> = Vec::new();
@@ -487,25 +485,36 @@ async fn proof(
         ));
     }
 
+    let continuity_id = query
+        .continuity_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
     let focusa_state = state.focusa.read().await.clone();
-    let workpoint_id = focusa_state
-        .workpoint
-        .records
-        .iter()
-        .find(|r| r.project_root.as_deref() == Some(project_root))
-        .map(|r| r.workpoint_id.to_string());
+    let workpoint_id = active_workpoint_for_scope(&focusa_state, Some(project_root), continuity_id)
+        .map(|record| record.workpoint_id.to_string());
 
     // Use the daemon's own bind (default http://127.0.0.1:8787) for proof
     // command URLs. The /v1/health route is also reachable on the same bind.
     let base_url = "http://127.0.0.1:8787".to_string();
+    let continuity_query = continuity_id
+        .map(|value| format!("&continuity_id={value}"))
+        .unwrap_or_default();
+    let continuity_arg = continuity_id
+        .map(|value| format!(" --continuity-id {value}"))
+        .unwrap_or_default();
     let proof_commands = vec![
         format!("curl '{base_url}/v1/health'"),
         format!("curl '{base_url}/v1/project/identity?project_root={project_root}'"),
-        format!("curl '{base_url}/v1/trajectory/view?project_root={project_root}'"),
-        format!("curl '{base_url}/v1/workpoint/current?project_root={project_root}'"),
-        format!("focusa context-cognition view --project-root {project_root}"),
-        format!("focusa context-cognition render --project-root {project_root}"),
-        format!("focusa context-cognition proof --project-root {project_root}"),
+        format!(
+            "curl '{base_url}/v1/trajectory/view?project_root={project_root}{continuity_query}'"
+        ),
+        format!(
+            "curl '{base_url}/v1/workpoint/current?project_root={project_root}{continuity_query}'"
+        ),
+        format!("focusa context-cognition view --project-root {project_root}{continuity_arg}"),
+        format!("focusa context-cognition render --project-root {project_root}{continuity_arg}"),
+        format!("focusa context-cognition proof --project-root {project_root}{continuity_arg}"),
         "node scripts/validate-focusa-tool-contracts.mjs".to_string(),
         "node scripts/audit-focusa-tool-implementation-spec-gaps.mjs".to_string(),
         "node scripts/audit-focusa-tool-suite-safe.mjs".to_string(),

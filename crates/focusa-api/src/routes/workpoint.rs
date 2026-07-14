@@ -739,7 +739,7 @@ fn active_workpoint(state: &focusa_core::types::FocusaState) -> Option<&Workpoin
     })
 }
 
-fn active_workpoint_for_scope<'a>(
+pub(crate) fn active_workpoint_for_scope<'a>(
     state: &'a focusa_core::types::FocusaState,
     project_root: Option<&str>,
     continuity_id: Option<&str>,
@@ -3586,6 +3586,31 @@ mod tests {
             rejection.get("status").and_then(Value::as_str),
             Some("rejected_continuity_mismatch")
         );
+    }
+
+    #[test]
+    fn scoped_active_workpoint_prefers_latest_matching_active_record() {
+        let older_id = Uuid::now_v7();
+        let newer_id = Uuid::now_v7();
+        let make_record = |workpoint_id| WorkpointRecord {
+            workpoint_id,
+            project_root: Some("/repo/focusa".to_string()),
+            continuity_id: Some("cont-a".to_string()),
+            status: WorkpointStatus::Active,
+            canonical: true,
+            ..WorkpointRecord::default()
+        };
+        let state = focusa_core::types::FocusaState {
+            workpoint: focusa_core::types::WorkpointState {
+                records: vec![make_record(older_id), make_record(newer_id)],
+                ..focusa_core::types::WorkpointState::default()
+            },
+            ..focusa_core::types::FocusaState::default()
+        };
+
+        let selected = active_workpoint_for_scope(&state, Some("/repo/focusa"), Some("cont-a"))
+            .expect("latest scoped active workpoint");
+        assert_eq!(selected.workpoint_id, newer_id);
     }
 
     #[test]
