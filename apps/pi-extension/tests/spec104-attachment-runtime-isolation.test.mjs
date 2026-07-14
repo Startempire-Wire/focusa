@@ -183,8 +183,10 @@ try {
     sessionId: "session-frame-recovery",
   });
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async (input) => {
+  let recoveredFrameRequestHeaders;
+  globalThis.fetch = async (input, init) => {
     const url = String(input);
+    if (url.includes("/focus/push")) recoveredFrameRequestHeaders = init?.headers;
     const body = url.includes("/focus/push") ? { frame_id: "frame-recovered-after-stale-health" } : {};
     return {
       ok: true,
@@ -207,6 +209,9 @@ try {
       "frame-recovered-after-stale-health",
       "stale health cache must not veto authoritative scoped frame recovery"
     );
+    assert.equal(recoveredFrameRequestHeaders?.["X-Scope-Project-Root"], repoRoot);
+    assert.equal(recoveredFrameRequestHeaders?.["X-Scope-Continuity-Id"], "cont-frame-recovery");
+    assert.equal(recoveredFrameRequestHeaders?.["X-Scope-Session-Id"], "session-frame-recovery");
   } finally {
     globalThis.fetch = originalFetch;
   }

@@ -621,6 +621,17 @@ export async function focusaFetch(path: string, opts: RequestInit = {}): Promise
   const timeout = getAttachmentRuntime().cfg?.focusaApiTimeoutMs || 5000;
   const base = getAttachmentRuntime().cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
   const token = getAttachmentRuntime().cfg?.focusaToken || "";
+  const attachment = currentAttachmentKey();
+  const root = attachment?.workstream.root_scope.root_path || "";
+  const continuity = attachment?.workstream.continuity_id || "";
+  const typedScopeHeaders: Record<string, string> =
+    attachment && isProjectRootAuthoritySafe(root) && continuity && continuity !== "extension-bootstrap"
+      ? {
+          "X-Scope-Project-Root": root,
+          "X-Scope-Continuity-Id": continuity,
+          "X-Scope-Session-Id": attachment.session_id,
+        }
+      : {};
   const attempts = 2;
   for (let attempt = 0; attempt < attempts; attempt++) {
     const ac = new AbortController();
@@ -637,6 +648,7 @@ export async function focusaFetch(path: string, opts: RequestInit = {}): Promise
           "X-Focusa-Client": "pi",
           "X-Extension-Token": `focusa-pi-${getAttachmentRuntime().cfg?.focusaExtensionBuild || "v0"}`,
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...typedScopeHeaders,
           ...((opts.headers as Record<string, string>) || {}),
         },
         signal: ac.signal,
