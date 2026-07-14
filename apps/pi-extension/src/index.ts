@@ -15,7 +15,7 @@ import {
   makeAttachmentKey,
   runWithAttachmentRuntime,
 } from "./state.js";
-import { PiExtensionSessionBinding } from "./scoped-state.js";
+import { PiExtensionSessionBinding, attachmentRoutingHints } from "./scoped-state.js";
 
 // ESM compat: require() for synchronous imports in message renderer callback
 const require = createRequire(import.meta.url);
@@ -40,18 +40,15 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
   const sessionBinding = new PiExtensionSessionBinding();
   return withRuntime(() => {
     const runtimeFor = (ctx?: any, eventOrParams?: any) => {
+      const hints = attachmentRoutingHints(eventOrParams);
       const sessionId = String(
-        eventOrParams?.sessionId ||
-          eventOrParams?.session_id ||
+        hints.sessionId ||
           ctx?.sessionManager?.getSessionFile?.() ||
           getAttachmentRuntime(extensionKey).sessionFrameKey ||
           `pi-extension-${process.pid}`
       );
-      const explicitProjectRoot =
-        eventOrParams?.source_scope?.root_path ||
-        eventOrParams?.source_scope?.project_root ||
-        eventOrParams?.project_root;
-      const explicitContinuity = eventOrParams?.source_scope?.continuity_id || eventOrParams?.continuity_id;
+      const explicitProjectRoot = hints.projectRoot;
+      const explicitContinuity = hints.continuityId;
       if (!explicitProjectRoot && !explicitContinuity) {
         const bound = attachmentRuntimeRegistry.boundSessionAttachment(sessionId) || sessionBinding.resolve();
         if (bound) return bound;

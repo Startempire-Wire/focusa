@@ -62,6 +62,22 @@ try {
   extensionSessionBinding.clear();
   assert.equal(extensionSessionBinding.resolve(), undefined);
 
+  assert.deepEqual(
+    scopedState.attachmentRoutingHints({
+      toolName: "focusa_workpoint_resume",
+      input: {
+        project_root: "/tmp/project-a",
+        continuity_id: "cont-a",
+      },
+    }),
+    {
+      sessionId: undefined,
+      projectRoot: "/tmp/project-a",
+      continuityId: "cont-a",
+    },
+    "tool_call event.input must supply typed attachment routing hints before execution"
+  );
+
   await state.runWithAttachmentRuntime(keyA, async () => {
     const runtime = state.getAttachmentRuntime();
     runtime.currentAsk = { text: "ask-a" };

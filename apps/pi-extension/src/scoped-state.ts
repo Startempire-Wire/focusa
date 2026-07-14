@@ -48,6 +48,23 @@ export class PiExtensionSessionBinding {
   }
 }
 
+export function attachmentRoutingHints(eventOrParams: any): {
+  sessionId?: unknown;
+  projectRoot?: unknown;
+  continuityId?: unknown;
+} {
+  const payload =
+    eventOrParams?.input && typeof eventOrParams.input === "object"
+      ? eventOrParams.input
+      : eventOrParams || {};
+  return {
+    sessionId: eventOrParams?.sessionId || eventOrParams?.session_id,
+    projectRoot:
+      payload?.source_scope?.root_path || payload?.source_scope?.project_root || payload?.project_root,
+    continuityId: payload?.source_scope?.continuity_id || payload?.continuity_id,
+  };
+}
+
 export interface AuthorityEnvelope {
   status: AuthorityStatus;
   why: string;
