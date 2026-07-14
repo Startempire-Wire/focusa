@@ -3,6 +3,7 @@
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ROUTE_FILE="${ROOT_DIR}/crates/focusa-api/src/routes/metacognition.rs"
+PI_TOOLS="${ROOT_DIR}/apps/pi-extension/src/tools.ts"
 SERVER_FILE="${ROOT_DIR}/crates/focusa-api/src/server.rs"
 MOD_FILE="${ROOT_DIR}/crates/focusa-api/src/routes/mod.rs"
 FAILED=0
@@ -29,6 +30,14 @@ if rg -n '"capture_id"|"candidates"|"reflection_id"|"adjustment_id"|"evaluation_
   log_pass "handlers provide contract-critical success envelope fields"
 else
   log_fail "success envelope fields are incomplete"
+fi
+
+if [ "$(rg -c 'with_human_readable\(' "$ROUTE_FILE")" -ge 11 ] \
+  && [ "$(rg -c '"human_readable"' "$ROUTE_FILE")" -ge 7 ] \
+  && rg -Fn 'result.body?.human_readable' "$PI_TOOLS" >/dev/null 2>&1; then
+  log_pass "all metacognition success/domain-error families and Pi details expose human_readable"
+else
+  log_fail "metacognition human_readable coverage is incomplete"
 fi
 
 if rg -n 'pub mod metacognition;' "$MOD_FILE" >/dev/null 2>&1 && rg -n 'merge\(routes::metacognition::router\(\)\)' "$SERVER_FILE" >/dev/null 2>&1; then

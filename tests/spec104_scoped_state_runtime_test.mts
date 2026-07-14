@@ -81,11 +81,21 @@ const envelope: ScopedResultEnvelope<{ record_id: string }> = {
     evidence_refs: ["test:spec104"],
     warnings: [],
   },
+  human_readable:
+    "completed: Scoped record reconciled. Scope: a · cont. Authority: canonical. Next: Continue. Why: Vector clocks converged",
   data: { record_id: "record-1" },
 };
 const human = renderScopedResultHuman(envelope);
-for (const label of ["Status:", "Summary:", "Scope:", "Authority:", "Next action:", "Why:", "Evidence:"])
-  assert(human.includes(label), `human output missing ${label}`);
+for (const label of [
+  "Human readable:",
+  "Status:",
+  "Summary:",
+  "Scope:",
+  "Authority:",
+  "Next action:",
+  "Why:",
+  "Evidence:",
+]) assert(human.includes(label), `human output missing ${label}`);
 assert(envelope.data.record_id === "record-1", "machine data was lost");
 
 console.log("PASS: Spec104 TS scoped state, CRDT, and dual-output contract");

@@ -371,6 +371,8 @@ pub struct ScopedResultEnvelope<T> {
     pub scope: WorkstreamKey,
     pub authority: AuthorityEnvelope,
     pub human: HumanReadableSummary,
+    #[serde(default)]
+    pub human_readable: String,
     pub data: T,
 }
 
@@ -381,11 +383,32 @@ impl<T> ScopedResultEnvelope<T> {
         human: HumanReadableSummary,
         data: T,
     ) -> Self {
+        let authority_label = match authority.status {
+            AuthorityStatus::Canonical => "canonical",
+            AuthorityStatus::Advisory => "advisory",
+            AuthorityStatus::Blocked => "blocked",
+            AuthorityStatus::Degraded => "degraded",
+        };
+        let human_readable = format!(
+            "{}: {} Scope: {} · {}. Authority: {}. Next: {}. Why: {}",
+            human.status,
+            human.summary,
+            scope.root_scope.canonical_name,
+            scope.continuity_id,
+            authority_label,
+            human.next_action,
+            if human.why.trim().is_empty() {
+                &authority.why
+            } else {
+                &human.why
+            }
+        );
         Self {
             schema: SCOPED_RESULT_SCHEMA_V1.to_string(),
             scope,
             authority,
             human,
+            human_readable,
             data,
         }
     }
@@ -475,6 +498,21 @@ mod tests {
         );
         let json = serde_json::to_value(envelope).unwrap();
         assert_eq!(json["human"]["summary"], "Scoped state updated");
+        assert!(
+            json["human_readable"]
+                .as_str()
+                .is_some_and(|text| text.contains("completed: Scoped state updated"))
+        );
+        assert!(
+            json["human_readable"]
+                .as_str()
+                .is_some_and(|text| text.contains("Scope: a · cont"))
+        );
+        assert!(
+            json["human_readable"]
+                .as_str()
+                .is_some_and(|text| text.contains("Next: Continue"))
+        );
         assert_eq!(json["data"]["record_id"], "r1");
     }
 }

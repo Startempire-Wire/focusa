@@ -2782,6 +2782,32 @@ export function registerTools(pi: ExtensionAPI) {
     };
   }
 
+  function scopedResponseFailureClass(
+    response: { ok: boolean; status: number },
+    body: any
+  ): FocusaFailureClass {
+    const diagnostic = JSON.stringify({
+      authority: body?.authority,
+      failure_class: body?.failure_class,
+      code: body?.code,
+      error: body?.error,
+      reason: body?.reason,
+      human: body?.human,
+    }).toLowerCase();
+    if (diagnostic.includes("scope")) return "scope_mismatch";
+    if (response.status === 400 || /schema|invalid|validation/.test(diagnostic)) return "validation_rejected";
+    if (response.status === 403 || diagnostic.includes("permission")) return "permission_denied";
+    if (response.status === 404 || diagnostic.includes("not_found")) return "not_found";
+    if (response.status === 0) return "daemon_unavailable";
+    return "unknown_ambiguous_completion";
+  }
+
+  function scopedResponseHuman(body: any, fallback: string): string {
+    return String(
+      body?.human_readable || body?.human?.summary || body?.summary || body?.reason || body?.error || fallback
+    );
+  }
+
   async function focusaFetchDetailed(
     path: string,
     opts: RequestInit = {}
@@ -6222,11 +6248,7 @@ export function registerTools(pi: ExtensionAPI) {
           }),
         });
       }
-      if (
-        action === "rollover" &&
-        apiTransfer.ok &&
-        targetContinuityId !== sourceContinuityId
-      ) {
+      if (action === "rollover" && apiTransfer.ok && targetContinuityId !== sourceContinuityId) {
         const hint = inferred.checkpoint_payload_hint || {};
         const targetMission = p.mission || hint.mission || inferred.mission || currentAsk;
         const targetNextAction =
@@ -6293,12 +6315,7 @@ export function registerTools(pi: ExtensionAPI) {
         tq.set("allow_prior_project_trajectory", "true");
         trajectory = await focusaFetchDetailed(`/trajectory/view?${tq.toString()}`, { method: "GET" });
       }
-      if (
-        action === "rollover" &&
-        targetCheckpoint?.ok &&
-        resume?.ok &&
-        resume.body?.canonical === true
-      ) {
+      if (action === "rollover" && targetCheckpoint?.ok && resume?.ok && resume.body?.canonical === true) {
         const targetWorkpointId =
           resume.body?.workpoint_id ||
           resume.body?.resume_packet?.workpoint?.workpoint_id ||
@@ -6322,8 +6339,7 @@ export function registerTools(pi: ExtensionAPI) {
           resume?.ok &&
           resume.body?.canonical === true &&
           transitionVerification?.ok &&
-          transitionVerification.body?.transfer?.transition_receipt?.status ===
-            "target_resume_verified");
+          transitionVerification.body?.transfer?.transition_receipt?.status === "target_resume_verified");
       const ok =
         apiTransfer.ok &&
         cardRes.ok &&
@@ -8776,6 +8792,7 @@ export function registerTools(pi: ExtensionAPI) {
         endpoint,
         request,
         response: result.body ?? null,
+        human_readable: typeof result.body?.human_readable === "string" ? result.body.human_readable : null,
         quality_gate: tool.startsWith("focusa_metacog_") ? metacogQualityGate(request) : undefined,
         evidence_refs: Array.isArray(request.evidence_refs) ? request.evidence_refs : [],
         suggested_metrics: tool.startsWith("focusa_metacog_")
@@ -13769,15 +13786,19 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
         body: JSON.stringify(payload),
       });
       const body = (res.body || {}) as ScopedResultEnvelope<any>;
-      if (!res.ok || body.authority?.status === "blocked")
+      if (!res.ok || body.authority?.status === "blocked") {
+        const failureClass = scopedResponseFailureClass(res, body);
         return blockedToolResponse(
           "focusa_predict_record",
           "prediction",
-          `prediction record blocked → ${body.human?.summary || explainWorkLoopResult(res, "prediction write unavailable")}`,
-          "scope_mismatch",
+          `prediction record blocked → ${scopedResponseHuman(body, explainWorkLoopResult(res, "prediction write unavailable"))}`,
+          failureClass,
           body,
-          ["focusa_project_identity", "focusa_workpoint_resume"]
+          failureClass === "scope_mismatch"
+            ? ["focusa_project_identity", "focusa_workpoint_resume"]
+            : ["focusa_predict_recent", "focusa_tool_doctor"]
         );
+      }
       const record = body.data?.record || {};
       const prediction = record.prediction || {};
       const predictionId = String(record.record_id || "unknown");
@@ -13826,15 +13847,19 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       query.set("limit", String(Math.max(1, Math.min(100, Number(p.limit || 20)))));
       const res = await focusaFetchDetailed(`/predictions/recent?${query.toString()}`);
       const body = (res.body || {}) as ScopedResultEnvelope<any>;
-      if (!res.ok || body.authority?.status === "blocked")
+      if (!res.ok || body.authority?.status === "blocked") {
+        const failureClass = scopedResponseFailureClass(res, body);
         return blockedToolResponse(
           "focusa_predict_recent",
           "prediction",
-          `predictions recent blocked → ${body.human?.summary || "scoped read unavailable"}`,
-          "scope_mismatch",
+          `predictions recent blocked → ${scopedResponseHuman(body, "scoped read unavailable")}`,
+          failureClass,
           body,
-          ["focusa_project_identity", "focusa_workpoint_resume"]
+          failureClass === "scope_mismatch"
+            ? ["focusa_project_identity", "focusa_workpoint_resume"]
+            : ["focusa_tool_doctor"]
         );
+      }
       const legacyBody = body as any;
       const predictions = Array.isArray(body.data?.predictions)
         ? body.data.predictions
@@ -13900,15 +13925,19 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
         }),
       });
       const body = (res.body || {}) as ScopedResultEnvelope<any>;
-      if (!res.ok || body.authority?.status === "blocked")
+      if (!res.ok || body.authority?.status === "blocked") {
+        const failureClass = scopedResponseFailureClass(res, body);
         return blockedToolResponse(
           "focusa_predict_evaluate",
           "prediction",
-          `prediction evaluate blocked → ${body.human?.summary || "scoped evaluation unavailable"}`,
-          "scope_mismatch",
+          `prediction evaluate blocked → ${scopedResponseHuman(body, "scoped evaluation unavailable")}`,
+          failureClass,
           body,
-          ["focusa_predict_recent"]
+          failureClass === "scope_mismatch"
+            ? ["focusa_predict_recent", "focusa_workpoint_resume"]
+            : ["focusa_predict_recent", "focusa_tool_doctor"]
         );
+      }
       return {
         content: [{ type: "text", text: renderScopedResultHuman(body) }],
         details: {
@@ -14111,15 +14140,19 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       const query = scopedQueryParams(scope);
       const res = await focusaFetchDetailed(`/predictions/stats?${query.toString()}`);
       const body = (res.body || {}) as ScopedResultEnvelope<any>;
-      if (!res.ok || body.authority?.status === "blocked")
+      if (!res.ok || body.authority?.status === "blocked") {
+        const failureClass = scopedResponseFailureClass(res, body);
         return blockedToolResponse(
           "focusa_predict_stats",
           "prediction",
-          `prediction stats blocked → ${body.human?.summary || "scoped stats unavailable"}`,
-          "scope_mismatch",
+          `prediction stats blocked → ${scopedResponseHuman(body, "scoped stats unavailable")}`,
+          failureClass,
           body,
-          ["focusa_predict_recent"]
+          failureClass === "scope_mismatch"
+            ? ["focusa_predict_recent", "focusa_workpoint_resume"]
+            : ["focusa_predict_recent", "focusa_tool_doctor"]
         );
+      }
       return {
         content: [{ type: "text", text: renderScopedResultHuman(body) }],
         details: {

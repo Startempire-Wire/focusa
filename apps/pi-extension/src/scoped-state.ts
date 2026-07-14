@@ -84,6 +84,7 @@ export interface ScopedResultEnvelope<T> {
   scope: WorkstreamKey;
   authority: AuthorityEnvelope;
   human: HumanReadableSummary;
+  human_readable?: string;
   data: T;
 }
 
@@ -257,6 +258,7 @@ export function renderScopedResultHuman<T>(envelope: ScopedResultEnvelope<T>): s
     ].join("\n");
   }
   const lines = [
+    ...(body.human_readable ? [`Human readable: ${body.human_readable}`] : []),
     `Status: ${body.human.status}`,
     `Summary: ${body.human.summary}`,
     `Scope: ${body.scope.root_scope.scope_kind}:${body.scope.root_scope.canonical_name} · ${body.scope.continuity_id}`,

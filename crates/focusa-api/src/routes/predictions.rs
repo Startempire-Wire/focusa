@@ -656,8 +656,52 @@ mod tests {
     }
 
     #[test]
+    fn record_body_accepts_partial_ontology_context() {
+        let body: PredictionBody = serde_json::from_value(json!({
+            "scope": scope("focusa", "auto"),
+            "prediction_type": "rare_feature_gap_hunt",
+            "context_refs": ["proof:one"],
+            "ontology_context": {
+                "object_refs": ["object:one"],
+                "evidence_refs": ["proof:one"]
+            },
+            "predicted_outcome": "success",
+            "confidence": 0.8,
+            "recommended_action": "continue",
+            "why": "bounded test"
+        }))
+        .expect("partial ontology context should not reject the prediction request");
+
+        assert_eq!(body.ontology_context.object_refs, vec!["object:one"]);
+        assert!(body.ontology_context.action_refs.is_empty());
+        assert!(body.ontology_context.tool_refs.is_empty());
+        assert!(body.ontology_context.relation_refs.is_empty());
+    }
+
+    #[test]
     fn same_continuity_never_matches_different_projects() {
         assert_ne!(scope("a", "same"), scope("b", "same"));
+    }
+
+    #[test]
+    fn prediction_responses_include_human_readable_field() {
+        let response = response(
+            scope("focusa", "auto"),
+            AuthorityStatus::Canonical,
+            "recorded",
+            "Prediction recorded",
+            "Evaluate when outcome is known",
+            "Stored in the scoped ledger",
+            json!({"record_id":"pred-one"}),
+            vec![],
+        );
+        assert!(
+            response
+                .0
+                .get("human_readable")
+                .and_then(Value::as_str)
+                .is_some_and(|text| text.contains("recorded: Prediction recorded"))
+        );
     }
 
     #[test]

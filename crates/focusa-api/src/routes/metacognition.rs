@@ -189,6 +189,13 @@ fn summarize_content(content: &str) -> String {
     content.chars().take(240).collect()
 }
 
+fn with_human_readable(mut response: Value, message: impl Into<String>) -> Value {
+    if let Some(object) = response.as_object_mut() {
+        object.insert("human_readable".to_string(), json!(message.into()));
+    }
+    response
+}
+
 fn tags_for_capture(capture: &CaptureRecord) -> Vec<String> {
     let mut tags = vec![capture.kind.to_ascii_lowercase()];
     if let Some(strategy) = &capture.strategy_class {
@@ -574,6 +581,7 @@ fn scope_required_response(reason: String) -> (StatusCode, Json<Value>) {
             "status": "error",
             "code": "SCOPE_REQUIRED",
             "reason": reason,
+            "human_readable": "Metacognition requires a verified project and continuity scope. Next: resume or checkpoint the current Workpoint."
         })),
     )
 }
@@ -703,7 +711,8 @@ async fn capture(
             Json(json!({
                 "status": "error",
                 "code": "CAPTURE_SCHEMA_INVALID",
-                "reason": "kind and content are required"
+                "reason": "kind and content are required",
+                "human_readable": "Metacognition capture was rejected because kind and content are required. Next: provide both bounded fields."
             })),
         ));
     }
@@ -746,13 +755,16 @@ async fn capture(
     s.capture_hot_index.push(index_entry);
     prune_metacog_store(s, Utc::now(), metacog_store_config(&state.config));
 
-    Ok(Json(json!({
-        "capture_id": capture_id,
-        "stored": true,
-        "linked_turn_id": Value::Null,
-        "storage_path": storage_path,
-        "trajectory": trajectory,
-    })))
+    Ok(Json(with_human_readable(
+        json!({
+            "capture_id": capture_id,
+            "stored": true,
+            "linked_turn_id": Value::Null,
+            "storage_path": storage_path,
+            "trajectory": trajectory,
+        }),
+        "Metacognition capture stored. Next: retrieve it when a related ask needs the lesson.",
+    )))
 }
 
 #[derive(Debug, Deserialize)]
@@ -930,25 +942,31 @@ async fn retrieve(
         None
     };
 
-    Ok(Json(json!({
-        "candidates": candidates,
-        "next_cursor": next_cursor,
-        "page_size": page_size,
-        "total_candidates": total,
-        "ranked_by": "hot_index_keyword_similarity",
-        "index": {
-            "kind": "capture_hot_index",
-            "summary_only_default": true,
-            "indexed_items": hot_index.len(),
-            "cap": cfg.max_captures,
-            "ttl_minutes": cfg.ttl_minutes
-        },
-        "retrieval_budget": {
-            "tokens_used": 0,
-            "latency_ms": 0,
-            "truncated": next_cursor.is_some()
-        }
-    })))
+    Ok(Json(with_human_readable(
+        json!({
+            "candidates": candidates,
+            "next_cursor": next_cursor,
+            "page_size": page_size,
+            "total_candidates": total,
+            "ranked_by": "hot_index_keyword_similarity",
+            "index": {
+                "kind": "capture_hot_index",
+                "summary_only_default": true,
+                "indexed_items": hot_index.len(),
+                "cap": cfg.max_captures,
+                "ttl_minutes": cfg.ttl_minutes
+            },
+            "retrieval_budget": {
+                "tokens_used": 0,
+                "latency_ms": 0,
+                "truncated": next_cursor.is_some()
+            }
+        }),
+        format!(
+            "Retrieved {} metacognition candidate(s). Next: inspect the top lesson or reflect if evidence is weak.",
+            page_size
+        ),
+    )))
 }
 
 #[derive(Debug, Deserialize)]
@@ -975,7 +993,8 @@ async fn reflect(
             Json(json!({
                 "status": "error",
                 "code": "REFLECT_INPUT_INVALID",
-                "reason": "turn_range is required"
+                "reason": "turn_range is required",
+                "human_readable": "Metacognition reflection was rejected because turn_range is required. Next: provide a bounded turn range."
             })),
         ));
     }
@@ -1022,13 +1041,16 @@ async fn reflect(
     s.reflections.push(rec.clone());
     prune_metacog_store(s, Utc::now(), metacog_store_config(&state.config));
 
-    Ok(Json(json!({
-        "reflection_id": reflection_id,
-        "hypotheses": rec.hypotheses,
-        "strategy_updates": strategy_updates,
-        "storage_path": storage_path,
-        "trajectory": trajectory,
-    })))
+    Ok(Json(with_human_readable(
+        json!({
+            "reflection_id": reflection_id,
+            "hypotheses": rec.hypotheses,
+            "strategy_updates": strategy_updates,
+            "storage_path": storage_path,
+            "trajectory": trajectory,
+        }),
+        "Metacognition reflection created. Next: select bounded strategy updates for an adjustment.",
+    )))
 }
 
 #[derive(Debug, Deserialize)]
@@ -1065,7 +1087,8 @@ async fn adjust(
             Json(json!({
                 "status": "error",
                 "code": "REFLECTION_NOT_FOUND",
-                "reason": "reflection_id does not exist"
+                "reason": "reflection_id does not exist",
+                "human_readable": "The requested metacognition reflection was not found in this scope. Next: list recent reflections and retry with a valid id."
             })),
         ));
     }
@@ -1099,16 +1122,19 @@ async fn adjust(
     s.adjustments.push(rec.clone());
     prune_metacog_store(s, Utc::now(), metacog_store_config(&state.config));
 
-    Ok(Json(json!({
-        "adjustment_id": adjustment_id,
-        "next_step_policy": rec.selected_updates,
-        "expected_deltas": {
-            "failed_turn_ratio": -0.1,
-            "rework_loop_rate": -0.1,
-        },
-        "storage_path": storage_path,
-        "trajectory": trajectory,
-    })))
+    Ok(Json(with_human_readable(
+        json!({
+            "adjustment_id": adjustment_id,
+            "next_step_policy": rec.selected_updates,
+            "expected_deltas": {
+                "failed_turn_ratio": -0.1,
+                "rework_loop_rate": -0.1,
+            },
+            "storage_path": storage_path,
+            "trajectory": trajectory,
+        }),
+        "Metacognition adjustment created. Next: apply it and evaluate observed outcome metrics.",
+    )))
 }
 
 #[derive(Debug, Deserialize)]
@@ -1136,7 +1162,8 @@ async fn evaluate(
             Json(json!({
                 "status": "error",
                 "code": "ADJUSTMENT_NOT_FOUND",
-                "reason": "adjustment_id does not exist"
+                "reason": "adjustment_id does not exist",
+                "human_readable": "The requested metacognition adjustment was not found in this scope. Next: list recent adjustments and retry with a valid id."
             })),
         ));
     };
@@ -1260,24 +1287,31 @@ async fn evaluate(
         None
     };
 
-    Ok(Json(json!({
-        "evaluation_id": evaluation_id,
-        "adjustment_id": rec.adjustment_id,
-        "delta_scorecard": {
-            "metrics_observed": rec.observed_metrics,
-            "selected_updates": adjustment.selected_updates,
-            "promotion_score": score,
-            "threshold": 0.5,
+    Ok(Json(with_human_readable(
+        json!({
+            "evaluation_id": evaluation_id,
+            "adjustment_id": rec.adjustment_id,
+            "delta_scorecard": {
+                "metrics_observed": rec.observed_metrics,
+                "selected_updates": adjustment.selected_updates,
+                "promotion_score": score,
+                "threshold": 0.5,
+            },
+            "result": rec.result,
+            "promote_learning": rec.promote_learning,
+            "promoted_capture_id": promoted_capture_id,
+            "follow_up_prediction": follow_up_prediction,
+            "flywheel": {"metacog_to_prediction": follow_up_prediction.is_some(), "next_tools": ["focusa_predict_recent", "focusa_predict_evaluate", "focusa_metacog_retrieve"]},
+            "storage_path": storage_path,
+            "trajectory": trajectory,
+            "next_step_hint": if rec.promote_learning { "promoted learning was written back into metacognition retrieval memory and a follow-up prediction was recorded" } else { "collect observed_metrics before promoting this learning signal" }
+        }),
+        if rec.promote_learning {
+            "Metacognition evaluation passed and learning was promoted. Next: evaluate the follow-up prediction."
+        } else {
+            "Metacognition evaluation completed without promotion. Next: collect stronger observed metrics."
         },
-        "result": rec.result,
-        "promote_learning": rec.promote_learning,
-        "promoted_capture_id": promoted_capture_id,
-        "follow_up_prediction": follow_up_prediction,
-        "flywheel": {"metacog_to_prediction": follow_up_prediction.is_some(), "next_tools": ["focusa_predict_recent", "focusa_predict_evaluate", "focusa_metacog_retrieve"]},
-        "storage_path": storage_path,
-        "trajectory": trajectory,
-        "next_step_hint": if rec.promote_learning { "promoted learning was written back into metacognition retrieval memory and a follow-up prediction was recorded" } else { "collect observed_metrics before promoting this learning signal" }
-    })))
+    )))
 }
 
 #[derive(Debug, Deserialize)]
@@ -1326,29 +1360,32 @@ async fn metacog_status(
         .values()
         .filter(|rec| rec.promote_learning)
         .count();
-    Ok(Json(json!({
-        "status": "ok",
-        "caps": {
-            "max_captures": cfg.max_captures,
-            "max_reflections": cfg.max_reflections,
-            "max_adjustments": cfg.max_adjustments,
-            "max_evaluations": cfg.max_adjustments,
-            "ttl_minutes": cfg.ttl_minutes,
-            "retrieve_max_k": retrieve_max_k()
-        },
-        "hot_index": {
-            "captures_indexed": s.capture_hot_index.len(),
-            "summary_chars": 240,
-            "full_content_rehydrate_route": "/v1/metacognition/captures/{capture_id}"
-        },
-        "evaluation_memory": {
-            "evaluations_recorded": evaluations_by_id.len(),
-            "promoted_evaluations": promoted_evaluations,
-            "storage_category": "evaluations",
-            "persistence": "json_record"
-        },
-        "eviction_telemetry": s.eviction_events.iter().rev().take(10).cloned().collect::<Vec<_>>(),
-    })))
+    Ok(Json(with_human_readable(
+        json!({
+            "status": "ok",
+            "caps": {
+                "max_captures": cfg.max_captures,
+                "max_reflections": cfg.max_reflections,
+                "max_adjustments": cfg.max_adjustments,
+                "max_evaluations": cfg.max_adjustments,
+                "ttl_minutes": cfg.ttl_minutes,
+                "retrieve_max_k": retrieve_max_k()
+            },
+            "hot_index": {
+                "captures_indexed": s.capture_hot_index.len(),
+                "summary_chars": 240,
+                "full_content_rehydrate_route": "/v1/metacognition/captures/{capture_id}"
+            },
+            "evaluation_memory": {
+                "evaluations_recorded": evaluations_by_id.len(),
+                "promoted_evaluations": promoted_evaluations,
+                "storage_category": "evaluations",
+                "persistence": "json_record"
+            },
+            "eviction_telemetry": s.eviction_events.iter().rev().take(10).cloned().collect::<Vec<_>>(),
+        }),
+        "Metacognition store is healthy. Next: retrieve lessons for the current ask or capture new evidence-backed learning.",
+    )))
 }
 
 async fn get_capture(
@@ -1384,14 +1421,18 @@ async fn get_capture(
             Json(json!({
                 "status": "error",
                 "code": "CAPTURE_NOT_FOUND",
-                "reason": "capture_id does not exist"
+                "reason": "capture_id does not exist",
+                "human_readable": "The requested metacognition capture was not found in this scope. Next: retrieve recent candidates and retry with a valid id."
             })),
         ));
     };
-    Ok(Json(json!({
-        "status": "ok",
-        "capture": rec,
-    })))
+    Ok(Json(with_human_readable(
+        json!({
+            "status": "ok",
+            "capture": rec,
+        }),
+        "Metacognition capture loaded. Next: apply the lesson only when it matches the current evidence and scope.",
+    )))
 }
 
 async fn recent_reflections(
@@ -1436,24 +1477,27 @@ async fn recent_reflections(
         .collect::<Vec<_>>();
     let next_cursor = (cursor + window.len() < total).then(|| (cursor + window.len()).to_string());
 
-    Ok(Json(json!({
-        "status": "ok",
-        "total": total,
-        "returned": window.len(),
-        "limit": limit,
-        "cursor": cursor,
-        "next_cursor": next_cursor,
-        "truncated": next_cursor.is_some() || cursor > 0,
-        "metadata": {"summary_only": true, "cursor": cursor, "limit": limit, "next_cursor": next_cursor},
-        "rehydrate": {"route": "/v1/metacognition/captures/{capture_id}"},
-        "reflections": window.into_iter().map(|rec| json!({
-            "reflection_id": rec.reflection_id,
-            "created_at": rec.created_at,
-            "turn_range": rec.turn_range,
-            "failure_classes": rec.failure_classes,
-            "strategy_updates": rec.strategy_updates,
-        })).collect::<Vec<_>>()
-    })))
+    Ok(Json(with_human_readable(
+        json!({
+            "status": "ok",
+            "total": total,
+            "returned": window.len(),
+            "limit": limit,
+            "cursor": cursor,
+            "next_cursor": next_cursor,
+            "truncated": next_cursor.is_some() || cursor > 0,
+            "metadata": {"summary_only": true, "cursor": cursor, "limit": limit, "next_cursor": next_cursor},
+            "rehydrate": {"route": "/v1/metacognition/captures/{capture_id}"},
+            "reflections": window.into_iter().map(|rec| json!({
+                "reflection_id": rec.reflection_id,
+                "created_at": rec.created_at,
+                "turn_range": rec.turn_range,
+                "failure_classes": rec.failure_classes,
+                "strategy_updates": rec.strategy_updates,
+            })).collect::<Vec<_>>()
+        }),
+        "Recent metacognition reflections loaded. Next: choose one reflection before creating an adjustment.",
+    )))
 }
 
 async fn recent_evaluations(
@@ -1498,26 +1542,29 @@ async fn recent_evaluations(
         .collect::<Vec<_>>();
     let next_cursor = (cursor + window.len() < total).then(|| (cursor + window.len()).to_string());
 
-    Ok(Json(json!({
-        "status": "ok",
-        "total": total,
-        "returned": window.len(),
-        "limit": limit,
-        "cursor": cursor,
-        "next_cursor": next_cursor,
-        "truncated": next_cursor.is_some() || cursor > 0,
-        "metadata": {"summary_only": true, "cursor": cursor, "limit": limit, "next_cursor": next_cursor},
-        "rehydrate": {"route": "/v1/metacognition/evaluations/recent", "include_full_record": true},
-        "evaluations": window.into_iter().map(|rec| json!({
-            "evaluation_id": rec.evaluation_id,
-            "adjustment_id": rec.adjustment_id,
-            "created_at": rec.created_at,
-            "result": rec.result,
-            "promote_learning": rec.promote_learning,
-            "observed_metrics": rec.observed_metrics,
-            "storage_path": rec.storage_path,
-        })).collect::<Vec<_>>()
-    })))
+    Ok(Json(with_human_readable(
+        json!({
+            "status": "ok",
+            "total": total,
+            "returned": window.len(),
+            "limit": limit,
+            "cursor": cursor,
+            "next_cursor": next_cursor,
+            "truncated": next_cursor.is_some() || cursor > 0,
+            "metadata": {"summary_only": true, "cursor": cursor, "limit": limit, "next_cursor": next_cursor},
+            "rehydrate": {"route": "/v1/metacognition/evaluations/recent", "include_full_record": true},
+            "evaluations": window.into_iter().map(|rec| json!({
+                "evaluation_id": rec.evaluation_id,
+                "adjustment_id": rec.adjustment_id,
+                "created_at": rec.created_at,
+                "result": rec.result,
+                "promote_learning": rec.promote_learning,
+                "observed_metrics": rec.observed_metrics,
+                "storage_path": rec.storage_path,
+            })).collect::<Vec<_>>()
+        }),
+        "Recent metacognition evaluations loaded. Next: inspect promotion evidence or collect stronger outcome metrics.",
+    )))
 }
 
 async fn recent_adjustments(
@@ -1562,23 +1609,26 @@ async fn recent_adjustments(
         .collect::<Vec<_>>();
     let next_cursor = (cursor + window.len() < total).then(|| (cursor + window.len()).to_string());
 
-    Ok(Json(json!({
-        "status": "ok",
-        "total": total,
-        "returned": window.len(),
-        "limit": limit,
-        "cursor": cursor,
-        "next_cursor": next_cursor,
-        "truncated": next_cursor.is_some() || cursor > 0,
-        "metadata": {"summary_only": true, "cursor": cursor, "limit": limit, "next_cursor": next_cursor},
-        "rehydrate": {"route": "/v1/metacognition/captures/{capture_id}"},
-        "adjustments": window.into_iter().map(|rec| json!({
-            "adjustment_id": rec.adjustment_id,
-            "reflection_id": rec.reflection_id,
-            "created_at": rec.created_at,
-            "selected_updates": rec.selected_updates,
-        })).collect::<Vec<_>>()
-    })))
+    Ok(Json(with_human_readable(
+        json!({
+            "status": "ok",
+            "total": total,
+            "returned": window.len(),
+            "limit": limit,
+            "cursor": cursor,
+            "next_cursor": next_cursor,
+            "truncated": next_cursor.is_some() || cursor > 0,
+            "metadata": {"summary_only": true, "cursor": cursor, "limit": limit, "next_cursor": next_cursor},
+            "rehydrate": {"route": "/v1/metacognition/captures/{capture_id}"},
+            "adjustments": window.into_iter().map(|rec| json!({
+                "adjustment_id": rec.adjustment_id,
+                "reflection_id": rec.reflection_id,
+                "created_at": rec.created_at,
+                "selected_updates": rec.selected_updates,
+            })).collect::<Vec<_>>()
+        }),
+        "Recent metacognition adjustments loaded. Next: evaluate one adjustment against observed metrics.",
+    )))
 }
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -1608,6 +1658,19 @@ pub fn router() -> Router<Arc<AppState>> {
 mod tests {
     use super::*;
     use chrono::{Duration, TimeZone};
+
+    #[test]
+    fn human_readable_field_is_stable_and_top_level() {
+        let response = with_human_readable(
+            json!({"status":"ok","capture_id":"cap-test"}),
+            "Metacognition capture stored. Next: retrieve it.",
+        );
+        assert_eq!(
+            response.get("human_readable").and_then(Value::as_str),
+            Some("Metacognition capture stored. Next: retrieve it.")
+        );
+        assert_eq!(response.get("status").and_then(Value::as_str), Some("ok"));
+    }
 
     fn capture(id: &str, created_at: chrono::DateTime<chrono::Utc>) -> CaptureRecord {
         CaptureRecord {

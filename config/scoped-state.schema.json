@@ -49,12 +49,13 @@
   },
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "scope", "authority", "human", "data"],
+  "required": ["schema", "scope", "authority", "human", "human_readable", "data"],
   "properties": {
     "schema": {"const": "focusa.scoped_result.v1"},
     "scope": {"$ref": "#/$defs/workstreamKey"},
     "authority": {"$ref": "#/$defs/authority"},
     "human": {"$ref": "#/$defs/human"},
+    "human_readable": {"type": "string", "minLength": 1},
     "data": {}
   }
 }
