@@ -374,6 +374,7 @@ function attachmentRuntimeKey(key: AttachmentKey): string {
 
 export class AttachmentRuntimeRegistry {
   private readonly runtimes = new Map<string, AttachmentRuntimeState>();
+  private readonly boundAttachmentsBySession = new Map<string, AttachmentKey>();
 
   getOrCreate(key: AttachmentKey): AttachmentRuntimeState {
     const id = attachmentRuntimeKey(key);
@@ -388,8 +389,20 @@ export class AttachmentRuntimeRegistry {
     return runtime;
   }
 
+  bindSessionAttachment(key: AttachmentKey): void {
+    const root = key.workstream.root_scope.root_path;
+    const continuity = key.workstream.continuity_id;
+    if (!isProjectRootAuthoritySafe(root) || !continuity || continuity === "extension-bootstrap") return;
+    this.boundAttachmentsBySession.set(key.session_id, key);
+  }
+
+  boundSessionAttachment(sessionId: string): AttachmentKey | undefined {
+    return this.boundAttachmentsBySession.get(sessionId);
+  }
+
   reset(): void {
     this.runtimes.clear();
+    this.boundAttachmentsBySession.clear();
   }
 }
 

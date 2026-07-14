@@ -203,16 +203,29 @@ export function reconcileScopedRecord<T>(
 }
 
 export function renderScopedResultHuman<T>(envelope: ScopedResultEnvelope<T>): string {
+  const body = envelope as any;
+  // Rolling upgrades can leave the active daemon on the legacy prediction
+  // envelope while the reloaded Pi extension already expects scoped_result.v1.
+  // Render bounded legacy responses without inventing canonical authority.
+  if (!body?.human || !body?.scope || !body?.authority) {
+    const items = Array.isArray(body?.predictions) ? body.predictions.length : undefined;
+    return [
+      `Status: ${String(body?.status || (body?.error ? "blocked" : "ok"))}`,
+      `Summary: ${String(body?.summary || body?.message || body?.error || "Legacy daemon response")}`,
+      ...(items === undefined ? [] : [`Predictions: ${items}`]),
+      "Authority: legacy envelope; scoped Pi request supplied, canonical authority not inferred",
+      "Next action: upgrade/restart the daemon when safe; continue with bounded compatibility output",
+    ].join("\n");
+  }
   const lines = [
-    `Status: ${envelope.human.status}`,
-    `Summary: ${envelope.human.summary}`,
-    `Scope: ${envelope.scope.root_scope.scope_kind}:${envelope.scope.root_scope.canonical_name} · ${envelope.scope.continuity_id}`,
-    `Authority: ${envelope.authority.status}`,
-    `Next action: ${envelope.human.next_action}`,
-    `Why: ${envelope.human.why || envelope.authority.why}`,
+    `Status: ${body.human.status}`,
+    `Summary: ${body.human.summary}`,
+    `Scope: ${body.scope.root_scope.scope_kind}:${body.scope.root_scope.canonical_name} · ${body.scope.continuity_id}`,
+    `Authority: ${body.authority.status}`,
+    `Next action: ${body.human.next_action}`,
+    `Why: ${body.human.why || body.authority.why}`,
   ];
-  if (envelope.human.warnings.length) lines.push(`Warnings: ${envelope.human.warnings.join(" | ")}`);
-  if (envelope.human.evidence_refs.length)
-    lines.push(`Evidence: ${envelope.human.evidence_refs.join(" | ")}`);
+  if (body.human.warnings.length) lines.push(`Warnings: ${body.human.warnings.join(" | ")}`);
+  if (body.human.evidence_refs.length) lines.push(`Evidence: ${body.human.evidence_refs.join(" | ")}`);
   return lines.join("\n");
 }

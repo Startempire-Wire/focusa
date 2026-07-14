@@ -14,6 +14,7 @@ try {
   );
   writeFileSync(join(outDir, "package.json"), '{"type":"module"}\n');
   const state = await import(pathToFileURL(join(outDir, "state.js")).href);
+  const scopedState = await import(pathToFileURL(join(outDir, "scoped-state.js")).href);
   state.attachmentRuntimeRegistry.reset();
   const keyA = state.makeAttachmentKey({
     projectRoot: "/tmp/project-a",
@@ -27,6 +28,24 @@ try {
     sessionId: "session-b",
     attachmentId: "attach-b",
   });
+  state.attachmentRuntimeRegistry.bindSessionAttachment(keyA);
+  assert.equal(
+    state.attachmentRuntimeRegistry.boundSessionAttachment("session-a")?.workstream.continuity_id,
+    "cont-a",
+    "typed project attachment must bind to its Pi session"
+  );
+  const unsafeKey = state.makeAttachmentKey({
+    projectRoot: "/root",
+    continuityId: "cont-unsafe",
+    sessionId: "session-a",
+    attachmentId: "attach-unsafe",
+  });
+  state.attachmentRuntimeRegistry.bindSessionAttachment(unsafeKey);
+  assert.equal(
+    state.attachmentRuntimeRegistry.boundSessionAttachment("session-a")?.workstream.continuity_id,
+    "cont-a",
+    "unsafe broad-root attachment must not replace verified session binding"
+  );
   await state.runWithAttachmentRuntime(keyA, async () => {
     const runtime = state.getAttachmentRuntime();
     runtime.currentAsk = { text: "ask-a" };
@@ -97,6 +116,15 @@ try {
   });
   assert.throws(() => state.getAttachmentRuntime(), /attachment_runtime_key_required/);
 
+  const index = readFileSync(new URL("../src/index.ts", import.meta.url), "utf8");
+  assert(
+    index.includes("attachmentRuntimeRegistry.boundSessionAttachment(sessionId)"),
+    "unscoped tool events must reuse the verified session attachment"
+  );
+  assert(
+    index.includes("tool.execute(id, params, signal, onUpdate, ctx)"),
+    "tool wrapper must preserve Pi execution context for session binding"
+  );
   const tools = readFileSync(new URL("../src/tools.ts", import.meta.url), "utf8");
   const detailedStart = tools.indexOf("async function focusaFetchDetailed");
   const detailedEnd = tools.indexOf("async function", detailedStart + 1);
@@ -116,6 +144,15 @@ try {
   for (const route of ["metacognition", "turn", "snapshots"]) {
     assert(detailed.includes("scopeHeaders"), `${route} mocked requests use shared scoped headers`);
   }
+  const legacyPredictionText = scopedState.renderScopedResultHuman({
+    status: "ok",
+    predictions: [{ prediction_id: "p1" }],
+  });
+  assert(legacyPredictionText.includes("Predictions: 1"), "legacy prediction envelope must render safely");
+  assert(
+    legacyPredictionText.includes("canonical authority not inferred"),
+    "legacy prediction rendering must not invent authority"
+  );
   console.log("spec104 attachment runtime isolation and scoped request headers passed");
 } finally {
   rmSync(outDir, { recursive: true, force: true });

@@ -6,6 +6,7 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { createRequire } from "module";
 import {
+  attachmentRuntimeRegistry,
   getAttachmentRuntime,
   getEffectiveFocusSnapshot,
   getFocusaAvailable,
@@ -36,25 +37,25 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
   const withRuntime = <T>(fn: () => T): T => runWithAttachmentRuntime(extensionKey, fn);
   return withRuntime(() => {
     const runtimeFor = (ctx?: any, eventOrParams?: any) => {
-      const projectRoot = String(
-        eventOrParams?.source_scope?.root_path ||
-          eventOrParams?.source_scope?.project_root ||
-          eventOrParams?.project_root ||
-          ctx?.cwd ||
-          process.cwd()
-      );
-      const continuityId = String(
-        eventOrParams?.source_scope?.continuity_id ||
-          eventOrParams?.continuity_id ||
-          getAttachmentRuntime(extensionKey).continuityId ||
-          "extension-bootstrap"
-      );
       const sessionId = String(
         eventOrParams?.sessionId ||
           eventOrParams?.session_id ||
           ctx?.sessionManager?.getSessionFile?.() ||
           getAttachmentRuntime(extensionKey).sessionFrameKey ||
           `pi-extension-${process.pid}`
+      );
+      const explicitProjectRoot =
+        eventOrParams?.source_scope?.root_path ||
+        eventOrParams?.source_scope?.project_root ||
+        eventOrParams?.project_root;
+      const explicitContinuity = eventOrParams?.source_scope?.continuity_id || eventOrParams?.continuity_id;
+      if (!explicitProjectRoot && !explicitContinuity) {
+        const bound = attachmentRuntimeRegistry.boundSessionAttachment(sessionId);
+        if (bound) return bound;
+      }
+      const projectRoot = String(explicitProjectRoot || ctx?.cwd || process.cwd());
+      const continuityId = String(
+        explicitContinuity || getAttachmentRuntime(extensionKey).continuityId || "extension-bootstrap"
       );
       return makeAttachmentKey({ projectRoot, continuityId, sessionId, attachmentId: sessionId });
     };
@@ -66,6 +67,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
       // handlers do not silently lose compaction policy after registry lookup.
       if (!target.cfg && bootstrap.cfg) target.cfg = bootstrap.cfg;
       if (!target.pi) target.pi = pi;
+      attachmentRuntimeRegistry.bindSessionAttachment(key);
       return key;
     };
     const originalOn = (pi as any).on?.bind(pi);
@@ -107,9 +109,9 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
         originalRegisterTool({
           ...tool,
           execute: tool?.execute
-            ? (id: string, params: any) =>
-                runWithAttachmentRuntime(prepareRuntime(runtimeFor(undefined, params || {})), () =>
-                  tool.execute(id, params)
+            ? (id: string, params: any, signal: AbortSignal, onUpdate: any, ctx: any) =>
+                runWithAttachmentRuntime(prepareRuntime(runtimeFor(ctx, params || {})), () =>
+                  tool.execute(id, params, signal, onUpdate, ctx)
                 )
             : tool?.execute,
         });

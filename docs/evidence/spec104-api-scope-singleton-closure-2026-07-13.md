@@ -20,3 +20,13 @@ Proven closures:
 - Bounded runtime statics remain open: operator policy requires explicit typed Host ScopeRef state rather than process-global mutable infrastructure.
 
 Known remaining open inventory outside this slice: API-05 metacognition store/global dir, menubar bridge runtime maps, and Pi extension state.
+
+## Compiled/runtime reconciliation — 2026-07-13
+
+- `cargo test -p focusa-api --no-fail-fast`: 337 tests passed after adding mandatory `WorkstreamKey` to stale ontology fixtures.
+- Focusa project identity: `/home/wirebot/focusa` verified high-confidence; broad `/root` rejected unsafe/low-confidence.
+- Current-continuity Workpoint resume returned canonical; alternate continuity returned `not_found`, canonical false, with no fallback authority.
+- `focusa_metacog_doctor`, recent snapshots, and bounded telemetry traversal succeeded through scoped Pi tools.
+- Prediction Pi tools still fail in wrapper rendering with `undefined.status`; `focusa-fsrc.14` remains open despite compiled API tests.
+
+This evidence supports API-01/02/03/05/06/07 only; API-04 is explicitly excluded from closure.

@@ -9,7 +9,7 @@ Scope: `apps/pi-extension` only, from `168e96ee`.
 - `focusa-fsrc.3` / `PI-03`: active Workpoint packet/summary are not fields in the runtime object; access goes through `TypedScopeStore` accessors.
 - `focusa-fsrc.4` / `PI-04`: trajectory clarity is scope-store-backed and restore paths check root/session/workstream before adoption.
 - `focusa-fsrc.5` / `PI-05`: project identity/verify shadows are scope-store-backed.
-- `focusa-fsrc.6` / `PI-08`: tool/action bridge imports `runtimeState` plus typed scoped helpers; no `S` import/access remains. `focusa_session_transfer` now carries explicit `source_scope`, `target_scope`/`target_continuity_id`, source/target session ids, packet refs, and rollover action for Spec130 rotating continuity without fingerprint-derived continuity.
+- `focusa-fsrc.6` / `PI-08`: tool/action bridge resolves state only through typed attachment/scoped helpers; no `runtimeState` or `S` import/access remains. `focusa_session_transfer` now carries explicit `source_scope`, `target_scope`/`target_continuity_id`, source/target session ids, packet refs, and rollover action for Spec130 rotating continuity without fingerprint-derived continuity.
 - `focusa-fsrc.7` / `PI-09`: turn authority bridge has no direct `S` access.
 - `focusa-fsrc.8` / `PI-10`: commands/prompt bridge has no direct `S` access and rollover/context paths build explicit `WorkstreamKey` objects.
 - `focusa-fsrc.9` / `PI-12`: persisted continuity restore remains root/session/workstream-checked and no longer depends on `S` direct authority.
@@ -44,3 +44,16 @@ npm run format
 ```
 
 All passed. No Rust/cargo, release, tag, deploy, push, or remote commands were run.
+
+## Runtime reconciliation — 2026-07-13
+
+Additional proof after the rejected singleton removal was integrated:
+
+- `tests/spec104_scoped_state_foundation_test.sh`: typed TS CRDT contract passed; Rust `scoped_state` tests 6/6 passed.
+- `tests/spec104_pi_runtime_scope_integrity_test.sh`: arbitration, current-ask override, root inference, and project-switch ledger all passed under explicit `AttachmentKey` binding.
+- `apps/pi-extension/tests/spec104-attachment-runtime-isolation.test.mjs`: alternating attachment keys and scoped request headers passed without cross-session bleed.
+- Focusa read-only runtime probe: current continuity returned canonical Workpoint `019f5dfc-673e-7102-936e-517f562176a2`; alternate continuity returned `canonical=false/not_found` with no authority fallback.
+- `tests/spec104_hard_singleton_audit_static_test.py`: zero singleton-surface findings.
+- `tests/spec104_tool_contract_static_audit.py`: all 98 contract entries/factories expose scope and authority requirements; all 97 literal scope kinds valid.
+
+These proofs cover `focusa-fsrc.1` through `.10`; they do not claim API/Focus State/work-loop closure.

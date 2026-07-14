@@ -49,21 +49,23 @@ def main() -> int:
         fail("FocusaToolContract.authority_requirement field missing")
     ok("FocusaToolContract.authority_requirement field declared")
 
-    # Count entries with scope_requirement field
-    count = tc_src.count('"scope_requirement":')
+    # TypeScript object keys may be quoted or unquoted. The interface occurrence
+    # is excluded; typed compilation separately guarantees every registry item
+    # satisfies FocusaToolContract.
+    count = len(re.findall(r'["\']?scope_requirement["\']?\s*:', tc_src)) - 1
     if count < 1:
         fail("no entries have scope_requirement")
-    ok(f"{count} contract entries have scope_requirement field")
+    ok(f"{count} contract entries/factories have scope_requirement field")
 
-    # Count entries with authority_requirement
-    auth_count = tc_src.count('"authority_requirement":')
+    auth_count = len(re.findall(r'["\']?authority_requirement["\']?\s*:', tc_src)) - 1
     if auth_count < 1:
         fail("no entries have authority_requirement")
-    ok(f"{auth_count} contract entries have authority_requirement field")
+    ok(f"{auth_count} contract entries/factories have authority_requirement field")
 
-    # Scope requirement kinds are valid
+    # Scope requirement kinds are valid. Dynamic preload factory kinds are
+    # checked by TypeScript's FocusaScopeRequirement return type.
     valid_kinds = {"none", "read", "write", "control", "public:health", "public:pairing"}
-    pattern = re.compile(r'"scope_requirement":\s*\{\s*"kind":\s*"([^"]+)"')
+    pattern = re.compile(r'["\']?scope_requirement["\']?\s*:\s*\{\s*["\']?kind["\']?\s*:\s*"([^"]+)"')
     kinds = pattern.findall(tc_src)
     invalid = [k for k in kinds if k not in valid_kinds]
     if invalid:

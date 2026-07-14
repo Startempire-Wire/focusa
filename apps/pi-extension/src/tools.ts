@@ -13722,8 +13722,13 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           body,
           ["focusa_project_identity", "focusa_workpoint_resume"]
         );
-      const predictions = Array.isArray(body.data?.predictions) ? body.data.predictions : [];
-      const hint = body.data?.evaluate_hint || {};
+      const legacyBody = body as any;
+      const predictions = Array.isArray(body.data?.predictions)
+        ? body.data.predictions
+        : Array.isArray(legacyBody.predictions)
+          ? legacyBody.predictions
+          : [];
+      const hint = body.data?.evaluate_hint || legacyBody.evaluate_hint || {};
       return {
         content: [{ type: "text", text: renderScopedResultHuman(body) }],
         details: {
@@ -14000,7 +14005,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
         content: [{ type: "text", text: renderScopedResultHuman(body) }],
         details: {
           ...body,
-          ...body.data,
+          ...((body as any).data || (body as any).stats || {}),
           scope,
           next_tools: ["focusa_predict_record", "focusa_predict_recent"],
         },

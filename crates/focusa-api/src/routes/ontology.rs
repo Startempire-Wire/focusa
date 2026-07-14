@@ -19,6 +19,8 @@ use axum::{
 };
 use chrono::Utc;
 use focusa_core::prediction::{PredictionOntologyContext, PredictionValue};
+#[cfg(test)]
+use focusa_core::scoped_state::ScopeRef;
 use focusa_core::scoped_state::WorkstreamKey;
 use focusa_core::types::{Action, FocusaEvent, FocusaState, FrameRecord, HandleKind, HandleRef};
 use serde::Deserialize;
@@ -9912,7 +9914,16 @@ mod tests {
 
     #[test]
     fn memory_pipeline_links_artifacts_and_gates_semantic_procedural_promotion() {
+        let root_scope = ScopeRef::project(
+            "project:spec104-memory-pipeline-test",
+            "/home/wirebot/focusa",
+            "focusa",
+            "sha256:spec104-memory-pipeline-test",
+        )
+        .unwrap();
+        let scope = WorkstreamKey::new(root_scope, "spec104-memory-pipeline-continuity").unwrap();
         let blocked = MemoryPipelineRequest {
+            scope: scope.clone(),
             episodic_events: vec![json!({"event":"tool_result"})],
             evidence_refs: vec![],
             synthesis_artifacts: vec![json!({"artifact_kind":"metacog_signal_proposal"})],
@@ -9939,6 +9950,7 @@ mod tests {
         );
 
         let promoted = MemoryPipelineRequest {
+            scope,
             episodic_events: vec![json!({"event":"tool_result"})],
             evidence_refs: vec!["test:proof".to_string()],
             synthesis_artifacts: vec![json!({"artifact_kind":"procedural_playbook_proposal"})],
