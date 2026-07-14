@@ -4,12 +4,12 @@
 //! facade; individual domain routes remain authoritative for mutations and
 //! deep/cold reads.
 
-use crate::scope::ScopeContext;
 use crate::routes::bounded::{
     BoundedReadOptions, bounded_metadata, bounded_window, budgeted_default_limit,
     budgeted_hard_limit, budgeted_requested_limit, field_projection,
     full_payload_blocked_by_pressure, project_json_fields,
 };
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::State;
 use axum::{Json, Router, routing::post};
@@ -100,7 +100,12 @@ fn bounded_json_items(
     };
     let limit = budgeted_requested_limit(req.limit, default_limit.min(ceiling), ceiling);
     let fields = fields_csv(&req.fields);
-    let projection = field_projection(fields.as_deref(), default_fields, allowed_fields);
+    let mut projection = field_projection(fields.as_deref(), default_fields, allowed_fields);
+    let projection_fallback = !req.fields.is_empty() && projection.applied.is_empty();
+    if projection_fallback {
+        let defaults = field_projection(None, default_fields, allowed_fields);
+        projection.applied = defaults.applied;
+    }
     let projected = items
         .iter()
         .map(|item| project_json_fields(item, &projection))
@@ -120,17 +125,27 @@ fn bounded_json_items(
             full_limit,
         },
     ));
-    (window, metadata, json!(projection), full_blocked)
+    let mut projection_json = json!(projection);
+    if let Some(object) = projection_json.as_object_mut() {
+        object.insert(
+            "fallback_to_defaults".to_string(),
+            json!(projection_fallback),
+        );
+    }
+    (window, metadata, projection_json, full_blocked)
 }
 
 fn value_id(value: &Value) -> String {
     value
         .get("node_id")
         .or_else(|| value.get("id"))
+        .or_else(|| value.get("event_id"))
         .or_else(|| value.get("workpoint_id"))
         .or_else(|| value.get("primitive_id"))
         .or_else(|| value.get("frame_id"))
         .or_else(|| value.get("prediction_id"))
+        .or_else(|| value.get("tool"))
+        .or_else(|| value.get("name"))
         .and_then(Value::as_str)
         .unwrap_or("item")
         .to_string()
@@ -738,9 +753,9 @@ fn traversed_items(surface: &str, selector: &str, items: &[Value]) -> Vec<Value>
                 "surface_version": stable_value_digest(item),
                 "freshness": "live",
                 "scope": scope_from_item(item),
-                "kind": item.get("kind").or_else(|| item.get("node_type")).or_else(|| item.get("status")).cloned().unwrap_or(Value::Null),
-                "label": item.get("label").or_else(|| item.get("title")).or_else(|| item.get("work_item_id")).cloned().unwrap_or(Value::Null),
-                "summary": item.get("summary").or_else(|| item.get("mission")).or_else(|| item.get("next_slice")).cloned().unwrap_or(Value::Null),
+                "kind": item.get("kind").or_else(|| item.get("node_type")).or_else(|| item.get("event_type")).or_else(|| item.get("status")).or_else(|| item.get("type")).cloned().unwrap_or(Value::Null),
+                "label": item.get("label").or_else(|| item.get("title")).or_else(|| item.get("work_item_id")).or_else(|| item.get("tool")).or_else(|| item.get("name")).or_else(|| item.get("event_type")).cloned().unwrap_or(Value::Null),
+                "summary": item.get("summary").or_else(|| item.get("mission")).or_else(|| item.get("next_slice")).or_else(|| item.get("message")).or_else(|| item.get("result")).or_else(|| item.get("timestamp")).cloned().unwrap_or(Value::Null),
                 "data": item,
             })
         })
@@ -1455,6 +1470,29 @@ fn surface_defaults(surface: &str) -> (&'static [&'static str], &'static [&'stat
                 "created_at",
             ],
         ),
+        "telemetry" | "turns" | "commands" => (
+            &[
+                "event_id",
+                "event_type",
+                "timestamp",
+                "session_id",
+                "agent_id",
+                "model_id",
+                "schema_version",
+            ],
+            &[
+                "event_id",
+                "event_type",
+                "timestamp",
+                "session_id",
+                "agent_id",
+                "model_id",
+                "clt_id",
+                "focus_frame_id",
+                "payload",
+                "schema_version",
+            ],
+        ),
         "profile_selector" | "bloatgaurd_profiles" => (
             &[
                 "profile_id",
@@ -2070,8 +2108,16 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
 fn scoped_traverse_state(state: &FocusaState, scope: &ScopeContext) -> FocusaState {
     let mut scoped = state.clone();
     scoped.clt = crate::routes::clt::scoped_clt_state(&state.clt, scope);
-    let project_root = scope.project_root.as_deref().map(str::trim).unwrap_or_default();
-    let continuity_id = scope.continuity_id.as_deref().map(str::trim).unwrap_or_default();
+    let project_root = scope
+        .project_root
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or_default();
+    let continuity_id = scope
+        .continuity_id
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or_default();
     scoped.focus_stack.frames.retain(|frame| {
         !project_root.is_empty()
             && !continuity_id.is_empty()
@@ -2089,14 +2135,21 @@ fn scoped_traverse_state(state: &FocusaState, scope: &ScopeContext) -> FocusaSta
         frame
             .parent_id
             .is_none_or(|parent_id| {
-                !scoped.focus_stack.frames.iter().any(|item| item.id == parent_id)
+                !scoped
+                    .focus_stack
+                    .frames
+                    .iter()
+                    .any(|item| item.id == parent_id)
             })
             .then_some(frame.id)
     });
-    scoped
-        .focus_stack
-        .stack_path_cache
-        .retain(|id| scoped.focus_stack.frames.iter().any(|frame| frame.id == *id));
+    scoped.focus_stack.stack_path_cache.retain(|id| {
+        scoped
+            .focus_stack
+            .frames
+            .iter()
+            .any(|frame| frame.id == *id)
+    });
     scoped
 }
 
@@ -2148,6 +2201,87 @@ mod tests {
                 ..focusa_core::types::TrajectoryProjectionRecord::default()
             });
         state
+    }
+
+    #[test]
+    fn telemetry_surface_preserves_event_identity_in_default_projection() {
+        let mut state = FocusaState::new();
+        state.telemetry.trace_events.push(json!({
+            "event_id": "evt-low-frequency-1",
+            "event_type": "tool_call",
+            "timestamp": "2026-07-14T22:00:00Z",
+            "session_id": "session-test",
+            "agent_id": "pi-test",
+            "model_id": "openai-codex/gpt-5.3-codex-spark",
+            "schema_version": "focusa.telemetry_event.v1",
+            "payload": {"tool": "focusa_traverse", "status": "completed"}
+        }));
+
+        let res = traverse_response(
+            &state,
+            TraverseRequest {
+                surface: "telemetry".to_string(),
+                selector: Some("summaries".to_string()),
+                limit: Some(1),
+                ..TraverseRequest::default()
+            },
+            false,
+        );
+
+        assert_eq!(
+            res.pointer("/items/0/anchor").and_then(Value::as_str),
+            Some("evt-low-frequency-1")
+        );
+        assert_eq!(
+            res.pointer("/items/0/kind").and_then(Value::as_str),
+            Some("tool_call")
+        );
+        assert_eq!(
+            res.pointer("/items/0/data/event_type")
+                .and_then(Value::as_str),
+            Some("tool_call")
+        );
+        assert_eq!(
+            res.pointer("/items/0/summary").and_then(Value::as_str),
+            Some("2026-07-14T22:00:00Z")
+        );
+    }
+
+    #[test]
+    fn invalid_requested_fields_fall_back_to_surface_defaults() {
+        let state = FocusaState::new();
+        let res = traverse_response(
+            &state,
+            TraverseRequest {
+                surface: "tool_registry".to_string(),
+                selector: Some("summaries".to_string()),
+                fields: vec!["name".to_string(), "family".to_string()],
+                limit: Some(1),
+                ..TraverseRequest::default()
+            },
+            false,
+        );
+
+        assert_eq!(
+            res.pointer("/items/0/anchor").and_then(Value::as_str),
+            Some("tool_registry_summary")
+        );
+        assert!(
+            res.pointer("/items/0/summary")
+                .and_then(Value::as_str)
+                .is_some_and(|summary| summary.contains("focusa_tool_doctor"))
+        );
+        assert_eq!(
+            res.pointer("/traversal/fields/fallback_to_defaults")
+                .and_then(Value::as_bool),
+            Some(true)
+        );
+        assert_eq!(
+            res.pointer("/traversal/fields/omitted")
+                .and_then(Value::as_array)
+                .map(Vec::len),
+            Some(2)
+        );
     }
 
     #[test]

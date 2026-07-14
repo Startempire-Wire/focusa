@@ -9025,8 +9025,25 @@ export function registerTools(pi: ExtensionAPI) {
           record && typeof record === "object" && record.data && typeof record.data === "object"
             ? (record.data as Record<string, any>)
             : record;
-        const anchor = record?.anchor || data?.node_id || data?.workpoint_id || data?.id || `#${index + 1}`;
-        const kind = record?.kind || data?.node_type || data?.status || data?.kind || "item";
+        const anchor =
+          record?.anchor ||
+          record?.label ||
+          data?.node_id ||
+          data?.event_id ||
+          data?.workpoint_id ||
+          data?.id ||
+          data?.tool ||
+          data?.name ||
+          "";
+        const kind =
+          record?.kind ||
+          record?.label ||
+          data?.node_type ||
+          data?.event_type ||
+          data?.status ||
+          data?.kind ||
+          data?.type ||
+          "";
         const payload =
           data?.payload && typeof data.payload === "object" ? (data.payload as Record<string, any>) : null;
         const summary =
@@ -9036,12 +9053,20 @@ export function registerTools(pi: ExtensionAPI) {
           data?.next_slice ||
           data?.goal ||
           data?.content_ref ||
+          data?.message ||
+          data?.result ||
           payload?.content_ref ||
           payload?.summary ||
           payload?.reason ||
+          payload?.message ||
+          data?.timestamp ||
           data?.created_at ||
-          "";
-        return `${index + 1}. ${summarizeValue(anchor)} ${summarizeValue(kind)} ${summarizeValue(summary)}`.trim();
+          (data && Object.keys(data).length ? summarizeValue(data) : "");
+        const parts = [anchor, kind, summary]
+          .map(summarizeValue)
+          .filter(Boolean)
+          .filter((value, partIndex, values) => values.indexOf(value) === partIndex);
+        return `${index + 1}. ${parts.join(" | ") || "[no projected fields]"}`;
       })
       .join("\n");
   }
@@ -13418,12 +13443,19 @@ export function registerTools(pi: ExtensionAPI) {
       const res = await callSpec80Tool("focusa_traverse", endpoint, req, { method: "POST" });
       const items = Array.isArray(res.body?.items) ? res.body.items : [];
       const traversal = res.body?.traversal || {};
+      const projection = traversal.fields && typeof traversal.fields === "object" ? traversal.fields : {};
+      const omittedFields = Array.isArray(projection.omitted) ? projection.omitted : [];
+      const projectionNote = projection.fallback_to_defaults
+        ? ` projection=default_fallback omitted=${omittedFields.join(",") || "none"}`
+        : omittedFields.length
+          ? ` projection_omitted=${omittedFields.join(",")}`
+          : "";
       return spec80Result(
         "focusa_traverse",
         endpoint === "/traverse" ? "/v1/traverse" : "/v1/traverse/verify-tags",
         req,
         res,
-        `traverse: surface=${req.surface} selector=${selector} returned=${items.length}/${String(traversal.total ?? items.length)} truncated=${Boolean(traversal.truncated)} more_available=${Boolean(traversal.more_available ?? res.body?.more_available)}
+        `traverse: surface=${req.surface} selector=${selector} returned=${items.length}/${String(traversal.total ?? items.length)} truncated=${Boolean(traversal.truncated)} more_available=${Boolean(traversal.more_available ?? res.body?.more_available)}${projectionNote}
 next_cursor=${String(traversal.next_cursor ?? "none")} guidance=${String(traversal.pagination_guidance || res.body?.pagination_guidance || "No pagination guidance returned.")} tags=${Array.isArray(res.body?.tags) ? res.body.tags.length : 0} verified=${Array.isArray(res.body?.verified_tags) ? res.body.verified_tags.length : 0} stale=${Array.isArray(res.body?.stale_tags) ? res.body.stale_tags.length : 0}
 ${summarizeTraverseItems(items, 8)}
 next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,

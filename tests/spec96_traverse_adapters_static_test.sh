@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ROUTE="${ROOT_DIR}/crates/focusa-api/src/routes/traverse.rs"
+PI_TOOLS="${ROOT_DIR}/apps/pi-extension/src/tools.ts"
 AUDIT="${ROOT_DIR}/scripts/audit-focusa-tool-suite-safe.mjs"
 DOC="${ROOT_DIR}/docs/focusa-tools/tools/focusa_traverse.md"
 
@@ -25,6 +26,14 @@ if rg -n 'budgeted_default_limit|budgeted_hard_limit|budgeted_requested_limit|in
   echo "✓ PASS: adapters obey bounded caps and cold full-payload guard"
 else
   echo "✗ FAIL: bounded/cold guard missing from adapters" >&2
+  exit 1
+fi
+
+if rg -n 'fallback_to_defaults|"event_id"|"event_type"|"timestamp"' "$ROUTE" >/dev/null \
+  && rg -n 'record\?\.label|data\?\.event_id|data\?\.event_type|\[no projected fields\]|projection=default_fallback' "$PI_TOOLS" >/dev/null; then
+  echo "✓ PASS: traverse summaries preserve rare-surface identity and expose projection fallback"
+else
+  echo "✗ FAIL: traverse summaries can regress to generic item rendering" >&2
   exit 1
 fi
 
