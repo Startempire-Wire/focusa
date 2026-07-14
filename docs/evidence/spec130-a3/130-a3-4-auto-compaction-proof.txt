@@ -61,3 +61,13 @@ Corrective source proof:
 
 Remaining live gate:
 - reload/restart the active Pi extension, then observe a real automatic ctx.compact event before re-closing A3.4
+
+Configurable Pi plugin controls — 2026-07-13:
+- `/focusa-settings advanced` exposes proactive enabled/disabled, trigger percentage, absolute token cap, minimum reserve tokens, reserve percentage, and cooldown
+- settings persist project-locally through saveConfigOverrides and reload through the normal config precedence chain
+- equivalent FOCUSA_PI_AUTO_COMPACTION_* environment overrides are supported
+- auto-compaction policy is read from the typed active attachment config on every settled evaluation; no restart is required after settings UI changes
+- PASS persisted custom policy runtime test
+- PASS bash tests/spec130_auto_compaction_test.sh
+- PASS npm --prefix apps/pi-extension run typecheck
+- PASS npm --prefix apps/pi-extension run lint -- --quiet

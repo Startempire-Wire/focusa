@@ -1,7 +1,14 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   proactiveCompactionDecision,
   registerAutoCompaction,
 } from "../apps/pi-extension/src/auto-compaction.ts";
+import {
+  loadConfig,
+  saveConfigOverrides,
+} from "../apps/pi-extension/src/config.ts";
 
 function assert(condition: any, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -45,6 +52,78 @@ assert(
   !unknown.trigger && unknown.reason === "unknown_usage",
   "unknown usage was not fail-open",
 );
+
+const disabled = proactiveCompactionDecision(
+  { tokens: 371_566, contextWindow: 372_000, percent: 99.88 },
+  {
+    enabled: false,
+    triggerPercent: 70,
+    tokenCap: 256_000,
+    reserveTokens: 16_384,
+    reservePercent: 10,
+    cooldownMs: 60_000,
+  },
+);
+assert(
+  !disabled.trigger && disabled.reason === "disabled",
+  "disabled policy triggered compaction",
+);
+
+const customized = proactiveCompactionDecision(
+  { tokens: 121_000, contextWindow: 200_000, percent: 60.5 },
+  {
+    enabled: true,
+    triggerPercent: 60,
+    tokenCap: 0,
+    reserveTokens: 8_192,
+    reservePercent: 5,
+    cooldownMs: 30_000,
+  },
+);
+assert(
+  customized.triggerAtTokens === 120_000,
+  "custom trigger percentage was ignored",
+);
+assert(customized.trigger, "custom compaction policy did not trigger");
+
+const configRoot = mkdtempSync(
+  join(tmpdir(), "focusa-auto-compaction-config-"),
+);
+try {
+  const saved = saveConfigOverrides(configRoot, {
+    autoCompactionEnabled: false,
+    compactPct: 60,
+    autoCompactionTokenCap: 192_000,
+    autoCompactionReserveTokens: 32_768,
+    autoCompactionReservePct: 15,
+    autoCompactionCooldownMs: 120_000,
+  });
+  assert(
+    saved.errors.length === 0,
+    `saved compaction config was invalid: ${saved.errors.join(", ")}`,
+  );
+  const reloaded = loadConfig(configRoot).config;
+  assert(!reloaded.autoCompactionEnabled, "enabled option did not persist");
+  assert(reloaded.compactPct === 60, "trigger percentage did not persist");
+  assert(
+    reloaded.autoCompactionTokenCap === 192_000,
+    "token cap did not persist",
+  );
+  assert(
+    reloaded.autoCompactionReserveTokens === 32_768,
+    "reserve tokens did not persist",
+  );
+  assert(
+    reloaded.autoCompactionReservePct === 15,
+    "reserve percent did not persist",
+  );
+  assert(
+    reloaded.autoCompactionCooldownMs === 120_000,
+    "cooldown did not persist",
+  );
+} finally {
+  rmSync(configRoot, { recursive: true, force: true });
+}
 
 const handlers = new Map<string, Function[]>();
 const pi = {

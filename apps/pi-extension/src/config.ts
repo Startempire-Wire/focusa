@@ -30,6 +30,11 @@ export interface FocusaConfig {
   warnPct: number;
   compactPct: number;
   hardPct: number;
+  autoCompactionEnabled: boolean;
+  autoCompactionTokenCap: number;
+  autoCompactionReserveTokens: number;
+  autoCompactionReservePct: number;
+  autoCompactionCooldownMs: number;
   contextStatusMode: "off" | "actionable" | "all";
   agentReminderMode: "off" | "shell";
   agentReminderShellFrequency: number;
@@ -96,6 +101,11 @@ const DEFAULTS: FocusaConfig = {
   warnPct: 50,
   compactPct: 70,
   hardPct: 85,
+  autoCompactionEnabled: true,
+  autoCompactionTokenCap: 256_000,
+  autoCompactionReserveTokens: 16_384,
+  autoCompactionReservePct: 10,
+  autoCompactionCooldownMs: 60_000,
   contextStatusMode: "actionable",
   agentReminderMode: "shell",
   agentReminderShellFrequency: 1,
@@ -153,6 +163,11 @@ const ENV_MAP: Record<string, keyof FocusaConfig> = {
   FOCUSA_PI_WARN_PCT: "warnPct",
   FOCUSA_PI_COMPACT_PCT: "compactPct",
   FOCUSA_PI_HARD_PCT: "hardPct",
+  FOCUSA_PI_AUTO_COMPACTION_ENABLED: "autoCompactionEnabled",
+  FOCUSA_PI_AUTO_COMPACTION_TOKEN_CAP: "autoCompactionTokenCap",
+  FOCUSA_PI_AUTO_COMPACTION_RESERVE_TOKENS: "autoCompactionReserveTokens",
+  FOCUSA_PI_AUTO_COMPACTION_RESERVE_PCT: "autoCompactionReservePct",
+  FOCUSA_PI_AUTO_COMPACTION_COOLDOWN_MS: "autoCompactionCooldownMs",
   FOCUSA_PI_CONTEXT_STATUS_MODE: "contextStatusMode",
   FOCUSA_PI_AGENT_REMINDER_MODE: "agentReminderMode",
   FOCUSA_PI_AGENT_REMINDER_SHELL_FREQUENCY: "agentReminderShellFrequency",
@@ -205,6 +220,14 @@ function validate(cfg: FocusaConfig): string[] {
     errs.push(
       `Invalid tier ordering: 0 < warnPct(${cfg.warnPct}) < compactPct(${cfg.compactPct}) < hardPct(${cfg.hardPct}) < 100`
     );
+  if (cfg.autoCompactionTokenCap !== 0 && cfg.autoCompactionTokenCap < 32_768)
+    errs.push(`autoCompactionTokenCap(${cfg.autoCompactionTokenCap}) must be 0 or >= 32768`);
+  if (cfg.autoCompactionReserveTokens < 0)
+    errs.push(`autoCompactionReserveTokens(${cfg.autoCompactionReserveTokens}) must be >= 0`);
+  if (!(0 < cfg.autoCompactionReservePct && cfg.autoCompactionReservePct <= 50))
+    errs.push(`autoCompactionReservePct(${cfg.autoCompactionReservePct}) must be in 1..50`);
+  if (cfg.autoCompactionCooldownMs < 10_000)
+    errs.push(`autoCompactionCooldownMs(${cfg.autoCompactionCooldownMs}) must be >= 10000`);
   if (!["off", "actionable", "all"].includes(cfg.contextStatusMode))
     errs.push(`contextStatusMode(${cfg.contextStatusMode}) must be one of: off, actionable, all`);
   if (cfg.vitalInfoPromptMode === "notify") cfg.vitalInfoPromptMode = "warn_only";

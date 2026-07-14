@@ -202,6 +202,11 @@ Required config keys:
 - `warnPct` (default 50)
 - `compactPct` (default 70)
 - `hardPct` (default 85)
+- `autoCompactionEnabled` (default true)
+- `autoCompactionTokenCap` (default 256000; `0` disables the absolute cap)
+- `autoCompactionReserveTokens` (default 16384)
+- `autoCompactionReservePct` (default 10)
+- `autoCompactionCooldownMs` (default 60000)
 - `cooldownMs` (default 180000)
 - `maxCompactionsPerHour` (default 8)
 - `minTurnsBetweenCompactions` (default 3)
@@ -427,6 +432,11 @@ Use project-local config in `.pi/settings.json` under `extensions.focusaPiBridge
       "warnPct": 50,
       "compactPct": 70,
       "hardPct": 85,
+      "autoCompactionEnabled": true,
+      "autoCompactionTokenCap": 256000,
+      "autoCompactionReserveTokens": 16384,
+      "autoCompactionReservePct": 10,
+      "autoCompactionCooldownMs": 60000,
       "cooldownMs": 180000,
       "maxCompactionsPerHour": 8,
       "minTurnsBetweenCompactions": 3,
@@ -446,6 +456,10 @@ Use project-local config in `.pi/settings.json` under `extensions.focusaPiBridge
 
 Validation rules:
 - `0 < warnPct < compactPct < hardPct < 100`
+- `autoCompactionTokenCap == 0 || autoCompactionTokenCap >= 32768`
+- `autoCompactionReserveTokens >= 0`
+- `1 <= autoCompactionReservePct <= 50`
+- `autoCompactionCooldownMs >= 10000`
 - `cooldownMs >= 30000`
 - `maxCompactionsPerHour >= 1`
 - `externalizeThresholdBytes >= 2048`
@@ -461,6 +475,11 @@ Environment overrides for automation/ops:
 - `FOCUSA_PI_WARN_PCT=50`
 - `FOCUSA_PI_COMPACT_PCT=70`
 - `FOCUSA_PI_HARD_PCT=85`
+- `FOCUSA_PI_AUTO_COMPACTION_ENABLED=true`
+- `FOCUSA_PI_AUTO_COMPACTION_TOKEN_CAP=256000`
+- `FOCUSA_PI_AUTO_COMPACTION_RESERVE_TOKENS=16384`
+- `FOCUSA_PI_AUTO_COMPACTION_RESERVE_PCT=10`
+- `FOCUSA_PI_AUTO_COMPACTION_COOLDOWN_MS=60000`
 - `FOCUSA_PI_COOLDOWN_MS=180000`
 - `FOCUSA_PI_MAX_COMPACTIONS_PER_HOUR=8`
 - `FOCUSA_PI_MIN_TURNS_BETWEEN_COMPACTIONS=3`
@@ -493,7 +512,10 @@ Per `turn_end`:
   - notify only (no write action)
 
 - `usagePct >= compactPct` and `< hardPct`
-  - submit Focusa command to compact/refresh context package (authoritative path)
+  - submit Focusa command to prepare/refresh the authoritative context package
+  - always invoke Pi `ctx.compact()`; daemon acceptance alone is not live-context completion
+
+The proactive idle-boundary fallback uses the earliest configured boundary: `compactPct`, `autoCompactionTokenCap`, or the configured reserve window. `/focusa-settings advanced` exposes every automatic-compaction control.
 
 - `usagePct >= hardPct`
   - submit Focusa compaction command

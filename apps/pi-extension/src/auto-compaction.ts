@@ -3,6 +3,7 @@
 // regressions when host auto-compaction is disabled or misconfigured.
 
 import type { ContextUsage, ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
+import type { FocusaConfig } from "./config.js";
 
 // The deployed Pi runtime exposes agent_settled (documented public event), while
 // the extension's pinned 0.64 development declarations predate that overload.
@@ -24,6 +25,46 @@ export const PROACTIVE_COMPACTION_TRIGGER_FRACTION = 0.7;
 export const PROACTIVE_COMPACTION_ABSOLUTE_TOKEN_CAP = 256_000;
 export const PROACTIVE_COMPACTION_COOLDOWN_MS = 60_000;
 
+export interface ProactiveCompactionPolicy {
+  enabled: boolean;
+  triggerPercent: number;
+  tokenCap: number;
+  reserveTokens: number;
+  reservePercent: number;
+  cooldownMs: number;
+}
+
+export const DEFAULT_PROACTIVE_COMPACTION_POLICY: ProactiveCompactionPolicy = {
+  enabled: true,
+  triggerPercent: PROACTIVE_COMPACTION_TRIGGER_FRACTION * 100,
+  tokenCap: PROACTIVE_COMPACTION_ABSOLUTE_TOKEN_CAP,
+  reserveTokens: PROACTIVE_COMPACTION_MIN_RESERVE_TOKENS,
+  reservePercent: PROACTIVE_COMPACTION_RESERVE_FRACTION * 100,
+  cooldownMs: PROACTIVE_COMPACTION_COOLDOWN_MS,
+};
+
+export function proactiveCompactionPolicy(
+  config?: Pick<
+    FocusaConfig,
+    | "autoCompactionEnabled"
+    | "compactPct"
+    | "autoCompactionTokenCap"
+    | "autoCompactionReserveTokens"
+    | "autoCompactionReservePct"
+    | "autoCompactionCooldownMs"
+  >
+): ProactiveCompactionPolicy {
+  if (!config) return { ...DEFAULT_PROACTIVE_COMPACTION_POLICY };
+  return {
+    enabled: config.autoCompactionEnabled,
+    triggerPercent: config.compactPct,
+    tokenCap: config.autoCompactionTokenCap,
+    reserveTokens: config.autoCompactionReserveTokens,
+    reservePercent: config.autoCompactionReservePct,
+    cooldownMs: config.autoCompactionCooldownMs,
+  };
+}
+
 export interface ProactiveCompactionDecision {
   trigger: boolean;
   tokens: number | null;
@@ -31,35 +72,47 @@ export interface ProactiveCompactionDecision {
   reserveTokens: number;
   triggerAtTokens: number;
   percent: number | null;
-  reason: "unknown_usage" | "below_threshold" | "context_pressure";
+  reason: "disabled" | "unknown_usage" | "below_threshold" | "context_pressure";
 }
 
-export function proactiveCompactionDecision(usage: ContextUsage | undefined): ProactiveCompactionDecision {
+export function proactiveCompactionDecision(
+  usage: ContextUsage | undefined,
+  policy: ProactiveCompactionPolicy = DEFAULT_PROACTIVE_COMPACTION_POLICY
+): ProactiveCompactionDecision {
   const tokens = usage?.tokens ?? null;
   const contextWindow = Math.max(0, usage?.contextWindow ?? 0);
   const reserveTokens =
     contextWindow > 0
       ? Math.min(
           Math.floor(contextWindow / 2),
-          Math.max(
-            PROACTIVE_COMPACTION_MIN_RESERVE_TOKENS,
-            Math.ceil(contextWindow * PROACTIVE_COMPACTION_RESERVE_FRACTION)
-          )
+          Math.max(policy.reserveTokens, Math.ceil(contextWindow * (policy.reservePercent / 100)))
         )
       : 0;
+  const absoluteCap = policy.tokenCap > 0 ? policy.tokenCap : Number.MAX_SAFE_INTEGER;
   const triggerAtTokens =
     contextWindow > 0
       ? Math.max(
           1,
           Math.min(
             contextWindow - reserveTokens,
-            Math.ceil(contextWindow * PROACTIVE_COMPACTION_TRIGGER_FRACTION),
-            PROACTIVE_COMPACTION_ABSOLUTE_TOKEN_CAP
+            Math.ceil(contextWindow * (policy.triggerPercent / 100)),
+            absoluteCap
           )
         )
       : 0;
   const percent =
     tokens !== null && contextWindow > 0 ? Math.round((tokens / contextWindow) * 10_000) / 100 : null;
+  if (!policy.enabled) {
+    return {
+      trigger: false,
+      tokens,
+      contextWindow,
+      reserveTokens,
+      triggerAtTokens,
+      percent,
+      reason: "disabled",
+    };
+  }
   if (tokens === null || contextWindow <= 0) {
     return {
       trigger: false,
@@ -83,7 +136,10 @@ export function proactiveCompactionDecision(usage: ContextUsage | undefined): Pr
   };
 }
 
-export function registerAutoCompaction(pi: ExtensionAPI): void {
+export function registerAutoCompaction(
+  pi: ExtensionAPI,
+  policyProvider: () => ProactiveCompactionPolicy = () => DEFAULT_PROACTIVE_COMPACTION_POLICY
+): void {
   let pending = false;
   let lastTriggeredAt = 0;
   let evaluationTimer: ReturnType<typeof setTimeout> | null = null;
@@ -95,10 +151,11 @@ export function registerAutoCompaction(pi: ExtensionAPI): void {
 
   const maybeCompact = (ctx: ExtensionContext) => {
     if (pending || !ctx.isIdle()) return;
-    const decision = proactiveCompactionDecision(ctx.getContextUsage());
+    const policy = policyProvider();
+    const decision = proactiveCompactionDecision(ctx.getContextUsage(), policy);
     if (!decision.trigger) return;
     const now = Date.now();
-    if (now - lastTriggeredAt < PROACTIVE_COMPACTION_COOLDOWN_MS) return;
+    if (now - lastTriggeredAt < policy.cooldownMs) return;
 
     pending = true;
     lastTriggeredAt = now;

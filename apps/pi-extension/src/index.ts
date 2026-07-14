@@ -21,7 +21,7 @@ import { registerTools } from "./tools.js";
 import { registerCommands } from "./commands.js";
 import { registerWbm } from "./wbm.js";
 import { registerCompaction } from "./compaction.js";
-import { registerAutoCompaction } from "./auto-compaction.js";
+import { proactiveCompactionPolicy, registerAutoCompaction } from "./auto-compaction.js";
 import { registerSession } from "./session.js";
 import { registerTurns } from "./turns.js";
 import { registerPolishHooks } from "./polish.js";
@@ -134,7 +134,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     registerCommands(pi);
     registerWbm(pi);
     registerCompaction(pi);
-    registerAutoCompaction(pi);
+    registerAutoCompaction(pi, () => proactiveCompactionPolicy(getAttachmentRuntime().cfg));
     registerSession(pi);
     registerTurns(pi);
     registerPolishHooks(pi);

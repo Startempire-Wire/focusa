@@ -3,6 +3,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 AUTO="$ROOT/apps/pi-extension/src/auto-compaction.ts"
 COMPACTION="$ROOT/apps/pi-extension/src/compaction.ts"
+CONFIG="$ROOT/apps/pi-extension/src/config.ts"
+COMMANDS="$ROOT/apps/pi-extension/src/commands.ts"
 INDEX="$ROOT/apps/pi-extension/src/index.ts"
 
 rg -q 'PROACTIVE_COMPACTION_RESERVE_FRACTION = 0\.1' "$AUTO"
@@ -14,7 +16,11 @@ rg -q 'pi\.on\("session_compact"' "$AUTO"
 rg -q 'ctx\.getContextUsage\(\)' "$AUTO"
 rg -q 'ctx\.compact\(' "$AUTO"
 rg -q 'evaluationTimer = setTimeout' "$AUTO"
-rg -q 'registerAutoCompaction\(pi\)' "$INDEX"
+rg -q 'registerAutoCompaction\(pi, \(\) => proactiveCompactionPolicy\(getAttachmentRuntime\(\)\.cfg\)\)' "$INDEX"
+for key in autoCompactionEnabled autoCompactionTokenCap autoCompactionReserveTokens autoCompactionReservePct autoCompactionCooldownMs; do
+  rg -q "$key" "$CONFIG"
+  rg -q "$key" "$COMMANDS"
+done
 rg -q 'prepareRuntime\(runtimeFor\(ctx, event\)\)' "$INDEX"
 rg -q 'if \(!target\.cfg && bootstrap\.cfg\) target\.cfg = bootstrap\.cfg' "$INDEX"
 if rg -q 'as any|as unknown as' "$AUTO"; then

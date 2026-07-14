@@ -75,8 +75,12 @@ function replayConsumerSurface(payload: any): {
 }
 
 const WARN_OPTIONS = ["40", "50", "60", "70"];
-const COMPACT_OPTIONS = ["60", "70", "80", "85", "90"];
+const COMPACT_OPTIONS = ["50", "60", "70", "75", "80", "85", "90"];
 const HARD_OPTIONS = ["75", "85", "92", "95", "97"];
+const AUTO_COMPACTION_TOKEN_CAP_OPTIONS = ["128000", "192000", "256000", "384000", "0"];
+const AUTO_COMPACTION_RESERVE_TOKEN_OPTIONS = ["8192", "16384", "32768", "65536"];
+const AUTO_COMPACTION_RESERVE_PCT_OPTIONS = ["5", "10", "15", "20", "25"];
+const AUTO_COMPACTION_COOLDOWN_OPTIONS = ["30000", "60000", "120000", "180000", "300000"];
 const WORK_LOOP_PRESET_OPTIONS = ["conservative", "balanced", "push", "audit"];
 const WORK_LOOP_TURN_OPTIONS = ["6", "10", "12", "24"];
 const WORK_LOOP_WALL_CLOCK_OPTIONS = ["900000", "1200000", "1800000", "3600000"];
@@ -248,6 +252,11 @@ export function registerCommands(pi: ExtensionAPI) {
         warnPct: getAttachmentRuntime().cfg?.warnPct || 50,
         compactPct: getAttachmentRuntime().cfg?.compactPct || 70,
         hardPct: getAttachmentRuntime().cfg?.hardPct || 85,
+        autoCompactionEnabled: getAttachmentRuntime().cfg?.autoCompactionEnabled ?? true,
+        autoCompactionTokenCap: getAttachmentRuntime().cfg?.autoCompactionTokenCap ?? 256_000,
+        autoCompactionReserveTokens: getAttachmentRuntime().cfg?.autoCompactionReserveTokens ?? 16_384,
+        autoCompactionReservePct: getAttachmentRuntime().cfg?.autoCompactionReservePct ?? 10,
+        autoCompactionCooldownMs: getAttachmentRuntime().cfg?.autoCompactionCooldownMs ?? 60_000,
         workLoopPreset: getAttachmentRuntime().cfg?.workLoopPreset || "balanced",
         workLoopMaxTurns: getAttachmentRuntime().cfg?.workLoopMaxTurns || 12,
         workLoopMaxWallClockMs: getAttachmentRuntime().cfg?.workLoopMaxWallClockMs || 1_800_000,
@@ -443,6 +452,36 @@ export function registerCommands(pi: ExtensionAPI) {
           values: COMPACT_OPTIONS,
         },
         {
+          id: "autoCompactionEnabled",
+          label: "Proactive auto-compaction",
+          currentValue: String(draft.autoCompactionEnabled),
+          values: BOOLEAN_OPTIONS,
+        },
+        {
+          id: "autoCompactionTokenCap",
+          label: "Absolute trigger tokens (0 = off)",
+          currentValue: String(draft.autoCompactionTokenCap),
+          values: AUTO_COMPACTION_TOKEN_CAP_OPTIONS,
+        },
+        {
+          id: "autoCompactionReserveTokens",
+          label: "Minimum reserve tokens",
+          currentValue: String(draft.autoCompactionReserveTokens),
+          values: AUTO_COMPACTION_RESERVE_TOKEN_OPTIONS,
+        },
+        {
+          id: "autoCompactionReservePct",
+          label: "Reserve percent",
+          currentValue: String(draft.autoCompactionReservePct),
+          values: AUTO_COMPACTION_RESERVE_PCT_OPTIONS,
+        },
+        {
+          id: "autoCompactionCooldownMs",
+          label: "Auto-compact cooldown ms",
+          currentValue: String(draft.autoCompactionCooldownMs),
+          values: AUTO_COMPACTION_COOLDOWN_OPTIONS,
+        },
+        {
           id: "hardPct",
           label: "Critical threshold %",
           currentValue: String(draft.hardPct),
@@ -582,6 +621,11 @@ export function registerCommands(pi: ExtensionAPI) {
             if (id === "warnPct") draft.warnPct = Number(newValue);
             if (id === "compactPct") draft.compactPct = Number(newValue);
             if (id === "hardPct") draft.hardPct = Number(newValue);
+            if (id === "autoCompactionEnabled") draft.autoCompactionEnabled = newValue === "true";
+            if (id === "autoCompactionTokenCap") draft.autoCompactionTokenCap = Number(newValue);
+            if (id === "autoCompactionReserveTokens") draft.autoCompactionReserveTokens = Number(newValue);
+            if (id === "autoCompactionReservePct") draft.autoCompactionReservePct = Number(newValue);
+            if (id === "autoCompactionCooldownMs") draft.autoCompactionCooldownMs = Number(newValue);
             if (id === "workLoopPreset") draft.workLoopPreset = String(newValue) as any;
             if (id === "workLoopMaxTurns") draft.workLoopMaxTurns = Number(newValue);
             if (id === "workLoopMaxWallClockMs") draft.workLoopMaxWallClockMs = Number(newValue);
