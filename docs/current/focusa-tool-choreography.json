@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 97,
-  "edge_count": 286,
+  "tool_count": 105,
+  "edge_count": 302,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -69,6 +69,38 @@
     }
   ],
   "per_tool_next_tools": {
+    "focusa_preload_profiles": [
+      "focusa_preload_build",
+      "focusa_preload_doctor"
+    ],
+    "focusa_preload_build": [
+      "focusa_preload_render",
+      "focusa_preload_verify"
+    ],
+    "focusa_preload_render": [
+      "focusa_preload_verify",
+      "focusa_preload_write"
+    ],
+    "focusa_preload_verify": [
+      "focusa_preload_write",
+      "focusa_preload_doctor"
+    ],
+    "focusa_preload_doctor": [
+      "focusa_preload_profiles",
+      "focusa_preload_build"
+    ],
+    "focusa_preload_write": [
+      "focusa_preload_receipt_preview",
+      "focusa_preload_verify"
+    ],
+    "focusa_preload_receipt_preview": [
+      "focusa_preload_receipt_commit",
+      "focusa_preload_verify"
+    ],
+    "focusa_preload_receipt_commit": [
+      "focusa_preload_verify",
+      "focusa_preload_doctor"
+    ],
     "focusa_project_identity": [
       "focusa_project_card",
       "focusa_project_verify",
@@ -551,6 +583,86 @@
     ]
   },
   "edges": [
+    {
+      "from": "focusa_preload_profiles",
+      "to": "focusa_preload_build",
+      "weight": 1
+    },
+    {
+      "from": "focusa_preload_profiles",
+      "to": "focusa_preload_doctor",
+      "weight": 1
+    },
+    {
+      "from": "focusa_preload_build",
+      "to": "focusa_preload_render",
+      "weight": 1
+    },
+    {
+      "from": "focusa_preload_build",
+      "to": "focusa_preload_verify",
+      "weight": 1
+    },
+    {
+      "from": "focusa_preload_render",
+      "to": "focusa_preload_verify",
+      "weight": 1
+    },
+    {
+      "from": "focusa_preload_render",
+      "to": "focusa_preload_write",
+      "weight": 1
+    },
+    {
+      "from": "focusa_preload_verify",
+      "to": "focusa_preload_write",
+      "weight": 1
+    },
+    {
+      "from": "focusa_preload_verify",
+      "to": "focusa_preload_doctor",
+      "weight": 1
+    },
+    {
+      "from": "focusa_preload_doctor",
+      "to": "focusa_preload_profiles",
+      "weight": 1
+    },
+    {
+      "from": "focusa_preload_doctor",
+      "to": "focusa_preload_build",
+      "weight": 1
+    },
+    {
+      "from": "focusa_preload_write",
+      "to": "focusa_preload_receipt_preview",
+      "weight": 1
+    },
+    {
+      "from": "focusa_preload_write",
+      "to": "focusa_preload_verify",
+      "weight": 1
+    },
+    {
+      "from": "focusa_preload_receipt_preview",
+      "to": "focusa_preload_receipt_commit",
+      "weight": 1
+    },
+    {
+      "from": "focusa_preload_receipt_preview",
+      "to": "focusa_preload_verify",
+      "weight": 1
+    },
+    {
+      "from": "focusa_preload_receipt_commit",
+      "to": "focusa_preload_verify",
+      "weight": 1
+    },
+    {
+      "from": "focusa_preload_receipt_commit",
+      "to": "focusa_preload_doctor",
+      "weight": 1
+    },
     {
       "from": "focusa_project_identity",
       "to": "focusa_project_card",

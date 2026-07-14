@@ -2219,6 +2219,14 @@ const FAMILY_NEXT_TOOLS: Record<FocusaToolFamily, string[]> = {
 };
 
 const TOOL_NEXT_TOOLS: Record<string, string[]> = {
+  focusa_preload_profiles: ["focusa_preload_build", "focusa_preload_doctor"],
+  focusa_preload_build: ["focusa_preload_render", "focusa_preload_verify"],
+  focusa_preload_render: ["focusa_preload_verify", "focusa_preload_write"],
+  focusa_preload_verify: ["focusa_preload_write", "focusa_preload_doctor"],
+  focusa_preload_doctor: ["focusa_preload_profiles", "focusa_preload_build"],
+  focusa_preload_write: ["focusa_preload_receipt_preview", "focusa_preload_verify"],
+  focusa_preload_receipt_preview: ["focusa_preload_receipt_commit", "focusa_preload_verify"],
+  focusa_preload_receipt_commit: ["focusa_preload_verify", "focusa_preload_doctor"],
   focusa_project_identity: [
     "focusa_project_card",
     "focusa_project_verify",

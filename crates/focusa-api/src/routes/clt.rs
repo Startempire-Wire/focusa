@@ -1,5 +1,6 @@
 //! CLT routes — Context Lineage Tree inspection.
 
+use crate::scope::ScopeContext;
 use crate::routes::bounded::{
     BoundedReadOptions, bounded_metadata, bounded_window, budgeted_default_limit,
     budgeted_hard_limit, budgeted_requested_limit, field_projection,
@@ -8,6 +9,7 @@ use crate::routes::bounded::{
 use crate::server::AppState;
 use axum::extract::{Query, State};
 use axum::{Json, Router, routing::get};
+use focusa_core::types::{CltPayload, CltState};
 use serde_json::{Value, json};
 use std::sync::Arc;
 
@@ -75,9 +77,50 @@ fn full_nodes_limit() -> usize {
     budgeted_hard_limit("FOCUSA_LINEAGE_FULL_MAX_NODES", 2000, default_nodes_limit())
 }
 
+pub(crate) fn scoped_clt_state(clt: &CltState, scope: &ScopeContext) -> CltState {
+    let project_root = scope.project_root.as_deref().map(str::trim).unwrap_or_default();
+    let continuity_id = scope.continuity_id.as_deref().map(str::trim).unwrap_or_default();
+    let mut nodes = clt
+        .nodes
+        .iter()
+        .filter(|node| {
+            let trajectory = node.metadata.trajectory.as_ref();
+            let is_guardian_service_warning = matches!(
+                &node.payload,
+                CltPayload::Interaction {
+                    content_ref: Some(content_ref),
+                    ..
+                } if content_ref.contains("summary=Guardian: service ")
+            );
+            !project_root.is_empty()
+                && !continuity_id.is_empty()
+                && !is_guardian_service_warning
+                && trajectory.and_then(|ctx| ctx.project_root.as_deref()).map(str::trim)
+                    == Some(project_root)
+                && trajectory.and_then(|ctx| ctx.continuity_id.as_deref()).map(str::trim)
+                    == Some(continuity_id)
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    let mut parent_id = None;
+    for node in &mut nodes {
+        node.parent_id = parent_id.clone();
+        parent_id = Some(node.node_id.clone());
+    }
+    CltState {
+        nodes,
+        head_id: parent_id,
+    }
+}
+
 /// GET /v1/clt/nodes — capped CLT nodes by default; opt into larger payload with include_full_payload=true.
-async fn nodes(State(state): State<Arc<AppState>>, Query(query): Query<NodesQuery>) -> Json<Value> {
+async fn nodes(
+    scope: ScopeContext,
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<NodesQuery>,
+) -> Json<Value> {
     let s = state.focusa.read().await;
+    let clt = scoped_clt_state(&s.clt, &scope);
     let requested_full_payload = query.include_full_payload;
     let full_payload_blocked =
         full_payload_blocked_by_pressure(requested_full_payload, query.force_full_payload);
@@ -90,7 +133,7 @@ async fn nodes(State(state): State<Arc<AppState>>, Query(query): Query<NodesQuer
         default_limit
     };
     let limit = budgeted_requested_limit(query.limit, default_limit.min(ceiling), ceiling);
-    let total = s.clt.nodes.len();
+    let total = clt.nodes.len();
     let fields = query.fields.clone();
     let field_projection = field_projection(
         fields.as_deref(),
@@ -106,7 +149,7 @@ async fn nodes(State(state): State<Arc<AppState>>, Query(query): Query<NodesQuer
             "metadata",
         ],
     );
-    let (nodes, window) = bounded_window(&s.clt.nodes, query.cursor.as_deref(), limit);
+    let (nodes, window) = bounded_window(&clt.nodes, query.cursor.as_deref(), limit);
     let nodes = nodes
         .iter()
         .map(|node| {
@@ -130,7 +173,7 @@ async fn nodes(State(state): State<Arc<AppState>>, Query(query): Query<NodesQuer
     );
     Json(json!({
         "nodes": nodes,
-        "head_id": s.clt.head_id,
+        "head_id": clt.head_id,
         "total": total,
         "returned": metadata.returned,
         "truncated": metadata.truncated,
@@ -143,10 +186,15 @@ async fn nodes(State(state): State<Arc<AppState>>, Query(query): Query<NodesQuer
 }
 
 /// GET /v1/clt/path — lineage path from head to root.
-async fn path(State(state): State<Arc<AppState>>, Query(query): Query<PathQuery>) -> Json<Value> {
+async fn path(
+    scope: ScopeContext,
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<PathQuery>,
+) -> Json<Value> {
     let s = state.focusa.read().await;
+    let clt = scoped_clt_state(&s.clt, &scope);
     let bounds = traversal_bounds(query.path.as_deref(), query.depth, 64, 64);
-    let path = focusa_core::clt::lineage_path(&s.clt);
+    let path = focusa_core::clt::lineage_path(&clt);
     let ids: Vec<&str> = path
         .iter()
         .take(bounds.depth)
@@ -162,14 +210,15 @@ async fn path(State(state): State<Arc<AppState>>, Query(query): Query<PathQuery>
 }
 
 /// GET /v1/clt/stats — node counts by type.
-async fn stats(State(state): State<Arc<AppState>>) -> Json<Value> {
+async fn stats(scope: ScopeContext, State(state): State<Arc<AppState>>) -> Json<Value> {
     let s = state.focusa.read().await;
-    let (interactions, summaries, markers) = focusa_core::clt::node_counts(&s.clt);
+    let clt = scoped_clt_state(&s.clt, &scope);
+    let (interactions, summaries, markers) = focusa_core::clt::node_counts(&clt);
     Json(json!({
         "interactions": interactions,
         "summaries": summaries,
         "branch_markers": markers,
-        "total": s.clt.nodes.len(),
+        "total": clt.nodes.len(),
     }))
 }
 
@@ -178,4 +227,68 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/clt/nodes", get(nodes))
         .route("/v1/clt/path", get(path))
         .route("/v1/clt/stats", get(stats))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use focusa_core::clt::append_interaction;
+    use focusa_core::types::{CltMetadata, TrajectoryLadderContext};
+
+    fn metadata(project_root: &str, continuity_id: &str) -> CltMetadata {
+        CltMetadata {
+            trajectory: Some(TrajectoryLadderContext {
+                project_root: Some(project_root.to_string()),
+                continuity_id: Some(continuity_id.to_string()),
+                ..TrajectoryLadderContext::default()
+            }),
+            ..CltMetadata::default()
+        }
+    }
+
+    #[test]
+    fn scoped_clt_drops_other_workstreams_and_rebuilds_path() {
+        let mut clt = CltState::default();
+        let first = append_interaction(
+            &mut clt,
+            None,
+            "assistant",
+            Some("first"),
+            metadata("/repo/focusa", "cont-a"),
+        );
+        append_interaction(
+            &mut clt,
+            None,
+            "system",
+            Some("other"),
+            metadata("/repo/other", "cont-b"),
+        );
+        append_interaction(
+            &mut clt,
+            None,
+            "system",
+            Some("intuition_signal type=Warning severity=info summary=Guardian: service spamd is DOWN"),
+            metadata("/repo/focusa", "cont-a"),
+        );
+        let last = append_interaction(
+            &mut clt,
+            None,
+            "assistant",
+            Some("last"),
+            metadata("/repo/focusa", "cont-a"),
+        );
+        let scope = ScopeContext {
+            project_root: Some("/repo/focusa".to_string()),
+            continuity_id: Some("cont-a".to_string()),
+            ..ScopeContext::default()
+        };
+
+        let scoped = scoped_clt_state(&clt, &scope);
+
+        assert_eq!(scoped.nodes.len(), 2);
+        assert_eq!(scoped.nodes[0].node_id, first);
+        assert_eq!(scoped.nodes[0].parent_id, None);
+        assert_eq!(scoped.nodes[1].parent_id.as_deref(), Some(first.as_str()));
+        assert_eq!(scoped.head_id.as_deref(), Some(last.as_str()));
+    }
 }

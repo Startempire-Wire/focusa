@@ -345,7 +345,8 @@ case "$HOST_ARCH" in x86_64|aarch64) ;; *) err "unsupported arch: $HOST_ARCH"; e
 
 if [ "$TARGET" = "auto" ]; then
   case "$HOST_OS-$HOST_ARCH" in
-    Linux-x86_64)   TRIPLE="x86_64-unknown-linux-gnu" ;;
+    # Static musl is the portable default for older production glibc hosts.
+    Linux-x86_64)   TRIPLE="x86_64-unknown-linux-musl" ;;
     Linux-aarch64)  TRIPLE="aarch64-unknown-linux-gnu" ;;
     Darwin-x86_64)  TRIPLE="x86_64-apple-darwin" ;;
     Darwin-arm64|Darwin-aarch64) TRIPLE="aarch64-apple-darwin" ;;

@@ -389,6 +389,45 @@ fn resolve_scoped_frame<'a>(
     })
 }
 
+/// Rebuild root, active, and path metadata after exact-scope frame filtering.
+fn rebuild_scoped_stack_metadata(stack: &mut FocusStackState) {
+    stack.active_id = stack
+        .frames
+        .iter()
+        .rev()
+        .find(|frame| frame.status == FrameStatus::Active)
+        .map(|frame| frame.id);
+
+    let mut path = Vec::new();
+    let mut current = stack.active_id;
+    while let Some(id) = current {
+        if path.contains(&id) || path.len() >= stack.frames.len() {
+            break;
+        }
+        let Some(frame) = stack.frames.iter().find(|frame| frame.id == id) else {
+            break;
+        };
+        path.push(id);
+        current = frame
+            .parent_id
+            .filter(|parent_id| stack.frames.iter().any(|frame| frame.id == *parent_id));
+    }
+    path.reverse();
+
+    stack.root_id = path.first().copied().or_else(|| {
+        stack
+            .frames
+            .iter()
+            .find(|frame| {
+                frame
+                    .parent_id
+                    .is_none_or(|parent_id| !stack.frames.iter().any(|item| item.id == parent_id))
+            })
+            .map(|frame| frame.id)
+    });
+    stack.stack_path_cache = path;
+}
+
 /// FS-01: scoped focus stack read.
 async fn get_stack(
     scope: ScopeContext,
@@ -400,21 +439,7 @@ async fn get_stack(
     scoped_stack
         .frames
         .retain(|frame| frame_matches_exact_request_scope(&scope, frame));
-    scoped_stack
-        .stack_path_cache
-        .retain(|id| scoped_stack.frames.iter().any(|frame| frame.id == *id));
-    if scoped_stack
-        .root_id
-        .is_some_and(|id| !scoped_stack.frames.iter().any(|frame| frame.id == id))
-    {
-        scoped_stack.root_id = None;
-    }
-    if scoped_stack
-        .active_id
-        .is_some_and(|id| !scoped_stack.frames.iter().any(|frame| frame.id == id))
-    {
-        scoped_stack.active_id = None;
-    }
+    rebuild_scoped_stack_metadata(&mut scoped_stack);
     let total = scoped_stack.frames.len();
     let default_limit = 25usize;
     let hard_limit = 200usize;
@@ -1326,7 +1351,9 @@ pub fn router() -> Router<Arc<AppState>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{exact_request_scope_matches, resolve_scoped_frame};
+    use super::{
+        exact_request_scope_matches, rebuild_scoped_stack_metadata, resolve_scoped_frame,
+    };
     use crate::scope::ScopeContext;
     use chrono::Utc;
     use focusa_core::types::{
@@ -1383,6 +1410,30 @@ mod tests {
             completed_at: None,
             completion_reason: None::<CompletionReason>,
         }
+    }
+
+    #[test]
+    fn scoped_stack_metadata_is_derived_from_filtered_frames() {
+        let external_parent = Uuid::now_v7();
+        let root_id = Uuid::now_v7();
+        let active_id = Uuid::now_v7();
+        let mut root = frame(root_id, FrameStatus::Paused, "root", &["cont-focusa"]);
+        root.parent_id = Some(external_parent);
+        let mut active = frame(active_id, FrameStatus::Active, "active", &["cont-focusa"]);
+        active.parent_id = Some(root_id);
+        let mut stack = FocusStackState {
+            root_id: Some(external_parent),
+            active_id: Some(external_parent),
+            frames: vec![root, active],
+            stack_path_cache: vec![external_parent],
+            ..FocusStackState::default()
+        };
+
+        rebuild_scoped_stack_metadata(&mut stack);
+
+        assert_eq!(stack.root_id, Some(root_id));
+        assert_eq!(stack.active_id, Some(active_id));
+        assert_eq!(stack.stack_path_cache, vec![root_id, active_id]);
     }
 
     #[test]

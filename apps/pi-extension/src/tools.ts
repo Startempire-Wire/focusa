@@ -6179,8 +6179,10 @@ export function registerTools(pi: ExtensionAPI) {
         card.bootstrap?.candidate?.inferred_workpoint_candidate ||
         {};
       let checkpoint: any = null;
+      let targetCheckpoint: any = null;
       let resume: any = null;
       let trajectory: any = null;
+      let transitionVerification: any = null;
       if (action === "save" || rolloverAction === "checkpoint") {
         const hint = inferred.checkpoint_payload_hint || {};
         const mission = p.mission || hint.mission || inferred.mission || currentAsk;
@@ -6220,6 +6222,51 @@ export function registerTools(pi: ExtensionAPI) {
           }),
         });
       }
+      if (
+        action === "rollover" &&
+        apiTransfer.ok &&
+        targetContinuityId !== sourceContinuityId
+      ) {
+        const hint = inferred.checkpoint_payload_hint || {};
+        const targetMission = p.mission || hint.mission || inferred.mission || currentAsk;
+        const targetNextAction =
+          p.next_action ||
+          hint.next_action ||
+          inferred.next_action ||
+          "Resume transferred Focusa mission under the target continuity";
+        targetCheckpoint = await focusaFetchDetailed("/workpoint/checkpoint", {
+          method: "POST",
+          headers: { "x-focusa-writer-id": await preferredWriterId() },
+          body: JSON.stringify({
+            scope: targetScope,
+            mission: targetMission,
+            next_action: targetNextAction,
+            next_slice: targetNextAction,
+            current_action: "session_transfer_target_materialization",
+            action_type: "session_transfer_target_materialization",
+            target_objects: hint.target_objects || inferred.target_objects || [],
+            active_object_refs: hint.target_objects || inferred.target_objects || [],
+            project_root: targetProjectRoot,
+            continuity_id: targetContinuityId,
+            session_id: targetSessionId,
+            source_continuity_id: sourceContinuityId,
+            target_continuity_id: targetContinuityId,
+            source_session_id: sourceSessionId,
+            target_session_id: targetSessionId,
+            checkpoint_reason: "session_resume",
+            canonical: true,
+            promote: true,
+            session_identity: await buildFocusaSessionIdentity(targetProjectRoot, "session_switch", {
+              continuityId: targetContinuityId,
+              sessionId: targetSessionId,
+            }),
+            checkpoint_ref: p.checkpoint_ref || undefined,
+            workpoint_packet_ref: p.workpoint_packet_ref || undefined,
+            compaction_packet_ref: p.compaction_packet_ref || undefined,
+            idempotency_key: `session-transfer-target:${targetProjectRoot}:${targetContinuityId}:${targetSessionId}`,
+          }),
+        });
+      }
       if (["continue", "status", "save", "rollover"].includes(action)) {
         resume = await focusaFetchDetailed("/workpoint/resume", {
           method: "POST",
@@ -6246,10 +6293,42 @@ export function registerTools(pi: ExtensionAPI) {
         tq.set("allow_prior_project_trajectory", "true");
         trajectory = await focusaFetchDetailed(`/trajectory/view?${tq.toString()}`, { method: "GET" });
       }
+      if (
+        action === "rollover" &&
+        targetCheckpoint?.ok &&
+        resume?.ok &&
+        resume.body?.canonical === true
+      ) {
+        const targetWorkpointId =
+          resume.body?.workpoint_id ||
+          resume.body?.resume_packet?.workpoint?.workpoint_id ||
+          targetCheckpoint.body?.workpoint_id ||
+          targetCheckpoint.body?.resume_packet?.workpoint?.workpoint_id;
+        transitionVerification = await focusaFetchDetailed("/project/session-transfer", {
+          method: "POST",
+          body: JSON.stringify({
+            ...transferPayload,
+            action: "verify_target",
+            target_workpoint_id: targetWorkpointId,
+            target_resume_canonical: true,
+            target_resume_packet_ref: targetWorkpointId,
+          }),
+        });
+      }
+      const rolloverVerified =
+        action !== "rollover" ||
+        targetContinuityId === sourceContinuityId ||
+        (targetCheckpoint?.ok &&
+          resume?.ok &&
+          resume.body?.canonical === true &&
+          transitionVerification?.ok &&
+          transitionVerification.body?.transfer?.transition_receipt?.status ===
+            "target_resume_verified");
       const ok =
         apiTransfer.ok &&
         cardRes.ok &&
         (action !== "save" || checkpoint?.ok) &&
+        rolloverVerified &&
         (action === "save" ||
           resume?.ok ||
           card.inferred_workpoint_candidate ||
@@ -6291,7 +6370,9 @@ export function registerTools(pi: ExtensionAPI) {
           api_transfer: apiBody,
           session_transfer_save_packet: apiBody.transfer || null,
           workpoint_checkpoint_packet: checkpoint?.body || null,
+          target_workpoint_checkpoint_packet: targetCheckpoint?.body || null,
           workpoint_resume_packet: resume?.body || null,
+          transition_verification: transitionVerification?.body || null,
           trajectory: trajectory?.body || null,
           project_card: {
             algorithm_run_id: card.algorithm_run_id,
@@ -13839,6 +13920,12 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       "Build Preload Packet",
       "build",
       ["focusa_preload_write", "focusa_preload_doctor"],
+    ],
+    [
+      "focusa_preload_render",
+      "Render Preload Packet",
+      "render",
+      ["focusa_preload_verify", "focusa_preload_write"],
     ],
     [
       "focusa_preload_verify",

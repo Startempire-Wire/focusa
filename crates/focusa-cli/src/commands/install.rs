@@ -2152,7 +2152,7 @@ async fn delegate_service_render(
     target: InstallTarget,
     bin_dir: &std::path::Path,
     dry_run: bool,
-) -> Result<()> {
+) -> Result<ServiceRegistrationOutcome> {
     // Delegate to crates/focusa-cli/src/commands/service.rs which already
     // implements render_systemd_unit / render_launchd_plist for both
     // platforms. The install orchestrator does not duplicate the
@@ -2310,7 +2310,8 @@ fn print_plan_human(plan: &InstallPlan) {
 
 fn triple_for(target: InstallTarget) -> String {
     match target {
-        InstallTarget::Linux => "x86_64-unknown-linux-gnu".to_string(),
+        // Static musl is the portable default for older production glibc hosts.
+        InstallTarget::Linux => "x86_64-unknown-linux-musl".to_string(),
         InstallTarget::Darwin => {
             if cfg!(target_arch = "x86_64") {
                 "x86_64-apple-darwin".to_string()
@@ -2344,7 +2345,7 @@ mod tests {
     #[test]
     fn triple_for_each_target_is_stable() {
         // Triples are part of the install GH release asset contract.
-        assert_eq!(triple_for(InstallTarget::Linux), "x86_64-unknown-linux-gnu");
+        assert_eq!(triple_for(InstallTarget::Linux), "x86_64-unknown-linux-musl");
         let expected_darwin = if cfg!(target_arch = "x86_64") {
             "x86_64-apple-darwin"
         } else {

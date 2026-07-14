@@ -8,6 +8,7 @@ const root = process.cwd();
 const toolsPath = path.join(root, 'apps/pi-extension/src/tools.ts');
 const contractsPath = path.join(root, 'apps/pi-extension/src/tool-contracts.ts');
 const readmePath = path.join(root, 'README.md');
+const toolDocsIndexPath = path.join(root, 'docs/focusa-tools/README.md');
 const registryJsonPath = path.join(root, 'docs/current/focusa-tool-contracts.json');
 const choreographyJsonPath = path.join(root, 'docs/current/focusa-tool-choreography.json');
 const writeJsonProjection = process.argv.includes('--write-json');
@@ -31,7 +32,11 @@ if (wrapperInstallIndex === -1) {
 }
 
 const toolMatches = [...toolsSrc.matchAll(/name: "(focusa_[^"]+)"/g)];
-const toolNames = toolMatches.map((m) => m[1]);
+const dynamicPreloadMatch = toolsSrc.match(/const preloadReadTools:[^=]+ = (\[[\s\S]*?\n  \]);/);
+const dynamicPreloadNames = dynamicPreloadMatch
+  ? parseJsonLikeTsLiteral(dynamicPreloadMatch[1]).map(([name]) => name)
+  : [];
+const toolNames = [...toolMatches.map((m) => m[1]), ...dynamicPreloadNames];
 for (const match of toolMatches) {
   if (wrapperInstallIndex !== -1 && match.index < wrapperInstallIndex) {
     fail('tool registered before tool_result_v1 wrapper install', match[1]);
@@ -42,14 +47,47 @@ if (toolNames.length !== uniqueToolNames.length) {
   fail('duplicate Pi tool registrations', toolNames.filter((name, idx) => toolNames.indexOf(name) !== idx));
 }
 
+const preloadMatch = contractsSrc.match(/const PRELOAD_TOOL_CONTRACTS: FocusaToolContract\[] = (\[[\s\S]*?\])\.map/);
 const jsonMatch = contractsSrc.match(/export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract\[] = ([\s\S]*?)\n\];/);
+if (!preloadMatch) {
+  fail('could not parse PRELOAD_TOOL_CONTRACTS registry');
+}
 if (!jsonMatch) {
   fail('could not parse FOCUSA_TOOL_CONTRACTS registry');
 }
 
 let contracts = [];
-if (jsonMatch) {
-  contracts = parseJsonLikeTsLiteral(`${jsonMatch[1]}\n]`);
+if (preloadMatch && jsonMatch) {
+  const preloadRows = parseJsonLikeTsLiteral(preloadMatch[1]);
+  const preloadContracts = preloadRows.map(([suffix, label, purpose, sideEffect, method]) => {
+    const action = suffix.replace('_', '-');
+    const write = sideEffect.startsWith('write');
+    return {
+      name: `focusa_preload_${suffix}`,
+      family: 'preload',
+      label,
+      purpose,
+      ontology_action: `preload.${suffix}`,
+      ontology_objects: suffix.startsWith('receipt') ? ['AgentBootstrapReceipt'] : ['AgentBootstrapPacket'],
+      api_routes: [`${method} /v1/preload/${action}`],
+      cli_commands: [`focusa preload ${action}`],
+      core_surface: 'Spec111 agent context bootstrap and delivery',
+      doc_path: `docs/focusa-tools/tools/focusa_preload_${suffix}.md`,
+      spec_path: 'docs/111-agent-context-bootstrap-and-delivery-spec.md',
+      result_envelope: 'tool_result_v1',
+      side_effect_profile: sideEffect,
+      parity_status: 'full',
+      exemptions: [],
+      live_check: 'contract_static plus scoped preload route verification',
+      scope_requirement: { kind: write ? 'write' : 'read', route_family: 'preload' },
+      authority_requirement: write
+        ? { kind: 'canonical', path: `/v1/preload/${action}` }
+        : { kind: 'advisory_only' },
+    };
+  });
+  const baseContractsLiteral = jsonMatch[1].replace(/\.\.\.PRELOAD_TOOL_CONTRACTS\s*,?/, '');
+  const baseContracts = parseJsonLikeTsLiteral(`${baseContractsLiteral}\n]`);
+  contracts = [...preloadContracts, ...baseContracts];
 }
 
 const registryProjection = {
@@ -99,7 +137,7 @@ const extraContracts = contractNames.filter((name) => !toolSet.has(name));
 if (missingContracts.length) fail('tools missing contracts', missingContracts);
 if (extraContracts.length) fail('contracts without registered tools', extraContracts);
 
-const validFamilies = new Set(['focus_state', 'workpoint', 'work_loop', 'metacognition', 'tree_lineage', 'diagnostics_hygiene', 'trajectory', 'project_identity', 'traversal', 'session_transfer', 'awareness']);
+const validFamilies = new Set(['focus_state', 'workpoint', 'work_loop', 'metacognition', 'tree_lineage', 'diagnostics_hygiene', 'trajectory', 'project_identity', 'traversal', 'session_transfer', 'awareness', 'preload']);
 const validParity = new Set(['full', 'domain', 'pi_only', 'local_only', 'degraded_known', 'api_only']);
 const validExemptions = new Set(['local_scratchpad_only', 'pi_session_only', 'doctor_composition_only', 'domain_cli_only', 'api_domain_only', 'pi_session_snapshot_only', 'pi_only', 'api_only']);
 
@@ -131,7 +169,13 @@ for (const contract of contracts) {
     const routePath = route.replace(/^(GET|POST|PATCH|PUT|DELETE)\s+/, '').split('?')[0];
     if (!routeInventory.has(routePath)) fail(`${prefix} API route not in route inventory`, route);
   }
-  if (!readme.includes(contract.doc_path)) fail(`${prefix} README missing tool doc link`, contract.doc_path);
+}
+
+if (!fs.existsSync(toolDocsIndexPath)) {
+  fail('missing dedicated tool docs index', toolDocsIndexPath);
+}
+if (!readme.includes('docs/focusa-tools/README.md')) {
+  fail('README missing dedicated tool docs index link', 'docs/focusa-tools/README.md');
 }
 
 if (!routeInventory.has('/v1/ontology/tool-contracts')) {

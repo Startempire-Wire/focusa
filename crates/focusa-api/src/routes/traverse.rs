@@ -4,6 +4,7 @@
 //! facade; individual domain routes remain authoritative for mutations and
 //! deep/cold reads.
 
+use crate::scope::ScopeContext;
 use crate::routes::bounded::{
     BoundedReadOptions, bounded_metadata, bounded_window, budgeted_default_limit,
     budgeted_hard_limit, budgeted_requested_limit, field_projection,
@@ -12,7 +13,7 @@ use crate::routes::bounded::{
 use crate::server::AppState;
 use axum::extract::State;
 use axum::{Json, Router, routing::post};
-use focusa_core::types::{CltNodeType, FocusaState};
+use focusa_core::types::{CltNodeType, FocusaState, FrameStatus};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -2066,21 +2067,58 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
     })
 }
 
+fn scoped_traverse_state(state: &FocusaState, scope: &ScopeContext) -> FocusaState {
+    let mut scoped = state.clone();
+    scoped.clt = crate::routes::clt::scoped_clt_state(&state.clt, scope);
+    let project_root = scope.project_root.as_deref().map(str::trim).unwrap_or_default();
+    let continuity_id = scope.continuity_id.as_deref().map(str::trim).unwrap_or_default();
+    scoped.focus_stack.frames.retain(|frame| {
+        !project_root.is_empty()
+            && !continuity_id.is_empty()
+            && frame.project_root.as_deref().map(str::trim) == Some(project_root)
+            && frame.continuity_id.as_deref().map(str::trim) == Some(continuity_id)
+    });
+    scoped.focus_stack.active_id = scoped
+        .focus_stack
+        .frames
+        .iter()
+        .rev()
+        .find(|frame| frame.status == FrameStatus::Active)
+        .map(|frame| frame.id);
+    scoped.focus_stack.root_id = scoped.focus_stack.frames.iter().find_map(|frame| {
+        frame
+            .parent_id
+            .is_none_or(|parent_id| {
+                !scoped.focus_stack.frames.iter().any(|item| item.id == parent_id)
+            })
+            .then_some(frame.id)
+    });
+    scoped
+        .focus_stack
+        .stack_path_cache
+        .retain(|id| scoped.focus_stack.frames.iter().any(|frame| frame.id == *id));
+    scoped
+}
+
 async fn traverse(
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(req): Json<TraverseRequest>,
 ) -> Json<Value> {
     let s = state.focusa.read().await;
-    Json(traverse_response(&s, req, false))
+    let scoped = scoped_traverse_state(&s, &scope);
+    Json(traverse_response(&scoped, req, false))
 }
 
 async fn verify_tags(
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(mut req): Json<TraverseRequest>,
 ) -> Json<Value> {
     adopt_verify_selector_from_requested_tags(&mut req);
     let s = state.focusa.read().await;
-    Json(traverse_response(&s, req, true))
+    let scoped = scoped_traverse_state(&s, &scope);
+    Json(traverse_response(&scoped, req, true))
 }
 
 pub fn router() -> Router<Arc<AppState>> {

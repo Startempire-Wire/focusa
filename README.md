@@ -228,6 +228,7 @@ The cross-phase smoke suite checks project dashboard commands, first-mission dry
 - Production/release commands: [`docs/current/PRODUCTION_RELEASE_COMMANDS.md`](docs/current/PRODUCTION_RELEASE_COMMANDS.md)
 - Troubleshooting: [`docs/current/TROUBLESHOOTING_CURRENT.md`](docs/current/TROUBLESHOOTING_CURRENT.md)
 - Spec-first lifecycle and claim discipline: [`docs/107-spec-first-feature-lifecycle-and-claim-discipline-spec.md`](docs/107-spec-first-feature-lifecycle-and-claim-discipline-spec.md)
+- Complete Focusa tool documentation index: [`docs/focusa-tools/README.md`](docs/focusa-tools/README.md)
 
 ## License
 

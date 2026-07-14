@@ -5206,9 +5206,10 @@ Return:
             FocusaEvent::IntuitionSignalObserved {
                 signal_type,
                 severity,
+                summary,
                 ..
             } => {
-                if is_low_value_clt_intuition(signal_type, severity) {
+                if is_low_value_clt_intuition(signal_type, severity, summary) {
                     return;
                 }
                 "system"
@@ -5232,7 +5233,14 @@ Return:
     }
 }
 
-fn is_low_value_clt_intuition(signal_type: &SignalKind, severity: &str) -> bool {
+fn is_low_value_clt_intuition(
+    signal_type: &SignalKind,
+    severity: &str,
+    summary: &str,
+) -> bool {
+    if summary.trim_start().starts_with("Guardian: service ") {
+        return true;
+    }
     let signal_name = format!("{:?}", signal_type);
     let severity_value = severity.parse::<f32>().unwrap_or(0.0);
     signal_name == "LongRunningFrame" && severity_value < 0.8
@@ -5358,6 +5366,20 @@ fn parse_suppression_scope(scope: &str) -> Option<DateTime<Utc>> {
 #[allow(clippy::field_reassign_with_default)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn project_lineage_omits_guardian_service_warnings() {
+        assert!(is_low_value_clt_intuition(
+            &SignalKind::Warning,
+            "info",
+            "Guardian: service uptime-kuma is DOWN",
+        ));
+        assert!(!is_low_value_clt_intuition(
+            &SignalKind::Warning,
+            "info",
+            "Focusa scope mismatch detected",
+        ));
+    }
 
     fn sample_spec_task() -> SpecLinkedTaskPacket {
         SpecLinkedTaskPacket {

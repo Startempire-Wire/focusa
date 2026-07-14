@@ -2,6 +2,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT="$ROOT/crates/focusa-api/src/routes/project.rs"
+TOOLS="$ROOT/apps/pi-extension/src/tools.ts"
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 require() { rg -q "$2" "$1" || fail "missing $2 in $1"; }
@@ -23,6 +24,11 @@ require "$PROJECT" 'project_session_transfers_path\(&source_scope\.root_scope\)'
 require "$PROJECT" 'project-session-transfers'
 require "$PROJECT" 'source_checkpoint_id'
 require "$PROJECT" 'compaction_packet_id'
+require "$TOOLS" 'session_transfer_target_materialization'
+require "$TOOLS" 'target_workpoint_checkpoint_packet'
+require "$TOOLS" 'action: "verify_target"'
+require "$TOOLS" 'target_resume_canonical: true'
+require "$TOOLS" 'target_resume_verified'
 
 if rg -q 'replace\("project-fnv1a64", "focusa-cont-project"\)' "$PROJECT"; then
   fail "session transfer still invents static continuity from project fingerprint"
