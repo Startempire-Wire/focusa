@@ -138,8 +138,7 @@ function queueUnboundProjectNag(pi: ExtensionAPI, ctx: any, reason: string): voi
     return;
   }
   try {
-    const sender = ctx && typeof ctx.sendUserMessage === "function" ? ctx : pi;
-    void sender.sendUserMessage(prompt, { deliverAs: "followUp" } as any);
+    void Promise.resolve(pi.sendUserMessage(prompt, { deliverAs: "followUp" } as any)).catch(() => {});
   } catch {
     /* best effort */
   }
@@ -306,8 +305,7 @@ function queueProjectIdentityBootstrapTurn(
     payload: { reason, project_root: proposedRoot, session_id: getAttachmentRuntime().sessionFrameKey },
   });
   try {
-    const sender = ctx && typeof ctx.sendUserMessage === "function" ? ctx : pi;
-    void sender.sendUserMessage(prompt, { deliverAs: "followUp" } as any);
+    void Promise.resolve(pi.sendUserMessage(prompt, { deliverAs: "followUp" } as any)).catch(() => {});
   } catch {
     /* best effort */
   }

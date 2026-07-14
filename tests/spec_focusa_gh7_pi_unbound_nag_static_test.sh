@@ -23,8 +23,11 @@ from pathlib import Path
 text = Path('apps/pi-extension/src/session.ts').read_text()
 assert 'if (pi.getFlag("--nag-suppress")) return;' in text
 assert 'if (markerExistsAtCwd(cwd)) return;' in text
-assert 'S.vitalInfoPrompted[key]' in text
+assert 'getAttachmentRuntime().vitalInfoPrompted[key]' in text
 assert 'queueUnboundProjectNag(pi, ctx, "session_start")' in text
+assert text.count('pi.sendUserMessage(prompt, { deliverAs: "followUp" } as any)') == 2
+assert 'sender.sendUserMessage(prompt' not in text
+assert 'Promise.resolve(' in text
 PY
 pass "Pi startup nag suppresses when marker present or already emitted"
 echo "GH7/Pi unbound nag static test: PASS"
