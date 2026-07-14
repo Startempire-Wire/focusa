@@ -184,10 +184,16 @@ try {
   });
   const originalFetch = globalThis.fetch;
   let recoveredFrameRequestHeaders;
+  let recoveredSessionStartBody;
   globalThis.fetch = async (input, init) => {
     const url = String(input);
     if (url.includes("/focus/push")) recoveredFrameRequestHeaders = init?.headers;
-    const body = url.includes("/focus/push") ? { frame_id: "frame-recovered-after-stale-health" } : {};
+    if (url.includes("/session/start")) recoveredSessionStartBody = JSON.parse(init?.body || "{}");
+    const body = url.includes("/focus/push")
+      ? { frame_id: "frame-recovered-after-stale-health" }
+      : url.includes("/session/start")
+        ? { status: "accepted" }
+        : {};
     return {
       ok: true,
       status: 200,
@@ -209,6 +215,12 @@ try {
       "frame-recovered-after-stale-health",
       "stale health cache must not veto authoritative scoped frame recovery"
     );
+    assert.deepEqual(recoveredSessionStartBody, {
+      adapter_id: "pi",
+      workspace_id: repoRoot,
+      project_root: repoRoot,
+      continuity_id: "cont-frame-recovery",
+    });
     assert.equal(recoveredFrameRequestHeaders?.["X-Scope-Project-Root"], repoRoot);
     assert.equal(recoveredFrameRequestHeaders?.["X-Scope-Continuity-Id"], "cont-frame-recovery");
     assert.equal(recoveredFrameRequestHeaders?.["X-Scope-Session-Id"], "session-frame-recovery");

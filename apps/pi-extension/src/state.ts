@@ -2615,6 +2615,31 @@ function ensureAutocreatedBeadsIssueForProject(projectRoot: string): string | nu
   }
 }
 
+export async function ensureFocusaSessionForFrame(
+  projectRoot: string,
+  continuityId: string
+): Promise<boolean> {
+  if (!isProjectRootAuthoritySafe(projectRoot) || !continuityId) return false;
+  const status = await focusaFetch("/status").catch(() => null);
+  const session = status?.session;
+  if (
+    session?.status === "active" &&
+    normalizeProjectRoot(session.project_root) === normalizeProjectRoot(projectRoot)
+  ) {
+    return true;
+  }
+  const started = await focusaFetch("/session/start", {
+    method: "POST",
+    body: JSON.stringify({
+      adapter_id: "pi",
+      workspace_id: projectRoot,
+      project_root: projectRoot,
+      continuity_id: continuityId,
+    }),
+  }).catch(() => null);
+  return started?.status === "accepted";
+}
+
 export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<string | null> {
   getAttachmentRuntime().sessionCwd = cwd;
   const { projectName, title, goal } = derivePiFrameIntent(cwd);
@@ -3501,6 +3526,8 @@ export async function ensurePiFrame(
   getAttachmentRuntime().sessionCwd = resolvedCwd;
 
   getAttachmentRuntime().activeFramePromise = (async () => {
+    const continuityId = ensureContinuityId(resolvedCwd);
+    if (!(await ensureFocusaSessionForFrame(resolvedCwd, continuityId))) return null;
     focusaPost("/instance/connect", {
       instance_id: `pi-${process.pid}`,
       surface: "pi",
