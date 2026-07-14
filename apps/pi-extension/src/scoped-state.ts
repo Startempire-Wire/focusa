@@ -26,6 +26,28 @@ export interface AttachmentKey {
   attachment_id: string;
 }
 
+/**
+ * Pi reloads extension instances when the active native session changes, while
+ * tool execution contexts may omit or vary their temporal session id. Keep the
+ * latest verified typed attachment inside this extension instance so a later
+ * scope-less tool can reuse project_root + continuity_id authority.
+ */
+export class PiExtensionSessionBinding {
+  private attachment: AttachmentKey | undefined;
+
+  bind(key: AttachmentKey): void {
+    this.attachment = key;
+  }
+
+  resolve(): AttachmentKey | undefined {
+    return this.attachment;
+  }
+
+  clear(): void {
+    this.attachment = undefined;
+  }
+}
+
 export interface AuthorityEnvelope {
   status: AuthorityStatus;
   why: string;

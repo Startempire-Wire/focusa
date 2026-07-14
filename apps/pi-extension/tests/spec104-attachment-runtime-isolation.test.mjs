@@ -46,6 +46,22 @@ try {
     "cont-a",
     "unsafe broad-root attachment must not replace verified session binding"
   );
+  const extensionSessionBinding = new scopedState.PiExtensionSessionBinding();
+  extensionSessionBinding.bind(keyA);
+  assert.equal(
+    extensionSessionBinding.resolve()?.workstream.continuity_id,
+    "cont-a",
+    "scope-less tools must reuse the latest verified attachment in one Pi extension instance"
+  );
+  extensionSessionBinding.bind(keyB);
+  assert.equal(
+    extensionSessionBinding.resolve()?.workstream.root_scope.root_path,
+    "/tmp/project-b",
+    "an explicit typed project switch must replace the extension-instance attachment"
+  );
+  extensionSessionBinding.clear();
+  assert.equal(extensionSessionBinding.resolve(), undefined);
+
   await state.runWithAttachmentRuntime(keyA, async () => {
     const runtime = state.getAttachmentRuntime();
     runtime.currentAsk = { text: "ask-a" };

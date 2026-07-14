@@ -11,9 +11,11 @@ import {
   getEffectiveFocusSnapshot,
   getFocusaAvailable,
   getActiveFrameId,
+  isProjectRootAuthoritySafe,
   makeAttachmentKey,
   runWithAttachmentRuntime,
 } from "./state.js";
+import { PiExtensionSessionBinding } from "./scoped-state.js";
 
 // ESM compat: require() for synchronous imports in message renderer callback
 const require = createRequire(import.meta.url);
@@ -35,6 +37,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     attachmentId: "extension-bootstrap",
   });
   const withRuntime = <T>(fn: () => T): T => runWithAttachmentRuntime(extensionKey, fn);
+  const sessionBinding = new PiExtensionSessionBinding();
   return withRuntime(() => {
     const runtimeFor = (ctx?: any, eventOrParams?: any) => {
       const sessionId = String(
@@ -50,7 +53,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
         eventOrParams?.project_root;
       const explicitContinuity = eventOrParams?.source_scope?.continuity_id || eventOrParams?.continuity_id;
       if (!explicitProjectRoot && !explicitContinuity) {
-        const bound = attachmentRuntimeRegistry.boundSessionAttachment(sessionId);
+        const bound = attachmentRuntimeRegistry.boundSessionAttachment(sessionId) || sessionBinding.resolve();
         if (bound) return bound;
       }
       const projectRoot = String(explicitProjectRoot || ctx?.cwd || process.cwd());
@@ -68,6 +71,13 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
       if (!target.cfg && bootstrap.cfg) target.cfg = bootstrap.cfg;
       if (!target.pi) target.pi = pi;
       attachmentRuntimeRegistry.bindSessionAttachment(key);
+      if (
+        isProjectRootAuthoritySafe(key.workstream.root_scope.root_path) &&
+        key.workstream.continuity_id &&
+        key.workstream.continuity_id !== "extension-bootstrap"
+      ) {
+        sessionBinding.bind(key);
+      }
       return key;
     };
     const originalOn = (pi as any).on?.bind(pi);
