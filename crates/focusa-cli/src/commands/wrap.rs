@@ -365,6 +365,20 @@ fn detect_mode(args: &[String]) -> (&str, &[String], bool) {
     ("", args, true) // Default to TUI
 }
 
+fn semantic_harness_failure(transcript: &str) -> Option<String> {
+    let trimmed = transcript.trim();
+    if trimmed.is_empty() {
+        return Some("harness exited successfully without semantic output".to_string());
+    }
+    if trimmed
+        .to_ascii_lowercase()
+        .contains("no models match pattern")
+    {
+        return Some("harness model selector matched no available model".to_string());
+    }
+    None
+}
+
 /// Run the wrap command with full session capture.
 pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
     if command.is_empty() {
@@ -481,6 +495,17 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
 
     eprintln!("[DEBUG] Harness exited with code: {}", exit_code);
     eprintln!("[DEBUG] Transcript length: {} chars", transcript.len());
+    let semantic_failure = (exit_code == 0)
+        .then(|| semantic_harness_failure(&transcript))
+        .flatten();
+    let effective_exit_code = if semantic_failure.is_some() {
+        65
+    } else {
+        exit_code
+    };
+    if let Some(failure) = semantic_failure.as_deref() {
+        eprintln!("[ERROR] Semantic harness failure: {failure}");
+    }
 
     // 4. Parse transcript to extract user/assistant content (for TUI observability)
     let (user_input, assistant_output) = if is_tui {
@@ -498,7 +523,9 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
     };
 
     // 5. Turn complete - send everything to daemon
-    let errors = if exit_code != 0 {
+    let errors = if let Some(failure) = semantic_failure {
+        vec![failure]
+    } else if exit_code != 0 {
         vec![format!("Harness exited with code {}", exit_code)]
     } else {
         vec![]
@@ -532,6 +559,31 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
         2,
     );
 
-    // Exit with harness exit code
-    std::process::exit(exit_code);
+    // Exit with the effective code so empty/invalid-model output cannot become false success.
+    std::process::exit(effective_exit_code);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::semantic_harness_failure;
+
+    #[test]
+    fn semantic_harness_failure_rejects_empty_output() {
+        assert!(semantic_harness_failure("  \n").is_some());
+    }
+
+    #[test]
+    fn semantic_harness_failure_rejects_invalid_model_warning() {
+        assert!(
+            semantic_harness_failure(
+                "Warning: No models match pattern \"ovh-ai-llama-cpp/ovh-local-coder\""
+            )
+            .is_some()
+        );
+    }
+
+    #[test]
+    fn semantic_harness_failure_accepts_valid_short_output() {
+        assert!(semantic_harness_failure("WORKER_MODEL_OK").is_none());
+    }
 }
