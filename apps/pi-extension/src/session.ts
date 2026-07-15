@@ -58,12 +58,21 @@ import {
   getContinuityId,
 } from "./state.js";
 import { loadPersistedRecoveryState } from "./persistence.js";
-import { measureNativeSessionPressure } from "./session-pressure.js";
+import {
+  measureNativeSessionPressure,
+  type NativeSessionPressureV1,
+} from "./session-pressure.js";
 import { pushDelta } from "./tools.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
 let sseAbort: AbortController | null = null;
 let sseReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+export function nativeSessionPressureOperatorAction(
+  pressure: Pick<NativeSessionPressureV1, "recommended_action">
+): string | null {
+  return pressure.recommended_action === "rollover" ? "/focusa-rollover execute" : null;
+}
 
 function refreshNativeSessionPressure(ctx: any, reason: string, entries?: any[]): void {
   const sessionFile = ctx?.sessionManager?.getSessionFile?.();
@@ -73,6 +82,7 @@ function refreshNativeSessionPressure(ctx: any, reason: string, entries?: any[])
     entries,
   });
   getAttachmentRuntime().lastNativeSessionPressure = pressure;
+  const operatorAction = nativeSessionPressureOperatorAction(pressure);
   const noticeKey = `${pressure.posture}:${pressure.recommended_action}`;
   if (pressure.posture === "normal") {
     if (getAttachmentRuntime().lastNativeSessionPressureNoticeKey)
@@ -81,10 +91,17 @@ function refreshNativeSessionPressure(ctx: any, reason: string, entries?: any[])
   } else if (noticeKey !== getAttachmentRuntime().lastNativeSessionPressureNoticeKey) {
     getAttachmentRuntime().lastNativeSessionPressureNoticeKey = noticeKey;
     const mib = Math.ceil(pressure.session_bytes / (1024 * 1024));
-    ctx?.ui?.setStatus?.("focusa-pressure", `session ${pressure.posture} · ${mib} MiB`);
+    const actionSuffix = operatorAction ? ` · run ${operatorAction}` : "";
+    ctx?.ui?.setStatus?.(
+      "focusa-pressure",
+      `native session ${pressure.posture} · ${mib} MiB${actionSuffix}`
+    );
     if (pressure.posture !== "soft_pressure") {
+      const actionCopy = operatorAction
+        ? `Live /compact cannot shrink this append-only segment. Run ${operatorAction} to checkpoint, seal, migrate, open a new session, and verify resume.`
+        : `Required action: ${pressure.recommended_action}.`;
       ctx?.ui?.notify?.(
-        `Focusa session pressure: ${pressure.posture}; next=${pressure.recommended_action}. Checkpoint/rollover before durable continuation.`,
+        `Focusa native-session pressure: ${pressure.posture}. ${actionCopy}`,
         "warning"
       );
     }

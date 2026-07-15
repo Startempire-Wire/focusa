@@ -677,7 +677,7 @@ export function registerCommands(pi: ExtensionAPI) {
       const mode = modeRaw || "inspect";
       if (!new Set(["inspect", "dry-run", "execute"]).has(mode)) {
         ctx.ui.notify(
-          "Usage: /focusa-rollover inspect | dry-run [output-dir] | execute <output-dir>",
+          "Usage: /focusa-rollover inspect | dry-run [output-dir] | execute [output-dir]",
           "warning"
         );
         return;
@@ -708,11 +708,9 @@ export function registerCommands(pi: ExtensionAPI) {
       }
       const outputDir = outputRaw
         ? resolve(outputRaw)
-        : resolve(dirname(sourcePath), "focusa-rollover-dry-run");
-      if (mode === "execute" && !outputRaw) {
-        ctx.ui.notify("Focusa rollover execute blocked: provide an explicit output directory.", "error");
-        return;
-      }
+        : mode === "execute"
+          ? resolve(dirname(sourcePath), `focusa-rollover-${Date.now()}`)
+          : resolve(dirname(sourcePath), "focusa-rollover-dry-run");
       let preparation: Awaited<ReturnType<typeof prepareCompactionRollover>> | null = null;
       let targetScope = scope;
       let targetSessionId = "";
