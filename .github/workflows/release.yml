@@ -432,33 +432,55 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Install GitHub CLI
-        run: gh --version
+      - uses: actions/checkout@v6
 
-      - name: Install cosign
-        uses: sigstore/cosign-installer@v3
+      - name: Verify release tooling
+        run: |
+          set -euo pipefail
+          gh --version
+          openssl version
+          python3 --version
+          python3 -m pip install --disable-pip-version-check --user 'cryptography==46.0.4'
+          python3 -c 'import cryptography; print(cryptography.__version__)'
+          test -s config/focusa-trusted-release-keys.json
 
-      - name: Download release assets
+      - name: Download completed release assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           TAG="${{ github.ref_name }}"
           mkdir -p dist
           gh release download "$TAG" --repo "${{ github.repository }}" --dir dist --clobber
-          find dist -maxdepth 1 -type f ! -name 'SHA256SUMS*' -print0 | sort -z | xargs -0 sha256sum | sed 's#  dist/#  #' > SHA256SUMS.txt
-          cat SHA256SUMS.txt
-          cosign sign-blob --yes \
-            --output-signature SHA256SUMS.txt.sig \
-            --output-certificate SHA256SUMS.txt.pem \
-            SHA256SUMS.txt
 
-      - name: Upload checksum manifest and signature
+      - name: Generate detached signatures, manifest, provenance, and trust metadata
+        env:
+          FOCUSA_RELEASE_ED25519_PRIVATE_KEY: ${{ secrets.FOCUSA_RELEASE_ED25519_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${FOCUSA_RELEASE_ED25519_PRIVATE_KEY:-}"
+          umask 077
+          KEY_FILE="${RUNNER_TEMP}/focusa-release-ed25519.pem"
+          trap 'shred -u "$KEY_FILE" 2>/dev/null || rm -f "$KEY_FILE"' EXIT
+          printf '%s\n' "$FOCUSA_RELEASE_ED25519_PRIVATE_KEY" > "$KEY_FILE"
+          python3 scripts/release-trust-metadata.py \
+            --dist dist \
+            --tag "${{ github.ref_name }}" \
+            --commit "$GITHUB_SHA" \
+            --repo "$GITHUB_REPOSITORY" \
+            --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --private-key "$KEY_FILE" \
+            --trusted-keys config/focusa-trusted-release-keys.json
+
+      - name: Upload trusted OTA metadata and detached signatures
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            SHA256SUMS.txt
-            SHA256SUMS.txt.sig
-            SHA256SUMS.txt.pem
+            dist/*.sig
+            dist/SHA256SUMS.txt
+            dist/release-manifest.json
+            dist/release-provenance.json
+            dist/focusa-trusted-release-keys.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
