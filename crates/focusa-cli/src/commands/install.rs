@@ -30,7 +30,7 @@ use focusa_terminal_ui::{
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
-use std::io::Write;
+use std::io::{IsTerminal, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread::JoinHandle;
@@ -173,8 +173,12 @@ pub struct InstallArgs {
     #[arg(long)]
     pub quiet: bool,
 
-    /// Reserved for future dependency installer; currently reported only.
+    /// Install missing bootstrap dependencies during preflight after explicit consent.
     #[arg(long)]
+    pub install_dependencies: bool,
+
+    /// Approve dependency installation without an interactive prompt.
+    #[arg(long, requires = "install_dependencies")]
     pub assume_yes: bool,
 
     /// License key (commercial install). Eval mode is selected by absence.
@@ -394,8 +398,19 @@ pub struct DependencyInstallOffer {
     pub can_offer: bool,
     pub auto_install_performed: bool,
     pub requires_explicit_consent: bool,
+    pub install_requested: bool,
     pub assume_yes_requested: bool,
+    pub consent_status: String,
+    pub execution: Option<DependencyInstallExecution>,
     pub message: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct DependencyInstallExecution {
+    pub status: String,
+    pub commands: Vec<String>,
+    pub installed: Vec<String>,
+    pub failures: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -446,7 +461,14 @@ fn build_preflight_report(
             can_offer: !missing_dependencies.is_empty(),
             auto_install_performed: false,
             requires_explicit_consent: true,
+            install_requested: args.install_dependencies,
             assume_yes_requested: args.assume_yes,
+            consent_status: if args.install_dependencies {
+                "pending".into()
+            } else {
+                "not_requested".into()
+            },
+            execution: None,
             message: if missing_dependencies.is_empty() {
                 "all required bootstrap dependencies found".into()
             } else {
@@ -1264,6 +1286,79 @@ fn dependency_install_plan(package_manager: Option<&str>, name: &str) -> Depende
     }
 }
 
+fn dependency_install_consent(args: &InstallArgs) -> Result<&'static str> {
+    if !args.install_dependencies {
+        return Ok("not_requested");
+    }
+    if args.assume_yes {
+        return Ok("approved");
+    }
+    if args.json || !std::io::stdin().is_terminal() || !std::io::stdout().is_terminal() {
+        return Ok("consent_required");
+    }
+    print!("Install the missing bootstrap dependencies now? [y/N] ");
+    std::io::stdout().flush()?;
+    let mut answer = String::new();
+    std::io::stdin().read_line(&mut answer)?;
+    Ok(
+        if matches!(answer.trim().to_ascii_lowercase().as_str(), "y" | "yes") {
+            "approved"
+        } else {
+            "declined"
+        },
+    )
+}
+
+fn execute_dependency_plans_with<F>(
+    dependencies: &[&PreflightDependency],
+    mut runner: F,
+) -> DependencyInstallExecution
+where
+    F: FnMut(&str) -> std::result::Result<(), String>,
+{
+    let mut commands = Vec::new();
+    let mut installed = Vec::new();
+    let mut failures = Vec::new();
+    for dependency in dependencies {
+        let command = dependency.install_plan.install_command.clone();
+        commands.push(command.clone());
+        match runner(&command) {
+            Ok(()) => installed.push(dependency.name.clone()),
+            Err(error) => failures.push(format!("{}: {error}", dependency.name)),
+        }
+    }
+    DependencyInstallExecution {
+        status: if failures.is_empty() {
+            "completed".into()
+        } else {
+            "failed".into()
+        },
+        commands,
+        installed,
+        failures,
+    }
+}
+
+fn execute_dependency_plans(dependencies: &[&PreflightDependency]) -> DependencyInstallExecution {
+    execute_dependency_plans_with(dependencies, |command| {
+        let output = if cfg!(windows) {
+            std::process::Command::new("cmd")
+                .args(["/C", command])
+                .output()
+        } else {
+            std::process::Command::new("sh")
+                .args(["-c", command])
+                .output()
+        }
+        .map_err(|error| error.to_string())?;
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
+        }
+    })
+}
+
 fn terminal_ux_preflight(no_animation: bool) -> TerminalUxPreflight {
     let capabilities = detect_capabilities(no_animation, false, false);
     let interactive_tty = capabilities.stderr_is_terminal
@@ -1414,7 +1509,10 @@ fn print_preflight_human(report: &InstallPreflightReport, quiet: bool, no_animat
             }
         }
     }
-    println!("read_only: true mutations_performed: false");
+    println!(
+        "read_only: {} mutations_performed: {}",
+        report.read_only, report.mutations_performed
+    );
     println!("next: {}", report.recommendation);
 }
 
@@ -1588,7 +1686,51 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         .unwrap_or_else(|| std::path::PathBuf::from("/opt/focusa"));
 
     if args.preflight {
-        let report = build_preflight_report(&args, target, &install_root);
+        let mut report = build_preflight_report(&args, target, &install_root);
+        if args.install_dependencies && report.missing_dependencies.is_empty() {
+            report.dependency_install_offer.consent_status = "not_needed".into();
+            report.dependency_install_offer.message =
+                "all required dependencies are already present".into();
+        } else if args.install_dependencies {
+            let consent = dependency_install_consent(&args)?;
+            report.dependency_install_offer.consent_status = consent.into();
+            match consent {
+                "approved" => {
+                    let missing = report
+                        .dependencies
+                        .iter()
+                        .filter(|dependency| !dependency.present)
+                        .collect::<Vec<_>>();
+                    let execution = execute_dependency_plans(&missing);
+                    report.read_only = false;
+                    report.mutations_performed = !execution.commands.is_empty();
+                    report.dependency_install_offer.auto_install_performed = true;
+                    report.dependency_install_offer.message = if execution.failures.is_empty() {
+                        "dependency installation commands completed; rerun preflight to verify PATH visibility".into()
+                    } else {
+                        "one or more dependency installation commands failed; follow recovery hints"
+                            .into()
+                    };
+                    report.status = if execution.failures.is_empty() {
+                        "dependency_install_completed"
+                    } else {
+                        "dependency_install_failed"
+                    };
+                    report.dependency_install_offer.execution = Some(execution);
+                }
+                "declined" => {
+                    report.status = "dependency_install_declined";
+                    report.dependency_install_offer.message =
+                        "operator declined dependency installation; no package command executed"
+                            .into();
+                }
+                _ => {
+                    report.status = "dependency_install_consent_required";
+                    report.dependency_install_offer.message =
+                        "noninteractive/JSON installation requires --install-dependencies --assume-yes".into();
+                }
+            }
+        }
         if args.json {
             println!("{}", serde_json::to_string_pretty(&report)?);
         } else {
@@ -3237,6 +3379,7 @@ mod tests {
             preflight: false,
             no_animation: false,
             quiet: false,
+            install_dependencies: false,
             assume_yes: false,
             license_key: None,
             eval: false,
@@ -3279,6 +3422,7 @@ mod tests {
             preflight: false,
             no_animation: false,
             quiet: false,
+            install_dependencies: false,
             assume_yes: false,
             license_key: None,
             eval: true,
@@ -3491,6 +3635,7 @@ mod tests {
             preflight: false,
             no_animation: false,
             quiet: false,
+            install_dependencies: false,
             assume_yes: false,
             license_key: Some("focusa_live_xxxxx".to_string()),
             eval: false,
@@ -3538,5 +3683,23 @@ mod tests {
         );
         assert!(dependency_install_plan(Some("apt-get"), "python3").privilege_required);
         assert!(!dependency_install_plan(Some("brew"), "python3").privilege_required);
+    }
+
+    #[test]
+    fn dependency_execution_reports_success_and_failure_without_hiding_commands() {
+        let dependencies = detect_dependencies(Some("dnf"));
+        let selected = dependencies.iter().take(2).collect::<Vec<_>>();
+        let execution = execute_dependency_plans_with(&selected, |command| {
+            if command.contains("python3") {
+                Err("fixture rejection".into())
+            } else {
+                Ok(())
+            }
+        });
+        assert_eq!(execution.status, "failed");
+        assert_eq!(execution.commands.len(), 2);
+        assert_eq!(execution.installed, vec!["curl"]);
+        assert_eq!(execution.failures.len(), 1);
+        assert!(execution.failures[0].contains("fixture rejection"));
     }
 }

@@ -19,6 +19,16 @@ if [[ -z "$JSON_OUT" ]]; then
   fail "preflight --json returned empty output"
 fi
 
+CONSENT_OUT="$(PATH=/nonexistent "$BINARY" install --preflight --install-dependencies --json --no-animation --quiet)"
+jq -e '
+  .status == "dependency_install_consent_required" and
+  .read_only == true and
+  .mutations_performed == false and
+  .dependency_install_offer.install_requested == true and
+  .dependency_install_offer.consent_status == "consent_required" and
+  .dependency_install_offer.execution == null
+' <<<"$CONSENT_OUT" >/dev/null || fail "noninteractive dependency installation did not require explicit consent"
+
 # Validate envelope shape and required static fields
 jq -e '
   .schema == "focusa.install_preflight.v1" and

@@ -66,6 +66,7 @@ pub async fn run(json_output: bool, args: UpgradeArgs) -> anyhow::Result<()> {
         preflight: false,
         no_animation: false,
         quiet: false,
+        install_dependencies: false,
         assume_yes: false,
         license_key: None,
         eval: false,
