@@ -3850,6 +3850,11 @@ export function registerTools(pi: ExtensionAPI) {
   const SILENT_SESSION_LOG_MAX_BYTES = 5 * 1024 * 1024;
   const SILENT_SESSION_LOG_BACKUPS = 3;
   const SILENT_SESSION_STALE_SECONDS = 30 * 60;
+  const SILENT_SESSION_DEFAULT_TIMEOUT_SECONDS = 600;
+  const SILENT_SESSION_MIN_TIMEOUT_SECONDS = 30;
+  const SILENT_SESSION_MAX_TIMEOUT_SECONDS = 3600;
+  const SILENT_SESSION_MODEL_MAX_LENGTH = 160;
+  const SILENT_SESSION_MODEL_NAME_RE = /^[A-Za-z0-9._:/+-]+$/;
   const LEGACY_SILENT_SESSION_REGISTRY_PATH = "/tmp/focusa-silent-registry.json";
   const SILENT_SESSION_LEGACY_POSTURE = Object.freeze({
     schema: "focusa.silent_sessions.legacy_posture.v1",
@@ -4458,18 +4463,81 @@ export function registerTools(pi: ExtensionAPI) {
     };
   }
 
+  function validateSilentSessionModel(
+    model: unknown
+  ): { ok: true; value: string } | { ok: false; error: string } {
+    return validateRequiredString("model", model, SILENT_SESSION_MODEL_MAX_LENGTH, {
+      pattern: SILENT_SESSION_MODEL_NAME_RE,
+    });
+  }
+
+  function validateSilentSessionTimeoutSeconds(
+    timeoutSeconds: unknown
+  ): { ok: true; value: number } | { ok: false; error: string } {
+    const parsed =
+      timeoutSeconds === undefined || timeoutSeconds === null || timeoutSeconds === ""
+        ? SILENT_SESSION_DEFAULT_TIMEOUT_SECONDS
+        : Number(timeoutSeconds);
+    if (!Number.isFinite(parsed) || Number.isNaN(parsed))
+      return { ok: false, error: "timeout_seconds must be a finite number" };
+    if (!Number.isInteger(parsed)) return { ok: false, error: "timeout_seconds must be an integer" };
+    if (parsed < SILENT_SESSION_MIN_TIMEOUT_SECONDS || parsed > SILENT_SESSION_MAX_TIMEOUT_SECONDS)
+      return {
+        ok: false,
+        error: `timeout_seconds must be between ${SILENT_SESSION_MIN_TIMEOUT_SECONDS} and ${SILENT_SESSION_MAX_TIMEOUT_SECONDS}`,
+      };
+    return { ok: true, value: parsed };
+  }
+
+  function resolveSilentSessionBinary(): string {
+    return process.env.FOCUSA_PI_BIN || "pi";
+  }
+
+  function probeSilentSessionModel(model: string): { ok: true } | { ok: false; error: string } {
+    const separator = model.indexOf("/");
+    if (separator <= 0 || separator === model.length - 1)
+      return { ok: false, error: "model must use provider/model format" };
+    const provider = model.slice(0, separator);
+    const modelId = model.slice(separator + 1);
+    try {
+      const { spawnSync } = require("child_process");
+      const result = spawnSync(resolveSilentSessionBinary(), ["--no-extensions", "--list-models", model], {
+        encoding: "utf8",
+        timeout: 10000,
+        env: { ...process.env, FOCUSA_MAGIC_DISABLE: "1" },
+      });
+      if (result.status !== 0)
+        return { ok: false, error: String(result.stderr || "model probe failed").trim() };
+      const matched = String(result.stdout || "")
+        .split(/\r?\n/)
+        .some((line: string) => {
+          const fields = line.trim().split(/\s+/);
+          return fields[0] === provider && fields[1] === modelId;
+        });
+      return matched
+        ? { ok: true }
+        : { ok: false, error: `model ${model} is not available in the current Pi model registry` };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
   function defaultSilentSessionCommand(p: any, sessionName: string): string {
-    const rootDir = String(p.root_dir || getSessionCwd() || process.cwd()).replace(/'/g, `'\\''`);
+    const rootDir = String(p.root_dir || getSessionCwd() || process.cwd());
     const mission = String(
       p.mission ||
         "Continue Focusa-governed ready beads using trajectory/workpoint context; stop on destructive risk."
-    ).replace(/'/g, `'\\''`);
-    const bead = String(p.work_item_id || "").replace(/'/g, `'\\''`);
+    );
+    const bead = String(p.work_item_id || "");
+    const timeout = Number(p.timeout_seconds ?? SILENT_SESSION_DEFAULT_TIMEOUT_SECONDS);
+    const model = String(p.model);
     const lowmem =
       p.lowmem === false
         ? ""
         : 'curl -fsS --max-time 5 -X POST http://127.0.0.1:8787/v1/resource/mode -H \'Content-Type: application/json\' --data \'{"action":"activate_lowmem","reason":"SilentSession start"}\' >/tmp/focusa-silent-lowmem.json 2>/tmp/focusa-silent-lowmem.err || true; ';
-    return `cd '${rootDir}' && ${lowmem}pi 'SilentSession ${sessionName}: ${mission}${bead ? ` Work item: ${bead}.` : ""} Use Focusa trajectory/workpoint/beads, record evidence, checkpoint often, stop for destructive/high-risk actions, and accept operator steering sent through tmux send-keys.'`;
+    return `cd ${shellQuote(rootDir)} && ${lowmem}timeout --signal=TERM --kill-after=30s ${timeout}s env FOCUSA_MAGIC_DISABLE=1 ${shellQuote(resolveSilentSessionBinary())} --print --no-session --no-context-files --no-prompt-templates --no-skills --no-extensions --model ${shellQuote(model)} ${shellQuote(
+      `SilentSession ${sessionName}: ${mission}${bead ? ` Work item: ${bead}.` : ""} Use Focusa trajectory/workpoint/beads, record evidence, checkpoint often, stop for destructive/high-risk actions, and accept operator steering sent through tmux send-keys.`
+    )}`;
   }
 
   function silentSessionBlocked(
@@ -4568,6 +4636,19 @@ export function registerTools(pi: ExtensionAPI) {
         Type.String({
           description:
             "Custom shell command for start or input line for send. Omit for default Focusa-governed Pi autopilot command.",
+        })
+      ),
+      model: Type.Optional(
+        Type.String({
+          description:
+            "LLM model identifier. Required when using the default start command because implicit fallback is disabled.",
+        })
+      ),
+      timeout_seconds: Type.Optional(
+        Type.Integer({
+          minimum: SILENT_SESSION_MIN_TIMEOUT_SECONDS,
+          maximum: SILENT_SESSION_MAX_TIMEOUT_SECONDS,
+          description: "Runtime timeout in seconds for the default start command.",
         })
       ),
       mission: Type.Optional(Type.String({ description: "Mission prompt for default start command." })),
@@ -4771,6 +4852,46 @@ export function registerTools(pi: ExtensionAPI) {
               sessions: sessionsBefore,
             },
           } as any;
+        const priorMeta = action === "restart" ? silentSessionReadMeta(sessionName) || {} : {};
+        const rootDir = String(p.root_dir || priorMeta.root_dir || getSessionCwd() || process.cwd());
+        const reusedStoredCommand = Boolean(action === "restart" && !p.command && priorMeta.command);
+        const isCustomCommand = Boolean(p.command);
+        let commandModel = null;
+        let commandTimeout: number | null = null;
+        if (!isCustomCommand) {
+          const modelCheck = validateSilentSessionModel(p.model);
+          if (!modelCheck.ok)
+            return silentSessionBlocked(
+              action,
+              sessionName,
+              "validation_rejected",
+              `default ${action} command requires explicit model: ${modelCheck.error}`,
+              sessionsBefore,
+              { field: "model", error: modelCheck.error, action }
+            );
+          const modelProbe = probeSilentSessionModel(modelCheck.value);
+          if (!modelProbe.ok)
+            return silentSessionBlocked(
+              action,
+              sessionName,
+              "validation_rejected",
+              `default ${action} model unavailable: ${modelProbe.error}`,
+              sessionsBefore,
+              { field: "model", error: modelProbe.error, action }
+            );
+          const timeoutCheck = validateSilentSessionTimeoutSeconds(p.timeout_seconds);
+          if (!timeoutCheck.ok)
+            return silentSessionBlocked(
+              action,
+              sessionName,
+              "validation_rejected",
+              `default ${action} timeout invalid: ${timeoutCheck.error}`,
+              sessionsBefore,
+              { field: "timeout_seconds", error: timeoutCheck.error, action }
+            );
+          commandModel = modelCheck.value;
+          commandTimeout = timeoutCheck.value;
+        }
         if (action === "restart" && hasSession) {
           const killed = silentSessionExec(
             ["kill-session", "-t", sessionName],
@@ -4787,11 +4908,18 @@ export function registerTools(pi: ExtensionAPI) {
               { error: killed.stderr }
             );
         }
-        const priorMeta = action === "restart" ? silentSessionReadMeta(sessionName) || {} : {};
-        const rootDir = String(p.root_dir || priorMeta.root_dir || getSessionCwd() || process.cwd());
-        const reusedStoredCommand = Boolean(action === "restart" && !p.command && priorMeta.command);
         const cmd = String(
-          p.command || defaultSilentSessionCommand({ ...priorMeta, ...p, root_dir: rootDir }, sessionName)
+          p.command ||
+            defaultSilentSessionCommand(
+              {
+                ...priorMeta,
+                ...p,
+                root_dir: rootDir,
+                model: commandModel,
+                timeout_seconds: commandTimeout,
+              },
+              sessionName
+            )
         );
         const owner = silentSessionRootOwner(rootDir);
         const current = currentUserName();
@@ -4833,6 +4961,8 @@ export function registerTools(pi: ExtensionAPI) {
             command: cmd,
             mission: p.mission || priorMeta.mission || null,
             work_item_id: p.work_item_id || priorMeta.work_item_id || null,
+            model: p.command ? null : commandModel,
+            timeout_seconds: p.command ? null : commandTimeout,
             lowmem: p.lowmem ?? priorMeta.lowmem ?? true,
             log_path: pipeLog.log_path,
             log_max_bytes: pipeLog.max_bytes,
@@ -4859,6 +4989,8 @@ export function registerTools(pi: ExtensionAPI) {
             attach_detach_others_command: silentSessionAttachCommand(sessionName, true),
             tail_command: silentSessionTailCommand(sessionName),
             command: cmd,
+            model: p.command ? null : commandModel,
+            timeout_seconds: p.command ? null : commandTimeout,
             window_name: "agent",
             root_dir: rootDir,
             root_owner: owner,

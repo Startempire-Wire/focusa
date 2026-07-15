@@ -933,7 +933,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     name: "focusa_silent_sessions",
     label: "Focusa Silent Sessions (legacy tmux wrapper)",
     purpose:
-      "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane.",
+      "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
     family: "work_loop",
     ontology_action: "work_loop.silent_session.control",
     ontology_objects: ["SilentSession", "WorkLoopStatus", "ResourceMode"],
@@ -949,14 +949,15 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "tmux send-keys C-c",
       "tmux kill-session",
     ],
-    core_surface: "Legacy Pi-local tmux SilentSession compatibility wrapper",
+    core_surface:
+      "Legacy Pi-local tmux SilentSession compatibility wrapper with hardened built-in launch defaults",
     doc_path: "docs/focusa-tools/tools/focusa_silent_sessions.md",
     result_envelope: "tool_result_v1",
     side_effect_profile: "process_control",
     parity_status: "pi_only",
     exemptions: ["pi_only"],
     live_check:
-      "contract_static plus optional tmux list-sessions probe; kill/send/start require explicit approval flags",
+      "contract_static plus optional tmux list-sessions probe; kill/send/start/restart require explicit approval flags and start/restart default mode validates model+timeout",
     scope_requirement: { kind: "read", route_family: "auto" },
     authority_requirement: { kind: "advisory_only" },
   },
