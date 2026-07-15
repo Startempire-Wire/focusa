@@ -10056,7 +10056,7 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: strictObject({
       name: Type.String({ minLength: 1, maxLength: 120, description: "Bloatgaurd domain slug or title." }),
     }),
-    execute: async (params: any) => {
+    execute: async (_toolCallId: string, params: any) => {
       const keyCheck = validateNoExtraKeys("focusa_bloatgaurd_domain", params, ["name"]);
       if (!keyCheck.ok) {
         return spec80ValidationResult(
@@ -10142,7 +10142,7 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: strictObject({
       name: Type.String({ minLength: 1, maxLength: 120, description: "Tokenbloat domain slug or title." }),
     }),
-    execute: async (params: any) => {
+    execute: async (_toolCallId: string, params: any) => {
       const keyCheck = validateNoExtraKeys("focusa_bloatgaurd_tokenbloat_domain", params, ["name"]);
       if (!keyCheck.ok) {
         return spec80ValidationResult(
@@ -10224,7 +10224,7 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: strictObject({
       name: Type.String({ minLength: 1, maxLength: 120, description: "Gate mode code or name." }),
     }),
-    execute: async (params: any) => {
+    execute: async (_toolCallId: string, params: any) => {
       const keyCheck = validateNoExtraKeys("focusa_bloatgaurd_gate_mode", params, ["name"]);
       if (!keyCheck.ok) {
         return spec80ValidationResult(
@@ -10306,7 +10306,7 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: strictObject({
       name: Type.String({ minLength: 1, maxLength: 120, description: "Profile slug or title." }),
     }),
-    execute: async (params: any) => {
+    execute: async (_toolCallId: string, params: any) => {
       const keyCheck = validateNoExtraKeys("focusa_bloatgaurd_profile", params, ["name"]);
       if (!keyCheck.ok)
         return spec80ValidationResult(
@@ -10387,7 +10387,7 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: strictObject({
       name: Type.String({ minLength: 1, maxLength: 120, description: "Routine slug or title." }),
     }),
-    execute: async (params: any) => {
+    execute: async (_toolCallId: string, params: any) => {
       const keyCheck = validateNoExtraKeys("focusa_bloatgaurd_routine", params, ["name"]);
       if (!keyCheck.ok)
         return spec80ValidationResult(
