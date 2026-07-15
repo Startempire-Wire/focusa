@@ -822,6 +822,41 @@ function textSuggestsContextOverflow(text: string): boolean {
   );
 }
 
+export const BLOATGAURD_RECENT_TOOL_HISTORY_MESSAGES = 12;
+
+export function elideOldRehydratableToolHistory(
+  messages: any[],
+  recentMessageWindow = BLOATGAURD_RECENT_TOOL_HISTORY_MESSAGES
+): any[] {
+  const safeWindow = Math.max(0, Math.floor(recentMessageWindow));
+  const recentStart = Math.max(0, messages.length - safeWindow);
+
+  return messages.map((message, index) => {
+    if (index >= recentStart || message?.role !== "toolResult" || message?.isError) return message;
+
+    const content = message?.content;
+    const text = typeof content === "string"
+      ? content
+      : Array.isArray(content)
+        ? content.filter((item: any) => item?.type === "text").map((item: any) => item.text || "").join("\n")
+        : "";
+    const handle = text.match(/^\[HANDLE:([^\n\]]+)\]/m);
+    const identity = handle?.[1]?.split(/\s+/, 1)[0] || "";
+    const separator = identity.indexOf(":");
+    const handleId = separator >= 0 ? identity.slice(separator + 1) : "";
+    if (!handle || !handleId) return message;
+
+    const replacement = `${handle[0]}\nUse /focusa-rehydrate ${handleId} to retrieve full content.`;
+    if (text.trim() === replacement) return message;
+    return {
+      ...message,
+      content: typeof content === "string"
+        ? replacement
+        : [{ type: "text", text: replacement }],
+    };
+  });
+}
+
 export function registerTurns(pi: ExtensionAPI) {
   // ── before_agent_start (§35.2 behavioral + §29 WBM injection) ────────────
   pi.on("before_agent_start", async (event, ctx) => {
@@ -927,6 +962,7 @@ export function registerTurns(pi: ExtensionAPI) {
   // Per spec doc 44 §7.1: all 10 ASCC slots in compaction strategy.
   // Per spec doc 44 §33.2: compute a bounded Focusa slice for each LLM call.
   pi.on("context", async (event: any, ctx: any) => {
+    const contextMessages = elideOldRehydratableToolHistory(event.messages || []);
     if (!getAttachmentRuntime().focusaAvailable || !getAttachmentRuntime().activeFrameId) {
       const trajectoryLines = await getTrajectoryFocusSliceLines();
       const toolAffordanceLines = getToolAffordanceFocusSliceLines({
@@ -972,7 +1008,7 @@ export function registerTurns(pi: ExtensionAPI) {
       return {
         messages: [
           { role: "user" as const, content: [{ type: "text" as const, text: lines.join("\n") }] },
-          ...(event.messages || []),
+          ...contextMessages,
         ],
       };
     }
@@ -1020,7 +1056,7 @@ export function registerTurns(pi: ExtensionAPI) {
       return {
         messages: [
           { role: "user" as const, content: [{ type: "text" as const, text: lines.join("\n") }] },
-          ...(event.messages || []),
+          ...contextMessages,
         ],
       };
     }
@@ -1811,7 +1847,7 @@ export function registerTurns(pi: ExtensionAPI) {
     return {
       messages: [
         { role: "user" as const, content: [{ type: "text" as const, text }] },
-        ...(event.messages || []),
+        ...contextMessages,
       ],
     };
   });
