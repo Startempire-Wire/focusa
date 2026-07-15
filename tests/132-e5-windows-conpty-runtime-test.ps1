@@ -73,9 +73,9 @@ function Invoke-ExecutableCommand {
 
   $stdoutPath = Join-Path $proofDir "${Label}.out"
   $stderrPath = Join-Path $proofDir "${Label}.err"
-  $argString = ($Arguments | ForEach-Object {
+  $commandForEvidence = ($Arguments | ForEach-Object {
     if ($_ -match '[\s"]') {
-      "\"$($_ -replace '"', '\\"')\""
+      "'" + $_.Replace("'", "''") + "'"
     } else {
       $_
     }
@@ -83,15 +83,17 @@ function Invoke-ExecutableCommand {
 
   $psi = New-Object System.Diagnostics.ProcessStartInfo
   $psi.FileName = $Binary
-  $psi.Arguments = $argString
   $psi.UseShellExecute = $false
   $psi.RedirectStandardOutput = $true
   $psi.RedirectStandardError = $true
+  foreach ($arg in $Arguments) {
+    $psi.ArgumentList.Add($arg) | Out-Null
+  }
   $proc = New-Object System.Diagnostics.Process
   $proc.StartInfo = $psi
   $started = $proc.Start()
   if (-not $started) {
-    Add-CaseRow -Label $Label -Command $argString -ExitCode 1 -Stdout $stdoutPath -Stderr $stderrPath
+    Add-CaseRow -Label $Label -Command $commandForEvidence -ExitCode 1 -Stdout $stdoutPath -Stderr $stderrPath
     throw "unable to launch ${Binary} command for $Label"
   }
 
@@ -102,13 +104,13 @@ function Invoke-ExecutableCommand {
 
   [IO.File]::WriteAllText($stdoutPath, $stdout)
   [IO.File]::WriteAllText($stderrPath, $stderr)
-  Add-CaseRow -Label $Label -Command $argString -ExitCode $exitCode -Stdout $stdoutPath -Stderr $stderrPath
+  Add-CaseRow -Label $Label -Command $commandForEvidence -ExitCode $exitCode -Stdout $stdoutPath -Stderr $stderrPath
 
   if (-not $AllowFailure -and $exitCode -ne 0) {
     throw "$Label failed with exit $exitCode. stdout=$stdoutPath stderr=$stderrPath"
   }
 
-  return [PSCustomObject]@{ Command = $argString; ExitCode = $exitCode; Stdout = $stdout; Stderr = $stderr; StdoutPath = $stdoutPath; StderrPath = $stderrPath }
+  return [PSCustomObject]@{ Command = $commandForEvidence; ExitCode = $exitCode; Stdout = $stdout; Stderr = $stderr; StdoutPath = $stdoutPath; StderrPath = $stderrPath }
 }
 
 $focusaInfo = Get-BinaryInfo -Path $Focusa
