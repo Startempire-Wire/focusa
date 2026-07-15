@@ -34,10 +34,13 @@ pass "OnboardScope supports Host and Project"
 # Project scope must reject broad/unsafe roots before checkpoint write
 grep -q 'fn safe_project_root' "$ONBOARD" \
   || fail "onboard.rs missing safe_project_root guard"
-for broad in '"/"' '"/root"' '"/home"' '"/tmp"' '"/var"' '"/usr"' '"/opt"'; do
-  grep -q "trimmed != $broad" "$ONBOARD" \
-    || fail "safe_project_root missing broad-root rejection: $broad"
-done
+grep -q 'let trimmed = root.trim_end_matches' "$ONBOARD" \
+  || fail "safe_project_root should trim trailing slash for broad-root guard"
+grep -q 'match trimmed' "$ONBOARD" \
+  || fail "safe_project_root should reject broad roots explicitly"
+grep -q '"" | "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt" => false' "$ONBOARD" \
+  || fail "safe_project_root should reject broad roots explicitly"
+
 grep -q 'project_scope && !safe_project_root' "$ONBOARD" \
   || fail "project-scope onboarding must bail before unsafe project writes"
 pass "project-scope onboarding blocks unsafe broad roots before writes"
@@ -63,4 +66,19 @@ grep -q 'pub no_demo_workpoint: bool' "$ONBOARD" \
   || fail "existing --no-demo-workpoint flag removed"
 pass "existing onboarding flags retained"
 
-echo "✓ All focusa-112-onboard-scoped static checks passed"
+# JSON/quiet/noninteractive behavior is now guarded in run() path
+grep -q 'let quiet = std::env::args().any(|arg| arg == "--quiet")' "$ONBOARD" \
+  || fail "onboard run() must detect --quiet"
+grep -q 'FOCUSA_QUIET' "$ONBOARD" \
+  || fail "onboard run() must support quiet via FOCUSA_QUIET env fallback"
+grep -q 'let tty = std::io::stdin().is_terminal() && std::io::stdout().is_terminal()' "$ONBOARD" \
+  || fail "onboard run() must gate scope picker on TTY"
+grep -q 'if !json_mode && !quiet && tty' "$ONBOARD" \
+  || fail "onboard banner must be suppressed in json/quiet mode"
+grep -q 'let _scope_idx = if json_mode || quiet || !tty' "$ONBOARD" \
+  || fail "onboard should disable scope picker for json/quiet/non-tty"
+grep -q 'else if !quiet' "$ONBOARD" \
+  || fail "onboard should suppress human output in --quiet mode"
+pass "onboard json/quiet/noninteractive guards are present"
+
+echo "✓ All focusa-112_onboard-scoped static checks passed"

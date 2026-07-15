@@ -7,6 +7,7 @@ use clap::Args;
 use focusa_core::scope_safety::classify_project_root;
 use serde_json::{Value, json};
 use std::fs;
+use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -78,7 +79,11 @@ fn detect_project_root(explicit: Option<String>) -> anyhow::Result<PathBuf> {
 
 fn safe_project_root(project_root: &Path) -> bool {
     let root = project_root.to_string_lossy();
-    classify_project_root(&root).is_safe()
+    let trimmed = root.trim_end_matches('/');
+    match trimmed {
+        "" | "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt" => false,
+        _ => classify_project_root(&root).is_safe(),
+    }
 }
 
 fn slug_from_remote(remote: &str) -> String {
@@ -277,37 +282,53 @@ fn print_human(response: &Value) {
 }
 
 pub async fn run(args: OnboardArgs, json_mode: bool) -> anyhow::Result<()> {
-    print!(
-        "{}",
-        crate::commands::intro::render_onboard_banner(
-            &args
-                .project_root
-                .clone()
-                .unwrap_or_else(|| std::env::current_dir()
-                    .map(|d| d.display().to_string())
-                    .unwrap_or_else(|_| ".".into())),
-            "project (interactive)"
-        )
-    );
-    let intent = crate::commands::intro::detect_prompt_intent();
-    let scope_idx = crate::commands::intro::pick_scope_intent(intent, |choices| {
-        // Tiny interactive picker: print arrows + read number (1-2) from stdin.
-        use std::io::{BufRead, Write};
-        for (idx, choice) in choices.iter().enumerate() {
-            println!("  {}. {}", idx + 1, choice);
-        }
-        print!("Choose [1-{}]: ", choices.len());
-        let _ = std::io::stdout().flush();
-        let mut input = String::new();
-        std::io::stdin().lock().read_line(&mut input).unwrap_or(0);
-        let n = input.trim().parse::<usize>().unwrap_or(1);
-        if n == 0 || n > choices.len() {
-            0
-        } else {
-            n - 1
-        }
-    });
-    let _ = scope_idx; // current arg-based dispatch is the source of truth.
+    let quiet = std::env::args().any(|arg| arg == "--quiet")
+        || matches!(
+            std::env::var("FOCUSA_QUIET").ok().as_deref(),
+            Some("1") | Some("true")
+        );
+    let tty = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
+    let scope_label = if matches!(args.scope, OnboardScope::Host) {
+        "host"
+    } else {
+        "project"
+    };
+    if !json_mode && !quiet && tty {
+        println!(
+            "{}",
+            crate::commands::intro::render_onboard_banner(
+                &args
+                    .project_root
+                    .clone()
+                    .unwrap_or_else(|| std::env::current_dir()
+                        .map(|d| d.display().to_string())
+                        .unwrap_or_else(|_| ".".into())),
+                scope_label
+            )
+        );
+    }
+    let _scope_idx = if json_mode || quiet || !tty {
+        0
+    } else {
+        let intent = crate::commands::intro::detect_prompt_intent();
+        crate::commands::intro::pick_scope_intent(intent, |choices| {
+            // Tiny interactive picker: print arrows + read number (1-2) from stdin.
+            use std::io::{BufRead, Write};
+            for (idx, choice) in choices.iter().enumerate() {
+                println!("  {}. {}", idx + 1, choice);
+            }
+            print!("Choose [1-{}]: ", choices.len());
+            let _ = std::io::stdout().flush();
+            let mut input = String::new();
+            std::io::stdin().lock().read_line(&mut input).unwrap_or(0);
+            let n = input.trim().parse::<usize>().unwrap_or(1);
+            if n == 0 || n > choices.len() {
+                0
+            } else {
+                n - 1
+            }
+        })
+    };
     let project_root = detect_project_root(args.project_root)?;
     let project_root_str = project_root.display().to_string();
     let project_scope = matches!(args.scope, OnboardScope::Project);
@@ -414,7 +435,7 @@ pub async fn run(args: OnboardArgs, json_mode: bool) -> anyhow::Result<()> {
 
     if json_mode {
         println!("{}", serde_json::to_string_pretty(&response)?);
-    } else {
+    } else if !quiet {
         print_human(&response);
     }
     Ok(())
