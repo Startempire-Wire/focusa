@@ -10,9 +10,9 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::{Json, Router, routing::get};
 use chrono::Utc;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 #[derive(Debug, Serialize)]
 struct CapabilitiesIndex {
@@ -61,6 +61,51 @@ struct DeprecationEntry {
     deprecation_removed_in: &'static str,
     deprecation_replacement: &'static str,
 }
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum AdapterTier {
+    TierA,
+    TierB,
+    TierC,
+    TierD,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct AdapterCapabilityManifest {
+    adapter: String,
+    manifest_version: u32,
+    measured_at: String,
+    measured_against: String,
+    tier: AdapterTier,
+    supports_compaction_hook: bool,
+    supports_bounded_custom_entry: bool,
+    supports_session_size_preflight: bool,
+    supports_automatic_native_rollover: bool,
+    supports_user_command_rollover: bool,
+    supports_rpc_rollover: bool,
+    supports_streaming_import: bool,
+    supports_external_rehydrate: bool,
+    supports_preload_receipt: bool,
+    evidence_refs: Vec<String>,
+    limitations: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct AdapterCapabilityRegistry {
+    schema: String,
+    registry_version: String,
+    adapters: Vec<AdapterCapabilityManifest>,
+}
+
+static ADAPTER_CAPABILITY_REGISTRY: LazyLock<AdapterCapabilityRegistry> = LazyLock::new(|| {
+    serde_json::from_str(include_str!(
+        "../../../../adapters/spec130-capability-manifests.json"
+    ))
+    .expect("Spec130 adapter capability manifests must match the typed registry schema")
+});
 
 #[allow(clippy::too_many_arguments)]
 fn op(
@@ -1204,6 +1249,12 @@ fn build_families() -> Vec<&'static str> {
     ]
 }
 
+async fn adapter_capabilities_handler(
+    State(_state): State<Arc<AppState>>,
+) -> Json<AdapterCapabilityRegistry> {
+    Json(ADAPTER_CAPABILITY_REGISTRY.clone())
+}
+
 pub async fn capabilities_index_handler(State(_state): State<Arc<AppState>>) -> Json<Value> {
     let operations = build_operations();
     let families = build_families();
@@ -1349,6 +1400,10 @@ pub async fn openapi_export(State(_state): State<Arc<AppState>>) -> Json<Value> 
 
 pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
+        .route(
+            "/v1/agent/adapter-capabilities",
+            get(adapter_capabilities_handler),
+        )
         .route("/v1/agent/capabilities", get(capabilities_index_handler))
         .route("/v1/agent/tools", get(capabilities_index_handler))
         .route("/v1/agent/schemas", get(list_schemas))
@@ -1359,6 +1414,59 @@ pub fn routes() -> Router<Arc<AppState>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn adapter_capability_registry_is_typed_and_truthful() {
+        let registry = &*ADAPTER_CAPABILITY_REGISTRY;
+        assert_eq!(registry.schema, "focusa.adapter_capability_registry.v1");
+        assert!(!registry.registry_version.is_empty());
+
+        let adapters: std::collections::BTreeSet<_> = registry
+            .adapters
+            .iter()
+            .map(|manifest| manifest.adapter.as_str())
+            .collect();
+        assert_eq!(adapters, ["claude", "codex", "opencode", "pi"].into());
+
+        for manifest in &registry.adapters {
+            assert!(manifest.manifest_version > 0);
+            assert!(!manifest.measured_at.is_empty());
+            assert!(!manifest.measured_against.is_empty());
+            assert!(!manifest.evidence_refs.is_empty());
+            assert!(!manifest.limitations.is_empty());
+            match manifest.tier {
+                AdapterTier::TierA => assert!(manifest.supports_automatic_native_rollover),
+                AdapterTier::TierB => {
+                    assert!(!manifest.supports_automatic_native_rollover);
+                    assert!(
+                        manifest.supports_user_command_rollover || manifest.supports_rpc_rollover
+                    );
+                }
+                AdapterTier::TierC => {
+                    assert!(!manifest.supports_automatic_native_rollover);
+                    assert!(!manifest.supports_user_command_rollover);
+                    assert!(!manifest.supports_rpc_rollover);
+                    assert!(manifest.supports_preload_receipt);
+                }
+                AdapterTier::TierD => {
+                    assert!(!manifest.supports_automatic_native_rollover);
+                    assert!(!manifest.supports_user_command_rollover);
+                    assert!(!manifest.supports_rpc_rollover);
+                }
+            }
+        }
+
+        let pi = registry
+            .adapters
+            .iter()
+            .find(|manifest| manifest.adapter == "pi")
+            .expect("Pi manifest");
+        assert_eq!(pi.tier, AdapterTier::TierB);
+        assert!(pi.supports_compaction_hook);
+        assert!(pi.supports_session_size_preflight);
+        assert!(pi.supports_streaming_import);
+        assert!(!pi.supports_automatic_native_rollover);
+    }
 
     #[test]
     fn operation_catalog_includes_turn_and_memory_routes() {

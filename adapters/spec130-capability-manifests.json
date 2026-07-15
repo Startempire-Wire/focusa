@@ -1,0 +1,105 @@
+{
+  "schema": "focusa.adapter_capability_registry.v1",
+  "registry_version": "2026-07-15.1",
+  "adapters": [
+    {
+      "adapter": "pi",
+      "manifest_version": 1,
+      "measured_at": "2026-07-15",
+      "measured_against": "Pi 0.64.0 and Focusa 0.9.94-dev",
+      "tier": "tier_b",
+      "supports_compaction_hook": true,
+      "supports_bounded_custom_entry": true,
+      "supports_session_size_preflight": true,
+      "supports_automatic_native_rollover": false,
+      "supports_user_command_rollover": true,
+      "supports_rpc_rollover": true,
+      "supports_streaming_import": true,
+      "supports_external_rehydrate": true,
+      "supports_preload_receipt": true,
+      "evidence_refs": [
+        "apps/pi-extension/src/compaction.ts#session_before_compact",
+        "apps/pi-extension/src/commands.ts#focusa-rollover",
+        "crates/focusa-cli/src/commands/pi_launch.rs",
+        "crates/focusa-cli/src/commands/pi_launch_migration.rs",
+        "apps/pi-extension/src/tools.ts#focusa_session_transfer"
+      ],
+      "limitations": [
+        "Foreground automatic rollover is unavailable from ordinary extension event contexts.",
+        "Native session replacement is restricted to ExtensionCommandContext or RPC supervision."
+      ]
+    },
+    {
+      "adapter": "claude",
+      "manifest_version": 1,
+      "measured_at": "2026-07-15",
+      "measured_against": "Focusa Claude Code recent-turns hook repository surface",
+      "tier": "tier_d",
+      "supports_compaction_hook": true,
+      "supports_bounded_custom_entry": true,
+      "supports_session_size_preflight": false,
+      "supports_automatic_native_rollover": false,
+      "supports_user_command_rollover": false,
+      "supports_rpc_rollover": false,
+      "supports_streaming_import": false,
+      "supports_external_rehydrate": false,
+      "supports_preload_receipt": false,
+      "evidence_refs": [
+        "adapters/claude-code/README.md",
+        "adapters/claude-code/bin/focusa-claude-code-hook.sh"
+      ],
+      "limitations": [
+        "The current hook captures and injects bounded recent turns but does not replace native sessions.",
+        "No adapter-integrated streaming import, external rehydrate, or preload receipt path is present."
+      ]
+    },
+    {
+      "adapter": "codex",
+      "manifest_version": 1,
+      "measured_at": "2026-07-15",
+      "measured_against": "Focusa repository adapter and non-Pi usage surface audit",
+      "tier": "tier_d",
+      "supports_compaction_hook": false,
+      "supports_bounded_custom_entry": false,
+      "supports_session_size_preflight": false,
+      "supports_automatic_native_rollover": false,
+      "supports_user_command_rollover": false,
+      "supports_rpc_rollover": false,
+      "supports_streaming_import": false,
+      "supports_external_rehydrate": false,
+      "supports_preload_receipt": false,
+      "evidence_refs": [
+        "docs/current/AGENT_ADAPTER_CONTRACT.md",
+        "docs/current/NON_PI_AGENT_FOCUSA_USAGE.md"
+      ],
+      "limitations": [
+        "No dedicated Codex adapter implementation is present in the measured repository surface.",
+        "Generic CLI or MCP access does not establish native session transfer capability."
+      ]
+    },
+    {
+      "adapter": "opencode",
+      "manifest_version": 1,
+      "measured_at": "2026-07-15",
+      "measured_against": "Focusa repository adapter and non-Pi usage surface audit",
+      "tier": "tier_d",
+      "supports_compaction_hook": false,
+      "supports_bounded_custom_entry": false,
+      "supports_session_size_preflight": false,
+      "supports_automatic_native_rollover": false,
+      "supports_user_command_rollover": false,
+      "supports_rpc_rollover": false,
+      "supports_streaming_import": false,
+      "supports_external_rehydrate": false,
+      "supports_preload_receipt": false,
+      "evidence_refs": [
+        "docs/current/AGENT_ADAPTER_CONTRACT.md",
+        "docs/current/NON_PI_AGENT_FOCUSA_USAGE.md"
+      ],
+      "limitations": [
+        "No dedicated OpenCode adapter implementation is present in the measured repository surface.",
+        "Generic CLI or MCP access does not establish native session transfer capability."
+      ]
+    }
+  ]
+}
