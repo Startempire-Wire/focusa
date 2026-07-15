@@ -1,4 +1,4 @@
-//! First-run Operator Preview onboarding flow.
+//! First-run canonical project onboarding flow.
 
 use crate::api_client::ApiClient;
 use crate::commands::daemon;
@@ -33,11 +33,11 @@ pub struct OnboardArgs {
     #[arg(long, value_name = "GIT_URL")]
     pub remote: Option<String>,
 
-    /// Stable continuity id for the demo Workpoint.
+    /// Stable continuity id for the first canonical Trajectory and Workpoint.
     #[arg(long)]
     pub continuity_id: Option<String>,
 
-    /// Skip creating the demo Workpoint.
+    /// Skip creating the first canonical Trajectory and Workpoint.
     #[arg(long)]
     pub no_demo_workpoint: bool,
 }
@@ -48,8 +48,8 @@ pub enum OnboardScope {
     /// Instance-level setup: start daemon and show host readiness only. Does
     /// not create a project Workpoint and does not require git/license files.
     Host,
-    /// Project-level setup: existing behavior. Requires safe project root;
-    /// may create a demo Workpoint when daemon is healthy.
+    /// Project-level setup: requires a safe project root and creates the first
+    /// canonical Trajectory and Workpoint when the daemon is healthy.
     #[default]
     Project,
 }
@@ -370,28 +370,52 @@ pub async fn run(args: OnboardArgs, json_mode: bool) -> anyhow::Result<()> {
         json!({"status":"skipped","reason":"host-scope onboarding does not bind project identity"})
     };
 
+    let mut trajectory = Value::Null;
     let mut workpoint = Value::Null;
     let mut resume = Value::Null;
     if project_scope && !args.no_demo_workpoint && health_ok {
+        trajectory = api
+            .post(
+                "/v1/trajectory/define-goal",
+                &json!({
+                    "long_term_goal": "Operate this project with durable, verified Focusa continuity",
+                    "desired_end_state": "Project identity, Trajectory, and Workpoint are canonical and resume without transcript fallback",
+                    "mid_level_goal": "Complete the first verified project mission",
+                    "short_term_goal": "Verify onboarding runtime integration and choose the first bounded action",
+                    "waypoints": ["project identity verified", "canonical Trajectory created", "canonical Workpoint resumed"],
+                    "current_state": "Fresh project onboarding completed",
+                    "goal_source": "operator",
+                    "operator_confirmed": true,
+                    "current_ask": "Initialize canonical Focusa project continuity",
+                    "required_checks": ["project identity verified", "Workpoint resume canonical"],
+                    "not_done_if": ["project scope is degraded", "Workpoint resume is noncanonical"],
+                    "project_root": project_root_str,
+                    "continuity_id": continuity_id,
+                    "idempotency_key": format!("focusa-onboard-trajectory:{project_root_str}:{continuity_id}")
+                }),
+            )
+            .await
+            .unwrap_or_else(|err| json!({"status":"blocked","error":err.to_string()}));
         workpoint = api
             .post(
                 "/v1/workpoint/checkpoint",
                 &json!({
-                    "mission": "Operator Preview onboarding: prove Workpoint continuity in this project",
-                    "next_slice": "Link evidence, simulate compaction, then resume this Workpoint",
-                    "work_item_id": "focusa-onboard-demo",
+                    "mission": "Establish canonical Focusa continuity for the first verified project mission",
+                    "next_slice": "Resume this Workpoint, verify Trajectory alignment, then choose the first bounded action",
+                    "work_item_id": "focusa-onboard-first-mission",
                     "project_root": project_root_str,
                     "continuity_id": continuity_id,
                     "checkpoint_reason": "session_start",
                     "canonical": true,
                     "promote": true,
                     "action_intent": {
-                        "action_type": "operator_preview_onboarding",
-                        "target_ref": "docs/current/FOCUSA_OPERATOR_PREVIEW_PROOF.md",
-                        "verification_hooks": [],
+                        "action_type": "first_project_mission_onboarding",
+                        "target_ref": "project:onboarding",
+                        "verification_hooks": ["focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"],
                         "status": "ready"
                     },
-                    "active_object_refs": ["docs/current/FOCUSA_OPERATOR_PREVIEW_PROOF.md"]
+                    "active_object_refs": ["project:onboarding"],
+                    "idempotency_key": format!("focusa-onboard-workpoint:{project_root_str}:{continuity_id}")
                 }),
             )
             .await
@@ -430,6 +454,7 @@ pub async fn run(args: OnboardArgs, json_mode: bool) -> anyhow::Result<()> {
         },
         "project_identity": project_identity,
         "project_marker": project_marker,
+        "trajectory": trajectory,
         "workpoint": workpoint,
         "resume": resume,
         "next_command": if project_scope { "focusa workpoint resume --mode compact_prompt" } else { "focusa doctor --scope host" },

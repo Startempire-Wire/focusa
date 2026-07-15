@@ -94,6 +94,7 @@ fn validate_scope_field_value(key: &str, value: &str) -> Result<(), &'static str
         && !matches!(
             value,
             "manual"
+                | "session_start"
                 | "operator_checkpoint"
                 | "before_compact"
                 | "after_compact"
@@ -292,5 +293,11 @@ mod tests {
     fn path_safety_allows_text_fields_with_dots() {
         let value = json!({"content":"explain ../ only as prose", "mission":"test..ok"});
         assert!(validate_json_path_safety(&value).is_ok());
+    }
+
+    #[test]
+    fn scope_guard_accepts_session_start_checkpoint_reason() {
+        let value = json!({"checkpoint_reason":"session_start"});
+        assert!(validate_scope_fields(&value).is_ok());
     }
 }

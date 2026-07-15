@@ -2,8 +2,8 @@
 # spec_focusa_112_onboard_scoped_static_test.sh
 #
 # Static guard for focusa-112-onboard-scoped + transcript gap.
-# Backward compatibility: default scope remains project, preserving existing
-# project onboarding/demo Workpoint behavior.
+# Backward compatibility: default scope remains project while onboarding
+# creates canonical first-mission Trajectory and Workpoint state.
 # Scope enforcement: project scope rejects unsafe broad roots before any
 # Workpoint checkpoint write; host scope is opt-in and does not bind project
 # identity or create a Workpoint.
@@ -45,12 +45,19 @@ grep -q 'project_scope && !safe_project_root' "$ONBOARD" \
   || fail "project-scope onboarding must bail before unsafe project writes"
 pass "project-scope onboarding blocks unsafe broad roots before writes"
 
-# Host scope must not bind project identity or create demo Workpoint
+# Host scope must not bind project identity or create canonical project state
 grep -q 'host-scope onboarding does not bind project identity' "$ONBOARD" \
   || fail "host scope should skip project identity binding"
 grep -q 'if project_scope && !args.no_demo_workpoint && health_ok' "$ONBOARD" \
-  || fail "demo Workpoint creation must be gated by project_scope"
-pass "host scope skips project identity and demo Workpoint creation"
+  || fail "canonical onboarding state creation must be gated by project_scope"
+grep -q '"/v1/trajectory/define-goal"' "$ONBOARD" \
+  || fail "project onboarding must create a canonical Trajectory"
+grep -q 'focusa-onboard-first-mission' "$ONBOARD" \
+  || fail "project onboarding must create the first canonical Workpoint"
+if grep -q 'focusa-onboard-demo\|demo Workpoint' "$ONBOARD"; then
+  fail "onboarding must not use demo-only state substitutions"
+fi
+pass "host scope skips project state; project scope creates canonical first-mission state"
 
 # JSON output includes additive scope field
 grep -q '"scope": args.scope' "$ONBOARD" \
