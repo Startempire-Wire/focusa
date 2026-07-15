@@ -202,7 +202,7 @@ try {
   $normalized = [regex]::Replace($normalized, "`e\][^`a]*(`a|`e\\)", '')
   $normalized = [regex]::Replace($normalized, "`e\[[0-?]*[ -/]*[@-~]", '')
   $normalized = $normalized -replace '[\x00-\x1F\x7F]', ''
-  $compact = $normalized -replace '\\s+', ''
+  $compact = $normalized -replace '\s+', ''
   if ($compact -notmatch 'Focusainstallpreflight:' -or
       $compact -notmatch 'read_only:truemutations_performed:false') {
     throw "normalized ConPTY durable output missing preflight truth: $compact"
