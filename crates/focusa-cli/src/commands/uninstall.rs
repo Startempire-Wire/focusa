@@ -41,7 +41,8 @@ pub struct UninstallArgs {
     #[arg(long)]
     pub keep_license: bool,
 
-    /// Preserve ~/.focusa/ (only remove service + symlinks + rc edits).
+    /// Preserve customer state under ~/.focusa/ while removing managed binaries,
+    /// release assets, agent context, service registration, and symlinks.
     #[arg(long)]
     pub keep_data: bool,
 
@@ -90,6 +91,7 @@ pub enum UninstallStepKind {
     StopDaemon,
     RemoveService,
     RemoveSymlink,
+    RemoveInstallArtifacts,
     RemoveInstallRoot,
     RemoveLicense,
     RevertPath,
@@ -148,6 +150,10 @@ pub async fn run(args: UninstallArgs) -> Result<()> {
     // Execute each step; mark status. Stop on first hard failure but continue
     // soft-skip so the operator gets a complete report.
     for step in steps.iter_mut() {
+        if matches!(step.status, UninstallStepStatus::Skipped) {
+            report.steps_skipped.push(step.clone());
+            continue;
+        }
         let result = execute_step(step, &home, &args);
         match result {
             Ok(StepOutcome::Executed) => {
@@ -224,21 +230,24 @@ fn plan_steps(
         });
     }
 
-    if !args.keep_data {
+    if args.keep_data {
         steps.push(UninstallStep {
-            name: "remove_install_root".to_string(),
-            kind: UninstallStepKind::RemoveInstallRoot,
+            name: "remove_install_artifacts".to_string(),
+            kind: UninstallStepKind::RemoveInstallArtifacts,
             target_path: Some(install_root.display().to_string()),
             status: UninstallStepStatus::Planned,
-            detail: None,
+            detail: Some(
+                "--keep-data set; remove managed software while preserving customer state"
+                    .to_string(),
+            ),
         });
     } else {
         steps.push(UninstallStep {
             name: "remove_install_root".to_string(),
             kind: UninstallStepKind::RemoveInstallRoot,
             target_path: Some(install_root.display().to_string()),
-            status: UninstallStepStatus::Skipped,
-            detail: Some("--keep-data set; preserving install root".to_string()),
+            status: UninstallStepStatus::Planned,
+            detail: None,
         });
     }
 
@@ -385,22 +394,75 @@ fn plan_steps(
 fn execute_step(
     step: &mut UninstallStep,
     _home: &Path,
-    _args: &UninstallArgs,
+    args: &UninstallArgs,
 ) -> Result<StepOutcome> {
     use UninstallStepKind::*;
     match step.kind {
         StopDaemon => {
-            // Best-effort: daemon may already be stopped.
-            let _ = std::process::Command::new("pkill")
-                .args(["-f", "focusa-daemon"])
-                .status();
+            let target = crate::commands::install::resolve_target(args.target)
+                .unwrap_or(crate::commands::install::InstallTarget::Auto);
+            let status = match target {
+                crate::commands::install::InstallTarget::Linux
+                | crate::commands::install::InstallTarget::Auto => {
+                    std::process::Command::new("systemctl")
+                        .args(["--user", "stop", "focusa-daemon.service"])
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .status()
+                }
+                crate::commands::install::InstallTarget::Darwin => {
+                    std::process::Command::new("launchctl")
+                        .args(["remove", LAUNCHD_LABEL])
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .status()
+                }
+                crate::commands::install::InstallTarget::WindowsX64
+                | crate::commands::install::InstallTarget::WindowsArm64 => {
+                    std::process::Command::new("sc.exe")
+                        .args(["stop", SERVICE_NAME])
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .status()
+                }
+            };
+            step.detail = Some(match status {
+                Ok(status) if status.success() => "daemon service stopped".to_string(),
+                _ => "daemon service already stopped or service manager unavailable".to_string(),
+            });
             Ok(StepOutcome::Executed)
         }
         RemoveService => {
-            // Delegate to service module uninstall path.
-            // The service module's uninstall_service function takes the manager
-            // detection result. For brevity, use ServiceManager::SystemdUser as
-            // a fallback when detection isn't available.
+            let target = crate::commands::install::resolve_target(args.target)
+                .unwrap_or(crate::commands::install::InstallTarget::Auto);
+            match target {
+                crate::commands::install::InstallTarget::Linux
+                | crate::commands::install::InstallTarget::Auto => {
+                    let _ = std::process::Command::new("systemctl")
+                        .args(["--user", "disable", "focusa-daemon.service"])
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .status();
+                    remove_file_if_present(step.target_path.as_deref())?;
+                    let _ = std::process::Command::new("systemctl")
+                        .args(["--user", "daemon-reload"])
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .status();
+                }
+                crate::commands::install::InstallTarget::Darwin => {
+                    remove_file_if_present(step.target_path.as_deref())?;
+                }
+                crate::commands::install::InstallTarget::WindowsX64
+                | crate::commands::install::InstallTarget::WindowsArm64 => {
+                    let _ = std::process::Command::new("sc.exe")
+                        .args(["delete", SERVICE_NAME])
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .status();
+                }
+            }
+            step.detail = Some("service registration removed or already absent".to_string());
             Ok(StepOutcome::Executed)
         }
         RemoveSymlink => {
@@ -415,6 +477,7 @@ fn execute_step(
             }
             Ok(StepOutcome::Executed)
         }
+        RemoveInstallArtifacts => remove_install_artifacts(step),
         RemoveInstallRoot => {
             if let Some(p) = &step.target_path {
                 let path = std::path::PathBuf::from(p);
@@ -548,6 +611,10 @@ fn execute_step(
             Ok(StepOutcome::Executed)
         }
         RemoveMenuBarPrefs => {
+            if args.keep_data {
+                step.detail = Some("--keep-data set; preserving customer preferences".to_string());
+                return Ok(StepOutcome::Skipped);
+            }
             if let Some(p) = &step.target_path {
                 let path = std::path::PathBuf::from(p);
                 if path.exists() {
@@ -561,6 +628,10 @@ fn execute_step(
             Ok(StepOutcome::Executed)
         }
         RemoveDaemonData => {
+            if args.keep_data {
+                step.detail = Some("--keep-data set; preserving daemon state".to_string());
+                return Ok(StepOutcome::Skipped);
+            }
             if let Some(p) = &step.target_path {
                 let path = std::path::PathBuf::from(p);
                 if path.exists() {
@@ -579,6 +650,10 @@ fn execute_step(
             Ok(StepOutcome::Executed)
         }
         RemoveDaemonLogs => {
+            if args.keep_data {
+                step.detail = Some("--keep-data set; preserving daemon logs".to_string());
+                return Ok(StepOutcome::Skipped);
+            }
             if let Some(dir_p) = &step.target_path {
                 let dir = std::path::Path::new(dir_p)
                     .parent()
@@ -595,6 +670,10 @@ fn execute_step(
             Ok(StepOutcome::Executed)
         }
         RemoveLicenseConfig => {
+            if args.keep_data || args.keep_license {
+                step.detail = Some("preserving license configuration".to_string());
+                return Ok(StepOutcome::Skipped);
+            }
             if let Some(dir_p) = &step.target_path {
                 let dir = std::path::PathBuf::from(dir_p);
                 if dir.exists() {
@@ -608,6 +687,10 @@ fn execute_step(
             Ok(StepOutcome::Executed)
         }
         RemoveWebKitCaches => {
+            if args.keep_data {
+                step.detail = Some("--keep-data set; preserving customer caches".to_string());
+                return Ok(StepOutcome::Skipped);
+            }
             // Best-effort scan /var/folders for com.focusa.menubar tags.
             let var_folders = std::path::PathBuf::from("/var/folders");
             if !var_folders.exists() {
@@ -645,6 +728,79 @@ fn execute_step(
             step.detail = Some(format!("removed {removed} webkit/system cache entries"));
             Ok(StepOutcome::Executed)
         }
+    }
+}
+
+fn remove_file_if_present(path: Option<&str>) -> Result<bool> {
+    let Some(path) = path else {
+        return Ok(false);
+    };
+    let path = Path::new(path);
+    match std::fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_dir() => {
+            std::fs::remove_dir_all(path).with_context(|| format!("remove {}", path.display()))?;
+            Ok(true)
+        }
+        Ok(_) => {
+            std::fs::remove_file(path).with_context(|| format!("remove {}", path.display()))?;
+            Ok(true)
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error).with_context(|| format!("inspect {}", path.display())),
+    }
+}
+
+fn remove_install_artifacts(step: &mut UninstallStep) -> Result<StepOutcome> {
+    let Some(root) = step.target_path.as_deref().map(Path::new) else {
+        return Ok(StepOutcome::Skipped);
+    };
+    if !root.is_dir() {
+        step.detail = Some("install root not present (idempotent skip)".to_string());
+        return Ok(StepOutcome::Skipped);
+    }
+
+    let mut removed = Vec::new();
+    for name in [
+        "bin",
+        "libexec",
+        "share",
+        "agent-context",
+        ".focusa-version",
+        "install-manifest.json",
+        "install-metadata.json",
+    ] {
+        let path = root.join(name);
+        if remove_file_if_present(path.to_str())? {
+            removed.push(name.to_string());
+        }
+    }
+
+    for entry in std::fs::read_dir(root).with_context(|| format!("read {}", root.display()))? {
+        let entry = entry?;
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if [
+            ".pi-extension-stage-",
+            ".agent-context-stage-",
+            ".agent-context-backup-",
+        ]
+        .iter()
+        .any(|prefix| name.starts_with(prefix))
+            && remove_file_if_present(entry.path().to_str())?
+        {
+            removed.push(name);
+        }
+    }
+
+    if removed.is_empty() {
+        step.detail =
+            Some("managed install artifacts already absent; customer data preserved".into());
+        Ok(StepOutcome::Skipped)
+    } else {
+        step.detail = Some(format!(
+            "removed managed software artifacts: {}; customer data preserved",
+            removed.join(", ")
+        ));
+        Ok(StepOutcome::Executed)
     }
 }
 
@@ -809,7 +965,7 @@ mod tests {
     }
 
     #[test]
-    fn keep_data_marks_install_root_skipped() {
+    fn keep_data_plans_software_removal_instead_of_preserving_binaries() {
         let target = crate::commands::install::InstallTarget::Linux;
         let args = UninstallArgs {
             target,
@@ -830,9 +986,60 @@ mod tests {
         );
         let step = steps
             .iter()
-            .find(|s| s.name == "remove_install_root")
+            .find(|s| s.name == "remove_install_artifacts")
             .unwrap();
-        assert!(matches!(step.status, UninstallStepStatus::Skipped));
+        assert!(matches!(step.status, UninstallStepStatus::Planned));
+        assert!(matches!(
+            step.kind,
+            UninstallStepKind::RemoveInstallArtifacts
+        ));
+        assert!(!steps.iter().any(|s| s.name == "remove_install_root"));
+    }
+
+    #[test]
+    fn keep_data_removes_managed_software_and_preserves_customer_state() {
+        let root = std::env::temp_dir().join(format!(
+            "focusa-uninstall-preserve-data-{}",
+            uuid::Uuid::now_v7()
+        ));
+        std::fs::create_dir_all(root.join("bin")).unwrap();
+        std::fs::create_dir_all(root.join("share")).unwrap();
+        std::fs::create_dir_all(root.join("agent-context")).unwrap();
+        std::fs::create_dir_all(root.join("state")).unwrap();
+        std::fs::write(root.join("bin/focusa"), "binary").unwrap();
+        std::fs::write(root.join("state/customer.json"), "preserve-me").unwrap();
+        std::fs::write(root.join(".focusa-version"), "v1").unwrap();
+
+        let args = UninstallArgs {
+            target: crate::commands::install::InstallTarget::Linux,
+            dry_run: false,
+            keep_license: true,
+            keep_data: true,
+            keep_path_modifications: true,
+            purge: false,
+            yes: true,
+            json: true,
+        };
+        let mut step = UninstallStep {
+            name: "remove_install_artifacts".into(),
+            kind: UninstallStepKind::RemoveInstallArtifacts,
+            target_path: Some(root.display().to_string()),
+            status: UninstallStepStatus::Planned,
+            detail: None,
+        };
+        assert!(matches!(
+            execute_step(&mut step, root.parent().unwrap(), &args).unwrap(),
+            StepOutcome::Executed
+        ));
+        assert!(!root.join("bin").exists());
+        assert!(!root.join("share").exists());
+        assert!(!root.join("agent-context").exists());
+        assert!(!root.join(".focusa-version").exists());
+        assert_eq!(
+            std::fs::read_to_string(root.join("state/customer.json")).unwrap(),
+            "preserve-me"
+        );
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

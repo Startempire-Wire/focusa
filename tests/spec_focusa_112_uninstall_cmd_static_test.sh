@@ -44,11 +44,11 @@ grep -q 'pub struct UninstallStep' "$MOD" \
 pass "UninstallReport and UninstallStep envelopes defined"
 
 # Step kinds cover the 6 default steps
-for kind in "StopDaemon" "RemoveService" "RemoveSymlink" "RemoveInstallRoot" "RemoveLicense" "RevertPath"; do
+for kind in "StopDaemon" "RemoveService" "RemoveSymlink" "RemoveInstallArtifacts" "RemoveInstallRoot" "RemoveLicense" "RevertPath"; do
   grep -q "$kind," "$MOD" \
     || fail "UninstallStepKind missing: $kind"
 done
-pass "UninstallStepKind covers all 6 default steps (StopDaemon/RemoveService/RemoveSymlink/RemoveInstallRoot/RemoveLicense/RevertPath)"
+pass "UninstallStepKind covers service, software-only, full-root, license, and PATH removal"
 
 # Purge variant
 grep -q "PurgeAgentSkills," "$MOD" \
@@ -66,6 +66,12 @@ pass "uninstall.rs has #[cfg(test)] module with test fns"
 grep -q "idempotent skip" "$MOD" \
   || fail "uninstall.rs missing idempotent skip semantics"
 pass "uninstall.rs has idempotent skip semantics (idempotent re-runs)"
+
+grep -q 'customer data preserved' "$MOD" \
+  || fail "--keep-data does not report preserved customer data"
+grep -q 'remove_install_artifacts' "$MOD" \
+  || fail "--keep-data does not remove managed software artifacts"
+pass "--keep-data removes software while preserving declared customer data"
 
 # Mirror of install: cites Spec 112 §15A.1
 grep -q "Spec 112 §15A.1" "$MOD" \

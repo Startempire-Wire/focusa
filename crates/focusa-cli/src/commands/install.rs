@@ -199,6 +199,14 @@ pub struct InstallArgs {
     #[arg(long)]
     pub no_service: bool,
 
+    /// Internal upgrade path: reuse an existing active local license record.
+    #[arg(skip)]
+    pub reuse_existing_license: bool,
+
+    /// Internal delegated-install path: let the caller own the completion envelope.
+    #[arg(skip)]
+    pub suppress_completion_output: bool,
+
     /// Persist PATH addition to shell rc file when interactive.
     #[arg(long)]
     pub persist_path: bool,
@@ -1877,17 +1885,31 @@ pub async fn run(args: InstallArgs) -> Result<()> {
             } else {
                 Ok(())
             };
-            match rollback {
-                Ok(()) => sink.emit(InstallEvent::RollbackSucceeded),
-                Err(rollback_error) => sink.emit(InstallEvent::RollbackFailed {
-                    message: rollback_error.to_string(),
-                    recovery_hint: format!(
-                        "restore the prior install from {}",
+            let recovery = match rollback {
+                Ok(()) => {
+                    sink.emit(InstallEvent::RollbackSucceeded);
+                    if stashed {
+                        "installer phase failed; prior installation restored; correct the reported release or network error, then rerun `focusa install`"
+                    } else {
+                        "fresh install failed; staged files removed; correct the reported release or network error, then rerun `focusa install`"
+                    }
+                    .to_string()
+                }
+                Err(rollback_error) => {
+                    sink.emit(InstallEvent::RollbackFailed {
+                        message: rollback_error.to_string(),
+                        recovery_hint: format!(
+                            "restore the prior install from {}",
+                            stash_path.display()
+                        ),
+                    });
+                    format!(
+                        "automatic rollback failed; restore the prior install from {} before retrying",
                         stash_path.display()
-                    ),
-                }),
-            }
-            return Err(e);
+                    )
+                }
+            };
+            return Err(e).context(recovery);
         }
     };
     let bin_dir = install_root.join("bin");
@@ -1906,14 +1928,31 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         } else {
             Ok(())
         };
-        match rollback {
-            Ok(()) => sink.emit(InstallEvent::RollbackSucceeded),
-            Err(rollback_error) => sink.emit(InstallEvent::RollbackFailed {
-                message: rollback_error.to_string(),
-                recovery_hint: format!("restore the prior install from {}", stash_path.display()),
-            }),
-        }
-        return Err(e);
+        let recovery = match rollback {
+            Ok(()) => {
+                sink.emit(InstallEvent::RollbackSucceeded);
+                if stashed {
+                    "installed binary smoke test failed; prior installation restored; verify the release artifact, then rerun `focusa install`"
+                } else {
+                    "installed binary smoke test failed; staged files removed; verify the release artifact, then rerun `focusa install`"
+                }
+                .to_string()
+            }
+            Err(rollback_error) => {
+                sink.emit(InstallEvent::RollbackFailed {
+                    message: rollback_error.to_string(),
+                    recovery_hint: format!(
+                        "restore the prior install from {}",
+                        stash_path.display()
+                    ),
+                });
+                format!(
+                    "smoke test and automatic rollback failed; restore the prior install from {} before retrying",
+                    stash_path.display()
+                )
+            }
+        };
+        return Err(e).context(recovery);
     }
     if cancellation.is_cancelled() {
         cleanup_staged_downloads(&install_root);
@@ -1925,10 +1964,16 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         write_verified_version_marker(&install_root, version)?;
     }
     if stashed {
-        if let Err(error) = phase_atomic_cleanup(&stash_path) {
+        if let Err(error) = phase_restore_customer_data(&stash_path, &install_root) {
             phase_atomic_rollback(&install_root, &stash_path).ok();
-            return Err(error)
-                .context("failed to remove prior installation stash after smoke test");
+            return Err(error).context(
+                "failed to restore customer data from the prior install; prior installation restored",
+            );
+        }
+        if let Err(error) = phase_atomic_cleanup(&stash_path) {
+            return Err(error).context(
+                "new installation and customer data are intact, but prior stash cleanup failed; remove the reported stash after verification",
+            );
         }
     }
 
@@ -1970,21 +2015,24 @@ pub async fn run(args: InstallArgs) -> Result<()> {
     ui.finish();
 
     // The renderer has restored the transient UI before this single durable
-    // human summary or single JSON document is written.
-    if !args.json {
-        println!("{}", summary.render_human());
-        print_walkthrough_human(&result.walkthrough);
-    } else {
-        let report = serde_json::json!({
-            "ok": true,
-            "target": target,
-            "channel": channel,
-            "license_status": result.license_status,
-            "assets": result.assets,
-            "install_root": install_root.display().to_string(),
-            "first_install_walkthrough": result.walkthrough,
-        });
-        println!("{}", serde_json::to_string_pretty(&report)?);
+    // human summary or single JSON document is written. Delegating commands
+    // suppress this envelope so they can emit exactly one caller-owned result.
+    if !args.suppress_completion_output {
+        if !args.json {
+            println!("{}", summary.render_human());
+            print_walkthrough_human(&result.walkthrough);
+        } else {
+            let report = serde_json::json!({
+                "ok": true,
+                "target": target,
+                "channel": channel,
+                "license_status": result.license_status,
+                "assets": result.assets,
+                "install_root": install_root.display().to_string(),
+                "first_install_walkthrough": result.walkthrough,
+            });
+            println!("{}", serde_json::to_string_pretty(&report)?);
+        }
     }
 
     Ok(())
@@ -1995,6 +2043,29 @@ async fn phase_license(args: &InstallArgs) -> Result<String> {
     use crate::commands::license::{RegistryValidateOutcome, registry_validate};
     if args.eval {
         return Ok("eval".to_string());
+    }
+    if args.reuse_existing_license {
+        let home = std::env::var_os("HOME")
+            .map(std::path::PathBuf::from)
+            .ok_or_else(|| anyhow!("HOME not set; cannot reuse existing license"))?;
+        let license_path = home.join(".config/focusa/license.json");
+        if !license_path.is_file() {
+            return Err(anyhow!(
+                "existing license record not found at {}; pass `focusa upgrade --eval` for evaluation mode or `focusa upgrade --license-key <key>` for commercial activation",
+                license_path.display()
+            ));
+        }
+        let status = load_license_status().context("load existing license for upgrade")?;
+        if status.status != "active" {
+            return Err(anyhow!(
+                "existing license status is {}; reactivate the license before upgrading",
+                status.status
+            ));
+        }
+        return Ok(format!(
+            "existing_{}",
+            status.mode.label().to_ascii_lowercase()
+        ));
     }
     let key = match args.license_key.as_deref() {
         Some(k) if !k.trim().is_empty() => k,
@@ -2902,6 +2973,92 @@ fn phase_atomic_rollback(install_root: &std::path::Path, stash: &std::path::Path
     Ok(())
 }
 
+fn installer_managed_entry(name: &str) -> bool {
+    matches!(
+        name,
+        "bin"
+            | "libexec"
+            | "share"
+            | "agent-context"
+            | ".focusa-version"
+            | "install-manifest.json"
+            | "install-metadata.json"
+    ) || name.starts_with(".pi-extension-stage-")
+        || name.starts_with(".agent-context-stage-")
+        || name.starts_with(".agent-context-backup-")
+}
+
+fn remove_existing_path(path: &std::path::Path) -> Result<()> {
+    let metadata = match std::fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error).with_context(|| format!("inspect {}", path.display())),
+    };
+    if metadata.file_type().is_dir() && !metadata.file_type().is_symlink() {
+        std::fs::remove_dir_all(path)?;
+    } else {
+        std::fs::remove_file(path)?;
+    }
+    Ok(())
+}
+
+fn copy_customer_entry(source: &std::path::Path, destination: &std::path::Path) -> Result<()> {
+    let metadata = std::fs::symlink_metadata(source)
+        .with_context(|| format!("inspect preserved data {}", source.display()))?;
+    if metadata.file_type().is_symlink() {
+        remove_existing_path(destination)?;
+        let target = std::fs::read_link(source)?;
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(target, destination)?;
+        #[cfg(windows)]
+        {
+            if source.is_dir() {
+                std::os::windows::fs::symlink_dir(target, destination)?;
+            } else {
+                std::os::windows::fs::symlink_file(target, destination)?;
+            }
+        }
+        return Ok(());
+    }
+    if metadata.is_dir() {
+        std::fs::create_dir_all(destination)?;
+        for entry in std::fs::read_dir(source)? {
+            let entry = entry?;
+            copy_customer_entry(&entry.path(), &destination.join(entry.file_name()))?;
+        }
+        return Ok(());
+    }
+    remove_existing_path(destination)?;
+    if let Some(parent) = destination.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::copy(source, destination).with_context(|| {
+        format!(
+            "preserve customer data {} -> {}",
+            source.display(),
+            destination.display()
+        )
+    })?;
+    Ok(())
+}
+
+fn phase_restore_customer_data(
+    stash: &std::path::Path,
+    install_root: &std::path::Path,
+) -> Result<()> {
+    for entry in std::fs::read_dir(stash)
+        .with_context(|| format!("read prior install stash {}", stash.display()))?
+    {
+        let entry = entry?;
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if installer_managed_entry(&name) {
+            continue;
+        }
+        copy_customer_entry(&entry.path(), &install_root.join(&name))?;
+    }
+    Ok(())
+}
+
 /// Clean up the stash on a successful install.
 fn phase_atomic_cleanup(stash: &std::path::Path) -> Result<()> {
     if stash.exists() {
@@ -2922,15 +3079,26 @@ async fn phase_smoke_test(bin_dir: &std::path::Path) -> Result<()> {
             focusa.display()
         ));
     }
-    let status = std::process::Command::new(&focusa)
+    let output = std::process::Command::new(&focusa)
         .arg("--version")
-        .status();
-    match status {
-        Ok(s) if s.success() => Ok(()),
-        Ok(s) => Err(anyhow!(
-            "smoke test failed: focusa --version exited {}",
-            s.code().unwrap_or(-1)
-        )),
+        .output();
+    match output {
+        Ok(output) if output.status.success() => Ok(()),
+        Ok(output) => {
+            let detail: String = String::from_utf8_lossy(&output.stderr)
+                .chars()
+                .take(240)
+                .collect();
+            Err(anyhow!(
+                "smoke test failed: focusa --version exited {}{}",
+                output.status.code().unwrap_or(-1),
+                if detail.trim().is_empty() {
+                    String::new()
+                } else {
+                    format!(" ({})", detail.trim())
+                }
+            ))
+        }
         Err(e) => Err(anyhow!(
             "smoke test failed: could not exec focusa --version: {e}"
         )),
@@ -3437,6 +3605,8 @@ mod tests {
             eval: false,
             accept_license: false,
             no_service: false,
+            reuse_existing_license: false,
+            suppress_completion_output: false,
             persist_path: false,
             no_persist_path: false,
             on_shell: ShellFamily::Auto,
@@ -3480,6 +3650,8 @@ mod tests {
             eval: true,
             accept_license: false,
             no_service: false,
+            reuse_existing_license: false,
+            suppress_completion_output: false,
             persist_path: false,
             no_persist_path: false,
             on_shell: ShellFamily::Auto,
@@ -3661,6 +3833,43 @@ mod tests {
     }
 
     #[test]
+    fn successful_rerun_restores_customer_data_without_restoring_old_binaries() {
+        let fixture = std::env::temp_dir().join(format!(
+            "focusa-rerun-preserve-data-{}",
+            uuid::Uuid::now_v7()
+        ));
+        let install_root = fixture.join(".focusa");
+        let stash = fixture.join(".focusa.stash");
+        std::fs::create_dir_all(install_root.join("bin")).unwrap();
+        std::fs::create_dir_all(install_root.join("state")).unwrap();
+        std::fs::write(install_root.join("bin/focusa"), "old-binary").unwrap();
+        std::fs::write(install_root.join("state/customer.json"), "preserve-me").unwrap();
+        std::fs::write(install_root.join("focusa.sqlite"), "customer-db").unwrap();
+
+        assert!(phase_atomic_stash(&install_root, &stash).unwrap());
+        std::fs::create_dir_all(install_root.join("bin")).unwrap();
+        std::fs::write(install_root.join("bin/focusa"), "new-binary").unwrap();
+        std::fs::write(install_root.join(".focusa-version"), "v2").unwrap();
+
+        phase_restore_customer_data(&stash, &install_root).unwrap();
+        assert_eq!(
+            std::fs::read_to_string(install_root.join("bin/focusa")).unwrap(),
+            "new-binary"
+        );
+        assert_eq!(
+            std::fs::read_to_string(install_root.join("state/customer.json")).unwrap(),
+            "preserve-me"
+        );
+        assert_eq!(
+            std::fs::read_to_string(install_root.join("focusa.sqlite")).unwrap(),
+            "customer-db"
+        );
+        phase_atomic_cleanup(&stash).unwrap();
+        assert!(!stash.exists());
+        std::fs::remove_dir_all(fixture).unwrap();
+    }
+
+    #[test]
     fn cancellation_result_is_nonzero_and_reports_no_prior_install() {
         let root =
             std::env::temp_dir().join(format!("focusa-cancel-result-{}", uuid::Uuid::now_v7()));
@@ -3693,6 +3902,8 @@ mod tests {
             eval: false,
             accept_license: false,
             no_service: false,
+            reuse_existing_license: false,
+            suppress_completion_output: false,
             persist_path: false,
             no_persist_path: false,
             on_shell: ShellFamily::Auto,

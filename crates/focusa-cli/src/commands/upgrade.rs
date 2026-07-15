@@ -27,6 +27,18 @@ pub struct UpgradeArgs {
     #[arg(long, value_name = "OWNER/REPO")]
     pub github_repo: Option<String>,
 
+    /// Commercial license key when no reusable local license record exists.
+    #[arg(long, value_name = "KEY", conflicts_with = "eval")]
+    pub license_key: Option<String>,
+
+    /// Upgrade an evaluation installation.
+    #[arg(long, conflicts_with = "license_key")]
+    pub eval: bool,
+
+    /// Skip systemd user unit or launchd registration during delegated install.
+    #[arg(long)]
+    pub no_service: bool,
+
     /// Persist PATH addition during delegated install.
     #[arg(long)]
     pub persist_path: bool,
@@ -68,10 +80,12 @@ pub async fn run(json_output: bool, args: UpgradeArgs) -> anyhow::Result<()> {
         quiet: false,
         install_dependencies: false,
         assume_yes: false,
-        license_key: None,
-        eval: false,
+        license_key: args.license_key.clone(),
+        eval: args.eval,
         accept_license: false,
-        no_service: false,
+        no_service: args.no_service,
+        reuse_existing_license: args.license_key.is_none() && !args.eval,
+        suppress_completion_output: true,
         persist_path: args.persist_path,
         no_persist_path: args.no_persist_path,
         on_shell: ShellFamily::Auto,
