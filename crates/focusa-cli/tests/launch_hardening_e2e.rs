@@ -71,8 +71,12 @@ fn uninstall_keep_flags_are_wired_into_dry_run_plan() {
     ]);
     assert!(output.status.success(), "uninstall dry-run failed: {out}");
     assert!(
-        out.contains("remove_install_root"),
-        "missing install-root step: {out}"
+        out.contains("remove_install_artifacts"),
+        "missing managed-software removal step: {out}"
+    );
+    assert!(
+        !out.contains("\"name\": \"remove_install_root\""),
+        "keep-data must not schedule full customer-data removal: {out}"
     );
     assert!(
         out.contains("--keep-data set"),
