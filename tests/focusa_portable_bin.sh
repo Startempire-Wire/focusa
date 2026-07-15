@@ -31,9 +31,14 @@ focusa_probe_version() {
 
 focusa_binary_identity() {
   local binary="$1"
-  if ! stat -Lc '%d:%i %h %s %y %n' "$binary" 2>/dev/null; then
-    stat -f '%d:%i %h %s %m %N' "$binary" 2>/dev/null || true
+  local identity
+
+  if identity="$(stat -Lc '%d:%i %h %s %y %n' "$binary" 2>/dev/null)"; then
+    printf '%s\n' "$identity"
+    return 0
   fi
+
+  stat -f '%d:%i %l %z %m %N' "$binary" 2>/dev/null || true
 }
 
 focusa_print_binary_evidence() {

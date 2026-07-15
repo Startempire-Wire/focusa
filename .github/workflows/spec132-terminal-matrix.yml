@@ -46,7 +46,7 @@ jobs:
             target_triple: x86_64-unknown-linux-gnu
           - os: macos-latest
             host_profile: macos-hosted
-            target_triple: x86_64-apple-darwin
+            target_triple: aarch64-apple-darwin
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:

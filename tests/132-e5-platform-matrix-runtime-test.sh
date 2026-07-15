@@ -37,7 +37,7 @@ if [[ -z "$BIN_SHA256" ]]; then
 fi
 
 TUI_VERSION="$("$TUI_BIN" --version 2>/dev/null | head -n 1 || echo 'unavailable')"
-TUI_IDENTITY="$(stat -Lc '%d:%i %h %s %y %n' "$TUI_BIN" 2>/dev/null || stat -f '%d:%i %h %s %m %N' "$TUI_BIN" 2>/dev/null || echo 'identity unavailable')"
+TUI_IDENTITY="$(focusa_binary_identity "$TUI_BIN" 2>/dev/null || echo 'identity unavailable')"
 TUI_FILE_INFO="$(file -b "$TUI_BIN" 2>/dev/null || echo 'file unavailable')"
 TUI_SHA256="$(sha256sum "$TUI_BIN" 2>/dev/null | awk '{print $1}')"
 if [[ -z "$TUI_SHA256" ]]; then
