@@ -238,4 +238,5 @@ jobs:
         run: |
           set -euo pipefail
           tar -C apps -czf /tmp/focusa-pi-extension-test.tar.gz pi-extension
-          tar -tzf /tmp/focusa-pi-extension-test.tar.gz | grep -q 'pi-extension/package.json'
+          tar -tzf /tmp/focusa-pi-extension-test.tar.gz > /tmp/focusa-pi-extension-test.list
+          grep -q 'pi-extension/package.json' /tmp/focusa-pi-extension-test.list
