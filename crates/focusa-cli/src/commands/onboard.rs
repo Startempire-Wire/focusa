@@ -337,6 +337,14 @@ pub async fn run(args: OnboardArgs, json_mode: bool) -> anyhow::Result<()> {
             "unsafe project root for project onboarding: {project_root_str}. Use --scope host for instance-level setup or pass --project-root to a focused project directory."
         );
     }
+    let project_marker = if project_scope {
+        match args.remote.as_deref() {
+            Some(remote) => ensure_project_marker(&project_root, remote)?,
+            None => Value::Null,
+        }
+    } else {
+        Value::Null
+    };
     let continuity_id = args
         .continuity_id
         .filter(|value| !value.trim().is_empty())
@@ -421,6 +429,7 @@ pub async fn run(args: OnboardArgs, json_mode: bool) -> anyhow::Result<()> {
             "pi_extension": if project_scope { if pi_extension { "available" } else { "manual_mode_available" } } else { "skipped" }
         },
         "project_identity": project_identity,
+        "project_marker": project_marker,
         "workpoint": workpoint,
         "resume": resume,
         "next_command": if project_scope { "focusa workpoint resume --mode compact_prompt" } else { "focusa doctor --scope host" },
