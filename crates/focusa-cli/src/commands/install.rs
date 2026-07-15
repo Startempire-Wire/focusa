@@ -387,6 +387,7 @@ pub struct DependencyInstallPlan {
     pub manager: String,
     pub package: String,
     pub repository: String,
+    pub install_mode: String,
     pub install_command: String,
     pub dry_run_command: String,
     pub privilege_required: bool,
@@ -410,7 +411,11 @@ pub struct DependencyInstallExecution {
     pub status: String,
     pub commands: Vec<String>,
     pub installed: Vec<String>,
+    pub already_present: Vec<String>,
     pub failures: Vec<String>,
+    pub retryable_failures: Vec<String>,
+    pub rollback_status: String,
+    pub recovery_evidence: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -1273,10 +1278,16 @@ fn dependency_install_plan(package_manager: Option<&str>, name: &str) -> Depende
             false,
         ),
     };
+    let install_mode = match manager {
+        "brew" => "user_local",
+        "manual" => "manual",
+        _ => "system",
+    };
     DependencyInstallPlan {
         manager: manager.into(),
         package,
         repository: repository.into(),
+        install_mode: install_mode.into(),
         install_command,
         dry_run_command,
         privilege_required,
@@ -1309,6 +1320,13 @@ fn dependency_install_consent(args: &InstallArgs) -> Result<&'static str> {
     )
 }
 
+fn dependency_lock_contention(error: &str) -> bool {
+    let error = error.to_ascii_lowercase();
+    error.contains("lock")
+        || error.contains("another process")
+        || error.contains("currently in use")
+}
+
 fn execute_dependency_plans_with<F>(
     dependencies: &[&PreflightDependency],
     mut runner: F,
@@ -1318,24 +1336,62 @@ where
 {
     let mut commands = Vec::new();
     let mut installed = Vec::new();
+    let mut already_present = Vec::new();
     let mut failures = Vec::new();
+    let mut retryable_failures = Vec::new();
+    let mut recovery_evidence = Vec::new();
     for dependency in dependencies {
+        if dependency.present {
+            already_present.push(dependency.name.clone());
+            continue;
+        }
         let command = dependency.install_plan.install_command.clone();
         commands.push(command.clone());
         match runner(&command) {
             Ok(()) => installed.push(dependency.name.clone()),
-            Err(error) => failures.push(format!("{}: {error}", dependency.name)),
+            Err(error) if dependency_lock_contention(&error) => {
+                retryable_failures.push(format!("{}: {error}", dependency.name));
+                match runner(&command) {
+                    Ok(()) => installed.push(dependency.name.clone()),
+                    Err(retry_error) => {
+                        failures.push(format!("{}: {retry_error}", dependency.name));
+                        recovery_evidence.push(dependency.install_plan.recovery_hint.clone());
+                    }
+                }
+            }
+            Err(error) => {
+                failures.push(format!("{}: {error}", dependency.name));
+                recovery_evidence.push(dependency.install_plan.recovery_hint.clone());
+            }
         }
     }
-    DependencyInstallExecution {
-        status: if failures.is_empty() {
-            "completed".into()
+    let status = if failures.is_empty() {
+        if installed.is_empty() {
+            "no_op"
         } else {
-            "failed".into()
-        },
+            "completed"
+        }
+    } else if installed.is_empty() {
+        "failed"
+    } else {
+        "partial_failure"
+    };
+    let rollback_status = if failures.is_empty() {
+        "not_needed"
+    } else if installed.is_empty() {
+        "no_changes_to_rollback"
+    } else {
+        "partial_success_preserved_non_destructively"
+    };
+    DependencyInstallExecution {
+        status: status.into(),
         commands,
         installed,
+        already_present,
         failures,
+        retryable_failures,
+        rollback_status: rollback_status.into(),
+        recovery_evidence,
     }
 }
 
@@ -1696,12 +1752,8 @@ pub async fn run(args: InstallArgs) -> Result<()> {
             report.dependency_install_offer.consent_status = consent.into();
             match consent {
                 "approved" => {
-                    let missing = report
-                        .dependencies
-                        .iter()
-                        .filter(|dependency| !dependency.present)
-                        .collect::<Vec<_>>();
-                    let execution = execute_dependency_plans(&missing);
+                    let dependencies = report.dependencies.iter().collect::<Vec<_>>();
+                    let execution = execute_dependency_plans(&dependencies);
                     report.read_only = false;
                     report.mutations_performed = !execution.commands.is_empty();
                     report.dependency_install_offer.auto_install_performed = true;
@@ -3687,7 +3739,9 @@ mod tests {
 
     #[test]
     fn dependency_execution_reports_success_and_failure_without_hiding_commands() {
-        let dependencies = detect_dependencies(Some("dnf"));
+        let mut dependencies = detect_dependencies(Some("dnf"));
+        dependencies[0].present = false;
+        dependencies[1].present = false;
         let selected = dependencies.iter().take(2).collect::<Vec<_>>();
         let execution = execute_dependency_plans_with(&selected, |command| {
             if command.contains("python3") {
@@ -3696,10 +3750,37 @@ mod tests {
                 Ok(())
             }
         });
-        assert_eq!(execution.status, "failed");
+        assert_eq!(execution.status, "partial_failure");
         assert_eq!(execution.commands.len(), 2);
         assert_eq!(execution.installed, vec!["curl"]);
         assert_eq!(execution.failures.len(), 1);
+        assert_eq!(
+            execution.rollback_status,
+            "partial_success_preserved_non_destructively"
+        );
         assert!(execution.failures[0].contains("fixture rejection"));
+    }
+
+    #[test]
+    fn dependency_execution_skips_present_and_retries_lock_contention_once() {
+        let mut dependencies = detect_dependencies(Some("dnf"));
+        dependencies[0].present = true;
+        dependencies[1].present = false;
+        let selected = dependencies.iter().take(2).collect::<Vec<_>>();
+        let mut attempts = 0;
+        let execution = execute_dependency_plans_with(&selected, |_| {
+            attempts += 1;
+            if attempts == 1 {
+                Err("package manager lock held by another process".into())
+            } else {
+                Ok(())
+            }
+        });
+        assert_eq!(attempts, 2);
+        assert_eq!(execution.status, "completed");
+        assert_eq!(execution.already_present, vec!["curl"]);
+        assert_eq!(execution.installed, vec!["python3"]);
+        assert_eq!(execution.retryable_failures.len(), 1);
+        assert_eq!(execution.rollback_status, "not_needed");
     }
 }

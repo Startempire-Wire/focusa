@@ -43,6 +43,7 @@ jq -e '
     (.install_plan.manager | type == "string") and
     (.install_plan.package | type == "string") and
     (.install_plan.repository | type == "string") and
+    (.install_plan.install_mode | IN("system", "user_local", "manual")) and
     (.install_plan.install_command | type == "string") and
     (.install_plan.dry_run_command | type == "string") and
     (.install_plan.privilege_required | type == "boolean") and
