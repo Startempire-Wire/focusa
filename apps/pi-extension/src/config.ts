@@ -25,6 +25,8 @@ export interface FocusaConfigScopeRef {
   surface: FocusaConfigSurface;
 }
 
+export type FocusaBloatgaurdProfileName = "daily_driver" | "beast_mode" | "speedy" | "neat_freak" | "tightwad";
+
 export interface FocusaConfig {
   enabled: boolean;
   warnPct: number;
@@ -87,6 +89,7 @@ export interface FocusaConfig {
   registerProxyProvider: boolean;
   // Micro-compact (§21)
   microCompactEveryNTurns: number;
+  bloatgaurdProfile: FocusaBloatgaurdProfileName;
 }
 
 // §23: Tuning presets
@@ -94,6 +97,30 @@ const PRESETS: Record<string, Partial<FocusaConfig>> = {
   balanced: { warnPct: 50, compactPct: 70, hardPct: 85, cooldownMs: 180_000, maxCompactionsPerHour: 8 },
   aggressive: { warnPct: 40, compactPct: 60, hardPct: 75, cooldownMs: 120_000, maxCompactionsPerHour: 12 },
   conservative: { warnPct: 60, compactPct: 80, hardPct: 92, cooldownMs: 300_000, maxCompactionsPerHour: 5 },
+};
+
+// §23: Bloatgaurd profile baselines
+const BLOATGAURD_PROFILE_PRESETS: Record<FocusaBloatgaurdProfileName, Partial<FocusaConfig>> = {
+  daily_driver: { ...PRESETS.balanced },
+  neat_freak: { ...PRESETS.balanced },
+  beast_mode: {
+    ...PRESETS.conservative,
+    externalizeThresholdBytes: 16_384,
+    externalizeThresholdTokens: 1_600,
+    microCompactEveryNTurns: 8,
+  },
+  speedy: {
+    ...PRESETS.aggressive,
+    externalizeThresholdBytes: 4_096,
+    externalizeThresholdTokens: 400,
+    microCompactEveryNTurns: 3,
+  },
+  tightwad: {
+    ...PRESETS.aggressive,
+    externalizeThresholdBytes: 2_048,
+    externalizeThresholdTokens: 200,
+    microCompactEveryNTurns: 2,
+  },
 };
 
 const DEFAULTS: FocusaConfig = {
@@ -155,6 +182,7 @@ const DEFAULTS: FocusaConfig = {
   focusaToken: "",
   registerProxyProvider: false,
   microCompactEveryNTurns: 5,
+  bloatgaurdProfile: "daily_driver",
 };
 
 // §19: Env var mapping (FOCUSA_PI_ prefix)
@@ -205,6 +233,7 @@ const ENV_MAP: Record<string, keyof FocusaConfig> = {
   FOCUSA_PI_BRIDGE_SYNC_MODE: "bridgeSyncMode",
   FOCUSA_PI_BRIDGE_POLL_MS: "bridgePollMs",
   FOCUSA_PI_MICRO_COMPACT_TURNS: "microCompactEveryNTurns",
+  FOCUSA_BLOATGAURD_PROFILE: "bloatgaurdProfile",
   SCOREBOARD_URL: "scoreboardUrl",
   SCOREBOARD_TOKEN: "scoreboardToken",
   CONTEXT_CORE_URL: "contextCoreUrl",
@@ -239,6 +268,12 @@ function validate(cfg: FocusaConfig): string[] {
   if (cfg.externalizeThresholdTokens < 200) errs.push(`externalizeThresholdTokens must be >= 200`);
   if (!["conservative", "balanced", "push", "audit"].includes(cfg.workLoopPreset))
     errs.push(`workLoopPreset(${cfg.workLoopPreset}) must be one of: conservative, balanced, push, audit`);
+  if (!BLOATGAURD_PROFILE_PRESETS[cfg.bloatgaurdProfile]) {
+    errs.push(
+      `Invalid bloatgaurdProfile(${cfg.bloatgaurdProfile}); must be one of: ${Object.keys(BLOATGAURD_PROFILE_PRESETS).join(", ")}`
+    );
+    cfg.bloatgaurdProfile = "daily_driver";
+  }
   if (cfg.workLoopMaxTurns < 1) errs.push(`workLoopMaxTurns must be >= 1`);
   if (cfg.workLoopMaxWallClockMs < 60_000) errs.push(`workLoopMaxWallClockMs must be >= 60000`);
   if (cfg.workLoopMaxRetries < 0) errs.push(`workLoopMaxRetries must be >= 0`);
@@ -269,11 +304,14 @@ function extractFocusaConfig(raw: any): Partial<FocusaConfig> {
     isPlainObject(raw?.extensions) && isPlainObject(raw.extensions?.focusaPiBridge)
       ? raw.extensions.focusaPiBridge
       : null;
+  const focusaProfileConfig = isPlainObject(raw?.focusa) ? raw.focusa : null;
   const ext = rootConfig ?? legacyConfig;
-  if (!ext) return {};
+  const merged = { ...(focusaProfileConfig || {}), ...(ext || {}) };
+  if (!Object.keys(merged).length) return {};
   let fileConfig: Partial<FocusaConfig> = {};
-  if (ext.preset && PRESETS[ext.preset]) fileConfig = { ...PRESETS[ext.preset] };
-  return { ...fileConfig, ...ext };
+  if (merged.preset && PRESETS[merged.preset]) fileConfig = { ...PRESETS[merged.preset] };
+
+  return { ...fileConfig, ...merged };
 }
 
 function resolveSettingsPaths(cwd?: string): string[] {
@@ -296,18 +334,25 @@ export function loadConfig(cwd?: string): { config: FocusaConfig; errors: string
     }
   }
 
-  // Merge: defaults → file → env
-  const cfg: FocusaConfig = { ...DEFAULTS, ...fileConfig };
-
-  // §19: Env var overrides (highest precedence)
+  // Merge: defaults with explicit file config, then env (highest precedence)
+  const explicitConfig: Partial<FocusaConfig> = { ...fileConfig };
   for (const [envKey, cfgKey] of Object.entries(ENV_MAP)) {
     const val = process.env[envKey];
     if (val === undefined) continue;
     const d = DEFAULTS[cfgKey];
-    if (typeof d === "boolean") (cfg as any)[cfgKey] = val === "true";
-    else if (typeof d === "number") (cfg as any)[cfgKey] = Number(val);
-    else (cfg as any)[cfgKey] = val;
+    if (typeof d === "boolean") (explicitConfig as any)[cfgKey] = val === "true";
+    else if (typeof d === "number") (explicitConfig as any)[cfgKey] = Number(val);
+    else (explicitConfig as any)[cfgKey] = val;
   }
+
+  const profilePreset =
+    explicitConfig.bloatgaurdProfile &&
+    BLOATGAURD_PROFILE_PRESETS[explicitConfig.bloatgaurdProfile as FocusaBloatgaurdProfileName];
+  const cfg: FocusaConfig = {
+    ...DEFAULTS,
+    ...(profilePreset || {}),
+    ...explicitConfig,
+  };
 
   const errors = validate(cfg);
   return { config: cfg, errors };
