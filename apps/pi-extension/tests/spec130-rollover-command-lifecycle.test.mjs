@@ -14,13 +14,22 @@ const ordered = [
   "migrateNativeSessionBounded",
   'action: "rollover",',
   "seal_source: true",
-  "await ctx.newSession",
+  'focusaFetch("/workpoint/rollover/target-materialize"',
+  "source_continuity_id: scope.continuity_id",
+  "target_continuity_id: targetScope.continuity_id",
+  "project_root: scope.root_scope.root_path",
+  "checkpoint_ref: checkpointRef",
+  "workpoint_packet_ref: workpointPacketRef",
+  "compaction_packet_ref: compactionPacketRef",
+  "ctx.newSession as unknown as RolloverNewSession",
+  "await newSessionWithReplacement",
   "parentSession: sourceSessionId",
   "setup: async",
   "appendMessage",
+  "withSession: async (replacementCtx)",
   'focusaFetch("/workpoint/resume"',
   'action: "verify_target",',
-  'target_workpoint_id:',
+  "target_workpoint_id:",
 ];
 let cursor = 0;
 for (const token of ordered) {
@@ -48,12 +57,30 @@ assert(
   !/fingerprint.*continuity|continuity.*fingerprint/i.test(block),
   "must not derive continuity from fingerprint"
 );
+
+const materializeStart = block.indexOf('focusaFetch("/workpoint/rollover/target-materialize"');
+const materializeEnd = block.indexOf('focusaFetch("/workpoint/resume"', materializeStart);
 assert(
-  block.includes('execute [output-dir]'),
-  "Tier-B execute command should permit a safe default target"
+  materializeStart >= 0 && materializeEnd > materializeStart,
+  "materialize request and resume request order must be defined"
 );
 assert(
-  block.includes('mode === "execute"') && block.includes('`focusa-rollover-${Date.now()}`'),
+  !/canonical:\s*true/.test(block.slice(materializeStart, materializeEnd)),
+  "client must not assert canonical during target materialize request"
+);
+const replacementStart = block.indexOf("withSession: async (replacementCtx)");
+assert(
+  replacementStart > block.indexOf("await newSessionWithReplacement") &&
+    block.indexOf('focusaFetch("/workpoint/resume"', replacementStart) > replacementStart,
+  "post-switch resume verification must run in the replacement-session context"
+);
+assert(
+  block.indexOf("replacementCtx.ui.notify", replacementStart) > replacementStart,
+  "post-switch UI must use replacementCtx instead of stale command ctx"
+);
+assert(block.includes("execute [output-dir]"), "Tier-B execute command should permit a safe default target");
+assert(
+  block.includes('mode === "execute"') && block.includes("`focusa-rollover-${Date.now()}`"),
   "execute without a path should use a unique target beside the private source session"
 );
 assert(

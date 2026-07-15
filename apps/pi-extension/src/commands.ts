@@ -31,6 +31,16 @@ import { measureNativeSessionPressure, migrateNativeSessionBounded } from "./ses
 import { prepareCompactionRollover } from "./compaction.js";
 import { dirname, resolve } from "path";
 
+type RolloverReplacementContext = {
+  ui: { notify(message: string, level: "info" | "warning" | "error"): void };
+};
+
+type RolloverNewSession = (options: {
+  parentSession?: string;
+  setup?: (sessionManager: { appendMessage?: (message: any) => void }) => Promise<void>;
+  withSession?: (ctx: RolloverReplacementContext) => Promise<void>;
+}) => Promise<{ cancelled?: boolean }>;
+
 function nonEmptyLines(items: any[] | undefined): string[] {
   return (items || []).map((v) => String(v || "").trim()).filter(Boolean);
 }
@@ -765,6 +775,27 @@ export function registerCommands(pi: ExtensionAPI) {
             seal_source: true,
           }),
         });
+        const materializeTargetWorkpoint = await focusaFetch("/workpoint/rollover/target-materialize", {
+          method: "POST",
+          body: JSON.stringify({
+            source_continuity_id: scope.continuity_id,
+            target_continuity_id: targetScope.continuity_id,
+            source_session_id: sourceSessionId,
+            target_session_id: targetSessionId,
+            project_root: scope.root_scope.root_path,
+            checkpoint_ref: checkpointRef,
+            workpoint_packet_ref: workpointPacketRef,
+            compaction_packet_ref: compactionPacketRef,
+          }),
+        });
+        if (materializeTargetWorkpoint?.status !== "completed") {
+          ctx.ui.notify(
+            `Focusa rollover blocked: target Workpoint materialization failed (` +
+              `status=${materializeTargetWorkpoint?.status || "unknown"}).`,
+            "error"
+          );
+          return;
+        }
         const bootstrap = buildTargetBootstrap({
           sourceScope: scope,
           targetScope,
@@ -775,7 +806,8 @@ export function registerCommands(pi: ExtensionAPI) {
           compactionPacketRef,
           manifestPath: manifest.manifest_path || manifest.migration_id,
         });
-        const newSessionResult = await ctx.newSession({
+        const newSessionWithReplacement = ctx.newSession as unknown as RolloverNewSession;
+        const newSessionResult = await newSessionWithReplacement({
           parentSession: sourceSessionId,
           setup: async (sessionManager: { appendMessage?: (message: any) => void }) => {
             sessionManager.appendMessage?.({
@@ -784,50 +816,53 @@ export function registerCommands(pi: ExtensionAPI) {
               timestamp: Date.now(),
             });
           },
+          withSession: async (replacementCtx) => {
+            try {
+              const verifyResume = await focusaFetch("/workpoint/resume", {
+                method: "POST",
+                body: JSON.stringify({
+                  mode: "compact_prompt",
+                  project_root: targetScope.root_scope.root_path,
+                  continuity_id: targetScope.continuity_id,
+                  session_id: targetSessionId,
+                }),
+              });
+              const targetWorkpointId =
+                materializeTargetWorkpoint?.workpoint_id ||
+                verifyResume?.body?.workpoint_id ||
+                verifyResume?.body?.resume_packet?.workpoint?.workpoint_id ||
+                verifyResume?.body?.resume_packet?.workpoint_id ||
+                "";
+              await focusaFetch("/project/session-transfer", {
+                method: "POST",
+                body: JSON.stringify({
+                  action: "verify_target",
+                  source_scope: scope,
+                  target_scope: targetScope,
+                  source_session_id: sourceSessionId,
+                  target_session_id: targetSessionId,
+                  target_workpoint_id: targetWorkpointId,
+                  target_resume_canonical:
+                    verifyResume?.status === "completed" || verifyResume?.canonical === true,
+                  checkpoint_ref: checkpointRef,
+                  workpoint_packet_ref: workpointPacketRef,
+                  compaction_packet_ref: compactionPacketRef,
+                  migration_manifest_ref: manifest.manifest_path,
+                }),
+              });
+              replacementCtx.ui.notify(
+                `Focusa rollover complete: target=${targetScope.continuity_id}`,
+                "info"
+              );
+            } catch (error) {
+              replacementCtx.ui.notify(
+                `Focusa rollover target verification failed: ${error instanceof Error ? error.message : String(error)}`,
+                "error"
+              );
+            }
+          },
         });
-        if ((newSessionResult as any)?.cancelled) {
-          ctx.ui.notify("Focusa rollover cancelled by session hook; immutable source preserved.", "warning");
-          return;
-        }
-        const verifyResume = await focusaFetch("/workpoint/resume", {
-          method: "POST",
-          body: JSON.stringify({
-            scope: targetScope,
-            source_scope: scope,
-            project_root: targetScope.root_scope.root_path,
-            continuity_id: targetScope.continuity_id,
-            session_id: targetSessionId,
-            source_session_id: sourceSessionId,
-            target_session_id: targetSessionId,
-            checkpoint_ref: checkpointRef,
-            workpoint_packet_ref: workpointPacketRef,
-            compaction_packet_ref: compactionPacketRef,
-            mode: "compact_prompt",
-          }),
-        });
-        const targetWorkpointId =
-          verifyResume?.body?.workpoint_id ||
-          verifyResume?.body?.resume_packet?.workpoint?.workpoint_id ||
-          verifyResume?.body?.resume_packet?.workpoint_id ||
-          "";
-        await focusaFetch("/project/session-transfer", {
-          method: "POST",
-          body: JSON.stringify({
-            action: "verify_target",
-            source_scope: scope,
-            target_scope: targetScope,
-            source_session_id: sourceSessionId,
-            target_session_id: targetSessionId,
-            target_workpoint_id: targetWorkpointId,
-            target_resume_canonical:
-              verifyResume?.status === "completed" || verifyResume?.canonical === true,
-            checkpoint_ref: checkpointRef,
-            workpoint_packet_ref: workpointPacketRef,
-            compaction_packet_ref: compactionPacketRef,
-            migration_manifest_ref: manifest.manifest_path,
-          }),
-        });
-        ctx.ui.notify(`Focusa rollover complete: target=${targetScope.continuity_id}`, "info");
+        if (newSessionResult.cancelled) return;
       } catch (error) {
         ctx.ui.notify(
           `Focusa rollover failed safely; source preserved: ${error instanceof Error ? error.message : String(error)}`,

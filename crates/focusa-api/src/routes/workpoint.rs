@@ -23,6 +23,7 @@ use focusa_core::types::{
 };
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
+use std::collections::HashSet;
 use std::sync::Arc;
 use tokio::sync::mpsc::error::TrySendError;
 use tokio::time::{Duration, sleep};
@@ -65,6 +66,84 @@ pub struct WorkpointResumeRequest {
     pub current_ask: Option<String>,
     #[serde(default)]
     pub frame_tags: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct WorkpointRolloverTargetMaterializeRequest {
+    pub source_continuity_id: Option<String>,
+    pub target_continuity_id: Option<String>,
+    pub target_session_id: Option<String>,
+    pub source_session_id: Option<String>,
+    pub project_root: Option<String>,
+    pub checkpoint_ref: Option<String>,
+    pub workpoint_packet_ref: Option<String>,
+    pub compaction_packet_ref: Option<String>,
+}
+
+fn rollover_required_ref(
+    req: &WorkpointRolloverTargetMaterializeRequest,
+    field: &str,
+) -> Option<String> {
+    match field {
+        "source_continuity_id" => clean_resume_scope_value(req.source_continuity_id.as_deref()),
+        "target_continuity_id" => clean_resume_scope_value(req.target_continuity_id.as_deref()),
+        "source_session_id" => clean_resume_scope_value(req.source_session_id.as_deref()),
+        "target_session_id" => clean_resume_scope_value(req.target_session_id.as_deref()),
+        "project_root" => clean_resume_scope_value(req.project_root.as_deref()),
+        "checkpoint_ref" => req
+            .checkpoint_ref
+            .as_ref()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty()),
+        "workpoint_packet_ref" => req
+            .workpoint_packet_ref
+            .as_ref()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty()),
+        "compaction_packet_ref" => req
+            .compaction_packet_ref
+            .as_ref()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty()),
+        _ => None,
+    }
+}
+
+fn rollout_target_materialization_refs(
+    source_refs: Vec<String>,
+    checkpoint_ref: &str,
+    workpoint_packet_ref: &str,
+    compaction_packet_ref: &str,
+) -> Vec<String> {
+    let mut refs = source_refs;
+    let mut seen: HashSet<String> = HashSet::new();
+    for value in &refs {
+        seen.insert(value.clone());
+    }
+    for value in [
+        format!("checkpoint_ref:{checkpoint_ref}"),
+        format!("workpoint_packet_ref:{workpoint_packet_ref}"),
+        format!("compaction_packet_ref:{compaction_packet_ref}"),
+    ] {
+        if seen.insert(value.clone()) {
+            refs.push(value);
+        }
+    }
+    refs
+}
+
+fn rollover_target_materialization_idempotency_key(
+    source_continuity_id: &str,
+    target_continuity_id: &str,
+    source_session_id: &str,
+    target_session_id: &str,
+    checkpoint_ref: &str,
+    workpoint_packet_ref: &str,
+    compaction_packet_ref: &str,
+) -> String {
+    format!(
+        "workpoint-target-materialize:{source_continuity_id}:{target_continuity_id}:{source_session_id}:{target_session_id}:{checkpoint_ref}:{workpoint_packet_ref}:{compaction_packet_ref}",
+    )
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -1422,6 +1501,352 @@ async fn dispatch_event(
         Ok(Err(error)) => Err(workpoint_dispatch_failed(error)),
         Err(_) => Err(workpoint_dispatch_timeout()),
     }
+}
+
+async fn rollover_target_materialize(
+    _scope: ScopeContext,
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(req): Json<WorkpointRolloverTargetMaterializeRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let permissions = permission_context(&headers, state.config.auth_token.is_some());
+    if !permissions.allows("work-loop:write") {
+        return Err(forbid("work-loop:write"));
+    }
+
+    let Some(source_continuity_id) = rollover_required_ref(&req, "source_continuity_id") else {
+        return Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({
+                "status": "validation_rejected",
+                "canonical": false,
+                "field": "source_continuity_id",
+                "error": "required for target Workpoint materialization",
+                "next_step_hint": "pass source continuity id from the source transfer scope"
+            })),
+        ));
+    };
+
+    let Some(target_continuity_id) = rollover_required_ref(&req, "target_continuity_id") else {
+        return Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({
+                "status": "validation_rejected",
+                "canonical": false,
+                "field": "target_continuity_id",
+                "error": "required for target Workpoint continuity rotation",
+                "next_step_hint": "generate and pass a new target continuity id for rollover"
+            })),
+        ));
+    };
+
+    if source_continuity_id == target_continuity_id {
+        return Err((
+            StatusCode::CONFLICT,
+            Json(json!({
+                "status": "blocked",
+                "canonical": false,
+                "failure_class": "scope_mismatch",
+                "field": "target_continuity_id",
+                "expected": "different from source continuity",
+                "source_continuity_id": source_continuity_id,
+                "target_continuity_id": target_continuity_id,
+                "next_step_hint": "rollover requires a rotated continuity, not reuse source continuity"
+            })),
+        ));
+    }
+
+    let Some(source_session_id) = rollover_required_ref(&req, "source_session_id") else {
+        return Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({
+                "status": "validation_rejected",
+                "canonical": false,
+                "field": "source_session_id",
+                "error": "required for source-target continuity transfer traceability",
+                "next_step_hint": "pass source Pi session id used by the transfer"
+            })),
+        ));
+    };
+
+    let Some(target_session_id) = rollover_required_ref(&req, "target_session_id") else {
+        return Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({
+                "status": "validation_rejected",
+                "canonical": false,
+                "field": "target_session_id",
+                "error": "required for target Workpoint continuity transfer traceability",
+                "next_step_hint": "pass target Pi session id created for the target attachment"
+            })),
+        ));
+    };
+
+    let Some(project_root) = rollover_required_ref(&req, "project_root") else {
+        return Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({
+                "status": "validation_rejected",
+                "canonical": false,
+                "field": "project_root",
+                "error": "required for reducer-approved target Workpoint materialization",
+                "next_step_hint": "pass the typed source project root"
+            })),
+        ));
+    };
+
+    if !project_root.starts_with('/') {
+        return Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({
+                "status": "validation_rejected",
+                "canonical": false,
+                "field": "project_root",
+                "error": "must be an absolute project root path",
+                "next_step_hint": "derive project_root from typed scope, never from cwd fingerprint"
+            })),
+        ));
+    }
+
+    if let Some(reason) = unsafe_project_root_reason(Some(project_root.as_str())) {
+        return Err((
+            StatusCode::CONFLICT,
+            Json(json!({
+                "status": "rejected_scope_mismatch",
+                "canonical": false,
+                "failure_class": "scope_mismatch",
+                "field": "project_root",
+                "expected": "verified project-safe project root",
+                "reason": reason,
+                "next_step_hint": "confirm project scope via project_identity tools before transfer"
+            })),
+        ));
+    }
+
+    let Some(checkpoint_ref) = rollover_required_ref(&req, "checkpoint_ref") else {
+        return Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({
+                "status": "validation_rejected",
+                "canonical": false,
+                "field": "checkpoint_ref",
+                "error": "required provenance reference for target materialization",
+                "next_step_hint": "pass source checkpoint ref from prepareCompactionRollover"
+            })),
+        ));
+    };
+
+    let Some(workpoint_packet_ref) = rollover_required_ref(&req, "workpoint_packet_ref") else {
+        return Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({
+                "status": "validation_rejected",
+                "canonical": false,
+                "field": "workpoint_packet_ref",
+                "error": "required provenance reference for target materialization",
+                "next_step_hint": "pass source Workpoint packet ref from prepareCompactionRollover"
+            })),
+        ));
+    };
+
+    let Some(compaction_packet_ref) = rollover_required_ref(&req, "compaction_packet_ref") else {
+        return Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({
+                "status": "validation_rejected",
+                "canonical": false,
+                "field": "compaction_packet_ref",
+                "error": "required provenance reference for target materialization",
+                "next_step_hint": "pass source compaction packet ref from prepareCompactionRollover"
+            })),
+        ));
+    };
+
+    let focusa = state.focusa.read().await;
+    let source_record = active_workpoint_for_scope(
+        &focusa,
+        Some(project_root.as_str()),
+        Some(source_continuity_id.as_str()),
+    )
+    .cloned();
+
+    let Some(source_record) = source_record else {
+        return Err((
+            StatusCode::NOT_FOUND,
+            Json(json!({
+                "status": "not_found",
+                "canonical": false,
+                "failure_class": "not_found",
+                "field": "source continuity",
+                "expected_project_root": project_root,
+                "expected_continuity_id": source_continuity_id,
+                "next_step_hint": "checkpoint Workpoint in source continuity first"
+            })),
+        ));
+    };
+
+    if source_record.session_id.as_deref() != Some(source_session_id.as_str()) {
+        return Err((
+            StatusCode::CONFLICT,
+            Json(json!({
+                "status": "rejected_scope_mismatch",
+                "canonical": false,
+                "failure_class": "scope_mismatch",
+                "field": "source_session_id",
+                "expected_source_session_id": source_session_id,
+                "packet_source_session_id": source_record.session_id,
+                "next_step_hint": "use the source session id from prepare and native source migration"
+            })),
+        ));
+    }
+
+    let target_record_idempotency_key = rollover_target_materialization_idempotency_key(
+        source_continuity_id.as_str(),
+        target_continuity_id.as_str(),
+        source_session_id.as_str(),
+        target_session_id.as_str(),
+        checkpoint_ref.as_str(),
+        workpoint_packet_ref.as_str(),
+        compaction_packet_ref.as_str(),
+    );
+
+    let maybe_existing = focusa.workpoint.records.iter().rev().find(|record| {
+        record.idempotency_key.as_deref() == Some(target_record_idempotency_key.as_str())
+            && record.continuity_id.as_deref() == Some(target_continuity_id.as_str())
+            && record.project_root.as_deref() == Some(project_root.as_str())
+    });
+
+    if let Some(existing) = maybe_existing {
+        if existing.status == WorkpointStatus::Active && existing.canonical {
+            return Ok(Json(json!({
+                "status": "completed",
+                "schema": "focusa.workpoint_rollover_target_materialize.v1",
+                "canonical": true,
+                "source_workpoint_id": source_record.workpoint_id,
+                "target_workpoint_id": existing.workpoint_id,
+                "target_continuity_id": target_continuity_id,
+                "target_session_id": target_session_id,
+                "workpoint_id": existing.workpoint_id,
+                "workpoint": workpoint_packet(existing),
+                "required_refs": {
+                    "checkpoint_ref": checkpoint_ref,
+                    "workpoint_packet_ref": workpoint_packet_ref,
+                    "compaction_packet_ref": compaction_packet_ref,
+                },
+                "status_hint": "idempotent_replay",
+                "next_tools": ["focusa_workpoint_resume", "focusa_project_session_transfer"],
+            })));
+        }
+        return Err((
+            StatusCode::ACCEPTED,
+            Json(json!({
+                "status": "pending",
+                "canonical": existing.canonical,
+                "failure_class": "read_model_lag",
+                "workpoint_id": existing.workpoint_id,
+                "required_refs": {
+                    "checkpoint_ref": checkpoint_ref,
+                    "workpoint_packet_ref": workpoint_packet_ref,
+                    "compaction_packet_ref": compaction_packet_ref,
+                },
+                "next_step_hint": "retry /v1/workpoint/rollover/target-materialize until target Workpoint is materialized and promoted"
+            })),
+        ));
+    }
+    drop(focusa);
+
+    let mut target_session_identity = source_record.session_identity.clone();
+    if let Some(identity) = target_session_identity.as_mut() {
+        identity.pi_session_id = Some(target_session_id.clone());
+        identity.session_frame_key = target_session_id.clone();
+        identity.session_incarnation_id =
+            format!("{target_session_id}:rollover-target-materialize");
+        identity.continuity_id = Some(target_continuity_id.clone());
+        identity.project_root = project_root.clone();
+        identity.cwd = project_root.clone();
+        identity.workspace_id = project_root.clone();
+        identity.canonical_scope = Some(true);
+    }
+
+    let source_workpoint_id = source_record.workpoint_id;
+    let mut target_record = source_record;
+    target_record.workpoint_id = Uuid::now_v7();
+    target_record.continuity_id = Some(target_continuity_id.clone());
+    target_record.session_id = Some(target_session_id);
+    target_record.project_root = Some(project_root.clone());
+    target_record.session_identity = target_session_identity;
+    target_record.status = WorkpointStatus::Proposed;
+    target_record.canonical = true;
+    target_record.idempotency_key = Some(target_record_idempotency_key.clone());
+    target_record.active_object_refs = rollout_target_materialization_refs(
+        target_record.active_object_refs,
+        checkpoint_ref.as_str(),
+        workpoint_packet_ref.as_str(),
+        compaction_packet_ref.as_str(),
+    );
+    target_record.supersedes = Some(source_workpoint_id);
+    target_record.created_at = None;
+    target_record.updated_at = None;
+
+    let materialized_state = materialize_workpoint_events(
+        _scope.clone(),
+        &state,
+        vec![
+            FocusaEvent::WorkpointCheckpointProposed {
+                workpoint: target_record.clone(),
+            },
+            FocusaEvent::WorkpointCheckpointPromoted {
+                workpoint_id: target_record.workpoint_id,
+                confidence: target_record.confidence,
+                reason: "rollover target materialization".to_string(),
+            },
+        ],
+        "workpoint_rollover_target_materialize",
+    )
+    .await?;
+
+    let Some(materialized_target_record) =
+        materialized_state.workpoint.records.iter().find(|record| {
+            record.workpoint_id == target_record.workpoint_id
+                && record.canonical
+                && record.status == WorkpointStatus::Active
+        })
+    else {
+        return Err((
+            StatusCode::ACCEPTED,
+            Json(json!({
+                "status": "pending",
+                "canonical": true,
+                "failure_class": "read_model_lag",
+                "workpoint_id": target_record.workpoint_id,
+                "required_refs": {
+                    "checkpoint_ref": checkpoint_ref,
+                    "workpoint_packet_ref": workpoint_packet_ref,
+                    "compaction_packet_ref": compaction_packet_ref,
+                },
+                "next_step_hint": "retry /v1/workpoint/rollover/target-materialize until target Workpoint record is visible"
+            })),
+        ));
+    };
+
+    Ok(Json(json!({
+        "status": "completed",
+        "schema": "focusa.workpoint_rollover_target_materialize.v1",
+        "canonical": true,
+        "degraded": false,
+        "source_workpoint_id": source_workpoint_id,
+        "target_workpoint_id": materialized_target_record.workpoint_id,
+        "workpoint_id": materialized_target_record.workpoint_id,
+        "target_continuity_id": target_continuity_id,
+        "target_session_id": materialized_target_record.session_id,
+        "workpoint": workpoint_packet(materialized_target_record),
+        "required_refs": {
+            "checkpoint_ref": checkpoint_ref,
+            "workpoint_packet_ref": workpoint_packet_ref,
+            "compaction_packet_ref": compaction_packet_ref,
+        },
+        "next_tools": ["focusa_workpoint_resume", "focusa_project_session_transfer", "focusa_resource_mode"],
+    })))
 }
 
 // BAD-005 fix: Field-level validation with detailed errors
@@ -3058,6 +3483,10 @@ pub fn router() -> Router<Arc<AppState>> {
         )
         .route("/v1/workpoint/evidence/link", post(link_evidence))
         .route("/v1/workpoint/drift-check", post(drift_check))
+        .route(
+            "/v1/workpoint/rollover/target-materialize",
+            post(rollover_target_materialize),
+        )
 }
 
 #[cfg(test)]
