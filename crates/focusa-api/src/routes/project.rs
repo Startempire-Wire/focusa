@@ -4079,7 +4079,7 @@ async fn session_transfer(
         .pointer("/project_identity/fingerprint")
         .and_then(Value::as_str)
         .map(str::to_string)
-        .unwrap_or_else(|| stable_fingerprint(&[project_root.clone()]));
+        .unwrap_or_else(|| stable_fingerprint(std::slice::from_ref(&project_root)));
     let source_scope = match body.source_scope.clone() {
         Some(scope) if scope.validate().is_ok() => scope,
         Some(_) => {

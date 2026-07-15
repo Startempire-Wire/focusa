@@ -109,6 +109,9 @@ fn request_scope_matches(request: &ScopeContext, scope: &WorkstreamKey) -> bool 
     root_matches && continuity_matches
 }
 
+// This boundary mirrors the typed scoped-result envelope fields one-for-one;
+// grouping them would hide authority and operator-facing semantics at call sites.
+#[allow(clippy::too_many_arguments)]
 fn response(
     scope: WorkstreamKey,
     authority: AuthorityStatus,
