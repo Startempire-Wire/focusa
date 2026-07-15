@@ -777,6 +777,15 @@ export function classifyBloatgaurdPressureAction(
   return "none";
 }
 
+export function resetLiveContextPressureAfterCompaction(now = Date.now()): void {
+  const runtime = getAttachmentRuntime();
+  runtime.lastCompactTime = now;
+  runtime.turnsSinceCompact = 0;
+  runtime.currentTier = "";
+  runtime.currentContextPct = null;
+  runtime.forkSuggested = false;
+}
+
 export function contextPressureWarningCopy(
   kind: ContextPressureWarningKind,
   pct: number,
@@ -989,6 +998,11 @@ export function registerCompaction(pi: ExtensionAPI) {
 
   // ── session_compact (§38.1 trim, §35.6 files + auto-resume) ───────────────
   pi.on("session_compact", async (event, ctx) => {
+    // The compaction entry is already saved when this event fires. Reset only
+    // live-model context pressure; append-only native-session pressure remains authoritative.
+    resetLiveContextPressureAfterCompaction();
+    setContextStatus(ctx, "");
+
     // §38.1: Trim local shadow only after Focusa confirms state.
     // NOTE: getAttachmentRuntime().lastCompactDecision is saved BEFORE trimming (used in steer below).
     const lastDecision =
@@ -1190,12 +1204,9 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
   const pressureAction = classifyBloatgaurdPressureAction(pct, cfg, canCompact);
 
   const onDone = () => {
-    getAttachmentRuntime().lastCompactTime = Date.now();
+    resetLiveContextPressureAfterCompaction();
     getAttachmentRuntime().compactsThisHour++;
     incrementTotalCompactions();
-    getAttachmentRuntime().turnsSinceCompact = 0;
-    getAttachmentRuntime().currentTier = "";
-    getAttachmentRuntime().forkSuggested = false; // Reset after compaction frees space
   };
 
   const focusaContinuityReady = isFocusaContextContinuityHealthy();
