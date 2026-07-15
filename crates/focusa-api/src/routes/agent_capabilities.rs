@@ -4,6 +4,9 @@
 //! every Focusa operation, with metadata for schema, side effects, permissions,
 //! and documentation refs. Agents use this to discover what Focusa can do
 //! without reading docs.
+//!
+//! `GET /v1/agent/adapter-capabilities` publishes the separate Spec130 measured
+//! native-adapter capability registry.
 
 use crate::server::AppState;
 use axum::extract::{Path, State};
