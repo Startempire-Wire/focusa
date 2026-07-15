@@ -4830,7 +4830,9 @@ Return:
         // Throttle: only adopt external state at most once per 200ms.
         // Prevents CPU saturation when Pi tool calls rapidly increment the
         // mutation epoch (12+ writes/sec), each triggering a full FocusaState clone.
-        if self.last_reconcile.elapsed() < std::time::Duration::from_millis(200) {
+        if self.observed_external_mutation_epoch > 0
+            && self.last_reconcile.elapsed() < std::time::Duration::from_millis(200)
+        {
             return;
         }
 
@@ -5470,6 +5472,26 @@ mod tests {
             "epoch change adopts external mutation"
         );
         assert_eq!(daemon.observed_external_mutation_epoch, 1);
+
+        {
+            let mut shared = shared_state.write().await;
+            shared.version = 88;
+        }
+        external_mutation_epoch.fetch_add(1, Ordering::AcqRel);
+        daemon.reconcile_external_state().await;
+        assert_eq!(
+            daemon.state.version, 77,
+            "subsequent rapid mutation remains throttled"
+        );
+        assert_eq!(daemon.observed_external_mutation_epoch, 1);
+
+        daemon.last_reconcile = std::time::Instant::now() - std::time::Duration::from_millis(201);
+        daemon.reconcile_external_state().await;
+        assert_eq!(
+            daemon.state.version, 88,
+            "throttled mutation is adopted after cooldown"
+        );
+        assert_eq!(daemon.observed_external_mutation_epoch, 2);
     }
 
     fn sample_frame_with_consults(frame_id: FrameId) -> FrameRecord {
