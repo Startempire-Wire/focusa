@@ -10,6 +10,9 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::SystemTime;
 
+#[path = "pi_launch_migration.rs"]
+mod migration;
+
 const DEFAULT_STARTUP_CAP_MIB: u64 = 256;
 
 #[derive(Subcommand, Debug)]
@@ -28,9 +31,13 @@ pub struct PiLaunchArgs {
     #[arg(long, default_value_t = DEFAULT_STARTUP_CAP_MIB)]
     source_cap_mib: u64,
 
-    /// Stream-migrate an oversized source before launch (implemented in the next slice).
+    /// Stream-migrate an oversized source before launch.
     #[arg(long)]
     migrate: bool,
+
+    /// Private migration output root; defaults beside the source session.
+    #[arg(long)]
+    migration_dir: Option<PathBuf>,
 
     /// Pi arguments; place them after `--`.
     #[arg(last = true, allow_hyphen_values = true)]
@@ -72,6 +79,7 @@ enum LaunchPlan {
         cap: u64,
     },
     MigrationRequired {
+        source: PathBuf,
         bytes: u64,
         cap: u64,
     },
@@ -86,7 +94,8 @@ pub fn run(command: PiCmd, json_mode: bool) -> Result<()> {
 fn run_launch(args: PiLaunchArgs, json_mode: bool) -> Result<()> {
     let cwd = env::current_dir().context("resolve launcher cwd")?;
     let plan = preflight(&args, &cwd)?;
-    match &plan {
+    let mut launch_args = args.pi_args.clone();
+    match plan {
         LaunchPlan::NewSession => emit_receipt(
             json_mode,
             &PreflightReceipt {
@@ -105,34 +114,54 @@ fn run_launch(args: PiLaunchArgs, json_mode: bool) -> Result<()> {
                 schema: "focusa.pi_native_session_preflight.v1",
                 status: "allowed",
                 source: "redacted",
-                session_bytes: *bytes,
-                startup_cap_bytes: *cap,
+                session_bytes: bytes,
+                startup_cap_bytes: cap,
                 action: "launch_existing_session",
                 next: None,
             },
         )?,
-        LaunchPlan::MigrationRequired { bytes, cap } => {
-            let receipt = PreflightReceipt {
-                schema: "focusa.pi_native_session_preflight.v1",
-                status: "blocked",
-                source: "redacted",
-                session_bytes: *bytes,
-                startup_cap_bytes: *cap,
-                action: "refuse_full_load",
-                next: Some("focusa pi launch --migrate -- --session <path-or-id>"),
-            };
-            emit_receipt(json_mode, &receipt)?;
-            if args.migrate {
-                bail!(
-                    "streaming migration route is not implemented yet; oversized source was not loaded"
+        LaunchPlan::MigrationRequired { source, bytes, cap } => {
+            if !args.migrate {
+                emit_receipt(
+                    json_mode,
+                    &PreflightReceipt {
+                        schema: "focusa.pi_native_session_preflight.v1",
+                        status: "blocked",
+                        source: "redacted",
+                        session_bytes: bytes,
+                        startup_cap_bytes: cap,
+                        action: "refuse_full_load",
+                        next: Some("focusa pi launch --migrate -- --session <path-or-id>"),
+                    },
+                )?;
+                bail!("oversized native session refused before Pi deserialization");
+            }
+            let migrated = migration::migrate(&source, args.migration_dir.as_deref(), &cwd)?;
+            migration::rewrite_args_for_recovery(&mut launch_args, &migrated.recovery_path);
+            emit_receipt(
+                json_mode,
+                &PreflightReceipt {
+                    schema: "focusa.pi_native_session_preflight.v1",
+                    status: "migrated",
+                    source: "redacted",
+                    session_bytes: migrated.recovery_bytes,
+                    startup_cap_bytes: cap,
+                    action: "launch_recovery_segment",
+                    next: None,
+                },
+            )?;
+            if !json_mode {
+                eprintln!(
+                    "Migration verified: source_bytes={} manifest={}",
+                    migrated.source_bytes,
+                    migrated.manifest_path.display()
                 );
             }
-            bail!("oversized native session refused before Pi deserialization");
         }
     }
 
     let status = Command::new(&args.pi_bin)
-        .args(&args.pi_args)
+        .args(&launch_args)
         .status()
         .with_context(|| format!("launch Pi executable {}", args.pi_bin.to_string_lossy()))?;
     if !status.success() {
@@ -186,7 +215,7 @@ fn preflight(args: &PiLaunchArgs, cwd: &Path) -> Result<LaunchPlan> {
     let bytes = metadata.len();
     let cap = startup_cap_bytes(args);
     if bytes >= cap {
-        Ok(LaunchPlan::MigrationRequired { bytes, cap })
+        Ok(LaunchPlan::MigrationRequired { source, bytes, cap })
     } else {
         Ok(LaunchPlan::Allowed { source, bytes, cap })
     }
@@ -368,6 +397,7 @@ mod tests {
             pi_bin: OsString::from("pi"),
             source_cap_mib: cap_mib,
             migrate: false,
+            migration_dir: None,
             pi_args: pi_args.iter().map(OsString::from).collect(),
         }
     }
@@ -424,7 +454,7 @@ mod tests {
         let launch = args(&["--session", source.to_str().unwrap()], 1);
         assert!(matches!(
             preflight(&launch, &root).unwrap(),
-            LaunchPlan::MigrationRequired { bytes, cap } if bytes == 2 * 1024 * 1024 && cap == 1024 * 1024
+            LaunchPlan::MigrationRequired { bytes, cap, .. } if bytes == 2 * 1024 * 1024 && cap == 1024 * 1024
         ));
         fs::remove_dir_all(root).unwrap();
     }
