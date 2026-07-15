@@ -2,8 +2,8 @@
 # Spec 132 E4: executable terminal lifecycle/output isolation proof.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BIN="${FOCUSA_BIN:-$ROOT/target/debug/focusa}"
-[[ -x "$BIN" ]] || { echo "FAIL: missing executable $BIN" >&2; exit 1; }
+source "$ROOT/tests/focusa_portable_bin.sh"
+BIN="$(focusa_resolve_test_cli_binary "$ROOT")"
 command -v jq >/dev/null || { echo "FAIL: jq is required" >&2; exit 1; }
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT

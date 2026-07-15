@@ -7,21 +7,21 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+source "$PWD/tests/focusa_portable_bin.sh"
+
 echo "=== Spec 112 install smoke test ==="
 
-if [[ ! -x target/debug/focusa && ! -x target/release/focusa ]]; then
-    echo "Building focusa CLI..."
-    cargo build -p focusa-cli --bin focusa
+if [[ -n "${FOCUSA_BIN+x}" ]]; then
+    FOCUSA_BIN="$(focusa_resolve_test_cli_binary "$PWD")"
+else
+    if ! FOCUSA_BIN="$(focusa_resolve_test_cli_binary "$PWD")"; then
+        echo "Building focusa CLI..."
+        cargo build -p focusa-cli --bin focusa
+        FOCUSA_BIN="$(focusa_resolve_test_cli_binary "$PWD")"
+    fi
 fi
 
-if [[ -x target/debug/focusa ]]; then
-    FOCUSA_BIN="$PWD/target/debug/focusa"
-elif [[ -x target/release/focusa ]]; then
-    FOCUSA_BIN="$PWD/target/release/focusa"
-else
-    echo "FAIL: focusa CLI build did not produce an executable" >&2
-    exit 1
-fi
+focusa_print_binary_evidence "$FOCUSA_BIN"
 
 FIXTURE="$(mktemp -d)"
 trap 'rm -rf "$FIXTURE"' EXIT

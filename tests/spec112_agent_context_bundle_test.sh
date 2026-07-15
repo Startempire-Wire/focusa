@@ -3,6 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT="$PWD"
+source "$ROOT/tests/focusa_portable_bin.sh"
 FIXTURE="$(mktemp -d)"
 trap 'rm -rf "$FIXTURE"' EXIT
 fail() { echo "FAIL: $*" >&2; exit 1; }
@@ -39,8 +40,9 @@ if printf '%s\n' "$LISTING" | grep -Eq '^/|(^|/)\.\.(/|$)'; then
 fi
 
 cargo build -q -p focusa-cli --bin focusa
+BIN="$(focusa_resolve_test_cli_binary "$ROOT")"
 HOME="$FIXTURE/home" XDG_CONFIG_HOME="$FIXTURE/config" XDG_DATA_HOME="$FIXTURE/data" \
-  "$ROOT/target/debug/focusa" install --target=linux --dry-run --json > "$FIXTURE/plan.json"
+  "$BIN" install --target=linux --dry-run --json > "$FIXTURE/plan.json"
 jq -e '
   (.assets_planned|any(.name=="focusa-agent-context" and .triple=="all")) and
   (.first_install_walkthrough_v1.agent_integrations|any(

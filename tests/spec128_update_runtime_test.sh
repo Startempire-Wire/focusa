@@ -2,7 +2,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BIN="${FOCUSA_BIN:-$ROOT/target/debug/focusa}"
+source "$ROOT/tests/focusa_portable_bin.sh"
+BIN="$(focusa_resolve_test_cli_binary "$ROOT")"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
@@ -12,8 +13,6 @@ fi
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
-
-[[ -x "$BIN" ]] || fail "FOCUSA_BIN not executable: $BIN"
 
 bash "$ROOT/tests/spec128_update_status_static_test.sh"
 bash "$ROOT/tests/spec128_installer_preflight_static_test.sh"

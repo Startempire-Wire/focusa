@@ -2,10 +2,10 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BIN="${FOCUSA_BIN:-$ROOT/target/debug/focusa}"
+source "$ROOT/tests/focusa_portable_bin.sh"
+BIN="$(focusa_resolve_test_cli_binary "$ROOT")"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
-[[ -x "$BIN" ]] || { echo "FAIL: FOCUSA_BIN is not executable: $BIN" >&2; exit 1; }
 
 run_invalid() {
   local name="$1" value="$2" expected="$3"
