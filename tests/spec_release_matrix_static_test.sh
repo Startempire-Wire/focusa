@@ -19,11 +19,12 @@ pass() { echo "✓ PASS: $*"; }
 for target in \
   aarch64-apple-darwin \
   x86_64-apple-darwin \
-  x86_64-unknown-linux-gnu; do
+  x86_64-unknown-linux-gnu \
+  x86_64-pc-windows-msvc; do
   grep -q "target: $target" "$WF" \
     || fail "Existing release matrix target removed: $target"
 done
-pass "existing macOS/Linux glibc release targets retained"
+pass "existing macOS/Linux/Windows x64 release targets retained"
 
 # Musl target present and uses cross (older glibc compatibility)
 grep -q 'target: x86_64-unknown-linux-musl' "$WF" \
@@ -53,10 +54,12 @@ grep -q 'dist/${bin}-${TAG}-${{ matrix.target }}${EXE}' "$WF" \
 pass "packaging step handles Windows .exe suffix without renaming Unix assets"
 
 # Release notes advertise new assets
+grep -q 'Windows x64' "$WF" \
+  || fail "Release notes missing Windows x64 rows"
 grep -q 'Windows ARM64' "$WF" \
   || fail "Release notes missing Windows ARM64 rows"
 grep -q 'x86_64-unknown-linux-musl' "$WF" \
   || fail "Release notes missing musl rows"
-pass "release notes advertise Windows ARM64 + musl assets"
+pass "release notes advertise Windows x64, Windows ARM64, and musl assets"
 
 echo "✓ All release matrix static checks passed"
