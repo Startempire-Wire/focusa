@@ -18,6 +18,8 @@
 
 use anyhow::{Context, Result, anyhow, bail};
 use clap::Args;
+use focusa_core::license::load_license_status;
+use focusa_core::update::{UPDATE_POLICY_SCHEMA_V1, UpdatePolicy};
 use focusa_terminal_ui::install::completion::InstallCompletionSummary;
 use focusa_terminal_ui::install::event::NullEventSink;
 use focusa_terminal_ui::install::presenter::{PlainPresenter, Presenter, presenter_for_mode};
@@ -263,7 +265,11 @@ pub struct InstallPreflightReport {
 #[derive(Debug, Serialize)]
 pub struct PreflightSystem {
     pub os: String,
+    pub distro: String,
+    pub os_version: String,
+    pub kernel: String,
     pub arch: String,
+    pub libc: String,
     pub shell: String,
     pub terminal: String,
     pub package_manager: Option<String>,
@@ -271,7 +277,97 @@ pub struct PreflightSystem {
     pub privileged: bool,
     pub path_target: String,
     pub path_target_writable: bool,
+    pub path_targets: Vec<PathTargetSummary>,
     pub existing_focusa: Option<String>,
+    pub existing_surfaces: Vec<ExistingSurface>,
+    pub cpu: String,
+    pub memory: String,
+    pub disk: String,
+    pub network: NetworkInventory,
+    pub tls: TlsInventory,
+    pub proxy: ProxyInventory,
+    pub daemon_health: DaemonHealthInventory,
+    pub license_override: LicenseOverrideInventory,
+    pub update_policy: UpdatePolicyInventory,
+    pub compatibility: CompatibilityInventory,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PathTargetSummary {
+    pub path: String,
+    pub exists: bool,
+    pub writable: bool,
+    pub on_path: bool,
+    pub focusa_present: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ExistingSurface {
+    pub kind: String,
+    pub path: String,
+    pub present: bool,
+    pub writable: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct NetworkInventory {
+    pub default_route: bool,
+    pub resolv_conf_present: bool,
+    pub nameserver_count: usize,
+    pub dns_probe_hint: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TlsInventory {
+    pub cert_stores_found: Vec<String>,
+    pub cert_store_count: usize,
+    pub has_any_store: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProxyInventory {
+    pub http_proxy: Option<String>,
+    pub https_proxy: Option<String>,
+    pub all_proxy: Option<String>,
+    pub no_proxy: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct DaemonHealthInventory {
+    pub running: bool,
+    pub pid: Option<u32>,
+    pub lock_file_present: bool,
+    pub status: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct LicenseOverrideInventory {
+    pub requested_eval: bool,
+    pub requested_license_key: bool,
+    pub accept_license_requested: bool,
+    pub dev_mode_requested: bool,
+    pub local_tier: String,
+    pub override_active: bool,
+    pub effective_mode: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct UpdatePolicyInventory {
+    pub source: String,
+    pub path: String,
+    pub exists: bool,
+    pub channel: String,
+    pub mode: String,
+    pub enabled: bool,
+    pub auto_apply_allowed: bool,
+    pub note: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CompatibilityInventory {
+    pub status: String,
+    pub blockers: Vec<String>,
+    pub warnings: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -309,13 +405,15 @@ fn build_preflight_report(
     target: InstallTarget,
     install_root: &std::path::Path,
 ) -> InstallPreflightReport {
-    let system = detect_preflight_system();
+    let mut system = detect_preflight_system(args);
     let dependencies = detect_dependencies(system.package_manager.as_deref());
     let missing_dependencies = dependencies
         .iter()
         .filter(|dep| !dep.present)
         .map(|dep| dep.name.clone())
         .collect::<Vec<_>>();
+    let compatibility = classify_compatibility(&system, &missing_dependencies);
+    system.compatibility = compatibility;
     let terminal_ux = terminal_ux_preflight(args.no_animation);
     InstallPreflightReport {
         schema: "focusa.install_preflight.v1",
@@ -352,7 +450,7 @@ fn build_preflight_report(
     }
 }
 
-fn detect_preflight_system() -> PreflightSystem {
+fn detect_preflight_system(args: &InstallArgs) -> PreflightSystem {
     let package_manager = if cfg!(windows) {
         // Windows preflight is deliberately side-effect free: package-manager
         // command probing can recurse through PATHEXT shims on hosted agents.
@@ -371,29 +469,676 @@ fn detect_preflight_system() -> PreflightSystem {
     } else {
         None
     };
-    let path_target = "/usr/local/bin".to_string();
+    let existing_focusa = if cfg!(windows) {
+        None
+    } else {
+        find_command("focusa")
+    };
+    let path_targets = detect_path_targets(existing_focusa.as_deref());
+    let path_target = path_targets
+        .first()
+        .map(|entry| entry.path.clone())
+        .unwrap_or_else(|| "/usr/local/bin".into());
+    let path_target_writable = path_targets
+        .iter()
+        .find(|entry| entry.path == path_target)
+        .map(|entry| entry.writable)
+        .unwrap_or(false);
+    let (distro, os_version) = detect_distro_version();
+    let existing_surfaces = detect_existing_surfaces(
+        existing_focusa.as_deref(),
+        package_manager.as_deref(),
+        service_manager.as_deref(),
+    );
     PreflightSystem {
-        os: std::env::consts::OS.into(),
-        arch: std::env::consts::ARCH.into(),
+        os: std::env::consts::OS.to_string(),
+        distro,
+        os_version,
+        kernel: detect_kernel_version(),
+        arch: std::env::consts::ARCH.to_string(),
+        libc: detect_libc(),
         shell: std::env::var("SHELL").unwrap_or_else(|_| "unknown".into()),
         terminal: std::env::var("TERM").unwrap_or_else(|_| "unknown".into()),
         package_manager,
-        service_manager,
+        service_manager: service_manager.clone(),
         privileged: is_root(),
         path_target: path_target.clone(),
-        path_target_writable: if cfg!(windows) {
-            false
-        } else {
-            std::fs::OpenOptions::new()
-                .write(true)
-                .open(&path_target)
-                .is_ok()
+        path_target_writable,
+        path_targets,
+        existing_focusa: if cfg!(windows) { None } else { existing_focusa },
+        existing_surfaces,
+        cpu: detect_cpu_summary(),
+        memory: detect_memory_summary(),
+        disk: detect_disk_summary("/"),
+        network: detect_network_summary(),
+        tls: detect_tls_inventory(),
+        proxy: detect_proxy_inventory(),
+        daemon_health: detect_daemon_health(),
+        license_override: detect_license_override(args),
+        update_policy: detect_update_policy(),
+        compatibility: CompatibilityInventory {
+            status: "unknown".into(),
+            blockers: Vec::new(),
+            warnings: Vec::new(),
         },
-        existing_focusa: if cfg!(windows) {
-            None
+    }
+}
+
+fn detect_distro_version() -> (String, String) {
+    const LSB_OS_RELEASE: &str = "/etc/os-release";
+    const ALTERNATE_OS_RELEASE: &str = "/usr/lib/os-release";
+    let mut distro = "unknown".to_string();
+    let mut version = "unknown".to_string();
+
+    for path in [LSB_OS_RELEASE, ALTERNATE_OS_RELEASE] {
+        let content = match std::fs::read_to_string(path) {
+            Ok(value) => value,
+            Err(_) => continue,
+        };
+        for line in content.lines() {
+            if let Some(value) = line.strip_prefix("ID=") {
+                distro = value.trim().trim_matches('"').to_string();
+            } else if let Some(value) = line.strip_prefix("VERSION_ID=") {
+                version = value.trim().trim_matches('"').to_string();
+            } else if let Some(value) = line.strip_prefix("VERSION=")
+                && version == "unknown"
+            {
+                version = value.trim().trim_matches('"').to_string();
+            } else if let Some(value) = line.strip_prefix("PRETTY_NAME=")
+                && distro == "unknown"
+            {
+                distro = value.trim().trim_matches('"').to_string();
+            }
+        }
+        if distro != "unknown" || version != "unknown" {
+            break;
+        }
+    }
+
+    if distro == "unknown" {
+        distro = "unknown".to_string();
+    }
+    if version == "unknown" {
+        version = "unknown".to_string();
+    }
+    (distro, version)
+}
+
+fn detect_kernel_version() -> String {
+    if cfg!(windows) {
+        return "unknown".into();
+    }
+    let output = std::process::Command::new("uname").arg("-r").output().ok();
+    output
+        .and_then(|out| {
+            if !out.status.success() {
+                return None;
+            }
+            String::from_utf8(out.stdout)
+                .ok()
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty())
+        })
+        .unwrap_or_else(|| "unknown".to_string())
+}
+
+fn detect_libc() -> String {
+    if cfg!(windows) {
+        return "n/a".into();
+    }
+    std::process::Command::new("getconf")
+        .arg("GNU_LIBC_VERSION")
+        .output()
+        .ok()
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "unknown".to_string())
+}
+
+fn detect_path_targets(existing_focusa: Option<&str>) -> Vec<PathTargetSummary> {
+    let path_candidates = if cfg!(windows) {
+        vec![
+            std::env::var("PROGRAMFILES")
+                .unwrap_or_else(|_| "C:\\Program Files\\Focusa\\bin".into()),
+            std::env::var("LOCALAPPDATA").unwrap_or_else(|_| {
+                "C:\\Users\\Focusa\\AppData\\Local\\Programs\\Focusa\\bin".into()
+            }),
+        ]
+    } else {
+        let mut candidates = vec!["/usr/local/bin".to_string()];
+        if let Some(home) = std::env::var_os("HOME") {
+            candidates.push(
+                std::path::PathBuf::from(home)
+                    .join(".local/bin")
+                    .display()
+                    .to_string(),
+            );
+        }
+        candidates
+    };
+
+    path_candidates
+        .into_iter()
+        .map(|path| {
+            let on_path = std::env::var_os("PATH")
+                .map(|value| {
+                    std::env::split_paths(&value).any(|entry| entry.display().to_string() == path)
+                })
+                .unwrap_or(false);
+            let exists = std::path::Path::new(&path).exists();
+            let writable = std::fs::OpenOptions::new().write(true).open(&path).is_ok();
+            let focusa_present = existing_focusa
+                .map(|focusa| focusa.starts_with(&path))
+                .unwrap_or(false);
+            PathTargetSummary {
+                path,
+                exists,
+                writable,
+                on_path,
+                focusa_present,
+            }
+        })
+        .collect()
+}
+
+fn detect_existing_surfaces(
+    existing_focusa: Option<&str>,
+    package_manager: Option<&str>,
+    service_manager: Option<&str>,
+) -> Vec<ExistingSurface> {
+    let mut surfaces = Vec::new();
+
+    if let Some(path) = existing_focusa {
+        let writable = std::fs::metadata(path)
+            .map(|meta| !meta.permissions().readonly())
+            .unwrap_or(false);
+        surfaces.push(ExistingSurface {
+            kind: "cli_binary".into(),
+            path: path.to_string(),
+            present: true,
+            writable,
+        });
+    }
+
+    if let Some(manager) = package_manager {
+        if let Some(cmd_path) = first_command(&[manager]) {
+            surfaces.push(ExistingSurface {
+                kind: "package_manager".into(),
+                path: cmd_path.clone(),
+                present: true,
+                writable: false,
+            });
+        }
+    }
+
+    if let Some(manager) = service_manager {
+        let user_home = std::env::var_os("HOME").map(std::path::PathBuf::from);
+        if manager == "systemd" {
+            if let Some(home) = user_home {
+                let unit = home.join(".config/systemd/user/focusa-daemon.service");
+                let path = unit.display().to_string();
+                let present = unit.exists();
+                surfaces.push(ExistingSurface {
+                    kind: "service_unit_user".into(),
+                    path,
+                    present,
+                    writable: false,
+                });
+            }
+        } else if manager == "launchd" {
+            if let Some(home) = user_home {
+                let plist = home.join("Library/LaunchAgents/com.startempire.focusa-daemon.plist");
+                let path = plist.display().to_string();
+                let present = plist.exists();
+                surfaces.push(ExistingSurface {
+                    kind: "launchd_plist".into(),
+                    path,
+                    present,
+                    writable: false,
+                });
+            }
+        }
+    }
+
+    for lock_path in [
+        "/tmp/focusa-daemon.lock",
+        "/tmp/focusa/focusa-daemon.lock",
+        "runtime/focusa-daemon.lock",
+    ] {
+        let path = std::path::PathBuf::from(lock_path);
+        if path.exists() {
+            surfaces.push(ExistingSurface {
+                kind: "daemon_lock_file".into(),
+                path: path.display().to_string(),
+                present: true,
+                writable: false,
+            });
+        }
+    }
+
+    surfaces
+}
+
+fn detect_cpu_summary() -> String {
+    if cfg!(windows) {
+        return "windows-uninstrumented".to_string();
+    }
+
+    if let Ok(content) = std::fs::read_to_string("/proc/cpuinfo") {
+        let mut model = None;
+        let mut cores = None;
+        for line in content.lines() {
+            if model.is_none() && line.starts_with("model name") {
+                model = line
+                    .split_once(':')
+                    .map(|(_, value)| value.trim().to_string());
+            }
+            if cores.is_none() && line.starts_with("cpu cores") {
+                cores = line
+                    .split_once(':')
+                    .and_then(|(_, value)| value.trim().parse::<u64>().ok());
+            }
+        }
+        if let Some(model) = model {
+            return match cores {
+                Some(core_count) => format!("{model} ({core_count} cores)"),
+                None => model,
+            };
+        }
+    }
+    if let Some(model) = std::process::Command::new("sysctl")
+        .arg("-n")
+        .arg("machdep.cpu.brand_string")
+        .output()
+        .ok()
+        .and_then(|out| {
+            if out.status.success() {
+                String::from_utf8(out.stdout)
+                    .ok()
+                    .map(|value| value.trim().to_string())
+            } else {
+                None
+            }
+        })
+    {
+        if !model.is_empty() {
+            return model;
+        }
+    }
+
+    if let Some(nproc) = std::process::Command::new("nproc")
+        .output()
+        .ok()
+        .and_then(|out| {
+            if out.status.success() {
+                String::from_utf8(out.stdout).ok()
+            } else {
+                None
+            }
+        })
+    {
+        let trimmed = nproc.trim().to_string();
+        if !trimmed.is_empty() {
+            return format!("{} logical cores", trimmed);
+        }
+    }
+
+    "unknown".to_string()
+}
+
+fn detect_memory_summary() -> String {
+    if cfg!(windows) {
+        return "windows-uninstrumented".to_string();
+    }
+
+    if let Ok(content) = std::fs::read_to_string("/proc/meminfo") {
+        for line in content.lines() {
+            if line.starts_with("MemTotal:") {
+                if let Some(total_kb) = line
+                    .split_whitespace()
+                    .nth(1)
+                    .and_then(|value| value.parse::<u64>().ok())
+                {
+                    return format!("{} MiB", total_kb / 1024);
+                }
+            }
+        }
+    }
+
+    if let Some(total_bytes) = std::process::Command::new("sysctl")
+        .arg("-n")
+        .arg("hw.memsize")
+        .output()
+        .ok()
+        .and_then(|out| {
+            if out.status.success() {
+                String::from_utf8(out.stdout)
+                    .ok()
+                    .and_then(|value| value.trim().parse::<u64>().ok())
+            } else {
+                None
+            }
+        })
+    {
+        return format!("{} MiB", total_bytes / 1024 / 1024);
+    }
+
+    "unknown".to_string()
+}
+
+fn detect_disk_summary(path: &str) -> String {
+    if cfg!(windows) {
+        return "windows-uninstrumented".to_string();
+    }
+    let output = std::process::Command::new("df")
+        .arg("-P")
+        .arg("-k")
+        .arg(path)
+        .output()
+        .ok();
+    output
+        .and_then(|out| {
+            if !out.status.success() {
+                return None;
+            }
+            String::from_utf8(out.stdout)
+                .ok()
+                .and_then(|value| value.lines().nth(1).and_then(parse_df_line_summary))
+        })
+        .unwrap_or_else(|| "unknown".to_string())
+}
+
+fn parse_df_line_summary(line: &str) -> Option<String> {
+    let mut fields = line.split_whitespace();
+    let _filesystem = fields.next()?;
+    let total = fields.next().and_then(|value| value.parse::<u64>().ok())?;
+    let _used = fields.next()?.parse::<u64>().ok()?;
+    let available = fields.next()?.parse::<u64>().ok()?;
+    Some(format!("{available} KiB free / {total} KiB total"))
+}
+
+fn detect_network_summary() -> NetworkInventory {
+    if cfg!(windows) {
+        return NetworkInventory {
+            default_route: false,
+            resolv_conf_present: false,
+            nameserver_count: 0,
+            dns_probe_hint: "windows-not-probed".into(),
+        };
+    }
+
+    let default_route = std::fs::read_to_string("/proc/net/route")
+        .map(|content| {
+            content
+                .lines()
+                .skip(1)
+                .any(|line| line.split_whitespace().nth(1) == Some("00000000"))
+        })
+        .unwrap_or(false);
+
+    let resolv_lines = std::fs::read_to_string("/etc/resolv.conf").unwrap_or_default();
+    let nameserver_count = resolv_lines
+        .lines()
+        .filter(|line| line.starts_with("nameserver"))
+        .count();
+    let dns_probe_hint = if nameserver_count > 0 {
+        "resolv_present".to_string()
+    } else if resolv_lines.is_empty() {
+        "resolv_missing".to_string()
+    } else {
+        "resolv_has_no_nameserver".to_string()
+    };
+
+    NetworkInventory {
+        default_route,
+        resolv_conf_present: std::path::Path::new("/etc/resolv.conf").exists(),
+        nameserver_count,
+        dns_probe_hint,
+    }
+}
+
+fn detect_tls_inventory() -> TlsInventory {
+    let paths = if cfg!(windows) {
+        vec![
+            "C:\\Windows\\System32\\config\\systemprofile\\AppData\\LocalLow\\Microsoft\\Cryptnet\\URL".to_string(),
+            "C:\\Windows\\System32\\drivers\\etc\\ca\\certs".to_string(),
+        ]
+    } else {
+        vec![
+            "/etc/ssl/certs".to_string(),
+            "/etc/ssl/cert.pem".to_string(),
+            "/usr/local/share/ca-certificates".to_string(),
+            "/usr/share/ca-certificates".to_string(),
+            "/etc/pki/tls/certs".to_string(),
+        ]
+    };
+    let mut cert_stores_found = Vec::new();
+    for path in paths {
+        if std::path::Path::new(&path).exists() {
+            cert_stores_found.push(path);
+        }
+    }
+    let cert_store_count = cert_stores_found.len();
+    TlsInventory {
+        has_any_store: cert_store_count > 0,
+        cert_store_count,
+        cert_stores_found,
+    }
+}
+
+fn detect_proxy_inventory() -> ProxyInventory {
+    fn redact_proxy(value: &str) -> String {
+        let value = value.trim();
+        if let Some((scheme, tail)) = value.split_once("://") {
+            match tail.find('@') {
+                Some(index) => format!("{scheme}://{}", &tail[index + 1..]),
+                None => value.to_string(),
+            }
         } else {
-            find_command("focusa")
-        },
+            value.to_string()
+        }
+    }
+
+    ProxyInventory {
+        http_proxy: std::env::var("HTTP_PROXY")
+            .ok()
+            .map(|value| redact_proxy(&value)),
+        https_proxy: std::env::var("HTTPS_PROXY")
+            .ok()
+            .map(|value| redact_proxy(&value)),
+        all_proxy: std::env::var("ALL_PROXY")
+            .ok()
+            .map(|value| redact_proxy(&value)),
+        no_proxy: std::env::var("NO_PROXY")
+            .ok()
+            .map(|value| value.trim().to_string()),
+    }
+}
+
+fn detect_daemon_health() -> DaemonHealthInventory {
+    let lock_file_present = [
+        "/tmp/focusa-daemon.lock",
+        "/tmp/focusa/focusa-daemon.lock",
+        "runtime/focusa-daemon.lock",
+    ]
+    .iter()
+    .any(|path| std::path::Path::new(path).exists());
+    if cfg!(windows) {
+        return DaemonHealthInventory {
+            running: false,
+            pid: None,
+            lock_file_present,
+            status: "windows-untracked".into(),
+        };
+    }
+    let pid = std::process::Command::new("pgrep")
+        .arg("focusa-daemon")
+        .output()
+        .ok()
+        .and_then(|out| {
+            if !out.status.success() {
+                return None;
+            }
+            String::from_utf8(out.stdout).ok().and_then(|output| {
+                output
+                    .lines()
+                    .next()
+                    .and_then(|line| line.trim().parse::<u32>().ok())
+            })
+        });
+    let status = if pid.is_some() {
+        "running".to_string()
+    } else {
+        "stopped_or_unreachable".to_string()
+    };
+    DaemonHealthInventory {
+        running: pid.is_some(),
+        pid,
+        lock_file_present,
+        status,
+    }
+}
+
+fn detect_license_override(args: &InstallArgs) -> LicenseOverrideInventory {
+    let dev_mode_requested = std::env::var("FOCUSA_DEV_MODE")
+        .map(|value| matches!(value.as_str(), "1" | "true" | "TRUE" | "yes" | "on"))
+        .unwrap_or(false);
+    let local_tier = load_license_status()
+        .map(|status| status.tier)
+        .unwrap_or_else(|_| "unknown".into());
+    let override_active =
+        args.eval || args.accept_license || args.license_key.is_some() || dev_mode_requested;
+    let effective_mode = if args.eval {
+        "evaluation".into()
+    } else if args.accept_license || args.license_key.is_some() {
+        "license_override".into()
+    } else if dev_mode_requested {
+        "dev_mode".into()
+    } else {
+        "default".into()
+    };
+
+    LicenseOverrideInventory {
+        requested_eval: args.eval,
+        requested_license_key: args.license_key.is_some(),
+        accept_license_requested: args.accept_license,
+        dev_mode_requested,
+        local_tier,
+        override_active,
+        effective_mode,
+    }
+}
+
+fn detect_update_policy() -> UpdatePolicyInventory {
+    let path = update_policy_path();
+    let exists = path.exists();
+    let default = derive_default_update_policy();
+    let source;
+    let note;
+    let channel;
+    let mode;
+    let enabled;
+    let auto_apply_allowed;
+
+    if let Ok(raw) = std::fs::read_to_string(&path) {
+        if let Ok(policy) = serde_json::from_str::<UpdatePolicy>(&raw) {
+            if policy.schema == UPDATE_POLICY_SCHEMA_V1 {
+                source = "explicit_file".to_string();
+                note = "policy loaded from configured file".to_string();
+                channel = policy.channel.label().into();
+                mode = policy.mode.label().into();
+                enabled = policy.enabled;
+                auto_apply_allowed = policy.auto_apply_allowed;
+            } else {
+                source = "fallback".to_string();
+                note = "policy schema mismatch; using default".to_string();
+                channel = default.channel.label().into();
+                mode = default.mode.label().into();
+                enabled = default.enabled;
+                auto_apply_allowed = default.auto_apply_allowed;
+            }
+        } else {
+            source = "fallback".to_string();
+            note = "policy failed to parse; using default".to_string();
+            channel = default.channel.label().into();
+            mode = default.mode.label().into();
+            enabled = default.enabled;
+            auto_apply_allowed = default.auto_apply_allowed;
+        }
+    } else {
+        source = "fallback".to_string();
+        note = "policy file missing; using default".to_string();
+        channel = default.channel.label().into();
+        mode = default.mode.label().into();
+        enabled = default.enabled;
+        auto_apply_allowed = default.auto_apply_allowed;
+    }
+
+    UpdatePolicyInventory {
+        source,
+        path: path.display().to_string(),
+        exists,
+        channel,
+        mode,
+        enabled,
+        auto_apply_allowed,
+        note,
+    }
+}
+
+fn update_policy_path() -> std::path::PathBuf {
+    std::env::var_os("FOCUSA_UPDATE_POLICY")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| std::path::PathBuf::from("/usr/local/lib/focusa/update-policy.json"))
+}
+
+fn derive_default_update_policy() -> UpdatePolicy {
+    let dev_mode_requested = std::env::var("FOCUSA_DEV_MODE")
+        .map(|value| matches!(value.as_str(), "1" | "true" | "TRUE" | "yes" | "on"))
+        .unwrap_or(false);
+    match load_license_status() {
+        Ok(status) => {
+            UpdatePolicy::default_for_license(status.tier, &status.features, dev_mode_requested)
+        }
+        Err(_) => UpdatePolicy::default_for_license("evaluation", &[], dev_mode_requested),
+    }
+}
+
+fn classify_compatibility(
+    system: &PreflightSystem,
+    missing_dependencies: &[String],
+) -> CompatibilityInventory {
+    let mut blockers = Vec::new();
+    let mut warnings = Vec::new();
+
+    if !missing_dependencies.is_empty() {
+        blockers.push("missing bootstrap dependency".into());
+    }
+    if system.kernel == "unknown" {
+        warnings.push("kernel unknown".into());
+    }
+    if !system.path_target_writable {
+        warnings.push("primary path target not writable".into());
+    }
+    if !system.path_targets.iter().any(|entry| entry.focusa_present) {
+        warnings.push("focusa is not currently discoverable on common PATH targets".into());
+    }
+
+    let status = if blockers.is_empty() {
+        if warnings.is_empty() {
+            "compatible".to_string()
+        } else {
+            "compatible_with_warnings".to_string()
+        }
+    } else {
+        "blocked".to_string()
+    };
+
+    CompatibilityInventory {
+        status,
+        blockers,
+        warnings,
     }
 }
 
@@ -525,6 +1270,31 @@ fn print_preflight_human(report: &InstallPreflightReport, quiet: bool, no_animat
     println!("Focusa install preflight: {}", report.status);
     println!("target: {:?} channel: {:?}", report.target, report.channel);
     println!("os: {} arch: {}", report.system.os, report.system.arch);
+    println!(
+        "distro/version: {} {}",
+        report.system.distro, report.system.os_version
+    );
+    println!(
+        "kernel/libc: {} / {}",
+        report.system.kernel, report.system.libc
+    );
+    println!(
+        "cpu: {} | memory: {} | disk: {}",
+        report.system.cpu, report.system.memory, report.system.disk
+    );
+    println!(
+        "network: default_route={} nameservers={} tls_stores={} proxy_http={}",
+        report.system.network.default_route,
+        report.system.network.nameserver_count,
+        report.system.tls.cert_store_count,
+        report.system.proxy.http_proxy.as_deref().unwrap_or("none")
+    );
+    println!(
+        "compatibility: {} blockers={} warnings={}",
+        report.system.compatibility.status,
+        report.system.compatibility.blockers.len(),
+        report.system.compatibility.warnings.len()
+    );
     println!(
         "package_manager: {}",
         report
@@ -2352,7 +3122,10 @@ mod tests {
     #[test]
     fn triple_for_each_target_is_stable() {
         // Triples are part of the install GH release asset contract.
-        assert_eq!(triple_for(InstallTarget::Linux), "x86_64-unknown-linux-musl");
+        assert_eq!(
+            triple_for(InstallTarget::Linux),
+            "x86_64-unknown-linux-musl"
+        );
         let expected_darwin = if cfg!(target_arch = "x86_64") {
             "x86_64-apple-darwin"
         } else {
