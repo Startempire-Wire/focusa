@@ -1371,6 +1371,8 @@ async fn stream_asset_to_staged(
 fn integrate_pi_extension(
     asset: &InstalledAsset,
     install_root: &std::path::Path,
+    destination_root: Option<&std::path::Path>,
+    npm_binary: Option<&std::path::Path>,
 ) -> Result<String> {
     let archive = std::path::Path::new(&asset.install_path);
     let listing = std::process::Command::new("tar")
@@ -1409,7 +1411,7 @@ fn integrate_pi_extension(
         bail!("Pi extension archive extraction failed");
     }
     let staged = stage_root.join("pi-extension");
-    let npm = std::process::Command::new("npm")
+    let npm = std::process::Command::new(npm_binary.unwrap_or_else(|| std::path::Path::new("npm")))
         .args(["install", "--omit=dev", "--ignore-scripts"])
         .current_dir(&staged)
         .output()
@@ -1425,8 +1427,9 @@ fn integrate_pi_extension(
             redact_url(&detail)
         );
     }
-    let root = std::env::var_os("FOCUSA_PI_EXT_DIR")
+    let root = destination_root
         .map(std::path::PathBuf::from)
+        .or_else(|| std::env::var_os("FOCUSA_PI_EXT_DIR").map(std::path::PathBuf::from))
         .or_else(|| {
             std::env::var_os("HOME")
                 .map(|home| std::path::PathBuf::from(home).join(".pi/agent/extensions"))
@@ -2006,7 +2009,7 @@ async fn execute_real_install(
     });
     if let Some(pi_asset) = pi_extension {
         match verify_checksum(&pi_asset).await {
-            Ok(()) => match integrate_pi_extension(&pi_asset, install_root) {
+            Ok(()) => match integrate_pi_extension(&pi_asset, install_root, None, None) {
                 Ok(path) => {
                     sink.emit(InstallEvent::PhaseSucceeded {
                         phase: InstallPhase::IntegratePi,
@@ -2484,19 +2487,8 @@ mod tests {
             sha256: String::new(),
             install_path: archive.display().to_string(),
         };
-        let old_path = std::env::var_os("PATH");
-        let old_destination = std::env::var_os("FOCUSA_PI_EXT_DIR");
-        let path = format!(
-            "{}:{}",
-            fake_bin.display(),
-            old_path.as_deref().unwrap_or_default().to_string_lossy()
-        );
-        // Environment mutation is scoped to this single process-local test.
-        unsafe {
-            std::env::set_var("PATH", path);
-            std::env::set_var("FOCUSA_PI_EXT_DIR", &extensions);
-        }
-        let destination = integrate_pi_extension(&asset, &fixture).unwrap();
+        let destination =
+            integrate_pi_extension(&asset, &fixture, Some(&extensions), Some(&npm)).unwrap();
         let destination_expected = extensions.join("focusa").display().to_string();
         let destination_preserved = destination == destination_expected;
         let package_json_present = extensions.join("focusa/package.json").is_file();
@@ -2513,16 +2505,6 @@ mod tests {
         println!(
             "E6_PI_PRESENT_SUCCESS destination_preserved={destination_preserved} package_json={package_json_present} smoke_marker={smoke_marker_present}"
         );
-        unsafe {
-            match old_path {
-                Some(value) => std::env::set_var("PATH", value),
-                None => std::env::remove_var("PATH"),
-            }
-            match old_destination {
-                Some(value) => std::env::set_var("FOCUSA_PI_EXT_DIR", value),
-                None => std::env::remove_var("FOCUSA_PI_EXT_DIR"),
-            }
-        }
         let _ = std::fs::remove_dir_all(fixture);
     }
 
