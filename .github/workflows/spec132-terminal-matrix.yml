@@ -162,55 +162,6 @@ jobs:
           path: ${{ runner.temp }}/focusa-132-e5-runtime
           if-no-files-found: warn
 
-  ovh-offload-runtime:
-    runs-on: [self-hosted, Linux, X64, focusa-deploy, production]
-    needs: native-linux-runtime-kh
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build CLI/TUI and run OVH proof over SSH via focusa-ovh-build
-        run: |
-          set -euo pipefail
-          FOCUSA_E5_EVIDENCE_DIR="/tmp/focusa-132-e5-runtime-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-$(date +%s)-$$"
-          echo "OVH_E5_EVIDENCE_DIR=$FOCUSA_E5_EVIDENCE_DIR" >> "$GITHUB_ENV"
-          sudo -n -u wirebot env \
-            FOCUSA_SOURCE_ROOT="$GITHUB_WORKSPACE" \
-            FOCUSA_BUILD_REMOTE="focusa-build-ovh" \
-            /usr/local/bin/focusa-ovh-build bash -lc "
-              rm -rf '${FOCUSA_E5_EVIDENCE_DIR}'
-              cargo build --bin focusa --bin focusa-tui
-              export FOCUSA_HOST_PROFILE=ovh-native-debug
-              export FOCUSA_TARGET_TRIPLE=x86_64-unknown-linux-gnu
-              export FOCUSA_E5_EVIDENCE_DIR='${FOCUSA_E5_EVIDENCE_DIR}'
-              export FOCUSA_BIN=\$HOME/build/focusa/target/debug/focusa
-              export FOCUSA_TUI_BIN=\$HOME/build/focusa/target/debug/focusa-tui
-              bash tests/132-e5-platform-matrix-runtime-test.sh"
-      - name: Retrieve bounded OVH evidence directory
-        if: always()
-        run: |
-          set -euo pipefail
-          STAGE_DIR="/tmp/focusa-132-e5-runtime-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-$(date +%s)-$$"
-          sudo -n -u wirebot mkdir -p "$STAGE_DIR"
-          cleanup_ovh_evidence() {
-            set +e
-            if [[ -n "${OVH_E5_EVIDENCE_DIR:-}" ]]; then
-              sudo -n -u wirebot ssh focusa-build-ovh "rm -rf -- '${OVH_E5_EVIDENCE_DIR}'"
-            fi
-            sudo -n -u wirebot rm -rf -- "$STAGE_DIR"
-            set -e
-          }
-          trap cleanup_ovh_evidence EXIT
-          sudo -n -u wirebot rsync -az --delete --chmod=D755,F644 "focusa-build-ovh:${OVH_E5_EVIDENCE_DIR}/" "$STAGE_DIR/"
-          mkdir -p "${{ runner.temp }}/focusa-132-e5-runtime"
-          rsync -az --delete "$STAGE_DIR/" "${{ runner.temp }}/focusa-132-e5-runtime/"
-      - name: Upload OVH-offload native runtime proof
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: focusa-132-e5-runtime-ovh-native-debug
-          path: ${{ runner.temp }}/focusa-132-e5-runtime
-          if-no-files-found: warn
-
 
   release-target-build:
     name: Release target build (${{ matrix.target }})

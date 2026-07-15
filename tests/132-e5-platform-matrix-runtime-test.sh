@@ -36,7 +36,7 @@ if [[ -z "$BIN_SHA256" ]]; then
   BIN_SHA256="$(shasum -a 256 "$BIN" 2>/dev/null | awk '{print $1}')"
 fi
 
-TUI_VERSION="$(\"$TUI_BIN\" --version 2>/dev/null | head -n 1 || echo 'unavailable')"
+TUI_VERSION="$("$TUI_BIN" --version 2>/dev/null | head -n 1 || echo 'unavailable')"
 TUI_IDENTITY="$(stat -Lc '%d:%i %h %s %y %n' "$TUI_BIN" 2>/dev/null || stat -f '%d:%i %h %s %m %N' "$TUI_BIN" 2>/dev/null || echo 'identity unavailable')"
 TUI_FILE_INFO="$(file -b "$TUI_BIN" 2>/dev/null || echo 'file unavailable')"
 TUI_SHA256="$(sha256sum "$TUI_BIN" 2>/dev/null | awk '{print $1}')"

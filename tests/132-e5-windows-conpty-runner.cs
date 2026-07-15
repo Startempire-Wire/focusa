@@ -18,7 +18,7 @@ public static class Spec132ConPtyRunner
     const uint CREATE_UNICODE_ENVIRONMENT = 0x00000400;
     const uint WAIT_OBJECT_0 = 0x00000000;
     const uint WAIT_TIMEOUT = 0x00000102;
-    const uint STARTF_USESTDHANDLES = 0x00000100;
+    const int STARTF_USESTDHANDLES = 0x00000100;
     const uint CONPTY_TIMEOUT_MS = 60000;
 
     const uint HANDLE_FLAG_INHERIT = 0x00000001;
