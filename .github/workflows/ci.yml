@@ -35,7 +35,7 @@ jobs:
       - name: Process-health check + unit/integration tests
         env:
           FOCUSA_TEST_MODE: "1"
-        run: python3 scripts/process-health-check.py --label "CI unit/integration tests" --command "cargo test --workspace"
+        run: python3 scripts/process-health-check.py --label "CI unit/integration tests" --command "cargo build -p focusa-api --bin focusa-daemon && cargo test --workspace"
       - name: Process-health check + Clippy
         run: python3 scripts/process-health-check.py --label "CI clippy" --command "cargo clippy --workspace -- -D warnings"
 
