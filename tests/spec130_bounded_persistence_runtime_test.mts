@@ -1,6 +1,8 @@
 import {
   getAttachmentRuntime,
   makeAttachmentKey,
+  maybeCaptureReportSummaryFromAssistantOutput,
+  nativeSessionAllowsNonessentialPersistence,
   observeProjectThreadEvidence,
   persistState,
   resetPiSessionScopedState,
@@ -25,6 +27,7 @@ function assert(condition: any, message: string): asserts condition {
 const dataDir = mkdtempSync(join(tmpdir(), "focusa-spec130-anchor-"));
 process.env.FOCUSA_DATA_DIR = dataDir;
 const entries: Array<{ customType: string; data: any }> = [];
+const turnsSource = readFileSync(join(process.cwd(), "apps/pi-extension/src/turns.ts"), "utf8");
 const attachmentKey = makeAttachmentKey({
   projectRoot: "/tmp/focusa-spec130-project",
   continuityId: "focusa-cont-dynamic-a",
@@ -106,6 +109,43 @@ try {
     lastPersistSidecarBytes: 0,
     lastProjectSwitchPersistHash: "",
   });
+
+  S.lastNativeSessionPressure = {
+    posture: "hard_pressure",
+    recommended_action: "rollover",
+  } as any;
+  assert(!nativeSessionAllowsNonessentialPersistence(), "hard pressure allowed nonessential native writes");
+  const report = maybeCaptureReportSummaryFromAssistantOutput(
+    `Implementation report\nStatus: completed\nProof: ${"bounded recovery anchors remain available with exact evidence refs; ".repeat(5)}`,
+    "turn-hard-pressure"
+  );
+  assert(report !== null, "hard pressure should retain canonical/ECS report capture");
+  assert(
+    !entries.some((entry) => entry.customType === "focusa-report-summary"),
+    "hard pressure appended a nonessential report-summary native entry"
+  );
+  S.lastNativeSessionPressure = {
+    posture: "soft_pressure",
+    recommended_action: "checkpoint",
+  } as any;
+  assert(nativeSessionAllowsNonessentialPersistence(), "soft pressure incorrectly blocked bounded native writes");
+  S.lastNativeSessionPressure = {
+    posture: "hard_pressure",
+    recommended_action: "rollover",
+  } as any;
+
+  const utilityStart = turnsSource.indexOf("if (!getAttachmentRuntime().seenFirstBeforeAgentStart)");
+  const utilityEnd = turnsSource.indexOf("// §29: WBM inbound context injection", utilityStart);
+  assert(utilityStart >= 0 && utilityEnd > utilityStart, "utility-card persistence block missing");
+  const utilityBlock = turnsSource.slice(utilityStart, utilityEnd);
+  assert(
+    utilityBlock.includes("nativeSessionAllowsNonessentialPersistence()"),
+    "utility-card native message lacks hard-pressure suppression"
+  );
+  assert(
+    utilityBlock.includes('reason: "native_session_hard_pressure"'),
+    "utility-card suppression telemetry is missing"
+  );
 
   persistState();
   const stateEntries = entries.filter((entry) => entry.customType === "focusa-state");

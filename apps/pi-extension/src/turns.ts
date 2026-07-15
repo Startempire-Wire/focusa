@@ -11,6 +11,7 @@ import path from "node:path";
 import type { PiGoverningPriorKind } from "./state.js";
 import {
   getAttachmentRuntime,
+  nativeSessionAllowsNonessentialPersistence,
   focusaFetch,
   focusaPost,
   extractText,
@@ -928,20 +929,29 @@ export function registerTurns(pi: ExtensionAPI) {
       //   component.setExpanded(this.toolOutputExpanded);
       // ). Save + set false + restore around the send so the utility card
       // emits collapsed by default (operator can ctrl+o to expand).
-      const ctxUi = ctx.ui as any;
-      const wasExpanded = ctxUi?.getToolsExpanded?.() ?? true;
-      ctxUi?.setToolsExpanded?.(false);
-      try {
-        pi.sendMessage({ customType: "focusa-utility-card", content: visibleCard, display: true });
-      } finally {
-        ctxUi?.setToolsExpanded?.(wasExpanded);
+      if (nativeSessionAllowsNonessentialPersistence()) {
+        const ctxUi = ctx.ui as any;
+        const wasExpanded = ctxUi?.getToolsExpanded?.() ?? true;
+        ctxUi?.setToolsExpanded?.(false);
+        try {
+          pi.sendMessage({ customType: "focusa-utility-card", content: visibleCard, display: true });
+        } finally {
+          ctxUi?.setToolsExpanded?.(wasExpanded);
+        }
+        queueTraceTelemetry({
+          event_type: "focusa_utility_card_visible",
+          turn_id: `pi-turn-${getTurnCount()}`,
+          surface: "pi",
+          bytes: visibleCard.length,
+        });
+      } else {
+        queueTraceTelemetry({
+          event_type: "focusa_utility_card_suppressed",
+          turn_id: `pi-turn-${getTurnCount()}`,
+          surface: "pi",
+          reason: "native_session_hard_pressure",
+        });
       }
-      queueTraceTelemetry({
-        event_type: "focusa_utility_card_visible",
-        turn_id: `pi-turn-${getTurnCount()}`,
-        surface: "pi",
-        bytes: visibleCard.length,
-      });
     }
 
     // §29: WBM inbound context injection

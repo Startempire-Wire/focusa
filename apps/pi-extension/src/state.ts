@@ -1813,6 +1813,11 @@ function reportSummaryFromAssistantOutput(text: string): string {
   return summary.length > 1400 ? `${summary.slice(0, 1399)}…` : summary;
 }
 
+export function nativeSessionAllowsNonessentialPersistence(): boolean {
+  const posture = getAttachmentRuntime().lastNativeSessionPressure?.posture;
+  return posture !== "hard_pressure" && posture !== "emergency" && posture !== "oversized_at_start";
+}
+
 export function maybeCaptureReportSummaryFromAssistantOutput(
   text: string,
   turnId: string
@@ -1829,10 +1834,12 @@ export function maybeCaptureReportSummaryFromAssistantOutput(
     turnId,
   };
   setLatestReportSummary(captured);
-  try {
-    getAttachmentRuntime().pi?.appendEntry("focusa-report-summary", captured);
-  } catch {
-    /* best effort */
+  if (nativeSessionAllowsNonessentialPersistence()) {
+    try {
+      getAttachmentRuntime().pi?.appendEntry("focusa-report-summary", captured);
+    } catch {
+      /* best effort */
+    }
   }
   persistState();
   return captured;
