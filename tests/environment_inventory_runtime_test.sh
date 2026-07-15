@@ -28,6 +28,18 @@ jq -e '
   (.system | type == "object")
 ' <<<"$JSON_OUT" >/dev/null || fail "invalid preflight envelope"
 
+jq -e '
+  .dependencies | all(
+    (.install_plan.manager | type == "string") and
+    (.install_plan.package | type == "string") and
+    (.install_plan.repository | type == "string") and
+    (.install_plan.install_command | type == "string") and
+    (.install_plan.dry_run_command | type == "string") and
+    (.install_plan.privilege_required | type == "boolean") and
+    (.install_plan.recovery_hint | contains("--preflight --json"))
+  )
+' <<<"$JSON_OUT" >/dev/null || fail "dependency install plans are incomplete"
+
 # Environment inventory must expose required OS/environment fields.
 jq -e '
   (.system.os | type=="string") and

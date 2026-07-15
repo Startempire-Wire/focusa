@@ -375,6 +375,18 @@ pub struct PreflightDependency {
     pub name: String,
     pub present: bool,
     pub install_hint: Option<String>,
+    pub install_plan: DependencyInstallPlan,
+}
+
+#[derive(Debug, Serialize)]
+pub struct DependencyInstallPlan {
+    pub manager: String,
+    pub package: String,
+    pub repository: String,
+    pub install_command: String,
+    pub dry_run_command: String,
+    pub privilege_required: bool,
+    pub recovery_hint: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -1145,36 +1157,110 @@ fn classify_compatibility(
 fn detect_dependencies(package_manager: Option<&str>) -> Vec<PreflightDependency> {
     ["curl", "python3", "sha256sum", "tar"]
         .into_iter()
-        .map(|name| PreflightDependency {
-            name: name.into(),
-            present: if cfg!(windows) {
-                false
-            } else {
-                have_cmd(name) || (name == "sha256sum" && have_cmd("shasum"))
-            },
-            install_hint: install_hint(package_manager, name),
+        .map(|name| {
+            let install_plan = dependency_install_plan(package_manager, name);
+            PreflightDependency {
+                name: name.into(),
+                present: if cfg!(windows) {
+                    false
+                } else {
+                    have_cmd(name) || (name == "sha256sum" && have_cmd("shasum"))
+                },
+                install_hint: Some(install_plan.install_command.clone()),
+                install_plan,
+            }
         })
         .collect()
 }
 
-fn install_hint(package_manager: Option<&str>, name: &str) -> Option<String> {
-    let package = match name {
-        "python3" => "python3",
-        "sha256sum" => "coreutils",
-        other => other,
+fn dependency_package(manager: &str, name: &str) -> String {
+    match (manager, name) {
+        ("brew", "python3") => "python".into(),
+        ("brew", "sha256sum") => "coreutils".into(),
+        ("brew", "tar") => "gnu-tar".into(),
+        ("choco", "python3") => "python312".into(),
+        ("choco", "sha256sum") => "gnuwin32-coreutils.install".into(),
+        ("choco", "tar") => "gnuwin32-tar".into(),
+        ("winget", "curl") => "cURL.cURL".into(),
+        ("winget", "python3") => "Python.Python.3.12".into(),
+        ("winget", "sha256sum") => "GnuWin32.CoreUtils".into(),
+        ("winget", "tar") => "GnuWin32.Tar".into(),
+        (_, "sha256sum") => "coreutils".into(),
+        (_, other) => other.into(),
+    }
+}
+
+fn dependency_install_plan(package_manager: Option<&str>, name: &str) -> DependencyInstallPlan {
+    let manager = package_manager.unwrap_or("manual");
+    let package = dependency_package(manager, name);
+    let (repository, install_command, dry_run_command, privilege_required) = match manager {
+        "dnf" => (
+            "configured DNF repositories",
+            format!("sudo dnf install -y {package}"),
+            format!("sudo dnf --assumeno install {package}"),
+            true,
+        ),
+        "yum" => (
+            "configured YUM repositories",
+            format!("sudo yum install -y {package}"),
+            format!("sudo yum --assumeno install {package}"),
+            true,
+        ),
+        "apt-get" => (
+            "configured APT repositories",
+            format!("sudo apt-get update && sudo apt-get install -y {package}"),
+            format!("apt-get -s install {package}"),
+            true,
+        ),
+        "brew" => (
+            "Homebrew core",
+            format!("brew install {package}"),
+            format!("brew info {package}"),
+            false,
+        ),
+        "pacman" => (
+            "configured pacman repositories",
+            format!("sudo pacman -S --needed {package}"),
+            format!("pacman -Si {package}"),
+            true,
+        ),
+        "zypper" => (
+            "configured Zypper repositories",
+            format!("sudo zypper install -y {package}"),
+            format!("sudo zypper --dry-run install {package}"),
+            true,
+        ),
+        "choco" => (
+            "Chocolatey community repository",
+            format!("choco install {package} -y --no-progress"),
+            format!("choco search --exact {package}"),
+            false,
+        ),
+        "winget" => (
+            "winget community source",
+            format!(
+                "winget install --id {package} --exact --accept-package-agreements --accept-source-agreements"
+            ),
+            format!("winget show --id {package} --exact"),
+            false,
+        ),
+        _ => (
+            "platform package repository",
+            format!("install dependency manually: {package}"),
+            format!("command -v {name}"),
+            false,
+        ),
     };
-    match package_manager {
-        Some("dnf") => Some(format!("sudo dnf install -y {package}")),
-        Some("yum") => Some(format!("sudo yum install -y {package}")),
-        Some("apt-get") => Some(format!(
-            "sudo apt-get update && sudo apt-get install -y {package}"
-        )),
-        Some("brew") => Some(format!("brew install {package}")),
-        Some("pacman") => Some(format!("sudo pacman -S --needed {package}")),
-        Some("zypper") => Some(format!("sudo zypper install -y {package}")),
-        Some("choco") => Some(format!("choco install {package} -y")),
-        Some("winget") => Some(format!("winget install {package}")),
-        _ => Some(format!("install dependency manually: {package}")),
+    DependencyInstallPlan {
+        manager: manager.into(),
+        package,
+        repository: repository.into(),
+        install_command,
+        dry_run_command,
+        privilege_required,
+        recovery_hint: format!(
+            "If installation fails, inspect {manager} output, repair repository access, rerun the dry-run command, then rerun focusa install --preflight --json."
+        ),
     }
 }
 
@@ -3423,5 +3509,34 @@ mod tests {
         )
         .unwrap();
         assert_eq!(plan.license_mode, "commercial");
+    }
+
+    #[test]
+    fn dependency_plan_matrix_is_explicit_and_recoverable() {
+        let managers = [
+            "dnf", "yum", "apt-get", "brew", "pacman", "zypper", "choco", "winget",
+        ];
+        let dependencies = ["curl", "python3", "sha256sum", "tar"];
+        for manager in managers {
+            for dependency in dependencies {
+                let plan = dependency_install_plan(Some(manager), dependency);
+                assert_eq!(plan.manager, manager);
+                assert!(!plan.package.is_empty());
+                assert!(plan.install_command.contains(&plan.package));
+                assert!(plan.dry_run_command.contains(&plan.package));
+                assert!(!plan.repository.is_empty());
+                assert!(plan.recovery_hint.contains("--preflight --json"));
+            }
+        }
+        assert_eq!(
+            dependency_install_plan(Some("winget"), "curl").package,
+            "cURL.cURL"
+        );
+        assert_eq!(
+            dependency_install_plan(Some("brew"), "tar").package,
+            "gnu-tar"
+        );
+        assert!(dependency_install_plan(Some("apt-get"), "python3").privilege_required);
+        assert!(!dependency_install_plan(Some("brew"), "python3").privilege_required);
     }
 }
