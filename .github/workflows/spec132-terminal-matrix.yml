@@ -16,27 +16,182 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Build executable under test
-        run: cargo build -p focusa-cli --bin focusa
+      - name: Build executables under test
+        run: |
+          cargo build -p focusa-cli --bin focusa
+          cargo build -p focusa-tui --bin focusa-tui
       - name: Execute ConPTY runtime proof
         shell: pwsh
-        run: .\tests\132-e5-windows-conpty-runtime-test.ps1 -Focusa .\target\debug\focusa.exe
+        run: .\tests\132-e5-windows-conpty-runtime-test.ps1 -Focusa .\target\debug\focusa.exe -FocusaTui .\target\debug\focusa-tui.exe
+        env:
+          FOCUSA_HOST_PROFILE: windows-ci-conpty
+          FOCUSA_E5_EVIDENCE_DIR: ${{ runner.temp }}/focusa-132-e5-proof
+          FOCUSA_TARGET_TRIPLE: x86_64-pc-windows-msvc
+          FOCUSA_BIN: ${{ github.workspace }}\target\debug\focusa.exe
+          FOCUSA_TUI_BIN: ${{ github.workspace }}\target\debug\focusa-tui.exe
+      - name: Upload Windows ConPTY runtime proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: focusa-132-e5-runtime-windows-conpty
+          path: ${{ runner.temp }}/focusa-132-e5-proof
+          if-no-files-found: warn
 
   unix-terminal:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            host_profile: linux-hosted-ubuntu-latest
+            target_triple: x86_64-unknown-linux-gnu
+          - os: macos-latest
+            host_profile: macos-hosted
+            target_triple: x86_64-apple-darwin
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Build executable under test
-        run: cargo build -p focusa-cli --bin focusa
+      - name: Build executables under test
+        run: |
+          cargo build -p focusa-cli --bin focusa
+          cargo build -p focusa-tui --bin focusa-tui
       - name: Execute Unix matrix proof
         run: bash tests/132-e5-platform-matrix-runtime-test.sh
         env:
+          FOCUSA_HOST_PROFILE: ${{ matrix.host_profile }}
+          FOCUSA_TARGET_TRIPLE: ${{ matrix.target_triple }}
+          FOCUSA_E5_EVIDENCE_DIR: ${{ runner.temp }}/focusa-132-e5-runtime
           FOCUSA_BIN: ${{ github.workspace }}/target/debug/focusa
+          FOCUSA_TUI_BIN: ${{ github.workspace }}/target/debug/focusa-tui
+      - name: Upload Unix runtime proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: focusa-132-e5-runtime-${{ matrix.os }}
+          path: ${{ runner.temp }}/focusa-132-e5-runtime
+          if-no-files-found: warn
+
+  linux-musl-runtime-artifact:
+    name: Build Linux musl proof artifact (x86_64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    outputs:
+      artifact_name: ${{ steps.bundle.outputs.artifact_name }}
+      artifact_file: ${{ steps.bundle.outputs.artifact_file }}
+      artifact_sha256: ${{ steps.bundle.outputs.artifact_sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
+      - name: Install cross for musl target
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+      - name: Build release binaries for spec132 musl proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          cross build --release --target x86_64-unknown-linux-musl --package focusa-cli --bin focusa
+          cross build --release --target x86_64-unknown-linux-musl --package focusa-tui --bin focusa-tui
+      - name: Package release artifact and compute hash
+        id: bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARTIFACT_NAME="focusa-132-e5-linux-musl-release"
+          STAGE_DIR="$RUNNER_TEMP/$ARTIFACT_NAME"
+          mkdir -p "$STAGE_DIR"
+          cp "$GITHUB_WORKSPACE/target/x86_64-unknown-linux-musl/release/focusa" "$STAGE_DIR/focusa"
+          cp "$GITHUB_WORKSPACE/target/x86_64-unknown-linux-musl/release/focusa-tui" "$STAGE_DIR/focusa-tui"
+          sha256sum "$STAGE_DIR/focusa" "$STAGE_DIR/focusa-tui" > "$STAGE_DIR/SHA256SUMS.txt"
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/$ARTIFACT_NAME.tar.gz" "$ARTIFACT_NAME"
+          ARTIFACT_SHA="$(sha256sum "$RUNNER_TEMP/$ARTIFACT_NAME.tar.gz" | awk '{print $1}')"
+          ARTIFACT_FILE="${ARTIFACT_NAME}-${ARTIFACT_SHA}.tar.gz"
+          mv "$RUNNER_TEMP/$ARTIFACT_NAME.tar.gz" "$RUNNER_TEMP/$ARTIFACT_FILE"
+          echo "artifact_name=$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
+          echo "artifact_file=$ARTIFACT_FILE" >> "$GITHUB_OUTPUT"
+          echo "artifact_sha256=$ARTIFACT_SHA" >> "$GITHUB_OUTPUT"
+      - name: Upload Linux musl proof artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.bundle.outputs.artifact_name }}
+          path: ${{ runner.temp }}/${{ steps.bundle.outputs.artifact_file }}
+
+  native-linux-runtime-kh:
+    needs: linux-musl-runtime-artifact
+    runs-on: [self-hosted, Linux, X64, focusa-deploy, production]
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download reusable musl artifact for KH native run
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.linux-musl-runtime-artifact.outputs.artifact_name }}
+          path: ${{ runner.temp }}/focusa-132-e5-linux-musl-artifact
+      - name: Verify and prepare KH extracted binaries
+        run: |
+          set -euo pipefail
+          ARTIFACT_ROOT="${{ runner.temp }}/focusa-132-e5-linux-musl-artifact"
+          ARTIFACT_FILE="$ARTIFACT_ROOT/${{ needs.linux-musl-runtime-artifact.outputs.artifact_file }}"
+          ACTUAL_SHA="$(sha256sum "$ARTIFACT_FILE" | awk '{print $1}')"
+          EXPECTED_SHA="${{ needs.linux-musl-runtime-artifact.outputs.artifact_sha256 }}"
+          if [[ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]]; then
+            echo "FAIL: KH artifact hash mismatch; expected $EXPECTED_SHA got $ACTUAL_SHA" >&2
+            exit 1
+          fi
+          mkdir -p "$ARTIFACT_ROOT/extracted"
+          tar -xzf "$ARTIFACT_FILE" -C "$ARTIFACT_ROOT/extracted"
+          FOCUSA_BIN_PATH="$ARTIFACT_ROOT/extracted/focusa-132-e5-linux-musl-release/focusa"
+          FOCUSA_TUI_BIN_PATH="$ARTIFACT_ROOT/extracted/focusa-132-e5-linux-musl-release/focusa-tui"
+          chmod 0755 "$FOCUSA_BIN_PATH" "$FOCUSA_TUI_BIN_PATH"
+          echo "FOCUSA_BIN=$FOCUSA_BIN_PATH" >> "$GITHUB_ENV"
+          echo "FOCUSA_TUI_BIN=$FOCUSA_TUI_BIN_PATH" >> "$GITHUB_ENV"
+      - name: Execute KH native runtime proof using extracted binaries
+        run: bash tests/132-e5-platform-matrix-runtime-test.sh
+        env:
+          FOCUSA_HOST_PROFILE: kh-glibc-2.28
+          FOCUSA_TARGET_TRIPLE: x86_64-unknown-linux-musl
+          FOCUSA_E5_EVIDENCE_DIR: ${{ runner.temp }}/focusa-132-e5-runtime
+      - name: Upload KH native runtime proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: focusa-132-e5-runtime-kh-glibc-2.28
+          path: ${{ runner.temp }}/focusa-132-e5-runtime
+          if-no-files-found: warn
+
+  ovh-offload-runtime:
+    runs-on: [self-hosted, Linux, X64, focusa-deploy, production]
+    needs: native-linux-runtime-kh
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build CLI/TUI and run OVH proof over SSH via focusa-ovh-build
+        env:
+          FOCUSA_SOURCE_ROOT: ${{ github.workspace }}
+          FOCUSA_BUILD_REMOTE: focusa-build-ovh
+        run: |
+          set -euo pipefail
+          /usr/local/bin/focusa-ovh-build bash -lc '
+            rm -rf /tmp/focusa-132-e5-runtime
+            cargo build --bin focusa --bin focusa-tui
+            FOCUSA_HOST_PROFILE=ovh-native-debug FOCUSA_TARGET_TRIPLE=x86_64-unknown-linux-gnu FOCUSA_E5_EVIDENCE_DIR=/tmp/focusa-132-e5-runtime FOCUSA_BIN=$HOME/build/focusa/target/debug/focusa FOCUSA_TUI_BIN=$HOME/build/focusa/target/debug/focusa-tui bash tests/132-e5-platform-matrix-runtime-test.sh'
+      - name: Retrieve bounded OVH evidence directory
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/focusa-132-e5-runtime"
+          rsync -az --delete "focusa-build-ovh:/tmp/focusa-132-e5-runtime/" "${{ runner.temp }}/focusa-132-e5-runtime/"
+      - name: Upload OVH-offload native runtime proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: focusa-132-e5-runtime-ovh-native-debug
+          path: ${{ runner.temp }}/focusa-132-e5-runtime
+          if-no-files-found: warn
+
 
   release-target-build:
     name: Release target build (${{ matrix.target }})
@@ -76,6 +231,22 @@ jobs:
           else
             cargo build --release --target "${{ matrix.target }}" --bins
           fi
+      - name: Execute linux-musl runtime proof
+        if: ${{ matrix.musl == true }}
+        env:
+          FOCUSA_HOST_PROFILE: linux-musl-release
+          FOCUSA_TARGET_TRIPLE: ${{ matrix.target }}
+          FOCUSA_E5_EVIDENCE_DIR: target/e5-runtime-proofs/${{ matrix.target }}
+          FOCUSA_BIN: ${{ github.workspace }}/target/${{ matrix.target }}/release/focusa
+          FOCUSA_TUI_BIN: ${{ github.workspace }}/target/${{ matrix.target }}/release/focusa-tui
+        run: bash tests/132-e5-platform-matrix-runtime-test.sh
+      - name: Upload linux-musl runtime proof
+        if: ${{ always() && matrix.musl == true }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: focusa-132-e5-runtime-linux-musl-release
+          path: target/e5-runtime-proofs/${{ matrix.target }}
+          if-no-files-found: warn
 
   pi-extension-gate:
     name: Pi extension package/typecheck/lint
