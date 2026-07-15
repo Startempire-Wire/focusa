@@ -2326,6 +2326,10 @@ fn triple_for(target: InstallTarget) -> String {
 }
 
 #[cfg(test)]
+#[path = "install_e6_failure_matrix_tests.rs"]
+mod install_e6_failure_matrix_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -2493,12 +2497,21 @@ mod tests {
             std::env::set_var("FOCUSA_PI_EXT_DIR", &extensions);
         }
         let destination = integrate_pi_extension(&asset, &fixture).unwrap();
-        assert_eq!(destination, extensions.join("focusa").display().to_string());
+        let destination_expected = extensions.join("focusa").display().to_string();
+        let destination_preserved = destination == destination_expected;
+        let package_json_present = extensions.join("focusa/package.json").is_file();
+        let smoke_marker_present = extensions
+            .join("focusa/node_modules/.focusa-smoke")
+            .is_file();
+        assert_eq!(destination, destination_expected);
         assert!(extensions.join("focusa/package.json").is_file());
         assert!(
             extensions
                 .join("focusa/node_modules/.focusa-smoke")
                 .is_file()
+        );
+        println!(
+            "E6_PI_PRESENT_SUCCESS destination_preserved={destination_preserved} package_json={package_json_present} smoke_marker={smoke_marker_present}"
         );
         unsafe {
             match old_path {
