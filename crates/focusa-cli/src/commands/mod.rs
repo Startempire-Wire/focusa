@@ -46,6 +46,7 @@ pub mod pairing_doctor;
 pub mod pairing_email_link;
 pub mod pairing_transport;
 pub mod pairing_wizard;
+pub mod pi_launch;
 pub mod predict;
 pub mod preload;
 pub mod project;

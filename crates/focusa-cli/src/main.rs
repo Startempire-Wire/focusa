@@ -402,6 +402,10 @@ enum Commands {
     #[command(subcommand)]
     Tokens(commands::tokens::TokensCmd),
 
+    /// Launch Pi only after bounded native-session preflight (Spec 130).
+    #[command(subcommand)]
+    Pi(commands::pi_launch::PiCmd),
+
     /// Wrap a harness CLI (Mode A proxy).
     ///
     /// Usage: focusa wrap -- <command> [args...]
@@ -1072,6 +1076,7 @@ async fn async_main() -> anyhow::Result<()> {
         }
         Commands::Workpoint(cmd) => commands::workpoint::run(cmd, cli.json).await,
         Commands::Tokens(cmd) => commands::tokens::run(cmd, cli.json).await,
+        Commands::Pi(cmd) => commands::pi_launch::run(cmd, cli.json),
         Commands::Wrap { command } => commands::wrap::run(command).await,
     };
 
