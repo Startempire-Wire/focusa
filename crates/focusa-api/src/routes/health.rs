@@ -49,24 +49,25 @@ async fn about(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     }))
 }
 
+const BUNDLED_TOOL_CONTRACTS_JSON: &str =
+    include_str!("../../../../docs/current/focusa-tool-contracts.json");
+
 fn bundled_tool_contract_count() -> usize {
-    serde_json::from_str::<Value>(include_str!(
-        "../../../../docs/current/focusa-tool-contracts.json"
-    ))
-    .ok()
-    .and_then(|registry| {
-        registry
-            .get("tool_count")
-            .and_then(Value::as_u64)
-            .map(|count| count as usize)
-            .or_else(|| {
-                registry
-                    .get("contracts")
-                    .and_then(Value::as_array)
-                    .map(Vec::len)
-            })
-    })
-    .unwrap_or(0)
+    serde_json::from_str::<Value>(BUNDLED_TOOL_CONTRACTS_JSON)
+        .ok()
+        .and_then(|registry| {
+            registry
+                .get("contracts")
+                .and_then(Value::as_array)
+                .map(Vec::len)
+                .or_else(|| {
+                    registry
+                        .get("tool_count")
+                        .and_then(Value::as_u64)
+                        .map(|count| count as usize)
+                })
+        })
+        .unwrap_or(0)
 }
 
 fn path_has_command(command: &str) -> bool {
@@ -398,6 +399,22 @@ mod tests {
 
     #[test]
     fn doctor_contract_count_matches_bundled_registry() {
-        assert_eq!(bundled_tool_contract_count(), 97);
+        let registry: Value = serde_json::from_str(BUNDLED_TOOL_CONTRACTS_JSON)
+            .expect("bundled tool contract registry must be valid JSON");
+        let contracts = registry
+            .get("contracts")
+            .and_then(Value::as_array)
+            .expect("bundled tool contract registry must contain contracts");
+        let metadata_count = registry
+            .get("tool_count")
+            .and_then(Value::as_u64)
+            .expect("bundled tool contract registry must contain tool_count");
+
+        assert!(
+            !contracts.is_empty(),
+            "bundled tool contract registry must not be empty"
+        );
+        assert_eq!(bundled_tool_contract_count(), contracts.len());
+        assert_eq!(metadata_count as usize, contracts.len());
     }
 }
