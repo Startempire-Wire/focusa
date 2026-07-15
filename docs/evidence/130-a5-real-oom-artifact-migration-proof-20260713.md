@@ -2,7 +2,7 @@
 
 Date: 2026-07-13
 Bead: `focusa-w26jj.3.12`
-Status: migration/integrity proof passed; target-session resume verification remains required before closure.
+Status: complete — migration, immutable integrity, canonical target Workpoint materialization, target resume, and transition receipt passed.
 
 ## Source artifact
 
@@ -59,6 +59,29 @@ A replacement Pi v3 session was created from the bounded 313-entry recovery segm
 
 This proves the real OOM artifact can be reduced to a bounded native session and deserialized by the actual Pi binary without approaching the prior ~3.1 GiB heap failure.
 
-## Remaining closure boundary
+## Canonical target attachment verification
 
-This proves bounded-memory migration, recovery-segment creation, and actual Pi native loading against the real OOM artifact. A5 remains open only until the replacement attachment materializes the target Workpoint under a new continuity id and records a canonical `target_resume_verified` transition receipt.
+After deploying the A4.2 target-materialization route from pushed `main`, the proven artifact was attached to a rotated typed workstream and resumed canonically.
+
+- Target continuity: `focusa-oom-a51-20260715-1348`
+- Target session: `pi-oom-a51-20260715-1348`
+- Source Workpoint: `019f6788-ae9d-7282-b9ab-10ee0819bcac`
+- Target Workpoint: `019f678f-2f75-7a41-a0f2-00d8996629c1`
+- Target Workpoint status: canonical, active, resume completed
+- Transition status: `target_resume_verified`
+- Transition receipt: `019f678f-d36d-7de1-a56a-33c8dab8fad6`
+- Receipt evidence: `/tmp/a51-verify-target-response.json`
+
+A final checksum pass after target verification proved that the immutable source and archive remained byte-identical:
+
+```text
+source_sha256=ba3bd327f7b04c1e6b47d86ab258db9d469282aee86917278bce9b58a16adf0c
+archive_sha256=ba3bd327f7b04c1e6b47d86ab258db9d469282aee86917278bce9b58a16adf0c
+source_bytes=1366418944
+archive_bytes=1366418944
+recovery_bytes=8357477
+```
+
+Final integrity evidence: `/tmp/a51-final-integrity.txt`.
+
+A5.1 is complete: bounded-memory migration, real Pi native loading, immutable source preservation, canonical rotated target materialization, canonical target resume, and the required `target_resume_verified` receipt all passed.
