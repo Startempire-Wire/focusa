@@ -233,6 +233,7 @@ jobs:
           bun --cwd apps/pi-extension run lint
           node apps/pi-extension/tests/spec101-bloatgaurd-details-route.test.mjs
           node apps/pi-extension/tests/spec101-bloatgaurd-profile-runtime.test.mjs
+          node apps/pi-extension/tests/spec101-bloatgaurd-pressure-circuit-runtime.test.mjs
       - name: Prove package contents
         run: |
           set -euo pipefail

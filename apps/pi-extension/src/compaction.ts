@@ -758,6 +758,25 @@ export function isFocusaContextContinuityHealthy(): boolean {
 
 export type ContextPressureWarningKind = "auto_suggest" | "hard_unconfirmed" | "handoff_unconfirmed";
 
+export type BloatgaurdPressureAction = "hard" | "auto" | "warn" | "none";
+
+export interface BloatgaurdPressureThresholds {
+  warnPct: number;
+  compactPct: number;
+  hardPct: number;
+}
+
+export function classifyBloatgaurdPressureAction(
+  pct: number,
+  cfg: BloatgaurdPressureThresholds,
+  canCompact: boolean
+): BloatgaurdPressureAction {
+  if (pct >= cfg.hardPct) return "hard";
+  if (pct >= cfg.compactPct && canCompact) return "auto";
+  if (pct >= cfg.warnPct) return "warn";
+  return "none";
+}
+
 export function contextPressureWarningCopy(
   kind: ContextPressureWarningKind,
   pct: number,
@@ -1168,6 +1187,7 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
   const hourlyOk = getAttachmentRuntime().compactsThisHour < cfg.maxCompactionsPerHour;
   const turnsOk = getAttachmentRuntime().turnsSinceCompact >= cfg.minTurnsBetweenCompactions;
   const canCompact = cooldownOk && hourlyOk && turnsOk;
+  const pressureAction = classifyBloatgaurdPressureAction(pct, cfg, canCompact);
 
   const onDone = () => {
     getAttachmentRuntime().lastCompactTime = Date.now();
@@ -1186,7 +1206,7 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
     ctx.ui.notify(contextPressureWarningCopy("auto_suggest", pct), "warning");
   }
 
-  if (pct >= cfg.hardPct) {
+  if (pressureAction === "hard") {
     getAttachmentRuntime().currentTier = "hard";
     setContextStatus(ctx, "hard", pct, focusaContinuityReady);
     if (!focusaContinuityReady) {
@@ -1235,7 +1255,7 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
     } else {
       ctx.ui.notify("Compaction failed: Pi ctx.compact is unavailable", "error");
     }
-  } else if (pct >= cfg.compactPct && canCompact) {
+  } else if (pressureAction === "auto") {
     getAttachmentRuntime().currentTier = "auto";
     setContextStatus(ctx, "auto", pct);
     ctx.ui.notify(`📊 Context ${pct.toFixed(0)}% — compacting`, "info");
@@ -1274,7 +1294,7 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
     } else {
       ctx.ui.notify("Compaction failed: Pi ctx.compact is unavailable", "error");
     }
-  } else if (pct >= cfg.warnPct) {
+  } else if (pressureAction === "warn") {
     getAttachmentRuntime().currentTier = "warn";
     setContextStatus(ctx, "warn", pct);
   } else {
