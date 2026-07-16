@@ -1,0 +1,28 @@
+schema=focusa.spec112.live_arm64_installer_proof.v1
+status=pass
+work_item=focusa-w26jj.9.8
+commit=ad022e38
+public_url=https://install.focusa.dev/focusa
+source=scripts/install-focusa.sh
+
+root_cause=macOS uname -m returns arm64; preflight allowlist accepted only x86_64|aarch64 and rejected before the valid Darwin-arm64 target mapping.
+source_fix=case "$HOST_ARCH" in x86_64|aarch64|arm64)
+target_mapping=Darwin-arm64|Darwin-aarch64 -> aarch64-apple-darwin
+
+proofs:
+- static regression: tests/spec_focusa_112_shell_ps1_slim_static_test.sh PASS
+- emulated source Darwin/arm64 --eval --dry-run PASS
+- sync parity: repository source equals live docroot PASS
+- UIAI pre-fix evidence: uiai-browser:session=H7BCihfu:read:1 and eval showed x86_64|aarch64 rejection
+- UIAI post-fix evidence: session=papLItYa eval showed x86_64|aarch64|arm64 and arm64Triple=true
+- public download byte parity via cmp PASS
+- public emulated Darwin/arm64 install selected v0.9.99-dev aarch64-apple-darwin PASS
+- public dry-run downloaded and SHA256-verified focusa-v0.9.99-dev-aarch64-apple-darwin PASS
+- Rust handoff target=darwin PASS
+
+live_output_tail:
+[focusa-install] downloading focusa-v0.9.99-dev-aarch64-apple-darwin
+[focusa-install] checksum manifest: SHA256SUMS.txt
+[focusa-install] sha256 verified: 7599524938b5…
+[focusa-install] handing off to Rust orchestrator: focusa install --target=aarch64-apple-darwin
+[focusa-install] DRY RUN: would exec ... focusa install --target=darwin ...
