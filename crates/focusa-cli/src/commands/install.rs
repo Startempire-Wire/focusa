@@ -3128,7 +3128,11 @@ fn bin_dir_for(install_root: &std::path::Path) -> std::path::PathBuf {
 }
 
 // ----- Phase 3b: macOS codesign verify (focusa-112-codesign-verify) -----
-fn verify_macos_codesign(target: InstallTarget, asset: &InstalledAsset) -> Result<()> {
+fn verify_macos_codesign(
+    target: InstallTarget,
+    channel: Channel,
+    asset: &InstalledAsset,
+) -> Result<()> {
     if target != InstallTarget::Darwin {
         return Ok(());
     }
@@ -3152,11 +3156,18 @@ fn verify_macos_codesign(target: InstallTarget, asset: &InstalledAsset) -> Resul
             )
         })?;
     if !status.success() {
-        bail!(
-            "macOS codesign verify failed for {}: codesign exited {}",
-            asset.name,
-            status.code().unwrap_or(-1)
+        if channel == Channel::Stable {
+            bail!(
+                "stable macOS install requires a valid code signature for {}: codesign exited {}",
+                asset.name,
+                status.code().unwrap_or(-1)
+            );
+        }
+        eprintln!(
+            "warning: {:?} macOS asset {} is unsigned/ad-hoc; accepted only for preview evaluation",
+            channel, asset.name
         );
+        return Ok(());
     }
     eprintln!("✓ macOS codesign verified for {}", asset.name);
     Ok(())
@@ -3279,7 +3290,7 @@ async fn execute_real_install(
             outcome: focusa_terminal_ui::VerificationScanOutcome::Succeeded,
         });
         if asset.triple != "all" {
-            verify_macos_codesign(target, asset)?;
+            verify_macos_codesign(target, channel, asset)?;
         }
     }
     sink.emit(InstallEvent::PhaseSucceeded {

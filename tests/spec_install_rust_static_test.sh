@@ -65,7 +65,8 @@ pass "checksum verification failure paths retained in Rust + thin scripts"
 
 # Thin bootstrapper contract: scripts download focusa, then delegate to Rust install.
 # Bash invokes directly (not exec) so its EXIT trap can roll back partial clean installs.
-for marker in 'ARGS=(install --target="$RUST_TARGET"' 'if "$BIN_DIR/focusa" "${ARGS[@]}"; then' \
+for marker in 'ARGS=(install --target="$RUST_TARGET"' 'if "$BOOTSTRAP_BIN" "${ARGS[@]}"; then' \
+  'record_install_success' 'install failed; restored exact pre-bootstrap state' \
   'Rust install orchestrator failed (exit ${status})'; do
   grep -qF "$marker" "$SH" \
     || fail "install-focusa.sh missing rollback-aware delegate marker: $marker"
@@ -83,8 +84,9 @@ assignment = text.index('RELEASE_TAG="${SELECTED%%')
 first_expansion = text.index('$RELEASE_TAG')
 assert assignment < first_expansion, "RELEASE_TAG is expanded before initialization under set -u"
 pattern = re.compile(
-    r'if "\$BIN_DIR/focusa" "\$\{ARGS\[@\]\}"; then\s+'
-    r'BOOTSTRAP_SUCCESS=1\s+exit 0\s+else\s+status=\$\?\s+'
+    r'if "\$BOOTSTRAP_BIN" "\$\{ARGS\[@\]\}"; then\s+'
+    r'record_install_success\s+BOOTSTRAP_SUCCESS=1\s+exit 0\s+'
+    r'else\s+status=\$\?\s+'
     r'err "Rust install orchestrator failed \(exit \$\{status\}\)"\s+exit "\$status"',
     re.MULTILINE,
 )
@@ -100,6 +102,13 @@ for marker in \
   grep -qF "$marker" "$SH" || fail "install-focusa.sh missing truthful channel/signature marker: $marker"
 done
 pass "stable excludes dev tags and fails closed without signatures; preview fallback is explicit"
+
+for marker in \
+  'stable macOS install requires a valid code signature' \
+  'accepted only for preview evaluation'; do
+  grep -qF "$marker" "$INSTALL_RS" || fail "install.rs missing channel-aware macOS signature policy: $marker"
+done
+pass "stable macOS code-signing fails closed while preview acceptance is explicit"
 
 # Shell scripts must not embed service manager heredocs anymore (logic belongs in Rust service module)
 if grep -qE 'cat >.*systemd|LaunchAgent|plist|systemctl --user enable' "$SH"; then

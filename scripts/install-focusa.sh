@@ -367,14 +367,22 @@ esac
 # Scratch tmpdir for the install transaction. Cleaned up on exit.
 # ----------------------------------------------------------------------------
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/focusa-install.XXXXXX")"
+if [ "$PREEXISTING_LICENSE_DIR" = 1 ]; then
+  cp -a "$LICENSE_DIR" "$TMP/license-dir.before"
+fi
 cleanup_bootstrap_failure() {
   local status=$?
-  rm -rf "$TMP"
   if [ "$status" -ne 0 ] && [ "$BOOTSTRAP_SUCCESS" != 1 ]; then
     [ "$PREEXISTING_INSTALL_ROOT" = 1 ] || rm -rf "${HOME}/.focusa"
-    [ "$PREEXISTING_LICENSE_DIR" = 1 ] || rm -rf "$LICENSE_DIR"
-    err "install failed; removed bootstrapper-created partial state"
+    if [ "$PREEXISTING_LICENSE_DIR" = 1 ]; then
+      rm -rf "$LICENSE_DIR"
+      cp -a "$TMP/license-dir.before" "$LICENSE_DIR"
+    else
+      rm -rf "$LICENSE_DIR"
+    fi
+    err "install failed; restored exact pre-bootstrap state"
   fi
+  rm -rf "$TMP"
 }
 trap cleanup_bootstrap_failure EXIT
 
@@ -714,16 +722,17 @@ PY
   fi
 fi
 
-# Idempotent write of focusa bootstrapper.
-mv "$TMP/focusa" "$BIN_DIR/focusa"
-chmod 0755 "$BIN_DIR/focusa"
+# Execute the verified bootstrap binary from transaction scratch. Never
+# overwrite the live CLI before the Rust orchestrator has committed all assets.
+chmod 0755 "$TMP/focusa"
+BOOTSTRAP_BIN="$TMP/focusa"
 
-# Record installed version and append an install event for audit.
-mkdir -p "$STATE_DIR"
-printf '%s\n' "$RELEASE_TAG" > "$INSTALLED_VERSION_FILE"
-chmod 0644 "$INSTALLED_VERSION_FILE"
+record_install_success() {
+  mkdir -p "$STATE_DIR"
+  printf '%s\n' "$RELEASE_TAG" > "$INSTALLED_VERSION_FILE"
+  chmod 0644 "$INSTALLED_VERSION_FILE"
 
-if [ "$DRY_RUN" != 1 ]; then
+  if [ "$DRY_RUN" != 1 ]; then
   install_event_tier="${TIER:-evaluation}"
   install_event_eval="false"
   [ "$EVAL" = 1 ] && install_event_eval="true"
@@ -746,8 +755,9 @@ if [ "$DRY_RUN" != 1 ]; then
       "$install_event_arch" "$install_event_bin_dir" "$install_event_license_authority" \
       "$install_event_registry"
   } >> "$INSTALL_LOG_FILE"
-  chmod 0600 "$INSTALL_LOG_FILE"
-fi
+    chmod 0600 "$INSTALL_LOG_FILE"
+  fi
+}
 
 # When Pi is installed, install the matching bundled extension beside its
 # other extensions. Extension failure never corrupts an existing extension or
@@ -757,7 +767,7 @@ fi
 
 log "handing off to Rust orchestrator: focusa install --target=${TARGET}"
 if [ "$DRY_RUN" = 1 ]; then
-  log "DRY RUN: would exec $BIN_DIR/focusa install --target=$RUST_TARGET --github-repo=$GITHUB_REPO ..."
+  log "DRY RUN: would exec verified scratch bootstrap install --target=$RUST_TARGET --github-repo=$GITHUB_REPO ..."
   exit 0
 fi
 
@@ -774,7 +784,8 @@ export FOCUSA_RELEASE_TAG="$RELEASE_TAG"
 [ -z "$RELEASE_BASE_URL" ] || export FOCUSA_RELEASE_BASE_URL="$RELEASE_BASE_URL"
 # Run rather than exec so an orchestrator failure reaches the EXIT trap.
 # The trap removes only clean-state paths created by this bootstrapper.
-if "$BIN_DIR/focusa" "${ARGS[@]}"; then
+if "$BOOTSTRAP_BIN" "${ARGS[@]}"; then
+  record_install_success
   BOOTSTRAP_SUCCESS=1
   exit 0
 else
