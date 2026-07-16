@@ -1291,19 +1291,22 @@ fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<String>> 
         }
         let failed = entry.target.with_extension("focusa-pre-rollback");
         if entry.target.exists() {
-            std::fs::rename(&entry.target, &failed)?;
+            move_file_cross_device_safe(&entry.target, &failed)?;
         }
-        if let Err(error) = std::fs::rename(&entry.backup, &entry.target) {
+        if let Err(error) = move_file_cross_device_safe(&entry.backup, &entry.target) {
             if failed.exists() {
-                let _ = std::fs::rename(&failed, &entry.target);
+                let _ = move_file_cross_device_safe(&failed, &entry.target);
             }
-            return Err(error.into());
+            return Err(error);
         }
         let _ = std::fs::remove_file(&failed);
         restored.push(entry.part);
     }
     if restored.is_empty() {
         anyhow::bail!("no matching verified backup entries");
+    }
+    if restored.iter().any(|part| part == "daemon") {
+        restart_daemon_service()?;
     }
     let state = update_state_root();
     let journal = state.join("update-journal.json");
@@ -1542,6 +1545,44 @@ async fn execute_verified_apply(plan: &UpdatePlanEnvelope) -> anyhow::Result<Vec
 
 type PromotedPart = (String, PathBuf, PathBuf, String);
 
+fn move_file_cross_device_safe(source: &Path, destination: &Path) -> anyhow::Result<()> {
+    match std::fs::rename(source, destination) {
+        Ok(()) => Ok(()),
+        Err(error) if error.raw_os_error() == Some(18) => {
+            std::fs::copy(source, destination)?;
+            std::fs::File::open(destination)?.sync_all()?;
+            std::fs::remove_file(source)?;
+            Ok(())
+        }
+        Err(error) => Err(error.into()),
+    }
+}
+
+fn restart_daemon_service() -> anyhow::Result<()> {
+    let status = if cfg!(target_os = "macos") {
+        let uid = std::process::Command::new("id").arg("-u").output()?;
+        let target = format!(
+            "gui/{}/com.startempire.focusa-daemon",
+            String::from_utf8_lossy(&uid.stdout).trim()
+        );
+        std::process::Command::new("launchctl")
+            .args(["kickstart", "-k", &target])
+            .status()?
+    } else {
+        std::process::Command::new("systemctl")
+            .args(["--user", "restart", "focusa-daemon.service"])
+            .status()?
+    };
+    if status.success() {
+        Ok(())
+    } else {
+        anyhow::bail!(
+            "daemon service restart failed: {}",
+            status.code().unwrap_or(-1)
+        )
+    }
+}
+
 fn rollback_promoted_parts(promoted: &[PromotedPart]) -> anyhow::Result<Vec<String>> {
     let mut restored = Vec::new();
     for (part, target, backup, _) in promoted.iter().rev() {
@@ -1550,13 +1591,13 @@ fn rollback_promoted_parts(promoted: &[PromotedPart]) -> anyhow::Result<Vec<Stri
         }
         let failed = target.with_extension("focusa-failed");
         if target.exists() {
-            std::fs::rename(target, &failed)?;
+            move_file_cross_device_safe(target, &failed)?;
         }
-        if let Err(error) = std::fs::rename(backup, target) {
+        if let Err(error) = move_file_cross_device_safe(backup, target) {
             if failed.exists() {
-                let _ = std::fs::rename(&failed, target);
+                let _ = move_file_cross_device_safe(&failed, target);
             }
-            return Err(error.into());
+            return Err(error);
         }
         if failed.exists() {
             std::fs::remove_file(&failed)?;
@@ -1627,23 +1668,23 @@ async fn execute_verified_apply_locked(
                     .unwrap_or("focusa"),
                 std::process::id()
             ));
-            std::fs::rename(&staged, &temp)?;
+            move_file_cross_device_safe(&staged, &temp)?;
             if let Some(permissions) = mode {
                 std::fs::set_permissions(&temp, permissions)?;
             }
             let backup = backup_root.join(target.file_name().context("target filename missing")?);
             let backup_sha256 = if target.exists() {
                 let digest = sha256_file(&target)?;
-                std::fs::rename(&target, &backup)?;
+                move_file_cross_device_safe(&target, &backup)?;
                 digest
             } else {
                 String::new()
             };
-            if let Err(error) = std::fs::rename(&temp, &target) {
+            if let Err(error) = move_file_cross_device_safe(&temp, &target) {
                 if backup.exists() {
-                    let _ = std::fs::rename(&backup, &target);
+                    let _ = move_file_cross_device_safe(&backup, &target);
                 }
-                return Err(error.into());
+                return Err(error);
             }
             // Record immediately after promotion so *every* subsequent probe
             // failure enters the outer rollback path.
@@ -1680,11 +1721,34 @@ async fn execute_verified_apply_locked(
                 }
             }
         }
+        if promoted.iter().any(|(part, _, _, _)| part == "daemon") {
+            restart_daemon_service()?;
+            let mut observed_version = None;
+            for _ in 0..20 {
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                if let Some(version) = probe_daemon_health("http://127.0.0.1:8787/v1/health").await
+                {
+                    if normalize_version(&version) == plan.latest.version {
+                        observed_version = Some(version);
+                        break;
+                    }
+                }
+            }
+            observed_version.with_context(|| {
+                format!(
+                    "daemon health did not reach OTA version {} within 20 seconds",
+                    plan.latest.version
+                )
+            })?;
+        }
         Ok::<(), anyhow::Error>(())
     }
     .await;
     if let Err(error) = operation {
         let rollback_result = rollback_promoted_parts(&promoted);
+        if promoted.iter().any(|(part, _, _, _)| part == "daemon") {
+            let _ = restart_daemon_service();
+        }
         std::fs::write(
             &journal,
             serde_json::to_vec_pretty(
