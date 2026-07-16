@@ -21,6 +21,13 @@ log_pass() { echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
 
+curl() {
+  command curl \
+    -H "x-scope-project-root: ${REPO_ROOT}" \
+    -H "x-scope-continuity-id: recovery-test" \
+    "$@"
+}
+
 start_daemon() {
   FOCUSA_BASE_URL="$BASE_URL" FOCUSA_BIND="$BIND_ADDR" FOCUSA_DATA_DIR="$DATA_DIR" "$DAEMON_BIN" >/tmp/focusa-restart-recovery.log 2>&1 &
   DAEMON_PID=$!

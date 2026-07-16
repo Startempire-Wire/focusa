@@ -18,7 +18,12 @@ NC='\033[0m'
 log_pass() { echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
-http_json() { curl -sS "$@"; }
+http_json() {
+  curl -sS \
+    -H "x-scope-project-root: ${ROOT_DIR}" \
+    -H "x-scope-continuity-id: fork-compact-test" \
+    "$@"
+}
 
 wait_for_jq() {
   local url="$1"
@@ -39,6 +44,8 @@ echo "Base URL: ${BASE_URL}"
 echo ""
 
 log_info "Seed checkpointable frame"
+http_json -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/json" \
+  -d '{"reason":"fork-compact-preflight-reset"}' >/dev/null || true
 http_json -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" -d "{\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"fork-compact-test\"}" >/dev/null
 frame_title="fork-compact-$(date +%s%N)"
 http_json -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" -d "{\"title\":\"${frame_title}\",\"goal\":\"${frame_title}\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"fork-compact-test\"}" >/dev/null
