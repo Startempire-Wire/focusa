@@ -17,7 +17,10 @@ log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
 
 http_code() {
-  curl -sS -o /tmp/focusa-channel-body.json -w "%{http_code}" "$@"
+  curl -sS \
+    -H "x-scope-project-root: ${REPO_ROOT}" \
+    -H "x-scope-continuity-id: channel-contract" \
+    -o /tmp/focusa-channel-body.json -w "%{http_code}" "$@"
 }
 
 json_assert() {
@@ -107,6 +110,8 @@ else
 fi
 
 log_info "Seed visible active frame"
+http_code -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/json" \
+  -d '{"reason":"channel-contract-preflight-reset"}' >/dev/null || true
 code=$(http_code -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" \
   -d "{\"adapter_id\":\"channel-contract\",\"workspace_id\":\"${REPO_ROOT}\",\"project_root\":\"${REPO_ROOT}\",\"continuity_id\":\"channel-contract\"}")
 if [ "$code" = "200" ]; then
@@ -157,6 +162,9 @@ if [ "$code" = "200" ]; then
 else
   log_fail "Procedural memory failed"
 fi
+
+http_code -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/json" \
+  -d '{"reason":"channel-contract-complete"}' >/dev/null || true
 
 echo ""
 echo "=== SPEC-54/54a VISIBLE OUTPUT BOUNDARY RESULTS ==="
