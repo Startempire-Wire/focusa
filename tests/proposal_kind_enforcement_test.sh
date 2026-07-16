@@ -5,6 +5,7 @@
 set -euo pipefail
 
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FAILED=0
 PASSED=0
 
@@ -16,6 +17,18 @@ NC='\033[0m'
 log_pass() { echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
+
+curl() {
+  command curl \
+    -H "x-scope-project-root: ${ROOT_DIR}" \
+    -H "x-scope-continuity-id: proposal-kind-test" \
+    "$@"
+}
+
+curl -sS -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/json" \
+  -d '{"reason":"proposal-kind-preflight-reset"}' >/dev/null || true
+curl -sS -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" \
+  -d "{\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"proposal-kind-test\",\"adapter_id\":\"test\"}" >/dev/null
 
 run_source="spec-kind-test-$(date +%s%N)"
 thread_name="proposal-kind-thread-$(date +%s%N)"
