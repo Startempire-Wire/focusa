@@ -1566,6 +1566,31 @@ fn move_file_cross_device_safe(source: &Path, destination: &Path) -> anyhow::Res
     }
 }
 
+fn terminate_portable_daemon_from_lock() {
+    let data_dir = std::env::var_os("FOCUSA_HOME")
+        .map(PathBuf::from)
+        .or_else(|| {
+            std::env::var_os("XDG_DATA_HOME").map(|path| PathBuf::from(path).join("focusa"))
+        })
+        .or_else(|| {
+            std::env::var_os("HOME").map(|path| PathBuf::from(path).join(".local/share/focusa"))
+        });
+    let Some(lock) = data_dir.map(|path| path.join("focusa-daemon.lock")) else {
+        return;
+    };
+    let pid = std::fs::read_to_string(lock).ok().and_then(|raw| {
+        raw.lines()
+            .find_map(|line| line.strip_prefix("pid="))
+            .and_then(|value| value.trim().parse::<u32>().ok())
+    });
+    if let Some(pid) = pid {
+        let _ = std::process::Command::new("kill")
+            .args(["-TERM", &pid.to_string()])
+            .status();
+        std::thread::sleep(Duration::from_millis(500));
+    }
+}
+
 fn restart_daemon_service(daemon_path: &Path) -> anyhow::Result<()> {
     if cfg!(target_os = "macos") {
         let uid = std::process::Command::new("id").arg("-u").output()?;
@@ -1602,6 +1627,7 @@ fn restart_daemon_service(daemon_path: &Path) -> anyhow::Result<()> {
             }
         }
     }
+    terminate_portable_daemon_from_lock();
     std::process::Command::new(daemon_path).spawn()?;
     Ok(())
 }
