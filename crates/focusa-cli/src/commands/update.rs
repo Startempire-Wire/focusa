@@ -494,6 +494,7 @@ struct ReleaseTrustSummary {
     manifest_resolved: bool,
     manifest_signature_verified: bool,
     provenance_verified: bool,
+    deploy_proof_verified: bool,
     trusted_key_id: Option<String>,
     trusted_key_fingerprint: Option<String>,
     key_revoked: bool,
@@ -1803,6 +1804,7 @@ fn placeholder_latest(version: String, source: &str) -> LatestVersion {
             manifest_resolved: false,
             manifest_signature_verified: false,
             provenance_verified: false,
+            deploy_proof_verified: false,
             trusted_key_id: None,
             trusted_key_fingerprint: None,
             key_revoked: false,
@@ -1875,16 +1877,22 @@ fn build_latest_from_release(
         blockers.push(format!("release_trust_verification_failed:{error}"));
         blockers.push("release_signature_not_verified".into());
     }
-    let (manifest_signature_verified, provenance_verified, trusted_key_id, trusted_key_fingerprint) =
-        match trust_result {
-            Ok(verified) => (
-                verified.manifest_signature_verified,
-                verified.provenance_verified,
-                Some(verified.trusted_key_id),
-                Some(verified.trusted_key_fingerprint),
-            ),
-            Err(_) => (false, false, None, None),
-        };
+    let (
+        manifest_signature_verified,
+        provenance_verified,
+        deploy_proof_verified,
+        trusted_key_id,
+        trusted_key_fingerprint,
+    ) = match trust_result {
+        Ok(verified) => (
+            verified.manifest_signature_verified,
+            verified.provenance_verified,
+            verified.deploy_proof_verified,
+            Some(verified.trusted_key_id),
+            Some(verified.trusted_key_fingerprint),
+        ),
+        Err(_) => (false, false, false, None, None),
+    };
     Some(LatestVersion {
         version: normalize_version(&tag),
         tag,
@@ -1906,6 +1914,7 @@ fn build_latest_from_release(
             manifest_resolved: manifest_signature_verified,
             manifest_signature_verified,
             provenance_verified,
+            deploy_proof_verified,
             trusted_key_id,
             trusted_key_fingerprint,
             key_revoked,

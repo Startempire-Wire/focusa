@@ -14,6 +14,7 @@
       "manifest_resolved": true,
       "manifest_signature_verified": true,
       "provenance_verified": true,
+      "deploy_proof_verified": true,
       "trusted_key_id": "focusa-release-2026-07-15-82418ad7e4d2",
       "trusted_key_fingerprint": "82418ad7e4d21dd1e70482d070b6014b998977e2b6c0f8bdc1fa716c96b912fc",
       "key_revoked": false,
