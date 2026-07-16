@@ -1,0 +1,24 @@
+schema=focusa.spec128.cross_part_version_parity_proof.v1
+status=partial_blocked
+work_item=focusa-w26jj.9.5.3
+tag=v0.9.103-dev
+commit=ee973cce
+ci_run=https://github.com/Startempire-Wire/focusa/actions/runs/29480478872
+release_run=https://github.com/Startempire-Wire/focusa/actions/runs/29480800476
+deploy_run=https://github.com/Startempire-Wire/focusa/actions/runs/29481815144
+
+verified:
+- CI: success, including strict spec gates, Rust, menubar checks, release automation
+- release/deploy: success; live daemon v0.9.103-dev
+- released CLI: focusa 0.9.103-dev sha256=02a16f8d6d1585eef7bf98dc5086f02208d23031e01099a0fd514f7d680b4b39
+- released daemon: focusa-daemon 0.9.103-dev sha256=dc452caa08234a9b345b6f5b5dc64bd8de9d0e4f7cf2ed96a1385d913c09130a
+- released TUI: focusa-tui 0.9.103-dev sha256=216b2cbaee48a6d3747181e4c620810667dae300bce5e93ae9f6afdcf6ce0c73
+- Pi extension archive package version: 0.9.103-dev
+- menubar arm64/x64 app bundle versions: 0.9.103-dev
+- update inventory discovers active Pi extension from Pi settings and reports it current
+- absent menubar on Linux is unknown/not-installed, never falsely stale
+- local installed inventory correctly detects daemon/Pi current and CLI/TUI stale
+
+blockers:
+- GitHub Apple Developer ID certificate secrets are absent; menubar bundles are ad-hoc/preview and fail the customer-signing eligibility step by design.
+- This host's /usr/local/bin focusa and focusa-tui remain v0.9.97-dev; changing them is an explicit binary mutation deferred by the active Workpoint boundary.
