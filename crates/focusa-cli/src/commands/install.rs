@@ -2489,6 +2489,23 @@ async fn stream_asset_to_staged(
     Ok(())
 }
 
+fn tar_command() -> std::process::Command {
+    if cfg!(windows) {
+        return std::process::Command::new("tar");
+    }
+    let binary = ["/usr/bin/tar", "/bin/tar"]
+        .into_iter()
+        .find(|path| std::path::Path::new(path).is_file())
+        .unwrap_or("tar");
+    let inherited = std::env::var("PATH").unwrap_or_default();
+    let mut command = std::process::Command::new(binary);
+    command.env(
+        "PATH",
+        format!("/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{inherited}"),
+    );
+    command
+}
+
 fn integrate_pi_extension(
     asset: &InstalledAsset,
     install_root: &std::path::Path,
@@ -2496,7 +2513,7 @@ fn integrate_pi_extension(
     npm_binary: Option<&std::path::Path>,
 ) -> Result<String> {
     let archive = std::path::Path::new(&asset.install_path);
-    let listing = std::process::Command::new("tar")
+    let listing = tar_command()
         .args(["-tzf"])
         .arg(archive)
         .output()
@@ -2520,7 +2537,7 @@ fn integrate_pi_extension(
     let cleanup = || {
         let _ = std::fs::remove_dir_all(&stage_root);
     };
-    let extracted = std::process::Command::new("tar")
+    let extracted = tar_command()
         .args(["-xzf"])
         .arg(archive)
         .arg("-C")
@@ -2579,7 +2596,7 @@ fn install_agent_context_archive(
     install_root: &std::path::Path,
 ) -> Result<std::path::PathBuf> {
     let archive = std::path::Path::new(&asset.install_path);
-    let listing = std::process::Command::new("tar")
+    let listing = tar_command()
         .args(["-tzf"])
         .arg(archive)
         .output()
@@ -2609,7 +2626,7 @@ fn install_agent_context_archive(
 
     let stage_parent = install_root.join(format!(".agent-context-stage-{}", uuid::Uuid::now_v7()));
     std::fs::create_dir_all(&stage_parent)?;
-    let extraction = std::process::Command::new("tar")
+    let extraction = tar_command()
         .args(["-xzf"])
         .arg(archive)
         .arg("-C")
@@ -3554,15 +3571,6 @@ mod install_e6_failure_matrix_tests;
 mod tests {
     use super::*;
 
-    fn test_tar_command() -> std::process::Command {
-        for path in ["/usr/bin/tar", "/bin/tar"] {
-            if std::path::Path::new(path).is_file() {
-                return std::process::Command::new(path);
-            }
-        }
-        std::process::Command::new("tar")
-    }
-
     #[test]
     fn target_auto_resolves_to_platform() {
         let t = resolve_target(InstallTarget::Auto).expect("auto resolve");
@@ -3706,7 +3714,7 @@ mod tests {
         }
         let archive = fixture.join("focusa-pi-extension.tar.gz");
         assert!(
-            test_tar_command()
+            tar_command()
                 .args(["-czf"])
                 .arg(&archive)
                 .args(["-C"])
@@ -3759,7 +3767,7 @@ mod tests {
         )
         .unwrap();
         let archive = fixture.join("focusa-agent-context-vtest.tar.gz");
-        let status = test_tar_command()
+        let status = tar_command()
             .args(["-czf"])
             .arg(&archive)
             .arg("-C")
@@ -3795,7 +3803,7 @@ mod tests {
         std::fs::create_dir_all(&package).unwrap();
         std::fs::write(package.join("AGENTS.md"), "# Focusa agents\n").unwrap();
         let archive = fixture.join("focusa-agent-context-vtest.tar.gz");
-        let status = test_tar_command()
+        let status = tar_command()
             .args(["-czf"])
             .arg(&archive)
             .arg("-C")

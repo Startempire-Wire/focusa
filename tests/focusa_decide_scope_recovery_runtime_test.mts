@@ -1,8 +1,10 @@
 import {
-  S,
   adoptWorkpointScopeForFrameRecovery,
   getActiveWorkpointPacket,
+  getAttachmentRuntime,
+  makeAttachmentKey,
   resolveFocusWriteProjectRoot,
+  runWithAttachmentRuntime,
   setActiveWorkpointPacket,
 } from "../apps/pi-extension/src/state.ts";
 import { mkdirSync, mkdtempSync, rmSync } from "fs";
@@ -21,6 +23,13 @@ mkdirSync(join(projectA, ".beads"), { recursive: true });
 mkdirSync(join(projectB, ".git"), { recursive: true });
 mkdirSync(join(projectB, ".beads"), { recursive: true });
 
+const attachmentKey = makeAttachmentKey({
+  projectRoot: projectA,
+  continuityId: "continuity-scope-test",
+  sessionId: "pi-session-scope-test",
+});
+
+runWithAttachmentRuntime(attachmentKey, () => {
 try {
   const recovered = resolveFocusWriteProjectRoot("/root", projectA);
   assert(recovered === projectA, `safe cached scope not preferred over /root: ${recovered}`);
@@ -28,12 +37,16 @@ try {
   const liveWins = resolveFocusWriteProjectRoot(projectB, projectA);
   assert(liveWins === projectB, `verified live project did not win: ${liveWins}`);
 
-  const stillUnsafe = resolveFocusWriteProjectRoot("/root", "/tmp");
-  assert(stillUnsafe === "/root", `unsafe fallback was unexpectedly promoted: ${stillUnsafe}`);
+  const recoveredFromAttachment = resolveFocusWriteProjectRoot("/root", "/tmp");
+  assert(
+    recoveredFromAttachment === projectA,
+    `safe attachment scope did not replace unsafe fallbacks: ${recoveredFromAttachment}`
+  );
 
-  S.sessionFrameKey = "pi-session-scope-test";
-  S.continuityId = "continuity-scope-test";
-  S.sessionCwd = "/root";
+  const runtime = getAttachmentRuntime();
+  runtime.sessionFrameKey = "pi-session-scope-test";
+  runtime.continuityId = "continuity-scope-test";
+  runtime.sessionCwd = "/root";
   setActiveWorkpointPacket(null);
   const packet = {
     status: "active",
@@ -65,3 +78,4 @@ try {
   setActiveWorkpointPacket(null);
   rmSync(root, { recursive: true, force: true });
 }
+});
