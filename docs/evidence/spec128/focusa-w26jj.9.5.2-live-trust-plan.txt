@@ -1,0 +1,47 @@
+{
+  "schema": "focusa.update_plan.v1",
+  "status": "planned_read_only",
+  "latest": {
+    "tag": "v0.9.99-dev",
+    "eligibility_status": "eligible_signed_manifest",
+    "target_triple": "x86_64-unknown-linux-musl",
+    "trust": {
+      "release_resolved": true,
+      "complete_asset_set": true,
+      "sha256sums_present": true,
+      "checksums_resolved": true,
+      "signature_verified": true,
+      "manifest_resolved": true,
+      "manifest_signature_verified": true,
+      "provenance_verified": true,
+      "trusted_key_id": "focusa-release-2026-07-15-82418ad7e4d2",
+      "trusted_key_fingerprint": "82418ad7e4d21dd1e70482d070b6014b998977e2b6c0f8bdc1fa716c96b912fc",
+      "key_revoked": false,
+      "ci_proof_required": true,
+      "signature_required": true,
+      "blockers": []
+    },
+    "assets": [
+      {
+        "part": "cli",
+        "name": "focusa-v0.9.99-dev-x86_64-unknown-linux-musl",
+        "download_url": "https://github.com/Startempire-Wire/focusa/releases/download/v0.9.99-dev/focusa-v0.9.99-dev-x86_64-unknown-linux-musl",
+        "sha256": "161f2816c4850664307647cad31131e57cfa870326331143359918908a154cbb"
+      },
+      {
+        "part": "daemon",
+        "name": "focusa-daemon-v0.9.99-dev-x86_64-unknown-linux-musl",
+        "download_url": "https://github.com/Startempire-Wire/focusa/releases/download/v0.9.99-dev/focusa-daemon-v0.9.99-dev-x86_64-unknown-linux-musl",
+        "sha256": "8b7c20cbe8cf79673d80d4d2ae479382e0d133b0fe97ac83fc1b154698cfa3d5"
+      },
+      {
+        "part": "tui",
+        "name": "focusa-tui-v0.9.99-dev-x86_64-unknown-linux-musl",
+        "download_url": "https://github.com/Startempire-Wire/focusa/releases/download/v0.9.99-dev/focusa-tui-v0.9.99-dev-x86_64-unknown-linux-musl",
+        "sha256": "93207427e7073464ce48a1173ee7cc3f8048c99563b66dd020bb347029e70cf4"
+      }
+    ]
+  },
+  "apply_allowed": true,
+  "apply_blocked_until": []
+}
