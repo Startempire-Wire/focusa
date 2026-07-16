@@ -3554,6 +3554,15 @@ mod install_e6_failure_matrix_tests;
 mod tests {
     use super::*;
 
+    fn test_tar_command() -> std::process::Command {
+        for path in ["/usr/bin/tar", "/bin/tar"] {
+            if std::path::Path::new(path).is_file() {
+                return std::process::Command::new(path);
+            }
+        }
+        std::process::Command::new("tar")
+    }
+
     #[test]
     fn target_auto_resolves_to_platform() {
         let t = resolve_target(InstallTarget::Auto).expect("auto resolve");
@@ -3697,7 +3706,7 @@ mod tests {
         }
         let archive = fixture.join("focusa-pi-extension.tar.gz");
         assert!(
-            std::process::Command::new("tar")
+            test_tar_command()
                 .args(["-czf"])
                 .arg(&archive)
                 .args(["-C"])
@@ -3750,7 +3759,7 @@ mod tests {
         )
         .unwrap();
         let archive = fixture.join("focusa-agent-context-vtest.tar.gz");
-        let status = std::process::Command::new("tar")
+        let status = test_tar_command()
             .args(["-czf"])
             .arg(&archive)
             .arg("-C")
@@ -3786,7 +3795,7 @@ mod tests {
         std::fs::create_dir_all(&package).unwrap();
         std::fs::write(package.join("AGENTS.md"), "# Focusa agents\n").unwrap();
         let archive = fixture.join("focusa-agent-context-vtest.tar.gz");
-        let status = std::process::Command::new("tar")
+        let status = test_tar_command()
             .args(["-czf"])
             .arg(&archive)
             .arg("-C")

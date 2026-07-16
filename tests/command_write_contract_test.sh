@@ -19,7 +19,12 @@ log_pass() { echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
 
-http_json() { curl -sS "$@"; }
+http_json() {
+  curl -sS \
+    -H "x-scope-project-root: ${ROOT_DIR}" \
+    -H "x-scope-continuity-id: command-contract" \
+    "$@"
+}
 
 wait_for_jq() {
   local url="$1"
