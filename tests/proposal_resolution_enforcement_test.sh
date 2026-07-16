@@ -18,6 +18,13 @@ log_pass() { echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
 
+curl() {
+  command curl \
+    -H "x-scope-project-root: ${ROOT_DIR}" \
+    -H "x-scope-continuity-id: proposal-resolution-test" \
+    "$@"
+}
+
 http_json() {
   curl -sS "$@"
 }
@@ -35,6 +42,11 @@ wait_for_jq() {
   done
   return 1
 }
+
+curl -sS -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/json" \
+  -d '{"reason":"proposal-resolution-preflight-reset"}' >/dev/null || true
+curl -sS -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" \
+  -d "{\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"proposal-resolution-test\",\"adapter_id\":\"test\"}" >/dev/null
 
 for _ in $(seq 1 20); do
   pending_focus=$(curl -sS "${BASE_URL}/v1/proposals" | jq '[(.proposals // [])[] | select(.kind == "focus_change" and .status == "pending")] | length')
@@ -54,7 +66,7 @@ source="spec-50-test-${name}"
 log_info "Submit high-score focus_change proposal"
 submit=$(curl -sS -X POST "${BASE_URL}/v1/proposals" \
   -H "Content-Type: application/json" \
-  -d "{\"kind\":\"focus_change\",\"source\":\"${source}\",\"score\":0.999,\"deadline_ms\":60000,\"payload\":{\"title\":\"${name}\",\"goal\":\"${name}\",\"beads_issue_id\":\"spec50-enforcement\",\"tags\":[\"spec50\"]}}")
+  -d "{\"kind\":\"focus_change\",\"source\":\"${source}\",\"score\":0.999,\"deadline_ms\":60000,\"payload\":{\"title\":\"${name}\",\"goal\":\"${name}\",\"beads_issue_id\":\"spec50-enforcement\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"proposal-resolution-test\",\"tags\":[\"spec50\"]}}")
 if echo "$submit" | jq -e '.status == "accepted"' >/dev/null 2>&1; then
   log_pass "Proposal submission accepted"
 else
