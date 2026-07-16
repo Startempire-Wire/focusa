@@ -17,12 +17,12 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $root = Join-Path $env:RUNNER_TEMP 'focusa-windows-ota'
-          $home = Join-Path $root 'home'
+          $testHome = Join-Path $root 'home'
           $data = Join-Path $root 'data'
-          New-Item -ItemType Directory -Force -Path $home, $data | Out-Null
-          $env:HOME = $home
-          $env:USERPROFILE = $home
-          $env:LOCALAPPDATA = Join-Path $home 'AppData\Local'
+          New-Item -ItemType Directory -Force -Path $testHome, $data | Out-Null
+          $env:HOME = $testHome
+          $env:USERPROFILE = $testHome
+          $env:LOCALAPPDATA = Join-Path $testHome 'AppData\Local'
           $env:FOCUSA_HOME = $data
           $env:FOCUSA_BIND = '127.0.0.1:18791'
           $env:FOCUSA_DAEMON_HEALTH_URL = 'http://127.0.0.1:18791/v1/health'
