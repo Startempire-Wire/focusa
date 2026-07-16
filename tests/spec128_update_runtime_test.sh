@@ -39,12 +39,12 @@ jq -e '.schema=="focusa.update_policy_status.v1" and .policy.mode!="automatic" a
 plan=""
 for attempt in 1 2 3; do
   plan="$(FOCUSA_FOCUSA_PATH="$TMP/bin/focusa" "$BIN" --json update plan)"
-  if jq -e '.schema=="focusa.update_plan.v1" and .apply_allowed==false and .latest.trust.release_resolved==true and .latest.trust.checksums_resolved==false and .latest.trust.signature_verified==false and (.apply_blocked_until | index("release_asset_checksums_not_resolved"))' <<<"$plan" >/dev/null; then
+  if jq -e '.schema=="focusa.update_plan.v1" and .latest.trust.release_resolved==true and .latest.trust.checksums_resolved==true and .latest.trust.signature_verified==true and .latest.trust.manifest_signature_verified==true and .latest.trust.provenance_verified==true and .latest.trust.key_revoked==false and (.latest.trust.trusted_key_id|type=="string")' <<<"$plan" >/dev/null; then
     break
   fi
   [[ "$attempt" == 3 ]] || sleep 2
 done
-jq -e '.schema=="focusa.update_plan.v1" and .apply_allowed==false and .latest.trust.release_resolved==true and .latest.trust.checksums_resolved==false and .latest.trust.signature_verified==false and (.apply_blocked_until | index("release_asset_checksums_not_resolved")) and (.safety.staging.verify_before_promote | index("asset_sha256")) and (.safety.staging.verify_before_promote | index("release_manifest_signature")) and (.safety.no_half_written_executable_rule | test("never write directly"))' <<<"$plan" >/dev/null || fail "plan missing fail-closed release checksum/signature/no-half-written proof after bounded retries"
+jq -e '.schema=="focusa.update_plan.v1" and .latest.trust.release_resolved==true and .latest.trust.checksums_resolved==true and .latest.trust.signature_verified==true and .latest.trust.manifest_resolved==true and .latest.trust.manifest_signature_verified==true and .latest.trust.provenance_verified==true and .latest.trust.key_revoked==false and (.latest.trust.trusted_key_fingerprint|test("^[0-9a-f]{64}$")) and (.latest.trust.blockers|length)==0 and (.safety.staging.verify_before_promote | index("asset_sha256")) and (.safety.staging.verify_before_promote | index("release_manifest_signature")) and (.safety.no_half_written_executable_rule | test("never write directly"))' <<<"$plan" >/dev/null || fail "plan missing live signed-manifest trust/provenance/no-half-written proof after bounded retries"
 
 apply_same="$(FOCUSA_FOCUSA_PATH="$TMP/bin/focusa" "$BIN" --json update apply --latest-version 0.9.80-dev)"
 jq -e '.schema=="focusa.update_apply.v1" and .status=="blocked_read_only" and .apply_executed==false and .daemon_restart.allowed==false and .data_safety.overwrite_data==false and .data_safety.overwrite_env==false and .data_safety.overwrite_license==false' <<<"$apply_same" >/dev/null || fail "guarded apply failed no-mutation/data-safety assertions"

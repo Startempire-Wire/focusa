@@ -8,7 +8,9 @@
 use anyhow::Context;
 use clap::{Args, Subcommand};
 use focusa_core::license::load_license_status;
-use focusa_core::update::{ReleaseChannel, UPDATE_POLICY_SCHEMA_V1, UpdateMode, UpdatePolicy};
+use focusa_core::update::{
+    ReleaseChannel, TrustedReleaseKey, UPDATE_POLICY_SCHEMA_V1, UpdateMode, UpdatePolicy,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sha2::{Digest, Sha256};
@@ -18,6 +20,9 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tokio::process::Command;
 use tokio::time::timeout;
+
+#[path = "update_trust.rs"]
+mod update_trust;
 
 #[derive(Subcommand, Debug)]
 pub enum UpdateCmd {
@@ -486,6 +491,12 @@ struct ReleaseTrustSummary {
     sha256sums_present: bool,
     checksums_resolved: bool,
     signature_verified: bool,
+    manifest_resolved: bool,
+    manifest_signature_verified: bool,
+    provenance_verified: bool,
+    trusted_key_id: Option<String>,
+    trusted_key_fingerprint: Option<String>,
+    key_revoked: bool,
     ci_proof_required: bool,
     signature_required: bool,
     blockers: Vec<String>,
@@ -511,6 +522,12 @@ struct GithubRelease {
 struct GithubAsset {
     name: String,
     browser_download_url: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct TrustedReleaseKeySet {
+    schema: String,
+    keys: Vec<TrustedReleaseKey>,
 }
 
 #[derive(Debug, Serialize)]
@@ -1783,6 +1800,12 @@ fn placeholder_latest(version: String, source: &str) -> LatestVersion {
             sha256sums_present: false,
             checksums_resolved: false,
             signature_verified: false,
+            manifest_resolved: false,
+            manifest_signature_verified: false,
+            provenance_verified: false,
+            trusted_key_id: None,
+            trusted_key_fingerprint: None,
+            key_revoked: false,
             ci_proof_required: true,
             signature_required: true,
             blockers: vec!["live_release_not_resolved".into()],
@@ -1819,7 +1842,7 @@ fn build_latest_from_release(
     triple: String,
     release: GithubRelease,
 ) -> Option<LatestVersion> {
-    let tag = release.tag_name;
+    let tag = release.tag_name.clone();
     let mut assets = Vec::new();
     for (part, prefix) in [
         ("cli", "focusa"),
@@ -1835,56 +1858,33 @@ fn build_latest_from_release(
             sha256: None,
         });
     }
-    let checksum_asset = release
+    let sha256sums_present = release
         .assets
         .iter()
-        .find(|asset| asset.name == "SHA256SUMS" || asset.name == "SHA256SUMS.txt");
+        .any(|asset| asset.name == "SHA256SUMS.txt");
     let mut blockers = Vec::new();
-    let mut checksums_resolved = false;
-    let mut sha256sums_present = false;
-    let mut signature_verified = false;
-    if let Some(checksum_asset) = checksum_asset {
-        sha256sums_present = true;
-        match fetch_sha256sums_blocking(&checksum_asset.browser_download_url) {
-            Ok(sums) => {
-                for asset in &mut assets {
-                    asset.sha256 = lookup_sha256(&sums, &asset.name);
-                }
-                checksums_resolved = assets.iter().all(|asset| asset.sha256.is_some());
-                if !checksums_resolved {
-                    blockers.push("release_sha256sums_missing_required_asset".into());
-                }
-            }
-            Err(error) => blockers.push(format!("release_sha256sums_fetch_failed:{error}")),
-        }
-    } else {
-        blockers.push("release_sha256sums_asset_missing".into());
-    }
-    if let (Some(checksum_asset), Some(sig_asset), Some(pem_asset)) = (
-        checksum_asset,
-        release
-            .assets
-            .iter()
-            .find(|asset| asset.name == "SHA256SUMS.txt.sig"),
-        release
-            .assets
-            .iter()
-            .find(|asset| asset.name == "SHA256SUMS.txt.pem"),
-    ) {
-        match verify_sha256sums_signature(
-            &checksum_asset.browser_download_url,
-            &sig_asset.browser_download_url,
-            &pem_asset.browser_download_url,
-        ) {
-            Ok(()) => signature_verified = true,
-            Err(error) => blockers.push(format!("release_sha256sums_signature_invalid:{error}")),
-        }
-    } else {
-        blockers.push("release_sha256sums_signature_assets_missing".into());
-    }
-    if !signature_verified {
+    let trust_result = update_trust::verify_release_metadata(&release, &mut assets);
+    let checksums_resolved =
+        trust_result.is_ok() && assets.iter().all(|asset| asset.sha256.is_some());
+    let signature_verified = trust_result.is_ok();
+    let key_revoked = trust_result
+        .as_ref()
+        .err()
+        .is_some_and(|error| error.to_string().contains("revoked"));
+    if let Err(error) = &trust_result {
+        blockers.push(format!("release_trust_verification_failed:{error}"));
         blockers.push("release_signature_not_verified".into());
     }
+    let (manifest_signature_verified, provenance_verified, trusted_key_id, trusted_key_fingerprint) =
+        match trust_result {
+            Ok(verified) => (
+                verified.manifest_signature_verified,
+                verified.provenance_verified,
+                Some(verified.trusted_key_id),
+                Some(verified.trusted_key_fingerprint),
+            ),
+            Err(_) => (false, false, None, None),
+        };
     Some(LatestVersion {
         version: normalize_version(&tag),
         tag,
@@ -1892,10 +1892,10 @@ fn build_latest_from_release(
         github_repo: repo,
         target_triple: triple,
         release_manifest_required: true,
-        eligibility_status: if checksums_resolved {
-            "eligible_with_sha256sums"
+        eligibility_status: if checksums_resolved && signature_verified {
+            "eligible_signed_manifest"
         } else {
-            "blocked_missing_checksums"
+            "blocked_untrusted_release"
         },
         trust: ReleaseTrustSummary {
             release_resolved: true,
@@ -1903,6 +1903,12 @@ fn build_latest_from_release(
             sha256sums_present,
             checksums_resolved,
             signature_verified,
+            manifest_resolved: manifest_signature_verified,
+            manifest_signature_verified,
+            provenance_verified,
+            trusted_key_id,
+            trusted_key_fingerprint,
+            key_revoked,
             ci_proof_required: true,
             signature_required: true,
             blockers,
@@ -1920,6 +1926,7 @@ fn release_tag_matches_channel(tag: &str, channel: &str) -> bool {
     }
 }
 
+#[allow(dead_code)]
 fn verify_sha256sums_signature(
     checksums_url: &str,
     signature_url: &str,
@@ -2000,6 +2007,7 @@ fn verify_sha256sums_signature(
     result
 }
 
+#[allow(dead_code)]
 fn fetch_sha256sums_blocking(url: &str) -> anyhow::Result<String> {
     let output = std::process::Command::new("curl")
         .args(["-fsSL", "--max-time", "20", url])
@@ -2010,6 +2018,7 @@ fn fetch_sha256sums_blocking(url: &str) -> anyhow::Result<String> {
     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
 }
 
+#[allow(dead_code)]
 fn lookup_sha256(sums: &str, asset_name: &str) -> Option<String> {
     sums.lines().find_map(|line| {
         let mut parts = line.split_whitespace();
