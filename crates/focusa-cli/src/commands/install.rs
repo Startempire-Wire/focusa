@@ -1851,7 +1851,7 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         cleanup_staged_downloads(&install_root);
         return cancellation_result(&install_root, &stash_path, stashed, &ui);
     }
-    let result = match execute_real_install(
+    let mut result = match execute_real_install(
         &args,
         target,
         channel,
@@ -1962,6 +1962,20 @@ pub async fn run(args: InstallArgs) -> Result<()> {
             return Err(error).context(
                 "new installation and customer data are intact, but prior stash cleanup failed; remove the reported stash after verification",
             );
+        }
+    }
+
+    // launchd can retain the old executable inode while the prior install is
+    // still present as `.focusa.stash`. Restart once more after commit/cleanup
+    // so the running daemon necessarily resolves the promoted symlink target.
+    if target == InstallTarget::Darwin && !args.no_service && cfg!(target_os = "macos") {
+        match crate::commands::service::restart_launchd_after_commit() {
+            Ok(()) => result.service_status = "registered and restarted after commit".into(),
+            Err(error) => {
+                result.service_status = format!(
+                    "registered; post-commit restart warning: {error}; run `focusa restart`"
+                );
+            }
         }
     }
 

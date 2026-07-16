@@ -169,6 +169,29 @@ fn run_systemd_user(
     }
 }
 
+pub(crate) fn restart_launchd_after_commit() -> Result<()> {
+    let uid = std::process::Command::new("id")
+        .arg("-u")
+        .output()
+        .context("resolve uid for launchctl kickstart")?;
+    if !uid.status.success() {
+        return Err(anyhow!("id -u failed while restarting LaunchAgent"));
+    }
+    let uid = String::from_utf8_lossy(&uid.stdout).trim().to_string();
+    let service_target = format!("gui/{uid}/{LAUNCHD_LABEL}");
+    let restart = std::process::Command::new("launchctl")
+        .args(["kickstart", "-k", &service_target])
+        .status()
+        .context("launchctl kickstart -k not runnable")?;
+    if !restart.success() {
+        return Err(anyhow!(
+            "launchctl kickstart -k failed: exit={}",
+            restart.code().unwrap_or(-1)
+        ));
+    }
+    Ok(())
+}
+
 fn run_launchd_user(
     plist_path: &Path,
     dry_run: bool,
@@ -197,29 +220,9 @@ fn run_launchd_user(
             // `load -w` may leave an already-running process mapped to the
             // pre-upgrade inode after the install root was stashed. Force a
             // launchd restart so health reflects the newly promoted binary.
-            let uid = std::process::Command::new("id")
-                .arg("-u")
-                .output()
-                .context("resolve uid for launchctl kickstart")?;
-            if !uid.status.success() {
-                return Err(anyhow!("id -u failed while restarting LaunchAgent"));
-            }
-            let uid = String::from_utf8_lossy(&uid.stdout).trim().to_string();
-            let service_target = format!("gui/{uid}/{LAUNCHD_LABEL}");
-            let restart = std::process::Command::new("launchctl")
-                .args(["kickstart", "-k", &service_target])
-                .status();
-            match restart {
-                Ok(restart_status) if restart_status.success() => {
-                    notes.push("LaunchAgent restarted on promoted binary".to_string());
-                    Ok((true, notes))
-                }
-                Ok(restart_status) => Err(anyhow!(
-                    "launchctl kickstart -k failed: exit={}",
-                    restart_status.code().unwrap_or(-1)
-                )),
-                Err(error) => Err(anyhow!("launchctl kickstart -k not runnable: {error}")),
-            }
+            restart_launchd_after_commit()?;
+            notes.push("LaunchAgent restarted on promoted binary".to_string());
+            Ok((true, notes))
         }
         Ok(s) => Err(anyhow!(
             "launchctl load -w failed: exit={}",
