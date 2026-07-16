@@ -18,6 +18,12 @@ NC='\033[0m'
 log_pass() { echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
+curl() {
+  command curl \
+    -H "x-scope-project-root: ${ROOT_DIR}" \
+    -H "x-scope-continuity-id: comparative-eval" \
+    "$@"
+}
 http_json() { curl -sS "$@"; }
 wait_for_jq() {
   local url="$1"
@@ -44,6 +50,8 @@ echo "Base URL: ${BASE_URL}"
 echo ""
 
 log_info "Seed noisy project state + active mission"
+http_json -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/json" \
+  -d '{"reason":"comparative-eval-preflight-reset"}' >/dev/null || true
 http_json -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" -d "{\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"comparative-eval\"}" >/dev/null
 for i in $(seq 1 6); do
   http_json -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" \
