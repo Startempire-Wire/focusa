@@ -10,6 +10,22 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 log_pass(){ echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
+curl() {
+  command curl \
+    -H "x-scope-project-root: ${ROOT_DIR}" \
+    -H "x-scope-continuity-id: work-loop-route-contract-test" \
+    "$@"
+}
+
+CHECKPOINT=$(curl -sS -X POST "${BASE_URL}/v1/workpoint/checkpoint" -H 'Content-Type: application/json' \
+  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-route-contract-test\",\"mission\":\"verify work-loop route contracts\",\"current_action\":\"route_contract\",\"next_slice\":\"verify typed route envelopes\",\"canonical\":true}")
+WORKPOINT_ID=$(echo "$CHECKPOINT" | jq -r '.workpoint_id // empty')
+for _ in $(seq 1 40); do
+  RESUME=$(curl -sS -X POST "${BASE_URL}/v1/workpoint/resume" -H 'Content-Type: application/json' \
+    -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-route-contract-test\",\"mode\":\"compact_prompt\"}")
+  echo "$RESUME" | jq -e --arg id "$WORKPOINT_ID" '.canonical == true and .workpoint_id == $id' >/dev/null 2>&1 && break
+  sleep 0.1
+done
 
 STATUS_JSON="$(curl -sS "${BASE_URL}/v1/work-loop/status")"
 if echo "$STATUS_JSON" | jq -e 'has("status") and has("run") and has("pause_flags")' >/dev/null 2>&1; then
