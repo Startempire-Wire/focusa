@@ -20,7 +20,7 @@ on:
         type: boolean
 
 permissions:
-  contents: read
+  contents: write
   actions: read
 
 concurrency:
@@ -165,6 +165,8 @@ jobs:
           gh release download "${{ steps.cfg.outputs.tag }}" \
             --repo "$GITHUB_REPOSITORY" \
             --pattern "${{ steps.cfg.outputs.asset_name }}" \
+            --pattern "release-manifest.json" \
+            --pattern "release-manifest.json.sig" \
             --dir /tmp/focusa-release \
             --clobber
           chmod +x "/tmp/focusa-release/${{ steps.cfg.outputs.asset_name }}"
@@ -277,6 +279,36 @@ jobs:
               FOCUSA_DEPLOY_AUDIT_LOG='${{ steps.cfg.outputs.audit_log }}' \
               /bin/bash "$GITHUB_WORKSPACE/scripts/deploy-smoke-check.sh"
           fi
+
+      - name: Publish signed deploy-success proof
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FOCUSA_RELEASE_ED25519_PRIVATE_KEY: ${{ secrets.FOCUSA_RELEASE_ED25519_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${FOCUSA_RELEASE_ED25519_PRIVATE_KEY:-}"
+          python3 -c 'import cryptography; print(cryptography.__version__)'
+          umask 077
+          KEY_FILE="${RUNNER_TEMP}/focusa-release-ed25519.pem"
+          trap 'shred -u "$KEY_FILE" 2>/dev/null || rm -f "$KEY_FILE"' EXIT
+          printf '%s\n' "$FOCUSA_RELEASE_ED25519_PRIVATE_KEY" > "$KEY_FILE"
+          python3 scripts/release-deploy-proof.py \
+            --output /tmp/focusa-release/deploy-success.json \
+            --tag '${{ steps.cfg.outputs.tag }}' \
+            --commit '${{ steps.cfg.outputs.tag_sha }}' \
+            --run-url '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}' \
+            --asset '/tmp/focusa-release/${{ steps.cfg.outputs.asset_name }}' \
+            --manifest /tmp/focusa-release/release-manifest.json \
+            --manifest-signature /tmp/focusa-release/release-manifest.json.sig \
+            --version '${{ steps.cfg.outputs.version }}' \
+            --private-key "$KEY_FILE"
+          gh release upload '${{ steps.cfg.outputs.tag }}' \
+            /tmp/focusa-release/deploy-success.json \
+            /tmp/focusa-release/deploy-success.json.sig \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
 
       - name: Cleanup release artifact temp dir
         if: ${{ !inputs.dry_run }}

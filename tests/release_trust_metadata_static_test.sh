@@ -3,11 +3,13 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKFLOW="$ROOT/.github/workflows/release.yml"
+DEPLOY_WORKFLOW="$ROOT/.github/workflows/deploy-live-daemon.yml"
 SCRIPT="$ROOT/scripts/release-trust-metadata.py"
+DEPLOY_PROOF_SCRIPT="$ROOT/scripts/release-deploy-proof.py"
 KEYS="$ROOT/config/focusa-trusted-release-keys.json"
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
-for file in "$WORKFLOW" "$SCRIPT" "$KEYS"; do
+for file in "$WORKFLOW" "$DEPLOY_WORKFLOW" "$SCRIPT" "$DEPLOY_PROOF_SCRIPT" "$KEYS"; do
   [[ -s "$file" ]] || fail "missing release trust surface: $file"
 done
 
@@ -34,5 +36,13 @@ grep -q 'focusa.release_provenance.v1' "$SCRIPT" \
   || fail 'provenance schema missing from generator'
 grep -q 'private signing key does not match trusted public key metadata' "$SCRIPT" \
   || fail 'private/public key binding check missing'
+grep -q 'scripts/release-deploy-proof.py' "$DEPLOY_WORKFLOW" \
+  || fail 'deploy workflow does not generate signed deploy-success evidence'
+grep -q 'deploy-success.json.sig' "$DEPLOY_WORKFLOW" \
+  || fail 'deploy workflow does not upload detached deploy-success signature'
+grep -q 'focusa.deploy_success.v1' "$DEPLOY_PROOF_SCRIPT" \
+  || fail 'deploy-success proof schema missing'
+grep -q 'release manifest detached signature is invalid' "$DEPLOY_PROOF_SCRIPT" \
+  || fail 'deploy proof does not validate signed release manifest'
 
-echo 'PASS: release workflow publishes per-asset signatures, checksums, manifest, provenance, and trusted key metadata'
+echo 'PASS: release/deploy workflows publish signatures, checksums, manifest, provenance, trust metadata, and signed deploy proof'
