@@ -22,6 +22,12 @@ pub struct InstallServiceArgs {
     /// Print machine-readable JSON.
     #[arg(long)]
     pub json: bool,
+    /// Installer-internal promoted daemon path; CLI callers leave this unset.
+    #[arg(skip)]
+    pub daemon_path: Option<PathBuf>,
+    /// Installer-internal promoted CLI path; CLI callers leave this unset.
+    #[arg(skip)]
+    pub cli_path: Option<PathBuf>,
 }
 
 #[derive(Debug, Serialize)]
@@ -304,8 +310,21 @@ pub fn uninstall_service(manager: ServiceManager, dry_run: bool) -> Result<(bool
 
 pub async fn run(args: InstallServiceArgs, dry_run: bool) -> Result<()> {
     let manager = detect_manager();
-    let binary = find_daemon_binary()?;
-    let self_bin = find_self_binary()?;
+    let binary = match args.daemon_path.as_ref() {
+        Some(path) if path.is_file() => path.clone(),
+        Some(path) => {
+            return Err(anyhow!(
+                "promoted daemon binary missing: {}",
+                path.display()
+            ));
+        }
+        None => find_daemon_binary()?,
+    };
+    let self_bin = match args.cli_path.as_ref() {
+        Some(path) if path.is_file() => path.clone(),
+        Some(path) => return Err(anyhow!("promoted CLI binary missing: {}", path.display())),
+        None => find_self_binary()?,
+    };
     let mut notes = Vec::new();
     let unit_path: Option<String>;
 

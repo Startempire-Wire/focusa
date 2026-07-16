@@ -3455,39 +3455,39 @@ async fn delegate_service_render(
     bin_dir: &std::path::Path,
     dry_run: bool,
 ) -> Result<ServiceRegistrationOutcome> {
-    // Delegate to crates/focusa-cli/src/commands/service.rs which already
-    // implements render_systemd_unit / render_launchd_plist for both
-    // platforms. The install orchestrator does not duplicate the
-    // rendering logic — per Spec 112 §15A.3.
-    let daemon_bin = bin_dir.join("focusa-daemon");
-    let home = std::env::var_os("HOME")
-        .map(std::path::PathBuf::from)
-        .ok_or_else(|| anyhow!("HOME not set"))?;
-    let unit_path = match target {
-        InstallTarget::Linux | InstallTarget::Auto => {
-            home.join(".config/systemd/user/focusa-daemon.service")
-        }
-        InstallTarget::Darwin => {
-            home.join("Library/LaunchAgents/com.startempire.focusa-daemon.plist")
-        }
+    // Delegate rendering and activation to the canonical service module with
+    // explicit promoted paths; current_exe may still point into the prior
+    // transactional stash during an upgrade.
+    match target {
         InstallTarget::WindowsX64 | InstallTarget::WindowsArm64 => {
             return Ok(ServiceRegistrationOutcome::Warning(
                 "Windows service registration is unavailable in this installer build".into(),
             ));
         }
-    };
-    if let Some(parent) = unit_path.parent() {
-        std::fs::create_dir_all(parent).ok();
+        InstallTarget::Darwin if !cfg!(target_os = "macos") => {
+            return Ok(ServiceRegistrationOutcome::Warning(
+                "macOS service registration skipped on a non-macOS host".into(),
+            ));
+        }
+        InstallTarget::Linux | InstallTarget::Auto if cfg!(target_os = "macos") => {
+            return Ok(ServiceRegistrationOutcome::Warning(
+                "Linux service registration skipped on macOS".into(),
+            ));
+        }
+        _ => {}
     }
-    if !daemon_bin.exists() {
-        eprintln!(
-            "warning: {} not present yet; service unit will be rendered when binary lands",
-            daemon_bin.display()
-        );
-    }
-    let _ = dry_run;
+    crate::commands::service::run(
+        crate::commands::service::InstallServiceArgs {
+            no_enable: false,
+            json: false,
+            daemon_path: Some(bin_dir.join("focusa-daemon")),
+            cli_path: Some(bin_dir.join("focusa")),
+        },
+        dry_run,
+    )
+    .await?;
     Ok(ServiceRegistrationOutcome::Registered(
-        "Service registration completed".into(),
+        "Service registration completed and loaded".into(),
     ))
 }
 
