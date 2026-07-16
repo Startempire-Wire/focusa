@@ -27,10 +27,20 @@ jobs:
           $env:FOCUSA_BIND = '127.0.0.1:18791'
           $env:FOCUSA_DAEMON_HEALTH_URL = 'http://127.0.0.1:18791/v1/health'
 
+          # Parse and route the public PowerShell bootstrap without mutating the runner.
           & ./scripts/install-focusa.ps1 `
-            -Eval -Channel preview `
+            -DryRun -Eval -Channel preview `
             -ReleaseTag v0.9.116-dev `
             -ReleaseBaseUrl 'https://github.com/Startempire-Wire/focusa/releases/download/v0.9.116-dev'
+
+          # Build the exact candidate once on Windows, then use it to exercise the
+          # transactional installer and updater against prior signed releases.
+          cargo build -p focusa-cli --bin focusa
+          $candidate = Join-Path $PWD 'target\debug\focusa.exe'
+          $env:FOCUSA_RELEASE_TAG = 'v0.9.116-dev'
+          $env:FOCUSA_RELEASE_BASE_URL = 'https://github.com/Startempire-Wire/focusa/releases/download/v0.9.116-dev'
+          & $candidate install --target=windows-x64 --channel=preview --eval --no-service
+          if ($LASTEXITCODE -ne 0) { throw 'candidate clean install failed' }
 
           $bin = Join-Path $env:HOME '.focusa\bin'
           $cli = Join-Path $bin 'focusa.exe'
@@ -49,10 +59,12 @@ jobs:
           }
           if ($health.version -ne '0.9.116-dev') { throw 'initial daemon health mismatch' }
 
-          $scratch = Join-Path $root 'focusa-0.9.117.exe'
-          Invoke-WebRequest `
-            'https://github.com/Startempire-Wire/focusa/releases/download/v0.9.117-dev/focusa-v0.9.117-dev-x86_64-pc-windows-msvc.exe' `
-            -OutFile $scratch
+          $scratch = $candidate
+          $env:FOCUSA_RELEASE_TAG = 'v0.9.117-dev'
+          $env:FOCUSA_RELEASE_BASE_URL = 'https://github.com/Startempire-Wire/focusa/releases/download/v0.9.117-dev'
+          $env:FOCUSA_CLI_PATH = $cli
+          $env:FOCUSA_DAEMON_PATH = $daemon
+          $env:FOCUSA_TUI_PATH = $tui
 
           $plan = (& $scratch --json update plan --daemon-health-url 'http://127.0.0.1:18791/v1/health') | ConvertFrom-Json
           if ($plan.apply_blocked_until.Count -ne 0 -or -not $plan.latest.trust.deploy_proof_verified) { throw 'trusted plan blocked' }
@@ -63,7 +75,7 @@ jobs:
           $health = Invoke-RestMethod 'http://127.0.0.1:18791/v1/health'
           if ($health.version -ne '0.9.117-dev') { throw 'OTA apply health mismatch' }
 
-          & $cli --json update rollback --part all --dry-run=false --yes | Out-File (Join-Path $root 'rollback.log')
+          & $scratch --json update rollback --part all --dry-run=false --yes | Out-File (Join-Path $root 'rollback.log')
           Start-Sleep -Seconds 3
           if ((& $cli --version) -notmatch '0.9.116-dev') { throw 'rollback CLI mismatch' }
           if ((& $daemon --version) -notmatch '0.9.116-dev') { throw 'rollback daemon mismatch' }
