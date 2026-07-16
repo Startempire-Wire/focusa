@@ -57,7 +57,7 @@
       const scopedQuery = scopedParams.toString();
       const scopedSuffix = scopedQuery ? `&${scopedQuery}` : '';
       const scopedPathSuffix = scopedQuery ? `?${scopedQuery}` : '';
-      const [health, doctor, contracts, focusFrame, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, workLoopCheckpoints, memoryTelemetry, events, tokenBudget, cacheMetadata, predictionsRecent, predictionsStats, metacogStatus, metacogEvaluations, snapshotsRecent, lineageHead, releaseProof] = await Promise.all([
+      const [health, doctor, contracts, focusFrame, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, workLoopCheckpoints, memoryTelemetry, events, tokenBudget, cacheMetadata, predictionsRecent, predictionsStats, metacogStatus, metacogEvaluations, snapshotsRecent, lineageHead, releaseProof, updateNotifications] = await Promise.all([
         safe(() => fetchJson('/v1/health')),
         safe(() => fetchJson('/v1/doctor', 5000)),
         safe(() => fetchJson('/v1/ontology/tool-contracts')),
@@ -79,6 +79,7 @@
         safe(() => fetchJson('/v1/focus/snapshots/recent?limit=5')),
         safe(() => fetchJson('/v1/lineage/head')),
         safe(() => fetchJson('/v1/release/proof/status')),
+        safe(() => fetchJson('/v1/update/notifications')),
       ]);
       const workpointPacket = workpointResume?.resume_packet ?? workpointResume?.packet ?? null;
       const normalizedWorkpointResume = workpointPacket
@@ -130,6 +131,7 @@
           status: 'manual_proof_required',
           summary: 'Release-proof endpoint unavailable; run focusa release prove --tag <tag> before publish.',
         },
+        updateNotifications,
       });
     } catch (e: any) {
       const msg = e?.message || 'Failed to connect';
@@ -164,6 +166,11 @@
   <div class="header-left">
     <div class="status-dot" class:connected={focusStore.connected === 'connected'} class:error={focusStore.connected === 'error'}></div>
     <span class="header-title">Focusa</span>
+    {#if (runtimeStore.snapshot.updateNotifications?.stale_parts?.length ?? 0) > 0}
+      <span class="badge" title={runtimeStore.snapshot.updateNotifications?.message ?? 'Focusa update available'}>
+        Update {runtimeStore.snapshot.updateNotifications.stale_parts.length}
+      </span>
+    {/if}
   </div>
   {#if everConnected || focusStore.connected === 'connected'}
   <nav class="tabs" aria-label="Focusa peeks">

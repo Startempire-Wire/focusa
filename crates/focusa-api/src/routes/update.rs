@@ -720,7 +720,9 @@ fn build_notifications_envelope(inventory: Value) -> Value {
         "messages": [
             {"surface": "cli", "title": "Focusa update status", "body": body, "action": "focusa update plan"},
             {"surface": "api", "title": "Focusa update status", "body": body, "action": "POST /v1/update/plan"},
-            {"surface": "pi_doctor", "title": "Focusa update status", "body": body, "action": "focusa update status --json"}
+            {"surface": "pi_doctor", "title": "Focusa update status", "body": body, "action": "focusa update status --json"},
+            {"surface": "tui", "title": "Focusa update status", "body": body, "action": "open TUI footer update indicator"},
+            {"surface": "menubar", "title": "Focusa update status", "body": body, "action": "open menubar update badge"}
         ],
         "suppress_if": ["version_pinned", "version_skipped", "updates_paused", "offline_without_prior_success"]
     })
@@ -731,8 +733,8 @@ fn notification_routes_json() -> Value {
         "cli": true,
         "api": true,
         "pi_doctor": true,
-        "tui": "planned_when_tui_update_banner_available",
-        "menubar": "planned_when_menubar_update_badge_available"
+        "tui": "active_footer_update_indicator",
+        "menubar": "active_update_badge"
     })
 }
 

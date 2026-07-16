@@ -82,7 +82,14 @@ fn render_footer_keys(app: &App, frame: &mut ratatui::Frame, area: Rect) {
             .last_refresh_at
             .map(|t| format!(" · updated {}", t.format("%H:%M:%S")))
             .unwrap_or_default();
-        format!("n=deck  /=recall  l=learn  ?=help  a=about  :=cmd  q=quit{ts}")
+        let update = app
+            .state
+            .update_notification
+            .as_ref()
+            .filter(|notice| !notice.stale_parts.is_empty())
+            .map(|notice| format!(" · UPDATE {}", notice.stale_parts.len()))
+            .unwrap_or_default();
+        format!("n=deck  /=recall  l=learn  ?=help  a=about  :=cmd  q=quit{update}{ts}")
     } else {
         "waiting…  r=retry  q=quit".to_string()
     };

@@ -708,11 +708,12 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
         }
         UpdateCmd::Scheduler(args) => {
             if args.install {
-                configure_systemd_scheduler(&args.channel, true)?;
+                configure_scheduler(&args.channel, true)?;
             } else if args.uninstall {
-                configure_systemd_scheduler(&args.channel, false)?;
+                configure_scheduler(&args.channel, false)?;
             }
-            let scheduler = build_scheduler_envelope(args.channel);
+            let mutation_requested = args.install || args.uninstall;
+            let scheduler = build_scheduler_envelope(args.channel, mutation_requested);
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&scheduler)?);
             } else {
@@ -872,19 +873,19 @@ fn build_update_plan(inventory: UpdateInventoryEnvelope) -> UpdatePlanEnvelope {
     }
 }
 
-fn build_scheduler_envelope(channel: String) -> UpdateSchedulerEnvelope {
+fn build_scheduler_envelope(channel: String, mutations_performed: bool) -> UpdateSchedulerEnvelope {
     let policy = update_policy_summary();
     UpdateSchedulerEnvelope {
         schema: "focusa.update_scheduler.v1",
-        status: if systemd_scheduler_installed() {
+        status: if scheduler_installed() {
             "installed"
         } else {
             "planned_read_only"
         },
-        read_only: !systemd_scheduler_installed(),
-        mutations_performed: false,
-        scheduler_installed: systemd_scheduler_installed(),
-        background_worker_started: systemd_scheduler_installed(),
+        read_only: !scheduler_installed(),
+        mutations_performed,
+        scheduler_installed: scheduler_installed(),
+        background_worker_started: scheduler_installed(),
         channel,
         startup_check: SchedulerStartupCheck {
             enabled: true,
@@ -910,8 +911,8 @@ fn build_scheduler_envelope(channel: String) -> UpdateSchedulerEnvelope {
                 .to_string(),
         },
         automatic_apply: SchedulerAutomaticApply {
-            allowed: systemd_scheduler_installed(),
-            reason: if systemd_scheduler_installed() {
+            allowed: scheduler_installed(),
+            reason: if scheduler_installed() {
                 "systemd timer invokes explicit verified CLI promotion; daemon restart remains separately gated"
             } else {
                 "install with focusa update scheduler --install to enable verified two-minute refresh"
@@ -934,7 +935,27 @@ fn build_scheduler_envelope(channel: String) -> UpdateSchedulerEnvelope {
     }
 }
 
-fn systemd_scheduler_installed() -> bool {
+const UPDATE_LAUNCHD_LABEL: &str = "com.startempire.focusa-update";
+
+fn scheduler_installed() -> bool {
+    if cfg!(target_os = "macos") {
+        let Some(home) = std::env::var_os("HOME") else {
+            return false;
+        };
+        let plist = PathBuf::from(home)
+            .join("Library/LaunchAgents")
+            .join(format!("{UPDATE_LAUNCHD_LABEL}.plist"));
+        return plist.is_file()
+            && launchd_user_target()
+                .and_then(|target| {
+                    std::process::Command::new("launchctl")
+                        .args(["print", &target])
+                        .status()
+                        .ok()
+                })
+                .map(|status| status.success())
+                .unwrap_or(false);
+    }
     cfg!(target_os = "linux")
         && Path::new("/etc/systemd/system/focusa-update.timer").exists()
         && std::process::Command::new("systemctl")
@@ -942,6 +963,70 @@ fn systemd_scheduler_installed() -> bool {
             .status()
             .map(|status| status.success())
             .unwrap_or(false)
+}
+
+fn launchd_user_target() -> Option<String> {
+    let output = std::process::Command::new("id").arg("-u").output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    Some(format!(
+        "gui/{}/{}",
+        String::from_utf8_lossy(&output.stdout).trim(),
+        UPDATE_LAUNCHD_LABEL
+    ))
+}
+
+fn configure_scheduler(channel: &str, install: bool) -> anyhow::Result<()> {
+    if cfg!(target_os = "macos") {
+        return configure_launchd_scheduler(channel, install);
+    }
+    configure_systemd_scheduler(channel, install)
+}
+
+fn configure_launchd_scheduler(channel: &str, install: bool) -> anyhow::Result<()> {
+    let home = std::env::var_os("HOME").context("HOME not set")?;
+    let agents = PathBuf::from(home).join("Library/LaunchAgents");
+    let plist = agents.join(format!("{UPDATE_LAUNCHD_LABEL}.plist"));
+    let target = launchd_user_target().context("cannot resolve launchd user domain")?;
+    if install {
+        std::fs::create_dir_all(&agents)?;
+        let focusa = std::env::current_exe()?.display().to_string();
+        let body = format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>Label</key><string>{UPDATE_LAUNCHD_LABEL}</string>
+<key>ProgramArguments</key><array><string>{focusa}</string><string>update</string><string>apply</string><string>--channel</string><string>{channel}</string><string>--yes</string><string>--allow-apply</string><string>--dry-run</string><string>false</string><string>--json</string></array>
+<key>RunAtLoad</key><true/><key>StartInterval</key><integer>120</integer>
+<key>ThrottleInterval</key><integer>300</integer><key>ProcessType</key><string>Background</string>
+</dict></plist>
+"#
+        );
+        std::fs::write(&plist, body)?;
+        let _ = std::process::Command::new("launchctl")
+            .args(["bootout", &target])
+            .status();
+        let domain = target
+            .rsplit_once('/')
+            .map(|(domain, _)| domain)
+            .context("invalid launchd user target")?;
+        let status = std::process::Command::new("launchctl")
+            .args(["bootstrap", domain, &plist.display().to_string()])
+            .status()?;
+        if !status.success() {
+            anyhow::bail!(
+                "launchctl bootstrap failed: {}",
+                status.code().unwrap_or(-1)
+            );
+        }
+    } else {
+        let _ = std::process::Command::new("launchctl")
+            .args(["bootout", &target])
+            .status();
+        let _ = std::fs::remove_file(plist);
+    }
+    Ok(())
 }
 
 fn configure_systemd_scheduler(channel: &str, install: bool) -> anyhow::Result<()> {
@@ -1017,7 +1102,12 @@ fn is_root() -> bool {
 }
 
 fn build_notifications_envelope(inventory: UpdateInventoryEnvelope) -> UpdateNotificationsEnvelope {
-    let stale_parts = inventory.stale_parts;
+    let admin = read_update_admin_state().unwrap_or_default();
+    let stale_parts = if admin.paused {
+        Vec::new()
+    } else {
+        inventory.stale_parts
+    };
     let severity = if stale_parts.is_empty() {
         "none"
     } else {
@@ -1055,8 +1145,20 @@ fn build_notifications_envelope(inventory: UpdateInventoryEnvelope) -> UpdateNot
             NotificationMessage {
                 surface: "pi_doctor",
                 title: "Focusa update status",
-                body,
+                body: body.clone(),
                 action: "focusa update status --json",
+            },
+            NotificationMessage {
+                surface: "tui",
+                title: "Focusa update status",
+                body: body.clone(),
+                action: "open Focusa TUI footer update indicator",
+            },
+            NotificationMessage {
+                surface: "menubar",
+                title: "Focusa update status",
+                body,
+                action: "open Focusa menubar update badge",
             },
         ],
         suppress_if: vec![
@@ -1073,8 +1175,8 @@ fn notification_routes() -> NotificationRoutes {
         cli: true,
         api: true,
         pi_doctor: true,
-        tui: "planned_when_tui_update_banner_available",
-        menubar: "planned_when_menubar_update_badge_available",
+        tui: "active_footer_update_indicator",
+        menubar: "active_update_badge",
     }
 }
 
@@ -1546,6 +1648,12 @@ async fn execute_verified_apply_locked(
             // Record immediately after promotion so *every* subsequent probe
             // failure enters the outer rollback path.
             promoted.push((part.part.to_string(), target.clone(), backup, backup_sha256));
+            if std::env::var("FOCUSA_UPDATE_FAULT_AFTER_PROMOTE")
+                .map(|fault_part| fault_part == part.part)
+                .unwrap_or(false)
+            {
+                anyhow::bail!("injected fault after promoting {}", part.part);
+            }
             if part.part != "daemon" {
                 let target_path = target.to_string_lossy();
                 let got = if part.part == "tui" {

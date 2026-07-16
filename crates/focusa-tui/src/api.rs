@@ -147,8 +147,13 @@ impl ApiClient {
         let candidates = parse_candidates(&resp);
         let version = resp.get("version").and_then(|v| v.as_u64()).unwrap_or(0);
 
-        // Fetch recent events separately.
+        // Fetch recent events and OTA notification state separately.
         let events = self.fetch_events().await.unwrap_or_default();
+        let update_notification = self
+            .fetch_json("/v1/update/notifications")
+            .await
+            .ok()
+            .and_then(|value| serde_json::from_value::<UpdateNotificationInfo>(value).ok());
 
         Ok(StateSnapshot {
             session,
@@ -156,6 +161,7 @@ impl ApiClient {
             focus_state,
             candidates,
             events,
+            update_notification,
             version,
         })
     }

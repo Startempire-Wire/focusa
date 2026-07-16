@@ -922,6 +922,13 @@ export function registerCommands(pi: ExtensionAPI) {
       const snapshot = getEffectiveFocusSnapshot(focusState?.fs);
       const missionLine = snapshot.intent ? `\nMission: ${snapshot.intent}` : "";
       const focusLine = snapshot.currentFocus ? `\nFocus: ${snapshot.currentFocus}` : "";
+      const updateNotifications = await focusaFetch("/update/notifications");
+      const staleUpdateParts = Array.isArray(updateNotifications?.stale_parts)
+        ? updateNotifications.stale_parts
+        : [];
+      const updateLine = staleUpdateParts.length
+        ? `\nUpdate: ${updateNotifications?.severity || "warning"} | stale=${staleUpdateParts.join(",")}`
+        : "";
       ctx.ui.notify(
         `Focusa: ${up}\nFrame: ${frame}${titleLine}${goalLine}\nWBM: ${wbm}\nTurns: ${getTurnCount()}${tier}${compactions}` +
           loopLine +
@@ -933,6 +940,7 @@ export function registerCommands(pi: ExtensionAPI) {
           objectiveLine +
           missionLine +
           focusLine +
+          updateLine +
           `\n` +
           `Decisions: ${snapshot.decisions.length} | Constraints: ${snapshot.constraints.length} | Failures: ${snapshot.failures.length}` +
           (getAttachmentRuntime().cfg

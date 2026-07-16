@@ -153,7 +153,19 @@ pub struct StateSnapshot {
     #[serde(default)]
     pub events: Vec<EventInfo>,
     #[serde(default)]
+    pub update_notification: Option<UpdateNotificationInfo>,
+    #[serde(default)]
     pub version: u64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct UpdateNotificationInfo {
+    #[serde(default)]
+    pub severity: String,
+    #[serde(default)]
+    pub message: String,
+    #[serde(default)]
+    pub stale_parts: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
