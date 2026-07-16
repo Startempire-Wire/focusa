@@ -913,7 +913,7 @@ fn build_scheduler_envelope(channel: String, mutations_performed: bool) -> Updat
         automatic_apply: SchedulerAutomaticApply {
             allowed: scheduler_installed(),
             reason: if scheduler_installed() {
-                "systemd timer invokes explicit verified CLI promotion; daemon restart remains separately gated"
+                "installed platform scheduler invokes verified atomic CLI promotion with rollback and daemon health proof"
             } else {
                 "install with focusa update scheduler --install to enable verified two-minute refresh"
             },
@@ -921,15 +921,15 @@ fn build_scheduler_envelope(channel: String, mutations_performed: bool) -> Updat
                 "trusted_release_manifest",
                 "update_lock_acquired",
                 "rollback_snapshot_ready",
-                "explicit_systemd_apply_consent",
+                "explicit_scheduler_apply_consent",
                 "daemon_restart_policy_approved",
             ],
         },
         notifications: notification_routes(),
         next_actions: vec![
-            "wire daemon startup check after runtime tests",
-            "wire interval worker after scheduler proof",
-            "resolve every listed signature, provenance, compatibility, and install-safety blocker before apply",
+            "monitor update history and signed release trust status",
+            "adjust maintenance-window policy when operator scheduling requires it",
+            "use focusa update rollback --dry-run=false --yes if post-update health regresses",
         ],
         policy,
     }
@@ -1006,6 +1006,8 @@ fn configure_launchd_scheduler(channel: &str, install: bool) -> anyhow::Result<(
         std::fs::write(&plist, body)?;
         let _ = std::process::Command::new("launchctl")
             .args(["bootout", &target])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
             .status();
         let domain = target
             .rsplit_once('/')
@@ -1023,6 +1025,8 @@ fn configure_launchd_scheduler(channel: &str, install: bool) -> anyhow::Result<(
     } else {
         let _ = std::process::Command::new("launchctl")
             .args(["bootout", &target])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
             .status();
         let _ = std::fs::remove_file(plist);
     }
