@@ -5,6 +5,10 @@ set -euo pipefail
 
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SCOPE_HEADERS=(
+  -H "x-scope-project-root: ${ROOT_DIR}"
+  -H "x-scope-continuity-id: tool-contract-test"
+)
 FAILED=0
 PASSED=0
 
@@ -79,6 +83,7 @@ else
 fi
 
 code=$(http_code -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" \
+  "${SCOPE_HEADERS[@]}" \
   -d "{\"title\":\"tool-contract-test\",\"goal\":\"verify contract\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"tool-contract-test\"}")
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted"' "Valid focus push accepted"
@@ -112,6 +117,7 @@ fi
 log_info "Idempotency — strict"
 TURN_ID="idem-test-$(date +%s%N)"
 code=$(http_code -X POST "${BASE_URL}/v1/turn/start" -H "Content-Type: application/json" \
+  "${SCOPE_HEADERS[@]}" \
   -d "{\"turn_id\":\"${TURN_ID}\",\"harness_name\":\"test\",\"adapter_id\":\"test\",\"timestamp\":\"2026-04-11T00:00:00Z\"}")
 if [ "$code" = "200" ]; then
   log_pass "Turn start accepted for idempotency test"
@@ -120,6 +126,7 @@ else
 fi
 
 code=$(http_code -X POST "${BASE_URL}/v1/turn/complete" -H "Content-Type: application/json" \
+  "${SCOPE_HEADERS[@]}" \
   -d "{\"turn_id\":\"${TURN_ID}\",\"assistant_output\":\"done\",\"artifacts\":[],\"errors\":[]}")
 if [ "$code" = "200" ]; then
   log_pass "First turn complete accepted"
@@ -131,6 +138,7 @@ duplicate_seen=0
 for _ in 1 2 3 4 5; do
   sleep 0.3
   code=$(http_code -X POST "${BASE_URL}/v1/turn/complete" -H "Content-Type: application/json" \
+    "${SCOPE_HEADERS[@]}" \
     -d "{\"turn_id\":\"${TURN_ID}\",\"assistant_output\":\"done\",\"artifacts\":[],\"errors\":[]}")
   if [ "$code" = "200" ] && jq -e '.duplicate == true' /tmp/focusa-tool-contract-body.json >/dev/null 2>&1; then
     duplicate_seen=1
