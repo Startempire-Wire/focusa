@@ -59,6 +59,12 @@ grep -q 'HOST_ARCH\|uname -m' "$SH" \
   || fail "install-focusa.sh: must detect arch via uname"
 pass "install-focusa.sh: detects platform + arch (uname)"
 
+grep -Fq 'case "$HOST_ARCH" in x86_64|aarch64|arm64)' "$SH" \
+  || fail "install-focusa.sh: native macOS arm64 must pass the architecture allowlist"
+grep -Fq 'Darwin-arm64|Darwin-aarch64) TRIPLE="aarch64-apple-darwin"' "$SH" \
+  || fail "install-focusa.sh: macOS arm64 must select the Apple Silicon release triple"
+pass "install-focusa.sh: accepts native Apple Silicon arm64"
+
 # Verifies SHA256SUMS
 grep -q 'SHA256SUMS\|sha256sum' "$SH" \
   || fail "install-focusa.sh: must verify SHA256SUMS"

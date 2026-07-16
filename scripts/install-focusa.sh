@@ -341,7 +341,7 @@ case "$HOST_OS" in
     exit 66 ;;
   *) err "unsupported OS: $HOST_OS"; exit 66 ;;
 esac
-case "$HOST_ARCH" in x86_64|aarch64) ;; *) err "unsupported arch: $HOST_ARCH"; exit 66 ;; esac
+case "$HOST_ARCH" in x86_64|aarch64|arm64) ;; *) err "unsupported arch: $HOST_ARCH"; exit 66 ;; esac
 
 if [ "$TARGET" = "auto" ]; then
   case "$HOST_OS-$HOST_ARCH" in
