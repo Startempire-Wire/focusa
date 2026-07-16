@@ -79,7 +79,7 @@ else
 fi
 
 if rg -n 'scheduleCompactionResumeRetry\(ctx, steerMessage, (nextAttempt|retryAttempt \+ 1)\)' "$COMPACTION_FILE" >/dev/null 2>&1 \
-  && rg -n 'if \(!S\.compactResumePending\) return;' "$COMPACTION_FILE" >/dev/null 2>&1 \
+  && rg -n 'if \(!getAttachmentRuntime\(\)\.compactResumePending\) return;' "$COMPACTION_FILE" >/dev/null 2>&1 \
   && ! rg -n 'maxAttempts' "$COMPACTION_FILE" >/dev/null 2>&1; then
   log_pass "compaction auto-resume retries are pending-gated and no longer hard-capped"
 else
@@ -92,7 +92,7 @@ else
   log_pass "compaction-resume no longer emits artificial exhaustion warning"
 fi
 
-if rg -n 'S\.compactResumePending = false' "${ROOT_DIR}/apps/pi-extension/src/turns.ts" "${ROOT_DIR}/apps/pi-extension/src/session.ts" "${ROOT_DIR}/apps/pi-extension/src/commands.ts" >/dev/null 2>&1; then
+if rg -n 'getAttachmentRuntime\(\)\.compactResumePending = false' "${ROOT_DIR}/apps/pi-extension/src/turns.ts" "${ROOT_DIR}/apps/pi-extension/src/session.ts" "${ROOT_DIR}/apps/pi-extension/src/commands.ts" >/dev/null 2>&1; then
   log_pass "compaction retries remain bounded by lifecycle/governance reset gates"
 else
   log_fail "compaction retries missing lifecycle reset guards"
