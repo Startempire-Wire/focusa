@@ -178,7 +178,7 @@ if (-not $DryRun) {
 # from the same release, validates license, renders service, etc.).
 # ---------------------------------------------------------------------------
 $Focusa = $Bootstrap
-$Args = @("install", "--target=$ResolvedTarget", "--version=$Tag", "--github-repo=$GitHubRepo")
+$Args = @("install", "--target=$ResolvedTarget", "--github-repo=$GitHubRepo")
 if ($DryRun) { $Args += "--dry-run" }
 if ($Eval) { $Args += "--eval" }
 if ($LicenseKey) { $Args += "--license-key=$LicenseKey" }
