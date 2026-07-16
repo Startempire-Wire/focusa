@@ -299,13 +299,27 @@ fn plan_steps(
                     .unwrap_or(install_root)
                     .join(".pi/agent/extensions")
             });
+        let pi_extension = pi_extension_root.join("focusa");
         steps.push(UninstallStep {
             name: "purge_pi_extension".to_string(),
             kind: UninstallStepKind::PurgePiExtension,
-            target_path: Some(pi_extension_root.join("focusa").display().to_string()),
+            target_path: Some(pi_extension.display().to_string()),
             status: UninstallStepStatus::Planned,
             detail: None,
         });
+        let legacy_pi_extension = install_root
+            .parent()
+            .unwrap_or(install_root)
+            .join(".pi/extensions/focusa");
+        if legacy_pi_extension != pi_extension {
+            steps.push(UninstallStep {
+                name: "purge_legacy_pi_extension".to_string(),
+                kind: UninstallStepKind::PurgePiExtension,
+                target_path: Some(legacy_pi_extension.display().to_string()),
+                status: UninstallStepStatus::Planned,
+                detail: None,
+            });
+        }
     }
 
     // Additional macOS-side cleanup (applies regardless of platform target).
@@ -1120,6 +1134,10 @@ mod tests {
         assert!(steps.iter().any(|s| {
             matches!(s.kind, UninstallStepKind::PurgePiExtension)
                 && s.target_path.as_deref() == Some("/tmp/.pi/agent/extensions/focusa")
+        }));
+        assert!(steps.iter().any(|s| {
+            matches!(s.kind, UninstallStepKind::PurgePiExtension)
+                && s.target_path.as_deref() == Some("/tmp/.pi/extensions/focusa")
         }));
     }
 
