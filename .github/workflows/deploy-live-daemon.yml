@@ -183,8 +183,13 @@ jobs:
             scripts/sync-install-bootstrapper.sh
             scripts/sync-install-bootstrapper.sh --check
           else
-            sudo -n scripts/sync-install-bootstrapper.sh
-            sudo -n scripts/sync-install-bootstrapper.sh --check
+            # github-runner sudoers allowlists /usr/bin/install, not arbitrary
+            # repository scripts. Set cPanel ownership atomically and verify.
+            sudo -n /usr/bin/install -m 0755 -o focusadev -g focusadev \
+              scripts/install-focusa.sh \
+              /home/focusadev/install.focusa.dev/public_html/installers/install-focusa.sh
+            cmp -s scripts/install-focusa.sh \
+              /home/focusadev/install.focusa.dev/public_html/installers/install-focusa.sh
           fi
 
       - name: Download daemon artifact from release
