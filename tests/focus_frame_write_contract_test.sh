@@ -20,9 +20,11 @@ http_json() {
   local path="$2"
   local body="${3:-}"
   if [ -n "$body" ]; then
-    curl -fsS -X "$method" "${BASE_URL}${path}" -H 'Content-Type: application/json' -d "$body"
+    curl -fsS -X "$method" "${BASE_URL}${path}" -H 'Content-Type: application/json' \
+      -H "x-scope-project-root: ${ROOT_DIR}" -H 'x-scope-continuity-id: frame-contract-session' -d "$body"
   else
-    curl -fsS -X "$method" "${BASE_URL}${path}" -H 'Content-Type: application/json'
+    curl -fsS -X "$method" "${BASE_URL}${path}" -H 'Content-Type: application/json' \
+      -H "x-scope-project-root: ${ROOT_DIR}" -H 'x-scope-continuity-id: frame-contract-session'
   fi
 }
 
@@ -37,6 +39,7 @@ TITLE_A="frame-contract-a-$$"
 BEADS_A="focusa-032h"
 TITLE_B="frame-contract-b-$$"
 BEADS_B="focusa-032h"
+http_json POST "/v1/session/close" '{"reason":"frame-contract-preflight-reset"}' >/dev/null || true
 http_json POST "/v1/session/start" "{\"adapter_id\":\"frame-contract\",\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"frame-contract-session\"}" >/dev/null
 http_json POST "/v1/focus/push" "{\"title\":\"${TITLE_A}\",\"goal\":\"A\",\"beads_issue_id\":\"${BEADS_A}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"frame-contract-session\"}" >/dev/null
 http_json POST "/v1/focus/push" "{\"title\":\"${TITLE_B}\",\"goal\":\"B\",\"beads_issue_id\":\"${BEADS_B}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"frame-contract-session\"}" >/dev/null
