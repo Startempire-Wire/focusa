@@ -1,5 +1,6 @@
 //! Agent-first doctor command — Spec92 §9.
 
+use super::scope_resolver;
 use crate::api_client::ApiClient;
 use clap::Subcommand;
 use serde_json::{Value, json};
@@ -316,6 +317,68 @@ async fn api_check(api: &ApiClient, name: &str, path: &str) -> Value {
     }
 }
 
+fn work_loop_not_configured(path: &str, reason: impl ToString) -> Value {
+    json!({
+        "name": "Work-loop writer state",
+        "status": "not_configured",
+        "path": path,
+        "likely_why": reason.to_string(),
+        "safe_recovery": "run focusa project or resume a project Workpoint to establish project_root + continuity_id",
+        "command": "focusa project && focusa workpoint current",
+        "fallback": Value::Null,
+        "severity": "info",
+        "daemon_restart_required": false,
+    })
+}
+
+async fn scoped_work_loop_check(api: &ApiClient, path: &str) -> Value {
+    let cwd = std::env::current_dir()
+        .ok()
+        .map(|path| path.to_string_lossy().into_owned());
+    let scope = match scope_resolver::resolve_active_workstream_scope(cwd.as_deref()) {
+        Ok(scope) => scope,
+        Err(error) => return work_loop_not_configured(path, error),
+    };
+    let continuity_id = scope
+        .continuity_id
+        .as_deref()
+        .expect("active workstream resolver requires continuity_id");
+    match api
+        .get_scoped(path, &scope.project_root, continuity_id)
+        .await
+    {
+        Ok(resp) => json!({
+            "name": "Work-loop writer state",
+            "status": "completed",
+            "path": path,
+            "scope": {"project_root": scope.project_root, "continuity_id": continuity_id},
+            "details": resp,
+        }),
+        Err(error) => {
+            let reason = error.to_string();
+            if reason.contains("scope_required")
+                || reason.contains("scope_mismatch")
+                || reason.contains("status=400")
+                || reason.contains("status=409")
+            {
+                work_loop_not_configured(path, reason)
+            } else {
+                json!({
+                    "name": "Work-loop writer state",
+                    "status": "blocked",
+                    "path": path,
+                    "what_failed": "Work-loop writer state",
+                    "likely_why": reason,
+                    "safe_recovery": "focusa doctor --verbose; inspect daemon logs only if daemon health also fails",
+                    "fallback": Value::Null,
+                    "severity": "blocked",
+                    "daemon_restart_required": false,
+                })
+            }
+        }
+    }
+}
+
 fn status_rank(status: &str) -> u8 {
     match status {
         "blocked" => 3,
@@ -344,14 +407,7 @@ pub async fn run(json_mode: bool, args: DoctorArgs) -> anyhow::Result<()> {
     checks.push(api_check(&api, "API route inventory surface", "/v1/agents").await);
     checks.push(api_check(&api, "Spec90 tool contracts", "/v1/ontology/tool-contracts").await);
     checks.push(api_check(&api, "Workpoint canonicality", "/v1/workpoint/current").await);
-    checks.push(
-        api_check(
-            &api,
-            "Work-loop writer state",
-            "/v1/work-loop/status?summary_only=true",
-        )
-        .await,
-    );
+    checks.push(scoped_work_loop_check(&api, "/v1/work-loop/status?summary_only=true").await);
     checks.push(
         api_check(
             &api,
@@ -461,7 +517,11 @@ pub async fn run(json_mode: bool, args: DoctorArgs) -> anyhow::Result<()> {
             "node scripts/validate-focusa-tool-contracts.mjs",
             "node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures"
         ],
-        "recovery": ["focusa start", "focusa-daemon", "journalctl -u focusa-daemon -n 80 --no-pager (Linux service installs)"],
+        "recovery": if blocked > 0 {
+            vec!["focusa start", "focusa-daemon", "journalctl -u focusa-daemon -n 80 --no-pager (Linux service installs)"]
+        } else {
+            Vec::<&str>::new()
+        },
         "evidence_refs": ["docs/current/EFFICIENCY_GUIDE.md", "docs/current/HOOK_COVERAGE.md", "docs/current/VALIDATION_AND_RELEASE_PROOF.md"],
         "docs": ["docs/92-agent-first-polish-hooks-efficiency-spec.md", "docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md"],
         "warnings": [],
@@ -492,9 +552,35 @@ pub async fn run(json_mode: bool, args: DoctorArgs) -> anyhow::Result<()> {
             response["why"].as_str().unwrap_or("Spec92 doctor")
         );
         println!("Command: focusa doctor");
-        println!("Recovery: focusa start || focusa-daemon");
+        if response["status"].as_str() == Some("blocked") {
+            println!("Recovery: focusa start || focusa-daemon");
+        }
         println!("Evidence: docs/current/EFFICIENCY_GUIDE.md, docs/current/HOOK_COVERAGE.md");
         println!("Docs: docs/92-agent-first-polish-hooks-efficiency-spec.md");
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unconfigured_work_loop_scope_is_not_daemon_blockage() {
+        let check = work_loop_not_configured(
+            "/v1/work-loop/status?summary_only=true",
+            "continuity scope unavailable",
+        );
+        assert_eq!(check["status"], "not_configured");
+        assert_eq!(check["severity"], "info");
+        assert_eq!(check["daemon_restart_required"], false);
+        assert!(check["fallback"].is_null());
+        assert!(
+            !check["safe_recovery"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("focusa start")
+        );
+        assert_eq!(status_rank("not_configured"), 0);
+    }
 }

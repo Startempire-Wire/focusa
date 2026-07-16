@@ -1,0 +1,25 @@
+schema=focusa.spec92.scoped_doctor_proof.v1
+status=pass
+work_item=focusa-w26jj.9.9
+project_root=/home/wirebot/focusa
+continuity_id=focusa-oom-a51-20260715-1348
+
+reported_failure:
+GET /v1/work-loop/status?summary_only=true without scope returns HTTP 400 scope_required while daemon is healthy.
+
+implementation:
+- ApiClient::get_scoped sends x-scope-project-root and x-scope-continuity-id.
+- doctor resolves active workstream scope before probing work-loop status.
+- status --agent uses the same scoped GET path.
+- absent/mismatched scope is classified not_configured/info, daemon_restart_required=false, fallback=null.
+- healthy doctor output omits the focusa start recovery recommendation.
+
+proof:
+- cargo clippy -p focusa-cli --all-targets -- -D warnings: PASS
+- scoped_get_sends_project_and_continuity_headers unit test: PASS
+- unconfigured_work_loop_scope_is_not_daemon_blockage unit test: PASS
+- direct scoped API probe: HTTP 200, work-loop status=idle
+- focusa --json doctor with project_root+continuity_id: status=completed, work-loop=completed/idle, blocked=[], recovery=[]
+- focusa --json doctor with project_root and no continuity: status=completed, work-loop=not_configured/info, daemon_restart_required=false, fallback=null
+- focusa --json status --agent with scope: work-loop=idle, error=null
+- human focusa doctor: status=completed and no Recovery: focusa start line

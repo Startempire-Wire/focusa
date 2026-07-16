@@ -109,10 +109,36 @@ impl ApiClient {
     }
 
     pub async fn get(&self, path: &str) -> anyhow::Result<Value> {
+        self.get_with_headers(path, &[]).await
+    }
+
+    pub async fn get_scoped(
+        &self,
+        path: &str,
+        project_root: &str,
+        continuity_id: &str,
+    ) -> anyhow::Result<Value> {
+        self.get_with_headers(
+            path,
+            &[
+                ("x-scope-project-root", project_root),
+                ("x-scope-continuity-id", continuity_id),
+            ],
+        )
+        .await
+    }
+
+    pub async fn get_with_headers(
+        &self,
+        path: &str,
+        headers: &[(&str, &str)],
+    ) -> anyhow::Result<Value> {
         let url = format!("{}{}", self.base, path);
-        let resp = self
-            .client
-            .get(&url)
+        let mut request = self.client.get(&url);
+        for (name, value) in headers {
+            request = request.header(*name, *value);
+        }
+        let resp = request
             .send()
             .await
             .map_err(|err| classify_reqwest_error(err, &url))?;
@@ -188,5 +214,49 @@ impl ApiClient {
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .output();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+
+    #[tokio::test]
+    async fn scoped_get_sends_project_and_continuity_headers() {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind mock daemon");
+        let address = listener.local_addr().expect("mock daemon address");
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("accept scoped request");
+            let mut buffer = [0u8; 4096];
+            let read = stream.read(&mut buffer).expect("read scoped request");
+            let request = String::from_utf8_lossy(&buffer[..read]).to_ascii_lowercase();
+            assert!(request.starts_with("get /v1/work-loop/status?summary_only=true"));
+            assert!(request.contains("x-scope-project-root: /tmp/focusa-project"));
+            assert!(request.contains("x-scope-continuity-id: focusa-test-continuity"));
+            let body = r#"{"status":"completed"}"#;
+            write!(
+                stream,
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                body.len(),
+                body
+            )
+            .expect("write mock response");
+        });
+        let api = ApiClient {
+            client: Client::new(),
+            base: format!("http://{address}"),
+        };
+        let response = api
+            .get_scoped(
+                "/v1/work-loop/status?summary_only=true",
+                "/tmp/focusa-project",
+                "focusa-test-continuity",
+            )
+            .await
+            .expect("scoped request succeeds");
+        assert_eq!(response["status"], "completed");
+        server.join().expect("mock daemon joins");
     }
 }

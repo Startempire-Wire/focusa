@@ -315,6 +315,21 @@ pub fn resolve_project_scope(
     ))
 }
 
+pub fn resolve_active_workstream_scope(cwd: Option<&str>) -> Result<ResolvedProjectScope> {
+    let mut resolved = resolve_project_scope(None, None, cwd)?;
+    if resolved.continuity_id.is_none() {
+        resolved.continuity_id = std::env::var("FOCUSA_CONTINUITY_ID")
+            .ok()
+            .filter(|value| !value.trim().is_empty());
+    }
+    if resolved.continuity_id.is_none() {
+        return Err(anyhow!(
+            r#"{{"status":"not_configured","failure_class":"continuity_scope_required","next_step_hint":"Set FOCUSA_CONTINUITY_ID or select/resume a project Workpoint before querying work-loop state."}}"#
+        ));
+    }
+    Ok(resolved)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

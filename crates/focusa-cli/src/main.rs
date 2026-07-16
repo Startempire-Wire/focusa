@@ -711,12 +711,36 @@ async fn async_main() -> anyhow::Result<()> {
                 let workpoint = api.get("/v1/workpoint/current").await.unwrap_or_else(
                     |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
                 );
-                let work_loop = api
-                    .get("/v1/work-loop/status?summary_only=true")
-                    .await
-                    .unwrap_or_else(
-                        |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
-                    );
+                let cwd = std::env::current_dir()
+                    .ok()
+                    .map(|path| path.to_string_lossy().into_owned());
+                let work_loop =
+                    match commands::scope_resolver::resolve_active_workstream_scope(cwd.as_deref())
+                    {
+                        Ok(scope) => {
+                            let continuity_id = scope.continuity_id.as_deref().unwrap_or_default();
+                            api.get_scoped(
+                                "/v1/work-loop/status?summary_only=true",
+                                &scope.project_root,
+                                continuity_id,
+                            )
+                            .await
+                            .unwrap_or_else(|err| {
+                                serde_json::json!({
+                                    "status":"not_configured",
+                                    "failure_class":"work_loop_scope_unavailable",
+                                    "error":err.to_string(),
+                                    "daemon_restart_required":false,
+                                })
+                            })
+                        }
+                        Err(err) => serde_json::json!({
+                            "status":"not_configured",
+                            "failure_class":"work_loop_scope_unavailable",
+                            "error":err.to_string(),
+                            "daemon_restart_required":false,
+                        }),
+                    };
                 let token_budget = api
                     .get("/v1/telemetry/token-budget/status?limit=5")
                     .await
