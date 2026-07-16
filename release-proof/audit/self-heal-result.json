@@ -1,0 +1,208 @@
+{
+  "audit_path": "/home/runner/work/focusa/focusa/release-proof/audit/audit.jsonl",
+  "decisions": [
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "artifact_already_exists"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "brittle_regex_match"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "ci_clippy_failure"
+    },
+    {
+      "action": "suppressed_duplicate",
+      "derived_from": "fail-20260709T190701Z-29043020542",
+      "failure_class": "ci_test_failure"
+    },
+    {
+      "action": "self_heal",
+      "deliverable": {
+        "change_summary": "Added a script that classifies ci_workflow_failure before self-heal escalation.",
+        "ref": "scripts/classify-ci-failure.py",
+        "type": "script"
+      },
+      "derived_from": "fail-20260716T045419Z-29472214088",
+      "failure_class": "ci_workflow_failure"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "deploy_health_failure"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "disk_pressure"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "hang_or_oom"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "health_timeout"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "hostname_assumption"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "infrastructure_blocked"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "intermittent_health"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "missing_ci_gate_passing"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "permission_denied"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "policy_violation"
+    },
+    {
+      "action": "self_heal",
+      "deliverable": {
+        "change_summary": "Added a test that fails when release_static_proof_failure reproduces as a passive mirror.",
+        "ref": "tests/spec122_self_heal_proposal_static_test.sh",
+        "type": "test"
+      },
+      "derived_from": "fail-20260709T193407Z-29044585162",
+      "failure_class": "release_static_proof_failure"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "rust_compile_failure"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "self_test"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "stale_version_surface"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "strict_mode_kill"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "transient_github_or_network_failure"
+    },
+    {
+      "action": "suppressed_duplicate",
+      "derived_from": "fail-20260709T203255Z-29047406656",
+      "failure_class": "unknown_process_failure"
+    }
+  ],
+  "intervention_rate": {
+    "event": "intervention_rate",
+    "manual_interventions_required": 0,
+    "operator_intervention_rate_pct": 0.0,
+    "total_CI_runs": 16,
+    "ts": "2026-07-16T04:54:35Z",
+    "window_days": 7
+  },
+  "proposed_self_heal_rows": [
+    {
+      "after": {
+        "failure_class_repro_count": null,
+        "manual_intervention_rate_pct": null
+      },
+      "auto_generated": false,
+      "before": {
+        "failure_class_repro_count": 71,
+        "manual_intervention_rate_pct": 0.0
+      },
+      "category": "ci_workflow_failure",
+      "closed": false,
+      "deliverable": {
+        "change_summary": "Added a script that classifies ci_workflow_failure before self-heal escalation.",
+        "ref": "scripts/classify-ci-failure.py",
+        "type": "script"
+      },
+      "derived_from": "fail-20260716T045419Z-29472214088",
+      "escalation_count": 150,
+      "event": "self_heal",
+      "fail_count_30d": 71,
+      "fail_count_7d": 4,
+      "failure_class": "ci_workflow_failure",
+      "fix": "Immediate occurrence remains visible; system-level deliverable prevents class recurrence.",
+      "guard": "Added a script that classifies ci_workflow_failure before self-heal escalation.",
+      "linked_run": "29472214088",
+      "operator_reviewed": false,
+      "root_cause": "see workflow logs",
+      "scope": "CI",
+      "subsystem": "ci",
+      "symptom": "CI run 29472214088 concluded failure",
+      "test": "Verify deliverable ref exists and class ci_workflow_failure is not passively mirrored.",
+      "ts": "2026-07-16T04:54:35Z"
+    },
+    {
+      "after": {
+        "failure_class_repro_count": null,
+        "manual_intervention_rate_pct": null
+      },
+      "auto_generated": false,
+      "before": {
+        "failure_class_repro_count": 5,
+        "manual_intervention_rate_pct": 0.0
+      },
+      "category": "ci_workflow_failure",
+      "closed": false,
+      "deliverable": {
+        "change_summary": "Added a test that fails when release_static_proof_failure reproduces as a passive mirror.",
+        "ref": "tests/spec122_self_heal_proposal_static_test.sh",
+        "type": "test"
+      },
+      "derived_from": "fail-20260709T193407Z-29044585162",
+      "escalation_count": 0,
+      "event": "self_heal",
+      "fail_count_30d": 5,
+      "fail_count_7d": 4,
+      "failure_class": "release_static_proof_failure",
+      "fix": "Immediate occurrence remains visible; system-level deliverable prevents class recurrence.",
+      "guard": "Added a test that fails when release_static_proof_failure reproduces as a passive mirror.",
+      "linked_run": "29044585162",
+      "operator_reviewed": false,
+      "root_cause": "release static guard failure",
+      "scope": "CI",
+      "subsystem": "ci",
+      "symptom": "Blocked: release static proof failed. Patch the workflow/spec guard, then let GitHub CI run again.",
+      "test": "Verify deliverable ref exists and class release_static_proof_failure is not passively mirrored.",
+      "ts": "2026-07-16T04:54:35Z"
+    }
+  ],
+  "schema": "focusa.self_heal.result.v1",
+  "self_heal_rows": 2,
+  "should_commit": true,
+  "status": "completed",
+  "wrote_deliverable": true
+}
