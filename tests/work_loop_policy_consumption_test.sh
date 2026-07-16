@@ -21,9 +21,16 @@ curl() {
 }
 http_json() { curl -sS "$@"; }
 
-http_json -X POST "${BASE_URL}/v1/workpoint/checkpoint" \
+CHECKPOINT_RESP=$(http_json -X POST "${BASE_URL}/v1/workpoint/checkpoint" \
   -H 'Content-Type: application/json' \
-  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-policy-consumption-test\",\"mission\":\"verify work-loop policy consumption\",\"current_action\":\"spec79_policy_consumption\",\"next_slice\":\"verify consumed continuation inputs\",\"canonical\":true}" >/dev/null
+  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-policy-consumption-test\",\"mission\":\"verify work-loop policy consumption\",\"current_action\":\"spec79_policy_consumption\",\"next_slice\":\"verify consumed continuation inputs\",\"canonical\":true}")
+WORKPOINT_ID=$(echo "$CHECKPOINT_RESP" | jq -r '.workpoint_id // empty')
+for _ in $(seq 1 40); do
+  RESUME=$(http_json -X POST "${BASE_URL}/v1/workpoint/resume" -H 'Content-Type: application/json' \
+    -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-policy-consumption-test\",\"mode\":\"compact_prompt\"}")
+  echo "$RESUME" | jq -e --arg id "$WORKPOINT_ID" '.canonical == true and .workpoint_id == $id' >/dev/null 2>&1 && break
+  sleep 0.1
+done
 
 # Create a high-risk current task under continuous loop.
 http_json -X POST "${BASE_URL}/v1/work-loop/enable" \
