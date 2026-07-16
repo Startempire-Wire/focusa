@@ -29,6 +29,10 @@ curl -sS -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/js
   -d '{"reason":"proposal-kind-preflight-reset"}' >/dev/null || true
 curl -sS -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" \
   -d "{\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"proposal-kind-test\",\"adapter_id\":\"test\"}" >/dev/null
+for _ in $(seq 1 40); do
+  curl -sS "${BASE_URL}/v1/status" | jq -e '.session.continuity_id == "proposal-kind-test"' >/dev/null 2>&1 && break
+  sleep 0.1
+done
 
 run_source="spec-kind-test-$(date +%s%N)"
 thread_name="proposal-kind-thread-$(date +%s%N)"
@@ -36,10 +40,20 @@ thread_resp=$(curl -sS -X POST "${BASE_URL}/v1/threads" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"${thread_name}\",\"primary_intent\":\"seed thread for proposal kinds\"}")
 thread_id=$(echo "$thread_resp" | jq -r '.thread.id // .thread_id // empty')
+thread_ready=0
 if [ -n "$thread_id" ] && [ "$thread_id" != "null" ]; then
-  log_pass "Seed thread created for thesis proposal"
+  for _ in $(seq 1 40); do
+    if curl -sS "${BASE_URL}/v1/threads/${thread_id}" | jq -e --arg id "$thread_id" '.thread.id == $id' >/dev/null 2>&1; then
+      thread_ready=1
+      break
+    fi
+    sleep 0.1
+  done
+fi
+if [ "$thread_ready" = "1" ]; then
+  log_pass "Seed thread created and materialized for thesis proposal"
 else
-  log_fail "Failed to seed thread :: $thread_resp"
+  log_fail "Failed to materialize seed thread :: $thread_resp"
 fi
 
 thesis_intent="thesis-updated-$(date +%s%N)"
