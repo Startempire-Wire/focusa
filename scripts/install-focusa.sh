@@ -156,8 +156,13 @@ have sha256sum || have shasum || { err "sha256sum (or shasum) is required."; exi
 # GitHub/CDN HTTP/2 resets must not turn an otherwise valid install into a
 # partial transaction. HTTP/1.1 plus bounded retries is portable on supported
 # macOS/Linux curl versions.
+CURL_RETRY_ALL_ERRORS=""
+if curl --help all 2>/dev/null | grep -q -- '--retry-all-errors'; then
+  CURL_RETRY_ALL_ERRORS="--retry-all-errors"
+fi
 curl_resilient() {
-  curl --http1.1 --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 20 "$@"
+  # shellcheck disable=SC2086 -- optional flag intentionally word-split.
+  curl --http1.1 --retry 5 $CURL_RETRY_ALL_ERRORS --retry-delay 2 --connect-timeout 20 "$@"
 }
 
 # Idempotent public uninstall entrypoint. Never creates install/license state.
