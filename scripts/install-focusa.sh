@@ -216,15 +216,6 @@ fi
 INSTALLED_VERSION_FILE="${STATE_DIR}/installed_version"
 INSTALLED_VERSION=""
 [ -s "$INSTALLED_VERSION_FILE" ] && INSTALLED_VERSION="$(cat "$INSTALLED_VERSION_FILE" 2>/dev/null || true)"
-if [ -n "$INSTALLED_VERSION" ] && [ "$FORCE" != 1 ]; then
-  case "$RELEASE_TAG" in
-    "")
-      ;;
-    *)
-      # RELEASE_TAG not yet known here; skip until release is picked.
-      ;;
-  esac
-fi
 
 migrate_legacy_license() {
   [ -f "$LICENSE_FILE" ] || return 0
@@ -779,7 +770,8 @@ export FOCUSA_RELEASE_TAG="$RELEASE_TAG"
 if "$BIN_DIR/focusa" "${ARGS[@]}"; then
   BOOTSTRAP_SUCCESS=1
   exit 0
+else
+  status=$?
+  err "Rust install orchestrator failed (exit ${status})"
+  exit "$status"
 fi
-status=$?
-err "Rust install orchestrator failed (exit ${status})"
-exit "$status"

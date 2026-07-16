@@ -76,6 +76,22 @@ grep -q '& $Focusa @Args' "$PS1" \
   || fail "install-focusa.ps1 missing focusa install execution"
 pass "shell/PowerShell installers delegate to focusa install"
 
+python3 - "$SH" <<'PY'
+import pathlib, re, sys
+text = pathlib.Path(sys.argv[1]).read_text()
+assignment = text.index('RELEASE_TAG="${SELECTED%%')
+first_expansion = text.index('$RELEASE_TAG')
+assert assignment < first_expansion, "RELEASE_TAG is expanded before initialization under set -u"
+pattern = re.compile(
+    r'if "\$BIN_DIR/focusa" "\$\{ARGS\[@\]\}"; then\s+'
+    r'BOOTSTRAP_SUCCESS=1\s+exit 0\s+else\s+status=\$\?\s+'
+    r'err "Rust install orchestrator failed \(exit \$\{status\}\)"\s+exit "\$status"',
+    re.MULTILINE,
+)
+assert pattern.search(text), "orchestrator failure status is not preserved through an explicit else branch"
+PY
+pass "bootstrapper initializes release state and preserves nonzero orchestrator exits"
+
 # Shell scripts must not embed service manager heredocs anymore (logic belongs in Rust service module)
 if grep -qE 'cat >.*systemd|LaunchAgent|plist|systemctl --user enable' "$SH"; then
   fail "install-focusa.sh still appears to embed service install logic"
