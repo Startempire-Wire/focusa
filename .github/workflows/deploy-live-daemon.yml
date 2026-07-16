@@ -179,8 +179,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          scripts/sync-install-bootstrapper.sh
-          scripts/sync-install-bootstrapper.sh --check
+          if [[ "${{ steps.cfg.outputs.use_sudo }}" == "0" ]]; then
+            scripts/sync-install-bootstrapper.sh
+            scripts/sync-install-bootstrapper.sh --check
+          else
+            sudo -n scripts/sync-install-bootstrapper.sh
+            sudo -n scripts/sync-install-bootstrapper.sh --check
+          fi
 
       - name: Download daemon artifact from release
         if: ${{ !inputs.dry_run }}

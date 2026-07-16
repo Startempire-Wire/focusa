@@ -28,7 +28,7 @@ as_focusadev() {
   if [ "$(id -un)" = "focusadev" ]; then
     "$@"
   else
-    sudo -u focusadev -- "$@"
+    sudo -n -u focusadev -- "$@"
   fi
 }
 
