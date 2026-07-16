@@ -1285,6 +1285,7 @@ fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<String>> 
         RollbackPart::Daemon => name == "daemon",
     };
     let mut restored = Vec::new();
+    let mut restored_daemon_path = None;
     for entry in manifest
         .entries
         .into_iter()
@@ -1304,13 +1305,16 @@ fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<String>> 
             return Err(error);
         }
         let _ = std::fs::remove_file(&failed);
+        if entry.part == "daemon" {
+            restored_daemon_path = Some(entry.target.clone());
+        }
         restored.push(entry.part);
     }
     if restored.is_empty() {
         anyhow::bail!("no matching verified backup entries");
     }
-    if restored.iter().any(|part| part == "daemon") {
-        restart_daemon_service()?;
+    if let Some(daemon_path) = restored_daemon_path.as_deref() {
+        restart_daemon_service(daemon_path)?;
     }
     let state = update_state_root();
     let journal = state.join("update-journal.json");
@@ -1562,29 +1566,44 @@ fn move_file_cross_device_safe(source: &Path, destination: &Path) -> anyhow::Res
     }
 }
 
-fn restart_daemon_service() -> anyhow::Result<()> {
-    let status = if cfg!(target_os = "macos") {
+fn restart_daemon_service(daemon_path: &Path) -> anyhow::Result<()> {
+    if cfg!(target_os = "macos") {
         let uid = std::process::Command::new("id").arg("-u").output()?;
         let target = format!(
             "gui/{}/com.startempire.focusa-daemon",
             String::from_utf8_lossy(&uid.stdout).trim()
         );
-        std::process::Command::new("launchctl")
+        if std::process::Command::new("launchctl")
             .args(["kickstart", "-k", &target])
-            .status()?
+            .status()
+            .map(|status| status.success())
+            .unwrap_or(false)
+        {
+            return Ok(());
+        }
+    } else if cfg!(target_os = "windows") {
+        let _ = std::process::Command::new("taskkill")
+            .args(["/F", "/IM", "focusa-daemon.exe"])
+            .status();
+        std::process::Command::new(daemon_path).spawn()?;
+        return Ok(());
     } else {
-        std::process::Command::new("systemctl")
-            .args(["--user", "restart", "focusa-daemon.service"])
-            .status()?
-    };
-    if status.success() {
-        Ok(())
-    } else {
-        anyhow::bail!(
-            "daemon service restart failed: {}",
-            status.code().unwrap_or(-1)
-        )
+        for args in [
+            vec!["--user", "restart", "focusa-daemon.service"],
+            vec!["restart", "focusa-daemon.service"],
+        ] {
+            if std::process::Command::new("systemctl")
+                .args(&args)
+                .status()
+                .map(|status| status.success())
+                .unwrap_or(false)
+            {
+                return Ok(());
+            }
+        }
     }
+    std::process::Command::new(daemon_path).spawn()?;
+    Ok(())
 }
 
 fn rollback_promoted_parts(promoted: &[PromotedPart]) -> anyhow::Result<Vec<String>> {
@@ -1729,13 +1748,16 @@ async fn execute_verified_apply_locked(
                 }
             }
         }
-        if promoted.iter().any(|(part, _, _, _)| part == "daemon") {
-            restart_daemon_service()?;
+        if let Some((_, daemon_path, _, _)) =
+            promoted.iter().find(|(part, _, _, _)| part == "daemon")
+        {
+            restart_daemon_service(daemon_path)?;
+            let health_url = std::env::var("FOCUSA_DAEMON_HEALTH_URL")
+                .unwrap_or_else(|_| "http://127.0.0.1:8787/v1/health".into());
             let mut observed_version = None;
             for _ in 0..20 {
                 tokio::time::sleep(Duration::from_secs(1)).await;
-                if let Some(version) = probe_daemon_health("http://127.0.0.1:8787/v1/health").await
-                {
+                if let Some(version) = probe_daemon_health(&health_url).await {
                     if normalize_version(&version) == plan.latest.version {
                         observed_version = Some(version);
                         break;
@@ -1754,8 +1776,10 @@ async fn execute_verified_apply_locked(
     .await;
     if let Err(error) = operation {
         let rollback_result = rollback_promoted_parts(&promoted);
-        if promoted.iter().any(|(part, _, _, _)| part == "daemon") {
-            let _ = restart_daemon_service();
+        if let Some((_, daemon_path, _, _)) =
+            promoted.iter().find(|(part, _, _, _)| part == "daemon")
+        {
+            let _ = restart_daemon_service(daemon_path);
         }
         std::fs::write(
             &journal,
