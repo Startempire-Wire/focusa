@@ -17,7 +17,10 @@ log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
 
 http_code() {
-  curl -sS -o /tmp/focusa-pi-contract-body.json -w "%{http_code}" "$@"
+  curl -sS \
+    -H "x-scope-project-root: ${ROOT_DIR}" \
+    -H "x-scope-continuity-id: pi-extension-contract" \
+    -o /tmp/focusa-pi-contract-body.json -w "%{http_code}" "$@"
 }
 
 json_assert() {
