@@ -33,7 +33,7 @@ pass "current runtime status generated from release inputs"
 
 for marker in \
   'release stamp is generated' \
-  'CLI/daemon/core/menubar versions match' \
+  'CLI/daemon/core/TUI/Pi-extension/menubar versions match' \
   'generated docs updated' \
   'tool contract summary updated' \
   'proof bundle captured' \

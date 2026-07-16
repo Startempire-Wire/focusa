@@ -112,6 +112,10 @@ def main() -> int:
     replace_key_value_version("Cargo.toml", version)
     replace_lock_package_versions("Cargo.lock", ROOT_RUST_PACKAGES, version)
 
+    # Pi extension package surfaces.
+    replace_json_version("apps/pi-extension/package.json", version)
+    replace_json_version("apps/pi-extension/package-lock.json", version)
+
     # Menubar web/Tauri surfaces.
     replace_json_version("apps/menubar/package.json", version)
     replace_json_version("apps/menubar/package-lock.json", version)

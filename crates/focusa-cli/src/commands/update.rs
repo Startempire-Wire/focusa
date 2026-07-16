@@ -717,6 +717,8 @@ async fn build_inventory(
         inspect_cli(&latest.version).await?,
         inspect_daemon(&latest.version, daemon_health).await?,
         inspect_tui(&latest.version).await?,
+        inspect_pi_extension(&latest.version),
+        inspect_menubar(&latest.version),
     ];
     let stale_parts = parts
         .iter()
@@ -731,7 +733,7 @@ async fn build_inventory(
         if part.stale == Some(true) {
             warnings.push(format!("{} is stale: {}", part.part, part.stale_reason));
         }
-        if part.version.is_none() {
+        if part.exists && part.version.is_none() {
             warnings.push(format!(
                 "{} version unknown: {}",
                 part.part, part.stale_reason
@@ -1688,7 +1690,18 @@ fn update_state_root() -> PathBuf {
 }
 
 fn part_plan(part: &InstalledPart, latest: &LatestVersion, order: &mut u8) -> PartPlan {
-    let action = if !part.exists {
+    let externally_managed = matches!(part.part, "pi_extension" | "menubar");
+    let action = if externally_managed {
+        if !part.exists {
+            "not_installed"
+        } else {
+            match part.stale {
+                Some(true) => "notify_update",
+                Some(false) => "no_op",
+                None => "probe_required",
+            }
+        }
+    } else if !part.exists {
         "would_install"
     } else {
         match part.stale {
@@ -2232,6 +2245,101 @@ fn run_policy(cmd: UpdatePolicyCmd, json_mode: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn configured_package_json(env_var: &str, repo_relative: &str) -> PathBuf {
+    if let Some(path) = std::env::var_os(env_var) {
+        return PathBuf::from(path);
+    }
+    std::env::current_dir()
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join(repo_relative)
+}
+
+fn inspect_package_part(
+    part: &'static str,
+    package_json: PathBuf,
+    latest: &str,
+    notes: Vec<String>,
+) -> InstalledPart {
+    let expected_path = package_json.display().to_string();
+    if !package_json.is_file() {
+        return InstalledPart {
+            part,
+            expected_path,
+            resolved_path: None,
+            exists: false,
+            version: None,
+            version_source: "package_json",
+            version_probe_safe: true,
+            sha256: None,
+            stale: None,
+            stale_reason: format!("{part} is not installed or discoverable on this host"),
+            notes,
+        };
+    }
+
+    let parsed = std::fs::read(&package_json)
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok());
+    let version = parsed
+        .as_ref()
+        .and_then(|value| value.get("version"))
+        .and_then(serde_json::Value::as_str)
+        .map(normalize_version);
+    let sha256 = sha256_file(&package_json).ok();
+    let stale = version
+        .as_deref()
+        .map(|installed| normalize_version(installed) != normalize_version(latest));
+    let stale_reason = match (&version, stale) {
+        (Some(installed), Some(true)) => {
+            format!("installed {part} version {installed} differs from latest {latest}")
+        }
+        (Some(installed), Some(false)) => {
+            format!("installed {part} version {installed} matches latest {latest}")
+        }
+        _ => format!("{part} package.json does not expose a valid version"),
+    };
+
+    InstalledPart {
+        part,
+        expected_path,
+        resolved_path: Some(package_json.display().to_string()),
+        exists: true,
+        version,
+        version_source: "package_json",
+        version_probe_safe: true,
+        sha256,
+        stale,
+        stale_reason,
+        notes,
+    }
+}
+
+fn inspect_pi_extension(latest: &str) -> InstalledPart {
+    inspect_package_part(
+        "pi_extension",
+        configured_package_json(
+            "FOCUSA_PI_EXTENSION_PACKAGE_JSON",
+            "apps/pi-extension/package.json",
+        ),
+        latest,
+        vec![
+            "Pi extension updates remain package-channel managed and are never binary-promoted by focusa update apply".to_string(),
+        ],
+    )
+}
+
+fn inspect_menubar(latest: &str) -> InstalledPart {
+    inspect_package_part(
+        "menubar",
+        configured_package_json("FOCUSA_MENUBAR_PACKAGE_JSON", "apps/menubar/package.json"),
+        latest,
+        vec![
+            "menubar updates remain signed Mac bundle managed and are never installed server-side"
+                .to_string(),
+        ],
+    )
+}
+
 async fn inspect_cli(latest: &str) -> anyhow::Result<InstalledPart> {
     let path = resolve_path("focusa", "/usr/local/bin/focusa");
     inspect_executable_part("cli", "/usr/local/bin/focusa", path, latest, true).await
@@ -2524,13 +2632,52 @@ fn print_human(envelope: &UpdateInventoryEnvelope) {
 
 #[cfg(test)]
 mod tests {
-    use super::{PromotedPart, normalize_version, rollback_promoted_parts};
+    use super::{PromotedPart, inspect_package_part, normalize_version, rollback_promoted_parts};
 
     #[test]
     fn normalizes_common_version_outputs() {
         assert_eq!(normalize_version("focusa 0.9.74-dev"), "0.9.74-dev");
         assert_eq!(normalize_version("v0.9.80-dev"), "0.9.80-dev");
         assert_eq!(normalize_version("0.9.80-dev"), "0.9.80-dev");
+    }
+
+    #[test]
+    fn package_inventory_reports_exact_version_hash_and_staleness() {
+        let root = std::env::temp_dir().join(format!(
+            "focusa-package-inventory-{}-{}",
+            std::process::id(),
+            super::chrono_like_timestamp()
+        ));
+        std::fs::create_dir_all(&root).expect("create package fixture");
+        let package = root.join("package.json");
+        std::fs::write(
+            &package,
+            br#"{"name":"focusa-test","version":"0.9.100-dev"}"#,
+        )
+        .expect("write package fixture");
+
+        let current = inspect_package_part("pi_extension", package.clone(), "0.9.100-dev", vec![]);
+        assert!(current.exists);
+        assert_eq!(current.version.as_deref(), Some("0.9.100-dev"));
+        assert_eq!(current.stale, Some(false));
+        assert!(current.sha256.is_some());
+
+        let stale = inspect_package_part("pi_extension", package, "0.9.101-dev", vec![]);
+        assert_eq!(stale.stale, Some(true));
+        std::fs::remove_dir_all(root).expect("remove package fixture");
+    }
+
+    #[test]
+    fn absent_external_package_is_unknown_not_stale() {
+        let package = std::env::temp_dir().join(format!(
+            "focusa-missing-package-{}-{}.json",
+            std::process::id(),
+            super::chrono_like_timestamp()
+        ));
+        let part = inspect_package_part("menubar", package, "0.9.100-dev", vec![]);
+        assert!(!part.exists);
+        assert_eq!(part.stale, None);
+        assert!(part.sha256.is_none());
     }
 
     #[test]

@@ -211,9 +211,9 @@ jobs:
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
         run: |
           set -euo pipefail
-          for required in APPLE_CERTIFICATE_BASE64 APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_API_KEY_ID APPLE_API_KEY_P8; do
+          for required in APPLE_CERTIFICATE_BASE64 APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY; do
             if [ -z "${!required:-}" ]; then
-              echo "::notice::Apple secret ${required} is absent; publishing only an UNNOTARIZED-PREVIEW menubar artifact."
+              echo "::notice::Apple signing secret ${required} is absent; publishing only an UNNOTARIZED-PREVIEW menubar artifact."
               exit 0
             fi
           done
@@ -232,13 +232,15 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep -F "$APPLE_SIGNING_IDENTITY"
-          printf '%s' "$APPLE_API_KEY_P8" > "${RUNNER_TEMP}/AuthKey_${APPLE_API_KEY_ID}.p8"
-          chmod 0600 "${RUNNER_TEMP}/AuthKey_${APPLE_API_KEY_ID}.p8"
+          echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY" >> "$GITHUB_ENV"
+          if [ -n "${APPLE_API_KEY_ID:-}" ] && [ -n "${APPLE_API_KEY_P8:-}" ]; then
+            printf '%s' "$APPLE_API_KEY_P8" > "${RUNNER_TEMP}/AuthKey_${APPLE_API_KEY_ID}.p8"
+            chmod 0600 "${RUNNER_TEMP}/AuthKey_${APPLE_API_KEY_ID}.p8"
+          fi
 
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         with:
           projectPath: apps/menubar
           tagName: ${{ github.ref_name }}
@@ -414,6 +416,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Stamp and verify Pi extension release version
+        run: |
+          set -euo pipefail
+          python3 scripts/stamp-menubar-version.py "${{ github.ref_name }}"
+          python3 scripts/verify-version-surfaces.py "${{ github.ref_name }}"
       - name: Package bundled Pi extension and agent context
         run: |
           set -euo pipefail

@@ -5,18 +5,18 @@
 **Source registry:** `docs/current/focusa-tool-contracts.json`
 **Generated:** `2026-06-15T21:08:06.778Z`
 **Source commit:** `cae911c`
-**Current version:** `0.9.94-dev`
+**Current version:** `0.9.100-dev`
 
 ## Counts
 
 | Metric | Count |
 | --- | ---: |
-| Tool contracts | 97 |
-| Tool families | 11 |
-| API parity | 93 |
-| CLI parity | 81 |
-| Pi tools | 97 |
-| Docs coverage | 97 |
+| Tool contracts | 105 |
+| Tool families | 12 |
+| API parity | 101 |
+| CLI parity | 90 |
+| Pi tools | 105 |
+| Docs coverage | 105 |
 
 ## Families
 
@@ -26,6 +26,7 @@
 | diagnostics_hygiene | 21 |
 | focus_state | 11 |
 | metacognition | 13 |
+| preload | 8 |
 | project_identity | 4 |
 | session_transfer | 6 |
 | trajectory | 14 |

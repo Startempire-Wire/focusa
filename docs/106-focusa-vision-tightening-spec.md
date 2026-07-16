@@ -794,7 +794,7 @@ publish_allowed
 A release is not complete until:
 
 1. release stamp is generated
-2. CLI/daemon/core/menubar versions match
+2. CLI/daemon/core/TUI/Pi-extension/menubar versions match
 3. generated docs updated
 4. tool contract summary updated
 5. CI green

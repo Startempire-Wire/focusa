@@ -72,6 +72,8 @@ def main() -> int:
 
     checks: list[tuple[str, str]] = [
         ("Cargo.toml", read_toml_version("Cargo.toml")),
+        ("apps/pi-extension/package.json", read_json_version("apps/pi-extension/package.json")),
+        ("apps/pi-extension/package-lock.json", read_json_version("apps/pi-extension/package-lock.json")),
         ("apps/menubar/package.json", read_json_version("apps/menubar/package.json")),
         ("apps/menubar/src-tauri/tauri.conf.json", read_json_version("apps/menubar/src-tauri/tauri.conf.json")),
         ("apps/menubar/src-tauri/Cargo.toml", read_toml_version("apps/menubar/src-tauri/Cargo.toml")),
