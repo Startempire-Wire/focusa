@@ -25,15 +25,6 @@ curl() {
     "$@"
 }
 
-curl -sS -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/json" \
-  -d '{"reason":"proposal-kind-preflight-reset"}' >/dev/null || true
-curl -sS -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" \
-  -d "{\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"proposal-kind-test\",\"adapter_id\":\"test\"}" >/dev/null
-for _ in $(seq 1 40); do
-  curl -sS "${BASE_URL}/v1/status" | jq -e '.session.continuity_id == "proposal-kind-test"' >/dev/null 2>&1 && break
-  sleep 0.1
-done
-
 run_source="spec-kind-test-$(date +%s%N)"
 thread_name="proposal-kind-thread-$(date +%s%N)"
 thread_resp=$(curl -sS -X POST "${BASE_URL}/v1/threads" \
