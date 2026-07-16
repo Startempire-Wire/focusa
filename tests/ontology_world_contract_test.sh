@@ -5,6 +5,7 @@
 set -euo pipefail
 
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FAILED=0
 PASSED=0
 
@@ -16,6 +17,13 @@ NC='\033[0m'
 log_pass() { echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
+
+curl() {
+  command curl \
+    -H "x-scope-project-root: ${WORKSPACE_ROOT:-$REPO_ROOT}" \
+    -H "x-scope-continuity-id: ontology-world" \
+    "$@"
+}
 
 http_code() {
   curl -sS -o /tmp/focusa-ontology-world-body.json -w "%{http_code}" "$@"
@@ -99,6 +107,15 @@ curl -sS -X POST "${BASE_URL}/v1/ascc/update-delta" -H "Content-Type: applicatio
   -d "{\"frame_id\":\"${frame_id}\",\"delta\":{\"decisions\":[\"Use bounded ontology world projection\"],\"constraints\":[\"No unbounded ontology blob\"],\"failures\":[\"Software world gap under test\"],\"recent_results\":[\"Projection route added\"]}}" >/dev/null
 curl -sS -X POST "${BASE_URL}/v1/ecs/store" -H "Content-Type: application/json" \
   -d '{"kind":"text","label":"ontology-artifact","content":"artifact for ontology world contract","surface":"test"}' >/dev/null
+WORKPOINT=$(curl -sS -X POST "${BASE_URL}/v1/workpoint/checkpoint" -H "Content-Type: application/json" \
+  -d "{\"project_root\":\"${WORKSPACE_ROOT}\",\"continuity_id\":\"ontology-world\",\"mission\":\"verify ontology world contract\",\"current_action\":\"ontology_world_projection\",\"next_slice\":\"verify bounded ontology context\",\"canonical\":true}")
+WORKPOINT_ID=$(echo "$WORKPOINT" | jq -r '.workpoint_id // empty')
+for _ in $(seq 1 40); do
+  RESUME=$(curl -sS -X POST "${BASE_URL}/v1/workpoint/resume" -H "Content-Type: application/json" \
+    -d "{\"project_root\":\"${WORKSPACE_ROOT}\",\"continuity_id\":\"ontology-world\",\"mode\":\"compact_prompt\"}")
+  echo "$RESUME" | jq -e --arg id "$WORKPOINT_ID" '.canonical == true and .workpoint_id == $id' >/dev/null 2>&1 && break
+  sleep 0.1
+done
 ACTIVE_WRITER=$(curl -sS "${BASE_URL}/v1/work-loop" | jq -r '.active_writer // "ontology-world-contract"')
 curl -sS -X POST "${BASE_URL}/v1/work-loop/checkpoint" -H "Content-Type: application/json" -H "x-focusa-writer-id: ${ACTIVE_WRITER}" \
   -d '{"summary":"ontology world contract seed"}' >/dev/null
