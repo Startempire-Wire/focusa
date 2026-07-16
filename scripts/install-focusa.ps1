@@ -88,7 +88,7 @@ $Selected = $null
 if ($ReleaseTag -and $ReleaseBaseUrl) {
   $Selected = @{
     Tag = $ReleaseTag
-    Focusa = "$($ReleaseBaseUrl.TrimEnd('/'))/focusa-$ReleaseTag-$Triple"
+    Focusa = "$($ReleaseBaseUrl.TrimEnd('/'))/focusa-$ReleaseTag-$Triple.exe"
   }
 } else {
   Log "Scanning GitHub releases for latest complete build (channel=$Channel, triple=$Triple)"
@@ -109,13 +109,13 @@ if ($ReleaseTag -and $ReleaseBaseUrl) {
 
     $HasAll = $true
     foreach ($R in $RequiredAssets) {
-      $Expected = "$R-$Tag-$Triple"
+      $Expected = "$R-$Tag-$Triple.exe"
       if (-not $AssetNames.ContainsKey($Expected)) { $HasAll = $false; break }
     }
     if ($HasAll) {
       $Selected = @{
         Tag    = $Tag
-        Focusa = $AssetNames["focusa-$Tag-$Triple"]
+        Focusa = $AssetNames["focusa-$Tag-$Triple.exe"]
       }
       break
     }
@@ -147,7 +147,7 @@ if ($DryRun) {
 # SHA256SUMS verify (best-effort; tries SHA256SUMS then SHA256SUMS.txt).
 # ---------------------------------------------------------------------------
 if (-not $DryRun) {
-  $AssetFocusa = "focusa-$Tag-$Triple"
+  $AssetFocusa = "focusa-$Tag-$Triple.exe"
   $Actual = (Get-FileHash $Bootstrap -Algorithm SHA256).Hash.ToLower()
   $Verified = $false
   foreach ($ShaPath in @("SHA256SUMS", "SHA256SUMS.txt")) {

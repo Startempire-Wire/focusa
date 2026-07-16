@@ -51,7 +51,7 @@ jobs:
 
           $scratch = Join-Path $root 'focusa-0.9.117.exe'
           Invoke-WebRequest `
-            'https://github.com/Startempire-Wire/focusa/releases/download/v0.9.117-dev/focusa-v0.9.117-dev-x86_64-pc-windows-msvc' `
+            'https://github.com/Startempire-Wire/focusa/releases/download/v0.9.117-dev/focusa-v0.9.117-dev-x86_64-pc-windows-msvc.exe' `
             -OutFile $scratch
 
           $plan = (& $scratch --json update plan --daemon-health-url 'http://127.0.0.1:18791/v1/health') | ConvertFrom-Json
