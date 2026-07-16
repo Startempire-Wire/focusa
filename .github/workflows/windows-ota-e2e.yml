@@ -19,6 +19,11 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          # Build before isolating HOME so rustup retains its provisioned toolchain.
+          cargo build -p focusa-cli --bin focusa
+          if ($LASTEXITCODE -ne 0) { throw 'candidate Windows build failed' }
+          $candidate = Join-Path $PWD 'target\debug\focusa.exe'
+
           $root = Join-Path $env:RUNNER_TEMP 'focusa-windows-ota'
           $testHome = Join-Path $root 'home'
           $data = Join-Path $root 'data'
@@ -36,10 +41,8 @@ jobs:
             -ReleaseTag v0.9.116-dev `
             -ReleaseBaseUrl 'https://github.com/Startempire-Wire/focusa/releases/download/v0.9.116-dev'
 
-          # Build the exact candidate once on Windows, then use it to exercise the
-          # transactional installer and updater against prior signed releases.
-          cargo build -p focusa-cli --bin focusa
-          $candidate = Join-Path $PWD 'target\debug\focusa.exe'
+          # Use the exact candidate to exercise the transactional installer and
+          # updater against prior signed releases.
           $env:FOCUSA_RELEASE_TAG = 'v0.9.116-dev'
           $env:FOCUSA_RELEASE_BASE_URL = 'https://github.com/Startempire-Wire/focusa/releases/download/v0.9.116-dev'
           & $candidate install --target=windows-x64 --channel=preview --eval --no-service
