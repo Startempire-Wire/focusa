@@ -167,7 +167,7 @@ if (-not $DryRun) {
       }
       if ($Verified) { break }
     } catch {
-      Warn "could not fetch $ShaPath: $($_.Exception.Message)"
+      Warn "could not fetch ${ShaPath}: $($_.Exception.Message)"
     }
   }
   if (-not $Verified) { Warn "SHA256SUMS not available for $Tag; skipping verify" }
