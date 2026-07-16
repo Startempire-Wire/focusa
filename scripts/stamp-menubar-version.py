@@ -21,7 +21,15 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION_RE = re.compile(r"^v?(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)$")
 OLD_VERSION_RE = re.compile(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?")
 
-ROOT_RUST_PACKAGES = {"focusa-api", "focusa-bench", "focusa-cli", "focusa-core", "focusa-license", "focusa-tui"}
+ROOT_RUST_PACKAGES = {
+    "focusa-api",
+    "focusa-bench",
+    "focusa-cli",
+    "focusa-core",
+    "focusa-license",
+    "focusa-terminal-ui",
+    "focusa-tui",
+}
 MENUBAR_RUST_PACKAGES = {"focusa-menubar"}
 
 

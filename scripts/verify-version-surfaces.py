@@ -18,7 +18,15 @@ SETTINGS_RE = re.compile(r"(v?)(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)")
 PACKAGE_RE = re.compile(r'^name\s*=\s*"([^"]+)"\s*$')
 LOCK_VERSION_RE = re.compile(r'^version\s*=\s*"([^"]+)"\s*$')
 
-ROOT_RUST_PACKAGES = {"focusa-api", "focusa-cli", "focusa-core", "focusa-tui"}
+ROOT_RUST_PACKAGES = {
+    "focusa-api",
+    "focusa-bench",
+    "focusa-cli",
+    "focusa-core",
+    "focusa-license",
+    "focusa-terminal-ui",
+    "focusa-tui",
+}
 MENUBAR_RUST_PACKAGES = {"focusa-menubar"}
 
 
