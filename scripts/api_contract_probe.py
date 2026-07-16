@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import os
 import sys
 import time
 import urllib.error
@@ -115,23 +116,48 @@ def main():
 
     # 6) turn_complete idempotency
     turn_id = f"probe-turn-{uuid.uuid4()}"
+    project_root = os.environ.get("FOCUSA_PROJECT_ROOT", os.getcwd())
     start_body = {
         "turn_id": turn_id,
+        "project_root": project_root,
         "harness_name": "probe",
         "adapter_id": "probe",
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
-    req(args.base_url, "/v1/turn/start", method="POST", body=start_body)
+    scope_headers = {
+        "x-scope-project-root": project_root,
+        "x-scope-continuity-id": f"api-contract-{turn_id}",
+    }
+    req(
+        args.base_url,
+        "/v1/turn/start",
+        method="POST",
+        body=start_body,
+        headers=scope_headers,
+    )
 
     complete_body = {
         "turn_id": turn_id,
+        "project_root": project_root,
         "assistant_output": "done",
         "artifacts": [],
         "errors": [],
     }
-    s1, _, r1 = req(args.base_url, "/v1/turn/complete", method="POST", body=complete_body)
+    s1, _, r1 = req(
+        args.base_url,
+        "/v1/turn/complete",
+        method="POST",
+        body=complete_body,
+        headers=scope_headers,
+    )
     time.sleep(0.05)
-    s2, _, r2 = req(args.base_url, "/v1/turn/complete", method="POST", body=complete_body)
+    s2, _, r2 = req(
+        args.base_url,
+        "/v1/turn/complete",
+        method="POST",
+        body=complete_body,
+        headers=scope_headers,
+    )
     b2, e2 = parse_json(r2)
     ok = s1 == 200 and s2 == 200 and b2 is not None and b2.get("duplicate") is True
     add_check("turn_complete_idempotency", ok, {"first_status": s1, "second_status": s2, "second_body": b2 if b2 else r2, "parse_error": e2})
