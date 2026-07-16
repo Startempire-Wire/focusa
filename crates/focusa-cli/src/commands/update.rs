@@ -3099,7 +3099,7 @@ mod tests {
     }
 
     #[test]
-    fn rollback_without_backup_never_removes_current_target() {
+    fn rollback_new_install_without_backup_removes_promoted_target() {
         let root = std::env::temp_dir().join(format!(
             "focusa-update-no-backup-{}-{}",
             std::process::id(),
@@ -3111,9 +3111,9 @@ mod tests {
         std::fs::write(&target, b"current").expect("write target");
         let promoted: Vec<PromotedPart> =
             vec![("cli".into(), target.clone(), backup, String::new())];
-        let restored = rollback_promoted_parts(&promoted).expect("rollback no-op succeeds");
-        assert!(restored.is_empty());
-        assert_eq!(std::fs::read(&target).expect("read target"), b"current");
+        let restored = rollback_promoted_parts(&promoted).expect("rollback succeeds");
+        assert_eq!(restored, vec!["cli"]);
+        assert!(!target.exists());
         std::fs::remove_dir_all(root).expect("remove rollback fixture");
     }
 }
