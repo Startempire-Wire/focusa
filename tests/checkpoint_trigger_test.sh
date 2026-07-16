@@ -5,6 +5,7 @@ set -euo pipefail
 
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SCOPE_CONTINUITY_ID="checkpoint-contract"
 FAILED=0
 PASSED=0
 
@@ -18,7 +19,10 @@ log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
 
 http_code() {
-  curl -sS -o /tmp/focusa-checkpoint-body.json -w "%{http_code}" "$@"
+  curl -sS \
+    -H "x-scope-project-root: ${ROOT_DIR}" \
+    -H "x-scope-continuity-id: ${SCOPE_CONTINUITY_ID}" \
+    -o /tmp/focusa-checkpoint-body.json -w "%{http_code}" "$@"
 }
 
 json_assert() {
@@ -60,6 +64,7 @@ log_info "Trigger 1: session start"
 http_code -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/json" \
   -d '{"reason":"checkpoint-trigger-test-reset"}' >/dev/null 2>&1 || true
 WS_ID="checkpoint-test-$(date +%s)-$$"
+SCOPE_CONTINUITY_ID="$WS_ID"
 code=$(http_code -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" \
   -d "{\"workspace_id\":\"${WS_ID}\",\"continuity_id\":\"${WS_ID}\",\"project_root\":\"${ROOT_DIR}\",\"adapter_id\":\"pi\"}")
 if [ "$code" = "200" ]; then
@@ -77,7 +82,7 @@ fi
 
 log_info "Trigger 3: high-impact action completion"
 code=$(http_code -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" \
-  -d "{\"title\":\"checkpoint-test\",\"goal\":\"testing triggers\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"checkpoint-test\"}")
+  -d "{\"title\":\"checkpoint-test\",\"goal\":\"testing triggers\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"${WS_ID}\"}")
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted"' "Focus push accepted"
 else
