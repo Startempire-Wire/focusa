@@ -16,18 +16,18 @@ log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 curl() {
   command curl \
     -H "x-scope-project-root: ${ROOT_DIR}" \
-    -H "x-scope-continuity-id: work-loop-policy-consumption-test" \
+    -H "x-scope-continuity-id: work-loop-continuation-test" \
     "$@"
 }
 http_json() { curl -sS "$@"; }
 
 CHECKPOINT_RESP=$(http_json -X POST "${BASE_URL}/v1/workpoint/checkpoint" \
   -H 'Content-Type: application/json' \
-  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-policy-consumption-test\",\"mission\":\"verify work-loop policy consumption\",\"current_action\":\"spec79_policy_consumption\",\"next_slice\":\"verify consumed continuation inputs\",\"canonical\":true}")
+  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"mission\":\"verify work-loop policy consumption\",\"current_action\":\"spec79_policy_consumption\",\"next_slice\":\"verify consumed continuation inputs\",\"canonical\":true}")
 WORKPOINT_ID=$(echo "$CHECKPOINT_RESP" | jq -r '.workpoint_id // empty')
 for _ in $(seq 1 40); do
   RESUME=$(http_json -X POST "${BASE_URL}/v1/workpoint/resume" -H 'Content-Type: application/json' \
-    -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-policy-consumption-test\",\"mode\":\"compact_prompt\"}")
+    -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"mode\":\"compact_prompt\"}")
   echo "$RESUME" | jq -e --arg id "$WORKPOINT_ID" '.canonical == true and .workpoint_id == $id' >/dev/null 2>&1 && break
   sleep 0.1
 done
