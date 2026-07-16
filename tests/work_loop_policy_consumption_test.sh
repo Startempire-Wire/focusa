@@ -3,6 +3,7 @@
 
 set -euo pipefail
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FAILED=0
 PASSED=0
 
@@ -12,7 +13,17 @@ NC='\033[0m'
 
 log_pass() { echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
+curl() {
+  command curl \
+    -H "x-scope-project-root: ${ROOT_DIR}" \
+    -H "x-scope-continuity-id: work-loop-policy-consumption-test" \
+    "$@"
+}
 http_json() { curl -sS "$@"; }
+
+http_json -X POST "${BASE_URL}/v1/workpoint/checkpoint" \
+  -H 'Content-Type: application/json' \
+  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-policy-consumption-test\",\"mission\":\"verify work-loop policy consumption\",\"current_action\":\"spec79_policy_consumption\",\"next_slice\":\"verify consumed continuation inputs\",\"canonical\":true}" >/dev/null
 
 # Create a high-risk current task under continuous loop.
 http_json -X POST "${BASE_URL}/v1/work-loop/enable" \
