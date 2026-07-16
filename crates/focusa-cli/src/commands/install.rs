@@ -2801,6 +2801,8 @@ fn atty_stdout_is_terminal() -> bool {
 /// changes the operator has made.
 pub(crate) const PATH_MARKER_BEGIN: &str = "# focusa-install: begin PATH";
 pub(crate) const PATH_MARKER_END: &str = "# focusa-install: end PATH";
+const LEGACY_PATH_MARKER_BEGIN: &str = "# >>> focusa PATH >>>";
+const LEGACY_PATH_MARKER_END: &str = "# <<< focusa PATH <<<";
 
 /// Idempotently persist the PATH line to an rc file wrapped in markers.
 /// The uninstaller can safely delete just the marker block without
@@ -2816,8 +2818,20 @@ pub fn persist_path_to_rc(rc: &std::path::Path, path_line: &str) -> Result<()> {
         return Ok(());
     }
     let content = std::fs::read_to_string(rc).with_context(|| format!("read {}", rc.display()))?;
+    let legacy_block =
+        format!("{LEGACY_PATH_MARKER_BEGIN}\n{path_line}\n{LEGACY_PATH_MARKER_END}\n");
     if content.contains(PATH_MARKER_BEGIN) && content.contains(PATH_MARKER_END) {
-        // Markers already present; leave the block alone.
+        // Remove the prior bootstrapper's equivalent block when both formats
+        // exist, otherwise repeated repair installs duplicate the PATH entry.
+        if content.contains(&legacy_block) {
+            std::fs::write(rc, content.replace(&legacy_block, ""))
+                .with_context(|| format!("migrate legacy PATH block in {}", rc.display()))?;
+        }
+        return Ok(());
+    }
+    if content.contains(&legacy_block) {
+        std::fs::write(rc, content.replace(&legacy_block, &block))
+            .with_context(|| format!("migrate legacy PATH block in {}", rc.display()))?;
         return Ok(());
     }
     let mut new_content = content;
@@ -4041,5 +4055,48 @@ mod tests {
         assert_eq!(execution.installed, vec!["python3"]);
         assert_eq!(execution.retryable_failures.len(), 1);
         assert_eq!(execution.rollback_status, "not_needed");
+    }
+
+    #[test]
+    fn path_persistence_migrates_legacy_block_without_duplication() {
+        let fixture =
+            std::env::temp_dir().join(format!("focusa-path-migration-{}", uuid::Uuid::now_v7()));
+        let rc = fixture.join(".zshrc");
+        std::fs::create_dir_all(&fixture).unwrap();
+        let line = "export PATH=\"$HOME/.local/bin:$PATH\"";
+        std::fs::write(
+            &rc,
+            format!("{LEGACY_PATH_MARKER_BEGIN}\n{line}\n{LEGACY_PATH_MARKER_END}\n"),
+        )
+        .unwrap();
+
+        persist_path_to_rc(&rc, line).unwrap();
+        let content = std::fs::read_to_string(&rc).unwrap();
+        assert_eq!(content.matches(line).count(), 1);
+        assert!(content.contains(PATH_MARKER_BEGIN));
+        assert!(!content.contains(LEGACY_PATH_MARKER_BEGIN));
+        let _ = std::fs::remove_dir_all(fixture);
+    }
+
+    #[test]
+    fn path_persistence_removes_legacy_duplicate_beside_current_block() {
+        let fixture =
+            std::env::temp_dir().join(format!("focusa-path-deduplicate-{}", uuid::Uuid::now_v7()));
+        let rc = fixture.join(".zshrc");
+        std::fs::create_dir_all(&fixture).unwrap();
+        let line = "export PATH=\"$HOME/.local/bin:$PATH\"";
+        std::fs::write(
+            &rc,
+            format!(
+                "{LEGACY_PATH_MARKER_BEGIN}\n{line}\n{LEGACY_PATH_MARKER_END}\n{PATH_MARKER_BEGIN}\n{line}\n{PATH_MARKER_END}\n"
+            ),
+        )
+        .unwrap();
+
+        persist_path_to_rc(&rc, line).unwrap();
+        let content = std::fs::read_to_string(&rc).unwrap();
+        assert_eq!(content.matches(line).count(), 1);
+        assert!(!content.contains(LEGACY_PATH_MARKER_BEGIN));
+        let _ = std::fs::remove_dir_all(fixture);
     }
 }

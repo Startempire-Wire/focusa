@@ -193,7 +193,34 @@ fn run_launchd_user(
         .args(["load", "-w", &plist_path.to_string_lossy()])
         .status();
     match status {
-        Ok(s) if s.success() => Ok((true, notes)),
+        Ok(s) if s.success() => {
+            // `load -w` may leave an already-running process mapped to the
+            // pre-upgrade inode after the install root was stashed. Force a
+            // launchd restart so health reflects the newly promoted binary.
+            let uid = std::process::Command::new("id")
+                .arg("-u")
+                .output()
+                .context("resolve uid for launchctl kickstart")?;
+            if !uid.status.success() {
+                return Err(anyhow!("id -u failed while restarting LaunchAgent"));
+            }
+            let uid = String::from_utf8_lossy(&uid.stdout).trim().to_string();
+            let service_target = format!("gui/{uid}/{LAUNCHD_LABEL}");
+            let restart = std::process::Command::new("launchctl")
+                .args(["kickstart", "-k", &service_target])
+                .status();
+            match restart {
+                Ok(restart_status) if restart_status.success() => {
+                    notes.push("LaunchAgent restarted on promoted binary".to_string());
+                    Ok((true, notes))
+                }
+                Ok(restart_status) => Err(anyhow!(
+                    "launchctl kickstart -k failed: exit={}",
+                    restart_status.code().unwrap_or(-1)
+                )),
+                Err(error) => Err(anyhow!("launchctl kickstart -k not runnable: {error}")),
+            }
+        }
         Ok(s) => Err(anyhow!(
             "launchctl load -w failed: exit={}",
             s.code().unwrap_or(-1)
