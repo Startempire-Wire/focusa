@@ -1,0 +1,22 @@
+schema=focusa.spec128.live_trust_enforcement_proof.v1
+status=pass
+work_item=focusa-w26jj.9.5.2
+tag=v0.9.100-dev
+commit=ad38fd4b8b8550f21725e67e1668cfea04519e00
+release_run=https://github.com/Startempire-Wire/focusa/actions/runs/29469998716
+release_run_conclusion=success
+deploy_run=https://github.com/Startempire-Wire/focusa/actions/runs/29470662033
+deploy_run_conclusion=success
+release_asset_count=50
+
+proofs:
+- release Rust Check, six binary target jobs, checksums/manifest/provenance publication: PASS
+- signed deploy-success proof after production health + smoke: PASS
+- v0.9.100 x86_64 musl CLI detached Ed25519 signature: PASS
+- deploy-success.json detached Ed25519 signature: PASS
+- deploy proof tag/version/commit/asset/manifest binding: PASS
+- focusa 0.9.100-dev live doctor with project_root+continuity: completed; work-loop completed; recovery=[]
+- focusa 0.9.100-dev update plan: latest=v0.9.100-dev; signature_verified=true; manifest_signature_verified=true; provenance_verified=true; deploy_proof_verified=true; key_revoked=false; blockers=[]
+- missing/false/mismatched deploy proof unit tests: PASS
+- revoked/yanked/signature/checksum fail-closed core tests: PASS
+- public macOS arm64 installer selects v0.9.100-dev aarch64-apple-darwin: PASS
