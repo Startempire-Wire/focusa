@@ -1587,6 +1587,10 @@ fn rollback_promoted_parts(promoted: &[PromotedPart]) -> anyhow::Result<Vec<Stri
     let mut restored = Vec::new();
     for (part, target, backup, _) in promoted.iter().rev() {
         if !backup.exists() {
+            if target.exists() {
+                std::fs::remove_file(target)?;
+            }
+            restored.push(part.clone());
             continue;
         }
         let failed = target.with_extension("focusa-failed");
@@ -2823,6 +2827,12 @@ fn resolve_path(command: &str, canonical: &str) -> Option<String> {
         let path = PathBuf::from(path);
         if path.exists() {
             return Some(path.to_string_lossy().to_string());
+        }
+    }
+    if let Some(home) = std::env::var_os("HOME") {
+        let user_install = PathBuf::from(home).join(".focusa/bin").join(command);
+        if user_install.exists() {
+            return Some(user_install.to_string_lossy().to_string());
         }
     }
     if Path::new(canonical).exists() {
