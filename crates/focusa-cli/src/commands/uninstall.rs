@@ -96,6 +96,7 @@ pub enum UninstallStepKind {
     RemoveLicense,
     RevertPath,
     PurgeAgentSkills,
+    PurgePiExtension,
     RemoveLaunchAgentPlist,
     RemoveMenuBarApp,
     RemoveMenuBarPrefs,
@@ -286,6 +287,22 @@ fn plan_steps(
             name: "purge_agent_skills".to_string(),
             kind: UninstallStepKind::PurgeAgentSkills,
             target_path: Some("~/.pi/skills".to_string()),
+            status: UninstallStepStatus::Planned,
+            detail: None,
+        });
+        let pi_extension_root = std::env::var_os("FOCUSA_PI_EXT_ROOT")
+            .or_else(|| std::env::var_os("FOCUSA_PI_EXT_DIR"))
+            .map(PathBuf::from)
+            .unwrap_or_else(|| {
+                install_root
+                    .parent()
+                    .unwrap_or(install_root)
+                    .join(".pi/agent/extensions")
+            });
+        steps.push(UninstallStep {
+            name: "purge_pi_extension".to_string(),
+            kind: UninstallStepKind::PurgePiExtension,
+            target_path: Some(pi_extension_root.join("focusa").display().to_string()),
             status: UninstallStepStatus::Planned,
             detail: None,
         });
@@ -557,7 +574,7 @@ fn execute_step(
             }
             Ok(StepOutcome::Executed)
         }
-        PurgeAgentSkills => {
+        PurgeAgentSkills | PurgePiExtension => {
             if let Some(p) = &step.target_path {
                 let expanded = p.replace("~", &std::env::var("HOME").unwrap_or_default());
                 let path = std::path::PathBuf::from(&expanded);
@@ -1095,6 +1112,15 @@ mod tests {
                 .iter()
                 .any(|s| matches!(s.kind, UninstallStepKind::PurgeAgentSkills))
         );
+        assert!(
+            steps
+                .iter()
+                .any(|s| matches!(s.kind, UninstallStepKind::PurgePiExtension))
+        );
+        assert!(steps.iter().any(|s| {
+            matches!(s.kind, UninstallStepKind::PurgePiExtension)
+                && s.target_path.as_deref() == Some("/tmp/.pi/agent/extensions/focusa")
+        }));
     }
 
     #[test]

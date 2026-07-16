@@ -1710,12 +1710,8 @@ fn cancellation_result<T>(
     sink.emit(InstallEvent::RollbackStarted {
         reason: "installation cancelled by operator".into(),
     });
-    let rollback = if stashed {
-        phase_atomic_rollback(install_root, stash_path)
-    } else {
-        cleanup_staged_downloads(install_root);
-        Ok(())
-    };
+    cleanup_staged_downloads(install_root);
+    let rollback = phase_atomic_recover(install_root, stash_path, stashed);
     match rollback {
         Ok(()) => {
             sink.emit(InstallEvent::RollbackSucceeded);
@@ -1880,11 +1876,7 @@ pub async fn run(args: InstallArgs) -> Result<()> {
             sink.emit(InstallEvent::RollbackStarted {
                 reason: "recovering from installer phase failure".into(),
             });
-            let rollback = if stashed {
-                phase_atomic_rollback(&install_root, &stash_path)
-            } else {
-                Ok(())
-            };
+            let rollback = phase_atomic_recover(&install_root, &stash_path, stashed);
             let recovery = match rollback {
                 Ok(()) => {
                     sink.emit(InstallEvent::RollbackSucceeded);
@@ -1923,11 +1915,7 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         sink.emit(InstallEvent::RollbackStarted {
             reason: "recovering from smoke-test failure".into(),
         });
-        let rollback = if stashed {
-            phase_atomic_rollback(&install_root, &stash_path)
-        } else {
-            Ok(())
-        };
+        let rollback = phase_atomic_recover(&install_root, &stash_path, stashed);
         let recovery = match rollback {
             Ok(()) => {
                 sink.emit(InstallEvent::RollbackSucceeded);
@@ -2990,6 +2978,19 @@ fn phase_atomic_rollback(install_root: &std::path::Path, stash: &std::path::Path
     Ok(())
 }
 
+fn phase_atomic_recover(
+    install_root: &std::path::Path,
+    stash: &std::path::Path,
+    stashed: bool,
+) -> Result<()> {
+    if stashed {
+        phase_atomic_rollback(install_root, stash)
+    } else {
+        remove_existing_path(install_root)
+            .with_context(|| format!("remove failed fresh install {}", install_root.display()))
+    }
+}
+
 fn installer_managed_entry(name: &str) -> bool {
     matches!(
         name,
@@ -3294,6 +3295,12 @@ async fn execute_real_install(
         .find(|asset| asset.triple == "all")
         .ok_or_else(|| anyhow!("verified agent context asset missing"))?;
     install_agent_context_archive(agent_context_asset, install_root)?;
+    // Prove all promoted binaries before any external symlink, service, or shell
+    // profile mutation. A failed fresh install can then remove the install root
+    // without leaving dangling links or a partially registered service.
+    phase_smoke_test(&bin_dir)
+        .await
+        .context("pre-commit binary smoke test failed")?;
     place_symlinks(&bin_dir, install_root)?;
     sink.emit(InstallEvent::PhaseSucceeded {
         phase: InstallPhase::InstallBinaries,
@@ -3832,6 +3839,19 @@ mod tests {
         token.cancel();
         let error = ensure_not_cancelled(&token).expect_err("cancelled phase must stop");
         assert_eq!(error.to_string(), "installation cancelled by operator");
+    }
+
+    #[test]
+    fn fresh_install_recovery_removes_every_partial_install_artifact() {
+        let root = std::env::temp_dir().join(format!("focusa-fresh-{}", uuid::Uuid::now_v7()));
+        let stash = root.with_extension("stash");
+        std::fs::create_dir_all(root.join("bin")).unwrap();
+        std::fs::write(root.join("bin/focusa"), b"partial").unwrap();
+
+        phase_atomic_recover(&root, &stash, false).unwrap();
+
+        assert!(!root.exists());
+        assert!(!stash.exists());
     }
 
     #[test]
