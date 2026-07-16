@@ -22,10 +22,19 @@ SRC="${REPO_ROOT}/scripts/install-focusa.sh"
 LIVE_DIR="/home/focusadev/install.focusa.dev/public_html/installers"
 LIVE="${LIVE_DIR}/install-focusa.sh"
 
-# Live docroot is owned by focusadev; the installer symlinks it from /focusa.
-# Sync via sudo -u focusadev cp so we don't break ownership.
+# Live docroot is owned by focusadev; mutate it as that user so the deploy
+# runner never creates root/wirebot-owned files in a cPanel account.
+as_focusadev() {
+  if [ "$(id -un)" = "focusadev" ]; then
+    "$@"
+  else
+    sudo -u focusadev -- "$@"
+  fi
+}
+
 sync_copy() {
-  install -m 0755 -o focusadev -g focusadev "$SRC" "$LIVE"
+  as_focusadev mkdir -p "$LIVE_DIR"
+  as_focusadev install -m 0755 "$SRC" "$LIVE"
 }
 
 mode="sync"
@@ -52,6 +61,5 @@ if [ "$mode" = "check" ]; then
   exit 0
 fi
 
-mkdir -p "$LIVE_DIR"
 sync_copy
 echo "[sync-install-bootstrapper] synced: $SRC → $LIVE"
