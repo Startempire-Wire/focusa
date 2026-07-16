@@ -157,7 +157,7 @@ have sha256sum || have shasum || { err "sha256sum (or shasum) is required."; exi
 # partial transaction. HTTP/1.1 plus bounded retries is portable on supported
 # macOS/Linux curl versions.
 curl_resilient() {
-  curl --http1.1 --retry 5 --retry-delay 2 --connect-timeout 20 "$@"
+  curl --http1.1 --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 20 "$@"
 }
 
 # Idempotent public uninstall entrypoint. Never creates install/license state.

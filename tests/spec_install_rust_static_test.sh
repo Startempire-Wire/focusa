@@ -94,7 +94,7 @@ assert pattern.search(text), "orchestrator failure status is not preserved throu
 PY
 pass "bootstrapper initializes release state and preserves nonzero orchestrator exits"
 
-grep -qF 'curl --http1.1 --retry 5 --retry-delay 2 --connect-timeout 20' "$SH" \
+grep -qF 'curl --http1.1 --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 20' "$SH" \
   || fail "install-focusa.sh missing bounded resilient download policy"
 pass "bootstrapper retries transient GitHub/CDN transport failures over HTTP/1.1"
 
