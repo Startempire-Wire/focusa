@@ -40,7 +40,7 @@ rg -q 'auto_apply_allowed.*false|auto_apply_allowed: false' "$SRC" || fail "CLI 
 rg -q 'apply_allowed: false|apply_blocked_until' "$SRC" || fail "CLI plan must keep apply disabled until gates"
 rg -q 'mutations_performed: false|read_only: true|dry_run_requested|explicit_yes_and_allow_apply_required' "$SRC" || fail "CLI apply must default to no mutation and explicit consent gates"
 rg -q 'write_temp_fsync_rename_then_smoke_test|preserve_permissions_owner_xattrs_capabilities_when_supported|daemon binary is promoted last' "$SRC" || fail "atomic install safety rules missing"
-rg -q 'rollback_executor_not_enabled_in_spec128_08_scaffold|update-history.jsonl|update_apply_blocked_total|trusted_dev_force_latest|admin_control_write_executor_not_enabled' "$SRC" || fail "rollback/history/admin control safety rules missing"
+rg -q 'rollback_executor_not_enabled_in_spec128_08_scaffold|update-history.jsonl|update_apply_blocked_total|trusted_dev_force_latest|focusa.update_admin_state.v1|mutation_requires_dry_run_false_and_yes|updates_paused_by_admin' "$SRC" || fail "rollback/history/admin control safety rules missing"
 rg -q 'jitter_percent|max_silent_failures_before_notice|maintenance-window.json|policy_allows_automatic_apply|planned_when_tui_update_banner_available|planned_when_menubar_update_badge_available' "$SRC" || fail "scheduler/background notification rules missing"
 rg -q 'focusa-daemon --version starts the server|--version as startup input' "$SRC" || fail "daemon version probe safety note missing"
 rg -q 'auto-apply remains disabled|release manifest eligibility/signature/provenance is required' "$SRC" || fail "missing auto-apply guard warning"

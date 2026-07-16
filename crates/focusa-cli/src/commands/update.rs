@@ -124,6 +124,8 @@ pub struct UpdateAdminArgs {
     pub unpin: bool,
     #[arg(long, value_name = "VERSION")]
     pub skip_version: Option<String>,
+    #[arg(long, value_name = "VERSION")]
+    pub unskip_version: Option<String>,
     #[arg(long)]
     pub pause: bool,
     #[arg(long)]
@@ -423,9 +425,33 @@ struct UpdateAdminEnvelope {
     consent_yes: bool,
     requested_controls: Vec<String>,
     policy_patch_preview: serde_json::Value,
+    effective_state: UpdateAdminState,
     force_check_preview: bool,
     trusted_dev_force_latest_allowed: bool,
     blocked_reason: Vec<&'static str>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct UpdateAdminState {
+    schema: String,
+    pinned_version: Option<String>,
+    skipped_versions: Vec<String>,
+    paused: bool,
+    force_check_requested_at: Option<String>,
+    trusted_dev_force_latest: bool,
+}
+
+impl Default for UpdateAdminState {
+    fn default() -> Self {
+        Self {
+            schema: "focusa.update_admin_state.v1".into(),
+            pinned_version: None,
+            skipped_versions: Vec::new(),
+            paused: false,
+            force_check_requested_at: None,
+            trusted_dev_force_latest: false,
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -673,7 +699,7 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
             }
         }
         UpdateCmd::Admin(args) => {
-            let admin = build_admin_envelope(args);
+            let admin = build_admin_envelope(args)?;
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&admin)?);
             } else {
@@ -767,6 +793,12 @@ async fn build_inventory(
 
 fn build_update_plan(inventory: UpdateInventoryEnvelope) -> UpdatePlanEnvelope {
     let mut blockers = inventory.latest.trust.blockers.clone();
+    if read_update_admin_state()
+        .map(|state| state.paused)
+        .unwrap_or(false)
+    {
+        blockers.push("updates_paused_by_admin".to_string());
+    }
     if !inventory.latest.trust.release_resolved {
         blockers.push("latest_release_manifest_resolver_not_wired".to_string());
     }
@@ -1233,7 +1265,36 @@ fn build_rollback_envelope(args: UpdateRollbackArgs) -> UpdateRollbackEnvelope {
     }
 }
 
-fn build_admin_envelope(args: UpdateAdminArgs) -> UpdateAdminEnvelope {
+fn update_admin_state_path() -> anyhow::Result<PathBuf> {
+    if let Some(path) = std::env::var_os("FOCUSA_UPDATE_ADMIN_STATE") {
+        return Ok(PathBuf::from(path));
+    }
+    let home = std::env::var_os("HOME").context("HOME not set")?;
+    Ok(PathBuf::from(home).join(".config/focusa/update-admin.json"))
+}
+
+fn read_update_admin_state() -> anyhow::Result<UpdateAdminState> {
+    let path = update_admin_state_path()?;
+    if !path.is_file() {
+        return Ok(UpdateAdminState::default());
+    }
+    let raw = std::fs::read_to_string(&path)
+        .with_context(|| format!("read update admin state {}", path.display()))?;
+    serde_json::from_str(&raw)
+        .with_context(|| format!("parse update admin state {}", path.display()))
+}
+
+fn write_update_admin_state(state: &UpdateAdminState) -> anyhow::Result<PathBuf> {
+    let path = update_admin_state_path()?;
+    let parent = path.parent().context("update admin state has no parent")?;
+    std::fs::create_dir_all(parent)?;
+    let staged = path.with_extension("json.tmp");
+    std::fs::write(&staged, serde_json::to_vec_pretty(state)?)?;
+    std::fs::rename(&staged, &path)?;
+    Ok(path)
+}
+
+fn build_admin_envelope(args: UpdateAdminArgs) -> anyhow::Result<UpdateAdminEnvelope> {
     let mut requested = Vec::new();
     if let Some(version) = &args.pin_version {
         requested.push(format!("pin_version:{version}"));
@@ -1243,6 +1304,9 @@ fn build_admin_envelope(args: UpdateAdminArgs) -> UpdateAdminEnvelope {
     }
     if let Some(version) = &args.skip_version {
         requested.push(format!("skip_version:{version}"));
+    }
+    if let Some(version) = &args.unskip_version {
+        requested.push(format!("unskip_version:{version}"));
     }
     if args.pause {
         requested.push("pause".into());
@@ -1259,11 +1323,64 @@ fn build_admin_envelope(args: UpdateAdminArgs) -> UpdateAdminEnvelope {
     let dev_mode = std::env::var("FOCUSA_DEV_MODE")
         .map(|v| matches!(v.as_str(), "1" | "true" | "yes"))
         .unwrap_or(false);
-    UpdateAdminEnvelope {
+    let trusted_force_allowed = args.trusted_dev_force_latest && dev_mode;
+    let mut state = read_update_admin_state()?;
+    let mutation_requested = !requested.is_empty();
+    let can_mutate = mutation_requested
+        && !args.dry_run
+        && args.yes
+        && (!args.trusted_dev_force_latest || trusted_force_allowed);
+    if can_mutate {
+        if let Some(version) = &args.pin_version {
+            state.pinned_version = Some(normalize_version(version));
+        }
+        if args.unpin {
+            state.pinned_version = None;
+        }
+        if let Some(version) = &args.skip_version {
+            let version = normalize_version(version);
+            if !state.skipped_versions.contains(&version) {
+                state.skipped_versions.push(version);
+                state.skipped_versions.sort();
+            }
+        }
+        if let Some(version) = &args.unskip_version {
+            let version = normalize_version(version);
+            state.skipped_versions.retain(|entry| entry != &version);
+        }
+        if args.pause {
+            state.paused = true;
+        }
+        if args.resume {
+            state.paused = false;
+        }
+        if args.force_check {
+            state.force_check_requested_at = Some(chrono::Utc::now().to_rfc3339());
+        }
+        if args.trusted_dev_force_latest {
+            state.trusted_dev_force_latest = true;
+            state.pinned_version = None;
+        }
+        write_update_admin_state(&state)?;
+    }
+    let blocked_reason = if !mutation_requested {
+        Vec::new()
+    } else if args.trusted_dev_force_latest && !trusted_force_allowed {
+        vec!["trusted_dev_force_latest_requires_dev_mode"]
+    } else if args.dry_run || !args.yes {
+        vec!["mutation_requires_dry_run_false_and_yes"]
+    } else {
+        Vec::new()
+    };
+    Ok(UpdateAdminEnvelope {
         schema: "focusa.update_admin_control.v1",
-        status: "preview_read_only",
-        read_only: true,
-        mutations_performed: false,
+        status: if can_mutate {
+            "applied"
+        } else {
+            "preview_read_only"
+        },
+        read_only: !can_mutate,
+        mutations_performed: can_mutate,
         dry_run: args.dry_run,
         consent_yes: args.yes,
         requested_controls: requested,
@@ -1271,17 +1388,16 @@ fn build_admin_envelope(args: UpdateAdminArgs) -> UpdateAdminEnvelope {
             "pin_version": args.pin_version,
             "unpin": args.unpin,
             "skip_version": args.skip_version,
+            "unskip_version": args.unskip_version,
             "pause": args.pause,
             "resume": args.resume,
             "trusted_dev_force_latest": args.trusted_dev_force_latest,
         }),
+        effective_state: state,
         force_check_preview: args.force_check,
-        trusted_dev_force_latest_allowed: args.trusted_dev_force_latest && dev_mode,
-        blocked_reason: vec![
-            "admin_control_write_executor_not_enabled_in_spec128_08_scaffold",
-            "dry_run_preview_only",
-        ],
-    }
+        trusted_dev_force_latest_allowed: trusted_force_allowed,
+        blocked_reason,
+    })
 }
 
 fn print_history_human(history: &UpdateHistoryEnvelope) {
@@ -1778,7 +1894,13 @@ async fn resolve_latest(channel: &str, override_value: Option<&str>) -> LatestVe
             }
         }
     }
-    match resolve_latest_github(channel).await {
+    let admin = read_update_admin_state().unwrap_or_default();
+    let (pinned, skipped) = if admin.trusted_dev_force_latest {
+        (None, Vec::new())
+    } else {
+        (admin.pinned_version, admin.skipped_versions)
+    };
+    match resolve_latest_github(channel, pinned.as_deref(), &skipped).await {
         Ok(latest) => latest,
         Err(error) => {
             let mut latest = placeholder_latest(
@@ -1829,7 +1951,11 @@ fn placeholder_latest(version: String, source: &str) -> LatestVersion {
     }
 }
 
-async fn resolve_latest_github(channel: &str) -> anyhow::Result<LatestVersion> {
+async fn resolve_latest_github(
+    channel: &str,
+    pinned_version: Option<&str>,
+    skipped_versions: &[String],
+) -> anyhow::Result<LatestVersion> {
     let repo = github_repo();
     let triple = target_triple();
     let url = format!("https://api.github.com/repos/{repo}/releases?per_page=20");
@@ -1842,7 +1968,12 @@ async fn resolve_latest_github(channel: &str) -> anyhow::Result<LatestVersion> {
         .json::<Vec<GithubRelease>>()
         .await?;
     for release in releases {
-        if release.draft || !release_tag_matches_channel(&release.tag_name, channel) {
+        let normalized_tag = normalize_version(&release.tag_name);
+        if release.draft
+            || !release_tag_matches_channel(&release.tag_name, channel)
+            || pinned_version.is_some_and(|pinned| normalize_version(pinned) != normalized_tag)
+            || skipped_versions.contains(&normalized_tag)
+        {
             continue;
         }
         if let Some(latest) = build_latest_from_release(repo.clone(), triple.clone(), release) {

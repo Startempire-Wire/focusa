@@ -61,6 +61,12 @@ jq -e '.schema=="focusa.update_history.v1" and .read_only==true and .retention.k
 admin="$($BIN --json update admin --pause --force-check --skip-version 0.9.80-dev)"
 jq -e '.schema=="focusa.update_admin_control.v1" and .read_only==true and .mutations_performed==false and (.requested_controls | index("pause")) and (.requested_controls | index("force_check")) and (.requested_controls | index("skip_version:0.9.80-dev"))' <<<"$admin" >/dev/null || fail "admin control preview missing requested controls"
 
+admin_state="$TMP/update-admin.json"
+admin_applied="$(FOCUSA_UPDATE_ADMIN_STATE="$admin_state" "$BIN" --json update admin --pause --force-check --pin-version 0.9.80-dev --skip-version 0.9.81-dev --dry-run=false --yes)"
+jq -e '.status=="applied" and .read_only==false and .mutations_performed==true and .effective_state.paused==true and .effective_state.pinned_version=="0.9.80-dev" and (.effective_state.skipped_versions|index("0.9.81-dev"))' <<<"$admin_applied" >/dev/null || fail "admin controls did not persist"
+admin_resumed="$(FOCUSA_UPDATE_ADMIN_STATE="$admin_state" "$BIN" --json update admin --resume --unpin --unskip-version 0.9.81-dev --dry-run=false --yes)"
+jq -e '.status=="applied" and .effective_state.paused==false and .effective_state.pinned_version==null and (.effective_state.skipped_versions|length)==0' <<<"$admin_resumed" >/dev/null || fail "admin resume/unpin/unskip did not persist"
+
 scheduler="$($BIN --json update scheduler)"
 jq -e '.schema=="focusa.update_scheduler.v1" and (.scheduler_installed == .background_worker_started) and (.automatic_apply.allowed == .scheduler_installed) and .interval.jitter_percent==20 and .offline.skip_when_offline==true' <<<"$scheduler" >/dev/null || fail "scheduler/background updater policy missing"
 
