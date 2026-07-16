@@ -13,7 +13,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 curl() {
   command curl \
     -H "x-scope-project-root: ${ROOT_DIR}" \
-    -H "x-scope-continuity-id: pi-rpc-driver-test" \
+    -H "x-scope-continuity-id: work-loop-continuation-test" \
     "$@"
 }
 http_json(){ curl -sS "$@"; }
@@ -34,7 +34,7 @@ else
 fi
 http_json -X POST "${BASE_URL}/v1/workpoint/checkpoint" \
   -H 'Content-Type: application/json' \
-  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"pi-rpc-driver-test\",\"mission\":\"verify Pi RPC driver contract\",\"current_action\":\"spec79_pi_rpc_driver\",\"next_slice\":\"verify scoped driver lifecycle\",\"canonical\":true}" >/dev/null
+  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"mission\":\"verify Pi RPC driver contract\",\"current_action\":\"spec79_pi_rpc_driver\",\"next_slice\":\"verify scoped driver lifecycle\",\"canonical\":true}" >/dev/null
 WRITER_ID=$(http_json "${BASE_URL}/v1/work-loop" | jq -r '.active_writer // "spec79-pi-driver"')
 START_PAYLOAD=$(jq -n --arg cwd "${ROOT_DIR}" '{cwd: $cwd}')
 START=$(http_json -X POST "${BASE_URL}/v1/work-loop/driver/start" -H 'Content-Type: application/json' -H "x-focusa-writer-id: ${WRITER_ID}" -d "${START_PAYLOAD}")
