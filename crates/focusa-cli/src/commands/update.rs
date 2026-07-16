@@ -2254,6 +2254,54 @@ fn configured_package_json(env_var: &str, repo_relative: &str) -> PathBuf {
         .join(repo_relative)
 }
 
+fn pi_extension_package_from_settings(settings_path: &Path) -> Option<PathBuf> {
+    let settings = std::fs::read(settings_path)
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())?;
+    settings
+        .get("extensions")?
+        .as_array()?
+        .iter()
+        .filter_map(serde_json::Value::as_str)
+        .map(PathBuf::from)
+        .map(|path| {
+            if path.file_name().and_then(|name| name.to_str()) == Some("package.json") {
+                path
+            } else {
+                path.join("package.json")
+            }
+        })
+        .find(|package| {
+            package.is_file()
+                && std::fs::read(package)
+                    .ok()
+                    .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
+                    .and_then(|value| value.get("name")?.as_str().map(str::to_string))
+                    .map(|name| name.starts_with("focusa-"))
+                    .unwrap_or(false)
+        })
+}
+
+fn configured_pi_extension_package_json() -> PathBuf {
+    if let Some(path) = std::env::var_os("FOCUSA_PI_EXTENSION_PACKAGE_JSON") {
+        return PathBuf::from(path);
+    }
+    let settings_path = std::env::var_os("PI_CODING_AGENT_DIR")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".pi/agent")))
+        .map(|dir| dir.join("settings.json"));
+    if let Some(package) = settings_path
+        .as_deref()
+        .and_then(pi_extension_package_from_settings)
+    {
+        return package;
+    }
+    configured_package_json(
+        "FOCUSA_PI_EXTENSION_PACKAGE_JSON",
+        "apps/pi-extension/package.json",
+    )
+}
+
 fn inspect_package_part(
     part: &'static str,
     package_json: PathBuf,
@@ -2317,10 +2365,7 @@ fn inspect_package_part(
 fn inspect_pi_extension(latest: &str) -> InstalledPart {
     inspect_package_part(
         "pi_extension",
-        configured_package_json(
-            "FOCUSA_PI_EXTENSION_PACKAGE_JSON",
-            "apps/pi-extension/package.json",
-        ),
+        configured_pi_extension_package_json(),
         latest,
         vec![
             "Pi extension updates remain package-channel managed and are never binary-promoted by focusa update apply".to_string(),
@@ -2632,7 +2677,10 @@ fn print_human(envelope: &UpdateInventoryEnvelope) {
 
 #[cfg(test)]
 mod tests {
-    use super::{PromotedPart, inspect_package_part, normalize_version, rollback_promoted_parts};
+    use super::{
+        PromotedPart, inspect_package_part, normalize_version, pi_extension_package_from_settings,
+        rollback_promoted_parts,
+    };
 
     #[test]
     fn normalizes_common_version_outputs() {
@@ -2665,6 +2713,34 @@ mod tests {
         let stale = inspect_package_part("pi_extension", package, "0.9.101-dev", vec![]);
         assert_eq!(stale.stale, Some(true));
         std::fs::remove_dir_all(root).expect("remove package fixture");
+    }
+
+    #[test]
+    fn pi_settings_resolve_active_focusa_extension_package() {
+        let root = std::env::temp_dir().join(format!(
+            "focusa-pi-settings-{}-{}",
+            std::process::id(),
+            super::chrono_like_timestamp()
+        ));
+        let extension = root.join("extension");
+        std::fs::create_dir_all(&extension).expect("create extension fixture");
+        std::fs::write(
+            extension.join("package.json"),
+            br#"{"name":"focusa-pi-bridge","version":"0.9.102-dev"}"#,
+        )
+        .expect("write extension package");
+        let settings = root.join("settings.json");
+        std::fs::write(
+            &settings,
+            format!(r#"{{"extensions":["{}"]}}"#, extension.display()),
+        )
+        .expect("write Pi settings");
+
+        assert_eq!(
+            pi_extension_package_from_settings(&settings),
+            Some(extension.join("package.json"))
+        );
+        std::fs::remove_dir_all(root).expect("remove Pi settings fixture");
     }
 
     #[test]
