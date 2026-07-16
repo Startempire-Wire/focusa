@@ -1905,7 +1905,7 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         }
     };
     let bin_dir = install_root.join("bin");
-    if let Err(e) = phase_smoke_test(&bin_dir).await {
+    if let Err(e) = phase_smoke_test(target, &bin_dir).await {
         sink.emit(InstallEvent::PhaseFailed {
             phase: InstallPhase::RunHealthChecks,
             message: "Installed focusa --version smoke test failed".into(),
@@ -1992,10 +1992,19 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         target: format!("{:?}", target),
         channel: format!("{:?}", channel),
         install_root: install_root.display().to_string(),
-        cli_path: bin_dir.join("focusa").display().to_string(),
-        daemon_path: bin_dir.join("focusa-daemon").display().to_string(),
+        cli_path: bin_dir
+            .join(installed_binary_name(target, "focusa"))
+            .display()
+            .to_string(),
+        daemon_path: bin_dir
+            .join(installed_binary_name(target, "focusa-daemon"))
+            .display()
+            .to_string(),
         daemon_health: "smoke-test pending separate daemon health check".into(),
-        tui_path: bin_dir.join("focusa-tui").display().to_string(),
+        tui_path: bin_dir
+            .join(installed_binary_name(target, "focusa-tui"))
+            .display()
+            .to_string(),
         service_status: result.service_status.clone(),
         path_status: "evaluated".into(),
         pi_status: "reported by phase events".into(),
@@ -2229,7 +2238,7 @@ async fn phase_asset_download(
         let expected = format!("{asset_name}-{tag_name}-{triple}{executable_suffix}");
         let install_path = install_root
             .join("bin")
-            .join(format!("{asset_name}{executable_suffix}"));
+            .join(installed_binary_name(target, asset_name));
         std::fs::create_dir_all(install_path.parent().expect("bin parent"))?;
         reject_release_rollback(install_root, &tag_name)?;
         let staged = install_path.with_extension("download");
@@ -2755,7 +2764,17 @@ async fn verify_checksum(asset: &InstalledAsset) -> Result<()> {
 }
 
 // ----- Phase 4: Symlink placement (focusa-112-symlinks) -----
-fn place_symlinks(bin_dir: &std::path::Path, _install_root: &std::path::Path) -> Result<()> {
+fn place_symlinks(
+    target: InstallTarget,
+    bin_dir: &std::path::Path,
+    _install_root: &std::path::Path,
+) -> Result<()> {
+    if matches!(
+        target,
+        InstallTarget::WindowsX64 | InstallTarget::WindowsArm64
+    ) {
+        return Ok(());
+    }
     std::fs::create_dir_all(bin_dir).with_context(|| format!("create {}", bin_dir.display()))?;
     let home = std::env::var_os("HOME")
         .map(std::path::PathBuf::from)
@@ -2887,7 +2906,7 @@ pub fn build_first_install_walkthrough(
     install_root: &std::path::Path,
     asset_count: usize,
 ) -> FirstInstallWalkthrough {
-    let binary = bin_dir.join("focusa");
+    let binary = bin_dir.join(installed_binary_name(target, "focusa"));
     let summary = EnvironmentSummary {
         install_root: install_root.display().to_string(),
         binary_path: binary.display().to_string(),
@@ -3138,8 +3157,8 @@ fn phase_atomic_cleanup(stash: &std::path::Path) -> Result<()> {
 /// Smoke test: invoke the just-installed `focusa --version` and require
 /// exit 0. This is the gate Spec 112 §6 puts between install and
 /// commit-success.
-async fn phase_smoke_test(bin_dir: &std::path::Path) -> Result<()> {
-    let focusa = bin_dir.join("focusa");
+async fn phase_smoke_test(target: InstallTarget, bin_dir: &std::path::Path) -> Result<()> {
+    let focusa = bin_dir.join(installed_binary_name(target, "focusa"));
     if !focusa.exists() {
         return Err(anyhow!(
             "smoke test failed: focusa binary not present at {}",
@@ -3358,10 +3377,10 @@ async fn execute_real_install(
     // Prove all promoted binaries before any external symlink, service, or shell
     // profile mutation. A failed fresh install can then remove the install root
     // without leaving dangling links or a partially registered service.
-    phase_smoke_test(&bin_dir)
+    phase_smoke_test(target, &bin_dir)
         .await
         .context("pre-commit binary smoke test failed")?;
-    place_symlinks(&bin_dir, install_root)?;
+    place_symlinks(target, &bin_dir, install_root)?;
     sink.emit(InstallEvent::PhaseSucceeded {
         phase: InstallPhase::InstallBinaries,
         detail: Some("Staged binaries promoted".into()),
@@ -3483,8 +3502,8 @@ async fn delegate_service_render(
         crate::commands::service::InstallServiceArgs {
             no_enable: false,
             json: false,
-            daemon_path: Some(bin_dir.join("focusa-daemon")),
-            cli_path: Some(bin_dir.join("focusa")),
+            daemon_path: Some(bin_dir.join(installed_binary_name(target, "focusa-daemon"))),
+            cli_path: Some(bin_dir.join(installed_binary_name(target, "focusa"))),
         },
         dry_run,
     )
@@ -3527,19 +3546,31 @@ fn build_plan(
                 name: "focusa".to_string(),
                 version: "<detected>".to_string(),
                 triple: triple_for(target),
-                install_path: root.join("bin").join("focusa").display().to_string(),
+                install_path: root
+                    .join("bin")
+                    .join(installed_binary_name(target, "focusa"))
+                    .display()
+                    .to_string(),
             },
             AssetPlan {
                 name: "focusa-daemon".to_string(),
                 version: "<detected>".to_string(),
                 triple: triple_for(target),
-                install_path: root.join("bin").join("focusa-daemon").display().to_string(),
+                install_path: root
+                    .join("bin")
+                    .join(installed_binary_name(target, "focusa-daemon"))
+                    .display()
+                    .to_string(),
             },
             AssetPlan {
                 name: "focusa-tui".to_string(),
                 version: "<detected>".to_string(),
                 triple: triple_for(target),
-                install_path: root.join("bin").join("focusa-tui").display().to_string(),
+                install_path: root
+                    .join("bin")
+                    .join(installed_binary_name(target, "focusa-tui"))
+                    .display()
+                    .to_string(),
             },
             AssetPlan {
                 name: "focusa-agent-context".to_string(),
@@ -3611,6 +3642,10 @@ fn print_plan_human(plan: &InstallPlan) {
     for n in &plan.notes {
         println!("  - {}", n);
     }
+}
+
+fn installed_binary_name(target: InstallTarget, base: &str) -> String {
+    format!("{base}{}", release_executable_suffix(target))
 }
 
 fn release_executable_suffix(target: InstallTarget) -> &'static str {
@@ -3687,6 +3722,10 @@ mod tests {
         assert_eq!(
             release_executable_suffix(InstallTarget::WindowsArm64),
             ".exe"
+        );
+        assert_eq!(
+            installed_binary_name(InstallTarget::WindowsX64, "focusa-daemon"),
+            "focusa-daemon.exe"
         );
         assert_eq!(release_executable_suffix(InstallTarget::Linux), "");
         assert_eq!(release_executable_suffix(InstallTarget::Darwin), "");
