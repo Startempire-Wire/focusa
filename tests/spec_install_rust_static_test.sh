@@ -92,6 +92,15 @@ assert pattern.search(text), "orchestrator failure status is not preserved throu
 PY
 pass "bootstrapper initializes release state and preserves nonzero orchestrator exits"
 
+for marker in \
+  "stable)  TAG_PATTERN='v[0-9]+\\.[0-9]+\\.[0-9]+'" \
+  "preview) TAG_PATTERN='v[0-9]+\\.[0-9]+\\.[0-9]+-(dev|rc)(\\..*)?'" \
+  'stable install requires valid Cosign signature metadata; SHA256 alone is insufficient' \
+  'install is preview-only'; do
+  grep -qF "$marker" "$SH" || fail "install-focusa.sh missing truthful channel/signature marker: $marker"
+done
+pass "stable excludes dev tags and fails closed without signatures; preview fallback is explicit"
+
 # Shell scripts must not embed service manager heredocs anymore (logic belongs in Rust service module)
 if grep -qE 'cat >.*systemd|LaunchAgent|plist|systemctl --user enable' "$SH"; then
   fail "install-focusa.sh still appears to embed service install logic"

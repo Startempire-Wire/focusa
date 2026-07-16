@@ -356,9 +356,10 @@ fi
 # Channel → release-tag pattern.
 # ----------------------------------------------------------------------------
 case "$CHANNEL" in
-  stable)  TAG_PATTERN="v*-dev"  ;;
-  preview) TAG_PATTERN="v*-rc.*" ;;
-  nightly) TAG_PATTERN="v*-nightly.*" ;;
+  stable)  TAG_PATTERN='v[0-9]+\.[0-9]+\.[0-9]+' ;;
+  preview) TAG_PATTERN='v[0-9]+\.[0-9]+\.[0-9]+-(dev|rc)(\..*)?' ;;
+  dev)     TAG_PATTERN='v[0-9]+\.[0-9]+\.[0-9]+-dev' ;;
+  nightly) TAG_PATTERN='v[0-9]+\.[0-9]+\.[0-9]+-nightly\..*' ;;
   *) err "unknown channel: $CHANNEL"; exit 1 ;;
 esac
 
@@ -396,7 +397,7 @@ import json, re, sys
 path, pattern, triple, max_n = sys.argv[1:]
 with open(path, "r", encoding="utf-8") as f:
     data = json.load(f)
-pat_re = re.compile("^" + pattern.replace("*", ".*") + "$")
+pat_re = re.compile("^(?:" + pattern + ")$")
 seen = 0
 for rel in data:
     if not rel.get("tag_name"):
@@ -664,15 +665,21 @@ else
 fi
 
 sha_ok=0
-  if [ -n "$CHECKSUM_MANIFEST" ] && [ -s "$CHECKSUM_MANIFEST" ]; then
-    # SHA256 verification already succeeded above — cosign failure is non-fatal when SHA256 passes.
-    sha_ok=1
-  fi
-  if [ "$verified_signature" = 1 ] || [ "$sha_ok" = 1 ]; then
-    : # SHA256 or cosign verification passed
-  else
-    exit 68
-  fi
+if [ -n "$CHECKSUM_MANIFEST" ] && [ -s "$CHECKSUM_MANIFEST" ]; then
+  sha_ok=1
+fi
+if [ "$verified_signature" != 1 ]; then
+  case "$CHANNEL" in
+    stable)
+      err "stable install requires valid Cosign signature metadata; SHA256 alone is insufficient"
+      exit 68
+      ;;
+    preview|dev|nightly)
+      [ "$sha_ok" = 1 ] || exit 68
+      warn "${CHANNEL} channel: SHA256 verified but Cosign metadata is absent; install is preview-only"
+      ;;
+  esac
+fi
 
 # ----------------------------------------------------------------------------
 # Place the bootstrapper binary and hand off to the Rust orchestrator.
