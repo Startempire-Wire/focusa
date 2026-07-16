@@ -12,6 +12,9 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly-2026-01-08
       - name: Clean install v0.9.116, apply v0.9.117, rollback, reapply
         shell: pwsh
         run: |
