@@ -1610,7 +1610,11 @@ fn restart_daemon_service(daemon_path: &Path) -> anyhow::Result<()> {
         let _ = std::process::Command::new("taskkill")
             .args(["/F", "/IM", "focusa-daemon.exe"])
             .status();
-        std::process::Command::new(daemon_path).spawn()?;
+        std::process::Command::new(daemon_path)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()?;
         return Ok(());
     } else {
         for args in [
@@ -1628,7 +1632,11 @@ fn restart_daemon_service(daemon_path: &Path) -> anyhow::Result<()> {
         }
     }
     terminate_portable_daemon_from_lock();
-    std::process::Command::new(daemon_path).spawn()?;
+    std::process::Command::new(daemon_path)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()?;
     Ok(())
 }
 

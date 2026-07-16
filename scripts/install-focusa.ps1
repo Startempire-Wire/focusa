@@ -32,6 +32,8 @@ param(
   [string]$Channel = "stable",
   [string]$Target = "auto",
   [string]$GitHubRepo = "Startempire-Wire/focusa",
+  [string]$ReleaseTag = "",
+  [string]$ReleaseBaseUrl = "",
   [int]$MaxCandidates = 20
 )
 
@@ -69,9 +71,9 @@ if ($Target -eq "auto") {
 # Channel pattern (no version strings).
 # ---------------------------------------------------------------------------
 switch ($Channel) {
-  "stable"  { $ChannelPattern = "^v.*$" }
-  "preview" { $ChannelPattern = "^v.*-preview$" }
-  "nightly" { $ChannelPattern = "^v.*-nightly$" }
+  "stable"  { $ChannelPattern = "^v[0-9]+\.[0-9]+\.[0-9]+$" }
+  "preview" { $ChannelPattern = "^v[0-9]+\.[0-9]+\.[0-9]+-(dev|rc)(\..*)?$" }
+  "nightly" { $ChannelPattern = "^v[0-9]+\.[0-9]+\.[0-9]+-nightly\..*$" }
   default   { Die "unknown channel: $Channel" }
 }
 
@@ -82,34 +84,41 @@ $RequiredAssets = @("focusa", "focusa-daemon", "focusa-tui")
 # Iterates GH releases newest-first and picks the first whose assets include
 # focusa-{tag}-{triple}, focusa-daemon-{tag}-{triple}, focusa-tui-{tag}-{triple}.
 # ---------------------------------------------------------------------------
-Log "Scanning GitHub releases for latest complete build (channel=$Channel, triple=$Triple)"
-$Releases = Invoke-RestMethod -Uri "https://api.github.com/repos/$GitHubRepo/releases?per_page=30" `
-  -Headers @{ "User-Agent" = "focusa-install-ps" }
-if (-not $Releases) { Die "release list fetch failed" }
-
 $Selected = $null
-$Seen = 0
-foreach ($Rel in $Releases) {
-  $Tag = $Rel.tag_name
-  if (-not $Tag) { continue }
-  if ($Tag -notmatch $ChannelPattern) { continue }
-  $Seen += 1
-  if ($Seen -gt $MaxCandidates) { break }
-
-  $AssetNames = @{}
-  foreach ($A in $Rel.assets) { $AssetNames[$A.name] = $A.browser_download_url }
-
-  $HasAll = $true
-  foreach ($R in $RequiredAssets) {
-    $Expected = "$R-$Tag-$Triple"
-    if (-not $AssetNames.ContainsKey($Expected)) { $HasAll = $false; break }
+if ($ReleaseTag -and $ReleaseBaseUrl) {
+  $Selected = @{
+    Tag = $ReleaseTag
+    Focusa = "$($ReleaseBaseUrl.TrimEnd('/'))/focusa-$ReleaseTag-$Triple"
   }
-  if ($HasAll) {
-    $Selected = @{
-      Tag    = $Tag
-      Focusa = $AssetNames["focusa-$Tag-$Triple"]
+} else {
+  Log "Scanning GitHub releases for latest complete build (channel=$Channel, triple=$Triple)"
+  $Releases = Invoke-RestMethod -Uri "https://api.github.com/repos/$GitHubRepo/releases?per_page=30" `
+    -Headers @{ "User-Agent" = "focusa-install-ps" }
+  if (-not $Releases) { Die "release list fetch failed" }
+
+  $Seen = 0
+  foreach ($Rel in $Releases) {
+    $Tag = $Rel.tag_name
+    if (-not $Tag) { continue }
+    if ($Tag -notmatch $ChannelPattern) { continue }
+    $Seen += 1
+    if ($Seen -gt $MaxCandidates) { break }
+
+    $AssetNames = @{}
+    foreach ($A in $Rel.assets) { $AssetNames[$A.name] = $A.browser_download_url }
+
+    $HasAll = $true
+    foreach ($R in $RequiredAssets) {
+      $Expected = "$R-$Tag-$Triple"
+      if (-not $AssetNames.ContainsKey($Expected)) { $HasAll = $false; break }
     }
-    break
+    if ($HasAll) {
+      $Selected = @{
+        Tag    = $Tag
+        Focusa = $AssetNames["focusa-$Tag-$Triple"]
+      }
+      break
+    }
   }
 }
 
@@ -127,17 +136,11 @@ Log "Selected release: $Tag (triple=$Triple)"
 $InstallRoot = Join-Path $env:LOCALAPPDATA "Programs\Focusa"
 $BinDir = Join-Path $InstallRoot "bin"
 $Tmp = New-TemporaryFile
-try {
-  if ($DryRun) {
-    Log "DRY RUN: would download $AssetUrl -> $BinDir\focusa.exe"
-  } else {
-    New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
-    Invoke-WebRequest -Uri $AssetUrl -OutFile "$($Tmp.FullName).tmp" -UseBasicParsing
-    Move-Item -Force "$($Tmp.FullName).tmp" (Join-Path $BinDir "focusa.exe")
-    Log "Installed focusa CLI to $BinDir\focusa.exe"
-  }
-} finally {
-  Remove-Item -Force $Tmp -ErrorAction SilentlyContinue
+$Bootstrap = "$($Tmp.FullName).bootstrap.exe"
+if ($DryRun) {
+  Log "DRY RUN: would download verified scratch bootstrap for $BinDir\focusa.exe"
+} else {
+  Invoke-WebRequest -Uri $AssetUrl -OutFile $Bootstrap -UseBasicParsing
 }
 
 # ---------------------------------------------------------------------------
@@ -145,11 +148,11 @@ try {
 # ---------------------------------------------------------------------------
 if (-not $DryRun) {
   $AssetFocusa = "focusa-$Tag-$Triple"
-  $Actual = (Get-FileHash (Join-Path $BinDir "focusa.exe") -Algorithm SHA256).Hash.ToLower()
+  $Actual = (Get-FileHash $Bootstrap -Algorithm SHA256).Hash.ToLower()
   $Verified = $false
   foreach ($ShaPath in @("SHA256SUMS", "SHA256SUMS.txt")) {
     try {
-      $ShaUrl = "https://github.com/$GitHubRepo/releases/download/$Tag/$ShaPath"
+      $ShaUrl = if ($ReleaseBaseUrl) { "$($ReleaseBaseUrl.TrimEnd('/'))/$ShaPath" } else { "https://github.com/$GitHubRepo/releases/download/$Tag/$ShaPath" }
       $ShaLines = (Invoke-WebRequest -Uri $ShaUrl -UseBasicParsing).Content -split "`n"
       foreach ($Line in $ShaLines) {
         if ($Line -match "^\s*([a-f0-9]+)\s+(.*)$") {
@@ -174,7 +177,7 @@ if (-not $DryRun) {
 # Hand off to Rust orchestrator (downloads focusa-daemon + focusa-tui
 # from the same release, validates license, renders service, etc.).
 # ---------------------------------------------------------------------------
-$Focusa = Join-Path $BinDir "focusa.exe"
+$Focusa = $Bootstrap
 $Args = @("install", "--target=$ResolvedTarget", "--version=$Tag", "--github-repo=$GitHubRepo")
 if ($DryRun) { $Args += "--dry-run" }
 if ($Eval) { $Args += "--eval" }
@@ -187,10 +190,16 @@ elseif (-not $Eval) {
   Log "no license key provided; defaulting to --eval mode (install will succeed; activate license later with 'focusa license activate <key>')."
 }
 if ($Channel -ne "stable") { $Args += "--channel=$Channel" }
+$env:FOCUSA_RELEASE_TAG = $Tag
+if ($ReleaseBaseUrl) { $env:FOCUSA_RELEASE_BASE_URL = $ReleaseBaseUrl }
 
 if ($DryRun) {
   Log "DRY RUN: would exec: $Focusa $($Args -join ' ')"
 } else {
-  & $Focusa @Args
-  if ($LASTEXITCODE -ne 0) { Die "focusa install failed with exit code $LASTEXITCODE" }
+  try {
+    & $Focusa @Args
+    if ($LASTEXITCODE -ne 0) { Die "focusa install failed with exit code $LASTEXITCODE" }
+  } finally {
+    Remove-Item -Force $Bootstrap, $Tmp.FullName -ErrorAction SilentlyContinue
+  }
 }
