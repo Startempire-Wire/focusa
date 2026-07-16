@@ -564,6 +564,26 @@
       "status": "eliminated",
       "target": "Explicit ScopeRuntimeStore instances keyed by ScopeRef, WorkstreamKey, and AttachmentKey; no module-global mutable runtime authority object",
       "acceptance_test": "zero direct runtimeState authority reads/writes; concurrent/session-switch isolation tests pass"
+    },
+    {
+      "annex_id": "INF-01",
+      "path": "crates/focusa-api/src/routes/agent_capabilities.rs",
+      "symbol": "ADAPTER_CAPABILITY_REGISTRY",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Immutable compile-time adapter capability catalog; contains no mutable project or workstream authority",
+      "acceptance_test": "typed registry test plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-01",
+      "path": "crates/focusa-cli/src/commands/install_e6_failure_matrix_tests.rs",
+      "symbol": "TEST_ENV_LOCK",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Cfg-test-only environment serialization lock; never available to runtime scope authority",
+      "acceptance_test": "five repeated parallel CLI unit suites plus Spec104 singleton inventory gate"
     }
   ]
 }
