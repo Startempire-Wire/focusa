@@ -16,7 +16,7 @@
     {
       "surface": "pi-sdk-source-and-lock",
       "outcome": "pass",
-      "evidence": "package.json and package-lock.json exact 0.64.0 pin; git revert is deterministic; lint/typecheck pass"
+      "evidence": "package.json and package-lock.json pin 0.64.0; patched protobufjs/undici overrides applied; maintained fork 0.80.7 is API-incompatible with current extension events"
     },
     {
       "surface": "rust-build-toolchain",
@@ -48,10 +48,10 @@
     },
     {
       "id": "focusa-pi-bridge",
-      "installed": "0.9.15-dev",
-      "packaged": "0.9.15-dev",
+      "installed": "0.9.103-dev",
+      "packaged": "0.9.103-dev",
       "runtime": "runtime-discovered from active Pi and Node executables",
-      "approved": "0.9.15-dev",
+      "approved": "0.9.103-dev",
       "owner": "Focusa Pi integration",
       "check": "npm lint and typecheck; compaction/runtime suites",
       "rollback": "git revert package and extension source",
@@ -62,9 +62,9 @@
       "installed": "0.64.0",
       "packaged": "0.64.0",
       "registry_observed": "0.73.1",
-      "approved": "0.64.0",
+      "approved": "0.64.0 with protobufjs 7.6.3 and undici 7.28.0 overrides",
       "owner": "Focusa Pi integration",
-      "reason": "Exact currently-tested SDK type surface; runtime uses the separately managed @earendil-works Pi fork",
+      "reason": "Exact tested SDK event surface; maintained fork 0.80.7 currently breaks session event and pi-tui compatibility, while transitive advisories are overridden",
       "check": "npm lint and typecheck",
       "rollback": "restore package.json and package-lock.json",
       "status": "pinned-compatible"

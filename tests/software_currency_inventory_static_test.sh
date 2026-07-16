@@ -12,5 +12,8 @@ jq -e 'all(.components[]; (.id|length)>0 and (.owner|length)>0 and (.check|lengt
 jq -e 'all(.components[]; .approved != "latest")' "$INV" >/dev/null
 [[ "$(jq -r '.devDependencies["@mariozechner/pi-coding-agent"]' "$PKG")" == "0.64.0" ]]
 [[ "$(jq -r '.packages[""].devDependencies["@mariozechner/pi-coding-agent"]' "$LOCK")" == "0.64.0" ]]
+[[ "$(jq -r '.packages["node_modules/@mariozechner/pi-coding-agent"].version' "$LOCK")" == "0.64.0" ]]
+[[ "$(jq -r '.packages["node_modules/protobufjs"].version' "$LOCK")" == "7.6.3" ]]
+[[ "$(jq -r '.packages["node_modules/undici"].version' "$LOCK")" == "7.28.0" ]]
 ! grep -Eq '"@mariozechner/pi-coding-agent"[[:space:]]*:[[:space:]]*"latest"' "$PKG" "$LOCK"
 printf 'PASS: software currency inventory, compatibility decisions, exact Pi SDK pin and rollback paths\n'
