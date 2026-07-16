@@ -129,8 +129,6 @@ pub struct Daemon {
     worker_tx: priority_queue::PrioritySender,
     worker_rx: priority_queue::PriorityReceiver,
     event_bus: Option<crate::runtime::event_bus::EventBus>,
-    /// Throttle: last external state reconciliation (prevents full-state clone storms).
-    last_reconcile: std::time::Instant,
 }
 
 impl Daemon {
@@ -203,7 +201,6 @@ impl Daemon {
             checkpoints: std::collections::HashMap::new(),
             cache: crate::cache::CacheStore::new(),
             event_bus: None,
-            last_reconcile: std::time::Instant::now(),
         })
     }
 
@@ -4827,15 +4824,6 @@ Return:
             return;
         }
 
-        // Throttle: only adopt external state at most once per 200ms.
-        // Prevents CPU saturation when Pi tool calls rapidly increment the
-        // mutation epoch (12+ writes/sec), each triggering a full FocusaState clone.
-        if self.observed_external_mutation_epoch > 0
-            && self.last_reconcile.elapsed() < std::time::Duration::from_millis(200)
-        {
-            return;
-        }
-
         let shared_state = {
             let shared = self.shared_state.read().await;
             shared.clone()
@@ -4850,7 +4838,6 @@ Return:
         );
         self.state = shared_state;
         self.observed_external_mutation_epoch = external_epoch;
-        self.last_reconcile = std::time::Instant::now();
     }
 
     /// Sync internal state to the shared handle for API readers.
@@ -5246,11 +5233,7 @@ Return:
     }
 }
 
-fn is_low_value_clt_intuition(
-    signal_type: &SignalKind,
-    severity: &str,
-    summary: &str,
-) -> bool {
+fn is_low_value_clt_intuition(signal_type: &SignalKind, severity: &str, summary: &str) -> bool {
     if summary.trim_start().starts_with("Guardian: service ") {
         return true;
     }
@@ -5480,16 +5463,8 @@ mod tests {
         external_mutation_epoch.fetch_add(1, Ordering::AcqRel);
         daemon.reconcile_external_state().await;
         assert_eq!(
-            daemon.state.version, 77,
-            "subsequent rapid mutation remains throttled"
-        );
-        assert_eq!(daemon.observed_external_mutation_epoch, 1);
-
-        daemon.last_reconcile = std::time::Instant::now() - std::time::Duration::from_millis(201);
-        daemon.reconcile_external_state().await;
-        assert_eq!(
             daemon.state.version, 88,
-            "throttled mutation is adopted after cooldown"
+            "every changed epoch is adopted before a canonical action"
         );
         assert_eq!(daemon.observed_external_mutation_epoch, 2);
     }
