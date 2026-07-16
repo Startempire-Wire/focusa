@@ -32,7 +32,7 @@ jobs:
             -ReleaseTag v0.9.116-dev `
             -ReleaseBaseUrl 'https://github.com/Startempire-Wire/focusa/releases/download/v0.9.116-dev'
 
-          $bin = Join-Path $env:LOCALAPPDATA 'Programs\Focusa\bin'
+          $bin = Join-Path $env:HOME '.focusa\bin'
           $cli = Join-Path $bin 'focusa.exe'
           $daemon = Join-Path $bin 'focusa-daemon.exe'
           $tui = Join-Path $bin 'focusa-tui.exe'

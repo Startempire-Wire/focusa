@@ -2224,9 +2224,12 @@ async fn phase_asset_download(
     let triple = triple_for(target);
     let assets = ["focusa", "focusa-daemon", "focusa-tui"];
     let mut out = Vec::new();
+    let executable_suffix = release_executable_suffix(target);
     for asset_name in assets {
-        let expected = format!("{asset_name}-{tag_name}-{triple}");
-        let install_path = install_root.join("bin").join(asset_name);
+        let expected = format!("{asset_name}-{tag_name}-{triple}{executable_suffix}");
+        let install_path = install_root
+            .join("bin")
+            .join(format!("{asset_name}{executable_suffix}"));
         std::fs::create_dir_all(install_path.parent().expect("bin parent"))?;
         reject_release_rollback(install_root, &tag_name)?;
         let staged = install_path.with_extension("download");
@@ -3610,6 +3613,13 @@ fn print_plan_human(plan: &InstallPlan) {
     }
 }
 
+fn release_executable_suffix(target: InstallTarget) -> &'static str {
+    match target {
+        InstallTarget::WindowsX64 | InstallTarget::WindowsArm64 => ".exe",
+        _ => "",
+    }
+}
+
 fn triple_for(target: InstallTarget) -> String {
     match target {
         // Static musl is the portable default for older production glibc hosts.
@@ -3669,6 +3679,17 @@ mod tests {
             triple_for(InstallTarget::WindowsArm64),
             "aarch64-pc-windows-msvc"
         );
+    }
+
+    #[test]
+    fn windows_release_assets_and_install_paths_use_exe_suffix() {
+        assert_eq!(release_executable_suffix(InstallTarget::WindowsX64), ".exe");
+        assert_eq!(
+            release_executable_suffix(InstallTarget::WindowsArm64),
+            ".exe"
+        );
+        assert_eq!(release_executable_suffix(InstallTarget::Linux), "");
+        assert_eq!(release_executable_suffix(InstallTarget::Darwin), "");
     }
 
     #[test]

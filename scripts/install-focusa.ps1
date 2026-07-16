@@ -133,7 +133,7 @@ Log "Selected release: $Tag (triple=$Triple)"
 # ---------------------------------------------------------------------------
 # Download focusa CLI.
 # ---------------------------------------------------------------------------
-$InstallRoot = Join-Path $env:LOCALAPPDATA "Programs\Focusa"
+$InstallRoot = Join-Path $env:HOME ".focusa"
 $BinDir = Join-Path $InstallRoot "bin"
 $Tmp = New-TemporaryFile
 $Bootstrap = "$($Tmp.FullName).bootstrap.exe"

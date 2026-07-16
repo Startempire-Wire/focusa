@@ -2892,7 +2892,12 @@ fn resolve_path(command: &str, canonical: &str) -> Option<String> {
         }
     }
     if let Some(home) = std::env::var_os("HOME") {
-        let user_install = PathBuf::from(home).join(".focusa/bin").join(command);
+        let installed_name = if cfg!(target_os = "windows") {
+            format!("{command}.exe")
+        } else {
+            command.to_string()
+        };
+        let user_install = PathBuf::from(home).join(".focusa/bin").join(installed_name);
         if user_install.exists() {
             return Some(user_install.to_string_lossy().to_string());
         }
