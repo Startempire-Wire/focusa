@@ -140,7 +140,12 @@ fn verify_deploy_proof(
     {
         bail!("signed deploy-success proof run URL is not canonical");
     }
-    if proof.asset_name != daemon_asset_name || proof.asset_sha256 != daemon_asset_sha256 {
+    if !proof
+        .asset_name
+        .starts_with(&format!("focusa-daemon-{manifest_tag}-"))
+        || proof.asset_name != daemon_asset_name
+        || proof.asset_sha256 != daemon_asset_sha256
+    {
         bail!("signed deploy-success proof daemon asset mismatch");
     }
     let manifest_sha256 = format!("{:x}", Sha256::digest(manifest_bytes));
@@ -237,16 +242,18 @@ pub(super) fn verify_release_metadata(
     )?;
     let deploy_proof: DeploySuccessProof =
         serde_json::from_slice(&deploy_proof_bytes).context("parse signed deploy-success proof")?;
-    let daemon_asset_name = required_assets
-        .iter()
-        .find(|asset| asset.part == "daemon")
-        .map(|asset| asset.name.clone())
-        .ok_or_else(|| anyhow!("required daemon release asset is absent"))?;
+    // Production deploy proof is bound to the deployed Linux daemon, while an
+    // OTA client may target macOS or Windows. Validate the proof's own daemon
+    // asset against the signed cross-platform manifest instead of incorrectly
+    // comparing it with the client's platform daemon.
+    let daemon_asset_name = deploy_proof.asset_name.clone();
     let daemon_asset_sha256 = manifest
         .assets
         .get(&daemon_asset_name)
         .map(|asset| asset.sha256.as_str())
-        .ok_or_else(|| anyhow!("signed manifest missing daemon asset {daemon_asset_name}"))?;
+        .ok_or_else(|| {
+            anyhow!("signed manifest missing deployed daemon asset {daemon_asset_name}")
+        })?;
     verify_deploy_proof(
         &deploy_proof,
         &manifest.tag,
