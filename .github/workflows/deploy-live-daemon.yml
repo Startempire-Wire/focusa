@@ -99,17 +99,33 @@ jobs:
               head_sha: targetSha,
               per_page: 50,
             });
-            const successRun = runs.data.workflow_runs.find(run =>
+            let successRun = runs.data.workflow_runs.find(run =>
               run.status === 'completed' &&
               run.conclusion === 'success' &&
               (run.event === 'push' || run.event === 'workflow_dispatch') &&
               run.head_branch === 'main'
             );
+            let proofKind = 'CI';
             if (!successRun) {
-              core.setFailed(`No successful CI run found for ${targetSha} — deploy blocked until CI passes`);
+              const releaseRuns = await github.rest.actions.listWorkflowRuns({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'release.yml',
+                head_sha: targetSha,
+                per_page: 20,
+              });
+              successRun = releaseRuns.data.workflow_runs.find(run =>
+                run.status === 'completed' &&
+                run.conclusion === 'success' &&
+                run.event === 'push'
+              );
+              proofKind = 'Release workflow Rust/full-gate';
+            }
+            if (!successRun) {
+              core.setFailed(`No successful CI or full release-gate run found for ${targetSha} — deploy blocked until a canonical gate passes`);
               return;
             }
-            core.info(`Using CI run ${successRun.id}: ${successRun.html_url}`);
+            core.info(`Using ${proofKind} run ${successRun.id}: ${successRun.html_url}`);
 
       - name: Spec104 static audit preflight
         shell: bash

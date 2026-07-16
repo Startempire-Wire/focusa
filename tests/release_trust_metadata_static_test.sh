@@ -36,6 +36,8 @@ grep -q 'focusa.release_provenance.v1' "$SCRIPT" \
   || fail 'provenance schema missing from generator'
 grep -q 'private signing key does not match trusted public key metadata' "$SCRIPT" \
   || fail 'private/public key binding check missing'
+grep -q "workflow_id: 'release.yml'" "$DEPLOY_WORKFLOW" \
+  || fail 'deploy workflow does not accept successful full release gate as CI-equivalent proof'
 grep -q 'scripts/release-deploy-proof.py' "$DEPLOY_WORKFLOW" \
   || fail 'deploy workflow does not generate signed deploy-success evidence'
 grep -q 'deploy-success.json.sig' "$DEPLOY_WORKFLOW" \
