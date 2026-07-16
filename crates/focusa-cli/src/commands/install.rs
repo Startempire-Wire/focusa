@@ -2231,17 +2231,11 @@ async fn phase_asset_download(
         reject_release_rollback(install_root, &tag_name)?;
         let staged = install_path.with_extension("download");
         let asset_url = release_asset_url(repo, &tag_name, &expected);
-        let response = client
-            .get(&asset_url)
-            .send()
-            .await
-            .map_err(|e| anyhow!("download {expected} from {}: {e}", redact_url(&asset_url)))?
-            .error_for_status()
-            .map_err(|e| anyhow!("download {expected} from {}: {e}", redact_url(&asset_url)))?;
         let existing_mode = std::fs::metadata(&install_path)
             .ok()
             .map(|metadata| file_mode(&metadata));
-        stream_asset_to_staged(response, &staged, &expected, sink, cancellation).await?;
+        download_asset_with_retry(&client, &asset_url, &staged, &expected, sink, cancellation)
+            .await?;
         set_asset_permissions(&staged, existing_mode)?;
         std::fs::rename(&staged, &install_path).map_err(|error| {
             let _ = std::fs::remove_file(&staged);
@@ -2369,15 +2363,7 @@ async fn phase_pi_extension_download(
     let install_path = share.join(&name);
     let staged = install_path.with_extension("download");
     let url = release_asset_url(repo, &release.tag, &name);
-    let response = release
-        .client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|error| anyhow!("download Pi extension from {}: {error}", redact_url(&url)))?
-        .error_for_status()
-        .map_err(|error| anyhow!("download Pi extension from {}: {error}", redact_url(&url)))?;
-    stream_asset_to_staged(response, &staged, &name, sink, cancellation).await?;
+    download_asset_with_retry(&release.client, &url, &staged, &name, sink, cancellation).await?;
     if let Err(error) = std::fs::rename(&staged, &install_path) {
         let _ = std::fs::remove_file(&staged);
         return Err(error).context("promote staged Pi extension archive");
@@ -2411,14 +2397,7 @@ async fn phase_agent_context_download(
         .timeout(std::time::Duration::from_secs(15))
         .build()
         .map_err(|error| anyhow!("agent context client build failed: {error}"))?;
-    let response = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|error| anyhow!("download {name} from {}: {error}", redact_url(&url)))?
-        .error_for_status()
-        .map_err(|error| anyhow!("download {name} from {}: {error}", redact_url(&url)))?;
-    stream_asset_to_staged(response, &staged, &name, sink, cancellation).await?;
+    download_asset_with_retry(&client, &url, &staged, &name, sink, cancellation).await?;
     if let Err(error) = std::fs::rename(&staged, &install_path) {
         let _ = std::fs::remove_file(&staged);
         return Err(error).context("promote staged agent context archive");
@@ -2430,6 +2409,45 @@ async fn phase_agent_context_download(
         sha256: String::new(),
         install_path: install_path.display().to_string(),
     })
+}
+
+async fn download_asset_with_retry(
+    client: &reqwest::Client,
+    url: &str,
+    staged: &std::path::Path,
+    label: &str,
+    sink: &dyn InstallEventSink,
+    cancellation: &CancellationToken,
+) -> Result<()> {
+    let mut last_error = None;
+    for attempt in 1_u64..=5 {
+        ensure_not_cancelled(cancellation)?;
+        let result = async {
+            let response = client
+                .get(url)
+                .send()
+                .await
+                .with_context(|| format!("download {label} from {}", redact_url(url)))?
+                .error_for_status()
+                .with_context(|| format!("download {label} from {}", redact_url(url)))?;
+            stream_asset_to_staged(response, staged, label, sink, cancellation).await
+        }
+        .await;
+        match result {
+            Ok(()) => return Ok(()),
+            Err(error) if cancellation.is_cancelled() => return Err(error),
+            Err(error) => {
+                last_error = Some(error);
+                if attempt < 5 {
+                    eprintln!(
+                        "warning: transient download failure for {label}; retrying ({attempt}/5)"
+                    );
+                    tokio::time::sleep(std::time::Duration::from_secs(attempt * 2)).await;
+                }
+            }
+        }
+    }
+    Err(last_error.unwrap_or_else(|| anyhow!("download {label} failed without an error")))
 }
 
 async fn stream_asset_to_staged(
