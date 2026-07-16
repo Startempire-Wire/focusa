@@ -153,6 +153,13 @@ have curl   || { err "curl is required. recovery_hint: install curl, then retry.
 have python3 || { err "python3 is required. recovery_hint: install python3, then retry."; exit 65; }
 have sha256sum || have shasum || { err "sha256sum (or shasum) is required."; exit 65; }
 
+# GitHub/CDN HTTP/2 resets must not turn an otherwise valid install into a
+# partial transaction. HTTP/1.1 plus bounded retries is portable on supported
+# macOS/Linux curl versions.
+curl_resilient() {
+  curl --http1.1 --retry 5 --retry-delay 2 --connect-timeout 20 "$@"
+}
+
 # Idempotent public uninstall entrypoint. Never creates install/license state.
 if [ "$UNINSTALL" = 1 ]; then
   uninstall_status=0
@@ -394,7 +401,7 @@ trap cleanup_bootstrap_failure EXIT
 log "fetching release list (channel=${CHANNEL} target=${TARGET})"
 RELEASES_FILE="$TMP/releases.json"
 if [ -z "$RELEASE_BASE_URL" ]; then
-  curl -fsSL "https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=${MAX_CANDIDATES}" \
+  curl_resilient -fsSL "https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=${MAX_CANDIDATES}" \
     -o "$RELEASES_FILE" \
     || die "failed to fetch release list from GitHub"
 fi
@@ -509,7 +516,7 @@ PY
 if [ -n "$LICENSE_KEY" ]; then
   log "validating license against ${LICENSE_REGISTRY}${LICENSE_VALIDATE_PATH}"
   VALIDATE_RESP="$(
-    curl -sS -X POST \
+    curl_resilient -sS -X POST \
       -H "Content-Type: application/json" \
       -H "X-License-Key: $LICENSE_KEY" \
       -d "{\"license_key\":\"$LICENSE_KEY\"}" \
@@ -591,7 +598,7 @@ migrate_legacy_license
 ASSET_FOCUSA="focusa-${RELEASE_TAG}-${TARGET}"
 log "downloading ${ASSET_FOCUSA}"
 
-curl -fsSL "$ASSET_URL" -o "$TMP/focusa" || die "download failed: $ASSET_URL"
+curl_resilient -fsSL "$ASSET_URL" -o "$TMP/focusa" || die "download failed: $ASSET_URL"
 chmod +x "$TMP/focusa"
 
 # ----------------------------------------------------------------------------
@@ -609,7 +616,7 @@ release_asset_url() {
 
 CHECKSUM_MANIFEST=""
 for sha_path in SHA256SUMS.txt SHA256SUMS; do
-  if curl -fsSL "$(release_asset_url "$sha_path")" \
+  if curl_resilient -fsSL "$(release_asset_url "$sha_path")" \
        -o "$TMP/$sha_path" 2>/dev/null; then
     CHECKSUM_MANIFEST="$TMP/$sha_path"
     break
@@ -626,8 +633,8 @@ verify_signature() {
   local base sig cert
   base="$(basename "$manifest")"
   sig="$TMP/${base}.sig"; cert="$TMP/${base}.pem"
-  if curl -fsSL "$(release_asset_url "${base}.sig")" -o "$sig" 2>/dev/null \
-     && curl -fsSL "$(release_asset_url "${base}.pem")" -o "$cert" 2>/dev/null; then
+  if curl_resilient -fsSL "$(release_asset_url "${base}.sig")" -o "$sig" 2>/dev/null \
+     && curl_resilient -fsSL "$(release_asset_url "${base}.pem")" -o "$cert" 2>/dev/null; then
     # GitHub release assets store cosign sig/pem as base64. Decode for cosign v3 compatibility.
     if python3 -c "
 import base64, sys
