@@ -45,6 +45,10 @@ jobs:
       DEPLOY_BACKUP_KEEP: ${{ vars.FOCUSA_DEPLOY_BACKUP_KEEP }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          # Deployment inputs identify an immutable release; installer and
+          # daemon must come from the same tag, never a moving main checkout.
+          ref: ${{ github.event.release.tag_name || inputs.release_tag }}
 
       - name: Resolve tag and deployment inputs
         id: cfg
@@ -169,6 +173,14 @@ jobs:
               --max-usage-pct '${{ steps.cfg.outputs.max_usage_pct }}' \
               --backup-keep '${{ steps.cfg.outputs.backup_keep }}'
           fi
+
+      - name: Sync public macOS/Linux bootstrapper from release tag
+        if: ${{ github.event_name == 'release' || !inputs.dry_run }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          scripts/sync-install-bootstrapper.sh
+          scripts/sync-install-bootstrapper.sh --check
 
       - name: Download daemon artifact from release
         if: ${{ !inputs.dry_run }}
