@@ -9,8 +9,14 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 log_pass(){ echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
-http_json(){ curl -sS "$@"; }
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+curl() {
+  command curl \
+    -H "x-scope-project-root: ${ROOT_DIR}" \
+    -H "x-scope-continuity-id: pi-rpc-driver-test" \
+    "$@"
+}
+http_json(){ curl -sS "$@"; }
 WORK_LOOP_ROUTE_FILE="${ROOT_DIR}/crates/focusa-api/src/routes/work_loop.rs"
 if rg -n '/v1/work-loop/driver/start|/v1/work-loop/driver/prompt|/v1/work-loop/driver/abort|/v1/work-loop/driver/stop' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1; then
   log_pass "Pi RPC driver routes are registered"
@@ -26,6 +32,9 @@ if rg -n 'process_group\(0\)' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
 else
   log_fail "Pi RPC driver process-group cleanup guard missing"
 fi
+http_json -X POST "${BASE_URL}/v1/workpoint/checkpoint" \
+  -H 'Content-Type: application/json' \
+  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"pi-rpc-driver-test\",\"mission\":\"verify Pi RPC driver contract\",\"current_action\":\"spec79_pi_rpc_driver\",\"next_slice\":\"verify scoped driver lifecycle\",\"canonical\":true}" >/dev/null
 WRITER_ID=$(http_json "${BASE_URL}/v1/work-loop" | jq -r '.active_writer // "spec79-pi-driver"')
 START_PAYLOAD=$(jq -n --arg cwd "${ROOT_DIR}" '{cwd: $cwd}')
 START=$(http_json -X POST "${BASE_URL}/v1/work-loop/driver/start" -H 'Content-Type: application/json' -H "x-focusa-writer-id: ${WRITER_ID}" -d "${START_PAYLOAD}")
