@@ -238,6 +238,44 @@ fn corruption_and_cross_run_cursor_are_rejected() {
     ));
 }
 
+#[test]
+fn rotator_flushes_durably_and_disconnects_slow_subscriber() {
+    use crate::silent_sessions::{RotationPolicy, StreamRotator};
+
+    let (dir, persistence, session, run_id) = fixture();
+    let store = SecureStreamStore::new(dir.join("streams"), persistence).unwrap();
+    let mut rotator = StreamRotator::new(
+        store,
+        session.id,
+        run_id,
+        RotationPolicy {
+            max_event_count: 1,
+            ..RotationPolicy::default()
+        },
+    );
+    rotator.fanout.subscribe("fast", 10);
+    rotator.fanout.subscribe("slow", 1);
+    rotator
+        .push(
+            stream_event(&session, run_id, 1, OutputChannel::Stdout),
+            session.created_at,
+        )
+        .unwrap();
+    assert_eq!(
+        rotator
+            .push(
+                stream_event(&session, run_id, 2, OutputChannel::Stdout),
+                session.created_at
+            )
+            .unwrap()
+            .len(),
+        1
+    );
+    rotator.complete().unwrap();
+    assert_eq!(rotator.fanout.drain("fast").len(), 2);
+    assert!(rotator.fanout.state("slow").unwrap().disconnected);
+}
+
 #[cfg(unix)]
 #[test]
 fn symlink_stream_root_is_rejected() {

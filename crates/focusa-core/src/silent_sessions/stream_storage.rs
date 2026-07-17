@@ -154,6 +154,28 @@ impl SecureStreamStore {
         })
     }
 
+    pub fn resume_position(
+        &self,
+        session_id: SilentSessionId,
+        run_id: SilentSessionRunId,
+        channel: OutputChannel,
+    ) -> Result<(u64, u64), StreamStorageError> {
+        let position = self.persistence.with_connection_mut(|connection| {
+            let next_chunk = connection.query_row(
+                "SELECT COALESCE(MAX(chunk_sequence)+1,0) FROM silent_session_stream_indexes WHERE silent_session_id=?1 AND run_id=?2 AND stream_name=?3",
+                params![session_id.to_string(), run_id.to_string(), channel.as_str()],
+                |row| row.get::<_, u64>(0),
+            )?;
+            let last_sequence = connection.query_row(
+                "SELECT COALESCE(MAX(last_event_sequence),0) FROM silent_session_stream_indexes WHERE silent_session_id=?1 AND run_id=?2",
+                params![session_id.to_string(), run_id.to_string()],
+                |row| row.get::<_, u64>(0),
+            )?;
+            Ok((next_chunk, last_sequence))
+        })?;
+        Ok(position)
+    }
+
     pub fn read_after(
         &self,
         session_id: SilentSessionId,
