@@ -138,7 +138,7 @@ Spec 135 extends rather than replaces:
 - [Spec 120](120-adversarial-spec-workbench-and-operator-approval-gates.md) — reality-grounded adversarial spec creation and task decomposition.
 - [Spec 121](121-menubar-rearchitecture-spec.md) and [121A](121a-menubar-discipline-and-living-field-spec.md) — typed Svelte/Tauri surfaces and living-field experience posture.
 - [Spec 124](124-focusa-cli-redesign-project-dashboard-project-creation-scoped-authority-first-mission-command-hierarchy-and-launch-hardening-spec.md) — project creation, templates, settings, First Mission, and project selection semantics.
-- [Spec 125](125-focus-trajectory-interlock-mandatory-hlt-session-ledger-and-pi-continuity-spec.md) — mandatory Trajectory and HLT authority.
+- [Spec 125](125-mandatory-trajectory-nonlazy-hlt-pi-receipt-ontology-interlock-spec.md) — mandatory Trajectory and HLT authority.
 - [Spec 130](130-hlt-aware-compaction-mission-packet-and-bloatgaurd-context-firewall-spec.md) — bounded context continuity and compaction mission packets.
 - [Spec 133](133-daemon-native-durable-silent-sessions-and-governed-autonomous-execution-spec.md) — durable governed execution and daemon-native sessions.
 - UIAI Engine’s `UIAI_FOCUSA_PI_HAND_IN_GLOVE_SPEC.md` — UIAI as browser/research/proof execution plane; Focusa as cognitive continuity and authority plane.
