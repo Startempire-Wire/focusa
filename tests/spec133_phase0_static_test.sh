@@ -32,9 +32,11 @@ rg -n 'focusa-a6yq6\.2\.1|focusa-a6yq6\.10\.9|Gap closure mapping|0\.1:|0\.2:|0\
   || fail "traceability matrix incomplete"
 pass "traceability maps Phase 0 through final gate and gap closures"
 
-rg -n 'No release, deploy, tag, push, remote fetch/pull, cargo build/check/test|focusa-slxpz\.5\.6.*open|Phase 0 gate must remain open' "$RELEASE" >/dev/null \
-  || fail "release/deploy freeze or Spec132 blocker not recorded"
-pass "release/deploy freeze and Spec132 blocker recorded"
+rg -n 'No unauthorized release/deploy occurred|No release, deploy, tag, push, remote fetch/pull, cargo build/check/test' "$RELEASE" >/dev/null \
+  || fail "release/deploy authorization provenance not recorded"
+rg -n 'Spec132 final proof: closed|focusa-slxpz\.5\.6.*open' "$RELEASE" >/dev/null \
+  || fail "Spec132 dependency status not recorded"
+pass "release/deploy authorization and Spec132 dependency status recorded"
 
 required_docs=(
   docs/G1-detail-03-runtime-daemon.md

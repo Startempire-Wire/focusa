@@ -37,9 +37,9 @@ Date: 2026-07-13
 | 14 Evolution/retention | Phase 9 | `focusa-a6yq6.10.8` |
 | 15 Testing | Phase 9 | `focusa-a6yq6.10.9` |
 
-## Provisional Spec132/history mapping
+## Spec132/history mapping
 
-Spec 132 remains historically relevant for the current Pi/tmux compatibility surface and installer/TUI proof, but Spec 133 supersedes Pi-local tmux as canonical Silent Session architecture. Open Spec132 proof work (`focusa-slxpz.5.6`) is a release dependency blocker for Spec133 Phase0 gate closure and is recorded in `docs/evidence/spec133-phase0-release-gate.md`.
+Spec132 is closed and remains historical evidence for installer/TUI, PTY/ConPTY, and Pi compatibility behavior. Spec133 supersedes Pi-local tmux as canonical Silent Session architecture. The former Spec132 dependency blocker is closed; authorization chronology and the remaining Spec133 release freeze are recorded in `docs/evidence/spec133-phase0-release-gate.md`.
 
 ## Phase 0 evidence handles
 
