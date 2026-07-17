@@ -74,14 +74,20 @@ jobs:
 
           $plan = (& $scratch --json update plan --daemon-health-url 'http://127.0.0.1:18791/v1/health') | ConvertFrom-Json
           if ($plan.apply_blocked_until.Count -ne 0 -or -not $plan.latest.trust.deploy_proof_verified) { throw 'trusted plan blocked' }
-          & $scratch --json update apply --daemon-health-url 'http://127.0.0.1:18791/v1/health' --dry-run=false --yes --allow-apply | Out-File (Join-Path $root 'apply.log')
-          if ((& $cli --version) -notmatch '0.9.117-dev') { throw 'OTA apply CLI mismatch' }
+          $apply = (& $scratch --json update apply --daemon-health-url 'http://127.0.0.1:18791/v1/health' --dry-run=false --yes --allow-apply) | ConvertFrom-Json
+          $apply | ConvertTo-Json -Depth 8
+          if (-not $apply.apply_executed) { throw "OTA apply not executed: $($apply.blocked_reason -join ',')" }
+          $cliVersion = & $cli --version
+          "applied_cli_version=$cliVersion"
+          if ($cliVersion -notmatch '0.9.117-dev') { throw 'OTA apply CLI mismatch' }
           if ((& $daemon --version) -notmatch '0.9.117-dev') { throw 'OTA apply daemon mismatch' }
           if ((& $tui --version) -notmatch '0.9.117-dev') { throw 'OTA apply TUI mismatch' }
           $health = Invoke-RestMethod 'http://127.0.0.1:18791/v1/health'
           if ($health.version -ne '0.9.117-dev') { throw 'OTA apply health mismatch' }
 
-          & $scratch --json update rollback --part all --dry-run=false --yes | Out-File (Join-Path $root 'rollback.log')
+          $rollback = (& $scratch --json update rollback --part all --dry-run=false --yes) | ConvertFrom-Json
+          $rollback | ConvertTo-Json -Depth 8
+          if (-not $rollback.rollback_executed) { throw 'rollback not executed' }
           Start-Sleep -Seconds 3
           if ((& $cli --version) -notmatch '0.9.116-dev') { throw 'rollback CLI mismatch' }
           if ((& $daemon --version) -notmatch '0.9.116-dev') { throw 'rollback daemon mismatch' }
@@ -89,7 +95,9 @@ jobs:
           $health = Invoke-RestMethod 'http://127.0.0.1:18791/v1/health'
           if ($health.version -ne '0.9.116-dev') { throw 'rollback health mismatch' }
 
-          & $scratch --json update apply --daemon-health-url 'http://127.0.0.1:18791/v1/health' --dry-run=false --yes --allow-apply | Out-File (Join-Path $root 'reapply.log')
+          $reapply = (& $scratch --json update apply --daemon-health-url 'http://127.0.0.1:18791/v1/health' --dry-run=false --yes --allow-apply) | ConvertFrom-Json
+          $reapply | ConvertTo-Json -Depth 8
+          if (-not $reapply.apply_executed) { throw 'reapply not executed' }
           if ((& $cli --version) -notmatch '0.9.117-dev') { throw 'reapply CLI mismatch' }
           $health = Invoke-RestMethod 'http://127.0.0.1:18791/v1/health'
           if ($health.version -ne '0.9.117-dev') { throw 'reapply health mismatch' }
