@@ -1762,13 +1762,18 @@ async fn execute_verified_apply_locked(
                     part.part
                 );
             }
+            #[cfg(unix)]
             let mode = target.metadata().ok().map(|m| m.permissions());
             #[cfg(unix)]
             if mode.is_none() {
                 use std::os::unix::fs::PermissionsExt;
                 std::fs::set_permissions(&staged, std::fs::Permissions::from_mode(0o755))?;
             }
-            std::fs::File::open(&staged)?.sync_all()?;
+            std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(&staged)?
+                .sync_all()?;
             let temp = parent.join(format!(
                 ".{}.focusa-update-{}",
                 target
@@ -1778,6 +1783,7 @@ async fn execute_verified_apply_locked(
                 std::process::id()
             ));
             move_file_cross_device_safe(&staged, &temp)?;
+            #[cfg(unix)]
             if let Some(permissions) = mode {
                 std::fs::set_permissions(&temp, permissions)?;
             }
