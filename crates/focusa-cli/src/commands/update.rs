@@ -1284,6 +1284,18 @@ fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<String>> 
         RollbackPart::Tui => name == "tui",
         RollbackPart::Daemon => name == "daemon",
     };
+    for entry in manifest.entries.iter().filter(|entry| wanted(&entry.part)) {
+        if sha256_file(&entry.backup)? != entry.sha256 {
+            anyhow::bail!("backup checksum mismatch for {}", entry.part);
+        }
+    }
+    let restoring_daemon = manifest
+        .entries
+        .iter()
+        .any(|entry| wanted(&entry.part) && entry.part == "daemon");
+    if restoring_daemon {
+        stop_daemon_before_promotion()?;
+    }
     let mut restored = Vec::new();
     let mut restored_daemon_path = None;
     for entry in manifest
@@ -1291,9 +1303,6 @@ fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<String>> 
         .into_iter()
         .filter(|entry| wanted(&entry.part))
     {
-        if sha256_file(&entry.backup)? != entry.sha256 {
-            anyhow::bail!("backup checksum mismatch for {}", entry.part);
-        }
         let failed = entry.target.with_extension("focusa-pre-rollback");
         if entry.target.exists() {
             move_file_cross_device_safe(&entry.target, &failed)?;
@@ -1591,6 +1600,17 @@ fn terminate_portable_daemon_from_lock() {
     }
 }
 
+fn stop_daemon_before_promotion() -> anyhow::Result<()> {
+    #[cfg(target_os = "windows")]
+    {
+        let _ = std::process::Command::new("taskkill")
+            .args(["/F", "/IM", "focusa-daemon.exe"])
+            .output();
+        std::thread::sleep(std::time::Duration::from_millis(750));
+    }
+    Ok(())
+}
+
 fn restart_daemon_service(daemon_path: &Path) -> anyhow::Result<()> {
     if cfg!(target_os = "macos") {
         let uid = std::process::Command::new("id").arg("-u").output()?;
@@ -1733,6 +1753,11 @@ async fn execute_verified_apply_locked(
             if let Some(permissions) = mode {
                 std::fs::set_permissions(&temp, permissions)?;
             }
+            // Windows refuses to replace a running executable. Stop only after
+            // the staged daemon passed checksum verification, minimizing downtime.
+            if part.part == "daemon" {
+                stop_daemon_before_promotion()?;
+            }
             let backup = backup_root.join(target.file_name().context("target filename missing")?);
             let backup_sha256 = if target.exists() {
                 let digest = sha256_file(&target)?;
@@ -1814,6 +1839,17 @@ async fn execute_verified_apply_locked(
             promoted.iter().find(|(part, _, _, _)| part == "daemon")
         {
             let _ = restart_daemon_service(daemon_path);
+        } else if cfg!(target_os = "windows") {
+            // Promotion can fail after the old daemon was stopped but before it
+            // entered `promoted`; restore service from the still-current target.
+            if let Some(path) = plan
+                .parts
+                .iter()
+                .find(|part| part.part == "daemon")
+                .and_then(|part| part.target_path.as_deref())
+            {
+                let _ = restart_daemon_service(Path::new(path));
+            }
         }
         std::fs::write(
             &journal,
