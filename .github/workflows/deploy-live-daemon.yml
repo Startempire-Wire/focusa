@@ -174,7 +174,7 @@ jobs:
               --backup-keep '${{ steps.cfg.outputs.backup_keep }}'
           fi
 
-      - name: Sync public macOS/Linux bootstrapper from release tag
+      - name: Sync public macOS/Linux and Windows bootstrappers from release tag
         if: ${{ github.event_name == 'release' || !inputs.dry_run }}
         shell: bash
         run: |
@@ -182,15 +182,23 @@ jobs:
           if [[ "${{ steps.cfg.outputs.use_sudo }}" == "0" ]]; then
             scripts/sync-install-bootstrapper.sh
             scripts/sync-install-bootstrapper.sh --check
+            scripts/sync-install-bootstrapper-windows.sh
+            scripts/sync-install-bootstrapper-windows.sh --check
           else
             # github-runner sudoers allowlists /usr/bin/install, not arbitrary
             # repository scripts. Set cPanel ownership atomically and verify.
             sudo -n /usr/bin/install -m 0755 -o focusadev -g focusadev \
               scripts/install-focusa.sh \
               /home/focusadev/install.focusa.dev/public_html/installers/install-focusa.sh
+            sudo -n /usr/bin/install -m 0644 -o focusadev -g focusadev \
+              scripts/install-focusa.ps1 \
+              /home/focusadev/install.focusa.dev/public_html/installers/install-focusa.ps1
             curl -fsSL "https://install.focusa.dev/focusa?deploy_run=${GITHUB_RUN_ID}" \
               -o /tmp/focusa-live-bootstrapper.sh
+            curl -fsSL "https://install.focusa.dev/focusa.ps1?deploy_run=${GITHUB_RUN_ID}" \
+              -o /tmp/focusa-live-bootstrapper.ps1
             cmp -s scripts/install-focusa.sh /tmp/focusa-live-bootstrapper.sh
+            cmp -s scripts/install-focusa.ps1 /tmp/focusa-live-bootstrapper.ps1
           fi
 
       - name: Download daemon artifact from release
