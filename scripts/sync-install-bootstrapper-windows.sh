@@ -47,11 +47,13 @@ if [ "$mode" = "check" ]; then
     [ "$quiet" = "1" ] || echo "[sync-install-windows] DRIFT: $SRC != $LIVE" >&2
     exit 1
   fi
-  if [ ! -L "$DOCROOT/focusa.ps1" ] || [ ! -L "$DOCROOT/install.ps1" ]; then
-    [ "$quiet" = "1" ] || echo "[sync-install-windows] docroot aliases missing" >&2
-    exit 1
-  fi
-  [ "$quiet" = "1" ] || echo "[sync-install-windows] OK: in-repo matches live + docroot aliases present" >&2
+  for alias in "$DOCROOT/focusa.ps1" "$DOCROOT/install.ps1"; do
+    if [ ! -f "$alias" ] || ! cmp -s "$SRC" "$alias"; then
+      [ "$quiet" = "1" ] || echo "[sync-install-windows] docroot alias missing or stale: $alias" >&2
+      exit 1
+    fi
+  done
+  [ "$quiet" = "1" ] || echo "[sync-install-windows] OK: in-repo matches live + docroot aliases" >&2
   exit 0
 fi
 
