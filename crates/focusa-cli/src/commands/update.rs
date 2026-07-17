@@ -1622,6 +1622,32 @@ fn stop_daemon_before_promotion() -> anyhow::Result<()> {
     Ok(())
 }
 
+fn spawn_daemon_detached_with_retry(daemon_path: &Path) -> anyhow::Result<()> {
+    const WINDOWS_SPAWN_RETRIES: usize = 120;
+    for attempt in 0..WINDOWS_SPAWN_RETRIES {
+        match std::process::Command::new(daemon_path)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+        {
+            Ok(_) => return Ok(()),
+            Err(error)
+                if cfg!(target_os = "windows")
+                    && error.raw_os_error() == Some(5)
+                    && attempt + 1 < WINDOWS_SPAWN_RETRIES =>
+            {
+                std::thread::sleep(std::time::Duration::from_millis(500));
+            }
+            Err(error) => {
+                return Err(error)
+                    .with_context(|| format!("start promoted daemon {}", daemon_path.display()));
+            }
+        }
+    }
+    unreachable!("bounded daemon spawn retry loop always returns")
+}
+
 fn restart_daemon_service(daemon_path: &Path) -> anyhow::Result<()> {
     if cfg!(target_os = "macos") {
         let uid = std::process::Command::new("id").arg("-u").output()?;
@@ -1641,11 +1667,7 @@ fn restart_daemon_service(daemon_path: &Path) -> anyhow::Result<()> {
         let _ = std::process::Command::new("taskkill")
             .args(["/F", "/IM", "focusa-daemon.exe"])
             .output();
-        std::process::Command::new(daemon_path)
-            .stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .spawn()?;
+        spawn_daemon_detached_with_retry(daemon_path)?;
         return Ok(());
     } else {
         for args in [
@@ -1663,12 +1685,7 @@ fn restart_daemon_service(daemon_path: &Path) -> anyhow::Result<()> {
         }
     }
     terminate_portable_daemon_from_lock();
-    std::process::Command::new(daemon_path)
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .spawn()?;
-    Ok(())
+    spawn_daemon_detached_with_retry(daemon_path)
 }
 
 fn rollback_promoted_parts(promoted: &[PromotedPart]) -> anyhow::Result<Vec<String>> {
