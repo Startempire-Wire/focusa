@@ -9,12 +9,15 @@ permissions:
 jobs:
   windows-ota:
     runs-on: windows-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@nightly
         with:
           toolchain: nightly-2026-01-08
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: windows-ota-e2e
       - name: Clean install v0.9.116, apply v0.9.117, rollback, reapply
         shell: pwsh
         run: |
