@@ -103,8 +103,16 @@ jobs:
           $env:FOCUSA_DAEMON_PATH = $daemon
           $env:FOCUSA_TUI_PATH = $tui
 
-          $plan = Invoke-FocusaJson -FilePath $scratch -Arguments @('--json', 'update', 'plan', '--daemon-health-url', 'http://127.0.0.1:18791/v1/health') -Name 'plan'
-          if ($plan.apply_blocked_until.Count -ne 0 -or -not $plan.latest.trust.deploy_proof_verified) { throw 'trusted plan blocked' }
+          $plan = $null
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            $plan = Invoke-FocusaJson -FilePath $scratch -Arguments @('--json', 'update', 'plan', '--daemon-health-url', 'http://127.0.0.1:18791/v1/health') -Name "plan-$attempt"
+            $plan | ConvertTo-Json -Depth 8
+            if ($plan.apply_blocked_until.Count -eq 0 -and $plan.latest.trust.deploy_proof_verified) { break }
+            if ($attempt -lt 3) { Start-Sleep -Seconds 5 }
+          }
+          if ($plan.apply_blocked_until.Count -ne 0 -or -not $plan.latest.trust.deploy_proof_verified) {
+            throw "trusted plan blocked after 3 attempts: $($plan.apply_blocked_until -join ',')"
+          }
           $apply = Invoke-FocusaJson -FilePath $scratch -Arguments @('--json', 'update', 'apply', '--daemon-health-url', 'http://127.0.0.1:18791/v1/health', '--dry-run=false', '--yes', '--allow-apply') -Name 'apply'
           $apply | ConvertTo-Json -Depth 8
           if (-not $apply.apply_executed) { throw "OTA apply not executed: $($apply.blocked_reason -join ',')" }
