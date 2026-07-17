@@ -1351,9 +1351,7 @@ pub fn router() -> Router<Arc<AppState>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        exact_request_scope_matches, rebuild_scoped_stack_metadata, resolve_scoped_frame,
-    };
+    use super::{exact_request_scope_matches, rebuild_scoped_stack_metadata, resolve_scoped_frame};
     use crate::scope::ScopeContext;
     use chrono::Utc;
     use focusa_core::types::{

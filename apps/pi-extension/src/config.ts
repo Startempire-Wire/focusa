@@ -25,7 +25,8 @@ export interface FocusaConfigScopeRef {
   surface: FocusaConfigSurface;
 }
 
-export type FocusaBloatgaurdProfileName = "daily_driver" | "beast_mode" | "speedy" | "neat_freak" | "tightwad";
+export type FocusaBloatgaurdProfileName =
+  "daily_driver" | "beast_mode" | "speedy" | "neat_freak" | "tightwad";
 
 export interface FocusaConfig {
   enabled: boolean;

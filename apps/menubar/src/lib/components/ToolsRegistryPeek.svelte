@@ -139,7 +139,6 @@
     grid-template-columns: 1fr;
     gap: var(--sp-2);
   }
-  .proof-row section p,
   .proof-row section ul {
     font-size: 0.85rem;
   }

@@ -386,18 +386,13 @@
     border-radius: 4px;
     padding: var(--sp-2) var(--sp-3);
   }
-  .code, .cmd {
+  .cmd {
     flex: 1;
     font-family: var(--font-mono);
     font-size: var(--text-base);
     color: var(--fg);
     user-select: all;
     word-break: break-all;
-  }
-  .code {
-    font-size: var(--text-lg);
-    font-weight: 600;
-    letter-spacing: 0.5px;
   }
   .vps-label {
     margin: var(--sp-1) 0 0;

@@ -78,17 +78,12 @@ async function runCheck(compaction, state, attachmentKey, pct, canCompact) {
 
 try {
   symlinkSync(join(projectDir, "node_modules"), join(outDir, "node_modules"), "dir");
-  execFileSync("./node_modules/.bin/tsc", [
-    "-p",
-    "tsconfig.json",
-    "--outDir",
-    outDir,
-    "--noEmit",
-    "false",
-    "--module",
-    "ES2022",
-  ], { cwd: projectDir, stdio: "pipe" });
-  writeFileSync(join(outDir, "package.json"), "{\"type\":\"module\"}\n");
+  execFileSync(
+    "./node_modules/.bin/tsc",
+    ["-p", "tsconfig.json", "--outDir", outDir, "--noEmit", "false", "--module", "ES2022"],
+    { cwd: projectDir, stdio: "pipe" }
+  );
+  writeFileSync(join(outDir, "package.json"), '{"type":"module"}\n');
 
   const compaction = await import(pathToFileURL(join(outDir, "compaction.js")).href);
   const state = await import(pathToFileURL(join(outDir, "state.js")).href);
@@ -100,8 +95,14 @@ try {
     checkBlock.includes("classifyBloatgaurdPressureAction"),
     "checkCompactionTier should call the bloatgaurd pressure classifier"
   );
-  assert(checkBlock.includes("ctx.compact({"), "checkCompactionTier should preserve existing ctx.compact path");
-  assert(sessionCompactStart >= 0 && sessionCompactEnd > sessionCompactStart, "session_compact block must exist");
+  assert(
+    checkBlock.includes("ctx.compact({"),
+    "checkCompactionTier should preserve existing ctx.compact path"
+  );
+  assert(
+    sessionCompactStart >= 0 && sessionCompactEnd > sessionCompactStart,
+    "session_compact block must exist"
+  );
   const sessionCompactBlock = compactionSource.slice(sessionCompactStart, sessionCompactEnd);
   assert(
     sessionCompactBlock.includes("resetLiveContextPressureAfterCompaction()"),
@@ -147,7 +148,11 @@ try {
   assert.equal(manualReset.turnsSinceCompact, 0, "manual compaction must reset turn cooldown");
   assert.equal(manualReset.lastCompactTime, 123_456, "manual compaction must start time cooldown");
   assert.equal(manualReset.forkSuggested, false, "manual compaction must reset stale fork suggestion");
-  assert.equal(manualReset.lastNativeSessionPressure, nativePressure, "native hard pressure must remain authoritative");
+  assert.equal(
+    manualReset.lastNativeSessionPressure,
+    nativePressure,
+    "native hard pressure must remain authoritative"
+  );
   assert.equal(
     manualReset.lastNativeSessionPressureNoticeKey,
     "hard_pressure:rollover",
@@ -155,18 +160,42 @@ try {
   );
 
   const hardByCooldown = await runCheck(compaction, state, attachmentKey, 85, false);
-  assert.equal(hardByCooldown.compactCalls.length, 1, "hard tier should trigger ctx.compact even during cooldown");
+  assert.equal(
+    hardByCooldown.compactCalls.length,
+    1,
+    "hard tier should trigger ctx.compact even during cooldown"
+  );
   assert.equal(hardByCooldown.runtime.currentTier, "", "hard compaction completion must clear live tier");
-  assert.equal(hardByCooldown.runtime.currentContextPct, null, "hard compaction completion must clear percentage");
+  assert.equal(
+    hardByCooldown.runtime.currentContextPct,
+    null,
+    "hard compaction completion must clear percentage"
+  );
 
   const highWithCooldown = await runCheck(compaction, state, attachmentKey, 75, false);
   assert.equal(highWithCooldown.compactCalls.length, 0, "auto-tier should be suppressed during cooldown");
-  assert.equal(highWithCooldown.runtime.currentTier, "warn", "cooldown-suppressed high pressure should remain warn");
+  assert.equal(
+    highWithCooldown.runtime.currentTier,
+    "warn",
+    "cooldown-suppressed high pressure should remain warn"
+  );
 
   const highWithoutCooldown = await runCheck(compaction, state, attachmentKey, 75, true);
-  assert.equal(highWithoutCooldown.compactCalls.length, 1, "auto tier should compact when cooldown is satisfied");
-  assert.equal(highWithoutCooldown.runtime.currentTier, "", "auto compaction completion must clear live tier");
-  assert.equal(highWithoutCooldown.runtime.currentContextPct, null, "auto compaction completion must clear percentage");
+  assert.equal(
+    highWithoutCooldown.compactCalls.length,
+    1,
+    "auto tier should compact when cooldown is satisfied"
+  );
+  assert.equal(
+    highWithoutCooldown.runtime.currentTier,
+    "",
+    "auto compaction completion must clear live tier"
+  );
+  assert.equal(
+    highWithoutCooldown.runtime.currentContextPct,
+    null,
+    "auto compaction completion must clear percentage"
+  );
 
   console.log("spec101 bloatgaurd pressure circuit runtime test passed");
 } finally {

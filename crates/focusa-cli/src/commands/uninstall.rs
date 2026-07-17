@@ -1131,9 +1131,16 @@ mod tests {
                 .iter()
                 .any(|s| matches!(s.kind, UninstallStepKind::PurgePiExtension))
         );
+        let expected_pi_extension = std::env::var_os("FOCUSA_PI_EXT_ROOT")
+            .or_else(|| std::env::var_os("FOCUSA_PI_EXT_DIR"))
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("/tmp/.pi/agent/extensions"))
+            .join("focusa")
+            .display()
+            .to_string();
         assert!(steps.iter().any(|s| {
             matches!(s.kind, UninstallStepKind::PurgePiExtension)
-                && s.target_path.as_deref() == Some("/tmp/.pi/agent/extensions/focusa")
+                && s.target_path.as_deref() == Some(expected_pi_extension.as_str())
         }));
         assert!(steps.iter().any(|s| {
             matches!(s.kind, UninstallStepKind::PurgePiExtension)

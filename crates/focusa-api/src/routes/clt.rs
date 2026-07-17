@@ -1,11 +1,11 @@
 //! CLT routes — Context Lineage Tree inspection.
 
-use crate::scope::ScopeContext;
 use crate::routes::bounded::{
     BoundedReadOptions, bounded_metadata, bounded_window, budgeted_default_limit,
     budgeted_hard_limit, budgeted_requested_limit, field_projection,
     full_payload_blocked_by_pressure, project_json_fields, traversal_bounds,
 };
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Query, State};
 use axum::{Json, Router, routing::get};
@@ -78,8 +78,16 @@ fn full_nodes_limit() -> usize {
 }
 
 pub(crate) fn scoped_clt_state(clt: &CltState, scope: &ScopeContext) -> CltState {
-    let project_root = scope.project_root.as_deref().map(str::trim).unwrap_or_default();
-    let continuity_id = scope.continuity_id.as_deref().map(str::trim).unwrap_or_default();
+    let project_root = scope
+        .project_root
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or_default();
+    let continuity_id = scope
+        .continuity_id
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or_default();
     let mut nodes = clt
         .nodes
         .iter()
@@ -95,9 +103,13 @@ pub(crate) fn scoped_clt_state(clt: &CltState, scope: &ScopeContext) -> CltState
             !project_root.is_empty()
                 && !continuity_id.is_empty()
                 && !is_guardian_service_warning
-                && trajectory.and_then(|ctx| ctx.project_root.as_deref()).map(str::trim)
+                && trajectory
+                    .and_then(|ctx| ctx.project_root.as_deref())
+                    .map(str::trim)
                     == Some(project_root)
-                && trajectory.and_then(|ctx| ctx.continuity_id.as_deref()).map(str::trim)
+                && trajectory
+                    .and_then(|ctx| ctx.continuity_id.as_deref())
+                    .map(str::trim)
                     == Some(continuity_id)
         })
         .cloned()
@@ -267,7 +279,9 @@ mod tests {
             &mut clt,
             None,
             "system",
-            Some("intuition_signal type=Warning severity=info summary=Guardian: service spamd is DOWN"),
+            Some(
+                "intuition_signal type=Warning severity=info summary=Guardian: service spamd is DOWN",
+            ),
             metadata("/repo/focusa", "cont-a"),
         );
         let last = append_interaction(

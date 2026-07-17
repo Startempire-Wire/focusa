@@ -66,9 +66,7 @@ impl BlockCanvas {
             top: color,
             bottom: color,
         };
-        for px in &mut self.pixels {
-            *px = p;
-        }
+        self.pixels.fill(p);
     }
 }
 

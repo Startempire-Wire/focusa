@@ -101,16 +101,11 @@ const expectedProfiles = {
 };
 
 try {
-  execFileSync("./node_modules/.bin/tsc", [
-    "-p",
-    "tsconfig.json",
-    "--outDir",
-    outDir,
-    "--noEmit",
-    "false",
-    "--module",
-    "ES2022",
-  ], { cwd: projectDir, stdio: "pipe" });
+  execFileSync(
+    "./node_modules/.bin/tsc",
+    ["-p", "tsconfig.json", "--outDir", outDir, "--noEmit", "false", "--module", "ES2022"],
+    { cwd: projectDir, stdio: "pipe" }
+  );
 
   const { loadConfig } = await import(pathToFileURL(join(outDir, "config.js")).href);
 
@@ -126,7 +121,11 @@ try {
       run: () => loadConfig(cwd),
     });
 
-    assert.equal(config.bloatgaurdProfile, expected.bloatgaurdProfile, `profile ${expected.bloatgaurdProfile} should be applied from settings`);
+    assert.equal(
+      config.bloatgaurdProfile,
+      expected.bloatgaurdProfile,
+      `profile ${expected.bloatgaurdProfile} should be applied from settings`
+    );
     assert.equal(config.warnPct, expected.warnPct);
     assert.equal(config.compactPct, expected.compactPct);
     assert.equal(config.hardPct, expected.hardPct);
@@ -142,7 +141,13 @@ try {
   const explicitHome = makeTempDir("focusa-bloatgaurd-explicit-home-");
   writeSettings(explicitCwd, {
     focusa: { bloatgaurdProfile: "beast_mode" },
-    extensions: { focusaPiBridge: { externalizeThresholdBytes: 7777, externalizeThresholdTokens: 777, microCompactEveryNTurns: 15 } },
+    extensions: {
+      focusaPiBridge: {
+        externalizeThresholdBytes: 7777,
+        externalizeThresholdTokens: 777,
+        microCompactEveryNTurns: 15,
+      },
+    },
   });
   const explicitResult = withIsolatedRuntime({
     cwd: explicitCwd,
@@ -170,7 +175,10 @@ try {
   });
   assert.equal(envProfileResult.config.bloatgaurdProfile, "speedy");
   assert.equal(envProfileResult.config.warnPct, expectedProfiles.speedy.warnPct);
-  assert.equal(envProfileResult.config.externalizeThresholdBytes, expectedProfiles.speedy.externalizeThresholdBytes);
+  assert.equal(
+    envProfileResult.config.externalizeThresholdBytes,
+    expectedProfiles.speedy.externalizeThresholdBytes
+  );
   assert.equal(envProfileResult.errors.length, 0);
 
   const invalidCwd = makeTempDir("focusa-bloatgaurd-invalid-");

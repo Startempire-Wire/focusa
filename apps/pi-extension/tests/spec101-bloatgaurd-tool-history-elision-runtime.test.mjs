@@ -52,16 +52,11 @@ const messages = [
 
 try {
   symlinkSync(join(projectDir, "node_modules"), join(outDir, "node_modules"), "dir");
-  execFileSync("./node_modules/.bin/tsc", [
-    "-p",
-    "tsconfig.json",
-    "--outDir",
-    outDir,
-    "--noEmit",
-    "false",
-    "--module",
-    "ES2022",
-  ], { cwd: projectDir, stdio: "pipe" });
+  execFileSync(
+    "./node_modules/.bin/tsc",
+    ["-p", "tsconfig.json", "--outDir", outDir, "--noEmit", "false", "--module", "ES2022"],
+    { cwd: projectDir, stdio: "pipe" }
+  );
   writeFileSync(join(outDir, "package.json"), '{"type":"module"}\n');
 
   const turns = await import(pathToFileURL(join(outDir, "turns.js")).href);
@@ -71,26 +66,27 @@ try {
   assert.notEqual(result[0], oldHandled, "old handled result should be copied and collapsed");
   assert.equal(result[0].toolCallId, oldHandled.toolCallId, "tool-call identity must be preserved");
   assert.equal(result[0].toolName, oldHandled.toolName, "tool name must be preserved");
-  assert.deepEqual(result[0].content, [{
-    type: "text",
-    text: '[HANDLE:text:019f-test-old "bash output" (9000 bytes, ~2200 tokens)]\nUse /focusa-rehydrate 019f-test-old to retrieve full content.',
-  }]);
+  assert.deepEqual(result[0].content, [
+    {
+      type: "text",
+      text: '[HANDLE:text:019f-test-old "bash output" (9000 bytes, ~2200 tokens)]\nUse /focusa-rehydrate 019f-test-old to retrieve full content.',
+    },
+  ]);
   assert.equal(result[1], oldRaw, "raw output without a stable handle must not be elided");
   assert.equal(result[2], oldError, "error evidence must not be elided");
   assert.equal(result[4], recentHandled, "bounded recent tool history must remain verbatim");
   assert.equal(oldHandled.content[0].text, handledText, "input messages must not be mutated");
-  assert.deepEqual(
-    turns.elideOldRehydratableToolHistory(result, 2),
-    result,
-    "elision must be idempotent"
-  );
+  assert.deepEqual(turns.elideOldRehydratableToolHistory(result, 2), result, "elision must be idempotent");
 
   assert.equal(
     (turnsSource.match(/pi\.on\("context"/g) || []).length,
     1,
     "tool-history elision must reuse the single context hook"
   );
-  assert.match(turnsSource, /const contextMessages = elideOldRehydratableToolHistory\(event\.messages \|\| \[\]\)/);
+  assert.match(
+    turnsSource,
+    /const contextMessages = elideOldRehydratableToolHistory\(event\.messages \|\| \[\]\)/
+  );
 
   console.log("spec101 bloatgaurd tool-history elision runtime test passed");
 } finally {

@@ -185,9 +185,8 @@ async fn malformed_pi_extension_archive_rejects_and_keeps_existing_destination()
         sha256: String::new(),
         install_path: archive.display().to_string(),
     };
-    let error =
-        integrate_pi_extension(&asset, &fixture, None, None)
-            .expect_err("malformed Pi archive must fail");
+    let error = integrate_pi_extension(&asset, &fixture, None, None)
+        .expect_err("malformed Pi archive must fail");
     let destination_preserved = preserved_marker.is_file()
         && std::fs::read_to_string(&preserved_marker)
             .map(|value| value == "keep")

@@ -38,6 +38,34 @@ jobs:
           $env:FOCUSA_BIND = '127.0.0.1:18791'
           $env:FOCUSA_DAEMON_HEALTH_URL = 'http://127.0.0.1:18791/v1/health'
 
+          function Invoke-FocusaJson {
+            param(
+              [string]$FilePath,
+              [string[]]$Arguments,
+              [string]$Name,
+              [int]$TimeoutSeconds = 180
+            )
+            $stdout = Join-Path $root "$Name.stdout.json"
+            $stderr = Join-Path $root "$Name.stderr.log"
+            Write-Host "phase=$Name status=started"
+            $process = Start-Process -FilePath $FilePath -ArgumentList $Arguments `
+              -WorkingDirectory $root -PassThru -NoNewWindow `
+              -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+            if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
+              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+              throw "$Name timed out after $TimeoutSeconds seconds"
+            }
+            if (Test-Path $stderr) {
+              $stderrText = Get-Content $stderr -Raw
+              if ($stderrText) { Write-Host $stderrText }
+            }
+            if ($process.ExitCode -ne 0) {
+              throw "$Name exited $($process.ExitCode): $(Get-Content $stdout -Raw)"
+            }
+            Write-Host "phase=$Name status=completed"
+            return (Get-Content $stdout -Raw | ConvertFrom-Json)
+          }
+
           # Parse and route the public PowerShell bootstrap without mutating the runner.
           & ./scripts/install-focusa.ps1 `
             -DryRun -Eval -Channel preview `
@@ -75,9 +103,9 @@ jobs:
           $env:FOCUSA_DAEMON_PATH = $daemon
           $env:FOCUSA_TUI_PATH = $tui
 
-          $plan = (& $scratch --json update plan --daemon-health-url 'http://127.0.0.1:18791/v1/health') | ConvertFrom-Json
+          $plan = Invoke-FocusaJson -FilePath $scratch -Arguments @('--json', 'update', 'plan', '--daemon-health-url', 'http://127.0.0.1:18791/v1/health') -Name 'plan'
           if ($plan.apply_blocked_until.Count -ne 0 -or -not $plan.latest.trust.deploy_proof_verified) { throw 'trusted plan blocked' }
-          $apply = (& $scratch --json update apply --daemon-health-url 'http://127.0.0.1:18791/v1/health' --dry-run=false --yes --allow-apply) | ConvertFrom-Json
+          $apply = Invoke-FocusaJson -FilePath $scratch -Arguments @('--json', 'update', 'apply', '--daemon-health-url', 'http://127.0.0.1:18791/v1/health', '--dry-run=false', '--yes', '--allow-apply') -Name 'apply'
           $apply | ConvertTo-Json -Depth 8
           if (-not $apply.apply_executed) { throw "OTA apply not executed: $($apply.blocked_reason -join ',')" }
           $cliVersion = & $cli --version
@@ -88,7 +116,7 @@ jobs:
           $health = Invoke-RestMethod 'http://127.0.0.1:18791/v1/health'
           if ($health.version -ne '0.9.117-dev') { throw 'OTA apply health mismatch' }
 
-          $rollback = (& $scratch --json update rollback --part all --dry-run=false --yes) | ConvertFrom-Json
+          $rollback = Invoke-FocusaJson -FilePath $scratch -Arguments @('--json', 'update', 'rollback', '--part', 'all', '--dry-run=false', '--yes') -Name 'rollback'
           $rollback | ConvertTo-Json -Depth 8
           if (-not $rollback.rollback_executed) { throw 'rollback not executed' }
           Start-Sleep -Seconds 3
@@ -98,7 +126,7 @@ jobs:
           $health = Invoke-RestMethod 'http://127.0.0.1:18791/v1/health'
           if ($health.version -ne '0.9.116-dev') { throw 'rollback health mismatch' }
 
-          $reapply = (& $scratch --json update apply --daemon-health-url 'http://127.0.0.1:18791/v1/health' --dry-run=false --yes --allow-apply) | ConvertFrom-Json
+          $reapply = Invoke-FocusaJson -FilePath $scratch -Arguments @('--json', 'update', 'apply', '--daemon-health-url', 'http://127.0.0.1:18791/v1/health', '--dry-run=false', '--yes', '--allow-apply') -Name 'reapply'
           $reapply | ConvertTo-Json -Depth 8
           if (-not $reapply.apply_executed) { throw 'reapply not executed' }
           if ((& $cli --version) -notmatch '0.9.117-dev') { throw 'reapply CLI mismatch' }

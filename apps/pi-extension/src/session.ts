@@ -58,10 +58,7 @@ import {
   getContinuityId,
 } from "./state.js";
 import { loadPersistedRecoveryState } from "./persistence.js";
-import {
-  measureNativeSessionPressure,
-  type NativeSessionPressureV1,
-} from "./session-pressure.js";
+import { measureNativeSessionPressure, type NativeSessionPressureV1 } from "./session-pressure.js";
 import { pushDelta } from "./tools.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
@@ -92,18 +89,12 @@ function refreshNativeSessionPressure(ctx: any, reason: string, entries?: any[])
     getAttachmentRuntime().lastNativeSessionPressureNoticeKey = noticeKey;
     const mib = Math.ceil(pressure.session_bytes / (1024 * 1024));
     const actionSuffix = operatorAction ? ` · run ${operatorAction}` : "";
-    ctx?.ui?.setStatus?.(
-      "focusa-pressure",
-      `native session ${pressure.posture} · ${mib} MiB${actionSuffix}`
-    );
+    ctx?.ui?.setStatus?.("focusa-pressure", `native session ${pressure.posture} · ${mib} MiB${actionSuffix}`);
     if (pressure.posture !== "soft_pressure") {
       const actionCopy = operatorAction
         ? `Live /compact cannot shrink this append-only segment. Run ${operatorAction} to checkpoint, seal, migrate, open a new session, and verify resume.`
         : `Required action: ${pressure.recommended_action}.`;
-      ctx?.ui?.notify?.(
-        `Focusa native-session pressure: ${pressure.posture}. ${actionCopy}`,
-        "warning"
-      );
+      ctx?.ui?.notify?.(`Focusa native-session pressure: ${pressure.posture}. ${actionCopy}`, "warning");
     }
   }
   if (reason === "session_start" || pressure.posture !== "normal") {

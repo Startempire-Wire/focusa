@@ -8,16 +8,11 @@ const projectDir = fileURLToPath(new URL("..", import.meta.url));
 const outDir = mkdtempSync(join(projectDir, ".bloatgaurd-tools-"));
 
 try {
-  execFileSync("./node_modules/.bin/tsc", [
-    "-p",
-    "tsconfig.json",
-    "--outDir",
-    outDir,
-    "--noEmit",
-    "false",
-    "--module",
-    "ES2022",
-  ], { cwd: projectDir, stdio: "pipe" });
+  execFileSync(
+    "./node_modules/.bin/tsc",
+    ["-p", "tsconfig.json", "--outDir", outDir, "--noEmit", "false", "--module", "ES2022"],
+    { cwd: projectDir, stdio: "pipe" }
+  );
 
   const tools = await import(pathToFileURL(join(outDir, "tools.js")).href);
   const state = await import(pathToFileURL(join(outDir, "state.js")).href);

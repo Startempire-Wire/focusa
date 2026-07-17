@@ -836,11 +836,15 @@ export function elideOldRehydratableToolHistory(
     if (index >= recentStart || message?.role !== "toolResult" || message?.isError) return message;
 
     const content = message?.content;
-    const text = typeof content === "string"
-      ? content
-      : Array.isArray(content)
-        ? content.filter((item: any) => item?.type === "text").map((item: any) => item.text || "").join("\n")
-        : "";
+    const text =
+      typeof content === "string"
+        ? content
+        : Array.isArray(content)
+          ? content
+              .filter((item: any) => item?.type === "text")
+              .map((item: any) => item.text || "")
+              .join("\n")
+          : "";
     const handle = text.match(/^\[HANDLE:([^\n\]]+)\]/m);
     const identity = handle?.[1]?.split(/\s+/, 1)[0] || "";
     const separator = identity.indexOf(":");
@@ -851,9 +855,7 @@ export function elideOldRehydratableToolHistory(
     if (text.trim() === replacement) return message;
     return {
       ...message,
-      content: typeof content === "string"
-        ? replacement
-        : [{ type: "text", text: replacement }],
+      content: typeof content === "string" ? replacement : [{ type: "text", text: replacement }],
     };
   });
 }
@@ -1855,10 +1857,7 @@ export function registerTurns(pi: ExtensionAPI) {
 
     // §33.2: Prepend Focus State as first message before every LLM call
     return {
-      messages: [
-        { role: "user" as const, content: [{ type: "text" as const, text }] },
-        ...contextMessages,
-      ],
+      messages: [{ role: "user" as const, content: [{ type: "text" as const, text }] }, ...contextMessages],
     };
   });
 
