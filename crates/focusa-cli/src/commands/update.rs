@@ -1563,16 +1563,27 @@ async fn execute_verified_apply(plan: &UpdatePlanEnvelope) -> anyhow::Result<Vec
 type PromotedPart = (String, PathBuf, PathBuf, String);
 
 fn move_file_cross_device_safe(source: &Path, destination: &Path) -> anyhow::Result<()> {
-    match std::fs::rename(source, destination) {
-        Ok(()) => Ok(()),
-        Err(error) if error.raw_os_error() == Some(18) => {
-            std::fs::copy(source, destination)?;
-            std::fs::File::open(destination)?.sync_all()?;
-            std::fs::remove_file(source)?;
-            Ok(())
+    const WINDOWS_LOCK_RETRIES: usize = 20;
+    for attempt in 0..WINDOWS_LOCK_RETRIES {
+        match std::fs::rename(source, destination) {
+            Ok(()) => return Ok(()),
+            Err(error) if error.raw_os_error() == Some(18) => {
+                std::fs::copy(source, destination)?;
+                std::fs::File::open(destination)?.sync_all()?;
+                std::fs::remove_file(source)?;
+                return Ok(());
+            }
+            Err(error)
+                if cfg!(target_os = "windows")
+                    && error.raw_os_error() == Some(5)
+                    && attempt + 1 < WINDOWS_LOCK_RETRIES =>
+            {
+                std::thread::sleep(std::time::Duration::from_millis(500));
+            }
+            Err(error) => return Err(error.into()),
         }
-        Err(error) => Err(error.into()),
     }
+    unreachable!("bounded move retry loop always returns")
 }
 
 fn terminate_portable_daemon_from_lock() {
@@ -1761,12 +1772,15 @@ async fn execute_verified_apply_locked(
             let backup = backup_root.join(target.file_name().context("target filename missing")?);
             let backup_sha256 = if target.exists() {
                 let digest = sha256_file(&target)?;
-                move_file_cross_device_safe(&target, &backup)?;
+                move_file_cross_device_safe(&target, &backup)
+                    .with_context(|| format!("backup installed {}", part.part))?;
                 digest
             } else {
                 String::new()
             };
-            if let Err(error) = move_file_cross_device_safe(&temp, &target) {
+            if let Err(error) = move_file_cross_device_safe(&temp, &target)
+                .with_context(|| format!("promote staged {}", part.part))
+            {
                 if backup.exists() {
                     let _ = move_file_cross_device_safe(&backup, &target);
                 }
