@@ -105,7 +105,7 @@ fn event(
 fn migration_creates_required_schema_and_backup() {
     let (dir, _persistence) = persistence();
     assert!(
-        dir.join("focusa.sqlite.pre-silent-session-v1.backup")
+        dir.join("focusa.sqlite.pre-silent-session-v2.backup")
             .is_file()
     );
     let connection = Connection::open(dir.join("focusa.sqlite")).unwrap();
@@ -153,6 +153,64 @@ fn dry_run_rolls_back_all_schema_changes() {
                 |row| row.get(0),
             )?;
             assert_eq!(count, 0);
+            Ok(())
+        })
+        .unwrap();
+}
+
+#[test]
+fn schema_v1_upgrades_to_v2_stream_and_record_columns() {
+    let (_dir, persistence) = persistence();
+    persistence
+        .with_connection_mut(|connection| {
+            connection.execute_batch(
+                r#"PRAGMA foreign_keys=OFF;
+                DROP TABLE silent_session_runs;
+                DROP TABLE silent_session_leases;
+                DROP TABLE silent_session_stream_indexes;
+                CREATE TABLE silent_session_runs (
+                  run_id TEXT PRIMARY KEY, silent_session_id TEXT NOT NULL,
+                  run_generation INTEGER NOT NULL, actor_instance_id TEXT NOT NULL,
+                  config_revision_id TEXT NOT NULL, protocol_versions_json TEXT NOT NULL,
+                  started_at TEXT NOT NULL, ended_at TEXT
+                );
+                CREATE TABLE silent_session_leases (
+                  lease_id TEXT PRIMARY KEY, silent_session_id TEXT NOT NULL, run_id TEXT NOT NULL,
+                  owner_actor_instance_id TEXT NOT NULL, fencing_token INTEGER NOT NULL,
+                  status TEXT NOT NULL, issued_at TEXT NOT NULL, expires_at TEXT NOT NULL
+                );
+                CREATE TABLE silent_session_stream_indexes (
+                  silent_session_id TEXT NOT NULL, run_id TEXT NOT NULL, stream_name TEXT NOT NULL,
+                  chunk_sequence INTEGER NOT NULL, chunk_ref TEXT NOT NULL,
+                  byte_start INTEGER NOT NULL, byte_end INTEGER NOT NULL,
+                  chunk_hash TEXT NOT NULL, created_at TEXT NOT NULL,
+                  PRIMARY KEY(silent_session_id, run_id, stream_name, chunk_sequence)
+                );
+                UPDATE silent_session_schema_meta SET version=1;
+                PRAGMA foreign_keys=ON;"#,
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    let outcome = migrate_silent_session_schema(&persistence, MigrationMode::Apply).unwrap();
+    assert_eq!(outcome.previous_version, 1);
+    assert_eq!(outcome.target_version, 2);
+    persistence
+        .with_connection_mut(|connection| {
+            for (table, column) in [
+                ("silent_session_runs", "run_json"),
+                ("silent_session_leases", "lease_json"),
+                ("silent_session_stream_indexes", "last_event_sequence"),
+                ("silent_session_stream_indexes", "redaction_applied"),
+            ] {
+                let present: i64 = connection.query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info(?1) WHERE name=?2",
+                    rusqlite::params![table, column],
+                    |row| row.get(0),
+                )?;
+                assert_eq!(present, 1, "{table}.{column}");
+            }
             Ok(())
         })
         .unwrap();

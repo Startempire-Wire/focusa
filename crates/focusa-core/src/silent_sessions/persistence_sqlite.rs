@@ -10,7 +10,7 @@ use crate::runtime::persistence_sqlite::SqlitePersistence;
 
 use super::{SilentSession, SilentSessionEvent};
 
-pub const SILENT_SESSION_DB_SCHEMA_VERSION: i64 = 1;
+pub const SILENT_SESSION_DB_SCHEMA_VERSION: i64 = 2;
 
 const SCHEMA_SQL: &str = r#"
 CREATE TABLE IF NOT EXISTS silent_session_schema_meta (
@@ -87,6 +87,13 @@ CREATE TABLE IF NOT EXISTS silent_session_stream_indexes (
   byte_start INTEGER NOT NULL,
   byte_end INTEGER NOT NULL,
   chunk_hash TEXT NOT NULL,
+  codec_version INTEGER NOT NULL,
+  first_event_sequence INTEGER NOT NULL,
+  last_event_sequence INTEGER NOT NULL,
+  event_count INTEGER NOT NULL,
+  uncompressed_bytes INTEGER NOT NULL,
+  compressed_bytes INTEGER NOT NULL,
+  redaction_applied INTEGER NOT NULL,
   created_at TEXT NOT NULL,
   PRIMARY KEY(silent_session_id, run_id, stream_name, chunk_sequence)
 );
@@ -152,6 +159,18 @@ CREATE TABLE IF NOT EXISTS silent_session_backend_bindings (
 );
 "#;
 
+const MIGRATION_V2_SQL: &str = r#"
+ALTER TABLE silent_session_runs ADD COLUMN run_json TEXT NOT NULL DEFAULT '{}';
+ALTER TABLE silent_session_leases ADD COLUMN lease_json TEXT NOT NULL DEFAULT '{}';
+ALTER TABLE silent_session_stream_indexes ADD COLUMN codec_version INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE silent_session_stream_indexes ADD COLUMN first_event_sequence INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE silent_session_stream_indexes ADD COLUMN last_event_sequence INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE silent_session_stream_indexes ADD COLUMN event_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE silent_session_stream_indexes ADD COLUMN uncompressed_bytes INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE silent_session_stream_indexes ADD COLUMN compressed_bytes INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE silent_session_stream_indexes ADD COLUMN redaction_applied INTEGER NOT NULL DEFAULT 1;
+"#;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MigrationMode {
     Apply,
@@ -197,6 +216,7 @@ pub fn migrate_silent_session_schema(
             anyhow::bail!("unsupported silent session schema version {previous_version}");
         }
         if previous_version == SILENT_SESSION_DB_SCHEMA_VERSION {
+            verify_schema(connection)?;
             return Ok(MigrationOutcome {
                 previous_version,
                 target_version: SILENT_SESSION_DB_SCHEMA_VERSION,
@@ -220,6 +240,9 @@ pub fn migrate_silent_session_schema(
 
         let transaction = connection.transaction()?;
         transaction.execute_batch(SCHEMA_SQL)?;
+        if previous_version == 1 {
+            transaction.execute_batch(MIGRATION_V2_SQL)?;
+        }
         transaction.execute("DELETE FROM silent_session_schema_meta", [])?;
         transaction.execute(
             "INSERT INTO silent_session_schema_meta(version, migrated_at) VALUES (?1, ?2)",
@@ -400,6 +423,22 @@ fn verify_schema(connection: &rusqlite::Connection) -> anyhow::Result<()> {
         )?;
         if exists != 1 {
             anyhow::bail!("silent session migration missing table {table}");
+        }
+    }
+    for (table, column) in [
+        ("silent_session_runs", "run_json"),
+        ("silent_session_leases", "lease_json"),
+        ("silent_session_stream_indexes", "codec_version"),
+        ("silent_session_stream_indexes", "last_event_sequence"),
+        ("silent_session_stream_indexes", "redaction_applied"),
+    ] {
+        let exists: i64 = connection.query_row(
+            "SELECT COUNT(*) FROM pragma_table_info(?1) WHERE name=?2",
+            params![table, column],
+            |row| row.get(0),
+        )?;
+        if exists != 1 {
+            anyhow::bail!("silent session migration missing column {table}.{column}");
         }
     }
     Ok(())
