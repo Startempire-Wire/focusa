@@ -651,7 +651,7 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
                     }
                     Err(error) => {
                         apply.status = "failed_rolled_back";
-                        apply.blocked_reason.push(format!("apply_failed:{error}"));
+                        apply.blocked_reason.push(format!("apply_failed:{error:#}"));
                         apply.recovery_hint = "Promotion failed; any previously promoted parts were restored from the update backup journal.".into();
                     }
                 }
@@ -1563,7 +1563,7 @@ async fn execute_verified_apply(plan: &UpdatePlanEnvelope) -> anyhow::Result<Vec
 type PromotedPart = (String, PathBuf, PathBuf, String);
 
 fn move_file_cross_device_safe(source: &Path, destination: &Path) -> anyhow::Result<()> {
-    const WINDOWS_LOCK_RETRIES: usize = 20;
+    const WINDOWS_LOCK_RETRIES: usize = 120;
     for attempt in 0..WINDOWS_LOCK_RETRIES {
         match std::fs::rename(source, destination) {
             Ok(()) => return Ok(()),
