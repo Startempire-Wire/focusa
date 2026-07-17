@@ -5,8 +5,10 @@
 
 pub mod config;
 pub mod identity;
+pub mod state_machine;
 pub mod types;
 
 pub use config::*;
 pub use identity::*;
+pub use state_machine::*;
 pub use types::*;
