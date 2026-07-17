@@ -182,6 +182,19 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | 98 | [98-project-root-crdt-reconciliation-foundation-spec.md](98-project-root-crdt-reconciliation-foundation-spec.md) | Project-root CRDT reconciliation foundation |
 | 99 | [99-original-intent-vs-implementation-audit.md](99-original-intent-vs-implementation-audit.md) | Original intent vs implementation audit |
 
+## Spec 135 — Professional Workspaces and C.R.I.S.T. Project Genesis Series
+
+Spec 135 and companions form one required implementation and closure set.
+
+| # | File | Subsystem |
+| --- | --- | --- |
+| 135 | [135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md](135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md) | Master professional workspace and Project Genesis contract |
+| 135A | [135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md](135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md) | Workspace projection, Pi sidebar, Work Rail, themes, vertical UX |
+| 135B | [135b-crist-project-genesis-context-role-interview-spec-tasks.md](135b-crist-project-genesis-context-role-interview-spec-tasks.md) | C.R.I.S.T. Context, Role, Interview, Spec, and Tasks |
+| 135C | [135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md](135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md) | UIAI rich artifacts, browser research, FPV, and live refresh |
+| 135D | [135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md](135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md) | Complete build graph, reuse, performance, and no-deferral constitution |
+| 135E | [135e-cross-spec-amendments-migration-and-closure-matrix.md](135e-cross-spec-amendments-migration-and-closure-matrix.md) | Cross-spec amendments, migration, compatibility, and closure matrix |
+
 ---
 
 ## Advanced Systems
@@ -272,3 +285,4 @@ These Gen1 docs contain **data models, algorithms, schemas, acceptance tests, an
 6. **Autonomy:** 12 → 13 → 37
 7. **Agent model:** 15 → 16 → 16-constitution-synthesizer
 8. **Advanced:** 17 (CLT) → 36 (Reliability) → 38-41 (Threads/Concurrency/Proposals)
+9. **Professional workspaces and Project Genesis:** 135 → 135A → 135B → 135C → 135D → 135E
