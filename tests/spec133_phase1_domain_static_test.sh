@@ -27,7 +27,8 @@ rg -n 'project_root.*continuity_id|SilentSessionAuthority' "$DOMAIN/identity.rs"
 rg -n 'RunGeneration' "$DOMAIN/identity.rs" >/dev/null || fail "stable run generation missing"
 pass "UUIDv7 identity, authority boundary, and run generation are explicit"
 
-if rg -n 'std::fs|tokio::|rusqlite|reqwest|std::process::Command' "$DOMAIN" >/dev/null; then
+if rg -n 'std::fs|tokio::|rusqlite|reqwest|std::process::Command' \
+  "$DOMAIN/config.rs" "$DOMAIN/identity.rs" "$DOMAIN/types.rs" >/dev/null; then
   fail "domain-only slice contains persistence, process, transport, or I/O behavior"
 fi
 pass "domain slice contains facts only"

@@ -106,7 +106,22 @@ impl SqlitePersistence {
         };
 
         this.init_schema()?;
+        crate::silent_sessions::migrate_silent_session_schema(
+            &this,
+            crate::silent_sessions::MigrationMode::Apply,
+        )?;
         Ok(this)
+    }
+
+    pub(crate) fn with_connection_mut<T>(
+        &self,
+        operation: impl FnOnce(&mut Connection) -> anyhow::Result<T>,
+    ) -> anyhow::Result<T> {
+        let mut connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        operation(&mut connection)
     }
 
     fn init_schema(&self) -> anyhow::Result<()> {
