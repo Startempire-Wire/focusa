@@ -1629,7 +1629,7 @@ fn restart_daemon_service(daemon_path: &Path) -> anyhow::Result<()> {
     } else if cfg!(target_os = "windows") {
         let _ = std::process::Command::new("taskkill")
             .args(["/F", "/IM", "focusa-daemon.exe"])
-            .status();
+            .output();
         std::process::Command::new(daemon_path)
             .stdin(std::process::Stdio::null())
             .stdout(std::process::Stdio::null())
