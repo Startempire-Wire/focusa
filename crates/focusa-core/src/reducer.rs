@@ -5762,6 +5762,56 @@ mod tests {
     }
 
     #[test]
+    fn decision_context_source_turn_never_repartitions_execution_scope() {
+        let project = crate::scoped_state::ScopeRef::project(
+            "project:focusa",
+            "/repo/focusa",
+            "Focusa",
+            "sha256:focusa",
+        )
+        .unwrap();
+        let scope =
+            crate::scoped_state::WorkstreamKey::new(project, "workloop-completion").unwrap();
+        let enabled = reduce(
+            fresh_state(),
+            FocusaEvent::ContinuousWorkModeEnabled {
+                project_run_id: Uuid::now_v7(),
+                policy: WorkLoopPolicy::default(),
+                scope: Some(scope.clone()),
+                work_item_id: Some("focusa-a6yq6.2.3".to_string()),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        let updated = reduce(
+            enabled,
+            FocusaEvent::ContinuousDecisionContextUpdated {
+                current_ask: Some("verify the loop".to_string()),
+                ask_kind: Some("instruction".to_string()),
+                scope_kind: Some("mission_carryover".to_string()),
+                carryover_policy: Some("allow_if_relevant".to_string()),
+                excluded_context_reason: None,
+                excluded_context_labels: None,
+                source_turn_id: Some("pi-turn-686".to_string()),
+                operator_steering_detected: Some(true),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        assert_eq!(updated.work_loop.execution_scope, Some(scope));
+        assert_eq!(
+            updated.work_loop.execution_work_item_id.as_deref(),
+            Some("focusa-a6yq6.2.3")
+        );
+        assert_eq!(
+            updated.work_loop.decision_context.source_turn_id.as_deref(),
+            Some("pi-turn-686")
+        );
+    }
+
+    #[test]
     fn test_trajectory_checkpoint_and_state_delta_are_queryable() {
         let state = reduce(
             fresh_state(),
