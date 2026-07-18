@@ -1737,7 +1737,9 @@ pub fn reduce_with_meta(
         FocusaEvent::ContinuousWorkModeEnabled {
             project_run_id,
             policy,
+            scope,
         } => {
+            state.work_loop.execution_scope = scope;
             state.work_loop.enabled = true;
             state.work_loop.status = WorkLoopStatus::Idle;
             state.work_loop.policy = policy;
@@ -1761,6 +1763,7 @@ pub fn reduce_with_meta(
             state.work_loop.last_observed_work_item_id = None;
         }
         FocusaEvent::ContinuousWorkModeDisabled { reason } => {
+            state.work_loop.execution_scope = None;
             state.work_loop.enabled = false;
             state.work_loop.status = WorkLoopStatus::Idle;
             state.work_loop.current_task = None;
@@ -5714,6 +5717,39 @@ mod tests {
             first.root_goal_stability,
             TrajectoryRootGoalStability::Superseded
         );
+    }
+
+    #[test]
+    fn work_loop_execution_scope_is_reducer_owned_and_cleared_on_stop() {
+        let project = crate::scoped_state::ScopeRef::project(
+            "project:focusa",
+            "/repo/focusa",
+            "Focusa",
+            "sha256:focusa",
+        )
+        .unwrap();
+        let scope = crate::scoped_state::WorkstreamKey::new(project, "cont-focusa").unwrap();
+        let enabled = reduce(
+            fresh_state(),
+            FocusaEvent::ContinuousWorkModeEnabled {
+                project_run_id: Uuid::now_v7(),
+                policy: WorkLoopPolicy::default(),
+                scope: Some(scope.clone()),
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(enabled.work_loop.execution_scope, Some(scope));
+
+        let stopped = reduce(
+            enabled,
+            FocusaEvent::ContinuousWorkModeDisabled {
+                reason: "operator stop".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(stopped.work_loop.execution_scope, None);
     }
 
     #[test]

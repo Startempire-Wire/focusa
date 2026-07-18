@@ -745,19 +745,6 @@ async fn reflection_scheduler_loop(base_url: String) {
     }
 }
 
-fn supervisor_driver_cwd() -> String {
-    std::env::var("FOCUSA_WORK_LOOP_CWD")
-        .or_else(|_| std::env::var("FOCUSA_PROJECT_ROOT"))
-        .ok()
-        .filter(|cwd| !cwd.trim().is_empty())
-        .unwrap_or_else(|| {
-            std::env::current_dir()
-                .unwrap_or_else(|_| std::path::PathBuf::from("."))
-                .to_string_lossy()
-                .to_string()
-        })
-}
-
 async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String) {
     let client = reqwest::Client::new();
     let mut attached_stuck_ticks: u32 = 0;
@@ -778,7 +765,8 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
             status_heartbeat_ms,
             last_blocker_reason,
             last_continue_reason,
-            has_current_task,
+            current_task_id,
+            execution_scope,
         ) = {
             let s = state.focusa.read().await;
             (
@@ -790,7 +778,11 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                 s.work_loop.policy.status_heartbeat_ms,
                 s.work_loop.last_blocker_reason.clone(),
                 s.work_loop.last_continue_reason.clone(),
-                s.work_loop.current_task.is_some(),
+                s.work_loop
+                    .current_task
+                    .as_ref()
+                    .map(|task| task.work_item_id.clone()),
+                s.work_loop.execution_scope.clone(),
             )
         };
 
@@ -814,7 +806,9 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
             continue;
         }
 
-        if should_auto_reenable_continuous(enabled, status, last_continue_reason.as_deref()) {
+        if should_auto_reenable_continuous(enabled, status, last_continue_reason.as_deref())
+            && let Some(scope) = execution_scope.clone()
+        {
             let policy = WorkLoopPolicy::with_overrides(
                 WorkLoopPreset::Push,
                 WorkLoopPolicyOverrides {
@@ -832,6 +826,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                 .send(Action::EnableContinuousWork {
                     project_run_id: Uuid::now_v7(),
                     policy,
+                    scope,
                 })
                 .await;
         }
@@ -847,7 +842,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                         })
                         .unwrap_or(false);
 
-            if budget_exhausted {
+            if budget_exhausted && let Some(scope) = execution_scope.clone() {
                 let policy = WorkLoopPolicy::with_overrides(
                     WorkLoopPreset::Push,
                     WorkLoopPolicyOverrides {
@@ -865,22 +860,37 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                     .send(Action::EnableContinuousWork {
                         project_run_id: Uuid::now_v7(),
                         policy,
+                        scope,
                     })
                     .await;
             }
 
+            let (Some(scope), Some(work_item_id)) =
+                (execution_scope.as_ref(), current_task_id.as_deref())
+            else {
+                tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+                continue;
+            };
+            let project_root = scope.root_scope.root_path.to_string_lossy().to_string();
+            let continuity_id = scope.continuity_id.clone();
+            let claim_key = format!(
+                "project:{}|workstream:{}|work_item:{}",
+                project_root.replace('|', "_"),
+                continuity_id.replace('|', "_"),
+                work_item_id.replace('|', "_")
+            );
             let writer = {
-                let key = "project:/workspace/focusa-project|workstream:daemon-supervisor|work_item:supervisor".to_string();
-                let mut claims = state.writer_claims.write().await;
-                claims
-                    .entry(key)
-                    .or_insert_with(|| "daemon-supervisor".to_string())
-                    .clone()
+                let claims = state.writer_claims.read().await;
+                claims.get(&claim_key).cloned()
+            };
+            let Some(writer) = writer else {
+                tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+                continue;
             };
 
             let allows_driver = supervisor_allows_pi_driver(enabled, status);
             let should_start_driver =
-                supervisor_should_start_pi_driver(enabled, status, has_current_task);
+                supervisor_should_start_pi_driver(enabled, status, current_task_id.is_some());
 
             let mut has_session = {
                 let mut guard = state.pi_rpc_session.lock().await;
@@ -926,6 +936,8 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                 let _ = client
                     .post(&stop_url)
                     .header("x-focusa-writer-id", &writer)
+                    .header("x-focusa-project-root", &project_root)
+                    .header("x-focusa-continuity-id", &continuity_id)
                     .json(&serde_json::json!({}))
                     .send()
                     .await;
@@ -942,6 +954,8 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                 let _ = client
                     .post(&stop_url)
                     .header("x-focusa-writer-id", &writer)
+                    .header("x-focusa-project-root", &project_root)
+                    .header("x-focusa-continuity-id", &continuity_id)
                     .json(&serde_json::json!({}))
                     .send()
                     .await;
@@ -957,7 +971,9 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                 let _ = client
                     .post(&driver_url)
                     .header("x-focusa-writer-id", &writer)
-                    .json(&serde_json::json!({"cwd": supervisor_driver_cwd()}))
+                    .header("x-focusa-project-root", &project_root)
+                    .header("x-focusa-continuity-id", &continuity_id)
+                    .json(&serde_json::json!({"cwd": project_root}))
                     .send()
                     .await;
             }
@@ -1002,6 +1018,8 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                     let _ = client
                         .post(&stop_url)
                         .header("x-focusa-writer-id", &writer)
+                        .header("x-focusa-project-root", &project_root)
+                        .header("x-focusa-continuity-id", &continuity_id)
                         .json(&serde_json::json!({}))
                         .send()
                         .await;
@@ -1014,7 +1032,9 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                     let _ = client
                         .post(&driver_url)
                         .header("x-focusa-writer-id", &writer)
-                        .json(&serde_json::json!({"cwd": supervisor_driver_cwd()}))
+                        .header("x-focusa-project-root", &project_root)
+                        .header("x-focusa-continuity-id", &continuity_id)
+                        .json(&serde_json::json!({"cwd": project_root}))
                         .send()
                         .await;
 

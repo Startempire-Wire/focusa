@@ -7,6 +7,7 @@
 //! INVARIANT: If a cognition change cannot be expressed as a reducer event,
 //!            it does not belong in Focusa.
 
+use crate::scoped_state::WorkstreamKey;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -445,6 +446,8 @@ pub struct WorkLoopDecisionContext {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct WorkLoopState {
+    /// Canonical project/workstream authority for the active governed loop.
+    pub execution_scope: Option<WorkstreamKey>,
     pub enabled: bool,
     pub status: WorkLoopStatus,
     pub authorship_mode: AuthorshipMode,
@@ -3535,6 +3538,8 @@ pub enum FocusaEvent {
     ContinuousWorkModeEnabled {
         project_run_id: ProjectRunId,
         policy: WorkLoopPolicy,
+        #[serde(default)]
+        scope: Option<WorkstreamKey>,
     },
     ContinuousWorkModeDisabled {
         reason: String,
@@ -4211,6 +4216,7 @@ pub enum Action {
     EnableContinuousWork {
         project_run_id: ProjectRunId,
         policy: WorkLoopPolicy,
+        scope: WorkstreamKey,
     },
     PauseContinuousWork {
         reason: String,

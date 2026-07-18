@@ -62,19 +62,17 @@ fn work_loop_scope_matches(
         && key.continuity_id == active_continuity
 }
 
-fn active_work_loop_scope(focusa: &FocusaState) -> Option<(String, String)> {
-    let active_id = focusa.workpoint.active_workpoint_id?;
-    let record = focusa
-        .workpoint
-        .records
-        .iter()
-        .find(|record| record.workpoint_id == active_id && record.canonical)?;
-    let project_root = record.project_root.as_deref()?.trim().trim_end_matches('/');
-    let continuity_id = record.continuity_id.as_deref()?.trim();
-    if project_root.is_empty() || continuity_id.is_empty() {
-        return None;
-    }
-    Some((project_root.to_string(), continuity_id.to_string()))
+fn canonical_workpoint_exists_for_scope(focusa: &FocusaState, key: &WorkstreamKey) -> bool {
+    focusa.workpoint.records.iter().any(|record| {
+        record.canonical
+            && record.status == focusa_core::types::WorkpointStatus::Active
+            && record.project_root.as_deref().is_some_and(|root| {
+                record
+                    .continuity_id
+                    .as_deref()
+                    .is_some_and(|continuity| work_loop_scope_matches(key, root, continuity))
+            })
+    })
 }
 
 impl FromRequestParts<Arc<AppState>> for WorkLoopScope {
@@ -108,26 +106,33 @@ impl FromRequestParts<Arc<AppState>> for WorkLoopScope {
                     }),
                 })?;
         let focusa = state.focusa.read().await;
-        let Some((active_root, active_continuity)) = active_work_loop_scope(&focusa) else {
+        if !canonical_workpoint_exists_for_scope(&focusa, &key) {
             return Err(WorkLoopScopeRejection {
                 status: StatusCode::CONFLICT,
                 body: json!({
                     "schema": "focusa.work_loop_scope_rejection.v1",
                     "status": "blocked",
                     "failure_class": "scope_mismatch",
-                    "error": "canonical active Workpoint scope is required",
+                    "error": "canonical Workpoint for request WorkstreamKey is required",
+                    "requested_scope": key,
                 }),
             });
-        };
-        if !work_loop_scope_matches(&key, &active_root, &active_continuity) {
+        }
+        if focusa
+            .work_loop
+            .execution_scope
+            .as_ref()
+            .is_some_and(|active| active != &key)
+        {
             return Err(WorkLoopScopeRejection {
                 status: StatusCode::CONFLICT,
                 body: json!({
                     "schema": "focusa.work_loop_scope_rejection.v1",
                     "status": "blocked",
                     "failure_class": "scope_mismatch",
-                    "error": "request WorkstreamKey does not match canonical active Workpoint",
+                    "error": "request WorkstreamKey does not match active Work Loop execution scope",
                     "requested_scope": key,
+                    "active_execution_scope": focusa.work_loop.execution_scope,
                 }),
             });
         }
@@ -135,58 +140,20 @@ impl FromRequestParts<Arc<AppState>> for WorkLoopScope {
     }
 }
 
-fn project_root() -> PathBuf {
-    std::env::var_os("FOCUSA_PROJECT_ROOT")
-        .map(PathBuf::from)
-        .or_else(|| std::env::current_dir().ok())
-        .unwrap_or_else(|| PathBuf::from("."))
-}
-
 fn git_safe_directory_arg(root_hint: &str) -> String {
     format!("safe.directory={}", root_hint)
 }
 
-fn task_scope_root(task: Option<&focusa_core::types::SpecLinkedTaskPacket>) -> Option<String> {
-    task.and_then(|task| {
-        task.allowed_scope.iter().find_map(|scope| {
-            scope
-                .strip_prefix("project_root:")
-                .or_else(|| scope.strip_prefix("project:"))
-                .map(|value| value.trim().to_string())
-                .filter(|value| !value.trim().is_empty())
-        })
-    })
+fn work_loop_scope_root(focusa: &focusa_core::types::FocusaState) -> Option<PathBuf> {
+    focusa
+        .work_loop
+        .execution_scope
+        .as_ref()
+        .map(|scope| scope.root_scope.root_path.clone())
 }
 
-fn work_loop_scope_root(focusa: &focusa_core::types::FocusaState) -> PathBuf {
-    if let Some(root) = task_scope_root(focusa.work_loop.current_task.as_ref()) {
-        return root.into();
-    }
-
-    if let Some(active_id) = focusa.workpoint.active_workpoint_id
-        && let Some(workpoint) = focusa
-            .workpoint
-            .records
-            .iter()
-            .find(|record| record.workpoint_id == active_id)
-        && let Some(root) = workpoint
-            .project_root
-            .as_ref()
-            .filter(|value| !value.trim().is_empty())
-    {
-        return root.clone().into();
-    }
-
-    if let Some(root) = focusa
-        .session
-        .as_ref()
-        .and_then(|session| session.project_root.clone())
-        .filter(|value| !value.trim().is_empty())
-    {
-        return root.into();
-    }
-
-    project_root()
+fn request_scope_root(scope: &WorkLoopScope) -> PathBuf {
+    scope.0.root_scope.root_path.clone()
 }
 
 fn pi_rpc_bin() -> String {
@@ -513,10 +480,10 @@ fn writer_claim_key_for_partition(
     )
 }
 
-fn writer_claim_key_from_state(focusa: &focusa_core::types::FocusaState) -> String {
-    let Some((project_root, continuity_id)) = active_work_loop_scope(focusa) else {
-        return "blocked:canonical_workpoint_scope_required".to_string();
-    };
+fn writer_claim_key_from_scope(
+    scope: &WorkLoopScope,
+    focusa: &focusa_core::types::FocusaState,
+) -> String {
     let Some(work_item_id) = focusa
         .work_loop
         .current_task
@@ -525,7 +492,11 @@ fn writer_claim_key_from_state(focusa: &focusa_core::types::FocusaState) -> Stri
     else {
         return "blocked:active_work_item_required".to_string();
     };
-    writer_claim_key_for_partition(&project_root, &continuity_id, work_item_id)
+    writer_claim_key_for_partition(
+        scope.0.root_scope.root_path.to_string_lossy().as_ref(),
+        &scope.0.continuity_id,
+        work_item_id,
+    )
 }
 
 fn require_authoritative_claim_key(key: String) -> Result<String, (StatusCode, Json<Value>)> {
@@ -541,9 +512,9 @@ fn require_authoritative_claim_key(key: String) -> Result<String, (StatusCode, J
     }
 }
 
-async fn writer_claim_key(state: &Arc<AppState>) -> String {
+async fn writer_claim_key(scope: &WorkLoopScope, state: &Arc<AppState>) -> String {
     let focusa = state.focusa.read().await;
-    writer_claim_key_from_state(&focusa)
+    writer_claim_key_from_scope(scope, &focusa)
 }
 
 fn active_writer_for_key(
@@ -612,27 +583,18 @@ fn claim_writer_for_key(
 }
 
 async fn ensure_writer_claim_for_work_item(
+    scope: &WorkLoopScope,
     state: &Arc<AppState>,
     headers: &HeaderMap,
     work_item_id: &str,
 ) -> Result<String, (StatusCode, Json<Value>)> {
     let writer_id = writer_id_from_headers(headers)?;
-    let focusa = state.focusa.read().await;
-    let Some((project_root, continuity_id)) = active_work_loop_scope(&focusa) else {
-        return Err(work_loop_failure(
-            StatusCode::CONFLICT,
-            "writer_claim",
-            "scope_mismatch",
-            "canonical Workpoint project_root and continuity_id are required".into(),
-        ));
-    };
-    drop(focusa);
     if work_item_id.trim().is_empty() {
         return Err(bad_request("work item id is required for writer claim"));
     }
     let key = require_authoritative_claim_key(writer_claim_key_for_partition(
-        &project_root,
-        &continuity_id,
+        scope.0.root_scope.root_path.to_string_lossy().as_ref(),
+        &scope.0.continuity_id,
         work_item_id,
     ))?;
     let mut claims = state.writer_claims.write().await;
@@ -640,21 +602,23 @@ async fn ensure_writer_claim_for_work_item(
 }
 
 async fn ensure_writer_claim(
+    scope: &WorkLoopScope,
     state: &Arc<AppState>,
     headers: &HeaderMap,
 ) -> Result<String, (StatusCode, Json<Value>)> {
     let writer_id = writer_id_from_headers(headers)?;
-    let key = require_authoritative_claim_key(writer_claim_key(state).await)?;
+    let key = require_authoritative_claim_key(writer_claim_key(scope, state).await)?;
     let mut claims = state.writer_claims.write().await;
     claim_writer_for_key(&mut claims, key, writer_id)
 }
 
 async fn release_writer_claim(
+    scope: &WorkLoopScope,
     state: &Arc<AppState>,
     headers: &HeaderMap,
 ) -> Result<Option<String>, (StatusCode, Json<Value>)> {
     let writer_id = writer_id_from_headers(headers)?;
-    let key = require_authoritative_claim_key(writer_claim_key(state).await)?;
+    let key = require_authoritative_claim_key(writer_claim_key(scope, state).await)?;
     let mut claims = state.writer_claims.write().await;
     match claims.get(&key) {
         Some(existing) if existing != &writer_id => Err(conflict(
@@ -667,10 +631,11 @@ async fn release_writer_claim(
 }
 
 async fn ensure_claimed_writer_matches_for_context(
+    scope: &WorkLoopScope,
     state: &Arc<AppState>,
     headers: &HeaderMap,
 ) -> Result<Option<String>, (StatusCode, Json<Value>)> {
-    let key = require_authoritative_claim_key(writer_claim_key(state).await)?;
+    let key = require_authoritative_claim_key(writer_claim_key(scope, state).await)?;
     let active_writer = {
         let claims = state.writer_claims.read().await;
         active_writer_for_key(&claims, &key)
@@ -1148,6 +1113,9 @@ async fn maybe_auto_advance_from_blocked(
     if !enabled || !blocked || boundary_reason.is_some() {
         return Ok(false);
     }
+    let Some(scope_root) = scope_root else {
+        return Ok(false);
+    };
 
     let Some(task) = current_task else {
         if maybe_select_global_ready_work_item(state, &scope_root).await? {
@@ -1385,6 +1353,9 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
     if boundary_reason.is_some() {
         return Ok(false);
     }
+    let Some(scope_root) = scope_root else {
+        return Ok(false);
+    };
 
     if current_task.is_none() {
         if maybe_select_global_ready_work_item(state, &scope_root).await? {
@@ -1568,16 +1539,27 @@ fn next_work_risk_class_for_status(wl: &focusa_core::types::WorkLoopState) -> &'
     }
 }
 
-fn active_workpoint_summary_for_status(s: &focusa_core::types::FocusaState) -> Value {
-    let active = s.workpoint.active_workpoint_id.and_then(|id| {
+fn scoped_workpoint_summary_for_status(
+    s: &focusa_core::types::FocusaState,
+    key: &WorkstreamKey,
+) -> Value {
+    let active =
         s.workpoint
             .records
             .iter()
-            .find(|record| record.workpoint_id == id)
-    });
+            .filter(|record| {
+                record.canonical
+                    && record.status == focusa_core::types::WorkpointStatus::Active
+                    && record.project_root.as_deref().is_some_and(|root| {
+                        record.continuity_id.as_deref().is_some_and(|continuity| {
+                            work_loop_scope_matches(key, root, continuity)
+                        })
+                    })
+            })
+            .max_by_key(|record| record.updated_at);
 
     json!({
-        "active_workpoint_id": s.workpoint.active_workpoint_id,
+        "active_workpoint_id": active.map(|record| record.workpoint_id),
         "records_count": s.workpoint.records.len(),
         "recent_drift_count": s.workpoint.drift_events.len(),
         "degraded_fallback_count": s.workpoint.degraded_fallbacks.len(),
@@ -1634,6 +1616,7 @@ fn work_loop_execution_partition_payload(
 fn resume_payload_for_status(
     s: &focusa_core::types::FocusaState,
     wl: &focusa_core::types::WorkLoopState,
+    key: &WorkstreamKey,
 ) -> Value {
     json!({
         "last_checkpoint_id": wl.run.last_checkpoint_id,
@@ -1641,7 +1624,7 @@ fn resume_payload_for_status(
         "restored_context_summary": wl.restored_context_summary,
         "last_blocker_reason": wl.last_blocker_reason,
         "last_completed_turn_summary": wl.last_observed_summary,
-        "active_workpoint": active_workpoint_summary_for_status(s),
+        "active_workpoint": scoped_workpoint_summary_for_status(s, key),
         "continuation_eligibility": wl.enabled && !wl.pause_flags.operator_override_active,
         "current_transport_health": if wl.status == focusa_core::types::WorkLoopStatus::TransportDegraded {
             "degraded"
@@ -2257,7 +2240,7 @@ fn secondary_loop_closure_bundle_for_status(
 }
 
 async fn health(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -2268,7 +2251,7 @@ async fn health(
 
     let s = state.focusa.read().await;
     let wl = &s.work_loop;
-    let claim_key = writer_claim_key_from_state(&s);
+    let claim_key = writer_claim_key_from_scope(&scope, &s);
     let active_writer = {
         let claims = state.writer_claims.read().await;
         active_writer_compat(&claims, &claim_key)
@@ -2311,7 +2294,7 @@ async fn health(
 }
 
 async fn status(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     Query(query): Query<WorkLoopStatusQuery>,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -2323,7 +2306,7 @@ async fn status(
 
     let s = state.focusa.read().await;
     let wl = &s.work_loop;
-    let claim_key = writer_claim_key_from_state(&s);
+    let claim_key = writer_claim_key_from_scope(&scope, &s);
     let active_writer = {
         let claims = state.writer_claims.read().await;
         active_writer_compat(&claims, &claim_key)
@@ -2331,7 +2314,7 @@ async fn status(
     if query.summary_only {
         let transport_health = transport_health_for_status(wl);
         let budget_remaining = budget_remaining_for_status(wl);
-        let resume_payload = resume_payload_for_status(&s, wl);
+        let resume_payload = resume_payload_for_status(&s, wl, &scope.0);
         let payload = json!({
             "route_tier": "hot",
             "summary_only": true,
@@ -2353,7 +2336,7 @@ async fn status(
             "budget_remaining": budget_remaining,
             "supervisor_perf": supervisor_perf_payload(&state),
             "resume_payload": resume_payload,
-            "active_workpoint": active_workpoint_summary_for_status(&s),
+            "active_workpoint": scoped_workpoint_summary_for_status(&s, &scope.0),
             "bounds": {
                 "summary_only": true,
                 "truncated": true,
@@ -2378,7 +2361,7 @@ async fn status(
             })
         })
     };
-    let scope_root = work_loop_scope_root(&s);
+    let scope_root = request_scope_root(&scope);
     let worktree = worktree_status_snapshot(&scope_root).await;
     let alternate_ready_work =
         alternate_ready_work_snapshot(wl.current_task.as_ref(), &scope_root).await;
@@ -2387,7 +2370,7 @@ async fn status(
     let execution_environment =
         execution_environment_for_status(wl.transport_session_state.as_deref(), &worktree);
     let budget_remaining = budget_remaining_for_status(wl);
-    let resume_payload = resume_payload_for_status(&s, wl);
+    let resume_payload = resume_payload_for_status(&s, wl, &scope.0);
     let commitment_lifecycle = commitment_lifecycle_for_status(wl);
     let secondary_loop_quality_metrics = secondary_loop_quality_metrics_for_status(&s, wl);
     let secondary_loop_eval_bundle = secondary_loop_eval_bundle_for_status(&s, wl);
@@ -2504,7 +2487,7 @@ async fn status(
                 "last_safe_reentry_prompt_basis": wl.last_safe_reentry_prompt_basis,
                 "restored_context_summary": wl.restored_context_summary,
             },
-            "active_workpoint": active_workpoint_summary_for_status(&s)
+            "active_workpoint": scoped_workpoint_summary_for_status(&s, &scope.0)
         },
         "delegated_authorship": wl.delegated_authorship,
         "transport": {
@@ -2561,7 +2544,7 @@ async fn status(
 }
 
 async fn status_deep(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -2573,7 +2556,7 @@ async fn status_deep(
     let mut payload = {
         let s = state.focusa.read().await;
         let wl = &s.work_loop;
-        let claim_key = writer_claim_key_from_state(&s);
+        let claim_key = writer_claim_key_from_scope(&scope, &s);
         let active_writer = {
             let claims = state.writer_claims.read().await;
             active_writer_compat(&claims, &claim_key)
@@ -2596,7 +2579,7 @@ async fn status_deep(
             "decision_context": wl.decision_context,
             "active_writer": active_writer,
             "execution_partition": work_loop_execution_partition_payload(wl, active_writer.as_deref(), &claim_key),
-            "active_workpoint": active_workpoint_summary_for_status(&s),
+            "active_workpoint": scoped_workpoint_summary_for_status(&s, &scope.0),
             "supervisor_perf": supervisor_perf_payload(&state),
             "deep_status_route": "/v1/work-loop/status/deep",
             "resource_mode": resource_mode_status(),
@@ -2609,10 +2592,7 @@ async fn status_deep(
         })
     };
 
-    let scope_root = {
-        let focusa = state.focusa.read().await;
-        work_loop_scope_root(&focusa)
-    };
+    let scope_root = request_scope_root(&scope);
     let worktree = worktree_status_snapshot(&scope_root).await;
     if let Some(obj) = payload.as_object_mut() {
         obj.insert("worktree".into(), worktree);
@@ -2622,7 +2602,7 @@ async fn status_deep(
 }
 
 async fn closure_replay_evidence(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -2665,7 +2645,7 @@ async fn closure_replay_evidence(
 }
 
 async fn closure_replay_bundle(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -2697,7 +2677,7 @@ async fn closure_replay_bundle(
 }
 
 async fn enable(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<EnableWorkLoopRequest>,
@@ -2717,6 +2697,7 @@ async fn enable(
     let action = Action::EnableContinuousWork {
         project_run_id: payload.project_run_id.unwrap_or_else(Uuid::now_v7),
         policy,
+        scope: scope.0.clone(),
     };
     let root_work_item_id = if let Some(root) = payload.root_work_item_id.clone() {
         Some(root)
@@ -2734,7 +2715,7 @@ async fn enable(
         bad_request("root_work_item_id or an active Focus Stack beads_issue_id is required")
     })?;
     let writer_id =
-        ensure_writer_claim_for_work_item(&state, &headers, &parent_work_item_id).await?;
+        ensure_writer_claim_for_work_item(&scope, &state, &headers, &parent_work_item_id).await?;
     send_work_loop_action(&state, "work_loop_dispatch", action).await?;
 
     {
@@ -2757,7 +2738,7 @@ async fn enable(
 }
 
 async fn pause(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<ReasonRequest>,
@@ -2768,7 +2749,7 @@ async fn pause(
     }
 
     let writer_id = writer_id_from_headers(&headers)?;
-    let claim_key = require_authoritative_claim_key(writer_claim_key(&state).await)?;
+    let claim_key = require_authoritative_claim_key(writer_claim_key(&scope, &state).await)?;
     let active_writer = {
         let claims = state.writer_claims.read().await;
         active_writer_for_key(&claims, &claim_key)
@@ -2793,7 +2774,7 @@ async fn pause(
 }
 
 async fn resume(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<ReasonRequest>,
@@ -2803,7 +2784,7 @@ async fn resume(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_writer_claim(&state, &headers).await?;
+    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
 
     send_work_loop_action(
         &state,
@@ -2818,7 +2799,7 @@ async fn resume(
 }
 
 async fn select_next(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<SelectNextRequest>,
@@ -2828,7 +2809,7 @@ async fn select_next(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_writer_claim(&state, &headers).await?;
+    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
     let parent_work_item_id = payload.parent_work_item_id.clone();
 
     send_work_loop_action(
@@ -2879,7 +2860,7 @@ async fn select_next(
 }
 
 async fn set_decision_context(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<DecisionContextRequest>,
@@ -2889,7 +2870,7 @@ async fn set_decision_context(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_claimed_writer_matches_for_context(&state, &headers).await?;
+    let writer_id = ensure_claimed_writer_matches_for_context(&scope, &state, &headers).await?;
 
     let event = FocusaEvent::ContinuousDecisionContextUpdated {
         current_ask: payload.current_ask,
@@ -2953,7 +2934,7 @@ async fn set_decision_context(
 }
 
 async fn start_pi_driver(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<PiDriverStartRequest>,
@@ -2962,12 +2943,9 @@ async fn start_pi_driver(
     if !permissions.allows("work-loop:write") {
         return Err(forbid("work-loop:write"));
     }
-    let writer_id = ensure_writer_claim(&state, &headers).await?;
+    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
 
-    let work_loop_root = {
-        let focusa = state.focusa.read().await;
-        work_loop_scope_root(&focusa)
-    };
+    let work_loop_root = request_scope_root(&scope);
 
     if payload.idempotency_key.trim().is_empty() {
         return Err(bad_request("idempotency_key must not be empty"));
@@ -3011,11 +2989,18 @@ async fn start_pi_driver(
         .kill_on_drop(true);
     configure_pi_rpc_process_group(&mut cmd);
     configure_pi_rpc_invocation(&mut cmd, &payload);
-    if let Some(cwd) = payload.cwd.as_deref() {
-        cmd.current_dir(cwd);
-    } else {
-        cmd.current_dir(&work_loop_root);
+    if payload.cwd.as_deref().is_some_and(|cwd| {
+        Path::new(cwd).components().collect::<PathBuf>()
+            != work_loop_root.components().collect::<PathBuf>()
+    }) {
+        return Err(work_loop_failure(
+            StatusCode::CONFLICT,
+            "pi_driver_start",
+            "scope_mismatch",
+            "driver cwd must match the request WorkstreamKey project root".into(),
+        ));
     }
+    cmd.current_dir(&work_loop_root);
 
     let mut child = cmd.spawn().map_err(work_loop_pi_spawn_failed)?;
     let stdin = child
@@ -3216,7 +3201,7 @@ async fn start_pi_driver(
 }
 
 async fn prompt_pi_driver(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<PiDriverPromptRequest>,
@@ -3264,7 +3249,7 @@ async fn prompt_pi_driver(
 }
 
 async fn abort_pi_driver(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -3295,7 +3280,7 @@ async fn abort_pi_driver(
 }
 
 async fn stop_pi_driver(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -3321,7 +3306,7 @@ async fn stop_pi_driver(
 }
 
 async fn attach_session(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<SessionAttachRequest>,
@@ -3331,7 +3316,7 @@ async fn attach_session(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_writer_claim(&state, &headers).await?;
+    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
     let event = FocusaEvent::ContinuousTransportSessionAttached {
         adapter: payload.adapter,
         session_id: payload.session_id,
@@ -3382,7 +3367,7 @@ async fn attach_session(
 }
 
 async fn abort_session(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<ReasonRequest>,
@@ -3392,7 +3377,7 @@ async fn abort_session(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_writer_claim(&state, &headers).await?;
+    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
     let event = FocusaEvent::ContinuousTransportAbortForwarded {
         reason: payload
             .reason
@@ -3444,7 +3429,7 @@ async fn abort_session(
 }
 
 async fn ingest_transport_event(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<TransportEventRequest>,
@@ -3454,7 +3439,7 @@ async fn ingest_transport_event(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_writer_claim(&state, &headers).await?;
+    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
     let _guard = tokio::time::timeout(Duration::from_millis(1500), state.write_serial_lock.lock())
         .await
         .map_err(|_| work_loop_dispatch_timeout("work_loop_ingest_transport_lock"))?;
@@ -3475,7 +3460,7 @@ async fn ingest_transport_event(
 }
 
 async fn set_pause_flags(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<PauseFlagsRequest>,
@@ -3485,7 +3470,7 @@ async fn set_pause_flags(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_writer_claim(&state, &headers).await?;
+    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
     let event = FocusaEvent::ContinuousPauseFlagsUpdated {
         destructive_confirmation_required: payload.destructive_confirmation_required,
         governance_decision_pending: payload.governance_decision_pending,
@@ -3549,7 +3534,7 @@ async fn set_pause_flags(
 }
 
 async fn delegate_authorship(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<DelegationRequest>,
@@ -3563,7 +3548,7 @@ async fn delegate_authorship(
         &headers,
         "delegated authorship changes authority state and requires explicit approval",
     )?;
-    let writer_id = ensure_writer_claim(&state, &headers).await?;
+    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
     send_work_loop_action(
         &state,
         "work_loop_delegate_authorship",
@@ -3579,7 +3564,7 @@ async fn delegate_authorship(
 }
 
 async fn clear_delegated_authorship(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<ReasonRequest>,
@@ -3593,7 +3578,7 @@ async fn clear_delegated_authorship(
         &headers,
         "clearing delegated authorship changes authority state and requires explicit approval",
     )?;
-    let writer_id = ensure_writer_claim(&state, &headers).await?;
+    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
     send_work_loop_action(
         &state,
         "work_loop_clear_delegated_authorship",
@@ -3609,7 +3594,7 @@ async fn clear_delegated_authorship(
 }
 
 async fn transport_degraded(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<ReasonRequest>,
@@ -3619,7 +3604,7 @@ async fn transport_degraded(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_writer_claim(&state, &headers).await?;
+    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
     send_work_loop_action(
         &state,
         "work_loop_transport_degraded",
@@ -3635,14 +3620,14 @@ async fn transport_degraded(
 }
 
 async fn checkpoints(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let focusa = state.focusa.read().await;
     let wl = &focusa.work_loop;
     Ok(Json(json!({
         "last_checkpoint_id": wl.run.last_checkpoint_id,
-        "resume_payload": resume_payload_for_status(&focusa, wl),
+        "resume_payload": resume_payload_for_status(&focusa, wl, &scope.0),
         "last_safe_reentry_prompt_basis": wl.last_safe_reentry_prompt_basis,
         "restored_context_summary": wl.restored_context_summary,
         "last_continue_reason": wl.last_continue_reason,
@@ -3651,7 +3636,7 @@ async fn checkpoints(
 }
 
 async fn heartbeat(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -3660,7 +3645,7 @@ async fn heartbeat(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_writer_claim(&state, &headers).await?;
+    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
     let dispatched =
         maybe_dispatch_continuous_turn_prompt(&state, "daemon heartbeat supervisor tick").await?;
 
@@ -3672,7 +3657,7 @@ async fn heartbeat(
 }
 
 async fn checkpoint(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<CheckpointRequest>,
@@ -3682,7 +3667,7 @@ async fn checkpoint(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_writer_claim(&state, &headers).await?;
+    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
     send_work_loop_action(
         &state,
         "work_loop_checkpoint",
@@ -3697,7 +3682,7 @@ async fn checkpoint(
 }
 
 async fn stop(
-    _scope: WorkLoopScope,
+    scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(payload): Json<ReasonRequest>,
@@ -3707,7 +3692,7 @@ async fn stop(
         return Err(forbid("work-loop:write"));
     }
 
-    let released_writer = release_writer_claim(&state, &headers).await?;
+    let released_writer = release_writer_claim(&scope, &state, &headers).await?;
     send_work_loop_action(
         &state,
         "work_loop_stop",
@@ -3796,6 +3781,74 @@ mod tests {
             "/home/wirebot/focusa",
             "cont-focusa"
         ));
+    }
+
+    #[test]
+    fn canonical_workpoint_resolution_is_partitioned_and_ignores_singleton_active_id() {
+        let mut state = focusa_core::types::FocusaState::default();
+        let focusa_id = Uuid::now_v7();
+        let other_id = Uuid::now_v7();
+        state.workpoint.active_workpoint_id = Some(other_id);
+        state.workpoint.records.extend([
+            focusa_core::types::WorkpointRecord {
+                workpoint_id: focusa_id,
+                canonical: true,
+                status: focusa_core::types::WorkpointStatus::Active,
+                project_root: Some("/home/wirebot/focusa".to_string()),
+                continuity_id: Some("cont-focusa".to_string()),
+                ..focusa_core::types::WorkpointRecord::default()
+            },
+            focusa_core::types::WorkpointRecord {
+                workpoint_id: other_id,
+                canonical: true,
+                status: focusa_core::types::WorkpointStatus::Active,
+                project_root: Some("/home/wirebot/other".to_string()),
+                continuity_id: Some("cont-other".to_string()),
+                ..focusa_core::types::WorkpointRecord::default()
+            },
+        ]);
+
+        let focusa = ScopeRef::project(
+            "project:focusa",
+            "/home/wirebot/focusa",
+            "Focusa",
+            "sha256:focusa",
+        )
+        .unwrap();
+        let focusa_key = WorkstreamKey::new(focusa, "cont-focusa").unwrap();
+        let missing_key = WorkstreamKey::new(
+            ScopeRef::project(
+                "project:focusa",
+                "/home/wirebot/focusa",
+                "Focusa",
+                "sha256:focusa",
+            )
+            .unwrap(),
+            "cont-missing",
+        )
+        .unwrap();
+
+        assert!(canonical_workpoint_exists_for_scope(&state, &focusa_key));
+        assert!(!canonical_workpoint_exists_for_scope(&state, &missing_key));
+        let summary = scoped_workpoint_summary_for_status(&state, &focusa_key);
+        assert_eq!(summary["active_workpoint_id"], json!(focusa_id));
+    }
+
+    #[test]
+    fn work_loop_root_comes_only_from_typed_execution_scope() {
+        let mut state = focusa_core::types::FocusaState::default();
+        state.work_loop.execution_scope = Some(sample_workstream_key("cont-focusa"));
+        state.work_loop.current_task = Some(focusa_core::types::SpecLinkedTaskPacket {
+            allowed_scope: vec!["project_root:/home/wirebot/other".to_string()],
+            ..sample_current_task("focusa-workloop-completion.2")
+        });
+
+        assert_eq!(
+            work_loop_scope_root(&state),
+            Some(PathBuf::from("/home/wirebot/focusa"))
+        );
+        state.work_loop.execution_scope = None;
+        assert_eq!(work_loop_scope_root(&state), None);
     }
 
     #[test]
@@ -4019,11 +4072,22 @@ mod tests {
         }
     }
 
+    fn sample_workstream_key(continuity_id: &str) -> WorkstreamKey {
+        let project = ScopeRef::project(
+            "project:focusa",
+            "/home/wirebot/focusa",
+            "Focusa",
+            "sha256:focusa",
+        )
+        .unwrap();
+        WorkstreamKey::new(project, continuity_id).unwrap()
+    }
+
     #[test]
-    fn workpoint_summary_surfaces_active_packet_for_status() {
+    fn workpoint_summary_surfaces_scoped_packet_for_status() {
         let mut state = focusa_core::types::FocusaState::default();
         let workpoint_id = Uuid::now_v7();
-        state.workpoint.active_workpoint_id = Some(workpoint_id);
+        state.workpoint.active_workpoint_id = Some(Uuid::now_v7());
         state
             .workpoint
             .records
@@ -4035,6 +4099,8 @@ mod tests {
                 checkpoint_reason: focusa_core::types::WorkpointCheckpointReason::BeforeCompact,
                 confidence: focusa_core::types::WorkpointConfidence::Verified,
                 canonical: true,
+                project_root: Some("/home/wirebot/focusa".to_string()),
+                continuity_id: Some("cont-focusa".to_string()),
                 mission: Some("Preserve continuation across compaction".to_string()),
                 next_slice: Some("Project active workpoint into status payload".to_string()),
                 action_intent: Some(focusa_core::types::WorkpointActionIntentRecord {
@@ -4046,7 +4112,8 @@ mod tests {
                 ..focusa_core::types::WorkpointRecord::default()
             });
 
-        let summary = active_workpoint_summary_for_status(&state);
+        let key = sample_workstream_key("cont-focusa");
+        let summary = scoped_workpoint_summary_for_status(&state, &key);
         assert_eq!(
             summary
                 .get("active_workpoint_id")
@@ -4066,7 +4133,7 @@ mod tests {
     fn resume_payload_includes_active_workpoint_summary() {
         let mut state = focusa_core::types::FocusaState::default();
         let workpoint_id = Uuid::now_v7();
-        state.workpoint.active_workpoint_id = Some(workpoint_id);
+        state.workpoint.active_workpoint_id = Some(Uuid::now_v7());
         state
             .workpoint
             .records
@@ -4075,10 +4142,13 @@ mod tests {
                 work_item_id: Some("focusa-a2w2.3".to_string()),
                 status: focusa_core::types::WorkpointStatus::Active,
                 canonical: true,
+                project_root: Some("/home/wirebot/focusa".to_string()),
+                continuity_id: Some("cont-focusa".to_string()),
                 next_slice: Some("Resume from typed packet".to_string()),
                 ..focusa_core::types::WorkpointRecord::default()
             });
-        let payload = resume_payload_for_status(&state, &state.work_loop);
+        let key = sample_workstream_key("cont-focusa");
+        let payload = resume_payload_for_status(&state, &state.work_loop, &key);
         assert_eq!(
             payload
                 .pointer("/active_workpoint/active/next_slice")

@@ -3506,10 +3506,12 @@ Return:
             Action::EnableContinuousWork {
                 project_run_id,
                 policy,
+                scope,
             } => Ok(vec![
                 FocusaEvent::ContinuousWorkModeEnabled {
                     project_run_id,
                     policy,
+                    scope: Some(scope),
                 },
                 FocusaEvent::ContinuousLoopRecoveryCheckpointed {
                     checkpoint_id: Uuid::now_v7(),
