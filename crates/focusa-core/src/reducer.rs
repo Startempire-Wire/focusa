@@ -1738,8 +1738,10 @@ pub fn reduce_with_meta(
             project_run_id,
             policy,
             scope,
+            work_item_id,
         } => {
             state.work_loop.execution_scope = scope;
+            state.work_loop.execution_work_item_id = work_item_id;
             state.work_loop.enabled = true;
             state.work_loop.status = WorkLoopStatus::Idle;
             state.work_loop.policy = policy;
@@ -1764,6 +1766,7 @@ pub fn reduce_with_meta(
         }
         FocusaEvent::ContinuousWorkModeDisabled { reason } => {
             state.work_loop.execution_scope = None;
+            state.work_loop.execution_work_item_id = None;
             state.work_loop.enabled = false;
             state.work_loop.status = WorkLoopStatus::Idle;
             state.work_loop.current_task = None;
@@ -5735,11 +5738,16 @@ mod tests {
                 project_run_id: Uuid::now_v7(),
                 policy: WorkLoopPolicy::default(),
                 scope: Some(scope.clone()),
+                work_item_id: Some("focusa-workloop-completion.2".to_string()),
             },
         )
         .unwrap()
         .new_state;
         assert_eq!(enabled.work_loop.execution_scope, Some(scope));
+        assert_eq!(
+            enabled.work_loop.execution_work_item_id.as_deref(),
+            Some("focusa-workloop-completion.2")
+        );
 
         let stopped = reduce(
             enabled,
@@ -5750,6 +5758,7 @@ mod tests {
         .unwrap()
         .new_state;
         assert_eq!(stopped.work_loop.execution_scope, None);
+        assert_eq!(stopped.work_loop.execution_work_item_id, None);
     }
 
     #[test]

@@ -448,6 +448,8 @@ pub struct WorkLoopDecisionContext {
 pub struct WorkLoopState {
     /// Canonical project/workstream authority for the active governed loop.
     pub execution_scope: Option<WorkstreamKey>,
+    /// Stable root work-item partition for the active loop; current subtasks never re-key the writer lease.
+    pub execution_work_item_id: Option<String>,
     pub enabled: bool,
     pub status: WorkLoopStatus,
     pub authorship_mode: AuthorshipMode,
@@ -3540,6 +3542,8 @@ pub enum FocusaEvent {
         policy: WorkLoopPolicy,
         #[serde(default)]
         scope: Option<WorkstreamKey>,
+        #[serde(default)]
+        work_item_id: Option<String>,
     },
     ContinuousWorkModeDisabled {
         reason: String,
@@ -4217,6 +4221,7 @@ pub enum Action {
         project_run_id: ProjectRunId,
         policy: WorkLoopPolicy,
         scope: WorkstreamKey,
+        work_item_id: String,
     },
     PauseContinuousWork {
         reason: String,

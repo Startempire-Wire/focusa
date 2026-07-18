@@ -3,7 +3,7 @@
 use crate::routes::bounded::{record_json_response_size, resource_mode_status};
 use crate::routes::permissions::{forbid, permission_context};
 use crate::scope::ScopeContext;
-use crate::server::AppState;
+use crate::server::{AppState, WriterLease};
 use axum::extract::{FromRequestParts, Query, State};
 use axum::http::{HeaderMap, StatusCode, request::Parts};
 use axum::response::{IntoResponse, Response};
@@ -11,7 +11,7 @@ use axum::{
     Json, Router,
     routing::{get, post},
 };
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use focusa_core::scoped_state::WorkstreamKey;
 use focusa_core::tool_result::{ToolResultV1, ToolStatus};
 use focusa_core::types::{
@@ -31,6 +31,8 @@ use tokio::time::{Duration, sleep, timeout};
 use uuid::Uuid;
 
 const WRITER_HEADER: &str = "x-focusa-writer-id";
+const FENCING_HEADER: &str = "x-focusa-fencing-token";
+const WRITER_LEASE_TTL_MS: i64 = 30_000;
 const APPROVAL_HEADER: &str = "x-focusa-approval";
 
 #[derive(Clone)]
@@ -486,9 +488,9 @@ fn writer_claim_key_from_scope(
 ) -> String {
     let Some(work_item_id) = focusa
         .work_loop
-        .current_task
-        .as_ref()
-        .map(|task| task.work_item_id.as_str())
+        .execution_work_item_id
+        .as_deref()
+        .filter(|id| !id.trim().is_empty())
     else {
         return "blocked:active_work_item_required".to_string();
     };
@@ -518,19 +520,22 @@ async fn writer_claim_key(scope: &WorkLoopScope, state: &Arc<AppState>) -> Strin
 }
 
 fn active_writer_for_key(
-    claims: &std::collections::HashMap<String, String>,
+    claims: &std::collections::HashMap<String, WriterLease>,
     key: &str,
+    now: DateTime<Utc>,
 ) -> Option<String> {
-    claims.get(key).cloned()
+    claims
+        .get(key)
+        .filter(|lease| lease.expires_at > now)
+        .map(|lease| lease.writer_id.clone())
 }
 
 fn active_writer_compat(
-    claims: &std::collections::HashMap<String, String>,
+    claims: &std::collections::HashMap<String, WriterLease>,
     key: &str,
+    now: DateTime<Utc>,
 ) -> Option<String> {
-    // Compatibility preserves only the response field. It must never select a
-    // writer from another project/workstream/work-item partition.
-    active_writer_for_key(claims, key)
+    active_writer_for_key(claims, key, now)
 }
 
 fn writer_id_from_headers(headers: &HeaderMap) -> Result<String, (StatusCode, Json<Value>)> {
@@ -541,6 +546,81 @@ fn writer_id_from_headers(headers: &HeaderMap) -> Result<String, (StatusCode, Js
         .filter(|s| !s.is_empty())
         .map(ToOwned::to_owned)
         .ok_or_else(|| bad_request(format!("missing required header: {WRITER_HEADER}")))
+}
+
+fn fencing_token_from_headers(headers: &HeaderMap) -> Result<u64, (StatusCode, Json<Value>)> {
+    headers
+        .get(FENCING_HEADER)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .filter(|token| *token > 0)
+        .ok_or_else(|| bad_request(format!("missing or invalid header: {FENCING_HEADER}")))
+}
+
+fn writer_lease_expiry(now: DateTime<Utc>) -> DateTime<Utc> {
+    now + chrono::Duration::milliseconds(WRITER_LEASE_TTL_MS)
+}
+
+fn acquire_writer_for_key(
+    claims: &mut std::collections::HashMap<String, WriterLease>,
+    key: String,
+    writer_id: String,
+    fencing_token: u64,
+    now: DateTime<Utc>,
+) -> Result<WriterLease, (StatusCode, Json<Value>)> {
+    if let Some(existing) = claims.get_mut(&key) {
+        if existing.expires_at > now && existing.writer_id != writer_id {
+            return Err(conflict(
+                "continuous work loop partition already leased by another writer",
+                Some(existing.writer_id.clone()),
+            ));
+        }
+        if existing.expires_at > now {
+            existing.renewed_at = now;
+            existing.expires_at = writer_lease_expiry(now);
+            return Ok(existing.clone());
+        }
+    }
+
+    let lease = WriterLease {
+        writer_id,
+        fencing_token,
+        acquired_at: now,
+        renewed_at: now,
+        expires_at: writer_lease_expiry(now),
+    };
+    claims.insert(key, lease.clone());
+    Ok(lease)
+}
+
+fn validate_and_renew_writer_for_key(
+    claims: &mut std::collections::HashMap<String, WriterLease>,
+    key: &str,
+    writer_id: &str,
+    fencing_token: u64,
+    now: DateTime<Utc>,
+) -> Result<WriterLease, (StatusCode, Json<Value>)> {
+    let Some(lease) = claims.get_mut(key) else {
+        return Err(conflict(
+            "continuous work loop partition has no active writer lease",
+            None,
+        ));
+    };
+    if lease.expires_at <= now {
+        return Err(conflict(
+            "continuous work loop writer lease expired; reacquire through enable",
+            Some(lease.writer_id.clone()),
+        ));
+    }
+    if lease.writer_id != writer_id || lease.fencing_token != fencing_token {
+        return Err(conflict(
+            "continuous work loop mutation rejected by fencing token",
+            Some(lease.writer_id.clone()),
+        ));
+    }
+    lease.renewed_at = now;
+    lease.expires_at = writer_lease_expiry(now);
+    Ok(lease.clone())
 }
 
 fn require_approval(headers: &HeaderMap, reason: &str) -> Result<(), (StatusCode, Json<Value>)> {
@@ -564,30 +644,12 @@ fn require_approval(headers: &HeaderMap, reason: &str) -> Result<(), (StatusCode
     }
 }
 
-fn claim_writer_for_key(
-    claims: &mut std::collections::HashMap<String, String>,
-    key: String,
-    writer_id: String,
-) -> Result<String, (StatusCode, Json<Value>)> {
-    match claims.get(&key) {
-        Some(existing) if existing != &writer_id => Err(conflict(
-            "continuous work loop partition already claimed by another writer",
-            Some(existing.clone()),
-        )),
-        Some(_) => Ok(writer_id),
-        None => {
-            claims.insert(key, writer_id.clone());
-            Ok(writer_id)
-        }
-    }
-}
-
 async fn ensure_writer_claim_for_work_item(
     scope: &WorkLoopScope,
     state: &Arc<AppState>,
     headers: &HeaderMap,
     work_item_id: &str,
-) -> Result<String, (StatusCode, Json<Value>)> {
+) -> Result<WriterLease, (StatusCode, Json<Value>)> {
     let writer_id = writer_id_from_headers(headers)?;
     if work_item_id.trim().is_empty() {
         return Err(bad_request("work item id is required for writer claim"));
@@ -597,62 +659,52 @@ async fn ensure_writer_claim_for_work_item(
         &scope.0.continuity_id,
         work_item_id,
     ))?;
+    let token = state
+        .next_writer_fencing_token
+        .fetch_add(1, std::sync::atomic::Ordering::AcqRel);
     let mut claims = state.writer_claims.write().await;
-    claim_writer_for_key(&mut claims, key, writer_id)
+    acquire_writer_for_key(&mut claims, key, writer_id, token, Utc::now())
 }
 
 async fn ensure_writer_claim(
     scope: &WorkLoopScope,
     state: &Arc<AppState>,
     headers: &HeaderMap,
-) -> Result<String, (StatusCode, Json<Value>)> {
+) -> Result<WriterLease, (StatusCode, Json<Value>)> {
     let writer_id = writer_id_from_headers(headers)?;
+    let fencing_token = fencing_token_from_headers(headers)?;
     let key = require_authoritative_claim_key(writer_claim_key(scope, state).await)?;
     let mut claims = state.writer_claims.write().await;
-    claim_writer_for_key(&mut claims, key, writer_id)
+    validate_and_renew_writer_for_key(&mut claims, &key, &writer_id, fencing_token, Utc::now())
 }
 
 async fn release_writer_claim(
     scope: &WorkLoopScope,
     state: &Arc<AppState>,
     headers: &HeaderMap,
-) -> Result<Option<String>, (StatusCode, Json<Value>)> {
+) -> Result<Option<WriterLease>, (StatusCode, Json<Value>)> {
     let writer_id = writer_id_from_headers(headers)?;
+    let fencing_token = fencing_token_from_headers(headers)?;
     let key = require_authoritative_claim_key(writer_claim_key(scope, state).await)?;
     let mut claims = state.writer_claims.write().await;
-    match claims.get(&key) {
-        Some(existing) if existing != &writer_id => Err(conflict(
-            "continuous work loop partition claimed by another writer",
-            Some(existing.clone()),
-        )),
-        Some(_) => Ok(claims.remove(&key)),
-        None => Ok(None),
-    }
+    validate_and_renew_writer_for_key(&mut claims, &key, &writer_id, fencing_token, Utc::now())?;
+    Ok(claims.remove(&key))
 }
 
 async fn ensure_claimed_writer_matches_for_context(
     scope: &WorkLoopScope,
     state: &Arc<AppState>,
     headers: &HeaderMap,
-) -> Result<Option<String>, (StatusCode, Json<Value>)> {
+) -> Result<Option<WriterLease>, (StatusCode, Json<Value>)> {
     let key = require_authoritative_claim_key(writer_claim_key(scope, state).await)?;
-    let active_writer = {
+    let has_claim = {
         let claims = state.writer_claims.read().await;
-        active_writer_for_key(&claims, &key)
+        claims.contains_key(&key)
     };
-    let Some(active_writer) = active_writer else {
+    if !has_claim {
         return Ok(None);
-    };
-
-    let writer_id = writer_id_from_headers(headers)?;
-    if writer_id != active_writer {
-        return Err(conflict(
-            "continuous work context write rejected: scoped writer claim belongs to another writer",
-            Some(active_writer),
-        ));
     }
-
-    Ok(Some(writer_id))
+    ensure_writer_claim(scope, state, headers).await.map(Some)
 }
 
 async fn worktree_status_snapshot(project_root: &Path) -> Value {
@@ -2254,7 +2306,7 @@ async fn health(
     let claim_key = writer_claim_key_from_scope(&scope, &s);
     let active_writer = {
         let claims = state.writer_claims.read().await;
-        active_writer_compat(&claims, &claim_key)
+        active_writer_compat(&claims, &claim_key, Utc::now())
     };
     let boundary_reason = continuation_boundary_reason(wl);
     let dispatch_ready = wl.enabled
@@ -2309,7 +2361,7 @@ async fn status(
     let claim_key = writer_claim_key_from_scope(&scope, &s);
     let active_writer = {
         let claims = state.writer_claims.read().await;
-        active_writer_compat(&claims, &claim_key)
+        active_writer_compat(&claims, &claim_key, Utc::now())
     };
     if query.summary_only {
         let transport_health = transport_health_for_status(wl);
@@ -2559,7 +2611,7 @@ async fn status_deep(
         let claim_key = writer_claim_key_from_scope(&scope, &s);
         let active_writer = {
             let claims = state.writer_claims.read().await;
-            active_writer_compat(&claims, &claim_key)
+            active_writer_compat(&claims, &claim_key, Utc::now())
         };
         json!({
             "route_tier": "cold",
@@ -2694,27 +2746,17 @@ async fn enable(
     let preset = payload.preset.unwrap_or_default();
     let policy =
         WorkLoopPolicy::with_overrides(preset, payload.policy_overrides.unwrap_or_default());
+    let parent_work_item_id = payload
+        .root_work_item_id
+        .filter(|id| !id.trim().is_empty())
+        .ok_or_else(|| bad_request("root_work_item_id is required"))?;
     let action = Action::EnableContinuousWork {
         project_run_id: payload.project_run_id.unwrap_or_else(Uuid::now_v7),
         policy,
         scope: scope.0.clone(),
+        work_item_id: parent_work_item_id.clone(),
     };
-    let root_work_item_id = if let Some(root) = payload.root_work_item_id.clone() {
-        Some(root)
-    } else {
-        let focusa = state.focusa.read().await;
-        focusa
-            .focus_stack
-            .active_id
-            .and_then(|aid| focusa.focus_stack.frames.iter().find(|f| f.id == aid))
-            .map(|frame| frame.beads_issue_id.clone())
-            .filter(|id| !id.is_empty())
-    };
-
-    let parent_work_item_id = root_work_item_id.ok_or_else(|| {
-        bad_request("root_work_item_id or an active Focus Stack beads_issue_id is required")
-    })?;
-    let writer_id =
+    let writer_lease =
         ensure_writer_claim_for_work_item(&scope, &state, &headers, &parent_work_item_id).await?;
     send_work_loop_action(&state, "work_loop_dispatch", action).await?;
 
@@ -2734,7 +2776,9 @@ async fn enable(
         .await;
     }
 
-    Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
+    Ok(Json(
+        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at }),
+    ))
 }
 
 async fn pause(
@@ -2748,18 +2792,7 @@ async fn pause(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = writer_id_from_headers(&headers)?;
-    let claim_key = require_authoritative_claim_key(writer_claim_key(&scope, &state).await)?;
-    let active_writer = {
-        let claims = state.writer_claims.read().await;
-        active_writer_for_key(&claims, &claim_key)
-    };
-    if active_writer.as_deref().is_some() && active_writer.as_deref() != Some(writer_id.as_str()) {
-        return Err(conflict(
-            "continuous work loop partition claimed by another writer",
-            active_writer,
-        ));
-    }
+    let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
 
     send_work_loop_action(
         &state,
@@ -2770,7 +2803,9 @@ async fn pause(
     )
     .await?;
 
-    Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
+    Ok(Json(
+        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at }),
+    ))
 }
 
 async fn resume(
@@ -2784,7 +2819,7 @@ async fn resume(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
+    let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
 
     send_work_loop_action(
         &state,
@@ -2795,7 +2830,9 @@ async fn resume(
     )
     .await?;
 
-    Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
+    Ok(Json(
+        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at }),
+    ))
 }
 
 async fn select_next(
@@ -2809,7 +2846,7 @@ async fn select_next(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
+    let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     let parent_work_item_id = payload.parent_work_item_id.clone();
 
     send_work_loop_action(
@@ -2856,7 +2893,9 @@ async fn select_next(
     )
     .await;
 
-    Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
+    Ok(Json(
+        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at }),
+    ))
 }
 
 async fn set_decision_context(
@@ -2870,7 +2909,7 @@ async fn set_decision_context(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_claimed_writer_matches_for_context(&scope, &state, &headers).await?;
+    let writer_lease = ensure_claimed_writer_matches_for_context(&scope, &state, &headers).await?;
 
     let event = FocusaEvent::ContinuousDecisionContextUpdated {
         current_ask: payload.current_ask,
@@ -2927,7 +2966,9 @@ async fn set_decision_context(
 
     Ok(Json(json!({
         "status": "accepted",
-        "writer_id": writer_id,
+        "writer_id": writer_lease.as_ref().map(|lease| lease.writer_id.as_str()),
+        "fencing_token": writer_lease.as_ref().map(|lease| lease.fencing_token),
+        "lease_expires_at": writer_lease.as_ref().map(|lease| lease.expires_at),
         "canonical": true,
         "materialized": true
     })))
@@ -2943,7 +2984,7 @@ async fn start_pi_driver(
     if !permissions.allows("work-loop:write") {
         return Err(forbid("work-loop:write"));
     }
-    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
+    let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
 
     let work_loop_root = request_scope_root(&scope);
 
@@ -2964,7 +3005,10 @@ async fn start_pi_driver(
                 "tool_result": agent_execution_tool_result("Pi RPC execution already active", "none"),
             })));
         }
-        return Err(conflict("pi rpc driver already active", Some(writer_id)));
+        return Err(conflict(
+            "pi rpc driver already active",
+            Some(writer_lease.writer_id.clone()),
+        ));
     }
 
     let session_id = format!("pi-rpc-{}", Uuid::now_v7());
@@ -3181,7 +3225,7 @@ async fn start_pi_driver(
         child,
         stdin,
         session_id: session_id.clone(),
-        cwd: payload.cwd.clone(),
+        cwd: Some(work_loop_root.to_string_lossy().to_string()),
         idempotency_key: payload.idempotency_key.clone(),
         started_at: std::time::Instant::now(),
     });
@@ -3316,7 +3360,7 @@ async fn attach_session(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
+    let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     let event = FocusaEvent::ContinuousTransportSessionAttached {
         adapter: payload.adapter,
         session_id: payload.session_id,
@@ -3363,7 +3407,9 @@ async fn attach_session(
     *state.focusa.write().await = new_state;
     state.mark_external_mutation();
 
-    Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
+    Ok(Json(
+        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at }),
+    ))
 }
 
 async fn abort_session(
@@ -3377,7 +3423,7 @@ async fn abort_session(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
+    let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     let event = FocusaEvent::ContinuousTransportAbortForwarded {
         reason: payload
             .reason
@@ -3425,7 +3471,9 @@ async fn abort_session(
     *state.focusa.write().await = new_state;
     state.mark_external_mutation();
 
-    Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
+    Ok(Json(
+        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at }),
+    ))
 }
 
 async fn ingest_transport_event(
@@ -3439,7 +3487,7 @@ async fn ingest_transport_event(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
+    let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     let _guard = tokio::time::timeout(Duration::from_millis(1500), state.write_serial_lock.lock())
         .await
         .map_err(|_| work_loop_dispatch_timeout("work_loop_ingest_transport_lock"))?;
@@ -3456,7 +3504,9 @@ async fn ingest_transport_event(
     )
     .await?;
 
-    Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
+    Ok(Json(
+        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at }),
+    ))
 }
 
 async fn set_pause_flags(
@@ -3470,7 +3520,7 @@ async fn set_pause_flags(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
+    let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     let event = FocusaEvent::ContinuousPauseFlagsUpdated {
         destructive_confirmation_required: payload.destructive_confirmation_required,
         governance_decision_pending: payload.governance_decision_pending,
@@ -3530,7 +3580,9 @@ async fn set_pause_flags(
     *state.focusa.write().await = new_state;
     state.mark_external_mutation();
 
-    Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
+    Ok(Json(
+        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at }),
+    ))
 }
 
 async fn delegate_authorship(
@@ -3548,7 +3600,7 @@ async fn delegate_authorship(
         &headers,
         "delegated authorship changes authority state and requires explicit approval",
     )?;
-    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
+    let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     send_work_loop_action(
         &state,
         "work_loop_delegate_authorship",
@@ -3560,7 +3612,9 @@ async fn delegate_authorship(
     )
     .await?;
 
-    Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
+    Ok(Json(
+        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at }),
+    ))
 }
 
 async fn clear_delegated_authorship(
@@ -3578,7 +3632,7 @@ async fn clear_delegated_authorship(
         &headers,
         "clearing delegated authorship changes authority state and requires explicit approval",
     )?;
-    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
+    let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     send_work_loop_action(
         &state,
         "work_loop_clear_delegated_authorship",
@@ -3590,7 +3644,9 @@ async fn clear_delegated_authorship(
     )
     .await?;
 
-    Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
+    Ok(Json(
+        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at }),
+    ))
 }
 
 async fn transport_degraded(
@@ -3604,7 +3660,7 @@ async fn transport_degraded(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
+    let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     send_work_loop_action(
         &state,
         "work_loop_transport_degraded",
@@ -3616,7 +3672,9 @@ async fn transport_degraded(
     )
     .await?;
 
-    Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
+    Ok(Json(
+        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at }),
+    ))
 }
 
 async fn checkpoints(
@@ -3645,13 +3703,15 @@ async fn heartbeat(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
+    let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     let dispatched =
         maybe_dispatch_continuous_turn_prompt(&state, "daemon heartbeat supervisor tick").await?;
 
     Ok(Json(json!({
         "ok": true,
-        "writer_id": writer_id,
+        "writer_id": writer_lease.writer_id,
+        "fencing_token": writer_lease.fencing_token,
+        "lease_expires_at": writer_lease.expires_at,
         "dispatched": dispatched,
     })))
 }
@@ -3667,7 +3727,7 @@ async fn checkpoint(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_id = ensure_writer_claim(&scope, &state, &headers).await?;
+    let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     send_work_loop_action(
         &state,
         "work_loop_checkpoint",
@@ -3678,7 +3738,9 @@ async fn checkpoint(
     )
     .await?;
 
-    Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
+    Ok(Json(
+        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at }),
+    ))
 }
 
 async fn stop(
@@ -3702,9 +3764,11 @@ async fn stop(
     )
     .await?;
 
-    Ok(Json(
-        json!({ "ok": true, "released_writer": released_writer }),
-    ))
+    Ok(Json(json!({
+        "ok": true,
+        "released_writer": released_writer.as_ref().map(|lease| lease.writer_id.as_str()),
+        "released_fencing_token": released_writer.as_ref().map(|lease| lease.fencing_token),
+    })))
 }
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -3885,6 +3949,7 @@ mod tests {
 
     #[test]
     fn writer_lookup_never_falls_back_across_partitions() {
+        let now = Utc::now();
         let claimed_key = writer_claim_key_for_partition(
             "/home/wirebot/focusa",
             "cont-focusa",
@@ -3895,20 +3960,26 @@ mod tests {
             "cont-other",
             "focusa-workloop-completion.1",
         );
-        let claims = std::collections::HashMap::from([(
+        let mut claims = std::collections::HashMap::new();
+        acquire_writer_for_key(
+            &mut claims,
             claimed_key.clone(),
             "writer-focusa-cont-1".to_string(),
-        )]);
+            1,
+            now,
+        )
+        .unwrap();
 
         assert_eq!(
-            active_writer_compat(&claims, &claimed_key).as_deref(),
+            active_writer_compat(&claims, &claimed_key, now).as_deref(),
             Some("writer-focusa-cont-1")
         );
-        assert_eq!(active_writer_compat(&claims, &unclaimed_key), None);
+        assert_eq!(active_writer_compat(&claims, &unclaimed_key, now), None);
     }
 
     #[test]
     fn writer_claim_runtime_isolates_concurrent_partitions() {
+        let now = Utc::now();
         let project_continuity_one = writer_claim_key_for_partition(
             "/home/wirebot/focusa",
             "cont-one",
@@ -3926,55 +3997,89 @@ mod tests {
         );
         let mut claims = std::collections::HashMap::new();
 
-        assert_eq!(
-            claim_writer_for_key(
-                &mut claims,
-                project_continuity_one.clone(),
-                "writer-one".to_string(),
-            )
-            .unwrap(),
-            "writer-one"
-        );
-        assert_eq!(
-            claim_writer_for_key(
-                &mut claims,
-                project_continuity_two.clone(),
-                "writer-two".to_string(),
-            )
-            .unwrap(),
-            "writer-two"
-        );
-        assert_eq!(
-            claim_writer_for_key(
-                &mut claims,
-                second_work_item.clone(),
-                "writer-three".to_string(),
-            )
-            .unwrap(),
-            "writer-three"
-        );
+        for (key, writer, token) in [
+            (project_continuity_one.clone(), "writer-one", 1),
+            (project_continuity_two.clone(), "writer-two", 2),
+            (second_work_item.clone(), "writer-three", 3),
+        ] {
+            let lease =
+                acquire_writer_for_key(&mut claims, key, writer.to_string(), token, now).unwrap();
+            assert_eq!(lease.writer_id, writer);
+            assert_eq!(lease.fencing_token, token);
+        }
         assert_eq!(claims.len(), 3);
         assert_eq!(
-            active_writer_for_key(&claims, &project_continuity_one).as_deref(),
+            active_writer_for_key(&claims, &project_continuity_one, now).as_deref(),
             Some("writer-one")
         );
         assert_eq!(
-            active_writer_for_key(&claims, &project_continuity_two).as_deref(),
+            active_writer_for_key(&claims, &project_continuity_two, now).as_deref(),
             Some("writer-two")
         );
         assert_eq!(
-            active_writer_for_key(&claims, &second_work_item).as_deref(),
+            active_writer_for_key(&claims, &second_work_item, now).as_deref(),
             Some("writer-three")
         );
 
-        let rejected = claim_writer_for_key(
+        let rejected = acquire_writer_for_key(
             &mut claims,
             project_continuity_one,
             "late-writer".to_string(),
+            4,
+            now,
         )
         .unwrap_err();
         assert_eq!(rejected.0, StatusCode::CONFLICT);
         assert_eq!(claims.len(), 3);
+    }
+
+    #[test]
+    fn expired_lease_takeover_fences_late_writer() {
+        let acquired_at = Utc::now();
+        let after_expiry = acquired_at + chrono::Duration::milliseconds(WRITER_LEASE_TTL_MS + 1);
+        let key = writer_claim_key_for_partition(
+            "/home/wirebot/focusa",
+            "cont-one",
+            "focusa-workloop-completion.3",
+        );
+        let mut claims = std::collections::HashMap::new();
+        let first = acquire_writer_for_key(
+            &mut claims,
+            key.clone(),
+            "writer-one".to_string(),
+            41,
+            acquired_at,
+        )
+        .unwrap();
+        let replacement = acquire_writer_for_key(
+            &mut claims,
+            key.clone(),
+            "writer-two".to_string(),
+            42,
+            after_expiry,
+        )
+        .unwrap();
+
+        assert!(replacement.fencing_token > first.fencing_token);
+        let late = validate_and_renew_writer_for_key(
+            &mut claims,
+            &key,
+            &first.writer_id,
+            first.fencing_token,
+            after_expiry,
+        )
+        .unwrap_err();
+        assert_eq!(late.0, StatusCode::CONFLICT);
+        assert!(
+            validate_and_renew_writer_for_key(
+                &mut claims,
+                &key,
+                &replacement.writer_id,
+                replacement.fencing_token,
+                after_expiry,
+            )
+            .is_ok()
+        );
     }
 
     #[test]

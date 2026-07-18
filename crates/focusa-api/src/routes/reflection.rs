@@ -1295,6 +1295,7 @@ mod tests {
             command_store: Arc::new(RwLock::new(HashMap::new())),
             token_store: Arc::new(RwLock::new(focusa_core::permissions::TokenStore::new())),
             writer_claims: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            next_writer_fencing_token: Arc::new(std::sync::atomic::AtomicU64::new(1)),
             focus_stack_by_scope: Arc::new(tokio::sync::RwLock::new(
                 std::collections::HashMap::new(),
             )),

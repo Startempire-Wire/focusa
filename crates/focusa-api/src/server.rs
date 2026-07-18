@@ -219,6 +219,15 @@ pub struct SupervisorPerfCounters {
 }
 
 /// Shared state between API server and daemon.
+#[derive(Clone, Debug, Serialize)]
+pub struct WriterLease {
+    pub writer_id: String,
+    pub fencing_token: u64,
+    pub acquired_at: chrono::DateTime<chrono::Utc>,
+    pub renewed_at: chrono::DateTime<chrono::Utc>,
+    pub expires_at: chrono::DateTime<chrono::Utc>,
+}
+
 pub struct AppState {
     /// Read-only snapshot of cognitive state (daemon writes, API reads).
     pub focusa: Arc<RwLock<FocusaState>>,
@@ -241,7 +250,9 @@ pub struct AppState {
     /// Token store for capability permissions (docs/25-26).
     pub token_store: Arc<RwLock<focusa_core::permissions::TokenStore>>,
     /// Scoped writer claims for continuous work-loop mutations, keyed by ProjectRootKey + WorkstreamKey + WorkItemKey.
-    pub writer_claims: Arc<TokioRwLock<HashMap<String, String>>>,
+    pub writer_claims: Arc<TokioRwLock<HashMap<String, WriterLease>>>,
+    /// Process-monotonic source for writer fencing tokens. Zero is never issued.
+    pub next_writer_fencing_token: Arc<AtomicU64>,
     /// FocusStackState by scope key — FS-01: Focus State reducer scope enforcement.
     pub focus_stack_by_scope: Arc<TokioRwLock<HashMap<String, FocusStackState>>>,
     /// Typed ProjectRootKey + WorkstreamKey scoped prediction CRDT ledger.
@@ -767,6 +778,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
             last_continue_reason,
             current_task_id,
             execution_scope,
+            execution_work_item_id,
         ) = {
             let s = state.focusa.read().await;
             (
@@ -783,6 +795,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                     .as_ref()
                     .map(|task| task.work_item_id.clone()),
                 s.work_loop.execution_scope.clone(),
+                s.work_loop.execution_work_item_id.clone(),
             )
         };
 
@@ -807,7 +820,8 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
         }
 
         if should_auto_reenable_continuous(enabled, status, last_continue_reason.as_deref())
-            && let Some(scope) = execution_scope.clone()
+            && let (Some(scope), Some(work_item_id)) =
+                (execution_scope.clone(), execution_work_item_id.clone())
         {
             let policy = WorkLoopPolicy::with_overrides(
                 WorkLoopPreset::Push,
@@ -827,6 +841,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                     project_run_id: Uuid::now_v7(),
                     policy,
                     scope,
+                    work_item_id,
                 })
                 .await;
         }
@@ -842,7 +857,10 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                         })
                         .unwrap_or(false);
 
-            if budget_exhausted && let Some(scope) = execution_scope.clone() {
+            if budget_exhausted
+                && let (Some(scope), Some(work_item_id)) =
+                    (execution_scope.clone(), execution_work_item_id.clone())
+            {
                 let policy = WorkLoopPolicy::with_overrides(
                     WorkLoopPreset::Push,
                     WorkLoopPolicyOverrides {
@@ -861,12 +879,13 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                         project_run_id: Uuid::now_v7(),
                         policy,
                         scope,
+                        work_item_id,
                     })
                     .await;
             }
 
             let (Some(scope), Some(work_item_id)) =
-                (execution_scope.as_ref(), current_task_id.as_deref())
+                (execution_scope.as_ref(), execution_work_item_id.as_deref())
             else {
                 tokio::time::sleep(Duration::from_millis(delay_ms)).await;
                 continue;
@@ -879,11 +898,14 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                 continuity_id.replace('|', "_"),
                 work_item_id.replace('|', "_")
             );
-            let writer = {
+            let lease = {
                 let claims = state.writer_claims.read().await;
-                claims.get(&claim_key).cloned()
+                claims
+                    .get(&claim_key)
+                    .filter(|lease| lease.expires_at > chrono::Utc::now())
+                    .cloned()
             };
-            let Some(writer) = writer else {
+            let Some(lease) = lease else {
                 tokio::time::sleep(Duration::from_millis(delay_ms)).await;
                 continue;
             };
@@ -935,7 +957,8 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                 let stop_url = format!("{}/v1/work-loop/driver/stop", base_url);
                 let _ = client
                     .post(&stop_url)
-                    .header("x-focusa-writer-id", &writer)
+                    .header("x-focusa-writer-id", &lease.writer_id)
+                    .header("x-focusa-fencing-token", lease.fencing_token)
                     .header("x-focusa-project-root", &project_root)
                     .header("x-focusa-continuity-id", &continuity_id)
                     .json(&serde_json::json!({}))
@@ -953,7 +976,8 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                 let stop_url = format!("{}/v1/work-loop/driver/stop", base_url);
                 let _ = client
                     .post(&stop_url)
-                    .header("x-focusa-writer-id", &writer)
+                    .header("x-focusa-writer-id", &lease.writer_id)
+                    .header("x-focusa-fencing-token", lease.fencing_token)
                     .header("x-focusa-project-root", &project_root)
                     .header("x-focusa-continuity-id", &continuity_id)
                     .json(&serde_json::json!({}))
@@ -970,7 +994,8 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                 let driver_url = format!("{}/v1/work-loop/driver/start", base_url);
                 let _ = client
                     .post(&driver_url)
-                    .header("x-focusa-writer-id", &writer)
+                    .header("x-focusa-writer-id", &lease.writer_id)
+                    .header("x-focusa-fencing-token", lease.fencing_token)
                     .header("x-focusa-project-root", &project_root)
                     .header("x-focusa-continuity-id", &continuity_id)
                     .json(&serde_json::json!({"cwd": project_root}))
@@ -1017,7 +1042,8 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                     let stop_url = format!("{}/v1/work-loop/driver/stop", base_url);
                     let _ = client
                         .post(&stop_url)
-                        .header("x-focusa-writer-id", &writer)
+                        .header("x-focusa-writer-id", &lease.writer_id)
+                        .header("x-focusa-fencing-token", lease.fencing_token)
                         .header("x-focusa-project-root", &project_root)
                         .header("x-focusa-continuity-id", &continuity_id)
                         .json(&serde_json::json!({}))
@@ -1031,7 +1057,8 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                     let driver_url = format!("{}/v1/work-loop/driver/start", base_url);
                     let _ = client
                         .post(&driver_url)
-                        .header("x-focusa-writer-id", &writer)
+                        .header("x-focusa-writer-id", &lease.writer_id)
+                        .header("x-focusa-fencing-token", lease.fencing_token)
                         .header("x-focusa-project-root", &project_root)
                         .header("x-focusa-continuity-id", &continuity_id)
                         .json(&serde_json::json!({"cwd": project_root}))
@@ -1089,6 +1116,9 @@ pub async fn run(
         command_store: Arc::new(RwLock::new(HashMap::new())),
         token_store: Arc::new(RwLock::new(focusa_core::permissions::TokenStore::new())),
         writer_claims: Arc::new(TokioRwLock::new(HashMap::new())),
+        next_writer_fencing_token: Arc::new(AtomicU64::new(
+            (chrono::Utc::now().timestamp_millis().max(1) as u64).saturating_mul(1_000),
+        )),
         focus_stack_by_scope: Arc::new(TokioRwLock::new(HashMap::new())),
         prediction_store,
         recent_completed_turns_by_scope: Arc::new(TokioRwLock::new(HashMap::new())),
