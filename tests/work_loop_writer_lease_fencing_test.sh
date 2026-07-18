@@ -69,6 +69,20 @@ curl -fsS -X POST "${BASE_URL}/v1/work-loop/heartbeat" \
   "${scope_headers[@]}" \
   -H 'x-focusa-writer-id: writer-one' \
   -H "x-focusa-fencing-token: ${first_token}" >/dev/null
+status_payload="$(curl -fsS "${BASE_URL}/v1/work-loop/status?summary_only=true" "${scope_headers[@]}")"
+jq -e \
+  --arg root "${PROJECT_ROOT}" \
+  --arg continuity "${CONTINUITY_ID}" \
+  --arg work_item "${WORK_ITEM_ID}" \
+  --argjson token "${first_token}" '
+    .execution_partition.project_root_key == $root and
+    .execution_partition.workstream_key == $continuity and
+    .execution_partition.work_item_key == $work_item and
+    .execution_partition.writer_key == "writer-one" and
+    .execution_partition.fencing_token == $token and
+    .execution_partition.lease_freshness == "current" and
+    (.execution_partition.lease_expires_at | type == "string")
+  ' <<<"${status_payload}" >/dev/null
 # Simulate an ungraceful owner/daemon crash. Claims are intentionally lost, while
 # reducer-owned execution scope and Workpoint state recover from the same data dir.
 kill -KILL "${DAEMON_PID}"

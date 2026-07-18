@@ -3336,10 +3336,52 @@ export function registerTools(pi: ExtensionAPI) {
     } as any;
   }
 
+  type WorkLoopWriterLease = {
+    writerId: string;
+    fencingToken: number;
+    expiresAt: string;
+  };
+  const localWriterId = `pi-${process.pid}`;
+  const workLoopLeases = new Map<string, WorkLoopWriterLease>();
+
+  function workLoopLeaseKey(): string {
+    const root = resolvePiProjectRoot(getSessionCwd() || process.cwd());
+    const continuity = getContinuityId() || ensureContinuityId(root) || "unbound";
+    return `${root}|${continuity}`;
+  }
+
+  function rememberWorkLoopLease(body: any): WorkLoopWriterLease | null {
+    const writerId = String(body?.writer_id || body?.execution_partition?.writer_key || "").trim();
+    const fencingToken = Number(body?.fencing_token ?? body?.execution_partition?.fencing_token);
+    const expiresAt = String(body?.lease_expires_at || body?.execution_partition?.lease_expires_at || "");
+    if (!writerId || !Number.isSafeInteger(fencingToken) || fencingToken <= 0 || !expiresAt) return null;
+    const lease = { writerId, fencingToken, expiresAt };
+    workLoopLeases.set(workLoopLeaseKey(), lease);
+    return lease;
+  }
+
   async function preferredWriterId(): Promise<string> {
+    return localWriterId;
+  }
+
+  async function currentWorkLoopLease(): Promise<WorkLoopWriterLease | null> {
+    const cached = workLoopLeases.get(workLoopLeaseKey());
+    if (cached && cached.writerId === localWriterId && Date.parse(cached.expiresAt) > Date.now()) return cached;
     const status = await focusaFetchDetailed("/work-loop/status?summary_only=true");
-    const claimed = String(status.body?.active_writer || "").trim();
-    return claimed || `pi-${process.pid}`;
+    const lease = rememberWorkLoopLease(status.body);
+    return lease?.writerId === localWriterId && Date.parse(lease.expiresAt) > Date.now() ? lease : null;
+  }
+
+  function writerLeaseHeaders(writerId: string, lease: WorkLoopWriterLease | null): Record<string, string> {
+    const headers: Record<string, string> = { "x-focusa-writer-id": writerId };
+    if (lease?.writerId === writerId) headers["x-focusa-fencing-token"] = String(lease.fencingToken);
+    return headers;
+  }
+
+  async function requiredWriterLeaseHeaders(): Promise<Record<string, string>> {
+    const lease = await currentWorkLoopLease();
+    if (!lease) throw new Error("current scoped Work Loop writer lease is missing, expired, or owned by another writer");
+    return writerLeaseHeaders(localWriterId, lease);
   }
 
   function firstBdReadyIdFromText(text: string): string | null {
@@ -3542,9 +3584,10 @@ export function registerTools(pi: ExtensionAPI) {
         };
         const res = await focusaFetchDetailed("/work-loop/enable", {
           method: "POST",
-          headers: { "x-focusa-writer-id": writerId, "x-focusa-approval": "approved" },
+          headers: { ...writerLeaseHeaders(writerId, null), "x-focusa-approval": "approved" },
           body: JSON.stringify(payload),
         });
+        if (res.ok) rememberWorkLoopLease(res.body);
         return {
           content: [
             {
@@ -3561,6 +3604,18 @@ export function registerTools(pi: ExtensionAPI) {
         };
       }
 
+      const lease = await currentWorkLoopLease();
+      if (!lease) {
+        return {
+          content: [{ type: "text", text: "work-loop control blocked: current scoped writer lease is missing, expired, or owned by another writer" }],
+          details: {
+            ok: false,
+            status: "blocked",
+            failure_class: "writer_conflict",
+            next_tools: ["focusa_work_loop_writer_status", "focusa_work_loop_control"],
+          },
+        } as any;
+      }
       const route =
         action === "pause"
           ? "/work-loop/pause"
@@ -3569,11 +3624,15 @@ export function registerTools(pi: ExtensionAPI) {
             : "/work-loop/stop";
       const res = await focusaFetchDetailed(route, {
         method: "POST",
-        headers: { "x-focusa-writer-id": writerId },
+        headers: writerLeaseHeaders(writerId, lease),
         body: JSON.stringify({
           reason: reason?.slice(0, 200) || `operator ${action} via focusa_work_loop_control`,
         }),
       });
+      if (res.ok) {
+        if (action === "stop") workLoopLeases.delete(workLoopLeaseKey());
+        else rememberWorkLoopLease(res.body);
+      }
       return {
         content: [
           {
@@ -3624,10 +3683,9 @@ export function registerTools(pi: ExtensionAPI) {
           details: { ok: false, status: 0, response: null },
         };
       }
-      const writerId = await preferredWriterId();
       const res = await focusaFetchDetailed("/work-loop/context", {
         method: "POST",
-        headers: { "x-focusa-writer-id": writerId },
+        headers: await requiredWriterLeaseHeaders(),
         body: JSON.stringify({
           current_ask: p.current_ask.slice(0, 240),
           ask_kind: p.ask_kind,
@@ -3660,10 +3718,9 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { summary } = params as { summary?: string };
-      const writerId = await preferredWriterId();
       const res = await focusaFetchDetailed("/work-loop/checkpoint", {
         method: "POST",
-        headers: { "x-focusa-writer-id": writerId },
+        headers: await requiredWriterLeaseHeaders(),
         body: JSON.stringify({
           summary: (summary || "manual checkpoint via focusa_work_loop_checkpoint").slice(0, 240),
         }),
@@ -3713,7 +3770,7 @@ export function registerTools(pi: ExtensionAPI) {
       }
       const res = await focusaFetchDetailed("/work-loop/select-next", {
         method: "POST",
-        headers: { "x-focusa-writer-id": writerId },
+        headers: await requiredWriterLeaseHeaders(),
         body: JSON.stringify({ parent_work_item_id: parentWorkItemId }),
       });
       return {
@@ -5379,7 +5436,7 @@ export function registerTools(pi: ExtensionAPI) {
           "Resume transferred Focusa mission under the target continuity";
         targetCheckpoint = await focusaFetchDetailed("/workpoint/checkpoint", {
           method: "POST",
-          headers: { "x-focusa-writer-id": await preferredWriterId() },
+          headers: await requiredWriterLeaseHeaders(),
           body: JSON.stringify({
             scope: targetScope,
             mission: targetMission,
@@ -6789,7 +6846,7 @@ export function registerTools(pi: ExtensionAPI) {
       });
       const res = await focusaFetchDetailed("/workpoint/evidence/link", {
         method: "POST",
-        headers: { "x-focusa-writer-id": await preferredWriterId() },
+        headers: await requiredWriterLeaseHeaders(),
         body: JSON.stringify({
           workpoint_id: p.workpoint_id,
           target_ref: p.target_ref,
@@ -7054,7 +7111,7 @@ export function registerTools(pi: ExtensionAPI) {
         });
         evidenceResult = await focusaFetchDetailed("/workpoint/evidence/link", {
           method: "POST",
-          headers: { "x-focusa-writer-id": await preferredWriterId() },
+          headers: await requiredWriterLeaseHeaders(),
           body: JSON.stringify({
             workpoint_id: scopedWorkpointId,
             target_ref: targetRef,
@@ -7325,7 +7382,7 @@ export function registerTools(pi: ExtensionAPI) {
       };
       const res = await focusaFetchDetailed("/workpoint/checkpoint", {
         method: "POST",
-        headers: { "x-focusa-writer-id": await preferredWriterId() },
+        headers: await requiredWriterLeaseHeaders(),
         body: JSON.stringify(payload),
       });
       if (!res.ok && res.body?.failure_class === "hot_path_timeout") {
@@ -7491,7 +7548,7 @@ export function registerTools(pi: ExtensionAPI) {
       }
       const res = await focusaFetchDetailed("/workpoint/evidence/link", {
         method: "POST",
-        headers: { "x-focusa-writer-id": await preferredWriterId() },
+        headers: await requiredWriterLeaseHeaders(),
         body: JSON.stringify({
           workpoint_id: p.workpoint_id,
           target_ref: p.target_ref,
@@ -7959,9 +8016,10 @@ export function registerTools(pi: ExtensionAPI) {
   ): Promise<{ ok: boolean; status: number; body: any | null; writerId?: string }> {
     const method = opts.method || "POST";
     const writerId = opts.writer ? await preferredWriterId() : undefined;
+    const writerLease = writerId ? await currentWorkLoopLease() : null;
     const req: RequestInit = {
       method,
-      headers: writerId ? { "x-focusa-writer-id": writerId } : undefined,
+      headers: writerId ? writerLeaseHeaders(writerId, writerLease) : undefined,
       body: method === "POST" ? JSON.stringify(request) : undefined,
     };
     const first = await focusaFetchDetailed(endpoint, req);

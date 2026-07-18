@@ -86,6 +86,29 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         lines.push(metric("  Project", project, theme::value()));
         lines.push(metric("  Tranche", tranche, theme::value()));
 
+        if let Some(partition) = loop_status.and_then(|value| value.get("execution_partition")) {
+            for (label, field) in [
+                ("  Project root", "project_root_key"),
+                ("  Continuity", "workstream_key"),
+                ("  Root work item", "work_item_key"),
+                ("  Writer", "writer_key"),
+                ("  Lease freshness", "lease_freshness"),
+                ("  Lease expiry", "lease_expires_at"),
+            ] {
+                if let Some(value) = partition.get(field).and_then(Value::as_str) {
+                    let style = if field == "lease_freshness" && value != "current" {
+                        theme::status_err()
+                    } else {
+                        theme::value()
+                    };
+                    lines.push(metric(label, value, style));
+                }
+            }
+            if let Some(token) = partition.get("fencing_token").and_then(Value::as_u64) {
+                lines.push(metric("  Fencing token", token.to_string(), theme::value()));
+            }
+        }
+
         if let Some(task) = loop_status
             .and_then(|value| value.get("current_task"))
             .and_then(|value| value.get("work_item_id"))

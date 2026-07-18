@@ -519,15 +519,23 @@ async fn writer_claim_key(scope: &WorkLoopScope, state: &Arc<AppState>) -> Strin
     writer_claim_key_from_scope(scope, &focusa)
 }
 
+fn active_writer_lease_for_key(
+    claims: &std::collections::HashMap<String, WriterLease>,
+    key: &str,
+    now: DateTime<Utc>,
+) -> Option<WriterLease> {
+    claims
+        .get(key)
+        .filter(|lease| lease.expires_at > now)
+        .cloned()
+}
+
 fn active_writer_for_key(
     claims: &std::collections::HashMap<String, WriterLease>,
     key: &str,
     now: DateTime<Utc>,
 ) -> Option<String> {
-    claims
-        .get(key)
-        .filter(|lease| lease.expires_at > now)
-        .map(|lease| lease.writer_id.clone())
+    active_writer_lease_for_key(claims, key, now).map(|lease| lease.writer_id)
 }
 
 fn active_writer_compat(
@@ -1642,7 +1650,7 @@ fn scoped_workpoint_summary_for_status(
 
 fn work_loop_execution_partition_payload(
     wl: &focusa_core::types::WorkLoopState,
-    active_writer: Option<&str>,
+    active_lease: Option<&WriterLease>,
     writer_claim_key: &str,
 ) -> Value {
     let parts: std::collections::HashMap<_, _> = writer_claim_key
@@ -1655,7 +1663,12 @@ fn work_loop_execution_partition_payload(
         "workstream_key": parts.get("workstream").copied(),
         "work_item_key": parts.get("work_item").copied(),
         "current_task_work_item_id": wl.current_task.as_ref().map(|task| task.work_item_id.as_str()),
-        "writer_key": active_writer,
+        "writer_key": active_lease.map(|lease| lease.writer_id.as_str()),
+        "fencing_token": active_lease.map(|lease| lease.fencing_token),
+        "lease_acquired_at": active_lease.map(|lease| lease.acquired_at),
+        "lease_renewed_at": active_lease.map(|lease| lease.renewed_at),
+        "lease_expires_at": active_lease.map(|lease| lease.expires_at),
+        "lease_freshness": active_lease.map(|lease| if lease.expires_at > Utc::now() { "current" } else { "expired" }).unwrap_or("unclaimed"),
         "writer_claim_key": writer_claim_key,
         "legacy_active_writer_global": false,
         "partition_status": if writer_claim_key.starts_with("blocked:") {
@@ -2304,10 +2317,11 @@ async fn health(
     let s = state.focusa.read().await;
     let wl = &s.work_loop;
     let claim_key = writer_claim_key_from_scope(&scope, &s);
-    let active_writer = {
+    let active_lease = {
         let claims = state.writer_claims.read().await;
-        active_writer_compat(&claims, &claim_key, Utc::now())
+        active_writer_lease_for_key(&claims, &claim_key, Utc::now())
     };
+    let active_writer = active_lease.as_ref().map(|lease| lease.writer_id.clone());
     let boundary_reason = continuation_boundary_reason(wl);
     let dispatch_ready = wl.enabled
         && boundary_reason.is_none()
@@ -2326,7 +2340,7 @@ async fn health(
         "current_task_id": wl.current_task.as_ref().map(|task| task.work_item_id.clone()),
         "last_completed_task_id": wl.last_completed_task_id,
         "active_writer": active_writer,
-        "execution_partition": work_loop_execution_partition_payload(wl, active_writer.as_deref(), &claim_key),
+        "execution_partition": work_loop_execution_partition_payload(wl, active_lease.as_ref(), &claim_key),
         "dispatch_readiness": {
             "ready": dispatch_ready,
             "boundary_reason": boundary_reason,
@@ -2359,10 +2373,11 @@ async fn status(
     let s = state.focusa.read().await;
     let wl = &s.work_loop;
     let claim_key = writer_claim_key_from_scope(&scope, &s);
-    let active_writer = {
+    let active_lease = {
         let claims = state.writer_claims.read().await;
-        active_writer_compat(&claims, &claim_key, Utc::now())
+        active_writer_lease_for_key(&claims, &claim_key, Utc::now())
     };
+    let active_writer = active_lease.as_ref().map(|lease| lease.writer_id.clone());
     if query.summary_only {
         let transport_health = transport_health_for_status(wl);
         let budget_remaining = budget_remaining_for_status(wl);
@@ -2383,7 +2398,7 @@ async fn status(
             "last_completed_task_id": wl.last_completed_task_id,
             "decision_context": wl.decision_context,
             "active_writer": active_writer,
-            "execution_partition": work_loop_execution_partition_payload(wl, active_writer.as_deref(), &claim_key),
+            "execution_partition": work_loop_execution_partition_payload(wl, active_lease.as_ref(), &claim_key),
             "transport_health": transport_health,
             "budget_remaining": budget_remaining,
             "supervisor_perf": supervisor_perf_payload(&state),
@@ -2502,7 +2517,7 @@ async fn status(
         },
         "current_task": wl.current_task,
         "last_completed_task_id": wl.last_completed_task_id,
-        "execution_partition": work_loop_execution_partition_payload(wl, active_writer.as_deref(), &claim_key),
+        "execution_partition": work_loop_execution_partition_payload(wl, active_lease.as_ref(), &claim_key),
         "last_recorded_bd_transition_id": wl.last_recorded_bd_transition_id,
         "last_blocker_class": wl.last_blocker_class,
         "last_blocker_reason": wl.last_blocker_reason,
@@ -2609,10 +2624,11 @@ async fn status_deep(
         let s = state.focusa.read().await;
         let wl = &s.work_loop;
         let claim_key = writer_claim_key_from_scope(&scope, &s);
-        let active_writer = {
+        let active_lease = {
             let claims = state.writer_claims.read().await;
-            active_writer_compat(&claims, &claim_key, Utc::now())
+            active_writer_lease_for_key(&claims, &claim_key, Utc::now())
         };
+        let active_writer = active_lease.as_ref().map(|lease| lease.writer_id.clone());
         json!({
             "route_tier": "cold",
             "summary_only": false,
@@ -2630,7 +2646,7 @@ async fn status_deep(
             "last_continue_reason": wl.last_continue_reason,
             "decision_context": wl.decision_context,
             "active_writer": active_writer,
-            "execution_partition": work_loop_execution_partition_payload(wl, active_writer.as_deref(), &claim_key),
+            "execution_partition": work_loop_execution_partition_payload(wl, active_lease.as_ref(), &claim_key),
             "active_workpoint": scoped_workpoint_summary_for_status(&s, &scope.0),
             "supervisor_perf": supervisor_perf_payload(&state),
             "deep_status_route": "/v1/work-loop/status/deep",
@@ -4180,7 +4196,15 @@ mod tests {
             "cont-one",
             "focusa-workloop-completion.1",
         );
-        let payload = work_loop_execution_partition_payload(&wl, Some("writer-one"), &claim_key);
+        let now = Utc::now();
+        let lease = WriterLease {
+            writer_id: "writer-one".to_string(),
+            fencing_token: 42,
+            acquired_at: now,
+            renewed_at: now,
+            expires_at: writer_lease_expiry(now),
+        };
+        let payload = work_loop_execution_partition_payload(&wl, Some(&lease), &claim_key);
 
         assert_eq!(payload["project_root_key"], json!("/home/wirebot/focusa"));
         assert_eq!(payload["workstream_key"], json!("cont-one"));
@@ -4190,6 +4214,8 @@ mod tests {
         );
         assert_eq!(payload["current_task_work_item_id"], Value::Null);
         assert_eq!(payload["writer_key"], json!("writer-one"));
+        assert_eq!(payload["fencing_token"], json!(42));
+        assert_eq!(payload["lease_freshness"], json!("current"));
     }
 
     #[test]

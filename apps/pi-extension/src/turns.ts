@@ -126,6 +126,27 @@ const CACHE_SAFE_DEGRADED_RETAINED_SECTIONS = new Set([
 // Pi is Adapter 1; the daemon owns the canonical ring buffer. Other agents
 // (Claude Code, Aider, Cursor, Cline, Gemini, Codex) implement the same contract.
 
+async function turnWorkLoopWriterHeaders(): Promise<Record<string, string>> {
+  const writerId = `pi-${process.pid}`;
+  const status = await focusaFetch("/work-loop/status?summary_only=true");
+  const partition = status?.execution_partition;
+  const token = Number(partition?.fencing_token);
+  const expiresAt = Date.parse(String(partition?.lease_expires_at || ""));
+  if (
+    partition?.writer_key !== writerId ||
+    partition?.lease_freshness !== "current" ||
+    !Number.isSafeInteger(token) ||
+    token <= 0 ||
+    !(expiresAt > Date.now())
+  ) {
+    throw new Error("current scoped Work Loop lease is missing, expired, or owned by another Pi writer");
+  }
+  return {
+    "x-focusa-writer-id": writerId,
+    "x-focusa-fencing-token": String(token),
+  };
+}
+
 const ADAPTER_KIND = "pi-extension";
 
 function shouldIncludeTurnInSlice(text: string, toolCallCount: number): boolean {
@@ -1837,11 +1858,19 @@ export function registerTurns(pi: ExtensionAPI) {
     };
 
     if (getAttachmentRuntime().focusaAvailable) {
-      focusaPost("/work-loop/context", {
-        excluded_context_reason: exclusionReason,
-        excluded_context_labels: excludedContext,
-        source_turn_id: scopeSourceTurnId,
-      });
+      turnWorkLoopWriterHeaders()
+        .then((headers) =>
+          focusaFetch("/work-loop/context", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              excluded_context_reason: exclusionReason,
+              excluded_context_labels: excludedContext,
+              source_turn_id: scopeSourceTurnId,
+            }),
+          })
+        )
+        .catch(() => null);
     }
 
     if (getAttachmentRuntime().cfg?.emitMetrics) {
@@ -2076,7 +2105,7 @@ export function registerTurns(pi: ExtensionAPI) {
     if (getAttachmentRuntime().focusaAvailable) {
       focusaFetch("/work-loop/context", {
         method: "POST",
-        headers: { "x-focusa-writer-id": `pi-${process.pid}` },
+        headers: await turnWorkLoopWriterHeaders(),
         body: JSON.stringify({
           current_ask: getAttachmentRuntime().currentAsk.text,
           ask_kind: getAttachmentRuntime().currentAsk.kind,

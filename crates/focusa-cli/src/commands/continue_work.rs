@@ -42,9 +42,15 @@ fn envelope(status: &str, summary: String, next_action: &str, details: Value) ->
     })
 }
 
+fn scoped_fencing_token(status: &Value, writer_id: &str) -> Option<u64> {
+    let partition = status.get("execution_partition")?;
+    (partition.get("writer_key")?.as_str()? == writer_id)
+        .then(|| partition.get("fencing_token")?.as_u64())
+        .flatten()
+}
+
 pub async fn run(args: ContinueArgs, json_mode: bool) -> anyhow::Result<()> {
     let api = ApiClient::new();
-    let headers = [("x-focusa-writer-id", args.writer_id.as_str())];
     let before_status = api
         .get("/v1/work-loop/status?summary_only=true")
         .await
@@ -55,6 +61,7 @@ pub async fn run(args: ContinueArgs, json_mode: bool) -> anyhow::Result<()> {
         .unwrap_or_else(|err| json!({"status":"blocked","error":err.to_string()}));
 
     let mut actions = Vec::new();
+    let mut fencing_token = scoped_fencing_token(&before_status, &args.writer_id);
     if args.enable {
         let enable_headers = [
             ("x-focusa-writer-id", args.writer_id.as_str()),
@@ -70,8 +77,21 @@ pub async fn run(args: ContinueArgs, json_mode: bool) -> anyhow::Result<()> {
                 &enable_headers,
             )
             .await?;
+        fencing_token = resp.get("fencing_token").and_then(Value::as_u64);
         actions.push(json!({"action":"enable", "response": resp}));
     }
+
+    let fencing_token = fencing_token.ok_or_else(|| {
+        anyhow::anyhow!(
+            "no current fencing token for writer {}; use --enable to acquire this scoped lease or stop the conflicting writer",
+            args.writer_id
+        )
+    })?;
+    let fencing_token_header = fencing_token.to_string();
+    let headers = [
+        ("x-focusa-writer-id", args.writer_id.as_str()),
+        ("x-focusa-fencing-token", fencing_token_header.as_str()),
+    ];
 
     if let Some(parent) = args.parent_work_item_id.as_ref() {
         let resp = api
@@ -139,4 +159,22 @@ pub async fn run(args: ContinueArgs, json_mode: bool) -> anyhow::Result<()> {
         println!("Docs: docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md");
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fencing_token_requires_matching_scoped_writer() {
+        let status = json!({
+            "execution_partition": {
+                "writer_key": "cli-writer",
+                "fencing_token": 42,
+                "lease_freshness": "current"
+            }
+        });
+        assert_eq!(scoped_fencing_token(&status, "cli-writer"), Some(42));
+        assert_eq!(scoped_fencing_token(&status, "other-writer"), None);
+    }
 }

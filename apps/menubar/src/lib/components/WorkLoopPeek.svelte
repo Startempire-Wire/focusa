@@ -30,7 +30,9 @@
   let pauseFlags = $derived(records(health.pause_flags ?? status.pause_flags, ['flags', 'items']));
   let checkpoints = $derived(records(checkpointsPayload, ['checkpoints', 'items', 'records']));
   let activeTask = $derived(status.current_task ?? status.work_loop?.current_task ?? {});
-  let writer = $derived(health.writer_owner ?? status.writer_owner ?? status.active_writer ?? health.active_writer ?? status.writer?.owner);
+  let partition = $derived(status.execution_partition ?? health.execution_partition ?? {});
+  let writer = $derived(partition.writer_key ?? health.writer_owner ?? status.writer_owner ?? status.active_writer ?? health.active_writer ?? status.writer?.owner);
+  let leaseFreshness = $derived(partition.lease_freshness ?? 'unclaimed');
   let projectRoot = $derived(s.projectIdentity?.project_root ?? s.workpointResume?.project_root ?? s.session?.project_root);
   let loopWorkpoint = $derived(status.active_workpoint?.active ?? status.active_workpoint ?? {});
   let loopProjectRoot = $derived(loopWorkpoint.project_root);
@@ -52,12 +54,20 @@
     <p>{text(boundary, dispatchReady === true ? 'No active boundary' : 'No boundary reason surfaced')}</p>
     <div class="chips">
       <span class="chip">writer {text(writer, 'unknown')}</span>
+      <span class="chip" class:stale-chip={leaseFreshness !== 'current'}>lease {text(leaseFreshness, 'unclaimed')}</span>
       <span class="chip">status {text(status.status ?? status.work_loop?.status, 'unknown')}</span>
       <span class="chip">transport {text(transport.status, 'unknown')}</span>
     </div>
   </div>
 
   <div class="grid">
+    <article class="panel">
+      <div class="label">Execution partition</div>
+      <p>{text(partition.project_root_key, 'unbound project')}</p>
+      <p class="muted">continuity {text(partition.workstream_key, 'unbound')} · work item {text(partition.work_item_key, 'unbound')}</p>
+      <p class="muted">fence {text(partition.fencing_token, 'none')} · expires {text(partition.lease_expires_at, 'not leased')}</p>
+    </article>
+
     <article class="panel">
       <div class="label">Active task</div>
       {#if loopTaskStale}
