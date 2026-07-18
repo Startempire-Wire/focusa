@@ -5,13 +5,13 @@
 **Created:** 2026-07-17  
 **Parent:** [Spec 135](135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md)  
 **Closure relationship:** required companion; Spec 135 cannot close without Spec 135E.  
-**Scope:** normative relationship between Spec 135 series and existing Focusa specs, precedence, amendment behavior, current/partial/planned truth, migration of existing projects and clients, compatibility, deprecation, and whole-series closure.
+**Scope:** normative relationship between Spec 135 series and existing Focusa specs, including ontology primitives and governance, precedence, amendment behavior, current/partial/planned truth, migration of existing projects, ontology state, snapshots, events, and clients, compatibility, deprecation, and whole-series closure.
 
 ---
 
 ## 0. One-line definition
 
-Spec 135 does not replace Focusa’s existing ProjectIdentity, Trajectory, Workpoint, Context Cognition, Evidence, Spec Workbench, Receipts, provider-neutral closure, Mission Deck, project creation, menubar, or durable execution specs; it composes and amends them into one complete professional-workspace and Project Genesis product path.
+Spec 135 does not replace Focusa’s existing ontology primitives, domain-general cognition, ontology governance, ProjectIdentity, Trajectory, Workpoint, Context Cognition, Evidence, Spec Workbench, Receipts, provider-neutral closure, Mission Deck, project creation, menubar, or durable execution specs; it composes and amends them into one complete professional-workspace, Project Genesis, and domain-semantic product path.
 
 ---
 
@@ -35,11 +35,12 @@ When documents disagree:
 2. explicit operator direction and latest approved spec amendment win over older design direction;
 3. Spec 135 governs the complete professional-workspace and C.R.I.S.T. integration path;
 4. the primitive-owning spec governs the internal semantics of that primitive;
-5. Spec 135A governs workspace projection/vertical UX;
-6. Spec 135B governs C.R.I.S.T. Project Genesis;
-7. Spec 135C governs UIAI rich-artifact/live-refresh integration;
-8. Spec 135D governs implementation ordering, no-deferral, framework reuse, and closure discipline;
-9. Spec 135E governs cross-spec interpretation and migration.
+5. Spec 135F governs the integrated domain-semantic registry, candidate/canonical graphs, domain packs, verification policies, slice policies, semantic subscriptions, and V1 compatibility projection;
+6. Spec 135A governs workspace projection/vertical UX;
+7. Spec 135B governs C.R.I.S.T. Project Genesis;
+8. Spec 135C governs UIAI rich-artifact/live-refresh integration;
+9. Spec 135D governs implementation ordering, no-deferral, framework reuse, and closure discipline;
+10. Spec 135E governs cross-spec interpretation and migration.
 
 No UI or adapter may override canonical Focusa state to resolve a disagreement.
 
@@ -49,6 +50,15 @@ No UI or adapter may override canonical Focusa state to resolve a disagreement.
 
 | Existing spec/doc | Preserved ownership | Spec 135 amendment/integration requirement |
 |---|---|---|
+| [45 Ontology Overview](45-ontology-overview.md) | additive ontology as semantic spine and reducer-owned truth boundary | Spec 135F operationalizes one shared semantic substrate beneath professional workspaces without creating a second runtime. |
+| [46 Ontology Core Primitives](46-ontology-core-primitives.md) | ObjectType, Property, LinkType, ActionType, Status, ObjectSet, Constraint, Mission, provenance, verification, delta, and slice policy | Definitions become a core-owned versioned registry with generated contracts and exact V1 aliases. |
+| [48 Ontology Links/Actions](48-ontology-links-actions.md) | typed relations and actions | Domain packs extend registered relations/actions; clients and workspace manifests may reference but not redefine them. |
+| [49 Working Sets/Slices](49-working-sets-and-slices.md) | bounded working sets, membership classes, and slice bounds | Spec 135F adds a generalized slice-policy registry and domain-specific policies while preserving current software slice names. |
+| [50 Classification/Reducer](50-ontology-classification-and-reducer.md) | proposal-only ambiguity and reducer canonicalization | Candidate and canonical graphs are separated; promotion requires registered verification/promotion policy. |
+| [61 Domain-General Cognition](61-domain-general-cognition-core.md) | reusable Mission, Goal, Task, Decision, Constraint, Risk, Blocker, OpenLoop, WorkingSet, ActionIntent, Verification, Checkpoint, and EvidenceArtifact cognition | Becomes the mandatory shared pack beneath software, legal, markets, research, general, custom, and composite domain packs. |
+| [70 Shared Status/Lifecycle](70-shared-interfaces-statuses-and-lifecycle.md) | shared statuses and lifecycle | Registry validation and generated clients consume one canonical status/lifecycle contract with versioned extensions. |
+| [74 Identity Resolution](74-identity-and-reference-resolution.md) | canonical entities, aliases, candidates, resolution, and supersession | Domain-pack identities and legacy aliases use one resolution system; migration may not invent new canonical identity silently. |
+| [77 Ontology Governance](77-ontology-governance-versioning-and-migration.md) | ontology versions, compatibility profiles, migration plans, deprecation, governance decisions | Spec 135F/135E require snapshot/event/domain-pack versions, minimum readers/writers, downgrade guards, migration evidence, and conformance checks. |
 | [72 Agent Identity/Role](72-agent-identity-role-and-self-model-ontology.md) | AgentIdentity, RoleProfile, CapabilityProfile, PermissionProfile, Responsibility, HandoffBoundary | C.R.I.S.T. Role Composer must materialize a project-scoped RoleProfile while keeping permission separate. |
 | [75 Projection/View](75-projection-and-view-semantics.md) | Projection, ViewProfile, ProjectionRule, ProjectionBoundary | Professional workspaces become versioned ViewProfiles with switch/migration/fidelity verification. |
 | [88 Workpoint Continuity](88-ontology-backed-workpoint-continuity.md) | canonical continuation and action authority | C.R.I.S.T. task activation and Work Rail rows bind to Workpoints; workspace/project profile never replaces Workpoint. |
@@ -220,7 +230,8 @@ The full Project Genesis, Interview, Spec Workbench, Work Rail, and rich artifac
 - Receipts;
 - native themes;
 - UIAI-to-Pi rich rendering;
-- project/profile PWA concepts.
+- project/profile PWA concepts;
+- reducer-backed ontology state/events/projections and Pi ontology context, but with route-local string catalogs, permissive verification, and no complete candidate/canonical or domain-pack substrate.
 
 ### Normative target / implementation gaps
 
@@ -235,7 +246,14 @@ The full Project Genesis, Interview, Spec Workbench, Work Rail, and rich artifac
 - all provider adapters;
 - Workspace Artifact bridge;
 - complete vertical workspaces;
-- complete client parity.
+- complete client parity;
+- core-owned typed ontology registry;
+- separate candidate and canonical semantic graphs;
+- policy-backed verification and promotion ledger;
+- versioned domain packs and generalized slice policies;
+- ontology-derived Workpoint candidate projection;
+- semantic delta subscriptions;
+- V1 ontology/snapshot/event compatibility and downgrade protection.
 
 No UI, docs, release note, or sales claim may collapse these categories.
 
@@ -302,6 +320,21 @@ New clients consume Workspace Artifact descriptors. Old clients continue receivi
 
 Beads remains operational. Other providers become visible only when real adapters pass health and integration proof.
 
+### 9.6 Existing ontology state, snapshots, events, and clients
+
+Current ontology objects, links, proposals, verifications, routes, action names, slice names, Pi context behavior, and persisted state remain available through an explicit V1 compatibility projection. Migration must:
+
+- preserve the original serialized payload and stable references;
+- classify ambiguous historical entries as legacy rather than silently upgrading trust;
+- dual-read and, during the controlled transition, dual-project V1/V2 state;
+- prove replay-equivalent V1 projections from archived snapshots and event logs;
+- preserve unknown future semantic types and event envelopes without reinterpretation;
+- fail closed or enter read-only compatibility mode when an authoritative event requires a newer reader;
+- block incompatible old writers after V2 canonical state exists;
+- retain old client bounded text/JSON behavior while exposing additive V2 contracts to capable clients.
+
+No migration failure may be converted into an empty fresh state without explicit recovery and preserved backup.
+
 ---
 
 ## 10. Profile and schema versioning
@@ -309,16 +342,24 @@ Beads remains operational. Other providers become visible only when real adapter
 Required:
 
 ```yaml
-schema_version:
+snapshot_schema_version:
+stored_event_envelope_version:
+minimum_reader_version:
+minimum_writer_version:
+ontology_registry_version:
+shared_cognition_pack_version:
+domain_pack_versions: []
 profile_version:
 compatibility_version:
 deprecated_field_ids: []
 deprecated_panel_ids: []
+deprecated_semantic_ids: []
 migration_ref:
 fallback_profile:
+fallback_domain_pack:
 ```
 
-Unknown incompatible profiles degrade to General workspace with an explicit migration warning.
+Unknown incompatible profiles degrade to General workspace with an explicit migration warning. Unknown semantic definitions remain preserved unsupported references; they may not be coerced into a known type. A runtime below `minimum_writer_version` must not write the state store, even when it can render a bounded legacy projection.
 
 Migration must preserve:
 
@@ -355,6 +396,7 @@ External exports follow Spec 120/119 classification, redaction preview, approval
 | Required outcome | Governing spec | Closure proof |
 |---|---|---|
 | Canonical product contract | 135 | approved master + all companions linked |
+| Domain-general ontology and semantic packs | 135F + 45–50 + 61 + 70 + 74 + 77 | registry/candidate/canonical/verification/slice/subscription runtime proof plus V1 replay equivalence |
 | Workspace projection and vertical UX | 135A | live cross-client workspace switch and visual proof |
 | Context ingestion and growth | 135B | real local/Google/Microsoft/mail/UIAI/task-provider sync evidence |
 | Role and Interview | 135B | approved role revision + persistent interview resume evidence |
@@ -383,6 +425,9 @@ Spec 135E is accepted when:
 9. profile/schema migration behavior is proven.
 10. public/private export boundaries remain intact.
 11. Whole-series closure is mechanically blocked by any incomplete companion requirement.
+12. Spec 135F is cross-linked, decomposed, implemented, and proven as a required companion rather than a future ontology initiative.
+13. V1 ontology state, snapshots, events, routes, Pi behavior, clients, and Beads workflows migrate without destructive rewrites or hidden trust escalation.
+14. Unknown-event preservation, minimum-reader/writer enforcement, downgrade-write protection, and failed-migration recovery are proven.
 
 ---
 
@@ -398,4 +443,8 @@ This spec cannot close while:
 - old clients lose bounded fallback behavior;
 - docs-only targets are described as implemented;
 - public projections expose private context;
-- any companion spec remains incomplete.
+- any companion spec remains incomplete;
+- existing ontology state requires destructive in-place migration;
+- an unknown future authoritative event is dropped, reinterpreted, or causes silent fresh-state fallback;
+- an incompatible older daemon can write V2 canonical semantic state;
+- domain-pack activation changes permission or Workpoint authority implicitly.

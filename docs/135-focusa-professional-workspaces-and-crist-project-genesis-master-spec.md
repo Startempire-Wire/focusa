@@ -3,8 +3,8 @@
 **Status:** draft, iterable, NOT FINAL — operator approval is required before decomposition or implementation  
 **Owner:** Focusa / Verious Smith  
 **Created:** 2026-07-17  
-**Scope:** Focusa core, daemon API, ProjectIdentity, Context Cognition, Workpoints, Trajectory, Evidence, Receipts, provider-neutral work items, Spec Workbench, Mission Deck, Pi integration/distribution, native TUI, PWA/Tauri surfaces, menubar, UIAI Engine, context-source adapters, project onboarding, workspace projection, themes, professional verticals, history, artifacts, and governed controls.  
-**Series:** Spec 135, 135A, 135B, 135C, 135D, and 135E form one required implementation and closure set.  
+**Scope:** Focusa core, daemon API, ProjectIdentity, Context Cognition, Workpoints, Trajectory, Evidence, Receipts, provider-neutral work items, Spec Workbench, Mission Deck, Pi integration/distribution, native TUI, PWA/Tauri surfaces, menubar, UIAI Engine, context-source adapters, project onboarding, workspace projection, domain-semantic composition, typed ontology registries, domain packs, themes, professional verticals, history, artifacts, and governed controls.  
+**Series:** Spec 135, 135A, 135B, 135C, 135D, 135E, and 135F form one required implementation and closure set.  
 **Numbering:** `134` is already occupied by the superseded Pre-MVP STG closure-evidence snapshot. No Spec 135 series existed when this document was created.
 
 ---
@@ -111,6 +111,7 @@ This master spec defines the product contract. Companion specs define required i
 | [135C](135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md) | UIAI rich artifacts, screenshots, browser research, evidence handoff, FPV, and live UI refresh |
 | [135D](135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md) | Complete implementation graph, no-deferral law, framework reuse, performance, and decomposition rules |
 | [135E](135e-cross-spec-amendments-migration-and-closure-matrix.md) | Cross-spec amendments, precedence, migration, compatibility, and closure matrix |
+| [135F](135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md) | Domain-general ontology core, semantic graph, domain packs, verification policies, slice policies, and reactive context |
 
 Hard rule:
 
@@ -125,6 +126,11 @@ Dependency ordering does not remove a requirement from the implementation graph.
 
 Spec 135 extends rather than replaces:
 
+- [Specs 45–50](45-ontology-overview.md) — ontology overview, primitives, software world, links/actions, working sets/slices, and reducer integration.
+- [Spec 61](61-domain-general-cognition-core.md) — reusable domain-neutral cognition primitives.
+- [Spec 70](70-shared-interfaces-statuses-and-lifecycle.md) — shared statuses and lifecycle semantics.
+- [Spec 74](74-identity-and-reference-resolution.md) — canonical identity and alias resolution.
+- [Spec 77](77-ontology-governance-versioning-and-migration.md) — ontology versions, compatibility, migration, deprecation, and governance.
 - [Spec 75](75-projection-and-view-semantics.md) — Projection, ViewProfile, ProjectionRule, ProjectionBoundary.
 - [Spec 72](72-agent-identity-role-and-self-model-ontology.md) — RoleProfile, CapabilityProfile, PermissionProfile, Responsibility, HandoffBoundary.
 - [Spec 88](88-ontology-backed-workpoint-continuity.md) — typed Workpoint continuity rather than transcript-tail authority.
@@ -174,12 +180,14 @@ The repository currently has partial rather than complete support for:
 - fixed TUI tabs and hard-coded theme values, but not a dynamic workspace/panel/theme registry;
 - UIAI artifact creation, but not rich insertion into the Focusa/Pi workspace;
 - provider-neutral schemas, but not complete Linear, Asana, GitHub Issues, and Markdown adapters;
-- written Spec 119/120/117/121 product direction, but not all corresponding runtime surfaces.
+- written Spec 119/120/117/121 product direction, but not all corresponding runtime surfaces;
+- reducer-backed ontology state, events, projections, and Pi context injection, but not a core-owned typed registry, strict candidate/canonical graph separation, policy-backed promotion, or domain-pack composition.
 
 ### 5.3 Planned foundations
 
 The following are required by this series and remain implementation work:
 
+- domain-general ontology registry, candidate/canonical semantic graphs, verification ledger, domain packs, generalized slice policies, semantic subscriptions, and V1 compatibility projection;
 - canonical workspace selection and profile history;
 - persistent Pi sidebar/dock composition;
 - dynamic vertical layouts and themes;
@@ -197,7 +205,7 @@ The UI must display this capability truth and must not present docs-only or enum
 
 ---
 
-## 6. Three-layer architecture
+## 6. Four-layer architecture
 
 ```text
 ┌──────────────────────────────────────────────┐
@@ -207,8 +215,12 @@ The UI must display this capability truth and must not present docs-only or enum
 │ Project Operating Profile                   │
 │ Context · role · interview · spec · tasks   │
 ├──────────────────────────────────────────────┤
+│ Domain Semantic Composition                 │
+│ Shared cognition · domain packs · policies  │
+│ typed objects/links/actions · bounded slices │
+├──────────────────────────────────────────────┤
 │ Canonical Focusa Runtime                    │
-│ Identity · trajectory · Workpoint · proof   │
+│ Identity · reducer · Workpoint · proof      │
 │ authority · history · receipts · recovery   │
 └──────────────────────────────────────────────┘
 ```
@@ -246,7 +258,21 @@ References the project’s:
 - selected workspace;
 - current Trajectory and Workpoint.
 
-### 6.3 Canonical Focusa Runtime
+### 6.3 Domain Semantic Composition
+
+Defines and resolves the project’s semantic working world without creating another runtime:
+
+- shared cognition primitives;
+- active, versioned domain packs;
+- typed object, relation, action, status, verification, and slice-policy definitions;
+- candidate and canonical semantic graphs;
+- evidence-backed promotion policies;
+- ontology-derived Workpoint candidates;
+- semantic delta subscriptions.
+
+Domain Semantic Composition runs through the existing Focusa reducer, persistence, authority, and event systems. A Workspace View Profile may render or emphasize domain semantics, but it does not define canonical truth or grant permission.
+
+### 6.4 Canonical Focusa Runtime
 
 Continues to own:
 
@@ -279,6 +305,10 @@ Versioned output of C.R.I.S.T.: context, role, interview, approved spec, task pl
 ### Workspace View Profile
 
 Purpose-specific visual and interaction projection: General, Software, Legal, Markets, Research, Custom, or composite.
+
+### Domain Pack
+
+A versioned semantic package defining domain-specific object, relation, action, status, verification, artifact-interpretation, and slice-policy contracts over the shared cognition core. A domain pack is not a workspace, role, permission, or evidence profile.
 
 ### Agent Role Profile
 
@@ -393,6 +423,10 @@ Provider closure, agent claims, or UI state alone cannot create verified complet
 
 The operator may pause, redirect, reopen, revise, or stop workspace, C.R.I.S.T., spec, task, and work-loop activity.
 
+### 9.12 Workspace projection is not domain semantics
+
+Workspace profiles select presentation and emphasis. Domain packs define semantic contracts. Neither workspace selection nor domain-pack activation grants operational authority, bypasses verification, or replaces the Workpoint reducer path.
+
 ---
 
 ## 10. Required workspace families
@@ -439,7 +473,7 @@ The complete implementation graph includes:
 - CLI;
 - headless/RPC/JSON parity.
 
-Different clients may use different renderers, but they must share generated contracts, action IDs, status enums, workspace manifests, theme tokens, artifact descriptors, and invalidation events.
+Different clients may use different renderers, but they must share generated contracts, semantic type and action IDs, status enums, domain-pack manifests, verification and slice-policy IDs, workspace manifests, theme tokens, artifact descriptors, semantic delta envelopes, and invalidation events.
 
 ---
 
@@ -505,6 +539,8 @@ Spec 135 is accepted only when all companion acceptance criteria are proven and 
 13. Pi, PWA, Tauri, menubar, native TUI, API, CLI, and headless surfaces consume shared contracts.
 14. All required framework, security, migration, performance, accessibility, and release-proof criteria pass.
 15. No required Complete Feature Ledger entry remains missing, partial, open, or blocked.
+16. A core-owned, versioned domain-semantic substrate supports General, Software, Legal, Markets, Research, Custom, and composite projects without duplicating the Focusa runtime.
+17. Existing ontology state, snapshots, events, routes, Pi behavior, and clients migrate through a proven V1 compatibility projection with unknown-event preservation and downgrade-write protection.
 
 ---
 
@@ -514,6 +550,8 @@ Spec 135 and its companions cannot close while:
 
 - an accepted connector is missing;
 - a workspace is mock-only or color-only;
+- a required vertical has only visual terminology and lacks an operational domain pack or truthful degraded-state behavior;
+- candidate semantic state can become canonical without its registered verification and promotion policy;
 - a provider exists only as an enum;
 - the Spec Workbench is only a document generator;
 - interview state exists only in transcript text;
@@ -539,7 +577,7 @@ all required feature-ledger entries verified
 
 ## 16. Decomposition directive
 
-When Spec 120 decomposes this series, the implementing agent must treat Spec 135, 135A, 135B, 135C, 135D, and 135E as one dependency graph.
+When Spec 120 decomposes this series, the implementing agent must treat Spec 135, 135A, 135B, 135C, 135D, 135E, and 135F as one dependency graph.
 
 The agent must not produce a small backend MVP and assign the professional workspace, connectors, rich artifacts, verticals, PWA/Tauri, provider adapters, or proof requirements to an unspecified future date.
 

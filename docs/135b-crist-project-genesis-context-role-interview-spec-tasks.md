@@ -5,7 +5,7 @@
 **Created:** 2026-07-17  
 **Parent:** [Spec 135](135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md)  
 **Closure relationship:** required companion; Spec 135 cannot close without Spec 135B.  
-**Scope:** Project Genesis, context ingestion and continuous growth, Role Composer, dynamic interview compendium, Spec 120 integration, provider-neutral task decomposition, Project Genesis Profile, ongoing amendment, project onboarding UI, and authority/privacy boundaries.
+**Scope:** Project Genesis, context ingestion and continuous growth, domain-pack selection, candidate/canonical semantic integration, Role Composer, dynamic interview compendium, Spec 120 integration, provider-neutral task decomposition, Project Genesis Profile, ongoing amendment, project onboarding UI, and authority/privacy boundaries.
 
 ---
 
@@ -20,6 +20,8 @@ I — Interview
 S — Spec
 T — Tasks
 ```
+
+C.R.I.S.T. consumes the shared cognition registry and active domain packs defined by [Spec 135F](135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md). It may propose semantic objects, links, actions, claims, and Workpoint candidates, but canonical promotion remains reducer-governed, policy-verified, and operator-gated where required.
 
 ---
 
@@ -306,8 +308,10 @@ discovered
 → deduplicated
 → source-linked
 → contradiction-checked
-→ candidate context
+→ candidate context and candidate semantic graph
+→ registered verification-policy evaluation
 → operator accepted / advisory / rejected
+→ canonical promotion where permitted
 → retained / superseded / archived
 ```
 
@@ -324,6 +328,9 @@ Required processing properties:
 - freshness;
 - retention;
 - contradiction links;
+- domain-pack and semantic-type classification;
+- verification-policy references;
+- candidate/canonical graph separation;
 - bounded retrieval.
 
 ---
@@ -369,6 +376,12 @@ extraction:
   date_refs: []
   task_refs: []
   contradiction_refs: []
+
+semantic:
+  domain_pack_refs: []
+  candidate_object_refs: []
+  candidate_link_refs: []
+  verification_policy_refs: []
 ```
 
 ---
@@ -383,6 +396,10 @@ schema: focusa.project_context_claim.v1
 claim_id:
 claim:
 source_artifact_refs: []
+domain_pack_refs: []
+semantic_object_ref:
+verification_policy_ref:
+verification_refs: []
 confidence:
 freshness:
 status: observed | candidate | accepted | contradicted | superseded | rejected
@@ -391,7 +408,7 @@ accepted_at:
 supersedes:
 ```
 
-Accepted claims must remain traceable to their sources and acceptance record.
+Accepted claims must remain traceable to their sources, semantic identity, verification policy, and acceptance record. Acceptance promotes only the claim/object versions authorized by policy; it does not silently canonize every inferred relation derived from the source artifact.
 
 ---
 
@@ -591,7 +608,8 @@ Questions are generated from:
 - privacy/compliance gaps;
 - integration uncertainty;
 - task-decomposition uncertainty;
-- new context impact.
+- new context impact;
+- missing required fields, relations, verification evidence, or slice-policy inputs from active domain packs.
 
 The interview must not become a universal static long form.
 
@@ -756,6 +774,8 @@ project_root:
 continuity_id:
 current_ask:
 workspace_profile_ref:
+active_domain_pack_refs: []
+semantic_registry_version:
 context_pack_refs: []
 accepted_project_claim_refs: []
 role_profile_ref:
@@ -895,6 +915,9 @@ task:
   linked_spec_sections: []
   acceptance_criteria: []
   evidence_requirements: []
+  semantic_object_refs: []
+  allowed_action_type_ids: []
+  verification_policy_ref:
   allowed_scope: []
   dependencies: []
   blockers: []
@@ -942,7 +965,9 @@ A task becomes the active execution object only when:
 - selected by the operator or approved work-loop policy;
 - bound to a Workpoint;
 - verified within the correct project and continuity scope;
-- assigned an allowed action/evidence posture.
+- assigned an allowed action/evidence posture;
+- resolved against the active domain packs and canonical semantic graph;
+- promoted through the existing Workpoint reducer path from a previewable ontology-derived or operator-authored Workpoint candidate.
 
 ---
 
@@ -982,6 +1007,12 @@ workspace:
   active_profile_ref:
   visual_variant:
   project_overrides_ref:
+
+domain_semantics:
+  registry_version:
+  active_domain_pack_refs: []
+  compatibility_profile_ref:
+  semantic_projection_ref:
 
 context:
   source_refs: []
@@ -1031,6 +1062,8 @@ schema: focusa.resolved_project_operating_profile.v1
 
 project_identity:
 workspace_projection:
+domain_semantic_summary:
+active_domain_pack_refs: []
 agent_role:
 context_summary:
 interview_summary:
@@ -1113,7 +1146,7 @@ Import may seed Context from:
 - Evidence;
 - project settings.
 
-All inferred fields are labeled and require operator review.
+All inferred fields are labeled and require operator review. Existing projects remain on the legacy compatibility projection until an explicit domain-pack composition is accepted; migration may recommend `focusa.core.cognition@1`, `focusa.software@1`, or `focusa.general@1` but may not silently change authority or invalidate current Workpoints.
 
 ---
 
@@ -1140,6 +1173,9 @@ Spec 135B is accepted when:
 17. Project Genesis Receipts are produced.
 18. Existing projects migrate without hidden authority changes.
 19. Actual connector, role, interview, Workbench, task, and resume evidence is captured.
+20. Context artifacts and claims enter candidate semantic state before policy-backed canonical promotion.
+21. Active domain packs shape relevant interview gaps, semantic task references, evidence requirements, and Workpoint candidates without granting permission.
+22. Existing C.R.I.S.T.-free projects continue through the V1 compatibility projection and can opt into reviewed domain-pack migration.
 
 ---
 
@@ -1157,4 +1193,6 @@ This spec cannot close while:
 - required adapters exist only as types;
 - first task cannot become a scoped Workpoint;
 - Project Genesis cannot resume after closing the UI;
-- actual end-to-end evidence is missing.
+- actual end-to-end evidence is missing;
+- candidate context or inferred semantic relations can bypass registered verification/promotion policy;
+- a first Workpoint is activated with unresolved semantic references or an unavailable required domain pack.

@@ -5,7 +5,7 @@
 **Created:** 2026-07-17  
 **Parent:** [Spec 135](135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md)  
 **Closure relationship:** required companion; Spec 135 cannot close without Spec 135C.  
-**Scope:** UIAI Engine screenshots, browser sessions, research, diagnostics, data, FPV, stable artifact descriptors, Focusa evidence linkage, workspace renderer dispatch, SSE invalidation, Pi rich rendering, terminal fallbacks, provenance, redaction, freshness, and cross-client parity.
+**Scope:** UIAI Engine screenshots, browser sessions, research, diagnostics, data, FPV, stable artifact descriptors, Focusa evidence linkage, semantic evidence candidates, workspace renderer dispatch, semantic-delta versus UI-invalidation separation, SSE invalidation, Pi rich rendering, terminal fallbacks, provenance, redaction, freshness, and cross-client parity.
 
 ---
 
@@ -32,6 +32,8 @@ Focusa
 UIAI may observe Focusa scope metadata. It must not mint Focusa authority.
 
 Focusa must not rebuild UIAI’s browser, search, screenshot, FPV, or diagnostics systems.
+
+[Spec 135F](135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md) governs how artifact-derived objects, links, claims, evidence candidates, and semantic deltas enter candidate state, satisfy verification policy, and become canonical. This spec governs artifact transport, linkage, rendering, and live invalidation; it does not create an independent semantic authority.
 
 ---
 
@@ -78,6 +80,7 @@ The rich workspace bridge remains an implementation gap.
 8. Research remains proposal-only until captured/linked through Focusa Evidence.
 9. Browser sessions and artifacts must expose cleanup/retention posture.
 10. Cross-project artifact leakage is forbidden.
+11. Workspace invalidation events and semantic ontology deltas are distinct contracts: one refreshes projections; the other may influence governed cognition only through registered subscriptions and reducer policy.
 
 ---
 
@@ -118,6 +121,14 @@ trust:
   redaction_status:
   freshness_status:
   provenance_status:
+
+semantic:
+  domain_pack_refs: []
+  candidate_object_refs: []
+  candidate_link_refs: []
+  candidate_claim_refs: []
+  verification_policy_refs: []
+  semantic_delta_refs: []
 
 retention:
   policy:
@@ -162,6 +173,7 @@ UIAI Pi and agent outputs should return:
 compact textual summary
 + Workspace Artifact descriptor
 + Focusa evidence candidate
++ optional bounded semantic proposal refs
 + target_ref
 + preferred Focusa tool
 + next tools
@@ -192,6 +204,8 @@ UIAI action
 → UIAI returns artifact descriptor and evidence candidate
 → Focusa validates project/workstream scope
 → Focusa captures or links Evidence
+→ Focusa records bounded candidate semantic deltas where applicable
+→ Spec 135F verification/promotion policy evaluates those candidates
 → Focusa records artifact linkage event
 → Focusa emits workspace invalidation event
 → client refetches bounded artifact/read model
@@ -240,7 +254,7 @@ workspace_artifact_removed
 workspace_artifact_render_failed
 ```
 
-Events do not carry base64 screenshots, full Markdown, full datasets, raw diagnostics, cookies, tokens, or private page dumps.
+Events do not carry base64 screenshots, full Markdown, full datasets, raw diagnostics, cookies, tokens, or private page dumps. `focusa.workspace_event.v1` is a projection-invalidation contract and must not be treated as an ontology promotion event. Semantic deltas use the versioned Spec 135F envelope, stable refs, scope, cursor, and authority metadata.
 
 ---
 
@@ -325,6 +339,7 @@ current Focusa scope
 → UIAI search/open/read/snapshot/diagnostics
 → ResearchDiagnosticsPacket
 → Focusa Evidence capture or browser diagnostics intake
+→ bounded candidate semantic objects/links/claims
 → active-object hints
 → optional prediction/metacognition
 → Workpoint checkpoint
@@ -508,6 +523,8 @@ Spec 135C is accepted when:
 14. Large artifacts remain outside hot context and event payloads.
 15. Pi, PWA, Tauri, menubar, TUI, API, CLI, MCP, and JSON/RPC parity is proven.
 16. Actual screenshot and live-refresh proof artifacts are captured.
+17. Artifact-derived semantic proposals remain candidate state until their registered verification and promotion policies pass.
+18. UI invalidation and semantic reaction streams are separately versioned, filtered, replayable, and tested against accidental authority escalation.
 
 ---
 
@@ -523,4 +540,6 @@ This spec cannot close while:
 - rich display works only in one client with no fallback;
 - FPV is disconnected from Focusa scope/evidence state;
 - research display silently promotes project truth;
-- security or cross-project isolation is unproven.
+- security or cross-project isolation is unproven;
+- workspace invalidation is treated as semantic promotion or autonomous-action authority;
+- an artifact renderer or UIAI adapter silently invents canonical domain relations.

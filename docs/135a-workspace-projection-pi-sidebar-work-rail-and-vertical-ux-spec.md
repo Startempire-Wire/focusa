@@ -5,7 +5,7 @@
 **Created:** 2026-07-17  
 **Parent:** [Spec 135](135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md)  
 **Closure relationship:** required companion; Spec 135 cannot close without Spec 135A.  
-**Scope:** Workspace View Profiles, dynamic panel/layout/rendering registries, Pi integration and enhanced distribution, Work Rail, steering/follow-up composition, themes, professional verticals, artifact viewers, history, accessibility, responsive behavior, and client parity.
+**Scope:** Workspace View Profiles, domain-pack bindings, dynamic panel/layout/rendering registries, Pi integration and enhanced distribution, Work Rail, steering/follow-up composition, themes, professional verticals, artifact viewers, history, accessibility, responsive behavior, and client parity.
 
 ---
 
@@ -27,7 +27,8 @@ This spec instantiates:
 - [Spec 119](119-verifiable-agent-work-receipts-and-governed-execution-ledger-spec.md);
 - [Spec 121](121-menubar-rearchitecture-spec.md) and [121A](121a-menubar-discipline-and-living-field-spec.md);
 - [Spec 124](124-focusa-cli-redesign-project-dashboard-project-creation-scoped-authority-first-mission-command-hierarchy-and-launch-hardening-spec.md);
-- [Spec 135](135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md).
+- [Spec 135](135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md);
+- [Spec 135F](135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md).
 
 The workspace is a projection over canonical state. It is not a new authority or memory store.
 
@@ -173,6 +174,13 @@ label: Software Engineering
 extends:
   - focusa.base
 
+domain_packs:
+  required:
+    - focusa.core.cognition@1
+    - focusa.software@1
+  optional: []
+  missing_pack_behavior: explicit_degraded_card
+
 layout:
   sidebar_width: 42
   sidebar_sections:
@@ -238,6 +246,22 @@ Supported examples:
 
 The system must not force a project into one mutually exclusive vertical.
 
+### 5.3 Workspace profile and domain-pack boundary
+
+A Workspace View Profile controls layout, terminology, visual grammar, renderer selection, and emphasis. It may require or recommend domain packs, but it must not redefine their object, relation, action, verification, status, or promotion semantics.
+
+Resolution must preserve this order:
+
+```text
+project-selected domain packs
+→ registered semantic contracts
+→ bounded read model
+→ workspace profile projection
+→ client renderer
+```
+
+An unavailable required domain pack produces an explicit degraded workspace state with migration/recovery guidance. It must not silently fall back to visually convincing but semantically incorrect controls.
+
 ---
 
 ## 6. Dynamic registries
@@ -254,6 +278,7 @@ ThemeRegistry
 IconRegistry
 HistoryProjectionRegistry
 WorkspaceProfileRegistry
+DomainSemanticBindingRegistry
 ```
 
 Forbidden architecture:
@@ -274,7 +299,7 @@ Workspace manifest
 → resolved projection
 ```
 
-Unknown panel or renderer IDs must produce explicit degraded-state cards and profile migration warnings rather than crashes or silent omissions.
+Unknown panel or renderer IDs must produce explicit degraded-state cards and profile migration warnings rather than crashes or silent omissions. Unknown semantic type, action, domain-pack, verification-policy, or slice-policy IDs must remain visible as unsupported references and may not be reinterpreted by client-local logic.
 
 ---
 
@@ -604,6 +629,8 @@ Spec 135A is accepted when:
 12. PWA, Tauri, Pi, menubar, native TUI, API, and CLI use shared contracts.
 13. Visual selection cannot escalate permissions.
 14. Actual visual-regression and live-update evidence is captured.
+15. Every workspace profile declares its domain-pack requirements or explicitly declares itself presentation-only.
+16. No Pi, PWA, Tauri, menubar, TUI, or renderer implementation owns or duplicates canonical domain policy.
 
 ---
 
@@ -618,4 +645,6 @@ This spec cannot close while:
 - Work Rail completion is provider-only or model-claim-only;
 - normal updates require manual refresh;
 - narrow-terminal or accessibility states are unproven;
-- shared client contracts are replaced by duplicated local interfaces.
+- shared client contracts are replaced by duplicated local interfaces;
+- a visual profile silently substitutes for a missing domain pack;
+- a client or renderer embeds canonical domain policy instead of consuming generated semantic contracts.
