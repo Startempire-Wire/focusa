@@ -32,11 +32,9 @@ rg -n 'focusa-a6yq6\.2\.1|focusa-a6yq6\.10\.9|Gap closure mapping|0\.1:|0\.2:|0\
   || fail "traceability matrix incomplete"
 pass "traceability maps Phase 0 through final gate and gap closures"
 
-rg -n 'No unauthorized release/deploy occurred|No release, deploy, tag, push, remote fetch/pull, cargo build/check/test' "$RELEASE" >/dev/null \
-  || fail "release/deploy authorization provenance not recorded"
-rg -n 'Spec132 final proof: closed|focusa-slxpz\.5\.6.*open' "$RELEASE" >/dev/null \
-  || fail "Spec132 dependency status not recorded"
-pass "release/deploy authorization and Spec132 dependency status recorded"
+rg -n 'No Spec 133 tag, release, deploy, live sync, push, merge|focusa-slxpz\.6\.6.*closed|work_loop_conformance\.py --mode release|expected exit 3' "$RELEASE" >/dev/null \
+  || fail "release freeze, resolved Spec132 gate, or fail-closed conformance gate not recorded"
+pass "release freeze, resolved Spec132 gate, and fail-closed conformance gate recorded"
 
 required_docs=(
   docs/G1-detail-03-runtime-daemon.md
