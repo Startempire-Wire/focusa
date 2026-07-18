@@ -31,6 +31,12 @@
   let checkpoints = $derived(records(checkpointsPayload, ['checkpoints', 'items', 'records']));
   let activeTask = $derived(status.current_task ?? status.work_loop?.current_task ?? {});
   let partition = $derived(status.execution_partition ?? health.execution_partition ?? {});
+  let typedState = $derived(
+    status.schema === 'focusa.work_loop_status.v3' &&
+    ['absent', 'unavailable', 'stale', 'unsupported', 'blocked', 'zero', 'healthy'].includes(status.state)
+      ? status.state
+      : 'unsupported'
+  );
   let writer = $derived(partition.writer_key ?? health.writer_owner ?? status.writer_owner ?? status.active_writer ?? health.active_writer ?? status.writer?.owner);
   let leaseFreshness = $derived(partition.lease_freshness ?? 'unclaimed');
   let projectRoot = $derived(s.projectIdentity?.project_root ?? s.workpointResume?.project_root ?? s.session?.project_root);
@@ -53,6 +59,7 @@
     <div class="label">Dispatch posture</div>
     <p>{text(boundary, dispatchReady === true ? 'No active boundary' : 'No boundary reason surfaced')}</p>
     <div class="chips">
+      <span class="chip" class:stale-chip={typedState === 'unsupported' || typedState === 'unavailable'}>typed {typedState}</span>
       <span class="chip">writer {text(writer, 'unknown')}</span>
       <span class="chip" class:stale-chip={leaseFreshness !== 'current'}>lease {text(leaseFreshness, 'unclaimed')}</span>
       <span class="chip">status {text(status.status ?? status.work_loop?.status, 'unknown')}</span>

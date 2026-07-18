@@ -34,6 +34,17 @@ const WRITER_HEADER: &str = "x-focusa-writer-id";
 const FENCING_HEADER: &str = "x-focusa-fencing-token";
 const WRITER_LEASE_TTL_MS: i64 = 30_000;
 const APPROVAL_HEADER: &str = "x-focusa-approval";
+const WORK_LOOP_STATUS_SCHEMA: &str = "focusa.work_loop_status.v3";
+const WORK_LOOP_REPLAY_SCHEMA: &str = "focusa.work_loop_replay.v2";
+const WORK_LOOP_TYPED_STATES: [&str; 7] = [
+    "absent",
+    "unavailable",
+    "stale",
+    "unsupported",
+    "blocked",
+    "zero",
+    "healthy",
+];
 
 #[derive(Clone)]
 struct WorkLoopScope(WorkstreamKey);
@@ -2172,14 +2183,43 @@ fn secondary_loop_replay_surface_payloads_for_status(
     match replay_summary {
         Ok(summary) => {
             let closure_evidence = secondary_loop_closure_replay_evidence_for_status(wl, summary);
+            let state = if summary.replay_events_scanned == 0 {
+                "zero"
+            } else {
+                "healthy"
+            };
             (
-                json!({ "status": "ok", "summary": summary }),
-                json!({ "status": "ok", "evidence": closure_evidence }),
+                json!({
+                    "schema": WORK_LOOP_REPLAY_SCHEMA,
+                    "state": state,
+                    "supported_states": WORK_LOOP_TYPED_STATES,
+                    "status": "ok",
+                    "summary": summary
+                }),
+                json!({
+                    "schema": WORK_LOOP_REPLAY_SCHEMA,
+                    "state": state,
+                    "supported_states": WORK_LOOP_TYPED_STATES,
+                    "status": "ok",
+                    "evidence": closure_evidence
+                }),
             )
         }
         Err(error) => (
-            json!({ "status": "error", "error": error }),
-            json!({ "status": "error", "error": error }),
+            json!({
+                "schema": WORK_LOOP_REPLAY_SCHEMA,
+                "state": "unavailable",
+                "supported_states": WORK_LOOP_TYPED_STATES,
+                "status": "error",
+                "error": error
+            }),
+            json!({
+                "schema": WORK_LOOP_REPLAY_SCHEMA,
+                "state": "unavailable",
+                "supported_states": WORK_LOOP_TYPED_STATES,
+                "status": "error",
+                "error": error
+            }),
         ),
     }
 }
@@ -2192,12 +2232,18 @@ fn secondary_loop_replay_consumer_payload_for_status(
         secondary_loop_replay_surface_payloads_for_status(wl, replay_summary);
 
     match replay_summary {
-        Ok(_) => json!({
+        Ok(summary) => json!({
+            "schema": WORK_LOOP_REPLAY_SCHEMA,
+            "state": if summary.replay_events_scanned == 0 { "zero" } else { "healthy" },
+            "supported_states": WORK_LOOP_TYPED_STATES,
             "status": "ok",
             "secondary_loop_replay_comparative": secondary_loop_replay_comparative,
             "secondary_loop_closure_replay_evidence": secondary_loop_closure_replay_evidence,
         }),
         Err(error) => json!({
+            "schema": WORK_LOOP_REPLAY_SCHEMA,
+            "state": "unavailable",
+            "supported_states": WORK_LOOP_TYPED_STATES,
             "status": "error",
             "error": error,
             "secondary_loop_replay_comparative": secondary_loop_replay_comparative,
@@ -2304,6 +2350,43 @@ fn secondary_loop_closure_bundle_for_status(
     })
 }
 
+#[cfg(test)]
+fn compatible_typed_surface_state<'a>(
+    schema: &str,
+    expected_schema: &str,
+    state: &'a str,
+) -> &'a str {
+    if schema == expected_schema && WORK_LOOP_TYPED_STATES.contains(&state) {
+        state
+    } else {
+        "unsupported"
+    }
+}
+
+fn work_loop_status_surface_state(
+    wl: &focusa_core::types::WorkLoopState,
+    boundary_reason: Option<&str>,
+    active_lease: Option<&WriterLease>,
+) -> &'static str {
+    if wl.status == focusa_core::types::WorkLoopStatus::TransportDegraded {
+        "unavailable"
+    } else if boundary_reason.is_some()
+        || wl.pause_flags.operator_override_active
+        || wl.pause_flags.destructive_confirmation_required
+        || wl.pause_flags.governance_decision_pending
+    {
+        "blocked"
+    } else if wl.enabled && active_lease.is_none() {
+        "absent"
+    } else if wl.enabled {
+        "healthy"
+    } else if wl.current_task.is_some() || active_lease.is_some() {
+        "stale"
+    } else {
+        "zero"
+    }
+}
+
 async fn health(
     scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
@@ -2330,6 +2413,9 @@ async fn health(
         && !wl.pause_flags.governance_decision_pending
         && wl.status != focusa_core::types::WorkLoopStatus::TransportDegraded;
     let payload = json!({
+        "schema": WORK_LOOP_STATUS_SCHEMA,
+        "state": work_loop_status_surface_state(wl, boundary_reason, active_lease.as_ref()),
+        "supported_states": WORK_LOOP_TYPED_STATES,
         "status": "ok",
         "route_tier": "hot",
         "authority": bounded_orchestration_authority_payload(),
@@ -2378,11 +2464,15 @@ async fn status(
         active_writer_lease_for_key(&claims, &claim_key, Utc::now())
     };
     let active_writer = active_lease.as_ref().map(|lease| lease.writer_id.clone());
+    let boundary_reason = continuation_boundary_reason(wl);
     if query.summary_only {
         let transport_health = transport_health_for_status(wl);
         let budget_remaining = budget_remaining_for_status(wl);
         let resume_payload = resume_payload_for_status(&s, wl, &scope.0);
         let payload = json!({
+            "schema": WORK_LOOP_STATUS_SCHEMA,
+            "state": work_loop_status_surface_state(wl, boundary_reason, active_lease.as_ref()),
+            "supported_states": WORK_LOOP_TYPED_STATES,
             "route_tier": "hot",
             "summary_only": true,
             "authority": bounded_orchestration_authority_payload(),
@@ -2477,6 +2567,9 @@ async fn status(
         .cloned()
         .unwrap_or_else(|| {
             json!({
+                "schema": WORK_LOOP_REPLAY_SCHEMA,
+                "state": "unavailable",
+                "supported_states": WORK_LOOP_TYPED_STATES,
                 "status": "error",
                 "error": "missing secondary_loop_closure_replay_evidence payload",
             })
@@ -2484,6 +2577,9 @@ async fn status(
     let pending_proposals = focusa_core::pre::pending_count(&s.pre);
     let next_work_risk_class = next_work_risk_class_for_status(wl);
     let payload = json!({
+        "schema": WORK_LOOP_STATUS_SCHEMA,
+        "state": work_loop_status_surface_state(wl, boundary_reason, active_lease.as_ref()),
+        "supported_states": WORK_LOOP_TYPED_STATES,
         "route_tier": "cold",
         "summary_only": false,
         "authority": bounded_orchestration_authority_payload(),
@@ -4216,6 +4312,70 @@ mod tests {
         assert_eq!(payload["writer_key"], json!("writer-one"));
         assert_eq!(payload["fencing_token"], json!(42));
         assert_eq!(payload["lease_freshness"], json!("current"));
+    }
+
+    #[test]
+    fn typed_status_states_distinguish_zero_absent_stale_blocked_unavailable_and_healthy() {
+        let mut wl = focusa_core::types::WorkLoopState::default();
+        let now = Utc::now();
+        let lease = WriterLease {
+            writer_id: "writer-one".to_string(),
+            fencing_token: 42,
+            acquired_at: now,
+            renewed_at: now,
+            expires_at: writer_lease_expiry(now),
+        };
+
+        assert_eq!(work_loop_status_surface_state(&wl, None, None), "zero");
+        wl.enabled = true;
+        assert_eq!(work_loop_status_surface_state(&wl, None, None), "absent");
+        assert_eq!(
+            work_loop_status_surface_state(&wl, None, Some(&lease)),
+            "healthy"
+        );
+        assert_eq!(
+            work_loop_status_surface_state(&wl, Some("operator boundary"), Some(&lease)),
+            "blocked"
+        );
+        wl.status = focusa_core::types::WorkLoopStatus::TransportDegraded;
+        assert_eq!(
+            work_loop_status_surface_state(&wl, None, Some(&lease)),
+            "unavailable"
+        );
+        wl.enabled = false;
+        wl.status = focusa_core::types::WorkLoopStatus::Idle;
+        assert_eq!(
+            work_loop_status_surface_state(&wl, None, Some(&lease)),
+            "stale"
+        );
+    }
+
+    #[test]
+    fn typed_status_compatibility_fails_closed_on_unknown_schema_or_state() {
+        assert_eq!(
+            compatible_typed_surface_state(
+                WORK_LOOP_STATUS_SCHEMA,
+                WORK_LOOP_STATUS_SCHEMA,
+                "healthy"
+            ),
+            "healthy"
+        );
+        assert_eq!(
+            compatible_typed_surface_state(
+                "focusa.work_loop_status.v999",
+                WORK_LOOP_STATUS_SCHEMA,
+                "healthy"
+            ),
+            "unsupported"
+        );
+        assert_eq!(
+            compatible_typed_surface_state(
+                WORK_LOOP_STATUS_SCHEMA,
+                WORK_LOOP_STATUS_SCHEMA,
+                "maybe"
+            ),
+            "unsupported"
+        );
     }
 
     #[test]

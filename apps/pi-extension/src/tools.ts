@@ -3351,6 +3351,8 @@ export function registerTools(pi: ExtensionAPI) {
   }
 
   function rememberWorkLoopLease(body: any): WorkLoopWriterLease | null {
+    if (body?.schema !== "focusa.work_loop_status.v3" && !body?.writer_id) return null;
+    if (body?.state === "unsupported") return null;
     const writerId = String(body?.writer_id || body?.execution_partition?.writer_key || "").trim();
     const fencingToken = Number(body?.fencing_token ?? body?.execution_partition?.fencing_token);
     const expiresAt = String(body?.lease_expires_at || body?.execution_partition?.lease_expires_at || "");

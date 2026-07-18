@@ -57,6 +57,38 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
             lines.push(metric("  Closure bundle doc", doc, theme::value()));
         }
 
+        let schema = loop_status
+            .and_then(|value| value.get("schema"))
+            .and_then(Value::as_str);
+        let typed_state = loop_status
+            .and_then(|value| value.get("state"))
+            .and_then(Value::as_str)
+            .filter(|state| {
+                schema == Some("focusa.work_loop_status.v3")
+                    && [
+                        "absent",
+                        "unavailable",
+                        "stale",
+                        "unsupported",
+                        "blocked",
+                        "zero",
+                        "healthy",
+                    ]
+                    .contains(state)
+            })
+            .unwrap_or("unsupported");
+        lines.push(metric(
+            "  Typed state",
+            typed_state,
+            if typed_state == "healthy" || typed_state == "zero" {
+                theme::status_ok()
+            } else if typed_state == "unsupported" || typed_state == "unavailable" {
+                theme::status_err()
+            } else {
+                theme::status_warn()
+            },
+        ));
+
         let enabled = loop_status
             .and_then(|value| value.get("enabled"))
             .and_then(Value::as_bool)

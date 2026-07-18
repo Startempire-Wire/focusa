@@ -31,6 +31,39 @@ import { measureNativeSessionPressure, migrateNativeSessionBounded } from "./ses
 import { prepareCompactionRollover } from "./compaction.js";
 import { dirname, resolve } from "path";
 
+async function commandWorkLoopWriterHeaders(): Promise<Record<string, string>> {
+  const writerId = `pi-${process.pid}`;
+  const status = await focusaFetch("/work-loop/status?summary_only=true");
+  const partition = status?.execution_partition;
+  const token = Number(partition?.fencing_token);
+  const expiresAt = Date.parse(String(partition?.lease_expires_at || ""));
+  if (
+    status?.schema !== "focusa.work_loop_status.v3" ||
+    status?.state === "unsupported" ||
+    partition?.writer_key !== writerId ||
+    partition?.lease_freshness !== "current" ||
+    !Number.isSafeInteger(token) ||
+    token <= 0 ||
+    !(expiresAt > Date.now())
+  ) {
+    throw new Error("current scoped Work Loop lease is missing, expired, or owned by another Pi writer");
+  }
+  return {
+    "x-focusa-writer-id": writerId,
+    "x-focusa-fencing-token": String(token),
+  };
+}
+
+type RolloverReplacementContext = {
+  ui: { notify(message: string, level: "info" | "warning" | "error"): void };
+};
+
+type RolloverNewSession = (options: {
+  parentSession?: string;
+  setup?: (sessionManager: { appendMessage?: (message: any) => void }) => Promise<void>;
+  withSession?: (ctx: RolloverReplacementContext) => Promise<void>;
+}) => Promise<{ cancelled?: boolean }>;
+>>>>>>> d0d6839d (feat(work-loop): version typed status and replay states)
 function nonEmptyLines(items: any[] | undefined): string[] {
   return (items || []).map((v) => String(v || "").trim()).filter(Boolean);
 }

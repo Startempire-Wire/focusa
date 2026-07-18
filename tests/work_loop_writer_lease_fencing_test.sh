@@ -75,6 +75,9 @@ jq -e \
   --arg continuity "${CONTINUITY_ID}" \
   --arg work_item "${WORK_ITEM_ID}" \
   --argjson token "${first_token}" '
+    .schema == "focusa.work_loop_status.v3" and
+    .state == "healthy" and
+    (.supported_states | sort) == (["absent","unavailable","stale","unsupported","blocked","zero","healthy"] | sort) and
     .execution_partition.project_root_key == $root and
     .execution_partition.workstream_key == $continuity and
     .execution_partition.work_item_key == $work_item and

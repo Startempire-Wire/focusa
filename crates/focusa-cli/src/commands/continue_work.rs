@@ -43,6 +43,11 @@ fn envelope(status: &str, summary: String, next_action: &str, details: Value) ->
 }
 
 fn scoped_fencing_token(status: &Value, writer_id: &str) -> Option<u64> {
+    if status.get("schema").and_then(Value::as_str) != Some("focusa.work_loop_status.v3")
+        || status.get("state").and_then(Value::as_str) == Some("unsupported")
+    {
+        return None;
+    }
     let partition = status.get("execution_partition")?;
     (partition.get("writer_key")?.as_str()? == writer_id)
         .then(|| partition.get("fencing_token")?.as_u64())
@@ -168,6 +173,8 @@ mod tests {
     #[test]
     fn fencing_token_requires_matching_scoped_writer() {
         let status = json!({
+            "schema": "focusa.work_loop_status.v3",
+            "state": "healthy",
             "execution_partition": {
                 "writer_key": "cli-writer",
                 "fencing_token": 42,
@@ -176,5 +183,11 @@ mod tests {
         });
         assert_eq!(scoped_fencing_token(&status, "cli-writer"), Some(42));
         assert_eq!(scoped_fencing_token(&status, "other-writer"), None);
+        let unsupported = json!({
+            "schema": "focusa.work_loop_status.v999",
+            "state": "healthy",
+            "execution_partition": {"writer_key": "cli-writer", "fencing_token": 42}
+        });
+        assert_eq!(scoped_fencing_token(&unsupported, "cli-writer"), None);
     }
 }
