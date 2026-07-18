@@ -200,6 +200,7 @@ pub type CommandStore = Arc<RwLock<HashMap<String, CommandRecord>>>;
 
 pub struct PiRpcSession {
     pub child: Child,
+    pub process_group_id: u32,
     pub stdin: ChildStdin,
     pub session_id: String,
     pub cwd: Option<String>,

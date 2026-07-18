@@ -184,15 +184,19 @@ fn configure_pi_rpc_process_group(cmd: &mut Command) {
     cmd.process_group(0);
 }
 
-#[cfg(not(unix))]
+#[cfg(windows)]
+fn configure_pi_rpc_process_group(cmd: &mut Command) {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
+    cmd.as_std_mut().creation_flags(CREATE_NEW_PROCESS_GROUP);
+}
+
+#[cfg(not(any(unix, windows)))]
 fn configure_pi_rpc_process_group(_cmd: &mut Command) {}
 
 #[cfg(unix)]
-async fn terminate_pi_rpc_child(child: &mut Child) {
-    let Some(pid) = child.id() else {
-        return;
-    };
-    let pgid = format!("-{pid}");
+async fn terminate_pi_rpc_child(child: &mut Child, process_group_id: u32) {
+    let pgid = format!("-{process_group_id}");
     let _ = Command::new("kill").args(["-TERM", &pgid]).status().await;
     if timeout(Duration::from_secs(2), child.wait()).await.is_ok() {
         return;
@@ -201,10 +205,45 @@ async fn terminate_pi_rpc_child(child: &mut Child) {
     let _ = timeout(Duration::from_secs(2), child.wait()).await;
 }
 
-#[cfg(not(unix))]
-async fn terminate_pi_rpc_child(child: &mut Child) {
+#[cfg(windows)]
+async fn terminate_pi_rpc_child(child: &mut Child, process_group_id: u32) {
+    let _ = Command::new("taskkill")
+        .args(["/PID", &process_group_id.to_string(), "/T", "/F"])
+        .status()
+        .await;
+    let _ = timeout(Duration::from_secs(2), child.wait()).await;
+}
+
+#[cfg(not(any(unix, windows)))]
+async fn terminate_pi_rpc_child(child: &mut Child, _process_group_id: u32) {
     let _ = child.kill().await;
 }
+
+#[cfg(unix)]
+fn spawn_pi_rpc_parent_watchdog(child_pid: u32) {
+    let parent_pid = std::process::id();
+    let script = r#"
+while kill -0 "$1" 2>/dev/null && kill -0 "$2" 2>/dev/null; do sleep 0.2; done
+/bin/kill -TERM "-$2" 2>/dev/null || true
+sleep 2
+/bin/kill -KILL "-$2" 2>/dev/null || true
+"#;
+    let _ = std::process::Command::new("sh")
+        .args([
+            "-c",
+            script,
+            "focusa-pi-watchdog",
+            &parent_pid.to_string(),
+            &child_pid.to_string(),
+        ])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn();
+}
+
+#[cfg(not(unix))]
+fn spawn_pi_rpc_parent_watchdog(_child_pid: u32) {}
 
 fn bounded_orchestration_authority_payload() -> Value {
     json!({
@@ -3159,6 +3198,10 @@ async fn start_pi_driver(
     cmd.current_dir(&work_loop_root);
 
     let mut child = cmd.spawn().map_err(work_loop_pi_spawn_failed)?;
+    let child_pid = child
+        .id()
+        .ok_or_else(|| bad_request("pi rpc process id unavailable after spawn"))?;
+    spawn_pi_rpc_parent_watchdog(child_pid);
     let stdin = child
         .stdin
         .take()
@@ -3193,6 +3236,16 @@ async fn start_pi_driver(
             }
         });
     }
+
+    *guard = Some(crate::server::PiRpcSession {
+        child,
+        process_group_id: child_pid,
+        stdin,
+        session_id: session_id.clone(),
+        cwd: Some(work_loop_root.to_string_lossy().to_string()),
+        idempotency_key: payload.idempotency_key.clone(),
+        started_at: std::time::Instant::now(),
+    });
 
     tokio::spawn(async move {
         let _ = command_tx
@@ -3317,6 +3370,21 @@ async fn start_pi_driver(
             seq += 1;
         }
 
+        let stale_session = {
+            let mut session_guard = state_for_events.pi_rpc_session.lock().await;
+            if session_guard
+                .as_ref()
+                .is_some_and(|session| session.session_id == attach_session_id)
+            {
+                session_guard.take()
+            } else {
+                None
+            }
+        };
+        if let Some(mut stale_session) = stale_session {
+            terminate_pi_rpc_child(&mut stale_session.child, stale_session.process_group_id).await;
+        }
+
         let _ = command_tx
             .send(Action::IngestContinuousTransportEvent {
                 sequence: seq,
@@ -3333,15 +3401,6 @@ async fn start_pi_driver(
             .await;
     });
 
-    *guard = Some(crate::server::PiRpcSession {
-        child,
-        stdin,
-        session_id: session_id.clone(),
-        cwd: Some(work_loop_root.to_string_lossy().to_string()),
-        idempotency_key: payload.idempotency_key.clone(),
-        started_at: std::time::Instant::now(),
-    });
-
     Ok(Json(json!({
         "schema": "focusa.agent_execution_adapter_result.v1",
         "status": "accepted",
@@ -3353,7 +3412,7 @@ async fn start_pi_driver(
         "cancellation": {"abort_route": "/v1/work-loop/driver/abort", "stop_route": "/v1/work-loop/driver/stop"},
         "authority": "focusa.spec133.work_loop",
         "tool_result": agent_execution_tool_result("Pi RPC execution started or resumed", "process_started"),
-    })))
+    })))>>>>>>> 9013ac47 (fix(work-loop): terminate supervised process trees)
 }
 
 async fn prompt_pi_driver(
@@ -3366,6 +3425,7 @@ async fn prompt_pi_driver(
     if !permissions.allows("work-loop:write") {
         return Err(forbid("work-loop:write"));
     }
+    ensure_writer_claim(&scope, &state, &headers).await?;
     let mut guard = state.pi_rpc_session.lock().await;
     let Some(session) = guard.as_mut() else {
         return Err(bad_request("pi rpc driver not active"));
@@ -3413,16 +3473,14 @@ async fn abort_pi_driver(
     if !permissions.allows("work-loop:write") {
         return Err(forbid("work-loop:write"));
     }
+    ensure_writer_claim(&scope, &state, &headers).await?;
     let mut guard = state.pi_rpc_session.lock().await;
-    let Some(session) = guard.as_mut() else {
+    let Some(mut session) = guard.take() else {
         return Err(bad_request("pi rpc driver not active"));
     };
     let msg = json!({"type":"abort"}).to_string() + "\n";
-    session
-        .stdin
-        .write_all(msg.as_bytes())
-        .await
-        .map_err(|e| bad_request(format!("failed writing abort: {e}")))?;
+    let _ = session.stdin.write_all(msg.as_bytes()).await;
+    terminate_pi_rpc_child(&mut session.child, session.process_group_id).await;
     Ok(Json(json!({
         "schema": "focusa.agent_execution_adapter_result.v1",
         "status": "accepted",
@@ -3430,9 +3488,10 @@ async fn abort_pi_driver(
         "session_id": session.session_id,
         "resumable": true,
         "cancelled": true,
+        "process_tree_terminated": true,
         "authority": "focusa.spec133.work_loop",
         "tool_result": agent_execution_tool_result("Pi RPC turn aborted", "turn_aborted"),
-    })))
+    })))>>>>>>> 9013ac47 (fix(work-loop): terminate supervised process trees)
 }
 
 async fn stop_pi_driver(
@@ -3444,11 +3503,12 @@ async fn stop_pi_driver(
     if !permissions.allows("work-loop:write") {
         return Err(forbid("work-loop:write"));
     }
+    ensure_writer_claim(&scope, &state, &headers).await?;
     let mut guard = state.pi_rpc_session.lock().await;
     let Some(mut session) = guard.take() else {
         return Err(bad_request("pi rpc driver not active"));
     };
-    terminate_pi_rpc_child(&mut session.child).await;
+    terminate_pi_rpc_child(&mut session.child, session.process_group_id).await;
     Ok(Json(json!({
         "schema": "focusa.agent_execution_adapter_result.v1",
         "status": "stopped",
@@ -3456,9 +3516,10 @@ async fn stop_pi_driver(
         "session_id": session.session_id,
         "resumable": true,
         "cancelled": true,
+        "process_tree_terminated": true,
         "authority": "focusa.spec133.work_loop",
         "tool_result": agent_execution_tool_result("Pi RPC execution stopped", "process_stopped"),
-    })))
+    })))>>>>>>> 9013ac47 (fix(work-loop): terminate supervised process trees)
 }
 
 async fn attach_session(
