@@ -23,6 +23,14 @@ jobs:
           fi
           scripts/validate-commit-messages.sh --range "${BASE_SHA}..HEAD"
 
+  work-loop-conformance:
+    name: Work Loop Conformance Manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Trace normative MUSTs and prove release fails closed while coverage is incomplete
+        run: python3 tests/work_loop_conformance_manifest_test.py
+
   rust:
     name: Rust
     runs-on: ubuntu-latest
