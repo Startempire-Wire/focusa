@@ -3728,19 +3728,109 @@ async fn checkpoint(
     }
 
     let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
-    send_work_loop_action(
-        &state,
-        "work_loop_checkpoint",
-        Action::CheckpointContinuousLoop {
-            checkpoint_id: payload.checkpoint_id.unwrap_or_else(Uuid::now_v7),
-            summary: payload.summary,
-        },
-    )
-    .await?;
+    let checkpoint_id = payload.checkpoint_id.unwrap_or_else(Uuid::now_v7);
+    let summary = payload.summary;
+    let _guard = tokio::time::timeout(Duration::from_millis(1500), state.write_serial_lock.lock())
+        .await
+        .map_err(|_| work_loop_dispatch_timeout("work_loop_checkpoint_write_lock"))?;
+    if let Some(existing) = state
+        .persistence
+        .event_by_id(checkpoint_id)
+        .map_err(|error| {
+            work_loop_failure(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "work_loop_checkpoint",
+                "persistence_failed",
+                format!("checkpoint idempotency lookup failed: {error}"),
+            )
+        })?
+    {
+        let same_checkpoint = matches!(
+            existing.event,
+            FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                checkpoint_id: existing_id,
+                summary: existing_summary,
+            } if existing_id == checkpoint_id && existing_summary == summary
+        );
+        if !same_checkpoint {
+            return Err(conflict(
+                "checkpoint id already committed with different content",
+                Some(writer_lease.writer_id),
+            ));
+        }
+        return Ok(Json(json!({
+            "ok": true,
+            "idempotent_replay": true,
+            "checkpoint_id": checkpoint_id,
+            "writer_id": writer_lease.writer_id,
+            "fencing_token": writer_lease.fencing_token,
+            "lease_expires_at": writer_lease.expires_at,
+        })));
+    }
 
-    Ok(Json(
-        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at }),
-    ))
+    let current = { state.focusa.read().await.clone() };
+    let event = FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+        checkpoint_id,
+        summary,
+    };
+    let machine_id = state.persistence.machine_id().ok();
+    let result = focusa_core::reducer::reduce_with_meta(
+        current,
+        event.clone(),
+        machine_id.as_deref(),
+        None,
+        false,
+    )
+    .map_err(|error| {
+        work_loop_failure(
+            StatusCode::BAD_REQUEST,
+            "work_loop_checkpoint",
+            "reducer_rejected",
+            error.to_string(),
+        )
+    })?;
+    let new_state = result.new_state;
+    let entry = EventLogEntry {
+        id: checkpoint_id,
+        timestamp: Utc::now(),
+        event,
+        correlation_id: Some(format!(
+            "work_loop_checkpoint|project_root={}|continuity_id={}",
+            scope.0.root_scope.root_path.display(),
+            scope.0.continuity_id
+        )),
+        origin: SignalOrigin::Cli,
+        machine_id,
+        instance_id: None,
+        session_id: new_state.session.as_ref().map(|session| session.session_id),
+        thread_id: None,
+        is_observation: false,
+    };
+    state
+        .persistence
+        .persist_event_and_state_atomic(&entry, &new_state)
+        .map_err(|error| {
+            work_loop_failure(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "work_loop_checkpoint",
+                "persistence_failed",
+                format!("atomic checkpoint commit failed: {error}"),
+            )
+        })?;
+    if let Ok(serialized) = serde_json::to_string(&entry) {
+        let _ = state.events_tx.send(serialized);
+    }
+    *state.focusa.write().await = new_state;
+    state.mark_external_mutation();
+
+    Ok(Json(json!({
+        "ok": true,
+        "idempotent_replay": false,
+        "checkpoint_id": checkpoint_id,
+        "writer_id": writer_lease.writer_id,
+        "fencing_token": writer_lease.fencing_token,
+        "lease_expires_at": writer_lease.expires_at,
+    })))
 }
 
 async fn stop(
