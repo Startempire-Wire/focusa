@@ -5,7 +5,7 @@
 **Created:** 2026-07-17  
 **Parent:** [Spec 135](135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md)  
 **Closure relationship:** required companion; Spec 135 cannot close without Spec 135D.  
-**Scope:** complete feature ledger, decomposition law, dependency ordering, cross-spec ownership, framework qualification, code reuse, shared contracts, performance, parallel execution, UX completeness, proof discipline, and final closure.
+**Scope:** complete feature ledger, decomposition law, dependency ordering, cross-spec ownership, domain-general ontology and domain-pack foundations, snapshot/event compatibility, framework qualification, code reuse, shared contracts, performance, parallel execution, UX completeness, proof discipline, and final closure.
 
 ---
 
@@ -28,7 +28,7 @@ Do not declare partial infrastructure to be the completed product.
 
 The implementation orders in this document are execution ordering. They do not split the series into “real now” and “maybe someday.”
 
-Every accepted normative feature in Spec 135/135A/135B/135C/135D/135E must enter the implementation graph before implementation begins.
+Every accepted normative feature in Spec 135/135A/135B/135C/135D/135E/135F must enter the implementation graph before implementation begins.
 
 ---
 
@@ -154,7 +154,7 @@ The parent series cannot close while a required ledger entry is missing, partial
 
 Different ownership does not mean deferred dependency.
 
-Required dependencies from Specs 109, 111, 116, 117, 119, 120, 121, 124, 125, 130, and 133 remain explicit blockers in the Spec 135 graph until implemented and proven.
+Required dependencies from Specs 45–50, 61, 70, 72, 74, 75, 77, 88, 100, 109, 111, 116, 117, 119, 120, 121, 124, 125, 130, 133, and 135F remain explicit blockers in the Spec 135 graph until implemented and proven.
 
 A task may be owned by its original spec and cross-linked to Spec 135. It may not disappear from the Spec 135 completion ledger.
 
@@ -179,7 +179,7 @@ Use the existing Focusa runtime.
 
 ### 6.2 One canonical persistence path
 
-Canonical workspace, Project Genesis, context claim, role, interview, task plan, and artifact-link events use Focusa reducers, event persistence, state snapshots, and event-chain discipline.
+Canonical workspace, Project Genesis, context claim, role, interview, task plan, artifact-link, ontology registry, candidate/canonical graph, verification-ledger, domain-pack binding, slice-policy, and semantic-subscription events use Focusa reducers, event persistence, state snapshots, and event-chain discipline.
 
 Project JSON, Pi globals, browser storage, Svelte stores, menubar state, UIAI state, and connector caches may project/cache state but may not become canonical truth.
 
@@ -210,6 +210,10 @@ Pi, PWA, Tauri, menubar, and native TUI share:
 
 No client reimplements domain policy.
 
+### 6.7 One semantic substrate
+
+Do not create separate legal, markets, research, software, connector, C.R.I.S.T., UIAI, or client-local ontology engines. Spec 135F extends the existing Focusa ontology through one core-owned registry, candidate graph, canonical graph, verification ledger, V1 compatibility projection, domain-pack composition system, and semantic delta plane.
+
 ---
 
 ## 7. Required framework and stack reuse
@@ -226,7 +230,16 @@ Use the existing Rust workspace and conventions:
 - ECS/content-addressed handles;
 - Tokio for async work.
 
-New domain modules should align with existing crate boundaries rather than become a separate service.
+New domain modules should align with existing crate boundaries rather than become a separate service. Required semantic modules or equivalent boundaries include:
+
+```text
+focusa-core/src/ontology_registry/
+focusa-core/src/ontology_graph/
+focusa-core/src/domain_packs/
+focusa-core/src/verification_policy/
+focusa-core/src/slice_policy/
+focusa-core/src/semantic_subscriptions/
+```
 
 ### 7.2 Schema generation
 
@@ -401,18 +414,21 @@ Every order is required. Orders are not release-deferral buckets.
 
 Required outputs:
 
-1. approved Spec 135 series;
+1. approved Spec 135 series, including Spec 135F;
 2. Complete Feature Ledger;
 3. current-code Reality Pack;
 4. cross-spec dependency graph;
 5. framework qualification records;
-6. canonical/projection map;
-7. security/privacy model;
-8. full parent/child task graph;
-9. acceptance/proof mapping;
-10. client parity matrix;
-11. migration matrix;
-12. open decisions resolved or explicit blockers.
+6. canonical/projection/domain-semantic ownership map;
+7. snapshot and event compatibility constitution;
+8. V1 ontology compatibility fixtures and expected projections;
+9. domain-pack conformance and isolation matrix;
+10. security/privacy model;
+11. full parent/child task graph;
+12. acceptance/proof mapping;
+13. client parity matrix;
+14. migration and downgrade matrix;
+15. open decisions resolved or explicit blockers.
 
 ### Order 1 — Contract and runtime convergence
 
@@ -425,6 +441,12 @@ Required outputs:
 - Workspace Artifact contracts;
 - task/read models;
 - invalidation events;
+- core ontology registry and namespaced semantic IDs;
+- domain-pack manifest, compatibility, composition, and conformance contracts;
+- candidate/canonical graph and verification-ledger contracts;
+- verification-policy and slice-policy contracts;
+- versioned snapshot and stored-event envelopes with minimum reader/writer versions;
+- semantic subscription/delta/cursor contracts;
 - preview/commit/idempotency/version rules;
 - generated OpenAPI/JSON Schema/TypeScript.
 
@@ -439,6 +461,12 @@ focusa-core/src/project_context/
 focusa-core/src/project_role/
 focusa-core/src/project_interview/
 focusa-core/src/workspace_artifact/
+focusa-core/src/ontology_registry/
+focusa-core/src/ontology_graph/
+focusa-core/src/domain_packs/
+focusa-core/src/verification_policy/
+focusa-core/src/slice_policy/
+focusa-core/src/semantic_subscriptions/
 ```
 
 Required:
@@ -453,6 +481,15 @@ Required:
 - role revisions;
 - workspace-selection history;
 - context-claim lifecycle;
+- typed registry extraction with exact V1 name/route parity;
+- separate candidate and canonical semantic stores;
+- verification ledger and policy-backed promotion;
+- domain-pack activation, versioning, and composition;
+- V1 objects/links/action-catalog compatibility projection;
+- ontology-derived Workpoint candidate projection without changing Workpoint authority;
+- generalized slice-policy registry;
+- semantic delta subscriptions and cursor persistence;
+- snapshot/event migrations, unknown-event preservation, and downgrade-write protection;
 - bounded read models;
 - SSE events.
 
@@ -464,6 +501,7 @@ No placeholder success routes.
 - state vocabulary;
 - layout/panel/home-canvas registries;
 - renderer/action/terminology/theme/icon/history registries;
+- domain-semantic binding registry that consumes, but never owns, canonical domain policy;
 - workspace resolver/inheritance/composition;
 - responsive behavior;
 - keyboard/focus/accessibility;
@@ -487,7 +525,7 @@ Implement all accepted source classes and complete connector lifecycles:
 - work-item providers;
 - operator notes/uploads.
 
-Include extraction, OAuth, bounded import, delta sync, health, revocation, indexing, claims, contradiction, impact, Context Cognition, and live UI.
+Include extraction, OAuth, bounded import, delta sync, health, revocation, indexing, claims, contradiction, impact, Context Cognition, candidate-semantic writes, verification-policy evaluation, reviewed canonical promotion, and live UI.
 
 ### Order 5 — Role and Interview
 
@@ -546,7 +584,8 @@ Generated Markdown alone is insufficient.
 - Asana;
 - Markdown Checklist;
 - provider health;
-- Workpoint binding;
+- ontology-derived/operator-authored Workpoint candidate validation;
+- Workpoint binding through existing authority;
 - Work Rail;
 - closure/reconciliation;
 - verified strike-through;
@@ -579,7 +618,7 @@ Generated Markdown alone is insufficient.
 - Custom;
 - composite profiles.
 
-Each requires theme, visual grammar, home canvas, panels, terminology, icons, density, renderers, history, C.R.I.S.T., evidence, controls, all states, and a demo project.
+Each requires theme, visual grammar, home canvas, panels, terminology, icons, density, renderers, history, C.R.I.S.T., evidence, controls, all states, a demo project, and an operational or truthfully degraded domain-pack composition. Visual completeness without semantic-pack conformance is incomplete.
 
 ### Order 10 — Complete client/package parity
 
@@ -594,6 +633,10 @@ Each requires theme, visual grammar, home canvas, panels, terminology, icons, de
 ### Order 11 — Full-system hardening and release proof
 
 - schema compatibility;
+- snapshot-schema and stored-event-envelope compatibility;
+- unknown future event/type preservation;
+- old-writer and downgrade protection;
+- V1 projection replay equivalence;
 - migrations;
 - isolation;
 - connector expiry/recovery/revocation;
@@ -712,6 +755,7 @@ Buttons and panels derive availability from capabilities/provider health rather 
 10. Paged dataset/history reads.
 11. Bounded diagnostics/transcripts.
 12. No whole-state client mirroring.
+13. Semantic events carry bounded refs, scope, versions, and cursors rather than full graph or artifact payloads.
 
 ---
 
@@ -739,7 +783,7 @@ Do not use “later,” “future enhancement,” “post-MVP,” “nice to hav
 A blocked dependency remains open and blocks parent closure.
 
 Do not implement a second system when Focusa, UIAI Engine, Pi, Spec 120,
-Spec 116, Spec 119, or the existing Svelte/Tauri stack already owns the
+Spec 116, Spec 119, Spec 135F, or the existing Svelte/Tauri stack already owns the
 relevant primitive.
 
 Do not claim completion from schemas, stubs, static cards, mock providers,
@@ -776,6 +820,7 @@ EPIC P — Pi enhanced distribution and compatibility
 EPIC Q — Mission Deck PWA and Tauri
 EPIC R — Menubar and native TUI parity
 EPIC S — Migration, accessibility, security, performance, and release proof
+EPIC T — Domain-general ontology registry, semantic graphs, domain packs, slices, and reactions
 ```
 
 Each epic includes implementation, integration, tests, docs, and evidence children.
@@ -800,6 +845,9 @@ Spec 135D is accepted when:
 12. Performance, accessibility, security, migration, and recovery tasks are first-class.
 13. Parent closure is mechanically blocked by incomplete ledger entries.
 14. Actual integrated proof exists across every acceptance-critical surface.
+15. Spec 135F requirements appear in the Complete Feature Ledger and Orders 0–2 before vertical/client implementation.
+16. Archived V1 snapshots/events replay to an equivalent compatibility projection, while unknown future events are preserved and incompatible old writers are blocked.
+17. Every accepted vertical has tested domain-pack conformance, isolation, verification, slice, Workpoint-candidate, and degraded-mode behavior.
 
 ---
 
@@ -817,4 +865,6 @@ This spec cannot close while:
 - client parity is absent from the graph;
 - security/accessibility/performance are cleanup-only tasks;
 - backend success is used as proof of complete UX;
-- any accepted feature is silently deferred.
+- any accepted feature is silently deferred;
+- client or vertical work begins before the semantic registry and compatibility contracts are stable;
+- domain-pack, candidate/canonical graph, verification-policy, slice-policy, or semantic-subscription work is omitted as generic future ontology work.

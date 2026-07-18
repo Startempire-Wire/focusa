@@ -194,6 +194,7 @@ Spec 135 and companions form one required implementation and closure set.
 | 135C | [135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md](135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md) | UIAI rich artifacts, browser research, FPV, and live refresh |
 | 135D | [135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md](135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md) | Complete build graph, reuse, performance, and no-deferral constitution |
 | 135E | [135e-cross-spec-amendments-migration-and-closure-matrix.md](135e-cross-spec-amendments-migration-and-closure-matrix.md) | Cross-spec amendments, migration, compatibility, and closure matrix |
+| 135F | [135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md](135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md) | Domain-general ontology core, semantic graphs, domain packs, verification, slices, and reactive context |
 
 ---
 
@@ -285,4 +286,4 @@ These Gen1 docs contain **data models, algorithms, schemas, acceptance tests, an
 6. **Autonomy:** 12 → 13 → 37
 7. **Agent model:** 15 → 16 → 16-constitution-synthesizer
 8. **Advanced:** 17 (CLT) → 36 (Reliability) → 38-41 (Threads/Concurrency/Proposals)
-9. **Professional workspaces and Project Genesis:** 135 → 135A → 135B → 135C → 135D → 135E
+9. **Professional workspaces and Project Genesis:** 135 → 135A → 135B → 135C → 135D → 135E → 135F
