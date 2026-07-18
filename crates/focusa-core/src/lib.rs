@@ -52,6 +52,7 @@ pub mod rfm;
 pub mod runtime;
 pub mod scope_safety;
 pub mod scoped_state;
+pub mod silent_session;
 pub mod silent_sessions;
 pub mod skills;
 pub mod sync;
