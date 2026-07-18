@@ -494,26 +494,51 @@ fn normalize_partition_segment(value: impl AsRef<str>, fallback: &str) -> String
     }
 }
 
-fn writer_claim_key_from_state(focusa: &focusa_core::types::FocusaState) -> String {
-    let wl = &focusa.work_loop;
-    let work_item = wl
-        .current_task
-        .as_ref()
-        .map(|task| task.work_item_id.clone())
-        .unwrap_or_else(|| "no_active_work_item".to_string());
-    let scope_project = work_loop_scope_root(focusa).to_string_lossy().to_string();
-    let workstream = wl
-        .decision_context
-        .source_turn_id
-        .clone()
-        .or_else(|| wl.run.task_run_id.as_ref().map(|id| id.to_string()))
-        .unwrap_or_else(|| "default_workstream".to_string());
+fn writer_claim_key_for_partition(
+    project_root: &str,
+    continuity_id: &str,
+    work_item_id: &str,
+) -> String {
+    if project_root.trim().is_empty() || continuity_id.trim().is_empty() {
+        return "blocked:canonical_workpoint_scope_required".to_string();
+    }
+    if work_item_id.trim().is_empty() {
+        return "blocked:active_work_item_required".to_string();
+    }
     format!(
         "project:{}|workstream:{}|work_item:{}",
-        normalize_partition_segment(scope_project, "unknown_project_root"),
-        normalize_partition_segment(workstream, "default_workstream"),
-        normalize_partition_segment(work_item, "no_active_work_item"),
+        normalize_partition_segment(project_root, "blocked"),
+        normalize_partition_segment(continuity_id, "blocked"),
+        normalize_partition_segment(work_item_id, "blocked"),
     )
+}
+
+fn writer_claim_key_from_state(focusa: &focusa_core::types::FocusaState) -> String {
+    let Some((project_root, continuity_id)) = active_work_loop_scope(focusa) else {
+        return "blocked:canonical_workpoint_scope_required".to_string();
+    };
+    let Some(work_item_id) = focusa
+        .work_loop
+        .current_task
+        .as_ref()
+        .map(|task| task.work_item_id.as_str())
+    else {
+        return "blocked:active_work_item_required".to_string();
+    };
+    writer_claim_key_for_partition(&project_root, &continuity_id, work_item_id)
+}
+
+fn require_authoritative_claim_key(key: String) -> Result<String, (StatusCode, Json<Value>)> {
+    if key.starts_with("blocked:") {
+        Err(work_loop_failure(
+            StatusCode::CONFLICT,
+            "writer_claim",
+            "scope_mismatch",
+            key.trim_start_matches("blocked:").replace('_', " "),
+        ))
+    } else {
+        Ok(key)
+    }
 }
 
 async fn writer_claim_key(state: &Arc<AppState>) -> String {
@@ -532,7 +557,9 @@ fn active_writer_compat(
     claims: &std::collections::HashMap<String, String>,
     key: &str,
 ) -> Option<String> {
-    active_writer_for_key(claims, key).or_else(|| claims.values().next().cloned())
+    // Compatibility preserves only the response field. It must never select a
+    // writer from another project/workstream/work-item partition.
+    active_writer_for_key(claims, key)
 }
 
 fn writer_id_from_headers(headers: &HeaderMap) -> Result<String, (StatusCode, Json<Value>)> {
@@ -566,13 +593,11 @@ fn require_approval(headers: &HeaderMap, reason: &str) -> Result<(), (StatusCode
     }
 }
 
-async fn ensure_writer_claim(
-    state: &Arc<AppState>,
-    headers: &HeaderMap,
+fn claim_writer_for_key(
+    claims: &mut std::collections::HashMap<String, String>,
+    key: String,
+    writer_id: String,
 ) -> Result<String, (StatusCode, Json<Value>)> {
-    let writer_id = writer_id_from_headers(headers)?;
-    let key = writer_claim_key(state).await;
-    let mut claims = state.writer_claims.write().await;
     match claims.get(&key) {
         Some(existing) if existing != &writer_id => Err(conflict(
             "continuous work loop partition already claimed by another writer",
@@ -586,12 +611,50 @@ async fn ensure_writer_claim(
     }
 }
 
+async fn ensure_writer_claim_for_work_item(
+    state: &Arc<AppState>,
+    headers: &HeaderMap,
+    work_item_id: &str,
+) -> Result<String, (StatusCode, Json<Value>)> {
+    let writer_id = writer_id_from_headers(headers)?;
+    let focusa = state.focusa.read().await;
+    let Some((project_root, continuity_id)) = active_work_loop_scope(&focusa) else {
+        return Err(work_loop_failure(
+            StatusCode::CONFLICT,
+            "writer_claim",
+            "scope_mismatch",
+            "canonical Workpoint project_root and continuity_id are required".into(),
+        ));
+    };
+    drop(focusa);
+    if work_item_id.trim().is_empty() {
+        return Err(bad_request("work item id is required for writer claim"));
+    }
+    let key = require_authoritative_claim_key(writer_claim_key_for_partition(
+        &project_root,
+        &continuity_id,
+        work_item_id,
+    ))?;
+    let mut claims = state.writer_claims.write().await;
+    claim_writer_for_key(&mut claims, key, writer_id)
+}
+
+async fn ensure_writer_claim(
+    state: &Arc<AppState>,
+    headers: &HeaderMap,
+) -> Result<String, (StatusCode, Json<Value>)> {
+    let writer_id = writer_id_from_headers(headers)?;
+    let key = require_authoritative_claim_key(writer_claim_key(state).await)?;
+    let mut claims = state.writer_claims.write().await;
+    claim_writer_for_key(&mut claims, key, writer_id)
+}
+
 async fn release_writer_claim(
     state: &Arc<AppState>,
     headers: &HeaderMap,
 ) -> Result<Option<String>, (StatusCode, Json<Value>)> {
     let writer_id = writer_id_from_headers(headers)?;
-    let key = writer_claim_key(state).await;
+    let key = require_authoritative_claim_key(writer_claim_key(state).await)?;
     let mut claims = state.writer_claims.write().await;
     match claims.get(&key) {
         Some(existing) if existing != &writer_id => Err(conflict(
@@ -607,7 +670,7 @@ async fn ensure_claimed_writer_matches_for_context(
     state: &Arc<AppState>,
     headers: &HeaderMap,
 ) -> Result<Option<String>, (StatusCode, Json<Value>)> {
-    let key = writer_claim_key(state).await;
+    let key = require_authoritative_claim_key(writer_claim_key(state).await)?;
     let active_writer = {
         let claims = state.writer_claims.read().await;
         active_writer_for_key(&claims, &key)
@@ -1548,23 +1611,22 @@ fn work_loop_execution_partition_payload(
     active_writer: Option<&str>,
     writer_claim_key: &str,
 ) -> Value {
-    let work_item_id = wl
-        .current_task
-        .as_ref()
-        .map(|task| task.work_item_id.clone());
     let parts: std::collections::HashMap<_, _> = writer_claim_key
         .split('|')
         .filter_map(|part| part.split_once(':'))
         .collect();
     json!({
         "schema": "focusa.work_loop_execution_partition.v2",
-        "project_root_key": parts.get("project").copied().unwrap_or("unknown_project_root"),
-        "workstream_key": parts.get("workstream").copied().unwrap_or("default_workstream"),
-        "work_item_key": work_item_id,
+        "project_root_key": parts.get("project").copied(),
+        "workstream_key": parts.get("workstream").copied(),
+        "work_item_key": parts.get("work_item").copied(),
+        "current_task_work_item_id": wl.current_task.as_ref().map(|task| task.work_item_id.as_str()),
         "writer_key": active_writer,
         "writer_claim_key": writer_claim_key,
         "legacy_active_writer_global": false,
-        "partition_status": if wl.current_task.is_some() { "work_item_pinned" } else { "no_active_work_item" },
+        "partition_status": if writer_claim_key.starts_with("blocked:") {
+            writer_claim_key.trim_start_matches("blocked:")
+        } else { "work_item_pinned" },
         "migration_note": "writer claims are scoped by ProjectRootKey + WorkstreamKey + WorkItemKey"
     })
 }
@@ -2649,8 +2711,6 @@ async fn enable(
         &headers,
         "continuous work enable crosses a governance boundary and must be explicitly approved",
     )?;
-    let writer_id = ensure_writer_claim(&state, &headers).await?;
-
     let preset = payload.preset.unwrap_or_default();
     let policy =
         WorkLoopPolicy::with_overrides(preset, payload.policy_overrides.unwrap_or_default());
@@ -2658,8 +2718,6 @@ async fn enable(
         project_run_id: payload.project_run_id.unwrap_or_else(Uuid::now_v7),
         policy,
     };
-    send_work_loop_action(&state, "work_loop_dispatch", action).await?;
-
     let root_work_item_id = if let Some(root) = payload.root_work_item_id.clone() {
         Some(root)
     } else {
@@ -2672,7 +2730,14 @@ async fn enable(
             .filter(|id| !id.is_empty())
     };
 
-    if let Some(parent_work_item_id) = root_work_item_id {
+    let parent_work_item_id = root_work_item_id.ok_or_else(|| {
+        bad_request("root_work_item_id or an active Focus Stack beads_issue_id is required")
+    })?;
+    let writer_id =
+        ensure_writer_claim_for_work_item(&state, &headers, &parent_work_item_id).await?;
+    send_work_loop_action(&state, "work_loop_dispatch", action).await?;
+
+    {
         send_work_loop_action(
             &state,
             "work_loop_select_next",
@@ -2703,7 +2768,7 @@ async fn pause(
     }
 
     let writer_id = writer_id_from_headers(&headers)?;
-    let claim_key = writer_claim_key(&state).await;
+    let claim_key = require_authoritative_claim_key(writer_claim_key(&state).await)?;
     let active_writer = {
         let claims = state.writer_claims.read().await;
         active_writer_for_key(&claims, &claim_key)
@@ -3731,6 +3796,168 @@ mod tests {
             "/home/wirebot/focusa",
             "cont-focusa"
         ));
+    }
+
+    #[test]
+    fn writer_claim_keys_isolate_project_continuity_and_work_item() {
+        let base = writer_claim_key_for_partition(
+            "/home/wirebot/focusa",
+            "cont-focusa",
+            "focusa-workloop-completion.1",
+        );
+        let other_project = writer_claim_key_for_partition(
+            "/home/wirebot/other",
+            "cont-focusa",
+            "focusa-workloop-completion.1",
+        );
+        let other_continuity = writer_claim_key_for_partition(
+            "/home/wirebot/focusa",
+            "cont-other",
+            "focusa-workloop-completion.1",
+        );
+        let other_work_item = writer_claim_key_for_partition(
+            "/home/wirebot/focusa",
+            "cont-focusa",
+            "focusa-workloop-completion.2",
+        );
+
+        assert_ne!(base, other_project);
+        assert_ne!(base, other_continuity);
+        assert_ne!(base, other_work_item);
+        assert_eq!(
+            base,
+            "project:/home/wirebot/focusa|workstream:cont-focusa|work_item:focusa-workloop-completion.1"
+        );
+    }
+
+    #[test]
+    fn writer_lookup_never_falls_back_across_partitions() {
+        let claimed_key = writer_claim_key_for_partition(
+            "/home/wirebot/focusa",
+            "cont-focusa",
+            "focusa-workloop-completion.1",
+        );
+        let unclaimed_key = writer_claim_key_for_partition(
+            "/home/wirebot/focusa",
+            "cont-other",
+            "focusa-workloop-completion.1",
+        );
+        let claims = std::collections::HashMap::from([(
+            claimed_key.clone(),
+            "writer-focusa-cont-1".to_string(),
+        )]);
+
+        assert_eq!(
+            active_writer_compat(&claims, &claimed_key).as_deref(),
+            Some("writer-focusa-cont-1")
+        );
+        assert_eq!(active_writer_compat(&claims, &unclaimed_key), None);
+    }
+
+    #[test]
+    fn writer_claim_runtime_isolates_concurrent_partitions() {
+        let project_continuity_one = writer_claim_key_for_partition(
+            "/home/wirebot/focusa",
+            "cont-one",
+            "focusa-workloop-completion.1",
+        );
+        let project_continuity_two = writer_claim_key_for_partition(
+            "/home/wirebot/focusa",
+            "cont-two",
+            "focusa-workloop-completion.1",
+        );
+        let second_work_item = writer_claim_key_for_partition(
+            "/home/wirebot/focusa",
+            "cont-one",
+            "focusa-workloop-completion.2",
+        );
+        let mut claims = std::collections::HashMap::new();
+
+        assert_eq!(
+            claim_writer_for_key(
+                &mut claims,
+                project_continuity_one.clone(),
+                "writer-one".to_string(),
+            )
+            .unwrap(),
+            "writer-one"
+        );
+        assert_eq!(
+            claim_writer_for_key(
+                &mut claims,
+                project_continuity_two.clone(),
+                "writer-two".to_string(),
+            )
+            .unwrap(),
+            "writer-two"
+        );
+        assert_eq!(
+            claim_writer_for_key(
+                &mut claims,
+                second_work_item.clone(),
+                "writer-three".to_string(),
+            )
+            .unwrap(),
+            "writer-three"
+        );
+        assert_eq!(claims.len(), 3);
+        assert_eq!(
+            active_writer_for_key(&claims, &project_continuity_one).as_deref(),
+            Some("writer-one")
+        );
+        assert_eq!(
+            active_writer_for_key(&claims, &project_continuity_two).as_deref(),
+            Some("writer-two")
+        );
+        assert_eq!(
+            active_writer_for_key(&claims, &second_work_item).as_deref(),
+            Some("writer-three")
+        );
+
+        let rejected = claim_writer_for_key(
+            &mut claims,
+            project_continuity_one,
+            "late-writer".to_string(),
+        )
+        .unwrap_err();
+        assert_eq!(rejected.0, StatusCode::CONFLICT);
+        assert_eq!(claims.len(), 3);
+    }
+
+    #[test]
+    fn execution_partition_payload_reports_claimed_work_item_key() {
+        let wl = focusa_core::types::WorkLoopState::default();
+        let claim_key = writer_claim_key_for_partition(
+            "/home/wirebot/focusa",
+            "cont-one",
+            "focusa-workloop-completion.1",
+        );
+        let payload = work_loop_execution_partition_payload(&wl, Some("writer-one"), &claim_key);
+
+        assert_eq!(payload["project_root_key"], json!("/home/wirebot/focusa"));
+        assert_eq!(payload["workstream_key"], json!("cont-one"));
+        assert_eq!(
+            payload["work_item_key"],
+            json!("focusa-workloop-completion.1")
+        );
+        assert_eq!(payload["current_task_work_item_id"], Value::Null);
+        assert_eq!(payload["writer_key"], json!("writer-one"));
+    }
+
+    #[test]
+    fn writer_claim_key_fails_closed_without_complete_partition() {
+        assert_eq!(
+            writer_claim_key_for_partition("", "cont-focusa", "item-1"),
+            "blocked:canonical_workpoint_scope_required"
+        );
+        assert_eq!(
+            writer_claim_key_for_partition("/home/wirebot/focusa", "", "item-1"),
+            "blocked:canonical_workpoint_scope_required"
+        );
+        assert_eq!(
+            writer_claim_key_for_partition("/home/wirebot/focusa", "cont-focusa", ""),
+            "blocked:active_work_item_required"
+        );
     }
 
     fn sample_ledger_entry(
