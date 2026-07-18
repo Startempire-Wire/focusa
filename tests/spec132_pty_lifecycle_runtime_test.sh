@@ -17,7 +17,12 @@ jq -e '.schema == "focusa.install_preflight.v1" and .read_only == true and .muta
 # A real pseudo-terminal invocation in plain mode must not enter alternate
 # screen or emit cursor-control escapes; durable plain output remains visible.
 command -v script >/dev/null || { echo "FAIL: script(1) is required" >&2; exit 1; }
-script -qfec "HOME='$TMP/home' TERM=xterm FOCUSA_INSTALL_UI=plain '$BIN' install --preflight --quiet" "$TMP/pty.out" >/dev/null 2>&1
+if script --version 2>&1 | grep -qi 'util-linux'; then
+  script -qfec "HOME='$TMP/home' TERM=xterm FOCUSA_INSTALL_UI=plain '$BIN' install --preflight --quiet" "$TMP/pty.out" >/dev/null 2>&1
+else
+  script -q "$TMP/pty.out" env HOME="$TMP/home" TERM=xterm FOCUSA_INSTALL_UI=plain \
+    "$BIN" install --preflight --quiet >/dev/null 2>&1
+fi
 ! grep -qE $'\033\[\?1049h|\033\[\?1049l|\033\[\?25[lh]' "$TMP/pty.out"
 grep -q 'install preflight' "$TMP/pty.out"
 
