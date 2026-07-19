@@ -114,6 +114,8 @@ pub struct CloseArgs {
     pub evidence_ref: Vec<String>,
     #[arg(long)]
     pub profile: Option<String>,
+    #[arg(long)]
+    pub summary: Option<String>,
     /// Break glass and bypass normal evidence validation. Requires --reason.
     #[arg(long)]
     pub override_: bool,
@@ -310,7 +312,10 @@ async fn run_close(args: CloseArgs) -> Result<()> {
     let actor = resolve_actor(args.actor.clone());
     let work_item = build_work_item_ref(&args.id);
     let kind = ClosureKind::Code;
-    let summary = format!("closed via focusa (workpoint: {})", args.from_workpoint);
+    let summary = args
+        .summary
+        .clone()
+        .unwrap_or_else(|| format!("closed via focusa (workpoint: {})", args.from_workpoint));
 
     let selected_profile = args
         .profile
