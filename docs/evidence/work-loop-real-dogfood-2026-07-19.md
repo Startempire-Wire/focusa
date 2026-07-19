@@ -49,3 +49,39 @@ No tracked source files were modified by the failed Pi run.
 - `focusa-workloop-completion.9.2` — authoritative spec/acceptance packet grounding
 - `focusa-workloop-completion.9.3` — normative dependency order and blocker-churn prevention
 - `focusa-workloop-completion.9.4` — repeat real dogfood and require one material evidence-closed task
+
+## Final bounded rerun verdict
+
+**PASS — the real Work Loop materially implemented, tested, committed, and evidence-closed real Spec133 work.**
+
+The rerun used the same real BD graph, root `focusa-a6yq6`, branch daemon, and installed Pi RPC/model. No fake provider, fake graph, or fake Pi was introduced. The oversized `.3.3` leaf was decomposed into ordered §23 child beads after runtime evidence showed that lifecycle, observation/SSE, input, and config were independently verifiable slices.
+
+### Autonomous implementation proof
+
+The supervised Pi produced these real source commits while remaining under the Spec133 root:
+
+- `a3710e1` — lifecycle API surface
+- `d86c62f` — exact run generation persistence
+- `4fc09f0` — exact event resume cursor
+- `45c9157` — §23 route registration and tests
+- `3085ad1` — resumed-event generation fencing
+- `82f86c6` — durable run status
+- `f9b39e2` — durable observation projections
+
+Focused verification passed: 9/9 `routes::silent_sessions` API tests and `cargo check -p focusa-api`. Provider-neutral scoped closure reconciled:
+
+- `focusa-a6yq6.3.3.1` via claim `claim_bd_019f7b63a70e7363`
+- `focusa-a6yq6.3.3.2` via claim `claim_bd_019f7b63ace37430`
+
+The provider reports both child beads `closed`. Remaining `.3.3` children preserve explicit lifecycle-mutation, interactive-input, and transactional-config gaps; the parent remains open and cannot be falsely promoted.
+
+### Dogfood defects fixed during the rerun
+
+1. Child Pi now inherits the owning branch daemon endpoint and exact cwd.
+2. Headless Pi uses warn-only vital information and documented extension UI responses.
+3. Supervised Pi disables extension, skill, and prompt-template discovery so daemon governance remains the sole orchestration authority.
+4. Post-turn root selection no longer falls back to global ready work.
+5. Outcome governance waits for `agent_end`, not intermediate tool `turn_end` events.
+6. Productive `Continue` cycles no longer consume retry/failure budgets or trigger completion-only evidence gates.
+
+The branch daemon, heartbeat, and Pi process tree were terminated after proof collection. No live daemon, deployment, push, merge, or release was mutated.
