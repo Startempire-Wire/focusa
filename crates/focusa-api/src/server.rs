@@ -775,7 +775,6 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
             last_event_kind,
             last_event_seq,
             status_heartbeat_ms,
-            last_blocker_reason,
             last_continue_reason,
             current_task_id,
             execution_scope,
@@ -790,7 +789,6 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                 s.work_loop.last_transport_event_kind.clone(),
                 Some(s.work_loop.last_transport_event_sequence),
                 s.work_loop.policy.status_heartbeat_ms,
-                s.work_loop.last_blocker_reason.clone(),
                 s.work_loop.last_continue_reason.clone(),
                 s.work_loop
                     .current_task
@@ -854,47 +852,9 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
         }
 
         if enabled {
-            let budget_exhausted =
-                matches!(status, WorkLoopStatus::Paused | WorkLoopStatus::Blocked)
-                    && last_blocker_reason
-                        .as_deref()
-                        .map(|reason| {
-                            reason.contains("max_turns budget exhausted")
-                                || reason.contains("max_wall_clock_ms budget exhausted")
-                        })
-                        .unwrap_or(false);
-
-            if budget_exhausted
-                && let (Some(scope), Some(work_item_id), Some(workpoint_id)) = (
-                    execution_scope.clone(),
-                    execution_work_item_id.clone(),
-                    execution_workpoint_id,
-                )
-            {
-                let policy = WorkLoopPolicy::with_overrides(
-                    WorkLoopPreset::Push,
-                    WorkLoopPolicyOverrides {
-                        max_turns: Some(100_000),
-                        max_wall_clock_ms: Some(2_592_000_000),
-                        max_retries: Some(1_000),
-                        max_consecutive_low_productivity_turns: Some(1_000),
-                        max_consecutive_failures: Some(1_000),
-                        max_same_subproblem_retries: Some(1_000),
-                        ..WorkLoopPolicyOverrides::default()
-                    },
-                );
-                let _ = state
-                    .command_tx
-                    .send(Action::EnableContinuousWork {
-                        project_run_id: Uuid::now_v7(),
-                        policy,
-                        scope,
-                        work_item_id,
-                        workpoint_id,
-                    })
-                    .await;
-            }
-
+            // Exhausted budgets remain paused until an explicitly approved
+            // resume request renews the epoch; the supervisor never silently
+            // inflates policy limits or resets counters.
             let (Some(scope), Some(work_item_id)) =
                 (execution_scope.as_ref(), execution_work_item_id.as_deref())
             else {

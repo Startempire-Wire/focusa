@@ -31,6 +31,7 @@
   let checkpoints = $derived(records(checkpointsPayload, ['checkpoints', 'items', 'records']));
   let activeTask = $derived(status.current_task ?? status.work_loop?.current_task ?? {});
   let partition = $derived(status.execution_partition ?? health.execution_partition ?? {});
+  let budget = $derived(status.budget_remaining ?? health.budget_remaining ?? {});
   let typedState = $derived(
     status.schema === 'focusa.work_loop_status.v3' &&
     ['absent', 'unavailable', 'stale', 'unsupported', 'blocked', 'zero', 'healthy'].includes(status.state)
@@ -73,6 +74,10 @@
       <p>{text(partition.project_root_key, 'unbound project')}</p>
       <p class="muted">continuity {text(partition.workstream_key, 'unbound')} · work item {text(partition.work_item_key, 'unbound')}</p>
       <p class="muted">fence {text(partition.fencing_token, 'none')} · expires {text(partition.lease_expires_at, 'not leased')}</p>
+      <p class="muted">budget {text(budget.state, 'unknown')} · wall clock {text(budget.remaining_wall_clock_ms, 'unbounded')} ms</p>
+      {#if budget.exhaustion}
+        <p class="warn">{text(budget.exhaustion.dimension)} exhausted · approved renew_budget resume required</p>
+      {/if}
     </article>
 
     <article class="panel">

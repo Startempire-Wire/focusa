@@ -3517,17 +3517,40 @@ export function registerTools(pi: ExtensionAPI) {
       ),
       root_work_item_id: Type.Optional(
         Type.String({
-          description: "Optional root BD/task/item id. If omitted, tool infers from active task or bd ready.",
+          description: "Optional root provider WorkItem id. If omitted, infer from the active scoped task.",
         })
       ),
+      renew_budget: Type.Optional(
+        Type.Boolean({ description: "Explicitly start a fresh budget epoch when action=resume." })
+      ),
+      max_turns: Type.Optional(Type.Number({ minimum: 1 })),
+      max_wall_clock_ms: Type.Optional(Type.Number({ minimum: 1000 })),
+      max_retries: Type.Optional(Type.Number({ minimum: 0 })),
+      cooldown_ms: Type.Optional(Type.Number({ minimum: 0 })),
     }),
     async execute(_id, params) {
-      const { action, reason, preset, preflight, root_work_item_id } = params as {
+      const {
+        action,
+        reason,
+        preset,
+        preflight,
+        root_work_item_id,
+        renew_budget,
+        max_turns,
+        max_wall_clock_ms,
+        max_retries,
+        cooldown_ms,
+      } = params as {
         action: "on" | "pause" | "resume" | "stop";
         reason?: string;
         preset?: "conservative" | "balanced" | "push" | "audit";
         preflight?: boolean;
         root_work_item_id?: string;
+        renew_budget?: boolean;
+        max_turns?: number;
+        max_wall_clock_ms?: number;
+        max_retries?: number;
+        cooldown_ms?: number;
       };
       const writerId = await preferredWriterId();
 
@@ -3564,10 +3587,11 @@ export function registerTools(pi: ExtensionAPI) {
           preset: preset || getAttachmentRuntime().cfg?.workLoopPreset || "balanced",
           root_work_item_id: rootWorkItemId || undefined,
           policy_overrides: {
-            max_turns: getAttachmentRuntime().cfg?.workLoopMaxTurns,
-            max_wall_clock_ms: getAttachmentRuntime().cfg?.workLoopMaxWallClockMs,
-            max_retries: getAttachmentRuntime().cfg?.workLoopMaxRetries,
-            cooldown_ms: getAttachmentRuntime().cfg?.workLoopCooldownMs,
+            max_turns: max_turns ?? getAttachmentRuntime().cfg?.workLoopMaxTurns,
+            max_wall_clock_ms:
+              max_wall_clock_ms ?? getAttachmentRuntime().cfg?.workLoopMaxWallClockMs,
+            max_retries: max_retries ?? getAttachmentRuntime().cfg?.workLoopMaxRetries,
+            cooldown_ms: cooldown_ms ?? getAttachmentRuntime().cfg?.workLoopCooldownMs,
             allow_destructive_actions: getAttachmentRuntime().cfg?.workLoopAllowDestructiveActions,
             require_operator_for_governance: getAttachmentRuntime().cfg?.workLoopRequireOperatorForGovernance,
             require_operator_for_scope_change:
@@ -3626,9 +3650,31 @@ export function registerTools(pi: ExtensionAPI) {
             : "/work-loop/stop";
       const res = await focusaFetchDetailed(route, {
         method: "POST",
-        headers: writerLeaseHeaders(writerId, lease),
+        headers: {
+          ...writerLeaseHeaders(writerId, lease),
+          ...(action === "resume" &&
+          (renew_budget ||
+            max_turns !== undefined ||
+            max_wall_clock_ms !== undefined ||
+            max_retries !== undefined ||
+            cooldown_ms !== undefined)
+            ? { "x-focusa-approval": "approved" }
+            : {}),
+        },
         body: JSON.stringify({
           reason: reason?.slice(0, 200) || `operator ${action} via focusa_work_loop_control`,
+          ...(action === "resume"
+            ? {
+                renew_budget: renew_budget || false,
+                policy_overrides:
+                  max_turns !== undefined ||
+                  max_wall_clock_ms !== undefined ||
+                  max_retries !== undefined ||
+                  cooldown_ms !== undefined
+                    ? { max_turns, max_wall_clock_ms, max_retries, cooldown_ms }
+                    : undefined,
+              }
+            : {}),
         }),
       });
       if (res.ok) {

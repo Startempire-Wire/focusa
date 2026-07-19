@@ -1758,7 +1758,12 @@ pub fn reduce_with_meta(
                 "project mission active; constraints and verification posture inherited from current state"
                     .to_string(),
             );
-            state.work_loop.enabled_at = Some(Utc::now());
+            let now = Utc::now();
+            state.work_loop.enabled_at = Some(now);
+            state.work_loop.budget_epoch_id = Some(Uuid::now_v7());
+            state.work_loop.budget_epoch_started_at = Some(now);
+            state.work_loop.budget_renewal_count = 0;
+            state.work_loop.budget_exhaustion = None;
             state.work_loop.last_turn_requested_at = None;
             state.work_loop.turn_count = 0;
             state.work_loop.consecutive_failures_for_task_class = 0;
@@ -1779,6 +1784,9 @@ pub fn reduce_with_meta(
             state.work_loop.current_task = None;
             state.work_loop.last_continue_reason = Some(reason);
             state.work_loop.enabled_at = None;
+            state.work_loop.budget_epoch_id = None;
+            state.work_loop.budget_epoch_started_at = None;
+            state.work_loop.budget_exhaustion = None;
             state.work_loop.last_turn_requested_at = None;
         }
         FocusaEvent::ContinuousPauseFlagsUpdated {
@@ -2055,19 +2063,43 @@ pub fn reduce_with_meta(
             state.work_loop.last_continue_reason = Some(reason);
             state.work_loop.run.tranche_run_id = None;
         }
-        FocusaEvent::ContinuousLoopBudgetExhausted { reason } => {
+        FocusaEvent::ContinuousLoopBudgetExhausted { dimension, reason } => {
             state.work_loop.status = WorkLoopStatus::Paused;
-            state.work_loop.last_blocker_reason = Some(reason);
+            state.work_loop.last_blocker_reason = Some(reason.clone());
+            state.work_loop.budget_exhaustion = Some(WorkLoopBudgetExhaustion {
+                dimension,
+                reason,
+                exhausted_at: Utc::now(),
+                epoch_id: state.work_loop.budget_epoch_id.unwrap_or_else(Uuid::now_v7),
+            });
         }
         FocusaEvent::ContinuousLoopTransportDegraded { reason } => {
             state.work_loop.status = WorkLoopStatus::TransportDegraded;
             state.work_loop.last_blocker_reason = Some(reason);
         }
-        FocusaEvent::ContinuousLoopResumed { reason } => {
+        FocusaEvent::ContinuousLoopResumed {
+            reason,
+            budget_renewed,
+            policy,
+        } => {
             state.work_loop.status = WorkLoopStatus::Idle;
             state.work_loop.pause_flags = WorkLoopPauseFlags::default();
             state.work_loop.last_safe_reentry_prompt_basis = Some(reason.clone());
             state.work_loop.last_continue_reason = Some(reason);
+            if let Some(policy) = policy {
+                state.work_loop.policy = policy;
+            }
+            if budget_renewed {
+                state.work_loop.budget_epoch_id = Some(Uuid::now_v7());
+                state.work_loop.budget_epoch_started_at = Some(Utc::now());
+                state.work_loop.budget_renewal_count =
+                    state.work_loop.budget_renewal_count.saturating_add(1);
+                state.work_loop.budget_exhaustion = None;
+                state.work_loop.turn_count = 0;
+                state.work_loop.consecutive_failures_for_task_class = 0;
+                state.work_loop.consecutive_low_productivity_turns = 0;
+                state.work_loop.consecutive_same_work_item_retries = 0;
+            }
         }
         FocusaEvent::ContinuousLoopRecoveryCheckpointed {
             checkpoint_id,
@@ -5778,6 +5810,48 @@ mod tests {
         assert_eq!(stopped.work_loop.execution_scope, None);
         assert_eq!(stopped.work_loop.execution_work_item_id, None);
         assert_eq!(stopped.work_loop.execution_workpoint_id, None);
+    }
+
+    #[test]
+    fn budget_exhaustion_and_explicit_renewal_create_new_epoch() {
+        let mut state = fresh_state();
+        let initial_epoch = Uuid::now_v7();
+        state.work_loop.budget_epoch_id = Some(initial_epoch);
+        state.work_loop.budget_epoch_started_at = Some(Utc::now() - chrono::Duration::minutes(5));
+        state.work_loop.turn_count = 30;
+        let exhausted = reduce(
+            state,
+            FocusaEvent::ContinuousLoopBudgetExhausted {
+                dimension: WorkLoopBudgetDimension::WallClock,
+                reason: "max_wall_clock_ms budget exhausted".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(exhausted.work_loop.status, WorkLoopStatus::Paused);
+        assert_eq!(
+            exhausted
+                .work_loop
+                .budget_exhaustion
+                .as_ref()
+                .map(|entry| entry.dimension),
+            Some(WorkLoopBudgetDimension::WallClock)
+        );
+        let renewed = reduce(
+            exhausted,
+            FocusaEvent::ContinuousLoopResumed {
+                reason: "approved renewal".to_string(),
+                budget_renewed: true,
+                policy: None,
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(renewed.work_loop.status, WorkLoopStatus::Idle);
+        assert!(renewed.work_loop.budget_exhaustion.is_none());
+        assert_ne!(renewed.work_loop.budget_epoch_id, Some(initial_epoch));
+        assert_eq!(renewed.work_loop.budget_renewal_count, 1);
+        assert_eq!(renewed.work_loop.turn_count, 0);
     }
 
     #[test]

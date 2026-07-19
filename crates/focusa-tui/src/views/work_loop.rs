@@ -141,6 +141,44 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
             }
         }
 
+        if let Some(budget) = loop_status.and_then(|value| value.get("budget_remaining")) {
+            let budget_state = budget
+                .get("state")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown");
+            lines.push(metric(
+                "  Budget state",
+                budget_state,
+                if budget_state == "exhausted" {
+                    theme::status_err()
+                } else {
+                    theme::value()
+                },
+            ));
+            if let Some(remaining) = budget.get("remaining_wall_clock_ms") {
+                lines.push(metric(
+                    "  Wall-clock remaining",
+                    remaining.to_string(),
+                    theme::value(),
+                ));
+            }
+            if let Some(dimension) = budget
+                .pointer("/exhaustion/dimension")
+                .and_then(Value::as_str)
+            {
+                lines.push(metric(
+                    "  Exhausted dimension",
+                    dimension,
+                    theme::status_err(),
+                ));
+                lines.push(metric(
+                    "  Budget recovery",
+                    "approved resume with renew_budget=true",
+                    theme::highlight(),
+                ));
+            }
+        }
+
         if let Some(task) = loop_status
             .and_then(|value| value.get("current_task"))
             .and_then(|value| value.get("work_item_id"))

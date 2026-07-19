@@ -3757,8 +3757,21 @@ Return:
                 },
             ]),
 
-            Action::ResumeContinuousWork { reason } => {
-                Ok(vec![FocusaEvent::ContinuousLoopResumed { reason }])
+            Action::ResumeContinuousWork {
+                reason,
+                renew_budget,
+                policy,
+            } => {
+                if self.state.work_loop.budget_exhaustion.is_some() && !renew_budget {
+                    return Err(anyhow::anyhow!(
+                        "budget is exhausted; resume requires explicit renew_budget=true"
+                    ));
+                }
+                Ok(vec![FocusaEvent::ContinuousLoopResumed {
+                    reason,
+                    budget_renewed: renew_budget,
+                    policy,
+                }])
             }
 
             Action::StopContinuousWork { reason } => Ok(vec![
@@ -3846,7 +3859,7 @@ Return:
                         })
                         .unwrap_or(false);
                 let elapsed_ms = wl
-                    .enabled_at
+                    .budget_epoch_started_at
                     .map(|ts| (chrono::Utc::now() - ts).num_milliseconds().max(0) as u64)
                     .unwrap_or(0);
 
@@ -3859,6 +3872,7 @@ Return:
                 {
                     return Ok(vec![
                         FocusaEvent::ContinuousLoopBudgetExhausted {
+                            dimension: WorkLoopBudgetDimension::Retries,
                             reason: "max_retries budget exhausted".to_string(),
                         },
                         FocusaEvent::ContinuousLoopRecoveryCheckpointed {
@@ -3872,6 +3886,7 @@ Return:
                 {
                     return Ok(vec![
                         FocusaEvent::ContinuousLoopBudgetExhausted {
+                            dimension: WorkLoopBudgetDimension::ConsecutiveFailures,
                             reason: "max_consecutive_failures budget exhausted".to_string(),
                         },
                         FocusaEvent::ContinuousLoopRecoveryCheckpointed {
@@ -3961,6 +3976,7 @@ Return:
                 {
                     return Ok(vec![
                         FocusaEvent::ContinuousLoopBudgetExhausted {
+                            dimension: WorkLoopBudgetDimension::Turns,
                             reason: "max_turns budget exhausted".to_string(),
                         },
                         FocusaEvent::ContinuousLoopRecoveryCheckpointed {
@@ -3977,6 +3993,7 @@ Return:
                 {
                     return Ok(vec![
                         FocusaEvent::ContinuousLoopBudgetExhausted {
+                            dimension: WorkLoopBudgetDimension::WallClock,
                             reason: "max_wall_clock_ms budget exhausted".to_string(),
                         },
                         FocusaEvent::ContinuousLoopRecoveryCheckpointed {

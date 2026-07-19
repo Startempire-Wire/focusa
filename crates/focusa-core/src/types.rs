@@ -166,6 +166,27 @@ pub enum WorkLoopOutcomeStatus {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
+pub enum WorkLoopBudgetDimension {
+    #[default]
+    Unknown,
+    Turns,
+    WallClock,
+    Retries,
+    ConsecutiveFailures,
+    LowProductivity,
+    SameSubproblem,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkLoopBudgetExhaustion {
+    pub dimension: WorkLoopBudgetDimension,
+    pub reason: String,
+    pub exhausted_at: DateTime<Utc>,
+    pub epoch_id: Uuid,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
 pub enum WorkItemLifecycle {
     #[default]
     Ready,
@@ -353,52 +374,56 @@ impl WorkLoopPolicy {
 
     pub fn with_overrides(preset: WorkLoopPreset, overrides: WorkLoopPolicyOverrides) -> Self {
         let mut policy = Self::for_preset(preset);
+        policy.apply_overrides(overrides);
+        policy
+    }
+
+    pub fn apply_overrides(&mut self, overrides: WorkLoopPolicyOverrides) {
         if let Some(v) = overrides.work_item_provider {
-            policy.work_item_provider = v;
+            self.work_item_provider = v;
         }
         if let Some(v) = overrides.max_turns {
-            policy.max_turns = Some(v);
+            self.max_turns = Some(v);
         }
         if let Some(v) = overrides.max_wall_clock_ms {
-            policy.max_wall_clock_ms = Some(v);
+            self.max_wall_clock_ms = Some(v);
         }
         if let Some(v) = overrides.max_retries {
-            policy.max_retries = v;
+            self.max_retries = v;
         }
         if let Some(v) = overrides.cooldown_ms {
-            policy.cooldown_ms = v;
+            self.cooldown_ms = v;
         }
         if let Some(v) = overrides.allow_destructive_actions {
-            policy.allow_destructive_actions = v;
+            self.allow_destructive_actions = v;
         }
         if let Some(v) = overrides.require_operator_for_governance {
-            policy.require_operator_for_governance = v;
+            self.require_operator_for_governance = v;
         }
         if let Some(v) = overrides.require_operator_for_scope_change {
-            policy.require_operator_for_scope_change = v;
+            self.require_operator_for_scope_change = v;
         }
         if let Some(v) = overrides.require_verification_before_persist {
-            policy.require_verification_before_persist = v;
+            self.require_verification_before_persist = v;
         }
         if let Some(v) = overrides.max_consecutive_low_productivity_turns {
-            policy.max_consecutive_low_productivity_turns = v;
+            self.max_consecutive_low_productivity_turns = v;
         }
         if let Some(v) = overrides.max_consecutive_failures {
-            policy.max_consecutive_failures = v;
+            self.max_consecutive_failures = v;
         }
         if let Some(v) = overrides.auto_pause_on_operator_message {
-            policy.auto_pause_on_operator_message = v;
+            self.auto_pause_on_operator_message = v;
         }
         if let Some(v) = overrides.require_explainable_continue_reason {
-            policy.require_explainable_continue_reason = v;
+            self.require_explainable_continue_reason = v;
         }
         if let Some(v) = overrides.max_same_subproblem_retries {
-            policy.max_same_subproblem_retries = v;
+            self.max_same_subproblem_retries = v;
         }
         if let Some(v) = overrides.status_heartbeat_ms {
-            policy.status_heartbeat_ms = v;
+            self.status_heartbeat_ms = v;
         }
-        policy
     }
 }
 
@@ -502,6 +527,14 @@ pub struct WorkLoopState {
     pub last_transport_event_sequence: u64,
     pub transport_abort_reason: Option<String>,
     pub enabled_at: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub budget_epoch_id: Option<Uuid>,
+    #[serde(default)]
+    pub budget_epoch_started_at: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub budget_renewal_count: u32,
+    #[serde(default)]
+    pub budget_exhaustion: Option<WorkLoopBudgetExhaustion>,
     pub last_turn_requested_at: Option<DateTime<Utc>>,
     pub turn_count: u32,
     pub consecutive_failures_for_task_class: u32,
@@ -3635,6 +3668,7 @@ pub enum FocusaEvent {
         reason: String,
     },
     ContinuousLoopBudgetExhausted {
+        dimension: WorkLoopBudgetDimension,
         reason: String,
     },
     ContinuousLoopTransportDegraded {
@@ -3642,6 +3676,10 @@ pub enum FocusaEvent {
     },
     ContinuousLoopResumed {
         reason: String,
+        #[serde(default)]
+        budget_renewed: bool,
+        #[serde(default)]
+        policy: Option<WorkLoopPolicy>,
     },
     ContinuousAuthorshipDelegated {
         delegate_id: String,
@@ -4269,6 +4307,8 @@ pub enum Action {
     },
     ResumeContinuousWork {
         reason: String,
+        renew_budget: bool,
+        policy: Option<WorkLoopPolicy>,
     },
     StopContinuousWork {
         reason: String,

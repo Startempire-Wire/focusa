@@ -40,12 +40,13 @@ const WRITER_LEASE_TTL_MS: i64 = 30_000;
 const APPROVAL_HEADER: &str = "x-focusa-approval";
 const WORK_LOOP_STATUS_SCHEMA: &str = "focusa.work_loop_status.v3";
 const WORK_LOOP_REPLAY_SCHEMA: &str = "focusa.work_loop_replay.v2";
-const WORK_LOOP_TYPED_STATES: [&str; 7] = [
+const WORK_LOOP_TYPED_STATES: [&str; 8] = [
     "absent",
     "unavailable",
     "stale",
     "unsupported",
     "blocked",
+    "exhausted",
     "zero",
     "healthy",
 ];
@@ -302,6 +303,14 @@ pub struct EnableWorkLoopRequest {
 #[derive(Debug, Deserialize)]
 pub struct ReasonRequest {
     pub reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ResumeWorkLoopRequest {
+    pub reason: Option<String>,
+    #[serde(default)]
+    pub renew_budget: bool,
+    pub policy_overrides: Option<WorkLoopPolicyOverrides>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -1584,10 +1593,19 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
 fn budget_remaining_for_status(wl: &focusa_core::types::WorkLoopState) -> Value {
     let policy = &wl.policy;
     let elapsed_ms = wl
-        .enabled_at
+        .budget_epoch_started_at
         .map(|ts| (Utc::now() - ts).num_milliseconds().max(0) as u64)
         .unwrap_or(0);
     json!({
+        "epoch_id": wl.budget_epoch_id,
+        "epoch_started_at": wl.budget_epoch_started_at,
+        "renewal_count": wl.budget_renewal_count,
+        "state": if wl.budget_exhaustion.is_some() { "exhausted" } else { "active" },
+        "exhaustion": wl.budget_exhaustion,
+        "renewal": {
+            "authorized_action": "POST /v1/work-loop/resume with {\"renew_budget\":true}",
+            "requires_explicit_approval": true,
+        },
         "max_turns": policy.max_turns,
         "max_wall_clock_ms": policy.max_wall_clock_ms,
         "max_retries": policy.max_retries,
@@ -2413,6 +2431,8 @@ fn work_loop_status_surface_state(
 ) -> &'static str {
     if wl.status == focusa_core::types::WorkLoopStatus::TransportDegraded {
         "unavailable"
+    } else if wl.budget_exhaustion.is_some() {
+        "exhausted"
     } else if boundary_reason.is_some()
         || wl.pause_flags.operator_override_active
         || wl.pause_flags.destructive_confirmation_required
@@ -2981,20 +3001,35 @@ async fn resume(
     scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
-    Json(payload): Json<ReasonRequest>,
+    Json(payload): Json<ResumeWorkLoopRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let permissions = permission_context(&headers, state.config.auth_token.is_some());
     if !permissions.allows("work-loop:write") {
         return Err(forbid("work-loop:write"));
     }
+    if payload.renew_budget || payload.policy_overrides.is_some() {
+        require_approval(
+            &headers,
+            "renewing or changing Work Loop budgets requires explicit approval",
+        )?;
+    }
 
     let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
+    let policy = if let Some(overrides) = payload.policy_overrides {
+        let mut policy = state.focusa.read().await.work_loop.policy.clone();
+        policy.apply_overrides(overrides);
+        Some(policy)
+    } else {
+        None
+    };
 
     send_work_loop_action(
         &state,
         "work_loop_resume",
         Action::ResumeContinuousWork {
             reason: payload.reason.unwrap_or_default(),
+            renew_budget: payload.renew_budget,
+            policy,
         },
     )
     .await?;
