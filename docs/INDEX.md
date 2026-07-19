@@ -43,8 +43,8 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | 10  | [10-monorepo-layout.md](10-monorepo-layout.md)             | Monorepo layout                                   |
 | 11  | [11-menubar-ui-spec.md](11-menubar-ui-spec.md)             | Older menubar UI design direction; reconcile with current audit/spec before implementation |
 | current | [current/TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md](current/TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md) | Current Tauri menubar lag-behind audit |
-| current | [current/TAURI_MENUBAR_UP_TO_SPEED_SPEC.md](current/TAURI_MENUBAR_UP_TO_SPEED_SPEC.md) | Current implementation spec for a fully up-to-speed runtime cockpit app |
-| current | [current/TAURI_MENUBAR_IMPLEMENTATION_GAPS.md](current/TAURI_MENUBAR_IMPLEMENTATION_GAPS.md) | Remaining implementation gaps and first implementation slice for the menubar cockpit |
+| current | [current/TAURI_MENUBAR_UP_TO_SPEED_SPEC.md](current/TAURI_MENUBAR_UP_TO_SPEED_SPEC.md) | Current implementation spec for a fully up-to-speed runtime app |
+| current | [current/TAURI_MENUBAR_IMPLEMENTATION_GAPS.md](current/TAURI_MENUBAR_IMPLEMENTATION_GAPS.md) | Remaining implementation gaps and first implementation slice for the menubar runtime view |
 | current | [current/FOCUSA_BRAIN_BODY_ANALOGY_GAP_MAP.md](current/FOCUSA_BRAIN_BODY_ANALOGY_GAP_MAP.md) | Whole-organism brain/body analogy, maturity gaps, and exhaustive docs cross-reference |
 | current | [current/FOCUSA_FEATURE_MATURITY_AUDIT_2026-05-26.md](current/FOCUSA_FEATURE_MATURITY_AUDIT_2026-05-26.md) | Code-based 1–10 feature maturity ratings and underdeveloped workflow gaps |
 | current | [current/DATASET_PREDICTION_SUBSTRATE.md](current/DATASET_PREDICTION_SUBSTRATE.md) | Dataset-agnostic prediction substrate, with stocks as the first domain adapter |
@@ -188,13 +188,14 @@ Spec 135 and companions form one required implementation and closure set.
 
 | # | File | Subsystem |
 | --- | --- | --- |
-| 135 | [135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md](135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md) | Master professional workspace and Project Genesis contract |
-| 135A | [135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md](135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md) | Workspace projection, Pi sidebar, Work Rail, themes, vertical UX |
+| 135 | [135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md](135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md) | Master professional workspace, Project Genesis, and Mission Canvas contract |
+| 135A | [135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md](135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md) | Workspace projection, Mission Canvas, Pi sidebar, Work Rail, themes, vertical UX |
 | 135B | [135b-crist-project-genesis-context-role-interview-spec-tasks.md](135b-crist-project-genesis-context-role-interview-spec-tasks.md) | C.R.I.S.T. Context, Role, Interview, Spec, and Tasks |
-| 135C | [135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md](135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md) | UIAI rich artifacts, browser research, FPV, and live refresh |
-| 135D | [135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md](135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md) | Complete build graph, reuse, performance, and no-deferral constitution |
-| 135E | [135e-cross-spec-amendments-migration-and-closure-matrix.md](135e-cross-spec-amendments-migration-and-closure-matrix.md) | Cross-spec amendments, migration, compatibility, and closure matrix |
+| 135C | [135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md](135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md) | UIAI rich artifacts, browser sessions/contexts/targets, FPV, and live refresh |
+| 135D | [135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md](135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md) | Complete build graph, reuse, performance, multiplexing, and no-deferral constitution |
+| 135E | [135e-cross-spec-amendments-migration-and-closure-matrix.md](135e-cross-spec-amendments-migration-and-closure-matrix.md) | Cross-spec amendments, naming, migration, compatibility, and closure matrix |
 | 135F | [135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md](135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md) | Domain-general ontology core, semantic graphs, domain packs, verification, slices, and reactive context |
+| 135G | [135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md](135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md) | Multiplexed Mission Canvas, Work Surfaces, session attachments, browser isolation, contention, and restoration |
 
 ---
 
@@ -220,6 +221,8 @@ Spec 135 and companions form one required implementation and closure set.
 | 41  | [41-proposal-resolution-engine.md](41-proposal-resolution-engine.md)             | Proposal Resolution Engine (PRE)                                    |
 | 43  | [43-multi-device-sync.md](43-multi-device-sync.md)                               | Multi-device local-first sync (observations + per-thread ownership) |
 | 98  | [98-project-root-crdt-reconciliation-foundation-spec.md](98-project-root-crdt-reconciliation-foundation-spec.md) | Project-root source of truth and CRDT reconciliation foundation |
+| 104 | [104-typed-scoped-runtime-and-singleton-elimination-spec.md](104-typed-scoped-runtime-and-singleton-elimination-spec.md) | Typed scoped runtime and authority-bearing singleton elimination |
+| 133 | [133-daemon-native-durable-silent-sessions-and-governed-autonomous-execution-spec.md](133-daemon-native-durable-silent-sessions-and-governed-autonomous-execution-spec.md) | Durable governed autonomous sessions, runs, leases, and worktree isolation |
 
 ---
 
@@ -243,7 +246,7 @@ These docs from the initial spec cover topics that were NOT rewritten in the Gen
 
 | File                                                 | Description                                                |
 | ---------------------------------------------------- | ---------------------------------------------------------- |
-| [bootstrap-prompt.md](bootstrap-prompt.md)           | Engineer agent bootstrap prompt                      |
+| [bootstrap-prompt.md](bootstrap-prompt.md)           | Engineer agent bootstrap prompt                            |
 | [bootstrap-prompt-rust.md](bootstrap-prompt-rust.md) | Rust-first engineer agent bootstrap prompt                 |
 | [core-reducer.md](core-reducer.md)                   | Focusa-Core Reducer — canonical pseudocode (AUTHORITATIVE) |
 
@@ -285,5 +288,5 @@ These Gen1 docs contain **data models, algorithms, schemas, acceptance tests, an
 5. **Memory:** [G1-07-ascc.md](G1-07-ascc.md) + [G1-09-memory.md](G1-09-memory.md) (older detailed specs; compare with current README/evidence for runtime state)
 6. **Autonomy:** 12 → 13 → 37
 7. **Agent model:** 15 → 16 → 16-constitution-synthesizer
-8. **Advanced:** 17 (CLT) → 36 (Reliability) → 38-41 (Threads/Concurrency/Proposals)
-9. **Professional workspaces and Project Genesis:** 135 → 135A → 135B → 135C → 135D → 135E → 135F
+8. **Concurrency foundation:** 38 → 39 → 40 → 41 → 43 → 98 → 104 → 133
+9. **Professional workspaces and Project Genesis:** 135 → 135A → 135B → 135C → 135D → 135E → 135F → 135G
