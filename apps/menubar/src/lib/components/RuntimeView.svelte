@@ -96,7 +96,7 @@
   </div>
 </section>
 
-<section class="cockpit-grid" aria-label="Focusa cockpit">
+<section class="mission-canvas-grid" aria-label="Focusa Mission Canvas runtime summary">
   <article class="card" class:ok={daemonOk} class:bad={!daemonOk}>
     <div class="label">DAEMON</div>
     <div class="value">{daemonOk ? 'Live' : 'Unavailable'}</div>
@@ -297,7 +297,7 @@
     border-color: color-mix(in srgb, var(--green) 35%, var(--border));
     background: color-mix(in srgb, var(--green) 6%, var(--bg-elevated));
   }
-  .cockpit-grid {
+  .mission-canvas-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--sp-2);
