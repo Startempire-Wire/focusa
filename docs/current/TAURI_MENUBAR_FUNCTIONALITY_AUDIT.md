@@ -1,13 +1,15 @@
 # Tauri Menubar Functionality Audit
 
-**Scope:** `apps/menubar` Tauri/Svelte app compared with current Focusa runtime/API docs.
-**Snapshot audited:** repo `5b6ed37` plus current working tree, public snapshot `v0.9.13-dev`.
-**Audit date:** 2026-05-25.
+**Scope:** `apps/menubar` Tauri/Svelte app compared with current Focusa runtime/API docs.  
+**Snapshot audited:** repo `5b6ed37` plus current working tree, public snapshot `v0.9.13-dev`.  
+**Audit date:** 2026-05-25.  
 **Implementation update:** see [`TAURI_MENUBAR_IMPLEMENTATION_GAPS.md`](TAURI_MENUBAR_IMPLEMENTATION_GAPS.md) for current post-audit gap status after the `v0.9.13-dev` HLT dogfood slice.
 
 ## Executive summary
 
-At initial audit time, the menubar app built with Bun and provided a useful basic status tray, but lagged the current Focusa runtime by a large margin. Since then, the implementation has gained shared API plumbing, a Cockpit/Now surface, Trajectory/Workpoint/Proof/Work Loop peeks, calmer Focus bubble/cloud hierarchy, and ambient Gate/Sync copy. Remaining gaps are tracked in the implementation gaps document.
+At initial audit time, the menubar app built with Bun and provided a useful basic status tray, but lagged the current Focusa runtime by a large margin. Since then, the implementation has gained shared API plumbing, a Mission Canvas/Now preview, Trajectory/Workpoint/Proof/Work Loop peeks, calmer Focus bubble/cloud hierarchy, and ambient Gate/Sync copy. Remaining gaps are tracked in the implementation gaps document.
+
+The menubar is a compact Focusa projection. It is not the UIAI Engine Cockpit and does not use Cockpit as its product or view name.
 
 ## Validation result
 
@@ -28,7 +30,7 @@ At initial audit time, the menubar app built with Bun and provided a useful basi
 | Focus view | Polls `/v1/state/dump`, displays active focus frame, next steps, decisions, open questions. | `src/routes/+page.svelte`, `FocusView.svelte`, `stores/focus.svelte.ts` |
 | Focus Gate | Displays `state.focus_gate` candidates/signals from `/v1/state/dump`. | `GatePanel.svelte`, `stores/gate.svelte.ts` |
 | Canvas | Separate canvas route uses `/v1/state/dump` and `/v1/events/recent?limit=20`. | `src/routes/canvas/+page.svelte`, `stores/focus-canvas.svelte.ts` |
-| Mission cards | Polls health, tool contracts, Workpoint current, work-loop status, events, token/cache telemetry. | `src/routes/+page.svelte`, `MissionControl.svelte` |
+| Mission cards | Polls health, tool contracts, Workpoint current, work-loop status, events, token/cache telemetry. | `src/routes/+page.svelte`, `MissionCanvasView.svelte`, `RuntimeView.svelte` |
 | Sync | Lists peers, status, pull sync, add peer. | `SyncPanel.svelte`, `AddPeerModal.svelte` |
 | Settings | Local/remote URL presets, connection test, basic status counts. | `Settings.svelte` |
 
@@ -45,9 +47,9 @@ At initial audit time, the menubar app built with Bun and provided a useful basi
 | P1 | Lineage/tree/snapshots absent | Recovery and diffable state are core Focusa surfaces. | `/v1/lineage/*`, `/v1/clt/*`, snapshot CLI/API | Add Timeline/Lineage panel tied to recent snapshots and safe restore guidance. |
 | P1 | Doctor/resource/memory telemetry shallow | App shows token/cache but not daemon doctor, memory pressure, LowMem, route budgets. | `/v1/doctor`, `/v1/telemetry/memory`, `/v1/resource-mode` equivalents | Add Health panel with doctor summary, RSS pressure, resource mode, degraded routes. |
 | P1 | Tool result envelope/status not visualized | Operators need canonical/degraded/retry/failure_class indicators. | `docs/current/TOOL_RESULT_ENVELOPE_V1.md` | Normalize cards to display `status`, `canonical`, `degraded`, `failure_class`, `retry`, `next_tools`. |
-| P2 | API base centralized with static guard | Sync/AddPeer use shared `fetchJson`/`postJson`, and Spec96 guard rejects hardcoded daemon URLs outside the shared default/placeholder. | `src/lib/api.ts`, `SyncPanel.svelte`, `AddPeerModal.svelte`, `tests/spec96_menubar_cockpit_foundation_static_test.sh` | Keep the guard current as new panels are added. |
+| P2 | API base centralized with static guard | Sync/AddPeer use shared `fetchJson`/`postJson`, and Spec96 guard rejects hardcoded daemon URLs outside the shared default/placeholder. | `src/lib/api.ts`, `SyncPanel.svelte`, `AddPeerModal.svelte`, `tests/spec96_menubar_mission_canvas_foundation_static_test.sh` | Keep the guard current as new panels are added. |
 | P2 | Runtime/build version visibility partial | Menubar package, Tauri config, Rust crate, and Settings footer now show `0.9.13-dev`; remaining gap is explicit runtime-vs-app version comparison in the UI. | `package.json`, `tauri.conf.json`, `src-tauri/Cargo.toml`, `Settings.svelte`, README | Show app package version, Tauri config version, daemon version, and runtime snapshot string together. |
-| P2 | Release proof is manual-gated | Mission panel no longer claims `ready`; it shows `manual_proof_required` until a release-proof endpoint/artifact is wired. | `src/routes/+page.svelte`, `CockpitView.svelte` | Wire to release/evidence/proof artifact status when an API source exists. |
+| P2 | Release proof is manual-gated | Mission panel no longer claims `ready`; it shows `manual_proof_required` until a release-proof endpoint/artifact is wired. | `src/routes/+page.svelte`, `MissionCanvasView.svelte`, `RuntimeView.svelte` | Wire to release/evidence/proof artifact status when an API source exists. |
 | P2 | Dependency install path needs policy clarity | `npm ci`, `bun install`, `bun run check`, and `bun run build` pass, but the project still carries both npm and Bun lockfiles without a documented policy. | `package-lock.json`, `bun.lock`, `package.json` | Document npm+Bun parity expectations or choose one canonical install path. |
 | P2 | Focus/Gate mutation controls absent | Sync writes are now confirmation-gated, but Focus/Gate push/update/suppress/pin flows are still not exposed. | `/v1/focus/update`, `/v1/focus-gate/*`, `SyncPanel.svelte`, `AddPeerModal.svelte` | Add approval-gated Focus/Gate mutations with explicit result envelope display. |
 | P3 | Security posture broad | `csp: null`, remote daemon guidance suggests `0.0.0.0` without auth warning. | `tauri.conf.json`, `Settings.svelte` | Add safer CSP where possible and stronger remote-connection warnings/tunnel-first UX. |
