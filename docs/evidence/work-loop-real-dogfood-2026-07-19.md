@@ -85,3 +85,16 @@ The provider reports both child beads `closed`. Remaining `.3.3` children preser
 6. Productive `Continue` cycles no longer consume retry/failure budgets or trigger completion-only evidence gates.
 
 The branch daemon, heartbeat, and Pi process tree were terminated after proof collection. No live daemon, deployment, push, merge, or release was mutated.
+
+## Continued real-task completion
+
+After the dogfood gate, the same governed Work Loop continued onto `focusa-a6yq6.3.3.3` and implemented the complete lifecycle mutation slice across bounded runs. Autonomous commits include lifecycle CAS/schema v5, pause/resume/cancel/start/adopt/interrupt/restart, superseded-run fencing, and governed preflight/create (`0853dc3`, `0e10e03`, `fc5354f`, `d4223fd`, `c664c5c`, `8e4c92f`, `4828c4b`, `92089b9`, `f62b1aa`).
+
+Independent proof passed:
+
+- 10/10 `routes::silent_sessions` API tests
+- 14/14 SQLite persistence tests
+- `cargo check -p focusa-api`
+- 375 core tests and strict core clippy for the Work Loop continuation fixes
+
+Scoped closure claim `claim_bd_019f7bdd03d67312` reconciled `focusa-a6yq6.3.3.3` to provider status `closed`. The next ordered children remain `.3.3.4` (input/steer/follow-up/keys) and `.3.3.5` (transactional config APIs).
