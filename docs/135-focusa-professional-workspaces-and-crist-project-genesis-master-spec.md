@@ -466,12 +466,14 @@ The complete implementation graph includes:
 - stock Pi compatibility mode;
 - Focusa-enhanced Pi distribution with dock/sidebar composition;
 - Focusa Mission Deck PWA;
-- Tauri desktop shell;
+- UIAI Engine Cockpit Tauri desktop shell hosting Focusa Mission Deck and professional-workspace projections;
 - compact menubar;
 - native Focusa TUI;
 - API;
 - CLI;
 - headless/RPC/JSON parity.
+
+The UIAI Engine Cockpit is the primary rich desktop surface. The Focusa-enhanced Pi distribution is the primary terminal/harness-native surface. Focusa does not create a second independently branded desktop cockpit.
 
 Different clients may use different renderers, but they must share generated contracts, semantic type and action IDs, status enums, domain-pack manifests, verification and slice-policy IDs, workspace manifests, theme tokens, artifact descriptors, semantic delta envelopes, and invalidation events.
 
@@ -493,7 +495,7 @@ Context → Role → Interview → Spec → Tasks
 
 The modification is required because Focusa’s lifecycle mandates a durable approved spec and provider-neutral task decomposition before implementation.
 
-This series must describe C.R.I.S.T. as Focusa’s adaptation inspired by C.R.I.T.; it must not imply Geoff Woods’ endorsement or that C.R.I.S.T. is his published framework.
+The permanent public feature name is **Focusa C.R.I.S.T. Project Genesis**. Product UI may use **Project Genesis** as the compact label while retaining the five C.R.I.S.T. stages. On first use in public architecture or educational documentation, spell out Context, Role, Interview, Spec, and Tasks and attribute the underlying C.R.I.T. inspiration to Geoff Woods. Do not imply endorsement or represent C.R.I.S.T. as Geoff Woods’ published framework.
 
 Reference:
 
@@ -585,14 +587,78 @@ The exact no-deferral and decomposition language in Spec 135D is normative.
 
 ---
 
-## 17. Open operator decisions before final approval
+## 17. Resolved operator decisions
 
-1. Confirm the permanent public name `C.R.I.S.T.` and attribution language.
-2. Confirm canonical versus project-file storage boundaries for Project Genesis records.
-3. Approve the document-extraction and semantic-index framework qualification result required by Spec 135D.
-4. Confirm the canonical Pi distribution/package namespace.
-5. Confirm project-level versus user-level ownership of visual layout preferences.
-6. Confirm the first connector reference implementation while retaining the full accepted connector graph.
-7. Confirm whether the Focusa-enhanced Pi distribution or Focusa Cockpit becomes the primary rich desktop experience.
+The following decisions are final for this specification revision and are no longer approval blockers.
 
-These are approval blockers, not permission to omit their affected requirements.
+### 17.1 Public name and attribution
+
+The permanent public feature name is **Focusa C.R.I.S.T. Project Genesis**. Compact UI labels may use **Project Genesis**. Public architecture and educational documentation attribute C.R.I.T. inspiration to Geoff Woods on first use and clearly identify C.R.I.S.T. as Focusa’s modification.
+
+### 17.2 Canonical storage boundary
+
+Canonical Project Genesis, workspace selection, context claims, Role Profiles, interview records, Spec Workbench refs, task-plan refs, domain-pack bindings, semantic state, and artifact links live in the local Focusa node’s reducer-backed SQLite event/state system. Large source and evidence payloads live behind ECS/content-addressed handles.
+
+Project files are explicit, versioned import/export or collaboration projections only. `.focusa-project.json` remains a ProjectIdentity marker and does not become a Project Genesis database. `.pi/settings.json` may mirror bootstrap/package/theme choices for Pi but is not canonical. An approved spec may be written to the repository only through the existing operator-gated Spec 120 repo-write path. Raw connected documents and email are not copied into the repository by default.
+
+Focusa Cloud may provide opt-in encrypted synchronization, relay, hosted Receipts, and team projections. It does not silently become canonical project-semantic authority. Multi-node reconciliation follows existing ProjectIdentity/CRDT and authority rules.
+
+### 17.3 Selected ingestion and retrieval frameworks
+
+Document execution belongs to the UIAI Engine Documents subsystem. The selected structured extraction engine is **Docling**, running locally in a persistent isolated worker/service for PDF, Office, email, image, table, layout, and OCR-aware conversion. Plain text, Markdown, code, JSON, and CSV use direct bounded ingestion without a second document-conversion framework.
+
+The selected local hybrid retrieval stack is:
+
+```text
+SQLite FTS5
++ sqlite-vec behind a pinned versioned adapter
++ fastembed-rs for local ONNX embeddings and reranking
+```
+
+The baseline embedding profile is versioned and begins with `BAAI/bge-small-en-v1.5`; projects may select another registered compatible embedding profile without changing the storage contract. Model ID, model revision, dimensions, chunking profile, and embedding generation version are persisted so re-embedding and migration are deterministic.
+
+The selected Svelte UI foundations are **shadcn-svelte/Bits UI** for accessible generic primitives and **TanStack Query for Svelte** for server-state caching, mutation state, targeted invalidation, and bounded background refetch.
+
+### 17.4 Canonical Pi namespace
+
+The canonical Pi runtime, SDK, TUI, peer-dependency, and extension import namespace is `@earendil-works/pi-*`, pinned to one tested compatible release across Focusa, UIAI Engine, queue-steering, and the Cockpit. The legacy `@mariozechner/pi-*` dependency is migration input only.
+
+The Focusa-enhanced Pi distribution is a packaged configuration over the upstream Earendil Pi runtime, not a separately renamed Pi fork. A public Focusa npm package name is chosen only after registry-scope ownership is verified and does not reopen the runtime-namespace decision.
+
+### 17.5 Layout ownership
+
+The project owns the shared workspace semantic baseline:
+
+- active Workspace View Profile;
+- required domain packs;
+- required/non-hideable authority, proof, and compliance panels;
+- default panel set and order;
+- terminology and artifact-renderer bindings;
+- team-shared workspace overrides.
+
+The user owns personal presentation preferences:
+
+- visual variant;
+- density;
+- sidebar width and dock position;
+- collapsed/expanded state;
+- optional panel ordering where the project permits it;
+- keyboard shortcuts;
+- accessibility and reduced-motion settings;
+- device-specific layout overrides.
+
+Project-required safety and authority surfaces take precedence over personal hiding/reordering. Runtime responsive fallbacks are temporary capability projections and do not overwrite either project or user preferences.
+
+### 17.6 Connector reference implementation
+
+**Google Drive** is the first reference connector. It must prove the complete connector contract: minimum-scope OAuth, account and folder scoping, bounded initial import, Google-native document export, revisions, permissions/provenance, changes-feed cursoring, incremental synchronization, cursor recovery, health, revocation, and ProjectContextDelta emission.
+
+The Google OAuth/account substrate is then reused by Gmail. OneDrive, SharePoint, Outlook/Microsoft mail, task providers, and the remaining accepted connectors stay in the same required implementation graph; choosing Google Drive first does not defer or remove them.
+
+### 17.7 Primary rich desktop surface
+
+The **UIAI Engine Cockpit** in `apps/cockpit/` is the single primary rich desktop operating environment. It hosts Focusa Mission Deck and professional-workspace projections alongside browser/FPV, Test Lab, Documents, Research, artifacts, diagnostics, and audited operator controls.
+
+The Focusa-enhanced Pi distribution is the primary terminal and coding-harness experience. Focusa Mission Deck PWA, native TUI, and menubar remain required portable/compact Focusa surfaces. Focusa does not create a separate independently branded Tauri cockpit.
+
+These decisions must be reflected in companion specs and decomposition. Reopening one requires an explicit versioned operator amendment rather than an implementation-time substitution.
