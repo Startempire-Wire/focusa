@@ -489,6 +489,13 @@ pub struct WorkLoopDecisionContext {
     pub operator_steering_detected: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkLoopDeferredItem {
+    pub work_item_id: String,
+    pub reason: String,
+    pub deferred_at: DateTime<Utc>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct WorkLoopState {
     /// Canonical project/workstream authority for the active governed loop.
@@ -508,6 +515,8 @@ pub struct WorkLoopState {
     pub last_recorded_bd_transition_id: Option<String>,
     pub last_blocker_class: Option<BlockerClass>,
     pub last_blocker_reason: Option<String>,
+    #[serde(default)]
+    pub deferred_items: Vec<WorkLoopDeferredItem>,
     pub last_continue_reason: Option<String>,
     pub last_observed_summary: Option<String>,
     pub last_safe_reentry_prompt_basis: Option<String>,
@@ -3618,6 +3627,10 @@ pub enum FocusaEvent {
         task_run_id: Option<TaskRunId>,
         packet: SpecLinkedTaskPacket,
     },
+    ContinuousWorkItemDeferred {
+        work_item_id: String,
+        reason: String,
+    },
     ContinuousTurnRequested {
         task_run_id: Option<TaskRunId>,
         work_item_id: Option<String>,
@@ -4316,6 +4329,10 @@ pub enum Action {
     SetContinuousWorkItem {
         task_run_id: Option<TaskRunId>,
         packet: SpecLinkedTaskPacket,
+    },
+    DeferContinuousWorkItem {
+        work_item_id: String,
+        reason: String,
     },
     SelectNextContinuousSubtask {
         parent_work_item_id: String,

@@ -2986,17 +2986,6 @@ Return:
         }
     }
 
-    async fn record_bd_blocked_transition_if_possible(work_item_id: &str, reason: &str) {
-        let note = format!(
-            "Continuous loop blocked: {}",
-            reason.chars().take(220).collect::<String>()
-        );
-        let _ = tokio::process::Command::new("bd")
-            .args(["update", work_item_id, "--append-notes", &note])
-            .output()
-            .await;
-    }
-
     fn work_item_provider_and_root(
         &self,
     ) -> anyhow::Result<(WorkItemProvider, std::path::PathBuf)> {
@@ -3131,6 +3120,14 @@ Return:
             .await
     }
 
+    fn work_item_is_deferred(&self, work_item_id: &str) -> bool {
+        self.state
+            .work_loop
+            .deferred_items
+            .iter()
+            .any(|item| item.work_item_id == work_item_id)
+    }
+
     fn task_packet_from_work_item(item: WorkItem) -> SpecLinkedTaskPacket {
         let title = item.title;
         SpecLinkedTaskPacket {
@@ -3171,7 +3168,10 @@ Return:
         Ok(readiness
             .ready
             .into_iter()
-            .find(|item| skip_work_item_id != Some(item.provider_item_id.as_str()))
+            .find(|item| {
+                skip_work_item_id != Some(item.provider_item_id.as_str())
+                    && !self.work_item_is_deferred(&item.provider_item_id)
+            })
             .map(Self::task_packet_from_work_item)
             .map(|packet| self.adapt_packet_for_current_loop_state(packet)))
     }
@@ -3197,7 +3197,11 @@ Return:
         };
         let items = adapter.list(&query).await?;
         let readiness = evaluate_readiness(&items, &query);
-        if let Some(item) = readiness.ready.into_iter().next() {
+        if let Some(item) = readiness
+            .ready
+            .into_iter()
+            .find(|item| !self.work_item_is_deferred(&item.provider_item_id))
+        {
             return Ok(Some(self.adapt_packet_for_current_loop_state(
                 Self::task_packet_from_work_item(item),
             )));
@@ -3233,10 +3237,10 @@ Return:
             limit: 1_000,
         };
         let items = adapter.list(&query).await?;
-        Ok(evaluate_readiness(&items, &query)
-            .ready
-            .iter()
-            .any(|item| current_work_item_id != Some(item.provider_item_id.as_str())))
+        Ok(evaluate_readiness(&items, &query).ready.iter().any(|item| {
+            current_work_item_id != Some(item.provider_item_id.as_str())
+                && !self.work_item_is_deferred(&item.provider_item_id)
+        }))
     }
 
     fn adapt_packet_for_current_loop_state(
@@ -3685,6 +3689,28 @@ Return:
                 }])
             }
 
+            Action::DeferContinuousWorkItem {
+                work_item_id,
+                reason,
+            } => {
+                if self
+                    .state
+                    .work_loop
+                    .current_task
+                    .as_ref()
+                    .map(|task| task.work_item_id.as_str())
+                    != Some(work_item_id.as_str())
+                {
+                    return Err(anyhow::anyhow!(
+                        "cannot defer a WorkItem that is not the active selected task"
+                    ));
+                }
+                Ok(vec![FocusaEvent::ContinuousWorkItemDeferred {
+                    work_item_id,
+                    reason,
+                }])
+            }
+
             Action::SelectNextContinuousSubtask {
                 parent_work_item_id,
             } => {
@@ -3699,13 +3725,7 @@ Return:
                     );
                     if boundary_reason != "operator steering detected" {
                         let parent_id = parent_work_item_id.trim();
-                        if !parent_id.is_empty() {
-                            Self::record_bd_blocked_transition_if_possible(
-                                parent_id,
-                                boundary_reason,
-                            )
-                            .await;
-                        }
+                        if !parent_id.is_empty() {}
                     }
                     return Ok(Self::continuation_boundary_events(
                         boundary_reason,
@@ -3816,9 +3836,7 @@ Return:
                             .as_deref()
                             .map(str::trim)
                             .filter(|id| !id.is_empty())
-                    {
-                        Self::record_bd_blocked_transition_if_possible(id, boundary_reason).await;
-                    }
+                    {}
                     return Ok(Self::continuation_boundary_events(
                         boundary_reason,
                         work_item_id,
@@ -4269,13 +4287,7 @@ Return:
                             continue_reason.as_deref(),
                         )
                     {
-                        if let Some(id) = work_item_id.as_deref() {
-                            Self::record_bd_blocked_transition_if_possible(
-                                id,
-                                "migration/conformance execution checks not yet evidenced",
-                            )
-                            .await;
-                        }
+                        if let Some(id) = work_item_id.as_deref() {}
                         return Ok(vec![
                             FocusaEvent::ContinuousTurnObserved {
                                 task_run_id,
@@ -4301,13 +4313,7 @@ Return:
                         &summary,
                         continue_reason.as_deref(),
                     ) {
-                        if let Some(id) = work_item_id.as_deref() {
-                            Self::record_bd_blocked_transition_if_possible(
-                                id,
-                                "linked spec implementation evidence not yet satisfied",
-                            )
-                            .await;
-                        }
+                        if let Some(id) = work_item_id.as_deref() {}
                         return Ok(vec![
                             FocusaEvent::ContinuousTurnObserved {
                                 task_run_id,
@@ -4335,13 +4341,7 @@ Return:
                     .require_verification_before_persist
                     && !verification_satisfied
                 {
-                    if let Some(id) = work_item_id.as_deref() {
-                        Self::record_bd_blocked_transition_if_possible(
-                            id,
-                            "required verification not yet satisfied",
-                        )
-                        .await;
-                    }
+                    if let Some(id) = work_item_id.as_deref() {}
                     return Ok(vec![
                         FocusaEvent::ContinuousTurnObserved {
                             task_run_id,
@@ -4360,13 +4360,7 @@ Return:
                 }
 
                 if !spec_conformant {
-                    if let Some(id) = work_item_id.as_deref() {
-                        Self::record_bd_blocked_transition_if_possible(
-                            id,
-                            "implementation remains non-conformant with linked spec",
-                        )
-                        .await;
-                    }
+                    if let Some(id) = work_item_id.as_deref() {}
                     return Ok(vec![
                         FocusaEvent::ContinuousTurnObserved {
                             task_run_id,
@@ -4403,9 +4397,7 @@ Return:
                                 None,
                                 replay_closure_evidence.as_ref(),
                             );
-                            if let Some(id) = work_item_id.as_deref() {
-                                Self::record_bd_blocked_transition_if_possible(id, &reason).await;
-                            }
+                            if let Some(id) = work_item_id.as_deref() {}
                             return Ok(vec![
                                 FocusaEvent::ContinuousTurnObserved {
                                     task_run_id,

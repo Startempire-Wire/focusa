@@ -913,7 +913,20 @@ async fn provider_neutral_readiness(
         .list(&query)
         .await
         .map_err(|error| error.to_string())?;
-    Ok((provider, evaluate_readiness(&items, &query)))
+    let deferred: std::collections::HashSet<String> = {
+        let focusa = state.focusa.read().await;
+        focusa
+            .work_loop
+            .deferred_items
+            .iter()
+            .map(|item| item.work_item_id.clone())
+            .collect()
+    };
+    let mut readiness = evaluate_readiness(&items, &query);
+    readiness
+        .ready
+        .retain(|item| !deferred.contains(&item.provider_item_id));
+    Ok((provider, readiness))
 }
 
 async fn alternate_ready_work_snapshot(
@@ -1257,29 +1270,6 @@ async fn dispatch_pi_prompt(
     Ok(())
 }
 
-async fn defer_work_item_for_alternate_switch(
-    work_item_id: &str,
-    reason: &str,
-    project_root: &Path,
-) {
-    let note = format!(
-        "Continuous loop deferred for alternate-ready switch: {}",
-        reason.chars().take(180).collect::<String>()
-    );
-    let _ = Command::new("bd")
-        .args([
-            "update",
-            work_item_id,
-            "--defer",
-            "+1d",
-            "--append-notes",
-            &note,
-        ])
-        .current_dir(project_root)
-        .output()
-        .await;
-}
-
 async fn maybe_auto_advance_from_blocked(
     state: &Arc<AppState>,
     reason: &str,
@@ -1322,13 +1312,26 @@ async fn maybe_auto_advance_from_blocked(
     };
 
     if blocked {
-        defer_work_item_for_alternate_switch(&task.work_item_id, reason, &scope_root).await;
+        state
+            .command_tx
+            .send(Action::DeferContinuousWorkItem {
+                work_item_id: task.work_item_id.clone(),
+                reason: reason.chars().take(220).collect(),
+            })
+            .await
+            .map_err(|error| work_loop_dispatch_failed("work_loop_defer", error))?;
     }
 
-    let parent_work_item_id = task
-        .tranche_id
-        .clone()
-        .unwrap_or_else(|| task.work_item_id.clone());
+    let parent_work_item_id = {
+        let focusa = state.focusa.read().await;
+        focusa
+            .work_loop
+            .execution_work_item_id
+            .clone()
+            .ok_or_else(|| {
+                bad_request("cannot select alternate work without root WorkItem binding")
+            })?
+    };
 
     state
         .command_tx

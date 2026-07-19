@@ -1972,6 +1972,31 @@ pub fn reduce_with_meta(
             ));
             state.work_loop.current_task = Some(packet);
         }
+        FocusaEvent::ContinuousWorkItemDeferred {
+            work_item_id,
+            reason,
+        } => {
+            state
+                .work_loop
+                .deferred_items
+                .retain(|item| item.work_item_id != work_item_id);
+            state.work_loop.deferred_items.push(WorkLoopDeferredItem {
+                work_item_id: work_item_id.clone(),
+                reason: reason.clone(),
+                deferred_at: Utc::now(),
+            });
+            state.work_loop.last_blocker_reason = Some(reason);
+            if state
+                .work_loop
+                .current_task
+                .as_ref()
+                .map(|task| task.work_item_id.as_str())
+                == Some(work_item_id.as_str())
+            {
+                state.work_loop.current_task = None;
+            }
+            state.work_loop.status = WorkLoopStatus::SelectingReadyWork;
+        }
         FocusaEvent::ContinuousTurnRequested {
             task_run_id,
             work_item_id: _,
@@ -2006,19 +2031,31 @@ pub fn reduce_with_meta(
             continue_reason,
             verification_satisfied: _,
             spec_conformant: _,
+            outcome_status,
             ..
         } => {
-            state.work_loop.status = WorkLoopStatus::AdvancingTask;
             state.work_loop.run.task_run_id = task_run_id;
-            state.work_loop.last_completed_task_id = work_item_id.clone();
-            state.work_loop.last_recorded_bd_transition_id = work_item_id.clone();
             state.work_loop.last_continue_reason = continue_reason;
-            state.work_loop.consecutive_failures_for_task_class = 0;
-            state.work_loop.consecutive_low_productivity_turns = 0;
-            state.work_loop.consecutive_same_work_item_retries = 0;
             state.work_loop.last_observed_work_item_id = work_item_id.clone();
-            state.work_loop.run.worker_session_id = None;
-            state.work_loop.current_task = None;
+            match outcome_status {
+                WorkLoopOutcomeStatus::Completed => {
+                    state.work_loop.status = WorkLoopStatus::AdvancingTask;
+                    state.work_loop.last_completed_task_id = work_item_id.clone();
+                    state.work_loop.last_recorded_bd_transition_id = work_item_id;
+                    state.work_loop.consecutive_failures_for_task_class = 0;
+                    state.work_loop.consecutive_low_productivity_turns = 0;
+                    state.work_loop.consecutive_same_work_item_retries = 0;
+                    state.work_loop.deferred_items.clear();
+                    state.work_loop.run.worker_session_id = None;
+                    state.work_loop.current_task = None;
+                }
+                WorkLoopOutcomeStatus::Blocked => {
+                    state.work_loop.status = WorkLoopStatus::Blocked;
+                }
+                WorkLoopOutcomeStatus::Continue => {
+                    state.work_loop.status = WorkLoopStatus::Idle;
+                }
+            }
         }
         FocusaEvent::ContinuousSecondaryLoopOutcomeRecorded { .. } => {
             // Runtime updates secondary-loop telemetry eagerly in daemon state.
@@ -5810,6 +5847,62 @@ mod tests {
         assert_eq!(stopped.work_loop.execution_scope, None);
         assert_eq!(stopped.work_loop.execution_work_item_id, None);
         assert_eq!(stopped.work_loop.execution_workpoint_id, None);
+    }
+
+    #[test]
+    fn deferred_blocker_yields_and_continue_outcome_keeps_current_task() {
+        let mut state = fresh_state();
+        state.work_loop.current_task = Some(SpecLinkedTaskPacket {
+            work_item_id: "blocked".to_string(),
+            title: "blocked".to_string(),
+            ..SpecLinkedTaskPacket::default()
+        });
+        let deferred = reduce(
+            state,
+            FocusaEvent::ContinuousWorkItemDeferred {
+                work_item_id: "blocked".to_string(),
+                reason: "dependency unavailable".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert!(deferred.work_loop.current_task.is_none());
+        assert_eq!(deferred.work_loop.deferred_items.len(), 1);
+        assert_eq!(
+            deferred.work_loop.status,
+            WorkLoopStatus::SelectingReadyWork
+        );
+
+        let mut continuing = deferred;
+        continuing.work_loop.current_task = Some(SpecLinkedTaskPacket {
+            work_item_id: "alternate".to_string(),
+            title: "alternate".to_string(),
+            ..SpecLinkedTaskPacket::default()
+        });
+        let continued = reduce(
+            continuing,
+            FocusaEvent::ContinuousTurnCompleted {
+                task_run_id: None,
+                work_item_id: Some("alternate".to_string()),
+                continue_reason: Some("more work remains".to_string()),
+                verification_satisfied: false,
+                spec_conformant: true,
+                outcome_status: WorkLoopOutcomeStatus::Continue,
+                evidence_citations: vec![],
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(continued.work_loop.status, WorkLoopStatus::Idle);
+        assert_eq!(
+            continued
+                .work_loop
+                .current_task
+                .as_ref()
+                .map(|task| task.work_item_id.as_str()),
+            Some("alternate")
+        );
+        assert_eq!(continued.work_loop.deferred_items.len(), 1);
     }
 
     #[test]
