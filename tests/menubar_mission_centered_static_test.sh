@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-COCKPIT="$ROOT_DIR/apps/menubar/src/lib/components/CockpitView.svelte"
+MISSION_CANVAS="$ROOT_DIR/apps/menubar/src/lib/components/MissionCanvasView.svelte"
 DOC="$ROOT_DIR/docs/current/MAC_APP_MISSION_CONTROL.md"
 SPEC="$ROOT_DIR/docs/106-focusa-vision-tightening-spec.md"
 fail(){ echo "✗ FAIL: $*" >&2; exit 1; }
@@ -26,9 +26,9 @@ for needle in \
   'Warnings' \
   'Resume/copy' \
   'copyResumeCommand'; do
-  rg -n -F "$needle" "$COCKPIT" >/dev/null || fail "CockpitView missing $needle"
+  rg -n -F "$needle" "$MISSION_CANVAS" >/dev/null || fail "MissionCanvasView missing $needle"
 done
-pass "CockpitView exposes mission-centered required fields and copy action"
+pass "MissionCanvasView exposes mission-centered required fields and copy action"
 
 for needle in \
   'Mission-centered main panel' \
