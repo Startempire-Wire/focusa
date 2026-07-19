@@ -780,6 +780,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
             current_task_id,
             execution_scope,
             execution_work_item_id,
+            execution_workpoint_id,
         ) = {
             let s = state.focusa.read().await;
             (
@@ -797,6 +798,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                     .map(|task| task.work_item_id.clone()),
                 s.work_loop.execution_scope.clone(),
                 s.work_loop.execution_work_item_id.clone(),
+                s.work_loop.execution_workpoint_id,
             )
         };
 
@@ -821,8 +823,11 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
         }
 
         if should_auto_reenable_continuous(enabled, status, last_continue_reason.as_deref())
-            && let (Some(scope), Some(work_item_id)) =
-                (execution_scope.clone(), execution_work_item_id.clone())
+            && let (Some(scope), Some(work_item_id), Some(workpoint_id)) = (
+                execution_scope.clone(),
+                execution_work_item_id.clone(),
+                execution_workpoint_id,
+            )
         {
             let policy = WorkLoopPolicy::with_overrides(
                 WorkLoopPreset::Push,
@@ -843,6 +848,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                     policy,
                     scope,
                     work_item_id,
+                    workpoint_id,
                 })
                 .await;
         }
@@ -859,8 +865,11 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                         .unwrap_or(false);
 
             if budget_exhausted
-                && let (Some(scope), Some(work_item_id)) =
-                    (execution_scope.clone(), execution_work_item_id.clone())
+                && let (Some(scope), Some(work_item_id), Some(workpoint_id)) = (
+                    execution_scope.clone(),
+                    execution_work_item_id.clone(),
+                    execution_workpoint_id,
+                )
             {
                 let policy = WorkLoopPolicy::with_overrides(
                     WorkLoopPreset::Push,
@@ -881,6 +890,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                         policy,
                         scope,
                         work_item_id,
+                        workpoint_id,
                     })
                     .await;
             }

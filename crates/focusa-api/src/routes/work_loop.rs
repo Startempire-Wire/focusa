@@ -79,17 +79,29 @@ fn work_loop_scope_matches(
         && key.continuity_id == active_continuity
 }
 
-fn canonical_workpoint_exists_for_scope(focusa: &FocusaState, key: &WorkstreamKey) -> bool {
-    focusa.workpoint.records.iter().any(|record| {
-        record.canonical
+fn canonical_workpoint_id_for_scope_and_item(
+    focusa: &FocusaState,
+    key: &WorkstreamKey,
+    work_item_id: Option<&str>,
+) -> Option<focusa_core::types::WorkpointId> {
+    focusa.workpoint.records.iter().find_map(|record| {
+        let scope_matches = record.canonical
             && record.status == focusa_core::types::WorkpointStatus::Active
             && record.project_root.as_deref().is_some_and(|root| {
                 record
                     .continuity_id
                     .as_deref()
                     .is_some_and(|continuity| work_loop_scope_matches(key, root, continuity))
-            })
+            });
+        let item_matches = work_item_id
+            .map(|expected| record.work_item_id.as_deref() == Some(expected))
+            .unwrap_or(true);
+        (scope_matches && item_matches).then_some(record.workpoint_id)
     })
+}
+
+fn canonical_workpoint_exists_for_scope(focusa: &FocusaState, key: &WorkstreamKey) -> bool {
+    canonical_workpoint_id_for_scope_and_item(focusa, key, None).is_some()
 }
 
 impl FromRequestParts<Arc<AppState>> for WorkLoopScope {
@@ -2893,11 +2905,25 @@ async fn enable(
         .root_work_item_id
         .filter(|id| !id.trim().is_empty())
         .ok_or_else(|| bad_request("root_work_item_id is required"))?;
+    let workpoint_id = {
+        let focusa = state.focusa.read().await;
+        canonical_workpoint_id_for_scope_and_item(
+            &focusa,
+            &scope.0,
+            Some(&parent_work_item_id),
+        )
+        .ok_or_else(|| {
+            bad_request(
+                "enable requires an active canonical Workpoint bound to the exact scope and root_work_item_id",
+            )
+        })?
+    };
     let action = Action::EnableContinuousWork {
         project_run_id: payload.project_run_id.unwrap_or_else(Uuid::now_v7),
         policy,
         scope: scope.0.clone(),
         work_item_id: parent_work_item_id.clone(),
+        workpoint_id,
     };
     let writer_lease =
         ensure_writer_claim_for_work_item(&scope, &state, &headers, &parent_work_item_id).await?;
@@ -3128,6 +3154,26 @@ async fn start_pi_driver(
         return Err(forbid("work-loop:write"));
     }
     let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
+    let (transport_work_item_id, transport_workpoint_id) = {
+        let focusa = state.focusa.read().await;
+        if focusa.work_loop.execution_scope.as_ref() != Some(&scope.0) {
+            return Err(bad_request(
+                "Pi transport scope does not match the active Work Loop execution scope",
+            ));
+        }
+        (
+            focusa
+                .work_loop
+                .execution_work_item_id
+                .clone()
+                .ok_or_else(|| bad_request("active Work Loop root WorkItem is unbound"))?,
+            focusa
+                .work_loop
+                .execution_workpoint_id
+                .ok_or_else(|| bad_request("active Work Loop canonical Workpoint is unbound"))?,
+        )
+    };
+    let transport_scope = scope.0.clone();
 
     let work_loop_root = request_scope_root(&scope);
 
@@ -3207,6 +3253,16 @@ async fn start_pi_driver(
     let state_for_events = state.clone();
     let command_tx = state.command_tx.clone();
     let attach_session_id = session_id.clone();
+    command_tx
+        .send(Action::AttachContinuousTransportSession {
+            adapter: "pi-rpc".to_string(),
+            session_id: attach_session_id.clone(),
+            scope: transport_scope,
+            work_item_id: transport_work_item_id,
+            workpoint_id: transport_workpoint_id,
+        })
+        .await
+        .map_err(|error| work_loop_dispatch_failed("work_loop_transport_attach", error))?;
 
     if let Some(stderr_stream) = stderr {
         let stderr_command_tx = command_tx.clone();
@@ -3240,12 +3296,6 @@ async fn start_pi_driver(
     });
 
     tokio::spawn(async move {
-        let _ = command_tx
-            .send(Action::AttachContinuousTransportSession {
-                adapter: "pi-rpc".to_string(),
-                session_id: attach_session_id.clone(),
-            })
-            .await;
         let mut seq: u64 = 1;
         let mut last_assistant_output = String::new();
         let mut lines = BufReader::new(stdout).lines();
@@ -3551,9 +3601,31 @@ async fn attach_session(
     }
 
     let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
+    let (work_item_id, workpoint_id) = {
+        let focusa = state.focusa.read().await;
+        if focusa.work_loop.execution_scope.as_ref() != Some(&scope.0) {
+            return Err(bad_request(
+                "transport session scope does not match active Work Loop execution scope",
+            ));
+        }
+        (
+            focusa
+                .work_loop
+                .execution_work_item_id
+                .clone()
+                .ok_or_else(|| bad_request("active Work Loop root WorkItem is unbound"))?,
+            focusa
+                .work_loop
+                .execution_workpoint_id
+                .ok_or_else(|| bad_request("active Work Loop Workpoint is unbound"))?,
+        )
+    };
     let event = FocusaEvent::ContinuousTransportSessionAttached {
         adapter: payload.adapter,
         session_id: payload.session_id,
+        scope: scope.0.clone(),
+        work_item_id,
+        workpoint_id,
     };
     let _guard = tokio::time::timeout(Duration::from_millis(1500), state.write_serial_lock.lock())
         .await
@@ -4140,6 +4212,7 @@ mod tests {
                 status: focusa_core::types::WorkpointStatus::Active,
                 project_root: Some("/home/wirebot/focusa".to_string()),
                 continuity_id: Some("cont-focusa".to_string()),
+                work_item_id: Some("focusa-root".to_string()),
                 ..focusa_core::types::WorkpointRecord::default()
             },
             focusa_core::types::WorkpointRecord {
@@ -4173,6 +4246,14 @@ mod tests {
         .unwrap();
 
         assert!(canonical_workpoint_exists_for_scope(&state, &focusa_key));
+        assert_eq!(
+            canonical_workpoint_id_for_scope_and_item(&state, &focusa_key, Some("focusa-root")),
+            Some(focusa_id)
+        );
+        assert_eq!(
+            canonical_workpoint_id_for_scope_and_item(&state, &focusa_key, Some("wrong-root")),
+            None
+        );
         assert!(!canonical_workpoint_exists_for_scope(&state, &missing_key));
         let summary = scoped_workpoint_summary_for_status(&state, &focusa_key);
         assert_eq!(summary["active_workpoint_id"], json!(focusa_id));

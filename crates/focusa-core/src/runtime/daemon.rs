@@ -3062,7 +3062,7 @@ Return:
                     LifecycleStage::Prepare,
                 )
             })?;
-        let workpoint_id = self.state.workpoint.active_workpoint_id.ok_or_else(|| {
+        let workpoint_id = self.state.work_loop.execution_workpoint_id.ok_or_else(|| {
             ClosureBlock::new(
                 "authority_scope_invalid",
                 "canonical_workpoint_required",
@@ -3520,18 +3520,40 @@ Return:
                 policy,
                 scope,
                 work_item_id,
-            } => Ok(vec![
-                FocusaEvent::ContinuousWorkModeEnabled {
-                    project_run_id,
-                    policy,
-                    scope: Some(scope),
-                    work_item_id: Some(work_item_id),
-                },
-                FocusaEvent::ContinuousLoopRecoveryCheckpointed {
-                    checkpoint_id: Uuid::now_v7(),
-                    summary: "checkpoint: continuous work enabled".to_string(),
-                },
-            ]),
+                workpoint_id,
+            } => {
+                let workpoint = self
+                    .state
+                    .workpoint
+                    .records
+                    .iter()
+                    .find(|record| record.workpoint_id == workpoint_id && record.canonical)
+                    .ok_or_else(|| {
+                        anyhow::anyhow!("canonical Workpoint {workpoint_id} not found")
+                    })?;
+                if workpoint.project_root.as_deref()
+                    != Some(scope.root_scope.root_path.to_string_lossy().as_ref())
+                    || workpoint.continuity_id.as_deref() != Some(scope.continuity_id.as_str())
+                    || workpoint.work_item_id.as_deref() != Some(work_item_id.as_str())
+                {
+                    return Err(anyhow::anyhow!(
+                        "Workpoint {workpoint_id} does not match execution scope and root WorkItem"
+                    ));
+                }
+                Ok(vec![
+                    FocusaEvent::ContinuousWorkModeEnabled {
+                        project_run_id,
+                        policy,
+                        scope: Some(scope),
+                        work_item_id: Some(work_item_id),
+                        workpoint_id: Some(workpoint_id),
+                    },
+                    FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                        checkpoint_id: Uuid::now_v7(),
+                        summary: "checkpoint: continuous work enabled".to_string(),
+                    },
+                ])
+            }
 
             Action::SetContinuousWorkItem {
                 task_run_id,
@@ -3615,10 +3637,27 @@ Return:
             Action::AttachContinuousTransportSession {
                 adapter,
                 session_id,
-            } => Ok(vec![FocusaEvent::ContinuousTransportSessionAttached {
-                adapter,
-                session_id,
-            }]),
+                scope,
+                work_item_id,
+                workpoint_id,
+            } => {
+                if self.state.work_loop.execution_scope.as_ref() != Some(&scope)
+                    || self.state.work_loop.execution_work_item_id.as_deref()
+                        != Some(work_item_id.as_str())
+                    || self.state.work_loop.execution_workpoint_id != Some(workpoint_id)
+                {
+                    return Err(anyhow::anyhow!(
+                        "transport session partition does not match the active Work Loop execution partition"
+                    ));
+                }
+                Ok(vec![FocusaEvent::ContinuousTransportSessionAttached {
+                    adapter,
+                    session_id,
+                    scope,
+                    work_item_id,
+                    workpoint_id,
+                }])
+            }
 
             Action::AbortContinuousTransportSession { reason } => {
                 Ok(vec![FocusaEvent::ContinuousTransportAbortForwarded {
@@ -3632,13 +3671,26 @@ Return:
                 session_id,
                 turn_id,
                 summary,
-            } => Ok(vec![FocusaEvent::ContinuousTransportEventIngested {
-                sequence,
-                kind,
-                session_id,
-                turn_id,
-                summary,
-            }]),
+            } => {
+                if session_id.as_deref() != self.state.work_loop.transport_session_id.as_deref()
+                    || self.state.work_loop.transport_scope != self.state.work_loop.execution_scope
+                    || self.state.work_loop.transport_work_item_id
+                        != self.state.work_loop.execution_work_item_id
+                    || self.state.work_loop.transport_workpoint_id
+                        != self.state.work_loop.execution_workpoint_id
+                {
+                    return Err(anyhow::anyhow!(
+                        "transport event rejected: session or execution partition mismatch"
+                    ));
+                }
+                Ok(vec![FocusaEvent::ContinuousTransportEventIngested {
+                    sequence,
+                    kind,
+                    session_id,
+                    turn_id,
+                    summary,
+                }])
+            }
 
             Action::SelectNextContinuousSubtask {
                 parent_work_item_id,

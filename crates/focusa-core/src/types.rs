@@ -470,6 +470,9 @@ pub struct WorkLoopState {
     pub execution_scope: Option<WorkstreamKey>,
     /// Stable root work-item partition for the active loop; current subtasks never re-key the writer lease.
     pub execution_work_item_id: Option<String>,
+    /// Canonical Workpoint bound to the active execution partition.
+    #[serde(default)]
+    pub execution_workpoint_id: Option<WorkpointId>,
     pub enabled: bool,
     pub status: WorkLoopStatus,
     pub authorship_mode: AuthorshipMode,
@@ -485,6 +488,14 @@ pub struct WorkLoopState {
     pub last_safe_reentry_prompt_basis: Option<String>,
     pub restored_context_summary: Option<String>,
     pub transport_adapter: Option<String>,
+    #[serde(default)]
+    pub transport_session_id: Option<String>,
+    #[serde(default)]
+    pub transport_scope: Option<WorkstreamKey>,
+    #[serde(default)]
+    pub transport_work_item_id: Option<String>,
+    #[serde(default)]
+    pub transport_workpoint_id: Option<WorkpointId>,
     pub transport_session_state: Option<String>,
     pub last_transport_event_kind: Option<String>,
     pub last_transport_event_summary: Option<String>,
@@ -3564,6 +3575,8 @@ pub enum FocusaEvent {
         scope: Option<WorkstreamKey>,
         #[serde(default)]
         work_item_id: Option<String>,
+        #[serde(default)]
+        workpoint_id: Option<WorkpointId>,
     },
     ContinuousWorkModeDisabled {
         reason: String,
@@ -3657,6 +3670,9 @@ pub enum FocusaEvent {
     ContinuousTransportSessionAttached {
         adapter: String,
         session_id: String,
+        scope: WorkstreamKey,
+        work_item_id: String,
+        workpoint_id: WorkpointId,
     },
     ContinuousTransportAbortForwarded {
         reason: String,
@@ -4246,6 +4262,7 @@ pub enum Action {
         policy: WorkLoopPolicy,
         scope: WorkstreamKey,
         work_item_id: String,
+        workpoint_id: WorkpointId,
     },
     PauseContinuousWork {
         reason: String,
@@ -4287,6 +4304,9 @@ pub enum Action {
     AttachContinuousTransportSession {
         adapter: String,
         session_id: String,
+        scope: WorkstreamKey,
+        work_item_id: String,
+        workpoint_id: WorkpointId,
     },
     AbortContinuousTransportSession {
         reason: String,

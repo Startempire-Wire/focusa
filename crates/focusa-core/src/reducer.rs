@@ -1739,9 +1739,11 @@ pub fn reduce_with_meta(
             policy,
             scope,
             work_item_id,
+            workpoint_id,
         } => {
             state.work_loop.execution_scope = scope;
             state.work_loop.execution_work_item_id = work_item_id;
+            state.work_loop.execution_workpoint_id = workpoint_id;
             state.work_loop.enabled = true;
             state.work_loop.status = WorkLoopStatus::Idle;
             state.work_loop.policy = policy;
@@ -1767,6 +1769,11 @@ pub fn reduce_with_meta(
         FocusaEvent::ContinuousWorkModeDisabled { reason } => {
             state.work_loop.execution_scope = None;
             state.work_loop.execution_work_item_id = None;
+            state.work_loop.execution_workpoint_id = None;
+            state.work_loop.transport_session_id = None;
+            state.work_loop.transport_scope = None;
+            state.work_loop.transport_work_item_id = None;
+            state.work_loop.transport_workpoint_id = None;
             state.work_loop.enabled = false;
             state.work_loop.status = WorkLoopStatus::Idle;
             state.work_loop.current_task = None;
@@ -1845,8 +1852,15 @@ pub fn reduce_with_meta(
         FocusaEvent::ContinuousTransportSessionAttached {
             adapter,
             session_id,
+            scope,
+            work_item_id,
+            workpoint_id,
         } => {
             state.work_loop.transport_adapter = Some(adapter);
+            state.work_loop.transport_session_id = Some(session_id.clone());
+            state.work_loop.transport_scope = Some(scope);
+            state.work_loop.transport_work_item_id = Some(work_item_id);
+            state.work_loop.transport_workpoint_id = Some(workpoint_id);
             state.work_loop.run.worker_session_id = Some(session_id.clone());
             state.work_loop.transport_session_state = Some("attached".to_string());
             state.work_loop.last_transport_event_kind = Some("session_attached".to_string());
@@ -5733,6 +5747,7 @@ mod tests {
         )
         .unwrap();
         let scope = crate::scoped_state::WorkstreamKey::new(project, "cont-focusa").unwrap();
+        let workpoint_id = Uuid::now_v7();
         let enabled = reduce(
             fresh_state(),
             FocusaEvent::ContinuousWorkModeEnabled {
@@ -5740,6 +5755,7 @@ mod tests {
                 policy: WorkLoopPolicy::default(),
                 scope: Some(scope.clone()),
                 work_item_id: Some("focusa-workloop-completion.2".to_string()),
+                workpoint_id: Some(workpoint_id),
             },
         )
         .unwrap()
@@ -5749,6 +5765,7 @@ mod tests {
             enabled.work_loop.execution_work_item_id.as_deref(),
             Some("focusa-workloop-completion.2")
         );
+        assert_eq!(enabled.work_loop.execution_workpoint_id, Some(workpoint_id));
 
         let stopped = reduce(
             enabled,
@@ -5760,6 +5777,45 @@ mod tests {
         .new_state;
         assert_eq!(stopped.work_loop.execution_scope, None);
         assert_eq!(stopped.work_loop.execution_work_item_id, None);
+        assert_eq!(stopped.work_loop.execution_workpoint_id, None);
+    }
+
+    #[test]
+    fn transport_attachment_materializes_exact_execution_partition() {
+        let project = crate::scoped_state::ScopeRef::project(
+            "project:focusa",
+            "/repo/focusa",
+            "Focusa",
+            "sha256:focusa",
+        )
+        .unwrap();
+        let scope = crate::scoped_state::WorkstreamKey::new(project, "cont-focusa").unwrap();
+        let workpoint_id = Uuid::now_v7();
+        let attached = reduce(
+            fresh_state(),
+            FocusaEvent::ContinuousTransportSessionAttached {
+                adapter: "pi-rpc".to_string(),
+                session_id: "session-1".to_string(),
+                scope: scope.clone(),
+                work_item_id: "focusa-root".to_string(),
+                workpoint_id,
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(
+            attached.work_loop.transport_session_id.as_deref(),
+            Some("session-1")
+        );
+        assert_eq!(attached.work_loop.transport_scope, Some(scope));
+        assert_eq!(
+            attached.work_loop.transport_work_item_id.as_deref(),
+            Some("focusa-root")
+        );
+        assert_eq!(
+            attached.work_loop.transport_workpoint_id,
+            Some(workpoint_id)
+        );
     }
 
     #[test]
@@ -5780,6 +5836,7 @@ mod tests {
                 policy: WorkLoopPolicy::default(),
                 scope: Some(scope.clone()),
                 work_item_id: Some("focusa-a6yq6.2.3".to_string()),
+                workpoint_id: Some(Uuid::now_v7()),
             },
         )
         .unwrap()
