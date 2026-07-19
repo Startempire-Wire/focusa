@@ -1,27 +1,27 @@
 # Spec 135 Real-Time Generated UI Speed and Core Integration Audit
 
 **Audit date:** 2026-07-18  
-**Scope:** Current Focusa code and Spec 135A–135K  
-**Status:** implementation reality and mandatory migration guidance
+**Scope:** current Focusa code and Spec 135A–135K  
+**Status:** implementation reality and mandatory migration guidance  
+**Precedence:** [Spec 135 Series Current Authoritative Delivery Contract](../135-series-current-manifest.md)
 
 ---
 
 ## 1. Verdict
 
-Before Specs 135I–135K, the series required dynamic Interview questions, autosave, resumability, Mission Canvas updates, and a Project Genesis UI, but it did not prohibit a static five-stage wizard or require real-time generated UI for every C.R.I.S.T. stage.
-
-The requirement is now explicit:
+The Spec 135 series now requires:
 
 ```text
-Every onboarding and C.R.I.S.T. stage
+every onboarding and C.R.I.S.T. stage
 → real-time generated A2UI surface
-→ plain-language nontechnical presentation
-→ typed Focusa Operation Registry action
+→ safe nontechnical presentation
+→ generated Focusa Operation Registry action
 → canonical Focusa core/API
 → durable replayable event update
+→ UIAI Engine Eval proof when browser-facing
 ```
 
-Specs 135I, 135J, and 135K close the generated-UI, API-integration, and adaptive-usability gaps.
+The implementation remains incomplete. The current repository contains reusable runtime foundations, but A2UI, generated Operation Registry, replayable SSE, C.R.I.S.T. runtime state, UXP/UFI runtime, generated clients, and UIAI Eval integration remain implementation work.
 
 ---
 
@@ -29,15 +29,24 @@ Specs 135I, 135J, and 135K close the generated-UI, API-integration, and adaptive
 
 ### 2.1 A2UI and AG-UI are not implemented
 
-Current code search finds A2UI/AG-UI only in the new specification documents. There is no runtime package, route, renderer, catalog, or adapter yet.
+A2UI and AG-UI currently exist in specifications only. There is no runtime package, renderer integration, catalog, route family, or compatibility adapter.
 
-**Implementation status:** normative target.
+**Required implementation:** A2UI web core plus the permanent Lit renderer first. AG-UI proceeds later as an external compatibility adapter and does not block native Alpha traversal.
 
-### 2.2 OpenAPI generation is not installed
+### 2.2 Generated contracts are not installed
 
-The current Rust workspace uses Serde and Axum, but no Schemars/Utoipa/OpenAPI generation implementation is present in the workspace dependencies.
+The current Rust workspace uses Serde and Axum but does not yet provide the selected Schemars/Utoipa generation chain.
 
-**Decision:** Alpha 0 begins by establishing generated Rust → OpenAPI/JSON Schema → TypeScript/openapi-fetch contracts before client lanes diverge.
+**Required implementation:**
+
+```text
+Rust types
+→ JSON Schema 2020-12
+→ OpenAPI 3.0.3
+→ TypeScript openapi-typescript/openapi-fetch
+→ Go oapi-codegen client/models for UIAI Engine
+→ Operation Registry and A2UI action bindings
+```
 
 ### 2.3 Existing API architecture is the correct foundation
 
@@ -51,255 +60,238 @@ writes
   dispatch typed Actions to the daemon event loop
 ```
 
-Generated UI must preserve this boundary. UI routes must not become an alternate reducer or workflow engine.
+Generated UI MUST preserve this boundary. UI routes cannot become another reducer, workflow engine, or authority layer.
 
 ### 2.4 Live SSE is low-latency but not durable
 
-The current `/v1/events/stream` implementation:
+Current `/v1/events/stream` subscribes to the in-process broadcast channel, emits event JSON, sends keepalives, and can continue after a lagged receiver.
 
-- subscribes to the in-process broadcast channel;
-- emits `focusa_event` JSON;
-- sends keepalives;
-- silently continues after `RecvError::Lagged`.
+A missed event can lose apparent save state, progress, capability, or surface updates.
 
-This is insufficient for a real-time generated form because a missed event can lose save state, progress, capability, or surface updates.
+### 2.5 Canonical SQLite replay already exists
 
-### 2.5 Canonical event replay already exists
+`/v1/events/recent` already supplies bounded SQLite event reads, filters, cursors, `next_cursor`, and rehydration metadata.
 
-`/v1/events/recent` already provides:
+**Required migration:**
 
-- SQLite canonical event reads;
-- bounded limits;
-- timestamp cursor;
-- `since` and event-type filtering;
-- `next_cursor`;
-- rehydration metadata.
+```text
+client cursor / Last-Event-ID
+→ replay missed scoped events from SQLite
+→ subscribe to broadcast tail
+→ deduplicate by stable event ID and sequence
+→ emit A2UI snapshot/delta
+```
 
-**Decision:** combine this durable history with the existing broadcast tail. Do not add Redis, Kafka, NATS, a UI event database, or a second AG-UI history for the initial implementation.
+Do not add Redis, Kafka, NATS, a UI event database, or a second AG-UI history.
 
-### 2.6 Shared error/recovery middleware exists
+### 2.6 Shared ToolResult/error middleware exists
 
-`middleware/error_envelope.rs` already emits:
+The existing middleware already provides correlation IDs, status, failure classes, recovery and misuse hints, retry posture, next tools, side effects, and Evidence references.
 
-- correlation ID;
-- status and failure class;
-- safe recovery command;
-- recovery and misuse hints;
-- next tools;
-- evidence refs;
-- nested `tool_result_v1`.
-
-Generated UI should convert this existing envelope into plain-language recovery cards.
+Generated recovery surfaces MUST project this envelope into plain language. Do not create a UI-specific error or retry taxonomy.
 
 ### 2.7 Route-local envelope duplication exists
 
-Multiple route families still define local `*_failure` builders with nearly identical `tool_result_v1` payloads. Examples include events, capabilities, and visual workflow routes.
+Several route families still define local failure builders.
 
-**Decision:** use expand-contract migration to one shared typed envelope constructor. Do not let new generated-UI routes add another copy.
+**Required migration:** expand-contract to one shared typed envelope constructor before new generated-UI routes expand the duplication.
 
 ### 2.8 Capability and permission systems exist
 
-Current API routes already use permission contexts and scoped capability reads.
+Current routes already use permission contexts and scoped capability reads.
 
-**Decision:** create `focusa.ui_capability_snapshot.v1` as a bounded projection over existing systems. Do not implement UI permissions in A2UI catalogs or Svelte stores.
+**Required implementation:** `focusa.ui_capability_snapshot.v1` is a bounded projection over existing capabilities, permissions, provider health, connector health, and client capability. Do not implement permissions in A2UI catalogs or Svelte stores.
 
-### 2.9 UXP/UFI is canonical but not implemented in current runtime code
+### 2.9 UXP/UFI is specified but not implemented
 
-Spec 14 already defines authoritative UXP/UFI schemas, dimensions, citations, learning rules, transparency, and SQLite storage. Current code search does not show a corresponding runtime implementation.
+Spec 14 is the canonical user-experience model. Current runtime code does not yet implement the full UXP/UFI lifecycle.
 
-**Decision:** implement Spec 14 as the only adaptive generated-UI profile. Do not create `SimpleMode`, `ExpertMode`, an expertise score, or another personalization database.
+**Required implementation:** implement Spec 14 as the only adaptive generated-UI profile. Do not create Simple Mode, Expert Mode, expertise scoring, emotion labels, or another personalization database.
 
-### 2.10 Existing `visual_workflow` routes are evidence routes
+### 2.10 Existing `visual_workflow` routes are Evidence routes
 
-`/v1/visual-workflow/evidence/store` and `/v1/visual-workflow/evidence` currently:
+The existing visual-workflow routes store ECS evidence and handles. They are not a generated workflow engine.
 
-- store visual evidence in ECS;
-- index handles in Focusa state;
-- use labels to encode run/phase/kind;
-- duplicate failure-envelope construction;
-- allow project/continuity fallback from ambient session state.
-
-They are not a generated workflow or UI protocol.
-
-**Migration decision:**
+**Required migration:**
 
 ```text
 legacy visual-workflow evidence request
-→ typed Workspace Artifact / Evidence capture operation
+→ typed Workspace Artifact / Evidence operation
 → explicit project/workstream/attachment scope
 → ECS handle
 → Evidence link
-→ Receipt/event where required
+→ event and Receipt where required
 ```
 
-Preserve old routes as compatibility aliases during expand-contract migration. Replace label-parsed metadata with typed artifact metadata. Canonical writes must not silently adopt ambient session scope when explicit scope is required.
+Preserve old routes as compatibility aliases during expand-contract. Remove ambient session-scope fallback from authority-bearing writes.
+
+### 2.11 Browser execution and proof already belong to UIAI Engine
+
+UIAI Engine already owns browser sessions, actions, contexts, screenshots, snapshots, diagnostics, FPV, responsive capture, visual comparison, and browser evidence.
+
+**Required implementation:** add versioned UIAI Engine Eval scenario/result contracts and use UIAI Engine Eval for all browser, end-to-end, responsive, visual, reconnect, diagnostic, isolation, and browser-accessibility proof.
+
+Focusa MUST NOT add Playwright or a second browser test runtime.
+
+### 2.12 Model execution already belongs to governed harness sessions
+
+Focusa already has Pi integration and Spec 133 governed session architecture.
+
+**Required implementation:** add `focusa.agent_execution_adapter.v1` with Pi RPC as the reference adapter for Role Composer, Grill Interview, grounded recommendations, synthesis, and generated explanations.
+
+Do not introduce Vercel WorkflowAgent, ToolLoopAgent, AI SDK UI, Vercel AI Gateway authority, or another model/tool runtime.
 
 ---
 
-## 3. Highest-leverage implementation accelerators now locked
+## 3. Locked accelerators
 
-### 3.1 A2UI instead of a custom generated-UI DSL
+### A2UI instead of a custom generated-UI system
 
-Reuse:
+Reuse A2UI protocol schemas, `web_core`, SurfaceModel, validation, data binding, incremental updates, action routing, multi-surface lifecycle, basic catalog, Composer, and Theater.
 
-- protocol schemas;
-- message processor;
-- SurfaceModel and data model;
-- validation;
-- binding;
-- incremental updates;
-- multi-surface lifecycle;
-- action routing;
-- basic component catalog;
-- Composer/Theater fixtures.
+Use the maintained Lit renderer permanently. Author Focusa-specific Svelte controls as Custom Elements. Do not build another complete A2UI renderer.
 
-### 3.2 AG-UI middleware instead of a second agent stream
+### Generated Operation Registry
 
-Translate existing Focusa operation and event activity into:
+Generate operations, schemas, capabilities, confirmation posture, recovery metadata, and UI action bindings from Rust/OpenAPI.
 
-- lifecycle events;
-- activity snapshots;
-- tool events;
-- state snapshots;
-- RFC 6902 state deltas;
-- custom A2UI messages.
+### Schema-driven ordinary inputs
 
-### 3.3 Generated Operation Registry instead of a manual UI action list
+Use A2UI basic inputs for scalar, enum, date, array, and file-reference fields. Build custom Focusa controls only for domain interactions.
 
-Generate operation metadata, action schemas, capability requirements, confirmation posture, and UI action bindings from Rust/OpenAPI.
+### Deterministic UI without model calls
 
-### 3.4 JSON Schema inputs instead of custom forms
+Render stage shell, progress, required fields, validation, capabilities, approvals, recovery, standard forms, and known summaries without a model call.
 
-Use ordinary A2UI inputs for standard scalar, enum, date, array, and file-reference fields. Build custom Focusa components only for real domain interactions.
+### UIAI Engine Eval instead of browser test reinvention
 
-### 3.5 Deterministic surfaces without model calls
+Use UIAI Engine Eval for browser actions, screenshots, responsive states, diagnostics, accessibility snapshots, visual comparison, reconnect, authentication, browser-context isolation, and Evidence generation.
 
-Render immediately without an LLM:
+### Existing UXP/UFI
 
-- stage shell;
-- progress;
-- required fields;
-- validation;
-- permissions/capabilities;
-- approval state;
-- recovery;
-- standard forms;
-- known source and task summaries.
+Use the nontechnical baseline and canonical UXP dimensions. Capture only cited observable UFI friction.
 
-Model calls remain for cognition and synthesis, not generic UI mechanics.
+### Deterministic fixtures before live integration
 
-### 3.6 Existing UXP/UFI instead of a new nontechnical mode
-
-Use the safe nontechnical default and canonical UXP dimensions for explanation and pacing. Capture only cited observable UFI friction.
-
-### 3.7 Fixtures before live integration
-
-Build A2UI catalogs and stage surfaces against generated schemas and deterministic fixtures while backend routes are being implemented. Replace fixtures with live calls without changing component contracts.
-
-### 3.8 Existing UIAI Test Lab and evidence plane
-
-Use UIAI Engine for:
-
-- screenshots;
-- cross-browser visual proof;
-- responsive proof;
-- browser-context testing;
-- generated UI evidence;
-- recovery-path verification.
-
-Do not create another browser test/evidence subsystem.
+Build A2UI catalogs and stage surfaces against generated schemas and fixtures while backend routes are implemented. Replace fixture data with live calls without changing contracts.
 
 ---
 
 ## 4. Correct core integration path
 
 ```text
-Focusa canonical reducer/state
+Focusa canonical primitive and reducer
 → subsystem read model
 → Resolved Project Operating Profile
 → UiInteractionIntent
 → Generated Surface Envelope
 → A2UI messages
-→ trusted renderer
+→ permanent Lit renderer + Focusa Svelte Custom Elements
 → UI Action Binding
-→ Focusa Operation Registry
-→ existing preview/commit/core action
+→ generated Operation Registry
+→ preview/commit Focusa operation
 → shared ToolResult envelope
 → canonical event / Evidence / Receipt
-→ durable SQLite replay + live broadcast
-→ AG-UI translation
+→ SQLite replay + broadcast live tail
 → targeted A2UI delta
 ```
 
-Every layer has one responsibility. No layer may duplicate the authority of the layer beneath it.
+AG-UI translates this path for external compatibility. It does not sit between native Focusa events and the first complete product traversal.
 
 ---
 
-## 5. Revised fastest Alpha 0 implementation order
+## 5. Exact fastest Foundation Train
 
-Implement in this exact order:
+1. Freeze the series at 135K and compile the Delivery Contract.
+2. Create the machine-readable feature ledger, DAG, parity, framework, and proof matrices.
+3. Add Schemars/Utoipa and generate JSON Schema 2020-12 plus OpenAPI 3.0.3.
+4. Generate TypeScript/openapi-fetch and Go/oapi-codegen clients.
+5. Generate Operation Registry and UI action bindings.
+6. Centralize ToolResult/error constructors through expand-contract.
+7. Add stable event IDs and replayable SSE over SQLite plus broadcast.
+8. Add capability/permission projection and version handshake.
+9. Add Pi RPC AgentExecutionAdapter.
+10. Add UiInteractionIntent and Generated Surface Envelope.
+11. Integrate A2UI web core and permanent Lit renderer.
+12. Register initial Focusa Svelte Custom Elements.
+13. Implement first UIAI Engine Eval scenario.
+14. Bind one real Context action through preview/commit.
+15. Run contract, fixture, scope, replay, recovery, generated-UI, and UIAI Eval proof.
 
-1. Add Schemars/Utoipa and generated OpenAPI/JSON Schema.
-2. Generate TypeScript and `openapi-fetch` client.
-3. Define Operation Registry annotations and snapshot.
-4. Centralize shared ToolResult/error constructors through expand-contract.
-5. Add stable event ID/sequence and replayable SSE using SQLite + broadcast.
-6. Add capability/permission snapshot.
-7. Add `UiInteractionIntent` and one Generated Surface Envelope.
-8. Integrate `@a2ui/web_core/v0_9` and maintained Lit renderer.
-9. Add AG-UI middleware translation.
-10. Bind one Context action through preview/commit.
-11. Run Schemathesis, A2UI fixture, Playwright, scope, replay, and recovery proof.
+After generated operation contracts stabilize, client, core, Context, Interview, Spec/Task, UIAI, vertical, provider, and hardening lanes proceed in parallel.
 
-After step 3, UI fixture/catalog work and core read-model work can proceed in parallel. After step 5, every stage can use the same durable stream.
+AG-UI compatibility proceeds after the native durable stream is stable and does not block the native Alpha.
 
 ---
 
-## 6. Stage implementation order
-
-After Alpha 0:
+## 6. Stage order
 
 ```text
 Context generated surface
 → Role generated surface
 → Grill Interview generated surface
-→ Spec progress/approval generated surface
-→ Task-plan generated surface
-→ Workpoint/Evidence/Receipt generated continuation
+→ Spec progress and approval surface
+→ Task-plan surface
+→ Workpoint / Evidence / Receipt continuation
 ```
 
-This is the shortest path to a full, usable C.R.I.S.T. traversal because each stage reuses the same shell, Operation Registry, action binding, capability snapshot, error mapping, stream, and catalog.
+Every stage reuses the same StageShell, Operation Registry, action binding, capability snapshot, ToolResult mapping, durable stream, A2UI catalog, UXP/UFI projection, and UIAI Eval contract.
 
 ---
 
-## 7. Nontechnical completion standard
+## 7. Greater primitive submission
 
-Backend completion does not satisfy a C.R.I.S.T. stage.
+Implementation order:
+
+```text
+general Focusa primitive
+→ reducer/state
+→ typed API
+→ generated TypeScript/Go contracts
+→ C.R.I.S.T. projection
+→ renderer
+→ UIAI Engine Eval
+→ Evidence
+→ Receipt
+```
+
+Reject a PR that implements generally reusable behavior only inside Project Genesis, a route-local UI module, a client store, or an A2UI component.
+
+---
+
+## 8. Nontechnical completion standard
 
 A stage is complete only when a nontechnical operator can:
 
 - understand what is happening;
-- know why Focusa needs input;
+- understand why input is required;
 - see what Focusa already knows;
-- receive a recommendation with sources;
-- provide or approve the input;
-- see save/progress state;
-- recover from a realistic error;
-- leave and resume;
-- reach the next stage without CLI, raw JSON, route names, schemas, or developer intervention.
+- receive a recommendation and sources;
+- provide or approve input;
+- see save and progress state;
+- recover from a realistic failure;
+- leave and resume exact state;
+- continue without CLI, raw JSON, route names, schemas, or developer intervention.
 
 ---
 
-## 8. Decomposition blockers
+## 9. Decomposition blockers
 
 Reject decomposition that:
 
-- builds every backend stage before one end-to-end generated path;
-- adds static stage pages before the shared surface/action/stream spine;
-- creates route-specific frontend calls instead of generated operations;
-- adds a second event store;
-- copies permission or error logic into the client;
-- treats `visual_workflow` routes as a generated UI system;
+- builds every backend stage before one complete generated path;
+- creates static stage pages before the shared surface/action/stream spine;
+- adds route-specific client DTOs or action catalogs;
+- adds a second event history;
+- copies permission, ToolResult, or retry logic into clients;
+- treats visual-workflow evidence routes as generated UI;
 - creates a second personalization profile;
-- makes deterministic UI wait for a model;
-- considers CLI proof sufficient for onboarding completion.
+- waits for a model to render deterministic UI;
+- uses CLI proof for onboarding completion;
+- uses browser proof outside UIAI Engine Eval;
+- introduces Playwright;
+- builds a complete second A2UI renderer;
+- makes AG-UI a native Alpha blocker;
+- introduces Vercel AI SDK as Focusa runtime authority;
+- fails to submit reusable behavior to a greater Focusa primitive;
+- omits requirement IDs, Evidence, Receipts, migration, recovery, or UIAI Eval scenarios from the machine-readable delivery graph.
