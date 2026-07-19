@@ -7,7 +7,9 @@
 //! ECS objects remain filesystem-backed (see reference::store).
 
 use crate::clt::retain_hot_window;
-use crate::silent_session::{SilentSession, SilentSessionEvent, SilentSessionId};
+use crate::silent_session::{
+    SilentSession, SilentSessionEvent, SilentSessionId, SilentSessionRun, SilentSessionRunId,
+};
 use crate::silent_session_authorization::{SilentSessionApproval, SilentSessionPrincipal};
 use crate::sync::{CrdtEvent, VectorClock};
 use crate::types::{
@@ -22,7 +24,7 @@ use std::sync::{Arc, Mutex};
 use tracing::debug;
 use uuid::Uuid;
 
-const SCHEMA_VERSION: i64 = 4;
+const SCHEMA_VERSION: i64 = 5;
 
 fn hot_clt_snapshot_max_nodes() -> usize {
     std::env::var("FOCUSA_HOT_CLT_MAX_NODES")
@@ -284,6 +286,19 @@ impl SqlitePersistence {
             );
             CREATE INDEX IF NOT EXISTS idx_silent_sessions_scope
               ON silent_sessions(project_root, continuity_id);
+
+            -- V5: exact durable run projection and generation guard source.
+            CREATE TABLE IF NOT EXISTS silent_session_runs (
+              run_id TEXT PRIMARY KEY,
+              session_id TEXT NOT NULL,
+              generation INTEGER NOT NULL CHECK(generation > 0),
+              run_json TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              UNIQUE(session_id, generation),
+              FOREIGN KEY(session_id) REFERENCES silent_sessions(session_id) ON DELETE RESTRICT
+            );
+            CREATE INDEX IF NOT EXISTS idx_silent_session_runs_target
+              ON silent_session_runs(session_id, run_id, generation);
 
             CREATE TABLE IF NOT EXISTS silent_session_events (
               event_id TEXT PRIMARY KEY,
@@ -2397,6 +2412,71 @@ impl SqlitePersistence {
             .query_row(
                 "SELECT projection_json FROM silent_sessions WHERE session_id=?1",
                 [session_id.to_string()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        json.map(|value| serde_json::from_str(&value).map_err(Into::into))
+            .transpose()
+    }
+
+    /// Persist the exact process-run projection used by API generation guards.
+    /// The owning session must already be durable, and a generation can never
+    /// be rebound to another run identity.
+    pub fn put_silent_session_run(
+        &self,
+        session: &SilentSession,
+        run: &SilentSessionRun,
+    ) -> anyhow::Result<()> {
+        run.validate(session)
+            .map_err(|error| anyhow::anyhow!("invalid silent-session run: {error:?}"))?;
+        let run_json = serde_json::to_string(run)?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let durable_session: Option<String> = conn
+            .query_row(
+                "SELECT session_id FROM silent_sessions WHERE session_id=?1",
+                [session.session_id.to_string()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        anyhow::ensure!(
+            durable_session.is_some(),
+            "silent-session run requires durable owning session"
+        );
+        let changed = conn.execute(
+            r#"INSERT INTO silent_session_runs(run_id, session_id, generation, run_json, updated_at)
+               VALUES (?1, ?2, ?3, ?4, ?5)
+               ON CONFLICT(run_id) DO UPDATE SET run_json=excluded.run_json,
+                 updated_at=excluded.updated_at
+               WHERE silent_session_runs.session_id=excluded.session_id
+                 AND silent_session_runs.generation=excluded.generation"#,
+            params![
+                run.run_id.to_string(),
+                run.session_id.to_string(),
+                i64::try_from(run.generation)?,
+                run_json,
+                Utc::now().to_rfc3339()
+            ],
+        )?;
+        anyhow::ensure!(changed == 1, "silent-session run identity conflict");
+        Ok(())
+    }
+
+    pub fn load_silent_session_run(
+        &self,
+        session_id: SilentSessionId,
+        run_id: SilentSessionRunId,
+    ) -> anyhow::Result<Option<SilentSessionRun>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let json: Option<String> = conn
+            .query_row(
+                "SELECT run_json FROM silent_session_runs WHERE session_id=?1 AND run_id=?2",
+                params![session_id.to_string(), run_id.to_string()],
                 |row| row.get(0),
             )
             .optional()?;

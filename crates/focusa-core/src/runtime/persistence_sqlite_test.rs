@@ -2,10 +2,11 @@
 
 use crate::runtime::persistence_sqlite::SqlitePersistence;
 use crate::silent_session::{
-    ObservationProvenance, RedactionMetadata, SILENT_SESSION_EVENT_SCHEMA, SILENT_SESSION_SCHEMA,
-    SilentSession, SilentSessionConfigRevisionId, SilentSessionEvent, SilentSessionEventId,
-    SilentSessionHealth, SilentSessionId, SilentSessionLeaseId, SilentSessionLifecycleState,
-    SilentSessionRunId, SilentSessionVersions,
+    ModelBinding, ObservationProvenance, RedactionMetadata, SILENT_SESSION_EVENT_SCHEMA,
+    SILENT_SESSION_RUN_SCHEMA, SILENT_SESSION_SCHEMA, SilentSession, SilentSessionConfigRevisionId,
+    SilentSessionEvent, SilentSessionEventId, SilentSessionHealth, SilentSessionId,
+    SilentSessionLeaseId, SilentSessionLifecycleState, SilentSessionRun, SilentSessionRunId,
+    SilentSessionVersions, WorkspaceBinding, WorkspaceStrategy,
 };
 use crate::silent_session_authorization::{
     SILENT_SESSION_APPROVAL_SCHEMA, SilentSessionApproval, SilentSessionPrincipal,
@@ -66,6 +67,43 @@ fn sample_silent_session(dir: &std::path::Path) -> (SilentSession, SilentSession
         },
     };
     (session, event)
+}
+
+fn sample_silent_run(session: &SilentSession) -> SilentSessionRun {
+    SilentSessionRun {
+        schema: SILENT_SESSION_RUN_SCHEMA.into(),
+        versions: SilentSessionVersions::default(),
+        run_id: session
+            .active_run_id
+            .expect("sample session has active run"),
+        session_id: session.session_id,
+        generation: 1,
+        runner_id: "runner:test".into(),
+        adapter_id: "adapter:test".into(),
+        process_backend_id: "process:test".into(),
+        requested_model_binding: ModelBinding {
+            provider: "test".into(),
+            model: "test-model".into(),
+            thinking: None,
+        },
+        effective_model_binding: None,
+        observed_model_binding: None,
+        workspace_binding: WorkspaceBinding {
+            workspace_id: "workspace:test".into(),
+            root: session.project_root.clone(),
+            strategy: WorkspaceStrategy::ExclusiveExisting,
+            branch_ref: None,
+        },
+        process_identity: None,
+        harness_native_session_ref: None,
+        started_at: Some(Utc::now()),
+        ended_at: None,
+        exit_status: None,
+        current_event_seq: 1,
+        output_stream_refs: vec![],
+        runtime_checkpoint_refs: vec![],
+        workpoint_checkpoint_refs: vec![],
+    }
 }
 
 fn temp_dir() -> std::path::PathBuf {
@@ -461,6 +499,45 @@ fn silent_session_projection_and_hash_chain_are_atomic_replay_safe_and_tamper_ev
         persistence
             .verify_silent_session_event_chain(session.session_id)
             .is_err()
+    );
+}
+
+#[test]
+fn silent_session_run_projection_survives_restart_and_fences_identity_and_generation() {
+    let dir = temp_dir();
+    let mut config = FocusaConfig::default();
+    config.data_dir = dir.to_string_lossy().to_string();
+    let (session, first) = sample_silent_session(&dir);
+    let run = sample_silent_run(&session);
+
+    {
+        let persistence = SqlitePersistence::new(&config).unwrap();
+        persistence
+            .persist_silent_session_event(&session, &first)
+            .unwrap();
+        persistence.put_silent_session_run(&session, &run).unwrap();
+
+        let mut rebound = run.clone();
+        rebound.generation = 2;
+        assert!(
+            persistence
+                .put_silent_session_run(&session, &rebound)
+                .is_err()
+        );
+    }
+
+    let reopened = SqlitePersistence::new(&config).unwrap();
+    assert_eq!(
+        reopened
+            .load_silent_session_run(session.session_id, run.run_id)
+            .unwrap(),
+        Some(run.clone())
+    );
+    assert_eq!(
+        reopened
+            .load_silent_session_run(SilentSessionId::new(), run.run_id)
+            .unwrap(),
+        None
     );
 }
 
