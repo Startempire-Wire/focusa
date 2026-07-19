@@ -70,6 +70,36 @@ if rg -n 'playwright_flow_ref|OpenAPI 3\.1|make Svelte renderer primary|Playwrig
   fail "stale Spec 135I implementation decision remains"
 fi
 
+PLAYWRIGHT_CONFIGS="$(find "$ROOT_DIR" -type f \( -name 'playwright.config.*' -o -name '.playwright.*' \) -print)"
+if [[ -n "$PLAYWRIGHT_CONFIGS" ]]; then
+  printf '%s\n' "$PLAYWRIGHT_CONFIGS" >&2
+  fail "Playwright configuration exists in Focusa"
+fi
+
+MANIFEST_FILES=()
+while IFS= read -r -d '' file; do MANIFEST_FILES+=("$file"); done < <(
+  find "$ROOT_DIR" -type f \( \
+    -name 'package.json' -o \
+    -name 'pnpm-lock.yaml' -o \
+    -name 'package-lock.json' -o \
+    -name 'yarn.lock' -o \
+    -name 'bun.lock' -o \
+    -name 'bun.lockb' -o \
+    -name 'pyproject.toml' -o \
+    -name 'requirements*.txt' \
+  \) -print0
+)
+if ((${#MANIFEST_FILES[@]})) && rg -n '(@playwright/test|playwright-core|(^|["'"'[:space:]])playwright(["'"':@[:space:]]|$))' "${MANIFEST_FILES[@]}"; then
+  fail "Playwright dependency exists in Focusa package or lock files"
+fi
+
+if rg -n --glob '!*.md' --glob '!spec135i_real_time_generated_ui_static_test.sh' \
+  '(from[[:space:]]+["'"'][^"'"']*playwright|require\(["'"']playwright|@playwright/test)' \
+  "$ROOT_DIR/apps" "$ROOT_DIR/packages" "$ROOT_DIR/crates" "$ROOT_DIR/scripts" "$ROOT_DIR/tests" 2>/dev/null; then
+  fail "Playwright import or executable test usage exists in Focusa source"
+fi
+pass "Focusa contains no Playwright dependency, config, or executable browser-test usage"
+
 for needle in \
   'Alpha 0' \
   'Alpha 1' \
