@@ -2727,6 +2727,22 @@ impl SqlitePersistence {
             .transpose()
     }
 
+    /// Return a bounded newest-first projection of durable logical sessions.
+    /// Callers receive canonical records only; process runs remain separate and
+    /// must be addressed by their exact run identity.
+    pub fn list_silent_sessions(&self, limit: usize) -> anyhow::Result<Vec<SilentSession>> {
+        anyhow::ensure!(limit > 0, "silent-session list limit must be positive");
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let mut statement = conn.prepare(
+            "SELECT projection_json FROM silent_sessions ORDER BY updated_at DESC, session_id DESC LIMIT ?1",
+        )?;
+        let rows = statement.query_map([i64::try_from(limit)?], |row| row.get::<_, String>(0))?;
+        rows.map(|row| Ok(serde_json::from_str(&row?)?)).collect()
+    }
+
     /// Insert the initial config authority record for an existing session.
     /// The revision identity must match the session projection so config reads
     /// can never silently fall back to an unversioned request.
@@ -2974,6 +2990,24 @@ impl SqlitePersistence {
         run_id: SilentSessionRunId,
         after_event_id: Option<SilentSessionEventId>,
     ) -> anyhow::Result<Vec<SilentSessionEvent>> {
+        self.load_silent_session_run_events_after_bounded(
+            session_id,
+            run_id,
+            after_event_id,
+            usize::MAX,
+        )
+    }
+
+    /// Load a bounded exact-run event page after an opaque emitted event ID.
+    /// Unknown and cross-run cursors fail closed rather than replaying genesis.
+    pub fn load_silent_session_run_events_after_bounded(
+        &self,
+        session_id: SilentSessionId,
+        run_id: SilentSessionRunId,
+        after_event_id: Option<SilentSessionEventId>,
+        limit: usize,
+    ) -> anyhow::Result<Vec<SilentSessionEvent>> {
+        anyhow::ensure!(limit > 0, "silent-session event limit must be positive");
         let conn = self
             .conn
             .lock()
@@ -2995,13 +3029,15 @@ impl SqlitePersistence {
             None => None,
         };
         let mut statement = conn.prepare(
-            "SELECT event_json FROM silent_session_events WHERE session_id=?1 AND run_id=?2 AND seq>?3 ORDER BY seq",
+            "SELECT event_json FROM silent_session_events WHERE session_id=?1 AND run_id=?2 AND seq>?3 ORDER BY seq LIMIT ?4",
         )?;
+        let sql_limit = i64::try_from(limit).unwrap_or(i64::MAX);
         let rows = statement.query_map(
             params![
                 session_id.to_string(),
                 run_id.to_string(),
-                after_seq.unwrap_or(0)
+                after_seq.unwrap_or(0),
+                sql_limit
             ],
             |row| row.get::<_, String>(0),
         )?;
