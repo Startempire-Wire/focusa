@@ -3,10 +3,12 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SPEC="$ROOT_DIR/docs/135h-cross-functional-alpha-grill-interview-and-implementation-acceleration-spec.md"
+DIRECTIVE="$ROOT_DIR/docs/agent/spec135-implementation-acceleration-directive.md"
 fail(){ echo "✗ FAIL: $*" >&2; exit 1; }
 pass(){ echo "✓ PASS: $*"; }
 
 [[ -f "$SPEC" ]] || fail "Spec 135H is missing"
+[[ -f "$DIRECTIVE" ]] || fail "Spec 135 agent acceleration directive is missing"
 
 for needle in \
   'focusa.interview.strategy.grill-with-docs.v1' \
@@ -87,5 +89,18 @@ for needle in \
   rg -n -F "$needle" "$SPEC" >/dev/null || fail "Spec 135H missing license/provenance requirement: $needle"
 done
 pass "license, notice, SBOM, and replacement governance is explicit"
+
+for needle in \
+  'Do not present option menus' \
+  'Cross-Functional Alpha' \
+  'focusa.interview.strategy.grill-with-docs.v1' \
+  'Decided stack' \
+  'reuse_assessment:' \
+  'Use vertical tracer-bullet tickets' \
+  'Permanent integration gate' \
+  'No-deferral rule'; do
+  rg -n -F "$needle" "$DIRECTIVE" >/dev/null || fail "agent acceleration directive missing: $needle"
+done
+pass "agent-facing decomposition directive preserves decision-only acceleration rules"
 
 echo "Spec 135H implementation acceleration static test: PASS"
