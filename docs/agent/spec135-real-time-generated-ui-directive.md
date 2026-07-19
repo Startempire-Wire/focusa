@@ -1,7 +1,7 @@
 # Spec 135 Real-Time Generated UI Directive for Agents
 
-**Authority:** [Spec 135I](../135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md)  
-**Applies to:** every agent decomposing, implementing, reviewing, testing, or closing C.R.I.S.T., Project Genesis, onboarding, Mission Canvas, or Spec 135 client work.
+**Authority:** [Spec 135I](../135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md) and [Spec 135J](../135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md)  
+**Applies to:** every agent decomposing, implementing, reviewing, testing, or closing C.R.I.S.T., Project Genesis, onboarding, Mission Canvas, or Spec 135A–135J client/API work.
 
 ---
 
@@ -58,17 +58,17 @@ Do not ask the operator to select another protocol, renderer, form engine, state
 
 ---
 
-## Core API boundary
+## Core API and Operation Registry boundary
 
 The generated UI is a projection. Focusa core remains canonical.
 
-Every generated action binds to a registered typed Focusa operation with:
+Every generated action comes from the Rust/OpenAPI-generated Focusa Operation Registry and binds to a registered typed Focusa operation with:
 
 ```text
-project/workstream scope
+project/workstream/attachment scope
 capability
 permission
-input schema
+input and output schema
 preview/commit posture
 idempotency
 optimistic concurrency
@@ -76,13 +76,16 @@ Receipt requirement
 recovery action
 ```
 
-Do not create a generic UI mutation endpoint or execute model-generated code.
+Do not hand-maintain a second route/action catalog in Svelte, A2UI prompts, or connector code. Do not create a generic UI mutation endpoint or execute model-generated code.
 
 Required action sequence:
 
 ```text
-validate input
-→ validate scope and capability
+A2UI action
+→ resolve generated UI Action Binding
+→ load Operation Descriptor
+→ validate input
+→ validate scope, capability, and permission
 → preview where required
 → operator confirmation
 → typed Focusa commit
@@ -90,6 +93,8 @@ validate input
 → Receipt where required
 → generated UI delta
 ```
+
+Generated UI routes compose existing Context, Role, Interview, Spec, Task, Workpoint, Evidence, Receipt, connector, provider, session, capability, and permission operations. They do not duplicate their business logic.
 
 ---
 
@@ -173,11 +178,23 @@ AI may generate:
 
 AI may not invent actions, permissions, required fields, completion, evidence, or authority.
 
+Loading, progress, validation, capability, approval, recovery, and standard schema-driven input surfaces must render without an LLM call.
+
 ---
 
-## Real-time requirements
+## Durable real-time requirements
 
-Use AG-UI lifecycle/activity/tool/state events and A2UI incremental messages.
+Use the existing Focusa canonical SQLite event history and broadcast channel. AG-UI translates them; it does not own another event history.
+
+Required stream behavior:
+
+```text
+client supplies cursor / Last-Event-ID
+→ replay missed matching events from SQLite
+→ subscribe to existing broadcast live tail
+→ deduplicate by stable event ID/sequence
+→ emit AG-UI lifecycle/tool/state events and A2UI messages
+```
 
 Required behavior:
 
@@ -186,9 +203,37 @@ Required behavior:
 - state changes produce bounded deltas;
 - user input survives incoming deltas;
 - clients reconnect by cursor or request a fresh snapshot;
+- a lagged broadcast receiver replays from SQLite rather than silently losing state;
 - hidden surfaces do not consume unnecessary high-frequency updates;
 - manual refresh is recovery-only;
 - concurrent Work Surfaces preserve separate drafts, scopes, bindings, and cursors.
+
+Do not create a Redis stream, UI event database, AG-UI event database, or second message broker for the initial architecture.
+
+---
+
+## Shared capability, error, and recovery reuse
+
+Component and action availability must derive from the existing Focusa capability, permission, provider-health, connector-health, and client-capability systems through `focusa.ui_capability_snapshot.v1`.
+
+Generated recovery UI derives from the shared Focusa ToolResult/error envelope, including:
+
+```text
+status
+canonical
+degraded
+failure_class
+summary/message
+retry
+recovery_hint
+misuse_hint
+side_effects
+evidence_refs
+next_tools
+correlation_id
+```
+
+Do not create a UI-specific permission registry, error taxonomy, retry taxonomy, or recovery store.
 
 ---
 
@@ -199,10 +244,13 @@ Every relevant implementation ticket includes:
 ```yaml
 generated_ui:
   surface_kind:
+  operation_ids: []
   a2ui_catalog_components: []
   read_model_refs: []
   action_binding_refs: []
+  capability_refs: []
   ag_ui_events: []
+  durable_event_cursor:
   plain_language_copy:
   primary_action:
   autosave_behavior:
@@ -211,6 +259,7 @@ generated_ui:
   advanced_details: []
   terminal_fallback:
   accessibility_tests: []
+  schemathesis_workflow_ref:
   playwright_flow_ref:
 ```
 
@@ -221,6 +270,19 @@ A missing generated-UI section blocks the ticket.
 ## Cross-Functional Alpha rule
 
 Every Alpha slice is completed through generated UI, not only through CLI or raw API calls.
+
+Alpha 0 establishes:
+
+```text
+OpenAPI Operation Registry
+→ generated TypeScript/openapi-fetch client
+→ generated UI Action Binding
+→ capability snapshot
+→ shared ToolResult recovery mapping
+→ durable replayable stream
+→ AG-UI adapter
+→ one A2UI surface
+```
 
 The permanent path is:
 
