@@ -259,3 +259,95 @@ Onboarding
 ```
 
 A feature is incomplete when its backend exists but a nontechnical operator cannot understand, complete, recover, and resume it through generated UI.
+
+## 12. Delivery precedence and series freeze
+
+The Spec 135 series is frozen at 135K. Agents MUST NOT create 135L or any later lettered companion. Implementation conflicts use this precedence order:
+
+```text
+Spec 135 master
+→ Spec 135 Delivery Contract/current manifest
+→ current implementation-reality audit
+→ implementation acceleration directive
+→ generated UI directive
+→ UXP/UFI directive
+→ task-relevant companion specs
+```
+
+Older wording that conflicts with this order is superseded. Agents MUST update the Delivery Contract and machine-readable contracts rather than create another prose-only companion.
+
+## 13. Normative and capability lock
+
+Normative requirements use only `MUST`, `MUST NOT`, `REQUIRED`, and `FORBIDDEN`. `MAY` is reserved for an explicitly identified user runtime choice and MUST NOT grant implementer discretion.
+
+Every capability-dependent feature MUST declare:
+
+```yaml
+required_native_behavior:
+required_fallback_behavior:
+capability_detection:
+degraded_state_presentation:
+closure_proof:
+```
+
+Silent degradation and compatibility guessing are FORBIDDEN.
+
+## 14. Immutable generated-contract release bundle
+
+Every generated-contract release MUST contain:
+
+```text
+openapi-3.0.3.json
+json-schema/
+operation-registry.json
+a2ui-catalog.json
+compatibility-lock.yaml
+sha256sums.txt
+```
+
+UIAI Engine MUST consume the bundle by immutable Focusa commit SHA or release digest. Handwritten duplicate Focusa DTOs and independent action registries are FORBIDDEN when canonical generation can represent them.
+
+## 15. Accessibility closure
+
+Accessibility closure REQUIRES axe-core inside UIAI Engine Eval, UIAI DOM and accessibility snapshots, and required manual assistive-technology proof. Browser accessibility proof MUST remain inside UIAI Engine Eval; the manual proof supplements it and MUST NOT introduce a second browser automation runtime.
+
+## 16. Complete decomposition ticket contract
+
+Every implementation ticket MUST contain:
+
+```yaml
+requirement_refs: []
+blocking_refs: []
+primitive_submission:
+reuse_assessment:
+framework_lock_refs: []
+files_and_packages: []
+core_types: []
+reducer_actions: []
+api_operations: []
+generated_contracts: []
+generated_ui:
+uiai_eval:
+migration:
+security:
+accessibility:
+performance:
+tests:
+evidence:
+receipts:
+definition_of_done:
+not_done_if:
+  - backend exists but generated UI is missing
+  - generated UI uses mock state
+  - browser proof bypasses UIAI Engine
+  - scope is ambient or inferred
+  - action bypasses Operation Registry
+  - result bypasses shared ToolResult envelope
+  - no recovery scenario
+  - no restart/resume scenario
+  - no nontechnical completion proof
+  - reusable logic trapped in client or C.R.I.S.T.-local code
+  - requirement remains open in feature ledger
+```
+
+Decomposing agents MUST NOT present option menus. A missing owner, dependency, proof, migration, generated-UI, UIAI Eval, Evidence, Receipt, or closure mapping blocks decomposition.
