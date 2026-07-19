@@ -8,7 +8,8 @@
 
 use crate::clt::retain_hot_window;
 use crate::silent_session::{
-    SilentSession, SilentSessionEvent, SilentSessionId, SilentSessionRun, SilentSessionRunId,
+    SilentSession, SilentSessionEvent, SilentSessionEventId, SilentSessionId, SilentSessionRun,
+    SilentSessionRunId,
 };
 use crate::silent_session_authorization::{SilentSessionApproval, SilentSessionPrincipal};
 use crate::sync::{CrdtEvent, VectorClock};
@@ -2482,6 +2483,49 @@ impl SqlitePersistence {
             .optional()?;
         json.map(|value| serde_json::from_str(&value).map_err(Into::into))
             .transpose()
+    }
+
+    /// Load one exact run's event stream after an optional emitted event ID.
+    /// Unknown or cross-run cursors fail closed instead of silently replaying
+    /// from genesis, which makes `Last-Event-ID` retries unambiguous.
+    pub fn load_silent_session_run_events_after(
+        &self,
+        session_id: SilentSessionId,
+        run_id: SilentSessionRunId,
+        after_event_id: Option<SilentSessionEventId>,
+    ) -> anyhow::Result<Vec<SilentSessionEvent>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let after_seq = match after_event_id {
+            Some(event_id) => Some(
+                conn.query_row(
+                    "SELECT seq FROM silent_session_events WHERE session_id=?1 AND run_id=?2 AND event_id=?3",
+                    params![
+                        session_id.to_string(),
+                        run_id.to_string(),
+                        event_id.to_string()
+                    ],
+                    |row| row.get::<_, i64>(0),
+                )
+                .optional()?
+                .ok_or_else(|| anyhow::anyhow!("silent-session event cursor not found for exact run"))?,
+            ),
+            None => None,
+        };
+        let mut statement = conn.prepare(
+            "SELECT event_json FROM silent_session_events WHERE session_id=?1 AND run_id=?2 AND seq>?3 ORDER BY seq",
+        )?;
+        let rows = statement.query_map(
+            params![
+                session_id.to_string(),
+                run_id.to_string(),
+                after_seq.unwrap_or(0)
+            ],
+            |row| row.get::<_, String>(0),
+        )?;
+        rows.map(|row| Ok(serde_json::from_str(&row?)?)).collect()
     }
 
     pub fn load_silent_session_events(

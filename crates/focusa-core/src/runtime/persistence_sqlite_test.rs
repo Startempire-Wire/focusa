@@ -503,6 +503,45 @@ fn silent_session_projection_and_hash_chain_are_atomic_replay_safe_and_tamper_ev
 }
 
 #[test]
+fn silent_session_run_event_cursor_resumes_exactly_and_rejects_cross_run_replay() {
+    let dir = temp_dir();
+    let mut config = FocusaConfig::default();
+    config.data_dir = dir.to_string_lossy().to_string();
+    let persistence = SqlitePersistence::new(&config).unwrap();
+    let (session, first) = sample_silent_session(&dir);
+    persistence
+        .persist_silent_session_event(&session, &first)
+        .unwrap();
+    let mut second = first.clone();
+    second.event_id = SilentSessionEventId::new();
+    second.seq = 2;
+    second.kind = "output_observed".into();
+    persistence
+        .persist_silent_session_event(&session, &second)
+        .unwrap();
+
+    assert_eq!(
+        persistence
+            .load_silent_session_run_events_after(
+                session.session_id,
+                first.run_id,
+                Some(first.event_id),
+            )
+            .unwrap(),
+        vec![second]
+    );
+    assert!(
+        persistence
+            .load_silent_session_run_events_after(
+                session.session_id,
+                SilentSessionRunId::new(),
+                Some(first.event_id),
+            )
+            .is_err()
+    );
+}
+
+#[test]
 fn silent_session_run_projection_survives_restart_and_fences_identity_and_generation() {
     let dir = temp_dir();
     let mut config = FocusaConfig::default();
