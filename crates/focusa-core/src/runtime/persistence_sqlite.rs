@@ -2437,6 +2437,7 @@ impl SqlitePersistence {
 
     /// Atomically create a canonical draft session, its first run generation,
     /// and genesis event while redeeming the exact durable approval.
+    #[allow(clippy::too_many_arguments)]
     pub fn persist_silent_session_create(
         &self,
         approval_id: &str,
@@ -2769,9 +2770,13 @@ impl SqlitePersistence {
 
     /// Atomically compare-and-swap the current config revision and session
     /// projection. A stale writer cannot append history or move the projection.
+    #[allow(clippy::too_many_arguments)]
     pub fn persist_silent_session_config_revision_cas(
         &self,
         expected_revision_id: SilentSessionConfigRevisionId,
+        approval_id: &str,
+        action_digest: &str,
+        authorized_at: DateTime<Utc>,
         session: &SilentSession,
         revision: &SilentSessionConfigRevision,
         effective_hash: &str,
@@ -2792,6 +2797,22 @@ impl SqlitePersistence {
             .lock()
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
         let tx = conn.transaction()?;
+        let (stored_digest, expires_at, consumed_at): (String, String, Option<String>) = tx
+            .query_row(
+                "SELECT action_digest, expires_at, consumed_at FROM silent_session_approvals WHERE approval_id=?1",
+                [approval_id],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )?;
+        anyhow::ensure!(
+            consumed_at.is_none(),
+            "silent-session approval already consumed"
+        );
+        anyhow::ensure!(
+            stored_digest == action_digest,
+            "silent-session approval digest mismatch"
+        );
+        let expiry = DateTime::parse_from_rfc3339(&expires_at)?.with_timezone(&Utc);
+        anyhow::ensure!(expiry > authorized_at, "silent-session approval expired");
         let stored_projection: String = tx.query_row(
             "SELECT projection_json FROM silent_sessions WHERE session_id=?1",
             [session.session_id.to_string()],
@@ -2813,6 +2834,15 @@ impl SqlitePersistence {
             parent_exists.is_some(),
             "silent-session config parent missing"
         );
+        tx.execute(
+            "INSERT INTO silent_session_action_redemptions(action_digest, approval_id, redeemed_at) VALUES (?1,?2,?3)",
+            params![action_digest, approval_id, authorized_at.to_rfc3339()],
+        )?;
+        let consumed = tx.execute(
+            "UPDATE silent_session_approvals SET consumed_at=?2 WHERE approval_id=?1 AND consumed_at IS NULL",
+            params![approval_id, authorized_at.to_rfc3339()],
+        )?;
+        anyhow::ensure!(consumed == 1, "silent-session approval redemption conflict");
         tx.execute(
             "INSERT INTO silent_session_config_revisions(revision_id, session_id, parent_revision_id, revision_json, effective_hash, applied_at) VALUES (?1,?2,?3,?4,?5,?6)",
             params![revision.revision_id.to_string(), session.session_id.to_string(),

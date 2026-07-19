@@ -436,6 +436,9 @@ mod tests {
     use super::*;
     use crate::runtime::persistence_sqlite::SqlitePersistence;
     use crate::silent_session::*;
+    use crate::silent_session_authorization::{
+        SILENT_SESSION_APPROVAL_SCHEMA, SilentSessionApproval,
+    };
     use crate::types::FocusaConfig;
     use std::path::PathBuf;
 
@@ -692,23 +695,61 @@ mod tests {
             )
             .unwrap();
         session.config_revision_id = applied.revision_id;
+        let approval = SilentSessionApproval {
+            schema: SILENT_SESSION_APPROVAL_SCHEMA.into(),
+            approval_id: "approval:config-persistence".into(),
+            operator_actor_ref: "operator:test".into(),
+            action: "config.revise".into(),
+            project_identity_ref: session.project_identity_ref.clone(),
+            continuity_id: session.continuity_id.clone(),
+            workpoint_ref: None,
+            session_id: Some(session_id),
+            run_id: session.active_run_id,
+            config_hash: redacted_config_hash(&applied.config).unwrap(),
+            action_digest: "digest:config-persistence".into(),
+            model_binding: "test".into(),
+            workspace_ref: "test".into(),
+            risk_class: "controlled".into(),
+            expires_at: Utc::now() + chrono::Duration::minutes(5),
+            permitted_side_effects: vec!["config:apply".into()],
+        };
+        persistence.put_silent_session_approval(&approval).unwrap();
         persistence
             .persist_silent_session_config_revision_cas(
                 original.revision_id,
+                &approval.approval_id,
+                &approval.action_digest,
+                Utc::now(),
                 &session,
                 &applied,
                 &redacted_config_hash(&applied.config).unwrap(),
             )
             .unwrap();
+        let mut stale_approval = approval.clone();
+        stale_approval.approval_id = "approval:stale-config-persistence".into();
+        stale_approval.action_digest = "digest:stale-config-persistence".into();
+        persistence
+            .put_silent_session_approval(&stale_approval)
+            .unwrap();
         assert!(
             persistence
                 .persist_silent_session_config_revision_cas(
                     original.revision_id,
+                    &stale_approval.approval_id,
+                    &stale_approval.action_digest,
+                    Utc::now(),
                     &session,
                     &applied,
                     &redacted_config_hash(&applied.config).unwrap(),
                 )
                 .is_err()
+        );
+        assert_eq!(
+            persistence
+                .load_silent_session_approval(&stale_approval.approval_id)
+                .unwrap(),
+            Some(stale_approval),
+            "failed CAS must not consume its approval"
         );
         drop(persistence);
 
