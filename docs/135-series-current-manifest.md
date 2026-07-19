@@ -2,7 +2,7 @@
 
 **Status:** current companion and reading-order manifest  
 **Parent:** [Spec 135](135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md)  
-**Authority:** When an older companion list ends before 135J, this manifest supplies the current additive companion set until the next full master-document consolidation.
+**Authority:** When an older companion list ends before 135K, this manifest supplies the current additive companion set until the next full master-document consolidation.
 
 Spec 135 and every companion below form one required implementation and closure set.
 
@@ -19,6 +19,7 @@ Spec 135 and every companion below form one required implementation and closure 
 | 9 | [135H](135h-cross-functional-alpha-grill-interview-and-implementation-acceleration-spec.md) | Grill Interview, Cross-Functional Alpha, decided OSS stack, and speed law |
 | 10 | [135I](135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md) | Real-time generated C.R.I.S.T. UI, nontechnical onboarding, A2UI/AG-UI, and generated action surfaces |
 | 11 | [135J](135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md) | Core API Operation Registry, durable replayable stream, shared envelopes, and runtime reuse |
+| 12 | [135K](135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md) | Canonical UXP/UFI reuse, adaptive generated UI, transparent friction learning, and nontechnical usability proof |
 
 ## Required agent directives
 
@@ -36,6 +37,8 @@ Cross-Functional Alpha establishes the first integrated path but does not remove
 A nontechnical generated UI path is required for every C.R.I.S.T. stage.
 Generated UI must use the core Focusa Operation Registry, durable event stream,
 shared authority, capabilities, ToolResult envelopes, Evidence, and Receipts.
+Generated UI adaptation must use canonical Spec 14 UXP/UFI, remain transparent,
+and never change authority, evidence, or approval requirements.
 ```
 
 ## Current reading order
@@ -52,4 +55,5 @@ shared authority, capabilities, ToolResult envelopes, Evidence, and Receipts.
 → 135H
 → 135I
 → 135J
+→ 135K
 ```
