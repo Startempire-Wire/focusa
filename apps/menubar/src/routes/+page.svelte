@@ -8,7 +8,7 @@
   import GatePanel from '$lib/components/GatePanel.svelte';
   import Settings from '$lib/components/Settings.svelte';
   import FirstRunWizard from '$lib/components/FirstRunWizard.svelte';
-  import CockpitView from '$lib/components/CockpitView.svelte';
+  import MissionCanvasView from '$lib/components/MissionCanvasView.svelte';
   import TrajectoryPeek from '$lib/components/TrajectoryPeek.svelte';
   import WorkpointPeek from '$lib/components/WorkpointPeek.svelte';
   import ProofPeek from '$lib/components/ProofPeek.svelte';
@@ -19,7 +19,7 @@
   import PairingPanel from '$lib/components/PairingPanel.svelte';
   import ToastContainer from '$lib/components/ToastContainer.svelte';
 
-  type Tab = 'focus' | 'cockpit' | 'trajectory' | 'workpoint' | 'proof' | 'workloop' | 'gate' | 'sync' | 'pair' | 'settings';
+  type Tab = 'focus' | 'mission-canvas' | 'trajectory' | 'workpoint' | 'proof' | 'workloop' | 'gate' | 'sync' | 'pair' | 'settings';
   let activeTab = $state<Tab>('focus');
   let everConnected = $state(false);
 
@@ -177,7 +177,7 @@
     <button class="tab primary" class:active={activeTab === 'focus'} aria-pressed={activeTab === 'focus'} title="Focus bubble" onclick={() => activeTab = 'focus'}>
       <span class="tab-mark">◌</span><span>Focus</span>
     </button>
-    <button class="tab primary" class:active={activeTab === 'cockpit'} aria-pressed={activeTab === 'cockpit'} title="Cockpit" onclick={() => activeTab = 'cockpit'}>
+    <button class="tab primary" class:active={activeTab === 'mission-canvas'} aria-pressed={activeTab === 'mission-canvas'} title="Mission Canvas" onclick={() => activeTab = 'mission-canvas'}>
       <span class="tab-mark">◇</span><span>Now</span>
     </button>
     <button class="tab" class:active={activeTab === 'trajectory'} aria-pressed={activeTab === 'trajectory'} title="Trajectory" onclick={() => activeTab = 'trajectory'}>
@@ -217,8 +217,8 @@
     <FirstRunWizard />
   {:else if activeTab === 'focus'}
     <FocusView />
-  {:else if activeTab === 'cockpit'}
-    <CockpitView />
+  {:else if activeTab === 'mission-canvas'}
+    <MissionCanvasView />
   {:else if activeTab === 'trajectory'}
     <TrajectoryPeek />
   {:else if activeTab === 'workpoint'}
