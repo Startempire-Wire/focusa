@@ -1433,6 +1433,7 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
         last_turn_requested_at,
         status_heartbeat_ms,
         transport_session_state,
+        transport_partition_matches,
         boundary_reason,
         scope_root,
     ) = {
@@ -1456,6 +1457,12 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
             focusa.work_loop.last_turn_requested_at,
             focusa.work_loop.policy.status_heartbeat_ms,
             focusa.work_loop.transport_session_state.clone(),
+            focusa.work_loop.transport_scope == focusa.work_loop.execution_scope
+                && focusa.work_loop.transport_work_item_id
+                    == focusa.work_loop.execution_work_item_id
+                && focusa.work_loop.transport_workpoint_id
+                    == focusa.work_loop.execution_workpoint_id
+                && focusa.work_loop.transport_session_id.is_some(),
             continuation_boundary_reason(&focusa.work_loop),
             work_loop_scope_root(&focusa),
         )
@@ -1487,6 +1494,9 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
                 focusa.work_loop.current_task.clone()
             };
             if let Some(task) = refreshed_task {
+                if !transport_partition_matches {
+                    return Ok(false);
+                }
                 state
                     .command_tx
                     .send(Action::RequestNextContinuousTurn {
@@ -1517,6 +1527,10 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
                 .await;
         }
 
+        return Ok(false);
+    }
+
+    if !transport_partition_matches {
         return Ok(false);
     }
 

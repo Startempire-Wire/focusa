@@ -2986,13 +2986,6 @@ Return:
         }
     }
 
-    async fn claim_bd_item_if_possible(work_item_id: &str) {
-        let _ = tokio::process::Command::new("bd")
-            .args(["update", work_item_id, "--status", "in_progress"])
-            .output()
-            .await;
-    }
-
     async fn record_bd_blocked_transition_if_possible(work_item_id: &str, reason: &str) {
         let note = format!(
             "Continuous loop blocked: {}",
@@ -3132,7 +3125,7 @@ Return:
                 ClosureAuthorityContext {
                     continuity_id: scope.continuity_id.clone(),
                     workpoint_id: workpoint_id.to_string(),
-                    agent_session_id: None,
+                    agent_session_id: self.state.work_loop.transport_session_id.clone(),
                 },
             )
             .await
@@ -3731,7 +3724,6 @@ Return:
                             parent_work_item_id
                         )
                     })?;
-                Self::claim_bd_item_if_possible(&packet.work_item_id).await;
                 Ok(vec![
                     FocusaEvent::ContinuousWorkItemSelected {
                         task_run_id: Some(Uuid::now_v7()),
@@ -4540,49 +4532,49 @@ Return:
                     );
                 }
                 if closure_claim.is_some()
-                    && let Some(task) = current_task.as_ref()
+                    && let Some(parent_work_item_id) =
+                        self.state.work_loop.execution_work_item_id.as_deref()
                 {
-                    if let Some(parent_work_item_id) = task.dependencies.first() {
-                        if let Some(boundary_reason) = Self::secondary_loop_boundary_reason(
-                            &self.state.work_loop.decision_context,
-                            &self.state.work_loop.pause_flags,
-                        ) {
-                            self.trace_continuation_boundary(
-                                "observe_outcome_auto_advance",
-                                work_item_id.as_deref(),
-                                boundary_reason,
-                            );
-                            events.extend(Self::continuation_boundary_events(
-                                boundary_reason,
-                                work_item_id.clone(),
-                                "checkpoint: paused auto-advance for operator-priority boundary",
-                                "checkpoint: blocked auto-advance on continuation boundary",
-                            ));
-                            return Ok(events);
-                        }
-
-                        if let Some(next_packet) = self
-                            .next_ready_packet_for_parent(parent_work_item_id)
-                            .await?
-                            .filter(|packet| {
-                                Some(packet.work_item_id.as_str()) != work_item_id.as_deref()
-                            })
-                        {
-                            Self::claim_bd_item_if_possible(&next_packet.work_item_id).await;
-                            events.push(FocusaEvent::ContinuousWorkItemSelected {
-                                task_run_id: Some(Uuid::now_v7()),
-                                packet: next_packet.clone(),
-                            });
-                            events.push(FocusaEvent::ContinuousLoopRecoveryCheckpointed {
-                                checkpoint_id: Uuid::now_v7(),
-                                summary: format!(
-                                    "checkpoint: auto-advanced to {}",
-                                    next_packet.work_item_id
-                                ),
-                            });
-                        }
+                    if let Some(boundary_reason) = Self::secondary_loop_boundary_reason(
+                        &self.state.work_loop.decision_context,
+                        &self.state.work_loop.pause_flags,
+                    ) {
+                        self.trace_continuation_boundary(
+                            "observe_outcome_auto_advance",
+                            work_item_id.as_deref(),
+                            boundary_reason,
+                        );
+                        events.extend(Self::continuation_boundary_events(
+                            boundary_reason,
+                            work_item_id.clone(),
+                            "checkpoint: paused auto-advance for operator-priority boundary",
+                            "checkpoint: blocked auto-advance on continuation boundary",
+                        ));
+                        return Ok(events);
                     }
-                    if let Some(tranche_id) = task.tranche_id.as_deref()
+
+                    if let Some(next_packet) = self
+                        .next_ready_packet_for_parent(parent_work_item_id)
+                        .await?
+                        .filter(|packet| {
+                            Some(packet.work_item_id.as_str()) != work_item_id.as_deref()
+                        })
+                    {
+                        events.push(FocusaEvent::ContinuousWorkItemSelected {
+                            task_run_id: Some(Uuid::now_v7()),
+                            packet: next_packet.clone(),
+                        });
+                        events.push(FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                            checkpoint_id: Uuid::now_v7(),
+                            summary: format!(
+                                "checkpoint: auto-advanced to {}",
+                                next_packet.work_item_id
+                            ),
+                        });
+                    }
+                    if let Some(tranche_id) = current_task
+                        .as_ref()
+                        .and_then(|task| task.tranche_id.as_deref())
                         && !self
                             .tranche_has_remaining_ready_work(tranche_id, work_item_id.as_deref())
                             .await?
