@@ -377,7 +377,9 @@ fn config_hash(config: &SilentSessionConfig) -> anyhow::Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::runtime::persistence_sqlite::SqlitePersistence;
     use crate::silent_session::*;
+    use crate::types::FocusaConfig;
     use std::path::PathBuf;
 
     fn config() -> SilentSessionConfig {
@@ -552,5 +554,121 @@ mod tests {
             .unwrap();
         assert_eq!(rolled_back.config, config());
         assert_eq!(rolled_back.rollback_target, Some(original));
+    }
+
+    #[test]
+    fn config_revisions_survive_restart_and_persistence_cas_rejects_stale_writers() {
+        let dir = std::env::temp_dir().join(format!("focusa-config-test-{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut daemon_config = FocusaConfig::default();
+        daemon_config.data_dir = dir.to_string_lossy().into_owned();
+        let persistence = SqlitePersistence::new(&daemon_config).unwrap();
+        let session_id = SilentSessionId::new();
+        let run_id = SilentSessionRunId::new();
+        let mut manager = SilentSessionConfigManager::new(session_id, config(), vec![]).unwrap();
+        let original = manager.current().clone();
+        let now = Utc::now();
+        let mut session = SilentSession {
+            schema: SILENT_SESSION_SCHEMA.into(),
+            versions: SilentSessionVersions::default(),
+            session_id,
+            display_name: "config persistence".into(),
+            created_at: now,
+            created_by_actor_ref: "actor:test".into(),
+            operator_principal_ref: "operator:test".into(),
+            os_execution_user: "test".into(),
+            project_root: PathBuf::from("/tmp/project"),
+            project_identity_ref: "project:test".into(),
+            continuity_id: "main".into(),
+            trajectory_ref: None,
+            workpoint_ref: None,
+            work_item_ref: None,
+            mission: "persist config".into(),
+            lifecycle_state: SilentSessionLifecycleState::Draft,
+            health: SilentSessionHealth::Healthy,
+            semantic_observation: None,
+            active_run_id: Some(run_id),
+            config_revision_id: original.revision_id,
+            writer_lease_ref: None,
+            retention_policy_ref: "retention:test".into(),
+            receipt_refs: vec![],
+        };
+        let event = SilentSessionEvent {
+            schema: SILENT_SESSION_EVENT_SCHEMA.into(),
+            event_id: SilentSessionEventId::new(),
+            session_id,
+            run_id,
+            seq: 1,
+            occurred_at: now,
+            observed_at: now,
+            kind: "lifecycle.draft".into(),
+            source: "test".into(),
+            provenance: ObservationProvenance::VerificationConfirmed,
+            canonical: true,
+            payload: serde_json::json!({}),
+            artifact_refs: vec![],
+            correlation_id: uuid::Uuid::now_v7(),
+            redaction: RedactionMetadata {
+                applied: true,
+                classes: vec!["config".into()],
+            },
+        };
+        persistence
+            .persist_silent_session_event(&session, &event)
+            .unwrap();
+        persistence
+            .put_initial_silent_session_config_revision(
+                &session,
+                &original,
+                &config_hash(&original.config).unwrap(),
+            )
+            .unwrap();
+
+        let applied = manager
+            .apply(
+                original.revision_id,
+                vec![ConfigLayer {
+                    source: ConfigSource::OperatorEdit,
+                    patch: serde_json::json!({"notifications":{"completed":false}}),
+                }],
+                None,
+            )
+            .unwrap();
+        session.config_revision_id = applied.revision_id;
+        persistence
+            .persist_silent_session_config_revision_cas(
+                original.revision_id,
+                &session,
+                &applied,
+                &config_hash(&applied.config).unwrap(),
+            )
+            .unwrap();
+        assert!(
+            persistence
+                .persist_silent_session_config_revision_cas(
+                    original.revision_id,
+                    &session,
+                    &applied,
+                    &config_hash(&applied.config).unwrap(),
+                )
+                .is_err()
+        );
+        drop(persistence);
+
+        let reopened = SqlitePersistence::new(&daemon_config).unwrap();
+        let history = reopened
+            .load_silent_session_config_history(session_id)
+            .unwrap();
+        assert_eq!(history.len(), 2);
+        assert_eq!(history[0].0, original);
+        assert_eq!(history[1].0, applied);
+        assert_eq!(
+            reopened
+                .load_silent_session(session_id)
+                .unwrap()
+                .unwrap()
+                .config_revision_id,
+            session.config_revision_id
+        );
     }
 }

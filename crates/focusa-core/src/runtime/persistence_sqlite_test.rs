@@ -340,7 +340,7 @@ fn sqlite_crdt_import_is_scoped_and_idempotent() {
 }
 
 #[test]
-fn sqlite_schema_migrates_v1_through_silent_session_lifecycle_schema_v5() {
+fn sqlite_schema_migrates_v1_through_silent_session_config_schema_v6() {
     let dir = temp_dir();
     let mut cfg = FocusaConfig::default();
     cfg.data_dir = dir.to_string_lossy().to_string();
@@ -365,7 +365,7 @@ fn sqlite_schema_migrates_v1_through_silent_session_lifecycle_schema_v5() {
             |row| row.get(0),
         )
         .unwrap();
-    assert_eq!(version, "5");
+    assert_eq!(version, "6");
     let table_count: i64 = conn
         .query_row(
             "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='crdt_events'",

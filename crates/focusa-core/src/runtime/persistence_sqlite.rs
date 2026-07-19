@@ -8,8 +8,9 @@
 
 use crate::clt::retain_hot_window;
 use crate::silent_session::{
-    SilentSession, SilentSessionEvent, SilentSessionEventId, SilentSessionId,
-    SilentSessionLifecycleState, SilentSessionRun, SilentSessionRunId,
+    SilentSession, SilentSessionConfigRevision, SilentSessionConfigRevisionId, SilentSessionEvent,
+    SilentSessionEventId, SilentSessionId, SilentSessionLifecycleState, SilentSessionRun,
+    SilentSessionRunId,
 };
 use crate::silent_session_authorization::{SilentSessionApproval, SilentSessionPrincipal};
 use crate::sync::{CrdtEvent, VectorClock};
@@ -25,7 +26,7 @@ use std::sync::{Arc, Mutex};
 use tracing::debug;
 use uuid::Uuid;
 
-const SCHEMA_VERSION: i64 = 5;
+const SCHEMA_VERSION: i64 = 6;
 
 fn hot_clt_snapshot_max_nodes() -> usize {
     std::env::var("FOCUSA_HOT_CLT_MAX_NODES")
@@ -316,6 +317,19 @@ impl SqlitePersistence {
             );
             CREATE INDEX IF NOT EXISTS idx_silent_session_events_order
               ON silent_session_events(session_id, run_id, seq);
+
+            -- V6: append-only transactional Silent Session config authority.
+            CREATE TABLE IF NOT EXISTS silent_session_config_revisions (
+              revision_id TEXT PRIMARY KEY,
+              session_id TEXT NOT NULL,
+              parent_revision_id TEXT,
+              revision_json TEXT NOT NULL,
+              effective_hash TEXT NOT NULL,
+              applied_at TEXT NOT NULL,
+              FOREIGN KEY(session_id) REFERENCES silent_sessions(session_id) ON DELETE RESTRICT
+            );
+            CREATE INDEX IF NOT EXISTS idx_silent_session_config_revisions_history
+              ON silent_session_config_revisions(session_id, applied_at, revision_id);
 
             -- V4: durable Spec 133 control-plane identities and one-shot approvals.
             CREATE TABLE IF NOT EXISTS silent_session_principals (
@@ -2690,6 +2704,150 @@ impl SqlitePersistence {
             .optional()?;
         json.map(|value| serde_json::from_str(&value).map_err(Into::into))
             .transpose()
+    }
+
+    /// Insert the initial config authority record for an existing session.
+    /// The revision identity must match the session projection so config reads
+    /// can never silently fall back to an unversioned request.
+    pub fn put_initial_silent_session_config_revision(
+        &self,
+        session: &SilentSession,
+        revision: &SilentSessionConfigRevision,
+        effective_hash: &str,
+    ) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            revision.session_id == session.session_id
+                && revision.revision_id == session.config_revision_id
+                && revision.parent_revision_id.is_none(),
+            "invalid initial silent-session config revision"
+        );
+        let revision_json = serde_json::to_string(revision)?;
+        let applied_at = revision
+            .applied_at
+            .ok_or_else(|| anyhow::anyhow!("config revision must have applied_at"))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let stored_projection: String = conn.query_row(
+            "SELECT projection_json FROM silent_sessions WHERE session_id=?1",
+            [session.session_id.to_string()],
+            |row| row.get(0),
+        )?;
+        let stored: SilentSession = serde_json::from_str(&stored_projection)?;
+        anyhow::ensure!(
+            stored.config_revision_id == revision.revision_id,
+            "silent-session config projection conflict"
+        );
+        conn.execute(
+            "INSERT INTO silent_session_config_revisions(revision_id, session_id, parent_revision_id, revision_json, effective_hash, applied_at) VALUES (?1,?2,NULL,?3,?4,?5)",
+            params![revision.revision_id.to_string(), session.session_id.to_string(), revision_json,
+                effective_hash, applied_at.to_rfc3339()],
+        )?;
+        Ok(())
+    }
+
+    /// Atomically compare-and-swap the current config revision and session
+    /// projection. A stale writer cannot append history or move the projection.
+    pub fn persist_silent_session_config_revision_cas(
+        &self,
+        expected_revision_id: SilentSessionConfigRevisionId,
+        session: &SilentSession,
+        revision: &SilentSessionConfigRevision,
+        effective_hash: &str,
+    ) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            revision.session_id == session.session_id
+                && revision.revision_id == session.config_revision_id
+                && revision.parent_revision_id == Some(expected_revision_id),
+            "invalid silent-session config revision transition"
+        );
+        let revision_json = serde_json::to_string(revision)?;
+        let projection_json = serde_json::to_string(session)?;
+        let applied_at = revision
+            .applied_at
+            .ok_or_else(|| anyhow::anyhow!("config revision must have applied_at"))?;
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let tx = conn.transaction()?;
+        let stored_projection: String = tx.query_row(
+            "SELECT projection_json FROM silent_sessions WHERE session_id=?1",
+            [session.session_id.to_string()],
+            |row| row.get(0),
+        )?;
+        let stored: SilentSession = serde_json::from_str(&stored_projection)?;
+        anyhow::ensure!(
+            stored.config_revision_id == expected_revision_id,
+            "silent-session config revision conflict"
+        );
+        let parent_exists: Option<String> = tx
+            .query_row(
+                "SELECT revision_id FROM silent_session_config_revisions WHERE session_id=?1 AND revision_id=?2",
+                params![session.session_id.to_string(), expected_revision_id.to_string()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        anyhow::ensure!(
+            parent_exists.is_some(),
+            "silent-session config parent missing"
+        );
+        tx.execute(
+            "INSERT INTO silent_session_config_revisions(revision_id, session_id, parent_revision_id, revision_json, effective_hash, applied_at) VALUES (?1,?2,?3,?4,?5,?6)",
+            params![revision.revision_id.to_string(), session.session_id.to_string(),
+                expected_revision_id.to_string(), revision_json, effective_hash,
+                applied_at.to_rfc3339()],
+        )?;
+        let changed = tx.execute(
+            "UPDATE silent_sessions SET projection_json=?3, updated_at=?4 WHERE session_id=?1 AND json_extract(projection_json, '$.config_revision_id')=?2",
+            params![session.session_id.to_string(), expected_revision_id.to_string(),
+                projection_json, Utc::now().to_rfc3339()],
+        )?;
+        anyhow::ensure!(changed == 1, "silent-session config revision conflict");
+        tx.commit()?;
+        Ok(())
+    }
+
+    pub fn load_silent_session_config_revision(
+        &self,
+        session_id: SilentSessionId,
+        revision_id: SilentSessionConfigRevisionId,
+    ) -> anyhow::Result<Option<(SilentSessionConfigRevision, String)>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let row: Option<(String, String)> = conn
+            .query_row(
+                "SELECT revision_json, effective_hash FROM silent_session_config_revisions WHERE session_id=?1 AND revision_id=?2",
+                params![session_id.to_string(), revision_id.to_string()],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        row.map(|(json, hash)| Ok((serde_json::from_str(&json)?, hash)))
+            .transpose()
+    }
+
+    pub fn load_silent_session_config_history(
+        &self,
+        session_id: SilentSessionId,
+    ) -> anyhow::Result<Vec<(SilentSessionConfigRevision, String)>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let mut statement = conn.prepare(
+            "SELECT revision_json, effective_hash FROM silent_session_config_revisions WHERE session_id=?1 ORDER BY applied_at, revision_id",
+        )?;
+        let rows = statement.query_map([session_id.to_string()], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
+        rows.map(|row| {
+            let (json, hash) = row?;
+            Ok((serde_json::from_str(&json)?, hash))
+        })
+        .collect()
     }
 
     /// Persist the exact process-run projection used by API generation guards.
