@@ -1,7 +1,7 @@
 # Tauri Menubar Implementation Gaps
 
 **Source spec:** [`TAURI_MENUBAR_UP_TO_SPEED_SPEC.md`](TAURI_MENUBAR_UP_TO_SPEED_SPEC.md)  
-**Audit source:** [`TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md`](TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md)
+**Audit source:** [`TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md`](TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md)  
 **Last updated:** current HLT dogfood slice after `v0.9.25-dev`.
 
 ## Implemented in the current menubar slice
@@ -11,12 +11,12 @@
 - `bun run check` now runs `svelte-kit sync` before `svelte-check`, so clean check no longer depends on a prior build.
 - Menubar version metadata and visible About copy now use `0.9.14-dev`.
 - Pairing token persistence now uses a Tauri macOS Keychain command bridge; localStorage keeps only non-secret device metadata and token preview.
-- Cockpit/Now surface polls current runtime hot surfaces: project identity, trajectory view, Workpoint resume, work-loop health/checkpoints, doctor, memory telemetry, prediction stats/recent, metacognition evaluations, snapshots, and lineage head.
-- Cockpit cards show calm status chips for canonical/degraded/status/evidence/readiness/memory posture.
+- Mission Canvas/Now preview polls current runtime hot surfaces: project identity, trajectory view, Workpoint resume, work-loop health/checkpoints, doctor, memory telemetry, prediction stats/recent, metacognition evaluations, snapshots, and lineage head.
+- Mission Canvas cards show calm status chips for canonical/degraded/status/evidence/readiness/memory posture.
 - Read-only peeks exist for Trajectory, Workpoint, Proof, and Work Loop.
 - Default Focus view now restores original bubble/cloud spirit: current bubble, background clouds, ambient stack depth, and quieter empty states.
 - Gate/Sync copy now frames signals and peers as ambient awareness, not focus-changing control UI.
-- Static guard exists at `tests/spec96_menubar_cockpit_foundation_static_test.sh` and now checks current version, manual release-proof gating, shared API base, and sync write confirmations.
+- Static guard exists at `tests/spec96_menubar_mission_canvas_foundation_static_test.sh` and checks current version, manual release-proof gating, shared API base, sync write confirmations, and Mission Canvas naming.
 
 ## Remaining Phase 0 gaps — foundation
 
@@ -24,11 +24,12 @@
 - Tauri config still uses `csp: null`; security posture needs a compatibility pass.
 - Full Tauri packaging is owned by root GitHub Actions CI via the root `.github/workflows/ci.yml` Menubar job; Tauri uses npm build commands so CI does not require Bun.
 
-## Remaining Phase 1 gaps — ambient cockpit MVP
+## Remaining Phase 1 gaps — ambient Mission Canvas preview
 
-- Navigation is visually calmer but still implemented as tabs; future work should evolve this into true peek drawers while keeping keyboard/accessibility behavior.
+- Navigation is visually calmer but still implemented as tabs; the target interaction is true peek drawers while keeping keyboard/accessibility behavior.
 - Ambient menubar icon state is not yet driven by daemon/project/workpoint/work-loop readiness.
 - Release proof is explicitly manual-gated (`manual_proof_required`) until a real release/proof artifact state is available from an API or artifact source.
+- The menubar remains a compact projection and launcher; the full multiplexed Mission Canvas belongs in Pi, Mission Deck, and UIAI Engine Cockpit.
 
 ## Remaining Phase 2+ gaps — depth
 
@@ -43,4 +44,4 @@
 1. **Tauri packaging/security pass:** watch the root CI Menubar job for npm/check/build/Tauri package proof; evaluate a minimal CSP after CI package proof is green.
 2. **True drawer shell:** keep the current peek labels but move secondary surfaces into a drawer/peek interaction model rather than dense tabs.
 3. **Ambient tray state:** map daemon/project/workpoint/work-loop posture to the tray icon states from the original spec.
-4. **Safe read-to-write affordances:** add confirmation-gated drift check and evidence link first; defer work-loop mutations until writer preflight UX is explicit.
+4. **Safe read-to-write affordances:** add confirmation-gated drift check and evidence link first; work-loop mutations require writer preflight UX.
