@@ -1,220 +1,194 @@
-# UIAI Browser Diagnostics → Focusa Integration Spec
+# UIAI Browser Diagnostics and Eval → Focusa Integration Spec
 
-**Status:** current local integration guide; UIAI diagnostics, bounded async eval, reliability gates, Focusa scope propagation, browser health/metrics, artifact evidence handles, and Focusa intake wrapper are implemented locally.
-**UIAI companion specs:** `/home/wpuiai/uiai-engine/docs/BROWSER_DIAGNOSTICS_SPEC.md`, `/home/wpuiai/uiai-engine/docs/BROWSER_RELIABILITY_RUNBOOK.md`.
-**Scope:** turn local browser console/network/runtime failures into bounded Focusa evidence, predictions, and Workpoint continuity.
+**Status:** current local integration guide  
+**Scope:** convert UIAI browser diagnostics, browser evaluations, screenshots, responsive/visual proof, and browser artifacts into bounded Focusa Evidence, predictions, Workpoint continuity, generated-UI updates, and Receipts.  
+**Authority:** UIAI Engine owns browser execution and browser proof. Focusa owns project scope, cognition, Workpoints, Evidence linkage, authority, and recovery.
 
 ## 1. Purpose
 
-UIAI Engine provides browser interaction, visual QA, and implemented browser diagnostics through local Rod/Chrome sessions. Console errors, JS exceptions, and network failures are exposed as structured session data. Focusa should consume those diagnostics as evidence so models troubleshoot real web issues with proof instead of guessing from screenshots.
+UIAI Engine provides browser interaction, contexts, visual QA, diagnostics, and evaluation through local Rod/Chrome sessions. Focusa consumes structured browser results as scoped Evidence so agents diagnose and verify real web behavior instead of guessing from screenshots or transcript descriptions.
+
+UIAI Engine and UIAI Engine Eval are the exclusive browser runtime and browser-proof plane for Focusa.
 
 ## 2. Current verified baseline
 
-Local implementation in `/home/wpuiai/uiai-engine` now includes:
+The local UIAI implementation includes:
 
-- UIAI service target: `localhost:7456`.
-- Browser tools include open, screenshot, scroll, click, hover, type, eval, bounded `eval_async`, snapshot, DOM, navigate, resize, CSS, wait, fill, select, press, back, forward, text, cookies, close, `browser_diagnostics`, and `browser_diagnostics_clear`.
-- Diagnostics expose bounded console logs/errors, JS exceptions, network requests, failed requests, and summary counts.
-- `POST /api/session` accepts `focusa_scope` or flat `workpoint_id`, `continuity_id`, `project_root`, and `evidence_ref`; session info, diagnostics, and session errors echo that scope.
-- `focusa_browser_diagnostics_intake` is implemented as a Pi wrapper that converts diagnostics JSON/failure envelopes into bounded evidence, active-object hints, prediction context, and optional metacog capture. It auto-infers scope from `diagnostics.focusa_scope` when explicit Focusa fields are omitted.
-- Browser health/metrics are exposed at `/api/health/browser` and `/api/metrics/browser`; `focusa_tool_doctor` reads them and reports `uiai_browser` status/pressure.
-- Browser reliability gates exist in UIAI: `make browser-reliability`, `make release-browser-reliability`, and `.github/workflows/browser-reliability.yml`. Stress/soak JSON reports include a `focusa_evidence` packet when run with Focusa scope environment variables.
-- `/api/screenshot` and `/api/share/*` outputs include stable `focusa_evidence` handles (`uiai-screenshot:sha256:*` and `uiai-share:*`) so screenshots/shares can be captured by reference instead of inlining blobs.
-- Full HAR, trace export, source-map stack mapping, and raw body/header capture are not implemented in the baseline.
-- Session routes live in `/home/wpuiai/uiai-engine/internal/routes/session.go`.
-- Session diagnostics recorder lives in `/home/wpuiai/uiai-engine/internal/vision/diagnostics.go` and is attached from `/home/wpuiai/uiai-engine/internal/vision/session.go`.
+- service target `localhost:7456`;
+- browser open, screenshot, scroll, click, hover, type, eval, bounded async eval, snapshot, DOM, navigation, resize, CSS, wait, fill, select, press, history, text, cookies, close, diagnostics, and diagnostics-clear operations;
+- bounded console, exception, request, failed-request, and summary diagnostics;
+- Focusa scope on session creation and echoed session/diagnostic results;
+- `focusa_browser_diagnostics_intake` Pi wrapper;
+- browser health and pressure metrics;
+- browser reliability gates and scoped stress/soak Evidence packets;
+- stable screenshot/share Evidence handles;
+- persistent browser sessions and artifact references.
 
-## 3. Integration goals
+Full HAR, trace export, source-map mapping, and raw body/header capture remain explicit capability gaps until UIAI implements them. Their absence does not authorize a second browser runtime in Focusa.
 
-- Convert browser diagnostics into stable Focusa evidence refs.
-- Preserve reproduction context across compaction/model switch with Workpoints.
-- Route browser debugging through Trajectory state/gaps so web failures connect to project goals.
-- Use active object resolution/ontology hints to map URL, stack, component, and endpoint evidence to likely source files, API routes, components, or docs.
-- Record bounded predictions before fixes and evaluate them after verification.
-- Capture metacognitive lessons only when diagnostics outcomes change future debugging behavior.
-- Keep UIAI as the local lightweight browser backend; do not require Playwright/Puppeteer for this path.
+## 3. Ownership law
 
-## 4. Non-goals
+```text
+UIAI Engine
+  browser processes
+  browser sessions and contexts
+  browser targets
+  browser actions
+  diagnostics
+  screenshots
+  responsive and visual proof
+  browser accessibility snapshots
+  browser evaluation
+  browser recovery
 
-- Focusa does not become a browser automation runtime.
-- Focusa does not store raw HAR dumps, screenshots, or unbounded logs.
-- Focusa does not treat diagnostics as canonical project truth without source/test verification.
-- Focusa does not bypass UIAI redaction, auth, or URL safety boundaries. UIAI `url_not_allowed` for private/internal targets is expected policy evidence unless a separate local/dev UIAI profile explicitly enables private URLs.
+Focusa
+  ProjectRootKey / WorkstreamKey / AttachmentKey
+  Workpoint
+  action authority
+  Context and Trajectory
+  Evidence and Receipt linkage
+  predictions and metacognition
+  generated Mission Canvas projections
+```
 
-## 5. Browser evidence flow
+Focusa MUST NOT implement a competing browser automation, browser test, browser diagnostics, visual-comparison, or browser evidence subsystem.
 
-Discovery rule for agents: if browser work involves a broken/blank page, console error, failed click/wait, unexpected navigation, CORS/API/network suspicion, or visual state mismatch, call UIAI `browser_diagnostics` before guessing or patching.
+## 4. Browser Evidence flow
 
-1. Start or resume a Focusa Workpoint for the web issue.
-2. Open/reuse a UIAI browser session for the failing URL; pass `focusa_scope` when known so diagnostics can link without later guessing.
-3. Reproduce the issue with existing UIAI browser actions.
-4. Read UIAI diagnostics from `browser_diagnostics` / `GET /api/session/{id}/diagnostics`; the response carries `focusa_scope` when the session was scoped.
-5. Run `focusa_browser_diagnostics_intake` with the diagnostics object or `diagnostics_ref`; this captures bounded evidence and active-object hints and uses embedded `focusa_scope` by default.
-6. Resolve active objects from URL, stack, component names, endpoint paths, and failed network URLs.
-7. Record or keep the intake-created prediction for likely cause and next fix path.
-8. Patch/test outside Focusa as normal project work.
-9. Re-run UIAI diagnostics and capture verification evidence through intake or `focusa_evidence_capture`.
-10. Evaluate the prediction and close/update Workpoint.
+1. Start or resume the scoped Focusa Workpoint.
+2. Open or reuse a UIAI session with explicit Focusa scope.
+3. Reproduce the issue using UIAI browser actions.
+4. Read UIAI diagnostics and browser state.
+5. Run `focusa_browser_diagnostics_intake` or the typed Workspace Artifact/Evidence adapter.
+6. Resolve candidate active objects from URL, stack, component, endpoint, and failed-request evidence.
+7. Record a prediction for the likely cause and next action when useful.
+8. Patch and test through normal project work.
+9. Re-run UIAI diagnostics or UIAI Engine Eval.
+10. Capture verification Evidence, evaluate the prediction, update the Workpoint, and emit a Receipt when required.
 
-## 6. Evidence shape
+Agents MUST call UIAI diagnostics before guessing when work involves a blank/broken page, console failure, exception, failed interaction, navigation mismatch, API/network suspicion, CORS, authentication, responsive behavior, or visual mismatch.
 
-Recommended Focusa evidence summary:
+## 5. Evidence shape
 
 ```json
 {
   "target_ref": "browser:https://example.test/app",
   "evidence_ref": "uiai-diagnostics:session=abc12345:seq=42",
-  "result": "Console TypeError in app.js:88 and GET /api/items returned 500; screenshot ref optional."
+  "result": "Console TypeError in app.js:88 and GET /api/items returned 500."
 }
 ```
 
-Recommended diagnostic fields to retain in Focusa evidence summaries:
+Retain bounded:
 
-- URL and title.
-- Count of console errors/warnings.
-- Top 1-3 console errors.
-- Top 1-3 JS exceptions with source location when available.
-- Failed request count.
-- Top 1-5 failed requests with method, URL path, status, failure reason.
-- Optional screenshot artifact path/ref.
-- UIAI session ID and diagnostics sequence.
-- `focusa_scope` fields when present: `workpoint_id`, `continuity_id`, `project_root`, and `evidence_ref`.
+- URL and title;
+- console error/warning counts;
+- top console errors;
+- top exceptions with source positions;
+- failed-request count and top failures;
+- screenshot or visual-comparison handles;
+- UIAI session/context/target IDs;
+- diagnostics sequence;
+- Focusa project, continuity, Workpoint, Attachment, and Evidence scope.
 
-Focusa should avoid storing:
+Do not store raw cookies, authorization headers, full bodies by default, inline image blobs, or unbounded logs.
 
-- Raw cookies.
-- Authorization headers.
-- Full request/response bodies by default.
-- Large screenshots inline.
-- Long console logs without summarization.
+## 6. Focusa-facing wrapper
 
-## 7. Tool choreography
+`focusa_browser_diagnostics_intake` accepts diagnostics data or a diagnostics reference, target reference, explicit scope, Workpoint attachment posture, prediction posture, and metacognition posture.
 
-Recommended Pi/Focusa sequence:
+It returns:
 
-```text
-focusa_workpoint_checkpoint
-  mission="Troubleshoot browser failure on <url>"
-  target_objects=["browser:<url>"]
+- bounded Evidence linkage;
+- active-object hints;
+- prediction candidate when requested;
+- metacognition candidate when requested;
+- exact recovery and next tools.
 
-UIAI browser_open / browser actions / browser_diagnostics
+Embedded `focusa_scope` is reused only when it satisfies typed scope validation. Authority-bearing writes MUST NOT adopt ambiguous ambient scope.
 
-focusa_evidence_capture
-  target_ref="browser:<url>"
-  result="<bounded console/network summary>"
-  evidence_ref="uiai-diagnostics:session=<id>:seq=<seq>"
+## 7. UIAI Engine Eval contract
 
-focusa_active_object_resolve
-  hint="<url + stack frame + failed endpoint>"
+Browser-facing Spec 135 proof uses:
 
-focusa_predict_record
-  prediction_type="browser_failure_cause"
-  predicted_outcome="<likely cause>"
-  recommended_action="<next fix/check>"
+```yaml
+schema: uiai.focusa_ui_eval_scenario.v1
+scenario_id:
+requirement_refs: []
+project_scope:
+work_surface_ref:
+browser_context:
+  isolation_class:
+  authentication_fixture_ref:
+viewport_matrix: []
+steps: []
+functional_assertions: []
+accessibility_assertions: []
+diagnostic_assertions: []
+visual_assertions: []
+reconnect_assertions: []
+expected_focusa_events: []
+expected_evidence: []
+expected_receipts: []
 ```
 
-After fix:
-
-```text
-UIAI browser_diagnostics
-focusa_evidence_capture result="No console errors; failed requests 0 after fix"
-focusa_predict_evaluate actual_outcome="<verified outcome>"
+```yaml
+schema: uiai.focusa_ui_eval_result.v1
+scenario_id:
+status:
+browser_session_refs: []
+browser_context_refs: []
+step_results: []
+screenshots: []
+diagnostics: []
+accessibility_report_ref:
+visual_comparison_refs: []
+focusa_evidence_refs: []
+receipt_refs: []
+failure_class:
+recovery_action:
 ```
 
-## 8. Implemented Focusa-facing wrapper
+UIAI Engine Eval owns browser end-to-end, responsive, visual, reconnect, authentication, browser-context isolation, diagnostic, and browser-accessibility proof.
 
-`focusa_browser_diagnostics_intake` wraps UIAI diagnostics and Focusa evidence capture.
+## 8. Workpoint contract
 
-Inputs:
+Browser Workpoints use:
 
-```json
-{
-  "diagnostics_ref": "/tmp/uiai-browser-diagnostics.json",
-  "diagnostics": {},
-  "target_ref": "browser:https://example.test/app",
-  "project_root": "/path/to/project",
-  "workpoint_id": "optional",
-  "attach_to_workpoint": true,
-  "create_prediction": true,
-  "create_metacog": false
-}
-```
+- `mission`: visible issue and target;
+- `target_objects`: URL, endpoint, component/file hints, UIAI session/context IDs;
+- `current_action`: reproduce, diagnose, patch, or verify;
+- `verified_evidence`: UIAI diagnostic and Eval references;
+- `next_action`: exact next browser/API/source step;
+- `do_not_drift`: unrelated polish, refactors, and unverified assumptions.
 
-Outputs include bounded evidence linkage, active-object hints, a prediction candidate when requested, optional metacog candidate, and next tools such as `focusa_active_object_resolve` and `focusa_evidence_capture`.
+## 9. Trajectory, ontology, prediction, and metacognition
 
-Manual `focusa_evidence_capture` remains valid when agents only have a summarized diagnostics artifact, but the wrapper is the preferred Pi path for UIAI/browser failure envelopes.
+- Use Trajectory assessment to determine whether the failure is a current gap, blocker, or drift.
+- Resolve active objects from URL, stack, endpoint, component, and Evidence references; keep results candidate until verified.
+- Record predictions before fixes and evaluate them after UIAI verification.
+- Capture metacognition only when Evidence changes future debugging behavior.
 
-If diagnostics include `focusa_scope`, the wrapper uses it for `workpoint_id`, `continuity_id`, `project_root`, and `evidence_ref` unless explicit tool parameters override it. This is the preferred handoff from UIAI sessions to Focusa Workpoints.
+## 10. Acceptance criteria
 
-## 9. Workpoint contract
+The integration is acceptable when:
 
-For browser debugging Workpoints, checkpoint fields should use:
+1. UIAI diagnostics become bounded Focusa Evidence.
+2. Workpoint resume identifies target, evidence, current action, and next action without transcript authority.
+3. Trajectory and active-object tools cite UIAI Evidence.
+4. Prediction record/evaluation closes after verification.
+5. UIAI health and pressure appear through Focusa doctor surfaces.
+6. Stress/soak and Eval results contain stable Focusa Evidence packets.
+7. Screenshots and visual comparisons use stable artifact handles.
+8. Browser-facing Spec 135 proof uses UIAI Engine Eval exclusively.
+9. No competing Focusa browser runtime or browser test framework is introduced.
+10. Browser results update generated Work Surfaces through typed Focusa Artifact, Evidence, event, and Receipt paths.
 
-- `mission`: user-visible browser issue and target URL.
-- `target_objects`: URL, endpoint paths, component/file hints, UIAI session ID if stable enough.
-- `current_action`: `browser_diagnostics_reproduce`, `patch_browser_failure`, or `verify_browser_fix`.
-- `verified_evidence`: UIAI diagnostic evidence refs and test refs.
-- `next_action`: exact next browser/API/source step.
-- `do_not_drift`: unrelated UI polish, unrelated backend refactors, unverified assumptions.
-
-## 10. Trajectory, ontology, prediction, and metacognition use
-
-### Trajectory
-
-Before or during browser debugging, agents should consult `focusa_trajectory_view` / `focusa_trajectory_assess` to decide whether the browser failure is part of the current project gap, a blocker, or unrelated drift. Stress-test and verification artifacts should be cited as evidence refs when assessing the trajectory state.
-
-### Ontology / active objects
-
-Use `focusa_active_object_resolve` with URL, stack frame, failed endpoint, component labels, and diagnostics evidence refs. Treat the result as a candidate object map until verified by code/tests.
-
-### Prediction
-
-Before patching:
-
-- Record a prediction for cause class:
-  - `frontend_runtime_exception`
-  - `failed_api_request`
-  - `auth/session_state`
-  - `asset_loading`
-  - `cors/mixed_content`
-  - `selector_or_render_timing`
-
-After verification:
-
-- Evaluate whether the prediction matched the actual cause.
-
-### Metacognition
-
-Capture a reusable metacog lesson only if diagnostics evidence changes future debugging behavior, e.g. stress harness requirements, recurring failure classes, or better browser-evidence triage.
-
-## 11. Acceptance checks
-
-Focusa integration is acceptable when:
-
-- A UIAI diagnostics snapshot can be represented as one bounded `focusa_evidence_capture` result.
-- A Workpoint resume packet can tell the next agent the URL, current evidence, and next browser/source action without transcript tail reliance.
-- Trajectory assessment can cite UIAI diagnostics/stress evidence refs.
-- Active object resolution can use URL + stack + failed endpoint hints.
-- Prediction record/evaluate closes the loop after fix verification.
-- Metacog capture stores only evidence-backed reusable lessons.
-- UIAI companion docs link back to this Focusa integration spec.
-- `focusa_tool_doctor` shows `uiai_browser=<status>/<pressure>` from UIAI health/metrics only and recommends resource narrowing when UIAI queue p95/p99/rejections indicate high pressure; it does not open browser target URLs.
-- UIAI stress/soak reports include a `focusa_evidence` packet that can be passed directly to `focusa_evidence_capture`.
-- UIAI screenshot/share responses provide stable artifact evidence refs instead of requiring raw screenshot blobs in transcript.
-
-## 12. Discoverability checks
-
-UIAI tool metadata should make `browser_diagnostics` visible through these search terms: `diagnostics`, `console`, `network`, `error`, `exception`, `devtools`, `failed request`, `CORS`, `API failure`, `blank page`, `broken page`, and `visual failure`.
-
-Focusa-facing skills should mention `browser_diagnostics` as the browser evidence source before `focusa_evidence_capture`, `focusa_active_object_resolve`, `focusa_predict_record`, and metacog capture.
-
-## 13. Cross-reference
+## 11. Cross-references
 
 - UIAI browser diagnostics spec: `/home/wpuiai/uiai-engine/docs/BROWSER_DIAGNOSTICS_SPEC.md`
 - UIAI browser reliability runbook: `/home/wpuiai/uiai-engine/docs/BROWSER_RELIABILITY_RUNBOOK.md`
 - UIAI session docs: `/home/wpuiai/uiai-engine/docs/SESSION_API.md`
-- Focusa browser diagnostics intake tool: `docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md`
-- Focusa evidence tool: `docs/focusa-tools/tools/focusa_evidence_capture.md`
-- Focusa Workpoint tools: `docs/focusa-tools/workpoint.md`
-- Focusa prediction guide: `docs/current/PREDICTIVE_POWER_GUIDE.md`
-- Focusa active object tool: `docs/focusa-tools/tools/focusa_active_object_resolve.md`
+- Focusa diagnostics intake: `docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md`
+- Focusa Evidence: `docs/focusa-tools/tools/focusa_evidence_capture.md`
+- Focusa Workpoints: `docs/focusa-tools/workpoint.md`
+- Focusa active objects: `docs/focusa-tools/tools/focusa_active_object_resolve.md`
