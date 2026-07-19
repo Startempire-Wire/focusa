@@ -6,45 +6,43 @@
 **Parent:** [Spec 135](135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md)  
 **Amends:** [Spec 14](14-uxp-ufi-schema.md), [Spec 135A](135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md), [Spec 135B](135b-crist-project-genesis-context-role-interview-spec-tasks.md), [Spec 135I](135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md), and [Spec 135J](135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md)  
 **Closure relationship:** mandatory companion; Spec 135 cannot close without Spec 135K.  
-**Scope:** canonical UXP/UFI reuse, generated UI adaptation, nontechnical defaults, explanation depth, confirmation posture, interruption sensitivity, review cadence, observable friction, transparent calibration, accessibility, generated-surface projection, and usability proof.
+**Precedence:** [Spec 135 Series Current Authoritative Delivery Contract](135-series-current-manifest.md) governs any conflict.
 
 ---
 
 ## 0. One-line definition
 
-Focusa’s generated C.R.I.S.T. UI must begin with a safe nontechnical baseline and adapt its explanation depth, pacing, confirmation density, review cadence, and presentation through the existing transparent UXP/UFI system rather than creating a second user-mode, expertise score, or hidden personalization engine.
+Focusa’s generated C.R.I.S.T. UI MUST begin with a safe nontechnical baseline and adapt explanation depth, pacing, optional confirmation density, review cadence, and presentation through the existing transparent UXP/UFI system rather than creating a second user mode, expertise score, or hidden personalization engine.
 
 ---
 
 ## 1. Reuse law
 
-[Spec 14](14-uxp-ufi-schema.md) is authoritative for user-experience calibration.
-
-Spec 135 generated UI must reuse:
+[Spec 14](14-uxp-ufi-schema.md) is authoritative.
 
 ```text
 UXP
-  Slow-moving, confidence-weighted, cited, reversible user preferences.
+  Slow-moving, confidence-weighted, cited, reversible preferences.
 
 UFI
   Fast-moving, per-interaction, observable friction records.
 ```
 
-Do not create:
+Forbidden:
 
 - `NontechnicalUserProfile`;
 - `SimpleModeProfile`;
 - `ExpertiseScore`;
 - hidden technical-skill inference;
-- emotion/personality labels;
-- a second explanation or confirmation preference store;
+- emotion or personality labels;
+- a second explanation/confirmation store;
 - client-local permanent personalization.
 
 ---
 
 ## 2. Default nontechnical baseline
 
-Before enough UXP evidence exists, all Project Genesis and C.R.I.S.T. surfaces use this baseline:
+Before sufficient UXP evidence exists, every Project Genesis and C.R.I.S.T. surface uses:
 
 ```text
 plain language
@@ -57,48 +55,32 @@ simple confirmation for reversible actions
 consequential confirmation for authority-changing or irreversible actions
 advanced details collapsed
 no raw identifiers required
-no hidden safety/authority state
+no hidden safety or authority state
 ```
 
-Adaptation may reduce friction or increase detail. It may not remove mandatory safety, authority, evidence, privacy, or recovery information.
+Adaptation MUST NOT remove safety, authority, Evidence, privacy, recovery, or approval information.
 
 ---
 
-## 3. Canonical UXP dimensions used by generated UI
+## 3. Canonical dimensions
 
 Use existing Spec 14 dimensions:
 
 ```text
 verbosity_preference
-  Length of generated explanations and summaries.
-
 explanation_depth
-  Amount of rationale, consequences, examples, and source context.
-
 confirmation_preference
-  Additional confirmation for reversible, non-safety-critical actions.
-
 interruption_sensitivity
-  Whether optional prompts/updates wait for a natural boundary.
-
 review_cadence
-  Frequency of compendium, role, context, spec, and task-plan review prompts.
-
 risk_tolerance
-  Presentation and emphasis of known risks; never changes permission.
-
 autonomy_tolerance
-  How strongly Focusa may suggest defaults or continue advisory preparation;
-  never grants authority.
 ```
 
-These dimensions modify presentation and advisory pacing only. They do not modify canonical correctness, required evidence, permission, Workpoint scope, or operator approval gates.
+These dimensions modify presentation and advisory pacing only. They MUST NOT modify canonical correctness, required Evidence, permissions, Workpoint scope, provider authority, or approval gates.
 
 ---
 
 ## 4. Generated Surface integration
-
-`focusa.generated_surface.v1` must reference canonical UXP/UFI projections:
 
 ```yaml
 experience:
@@ -117,25 +99,25 @@ experience:
   adaptation_explanation_ref:
 ```
 
-The generated deterministic shell resolves UXP before producing presentation variants.
+Resolution:
 
 ```text
 canonical stage/read model
-+ capabilities/authority
-+ Workspace View Profile/domain packs
++ capabilities and authority
++ Workspace View Profile and domain packs
 + UXP projection
-+ client/accessibility capabilities
++ client and accessibility capabilities
 → UiInteractionIntent
 → A2UI surface
 ```
 
 ---
 
-## 5. UFI capture from generated UI
+## 5. UFI capture
 
-Generated UI interactions may record only observable friction signals defined by Spec 14.
+Generated UI records only observable Spec 14 friction signals.
 
-High-value examples:
+High-value:
 
 ```text
 manual_override
@@ -145,7 +127,7 @@ explicit_rejection
 task_reopened
 ```
 
-Medium-value examples:
+Medium-value:
 
 ```text
 rephrase
@@ -153,10 +135,6 @@ repeat_request
 scope_clarification
 forced_simplification
 ```
-
-Additional generated-UI observations may be proposed only through a versioned Spec 14 amendment and must remain behavioral rather than emotional.
-
-### 5.1 Interaction linkage
 
 ```yaml
 ufi_context:
@@ -174,155 +152,90 @@ ufi_context:
   harness_id:
 ```
 
-### 5.2 No friction from normal completion
-
-Completing a form slowly, opening Advanced details, asking for help, or using accessibility controls is not automatically friction or low expertise.
+Completion time, opening Advanced details, requesting help, or using accessibility controls MUST NOT be interpreted as friction or expertise.
 
 ---
 
 ## 6. Adaptation rules
 
-### 6.1 Slow and reversible
+### Slow and reversible
 
-UXP changes follow Spec 14’s trend-window, confidence, citation, alpha, and user-override rules.
+UXP changes follow Spec 14 trend windows, confidence, citations, bounded alpha, and user-override rules. One interaction never changes permanent behavior.
 
-One interaction never changes permanent UI behavior.
+### Transparent
 
-### 6.2 Transparent
-
-The UI must answer:
+The UI MUST answer:
 
 ```text
-Why is Focusa explaining this this way?
+Why is Focusa presenting this this way?
 What interactions informed it?
 How confident is it?
-Can I change it?
+How can I change it?
 ```
 
-Provide an **Why this presentation?** advanced panel with citations and adjustment controls.
+### User override
 
-### 6.3 User override
+The operator can set explanation depth, summary length, optional confirmation frequency, review cadence, and optional interruption timing. An override freezes learning for that dimension until released.
 
-The operator can explicitly adjust:
+### Safety invariants
 
-- explanation depth;
-- summary length;
-- optional confirmation frequency;
-- review cadence;
-- optional interruption timing.
-
-A user override freezes learning for that dimension until released, as required by Spec 14.
-
-### 6.4 Safety invariants
-
-UXP/UFI may not:
+UXP/UFI MUST NOT:
 
 - hide required approval;
 - remove risk or contradiction disclosure;
-- suppress evidence requirements;
-- skip Context/Role/Interview/Spec/Task readiness gates;
-- change provider or connector permission;
+- suppress Evidence requirements;
+- skip readiness gates;
+- change connector/provider permissions;
 - grant autonomy;
-- auto-accept a recommendation;
-- weaken accessible semantics;
+- auto-accept recommendations;
+- weaken accessibility semantics;
 - change canonical action bindings.
 
 ---
 
-## 7. Stage-specific adaptation
+## 7. Stage adaptation
 
 ### Context
 
-- Adapt explanation length for permissions, source scope, privacy, and claims.
-- Never collapse import scope, credential, or retention consequences below required disclosure.
+Adapt explanation length for permissions, source scope, privacy, retention, and claims. Import scope, credentials, and retention consequences remain explicit.
 
 ### Role
 
-- Adapt whether responsibilities show as a summary first or expanded sections.
-- Permission separation remains visible.
+Adapt summary/detail presentation. Responsibility and permission remain visibly separated.
 
 ### Interview
 
-- Adapt recommendation depth, examples, and branch-progress detail.
-- Always ask one primary question.
-- High interruption sensitivity defers optional follow-up branches, not blocker questions.
+Adapt recommendation depth, examples, and branch-progress detail. Always show one primary question. Interruption sensitivity defers optional follow-ups, not blocker questions.
 
 ### Spec
 
-- Adapt section summaries and objection explanation depth.
-- Approval consequences remain explicit.
+Adapt section summaries and objection depth. Approval consequences remain explicit.
 
 ### Tasks
 
-- Adapt task graph summary versus detail.
-- Acceptance, evidence, blockers, provider destination, and mutation preview remain available and accurate.
+Adapt graph summary/detail. Acceptance, Evidence, blockers, provider destination, and mutation preview remain accurate and accessible.
 
 ---
 
-## 8. PlainLanguageProjection integration
+## 8. PlainLanguageProjection
 
-`PlainLanguageProjection` consumes:
+Consumes:
 
 ```text
 canonical terminology
 Workspace View Profile terminology
-active domain packs
-glossary
-shared ToolResult/error envelope
+domain packs
+approved glossary
+ToolResult/error envelope
 UXP dimensions
 client/accessibility capabilities
 ```
 
-It produces:
-
-- user-facing labels;
-- explanations;
-- recommendation summaries;
-- consequence summaries;
-- recovery copy;
-- advanced technical labels;
-- help topics.
-
-It does not create canonical facts or reinterpret failure classes.
+Produces user-facing labels, explanations, recommendation summaries, consequences, recovery copy, advanced labels, and help. It MUST NOT invent facts or reinterpret failure classes.
 
 ---
 
-## 9. Speed and implementation reuse
-
-### 9.1 Reuse existing canonical storage
-
-UXP/UFI use the existing local SQLite model defined by Spec 14. Do not create generated-UI preference tables unless they are explicit migrations/extensions of the canonical UXP/UFI schema.
-
-### 9.2 Reuse generated events
-
-UFI records derive from typed Focusa UI actions, corrections, reverts, and outcomes already flowing through the Operation Registry and canonical event stream. Do not add separate browser analytics as the canonical friction source.
-
-### 9.3 Deterministic presentation variants
-
-Use predefined catalog variants and token sets selected by UXP values. Do not use an LLM merely to decide font size, panel expansion, confirmation count, or summary length.
-
-### 9.4 Fixture matrix
-
-Create deterministic generated-surface fixtures for:
-
-```text
-new user baseline
-high explanation-depth preference
-low verbosity preference
-high interruption sensitivity
-high review cadence
-explicit user overrides
-low-confidence UXP
-conflicting scope-specific UXP
-```
-
-This allows UI work before learning loops are fully live.
-
----
-
-## 10. API integration
-
-Required projections and operations:
+## 9. API integration
 
 ```text
 GET  /v1/uxp/profile
@@ -333,9 +246,30 @@ GET  /v1/ufi/recent
 POST /v1/ufi/record
 ```
 
-If equivalent current routes exist, extend and reuse them rather than creating duplicates.
+Existing equivalent routes MUST be extended rather than duplicated. UXP/UFI uses the canonical local SQLite model and the generated Operation Registry.
 
-Operation Registry metadata marks UXP/UFI operations and prevents generated UI from treating inferred friction as authority.
+---
+
+## 10. Speed and reuse
+
+- Reuse Spec 14 storage and reducers.
+- Derive UFI from typed Focusa actions, corrections, reversals, and outcomes.
+- Use deterministic catalog variants and design tokens for UXP presentation.
+- Do not call an LLM to choose font size, expansion state, confirmation count, or summary length.
+- Maintain deterministic A2UI fixtures for baseline and each required UXP variant.
+
+Required fixture matrix:
+
+```text
+new-user baseline
+high explanation depth
+low verbosity
+high interruption sensitivity
+high review cadence
+explicit overrides
+low-confidence UXP
+conflicting scope-specific UXP
+```
 
 ---
 
@@ -343,21 +277,23 @@ Operation Registry metadata marks UXP/UFI operations and prevents generated UI f
 
 Required:
 
-- reducer/property tests for slow, bounded, reversible learning;
+- reducer/property tests for bounded, reversible learning;
 - citation and confidence tests;
-- user-override freeze tests;
-- scope separation by user/agent/model/harness;
-- generated-surface snapshot matrix for UXP variants;
-- Playwright tests proving the same task remains completable across variants;
-- accessibility tests for every presentation variant;
+- override-freeze tests;
+- user/agent/model/harness scope separation;
+- A2UI generated-surface fixtures for UXP variants;
+- Vitest and Svelte Testing Library interaction tests;
+- UIAI Engine Eval scenarios proving identical tasks remain completable across variants;
+- UIAI Engine Eval browser accessibility, responsive, visual, reconnect, and recovery proof;
 - tests proving safety and approval controls cannot be hidden;
 - nontechnical evaluator study using the Cross-Functional Alpha;
-- friction analysis showing where users correct, repeat, abandon, or reopen;
-- proof that adaptation reduces repeated friction without hidden inference.
+- friction analysis based on cited observable behavior.
 
-### 11.1 Nontechnical completion benchmark
+Focusa MUST NOT use Playwright for UXP/UFI proof.
 
-A new evaluator with no Focusa vocabulary must be able to:
+### Nontechnical completion benchmark
+
+A new evaluator with no Focusa vocabulary MUST complete:
 
 ```text
 start Project Genesis
@@ -368,32 +304,31 @@ understand Spec progress
 approve a task plan
 start the first Workpoint
 recover from one connector or validation failure
-resume after closing the client
+close the client
+resume exact state
 ```
 
-The evaluator may use generated help. They may not require a CLI command, raw JSON, schema, route name, or developer intervention.
+The evaluator can use generated help. They MUST NOT require CLI, raw JSON, schema, route names, or developer intervention.
 
 ---
 
-## 12. Agent decomposition directive
-
-Every decomposing agent must receive this instruction verbatim or equivalently:
+## 12. Agent directive
 
 ```text
-Use Focusa's existing Spec 14 UXP/UFI model for all generated-UI adaptation.
-Do not create a simple mode, expert mode, expertise score, hidden user profile,
-emotion model, or second personalization store.
+Use Spec 14 UXP/UFI for all generated-UI adaptation. Do not create a simple
+mode, expert mode, expertise score, emotion model, or second personalization
+store.
 
-Start every C.R.I.S.T. surface from the safe nontechnical baseline. Adapt
-verbosity, explanation depth, optional confirmation density, interruption
-sensitivity, and review cadence through cited, confidence-weighted, reversible
-UXP dimensions. Record only observable UFI signals. Never infer technical
-ability from completion time, Advanced-details use, help use, or accessibility
-controls.
+Start every C.R.I.S.T. surface from the safe nontechnical baseline. Adapt only
+presentation and advisory pacing through cited, confidence-weighted, reversible
+UXP dimensions. Record only observable UFI signals.
 
-UXP changes presentation only. It may not change permissions, authority,
-required evidence, approval gates, action bindings, project scope, or safety
-information. Every adaptation must be explainable and user-adjustable.
+UXP never changes permissions, authority, Evidence, approvals, scope, action
+bindings, or safety information. Every adaptation is explainable and adjustable.
+
+Use A2UI fixtures, Vitest, and Svelte Testing Library for deterministic proof.
+Use UIAI Engine Eval for every browser, responsive, visual, reconnect, recovery,
+and browser-accessibility scenario. Do not add Playwright.
 ```
 
 ---
@@ -402,32 +337,30 @@ information. Every adaptation must be explainable and user-adjustable.
 
 Spec 135K is accepted when:
 
-1. Generated UI uses canonical UXP/UFI rather than a parallel personalization model.
-2. The default baseline is usable by a nontechnical operator without prior calibration.
-3. Existing UXP dimensions control presentation and pacing as specified.
-4. UFI records contain observable, cited interaction signals and exact scope.
+1. Generated UI reuses canonical UXP/UFI.
+2. The default baseline is usable without prior calibration.
+3. Existing UXP dimensions control presentation and pacing only.
+4. UFI records contain observable, cited signals and exact scope.
 5. One interaction cannot change permanent UXP behavior.
 6. User overrides freeze learning per dimension.
 7. Every adaptation is explainable and adjustable.
-8. Safety, authority, evidence, privacy, and approval state cannot be hidden by adaptation.
-9. `PlainLanguageProjection` uses UXP without inventing facts or errors.
-10. Generated UI fixtures and Playwright tests cover required UXP variants.
+8. Safety, authority, Evidence, privacy, and approvals cannot be hidden.
+9. PlainLanguageProjection uses UXP without inventing facts.
+10. A2UI fixtures and UIAI Engine Eval cover all required variants.
 11. The nontechnical completion benchmark passes.
-12. No CLI, raw JSON, route, schema, or developer assistance is required for the default benchmark.
-
----
+12. No Playwright dependency, fixture, or config exists.
 
 ## 14. Closure blockers
 
-This specification cannot close while:
+Spec 135K cannot close while:
 
-- generated UI uses a separate nontechnical/expert-mode profile;
-- explanation or confirmation preferences are stored only in client local storage;
+- generated UI uses a separate simple/expert profile;
+- preferences exist only in local storage;
 - hidden inference changes permanent presentation;
-- an emotion or technical-skill label is inferred;
-- UFI signals lack citations or exact scope;
+- emotion or technical-skill labels are inferred;
+- UFI lacks citations or exact scope;
 - one interaction changes UXP;
-- a UXP variant hides required safety, evidence, authority, privacy, or approval information;
-- adaptation requires a model call for deterministic layout/pacing choices;
-- no real nontechnical evaluator completes the Alpha flow;
-- a default user still requires CLI or raw technical details.
+- safety or approval controls can be hidden;
+- browser proof bypasses UIAI Engine Eval;
+- Playwright exists in the Spec 135 implementation path;
+- the nontechnical benchmark requires raw technical interfaces.
