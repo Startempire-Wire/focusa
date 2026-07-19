@@ -25,6 +25,11 @@ class ProductiveContinueBudgetContract(unittest.TestCase):
         self.assertIn("linked_spec_implementation_evidenced", OUTCOME)
         self.assertIn("require_verification_before_persist", OUTCOME)
         self.assertIn("&& !spec_conformant", OUTCOME)
+        self.assertIn(
+            "outcome_status == WorkLoopOutcomeStatus::Completed\n                    && let Some(selected_task)",
+            OUTCOME,
+        )
+        self.assertIn("run_secondary_adversarial_closure_audit", OUTCOME)
 
 
 if __name__ == "__main__":

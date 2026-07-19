@@ -4378,7 +4378,9 @@ Return:
                     ]);
                 }
 
-                if let Some(selected_task) = self.state.work_loop.current_task.clone() {
+                if outcome_status == WorkLoopOutcomeStatus::Completed
+                    && let Some(selected_task) = self.state.work_loop.current_task.clone()
+                {
                     match Self::run_secondary_adversarial_closure_audit(
                         &selected_task,
                         &summary,
