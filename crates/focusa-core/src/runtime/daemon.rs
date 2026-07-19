@@ -4117,7 +4117,8 @@ Return:
                         .is_empty();
                     let repeated_summary = self.state.work_loop.last_observed_summary.as_deref()
                         == Some(summary.as_str());
-                    let predicted_low_productivity = !verification_satisfied
+                    let predicted_low_productivity = outcome_status
+                        == WorkLoopOutcomeStatus::Blocked
                         || empty_reason
                         || summary.trim().is_empty()
                         || repeated_summary;
@@ -4126,11 +4127,12 @@ Return:
                     } else {
                         0
                     };
-                    let same_work_item_retry_count = if work_item_id.is_some()
+                    let same_work_item_retry_count = if predicted_low_productivity
+                        && work_item_id.is_some()
                         && self.state.work_loop.last_observed_work_item_id == work_item_id
                     {
                         self.state.work_loop.consecutive_same_work_item_retries + 1
-                    } else if work_item_id.is_some() {
+                    } else if predicted_low_productivity && work_item_id.is_some() {
                         1
                     } else {
                         0
@@ -4138,10 +4140,10 @@ Return:
                     self.state.work_loop.consecutive_low_productivity_turns =
                         low_productivity_streak;
                     self.state.work_loop.consecutive_same_work_item_retries =
-                        if verification_satisfied {
-                            0
-                        } else {
+                        if predicted_low_productivity {
                             same_work_item_retry_count
+                        } else {
+                            0
                         };
                     self.state.work_loop.last_observed_work_item_id = work_item_id.clone();
                     if predicted_low_productivity
@@ -4274,7 +4276,8 @@ Return:
                             ]);
                         }
                     }
-                    if Self::task_requires_migration_conformance_checks(current_task)
+                    if outcome_status == WorkLoopOutcomeStatus::Completed
+                        && Self::task_requires_migration_conformance_checks(current_task)
                         && !Self::migration_conformance_execution_evidenced(
                             &summary,
                             continue_reason.as_deref(),
@@ -4301,11 +4304,13 @@ Return:
                         ]);
                     }
 
-                    if !Self::linked_spec_implementation_evidenced(
-                        current_task,
-                        &summary,
-                        continue_reason.as_deref(),
-                    ) {
+                    if outcome_status == WorkLoopOutcomeStatus::Completed
+                        && !Self::linked_spec_implementation_evidenced(
+                            current_task,
+                            &summary,
+                            continue_reason.as_deref(),
+                        )
+                    {
                         if let Some(id) = work_item_id.as_deref() {}
                         return Ok(vec![
                             FocusaEvent::ContinuousTurnObserved {
@@ -4327,11 +4332,12 @@ Return:
                         ]);
                     }
                 }
-                if self
-                    .state
-                    .work_loop
-                    .policy
-                    .require_verification_before_persist
+                if outcome_status == WorkLoopOutcomeStatus::Completed
+                    && self
+                        .state
+                        .work_loop
+                        .policy
+                        .require_verification_before_persist
                     && !verification_satisfied
                 {
                     if let Some(id) = work_item_id.as_deref() {}
@@ -4352,7 +4358,7 @@ Return:
                     ]);
                 }
 
-                if !spec_conformant {
+                if outcome_status == WorkLoopOutcomeStatus::Completed && !spec_conformant {
                     if let Some(id) = work_item_id.as_deref() {}
                     return Ok(vec![
                         FocusaEvent::ContinuousTurnObserved {
