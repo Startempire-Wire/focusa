@@ -21,6 +21,14 @@ Spec 135 and every companion below form one required implementation and closure 
 | 11 | [135J](135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md) | Core API Operation Registry, durable replayable stream, shared envelopes, and runtime reuse |
 | 12 | [135K](135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md) | Canonical UXP/UFI reuse, adaptive generated UI, transparent friction learning, and nontechnical usability proof |
 
+## Required implementation-reality audit
+
+Before decomposition, read:
+
+- [Spec 135 Real-Time Generated UI Speed and Core Integration Audit](current/SPEC135_REALTIME_GENERATED_UI_SPEED_AND_CORE_INTEGRATION_AUDIT_2026-07-18.md)
+
+The audit distinguishes current code, reusable seams, migration work, and normative targets. Docs-only behavior must not be treated as implemented.
+
 ## Required agent directives
 
 Every decomposing or implementing agent must read:
@@ -57,4 +65,5 @@ and never change authority, evidence, or approval requirements.
 → 135I
 → 135J
 → 135K
+→ implementation-reality audit
 ```
