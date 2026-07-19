@@ -108,6 +108,35 @@ impl SilentSessionConfigManager {
         })
     }
 
+    pub fn restore(
+        session_id: SilentSessionId,
+        current_revision_id: SilentSessionConfigRevisionId,
+        revisions: Vec<SilentSessionConfigRevision>,
+        policy_locks: Vec<ConfigPolicyLock>,
+    ) -> anyhow::Result<Self> {
+        let history: BTreeMap<_, _> = revisions
+            .into_iter()
+            .map(|revision| (revision.revision_id, revision))
+            .collect();
+        let current = history
+            .get(&current_revision_id)
+            .cloned()
+            .ok_or_else(|| anyhow::anyhow!("current config revision is not durable"))?;
+        anyhow::ensure!(
+            !history.is_empty()
+                && history
+                    .values()
+                    .all(|revision| revision.session_id == session_id),
+            "config revision history scope mismatch"
+        );
+        Ok(Self {
+            session_id,
+            current,
+            history,
+            policy_locks,
+        })
+    }
+
     pub fn current(&self) -> &SilentSessionConfigRevision {
         &self.current
     }
@@ -119,7 +148,17 @@ impl SilentSessionConfigManager {
         layers.sort_by_key(|layer| layer.source);
         let requested_config = self.current.config.clone();
         let mut value = serde_json::to_value(&requested_config)?;
-        let mut provenance = BTreeMap::new();
+        let mut baseline_leaves = vec![];
+        collect_leaf_paths("", &value, &mut baseline_leaves);
+        let mut provenance: BTreeMap<_, _> = baseline_leaves
+            .into_iter()
+            .map(|pointer| {
+                (
+                    pointer,
+                    format!("CurrentRevision:{}", self.current.revision_id),
+                )
+            })
+            .collect();
         for layer in layers {
             reject_inline_secrets(&layer.patch)?;
             let mut leaves = vec![];
@@ -138,7 +177,7 @@ impl SilentSessionConfigManager {
         let effective_config: SilentSessionConfig = serde_json::from_value(value)?;
         let validation = validate_config(&effective_config);
         let mutation_classes = classify_changes(&self.current.config, &effective_config)?;
-        let redacted_config_hash = config_hash(&effective_config)?;
+        let redacted_config_hash = redacted_config_hash(&effective_config)?;
         Ok(EffectiveSilentSessionConfig {
             requested_config,
             effective_config,
@@ -208,7 +247,7 @@ impl SilentSessionConfigManager {
 
     pub fn verify_current_hash(&self, expected_hash: &str) -> anyhow::Result<()> {
         anyhow::ensure!(
-            config_hash(&self.current.config)? == expected_hash,
+            redacted_config_hash(&self.current.config)? == expected_hash,
             "effective config verification mismatch"
         );
         Ok(())
@@ -369,7 +408,7 @@ fn changed_paths(prefix: &str, before: &Value, after: &Value, output: &mut BTree
     }
 }
 
-fn config_hash(config: &SilentSessionConfig) -> anyhow::Result<String> {
+pub fn redacted_config_hash(config: &SilentSessionConfig) -> anyhow::Result<String> {
     let bytes = serde_json::to_vec(config)?;
     Ok(hex::encode(Sha256::digest(bytes)))
 }
@@ -546,7 +585,7 @@ mod tests {
         let applied = manager
             .apply(original, vec![layer], Some("approval:test".into()))
             .unwrap();
-        let hash = config_hash(&applied.config).unwrap();
+        let hash = redacted_config_hash(&applied.config).unwrap();
         manager.verify_current_hash(&hash).unwrap();
         assert!(manager.apply(original, vec![], None).is_err());
         let rolled_back = manager
@@ -620,7 +659,7 @@ mod tests {
             .put_initial_silent_session_config_revision(
                 &session,
                 &original,
-                &config_hash(&original.config).unwrap(),
+                &redacted_config_hash(&original.config).unwrap(),
             )
             .unwrap();
 
@@ -640,7 +679,7 @@ mod tests {
                 original.revision_id,
                 &session,
                 &applied,
-                &config_hash(&applied.config).unwrap(),
+                &redacted_config_hash(&applied.config).unwrap(),
             )
             .unwrap();
         assert!(
@@ -649,7 +688,7 @@ mod tests {
                     original.revision_id,
                     &session,
                     &applied,
-                    &config_hash(&applied.config).unwrap(),
+                    &redacted_config_hash(&applied.config).unwrap(),
                 )
                 .is_err()
         );
