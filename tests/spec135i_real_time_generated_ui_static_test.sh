@@ -89,12 +89,12 @@ while IFS= read -r -d '' file; do MANIFEST_FILES+=("$file"); done < <(
     -name 'requirements*.txt' \
   \) -print0
 )
-if ((${#MANIFEST_FILES[@]})) && rg -n '(@playwright/test|playwright-core|(^|["'"'[:space:]])playwright(["'"':@[:space:]]|$))' "${MANIFEST_FILES[@]}"; then
+if ((${#MANIFEST_FILES[@]})) && rg -n "(@playwright/test|playwright-core|(^|[\"'[:space:]])playwright([\"':@[:space:]]|\$))" "${MANIFEST_FILES[@]}"; then
   fail "Playwright dependency exists in Focusa package or lock files"
 fi
 
 if rg -n --glob '!*.md' --glob '!spec135i_real_time_generated_ui_static_test.sh' \
-  '(from[[:space:]]+["'"'][^"'"']*playwright|require\(["'"']playwright|@playwright/test)' \
+  "(from[[:space:]]+[\"'][^\"']*playwright|require\\([\"']playwright|@playwright/test)" \
   "$ROOT_DIR/apps" "$ROOT_DIR/packages" "$ROOT_DIR/crates" "$ROOT_DIR/scripts" "$ROOT_DIR/tests" 2>/dev/null; then
   fail "Playwright import or executable test usage exists in Focusa source"
 fi
