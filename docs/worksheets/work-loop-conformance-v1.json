@@ -5,23 +5,56 @@
     {
       "id": "spec79",
       "path": "docs/79-focusa-governed-continuous-work-loop.md",
-      "status": "partial",
+      "status": "verified",
       "proofs": [
-        ["cargo", "test", "-p", "focusa-api", "routes::work_loop", "--no-fail-fast"],
-        ["bash", "tests/work_loop_writer_lease_fencing_test.sh"],
-        ["bash", "tests/work_loop_checkpoint_recovery_test.sh"],
-        ["bash", "tests/work_loop_process_tree_supervision_test.sh"]
+        [
+          "cargo",
+          "test",
+          "-p",
+          "focusa-api",
+          "routes::work_loop",
+          "--no-fail-fast"
+        ],
+        [
+          "bash",
+          "tests/work_loop_writer_lease_fencing_test.sh"
+        ],
+        [
+          "bash",
+          "tests/work_loop_checkpoint_recovery_test.sh"
+        ],
+        [
+          "bash",
+          "tests/work_loop_process_tree_supervision_test.sh"
+        ],
+        [
+          "cargo",
+          "test",
+          "-p",
+          "focusa-core",
+          "spec79_canary_advances_ordered_bd_graph_without_manual_reprompt",
+          "--no-fail-fast"
+        ]
       ],
-      "gap": "Spec133 scheduler/session integration and final bounded dogfood remain incomplete."
+      "gap": null
     },
     {
       "id": "spec98",
       "path": "docs/98-project-root-crdt-reconciliation-foundation-spec.md",
       "status": "partial",
       "proofs": [
-        ["python3", "tests/spec98_bounded_orchestration_static_test.py"],
-        ["python3", "tests/spec98_authority_taxonomy_generated_lint_static_test.py"],
-        ["python3", "tests/spec98_authority_taxonomy_worksheet_static_test.py"]
+        [
+          "python3",
+          "tests/spec98_bounded_orchestration_static_test.py"
+        ],
+        [
+          "python3",
+          "tests/spec98_authority_taxonomy_generated_lint_static_test.py"
+        ],
+        [
+          "python3",
+          "tests/spec98_authority_taxonomy_worksheet_static_test.py"
+        ]
       ],
       "gap": "Full CRDT reconciliation requirements extend beyond the Work Loop-specific proof subset."
     },
@@ -30,9 +63,18 @@
       "path": "docs/104-typed-scoped-runtime-and-singleton-elimination-spec.md",
       "status": "partial",
       "proofs": [
-        ["python3", "tests/spec104_api_scope_singleton_closure_static_test.py"],
-        ["python3", "tests/spec104_hard_singleton_audit_static_test.py"],
-        ["bash", "tests/spec104_scoped_state_foundation_test.sh"]
+        [
+          "python3",
+          "tests/spec104_api_scope_singleton_closure_static_test.py"
+        ],
+        [
+          "python3",
+          "tests/spec104_hard_singleton_audit_static_test.py"
+        ],
+        [
+          "bash",
+          "tests/spec104_scoped_state_foundation_test.sh"
+        ]
       ],
       "gap": "The complete Spec104 matrix must pass before canonical release."
     },
@@ -41,7 +83,10 @@
       "path": "docs/133-daemon-native-durable-silent-sessions-and-governed-autonomous-execution-spec.md",
       "status": "blocked",
       "proofs": [
-        ["bash", "tests/spec133_phase0_static_test.sh"]
+        [
+          "bash",
+          "tests/spec133_phase0_static_test.sh"
+        ]
       ],
       "gap": "Daemon-native session models, persistence, manager, scheduler, steering, retention, and integration receipts are not implemented."
     }
