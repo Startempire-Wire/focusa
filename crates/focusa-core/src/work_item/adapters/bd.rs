@@ -6,8 +6,9 @@
 
 use async_trait::async_trait;
 use std::path::Path;
-use std::process::Command;
 use std::time::Duration;
+use tokio::process::Command;
+use tokio::time::timeout;
 
 use crate::work_item::adapter::{ProviderAdapter, RegistryError, RegistryResult};
 use crate::work_item::types::{
@@ -46,41 +47,43 @@ impl BdAdapter {
         }
     }
 
-    /// Synchronous helper that invokes bd once. Returns (exit_code,
-    /// stdout, stderr).
-    fn run_bd(&self, args: &[&str]) -> Option<(i32, String, String)> {
-        let out = Command::new(&self.bd_path).args(args).output().ok()?;
-        Some((
-            out.status.code().unwrap_or(-1),
-            String::from_utf8_lossy(&out.stdout).to_string(),
-            String::from_utf8_lossy(&out.stderr).to_string(),
-        ))
-    }
-
-    fn run_bd_at(&self, project_root: &Path, args: &[&str]) -> Option<(i32, String, String)> {
-        let run = |command_args: &[&str]| {
-            let out = Command::new(&self.bd_path)
-                .current_dir(project_root)
-                .args(command_args)
-                .output()
-                .ok()?;
-            Some((
+    async fn run_command(
+        &self,
+        project_root: Option<&Path>,
+        args: &[&str],
+    ) -> Option<(i32, String, String)> {
+        let mut command = Command::new(&self.bd_path);
+        if let Some(root) = project_root {
+            command.current_dir(root);
+        }
+        command.args(args).kill_on_drop(true);
+        match timeout(self.timeout, command.output()).await {
+            Ok(Ok(out)) => Some((
                 out.status.code().unwrap_or(-1),
                 String::from_utf8_lossy(&out.stdout).to_string(),
                 String::from_utf8_lossy(&out.stderr).to_string(),
-            ))
-        };
-        let first = run(args)?;
-        if first.0 == 0
-            || !first.2.contains("no beads database found")
-            || !project_root.join(".beads/issues.jsonl").is_file()
-        {
-            return Some(first);
+            )),
+            Ok(Err(error)) => Some((-1, String::new(), format!("bd execution failed: {error}"))),
+            Err(_) => Some((
+                -1,
+                String::new(),
+                format!("bd command timed out after {}ms", self.timeout.as_millis()),
+            )),
         }
-        let mut no_db_args = Vec::with_capacity(args.len() + 1);
-        no_db_args.push("--no-db");
-        no_db_args.extend_from_slice(args);
-        run(&no_db_args)
+    }
+
+    async fn run_bd(&self, args: &[&str]) -> Option<(i32, String, String)> {
+        self.run_command(None, args).await
+    }
+
+    async fn run_bd_at(&self, project_root: &Path, args: &[&str]) -> Option<(i32, String, String)> {
+        if project_root.join(".beads/issues.jsonl").is_file() {
+            let mut no_db_args = Vec::with_capacity(args.len() + 1);
+            no_db_args.push("--no-db");
+            no_db_args.extend_from_slice(args);
+            return self.run_command(Some(project_root), &no_db_args).await;
+        }
+        self.run_command(Some(project_root), args).await
     }
 
     /// Map bd status strings to the typed enum.
@@ -226,18 +229,20 @@ impl ProviderAdapter for BdAdapter {
     async fn detect(&self) -> bool {
         // `bd --help` exits 0 when the binary is callable.
         self.run_bd(&["--help"])
+            .await
             .map(|(code, _, _)| code == 0)
             .unwrap_or(false)
     }
 
     async fn resolve(&self, work_item: &WorkItemRef) -> RegistryResult<WorkItem> {
         let args = ["show", &work_item.provider_item_id, "--json"];
-        let (code, stdout, stderr) =
-            self.run_bd_at(&work_item.project_root, &args)
-                .ok_or_else(|| RegistryError::ProviderNotInstalled {
-                    provider: self.provider(),
-                    missing: vec![self.bd_path.clone()],
-                })?;
+        let (code, stdout, stderr) = self
+            .run_bd_at(&work_item.project_root, &args)
+            .await
+            .ok_or_else(|| RegistryError::ProviderNotInstalled {
+                provider: self.provider(),
+                missing: vec![self.bd_path.clone()],
+            })?;
         if code != 0 {
             return Err(RegistryError::ProviderError {
                 provider: self.provider(),
@@ -265,6 +270,7 @@ impl ProviderAdapter for BdAdapter {
                 &query.project_root,
                 &["list", "--all", "--json", "--limit", &limit],
             )
+            .await
             .ok_or_else(|| RegistryError::ProviderNotInstalled {
                 provider: self.provider(),
                 missing: vec![self.bd_path.clone()],
@@ -332,12 +338,13 @@ impl ProviderAdapter for BdAdapter {
             "--reason",
             "closed via focusa work-item closure",
         ];
-        let (code, _stdout, stderr) =
-            self.run_bd_at(&work_item.project_root, &args)
-                .ok_or_else(|| RegistryError::ProviderNotInstalled {
-                    provider: self.provider(),
-                    missing: vec![self.bd_path.clone()],
-                })?;
+        let (code, _stdout, stderr) = self
+            .run_bd_at(&work_item.project_root, &args)
+            .await
+            .ok_or_else(|| RegistryError::ProviderNotInstalled {
+                provider: self.provider(),
+                missing: vec![self.bd_path.clone()],
+            })?;
         if code != 0 {
             return Err(RegistryError::ProviderError {
                 provider: self.provider(),
@@ -422,8 +429,8 @@ mod tests {
     }
 
     #[cfg(unix)]
-    #[test]
-    fn jsonl_only_projects_retry_with_no_db_mode() {
+    #[tokio::test]
+    async fn jsonl_only_projects_prefer_no_db_mode() {
         use std::os::unix::fs::PermissionsExt;
         let root = std::env::temp_dir().join(format!("focusa-bd-no-db-{}", uuid::Uuid::now_v7()));
         std::fs::create_dir_all(root.join(".beads")).unwrap();
@@ -438,9 +445,33 @@ mod tests {
         permissions.set_mode(0o755);
         std::fs::set_permissions(&script, permissions).unwrap();
         let adapter = BdAdapter::with_bd_path(script.to_string_lossy());
-        let result = adapter.run_bd_at(&root, &["list", "--json"]).unwrap();
+        let result = adapter.run_bd_at(&root, &["list", "--json"]).await.unwrap();
         assert_eq!(result.0, 0);
         assert_eq!(result.1.trim(), "[]");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn hung_provider_command_is_killed_at_adapter_timeout() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = std::env::temp_dir().join(format!("focusa-bd-timeout-{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(&root).unwrap();
+        let script = root.join("fake-bd");
+        std::fs::write(&script, "#!/bin/sh\nexec sleep 30\n").unwrap();
+        let mut permissions = std::fs::metadata(&script).unwrap().permissions();
+        permissions.set_mode(0o755);
+        std::fs::set_permissions(&script, permissions).unwrap();
+        let mut adapter = BdAdapter::with_bd_path(script.to_string_lossy());
+        adapter.timeout = Duration::from_millis(50);
+        let started = std::time::Instant::now();
+        let result = adapter
+            .run_bd_at(&root, &["show", "item", "--json"])
+            .await
+            .unwrap();
+        assert_eq!(result.0, -1);
+        assert!(result.2.contains("timed out"));
+        assert!(started.elapsed() < Duration::from_secs(2));
         std::fs::remove_dir_all(root).unwrap();
     }
 }
