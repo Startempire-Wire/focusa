@@ -264,11 +264,13 @@ impl ProviderAdapter for BdAdapter {
     }
 
     async fn list(&self, query: &WorkItemQuery) -> RegistryResult<Vec<WorkItem>> {
-        let limit = query.limit.max(1).to_string();
+        // Read a complete provider snapshot before core readiness filtering.
+        // Applying a global provider limit first can hide every child of the
+        // requested parent and can also omit dependency terminal states.
         let (code, stdout, stderr) = self
             .run_bd_at(
                 &query.project_root,
-                &["list", "--all", "--json", "--limit", &limit],
+                &["list", "--all", "--json", "--limit", "0"],
             )
             .await
             .ok_or_else(|| RegistryError::ProviderNotInstalled {
@@ -288,22 +290,10 @@ impl ProviderAdapter for BdAdapter {
                 stage: "list",
                 why: format!("bd list returned invalid JSON: {error}"),
             })?;
-        let mut items = Vec::with_capacity(values.len());
-        for value in values {
-            let Some(id) = value.get("id").and_then(|id| id.as_str()) else {
-                continue;
-            };
-            items.push(
-                self.resolve(&WorkItemRef {
-                    provider: WorkItemProvider::Bd,
-                    provider_item_id: id.to_string(),
-                    project_root: query.project_root.clone(),
-                    external_url: None,
-                })
-                .await?,
-            );
-        }
-        Ok(items)
+        values
+            .iter()
+            .map(|value| self.parse_work_item(value, &query.project_root))
+            .collect()
     }
 
     async fn validate_ref(&self, work_item: &WorkItemRef) -> RegistryResult<()> {
@@ -448,6 +438,52 @@ mod tests {
         let result = adapter.run_bd_at(&root, &["list", "--json"]).await.unwrap();
         assert_eq!(result.0, 0);
         assert_eq!(result.1.trim(), "[]");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn list_reads_complete_snapshot_without_n_plus_one_show_calls() {
+        use std::os::unix::fs::PermissionsExt;
+        let root =
+            std::env::temp_dir().join(format!("focusa-bd-complete-{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(root.join(".beads")).unwrap();
+        std::fs::write(root.join(".beads/issues.jsonl"), "").unwrap();
+        let mut values = (0..150)
+            .map(|index| serde_json::json!({"id":format!("decoy-{index}"),"title":"decoy","status":"open"}))
+            .collect::<Vec<_>>();
+        values.push(serde_json::json!({
+            "id":"real-child","title":"real","status":"open",
+            "dependencies":[{"depends_on_id":"root","type":"parent-child"}]
+        }));
+        std::fs::write(
+            root.join("state.json"),
+            serde_json::to_vec(&values).unwrap(),
+        )
+        .unwrap();
+        let script = root.join("fake-bd");
+        std::fs::write(
+            &script,
+            "#!/bin/sh\nDIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\n[ \"$1\" = \"--no-db\" ] && shift\n[ \"$1\" = \"list\" ] || exit 91\ncat \"$DIR/state.json\"\n",
+        ).unwrap();
+        let mut permissions = std::fs::metadata(&script).unwrap().permissions();
+        permissions.set_mode(0o755);
+        std::fs::set_permissions(&script, permissions).unwrap();
+        let adapter = BdAdapter::with_bd_path(script.to_string_lossy());
+        let items = adapter
+            .list(&WorkItemQuery {
+                project_root: root.clone(),
+                parent: None,
+                limit: 100,
+            })
+            .await
+            .unwrap();
+        assert_eq!(items.len(), 151);
+        assert!(
+            items
+                .iter()
+                .any(|item| item.provider_item_id == "real-child")
+        );
         std::fs::remove_dir_all(root).unwrap();
     }
 
