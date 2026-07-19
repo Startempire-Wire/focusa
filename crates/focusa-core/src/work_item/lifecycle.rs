@@ -1293,6 +1293,122 @@ mod tests {
         let _ = std::fs::remove_dir_all(root);
     }
 
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn spec79_canary_advances_ordered_bd_graph_without_manual_reprompt() {
+        use crate::work_item::{BdAdapter, ProviderAdapter, WorkItemQuery, select_next_ready};
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = std::env::temp_dir().join(format!("focusa-spec79-canary-{}", Uuid::now_v7()));
+        std::fs::create_dir_all(root.join(".beads")).unwrap();
+        std::fs::create_dir_all(root.join("src")).unwrap();
+        std::fs::create_dir_all(root.join("tests")).unwrap();
+        std::fs::write(root.join(".beads/issues.jsonl"), "").unwrap();
+        std::fs::write(root.join("src/lib.rs"), "fn canary() {}\n").unwrap();
+        std::fs::write(root.join("tests/proof.rs"), "// passing canary proof\n").unwrap();
+        std::fs::write(
+            root.join("state.json"),
+            serde_json::to_vec(&serde_json::json!([
+                {"id":"root","title":"root","status":"closed","priority":0},
+                {"id":"a","title":"first","status":"open","priority":0,
+                 "dependencies":[{"depends_on_id":"root","type":"parent-child"}]},
+                {"id":"b","title":"second","status":"open","priority":1,
+                 "dependencies":[{"depends_on_id":"root","type":"parent-child"},
+                                 {"depends_on_id":"a","type":"blocks"}]}
+            ]))
+            .unwrap(),
+        )
+        .unwrap();
+        let script = root.join("fake-bd");
+        std::fs::write(
+            &script,
+            r#"#!/bin/sh
+set -eu
+DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+[ "${1:-}" = "--no-db" ] && shift
+case "${1:-}" in
+  --version) echo 'bd fake 1';;
+  list) cat "$DIR/state.json";;
+  show) python3 - "$DIR/state.json" "$2" <<'PY'
+import json,sys
+xs=json.load(open(sys.argv[1])); print(json.dumps([x for x in xs if x['id']==sys.argv[2]]))
+PY
+  ;;
+  close) python3 - "$DIR/state.json" "$2" <<'PY'
+import json,sys
+p=sys.argv[1]; xs=json.load(open(p))
+for x in xs:
+ if x['id']==sys.argv[2]: x['status']='closed'
+open(p,'w').write(json.dumps(xs))
+PY
+  ;;
+  *) echo 'unsupported fake bd command' >&2; exit 2;;
+esac
+"#,
+        )
+        .unwrap();
+        let mut permissions = std::fs::metadata(&script).unwrap().permissions();
+        permissions.set_mode(0o755);
+        std::fs::set_permissions(&script, permissions).unwrap();
+
+        let adapter = Arc::new(BdAdapter::with_bd_path(script.to_string_lossy()));
+        let mut registry = ProviderRegistry::empty();
+        registry.register(adapter.clone());
+        let mut policy = ClosurePolicy::default_policy();
+        policy.active_profile = "code_with_test".into();
+        let lifecycle = Lifecycle::new(
+            ClaimStorage::new(root.join("claims")),
+            ClosureAuditLog::open(root.join("audit.jsonl")).unwrap(),
+            policy,
+            ClosureProfile::all_builtins(),
+            registry,
+        );
+        let query = WorkItemQuery {
+            project_root: root.clone(),
+            parent: Some(WorkItemRef {
+                provider: WorkItemProvider::Bd,
+                provider_item_id: "root".into(),
+                project_root: root.clone(),
+                external_url: None,
+            }),
+            limit: 100,
+        };
+        let authority = ClosureAuthorityContext {
+            continuity_id: "canary-continuity".into(),
+            workpoint_id: Uuid::now_v7().to_string(),
+            agent_session_id: Some("pi-rpc-canary".into()),
+        };
+        let citations = vec![
+            sample_cite(EvidenceKind::Code, "src/lib.rs"),
+            sample_cite(EvidenceKind::Test, "tests/proof.rs"),
+        ];
+        let mut order = Vec::new();
+        while let Some(item) = select_next_ready(&adapter.list(&query).await.unwrap(), &query) {
+            order.push(item.provider_item_id.clone());
+            lifecycle
+                .run_scoped(
+                    "focusa-work-loop-canary",
+                    item.reference(),
+                    &format!("verified {}", item.provider_item_id),
+                    ClosureKind::Code,
+                    citations.clone(),
+                    authority.clone(),
+                )
+                .await
+                .unwrap();
+        }
+        assert_eq!(order, vec!["a", "b"]);
+        assert!(
+            adapter
+                .list(&query)
+                .await
+                .unwrap()
+                .iter()
+                .all(WorkItem::is_terminal)
+        );
+        let _ = std::fs::remove_dir_all(root);
+    }
+
     #[test]
     fn scoped_prepare_rejects_missing_workpoint_authority() {
         let lifecycle = Lifecycle::open_for_kind(ClosureKind::Code);
