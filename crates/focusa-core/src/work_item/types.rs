@@ -36,6 +36,12 @@ pub enum WorkItemProvider {
     None,
 }
 
+impl Default for WorkItemProvider {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
 impl fmt::Display for WorkItemProvider {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
@@ -143,13 +149,69 @@ pub struct WorkItemRef {
 pub struct WorkItem {
     pub provider: WorkItemProvider,
     pub provider_item_id: String,
+    /// Canonical project scope of this provider snapshot. Scheduler identity is
+    /// `(provider, project_root, provider_item_id)`, never the provider ID alone.
+    #[serde(default)]
+    pub project_root: PathBuf,
     pub provider_status: WorkItemStatus,
     pub title: String,
+    /// Lower numbers are scheduled first. Provider-specific priorities are
+    /// normalized by the adapter; zero is the highest default priority.
+    #[serde(default)]
+    pub priority: i32,
+    /// Optional parent in the provider-neutral execution graph.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent: Option<WorkItemRef>,
+    /// WorkItems that must be Done/Closed before this item is ready.
+    #[serde(default)]
+    pub dependencies: Vec<WorkItemRef>,
+    /// Spec-derived acceptance criteria. Providers only persist projections.
+    #[serde(default)]
+    pub acceptance_criteria: Vec<String>,
+    /// Normative specification references governing this item.
+    #[serde(default)]
+    pub spec_refs: Vec<String>,
+    /// Typed provider-reported blocker, if any.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub blocked_reason: Option<String>,
     #[serde(default)]
     pub url: Option<String>,
     /// SHA / revision / version returned by the provider when meaningful.
     #[serde(default)]
     pub revision: Option<String>,
+}
+
+impl WorkItem {
+    pub fn reference(&self) -> WorkItemRef {
+        WorkItemRef {
+            provider: self.provider,
+            provider_item_id: self.provider_item_id.clone(),
+            project_root: self.project_root.clone(),
+            external_url: self.url.clone(),
+        }
+    }
+
+    pub fn is_terminal(&self) -> bool {
+        matches!(
+            self.provider_status,
+            WorkItemStatus::Done | WorkItemStatus::Closed | WorkItemStatus::Cancelled
+        )
+    }
+}
+
+/// Provider-neutral graph query used by Work Loop. No provider command or
+/// identifier is permitted to become scheduler authority.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkItemQuery {
+    pub project_root: PathBuf,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent: Option<WorkItemRef>,
+    #[serde(default = "default_work_item_query_limit")]
+    pub limit: usize,
+}
+
+fn default_work_item_query_limit() -> usize {
+    100
 }
 
 /// Work item status returned by the provider.

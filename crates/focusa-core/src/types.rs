@@ -8,6 +8,7 @@
 //!            it does not belong in Focusa.
 
 use crate::scoped_state::WorkstreamKey;
+use crate::work_item::WorkItemProvider;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -226,6 +227,8 @@ pub struct WorkerCapabilityProfile {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkLoopPolicy {
     pub preset: WorkLoopPreset,
+    #[serde(default)]
+    pub work_item_provider: WorkItemProvider,
     pub max_turns: Option<u32>,
     pub max_wall_clock_ms: Option<u64>,
     pub max_retries: u32,
@@ -244,6 +247,7 @@ pub struct WorkLoopPolicy {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct WorkLoopPolicyOverrides {
+    pub work_item_provider: Option<WorkItemProvider>,
     pub max_turns: Option<u32>,
     pub max_wall_clock_ms: Option<u64>,
     pub max_retries: Option<u32>,
@@ -265,6 +269,7 @@ impl WorkLoopPolicy {
         match preset {
             WorkLoopPreset::Conservative => Self {
                 preset,
+                work_item_provider: WorkItemProvider::None,
                 max_turns: Some(6),
                 max_wall_clock_ms: Some(15 * 60 * 1_000),
                 max_retries: 2,
@@ -282,6 +287,7 @@ impl WorkLoopPolicy {
             },
             WorkLoopPreset::Balanced => Self {
                 preset,
+                work_item_provider: WorkItemProvider::None,
                 max_turns: Some(12),
                 max_wall_clock_ms: Some(30 * 60 * 1_000),
                 max_retries: 3,
@@ -299,6 +305,7 @@ impl WorkLoopPolicy {
             },
             WorkLoopPreset::Push => Self {
                 preset,
+                work_item_provider: WorkItemProvider::None,
                 max_turns: Some(24),
                 max_wall_clock_ms: Some(60 * 60 * 1_000),
                 max_retries: 4,
@@ -316,6 +323,7 @@ impl WorkLoopPolicy {
             },
             WorkLoopPreset::Audit => Self {
                 preset,
+                work_item_provider: WorkItemProvider::None,
                 max_turns: Some(10),
                 max_wall_clock_ms: Some(20 * 60 * 1_000),
                 max_retries: 2,
@@ -336,6 +344,9 @@ impl WorkLoopPolicy {
 
     pub fn with_overrides(preset: WorkLoopPreset, overrides: WorkLoopPolicyOverrides) -> Self {
         let mut policy = Self::for_preset(preset);
+        if let Some(v) = overrides.work_item_provider {
+            policy.work_item_provider = v;
+        }
         if let Some(v) = overrides.max_turns {
             policy.max_turns = Some(v);
         }

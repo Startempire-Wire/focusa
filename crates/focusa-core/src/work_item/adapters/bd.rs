@@ -1,16 +1,17 @@
-//! bd (beads) adapter — the canonical provider, adapter #1.
+//! bd (beads) adapter — optional provider adapter #1; never core authority.
 //!
 //! Uses the local `bd` binary as the executor. The adapter is the
 //! reference implementation of `ProviderAdapter`; Linear/Asana/
 //! GitHub adapters (Phase B) will follow the same shape.
 
 use async_trait::async_trait;
+use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
 
 use crate::work_item::adapter::{ProviderAdapter, RegistryError, RegistryResult};
 use crate::work_item::types::{
-    ProviderCapabilities, WorkItem, WorkItemProvider, WorkItemRef, WorkItemStatus,
+    ProviderCapabilities, WorkItem, WorkItemProvider, WorkItemQuery, WorkItemRef, WorkItemStatus,
 };
 
 /// bd adapter. State is read-only via `bd show` and mutated via
@@ -56,6 +57,32 @@ impl BdAdapter {
         ))
     }
 
+    fn run_bd_at(&self, project_root: &Path, args: &[&str]) -> Option<(i32, String, String)> {
+        let run = |command_args: &[&str]| {
+            let out = Command::new(&self.bd_path)
+                .current_dir(project_root)
+                .args(command_args)
+                .output()
+                .ok()?;
+            Some((
+                out.status.code().unwrap_or(-1),
+                String::from_utf8_lossy(&out.stdout).to_string(),
+                String::from_utf8_lossy(&out.stderr).to_string(),
+            ))
+        };
+        let first = run(args)?;
+        if first.0 == 0
+            || !first.2.contains("no beads database found")
+            || !project_root.join(".beads/issues.jsonl").is_file()
+        {
+            return Some(first);
+        }
+        let mut no_db_args = Vec::with_capacity(args.len() + 1);
+        no_db_args.push("--no-db");
+        no_db_args.extend_from_slice(args);
+        run(&no_db_args)
+    }
+
     /// Map bd status strings to the typed enum.
     fn status_from_string(s: &str) -> WorkItemStatus {
         match s.trim() {
@@ -67,6 +94,122 @@ impl BdAdapter {
             "cancelled" | "CANCELLED" => WorkItemStatus::Cancelled,
             _ => WorkItemStatus::Unknown,
         }
+    }
+
+    fn parse_work_item(
+        &self,
+        value: &serde_json::Value,
+        project_root: &Path,
+    ) -> RegistryResult<WorkItem> {
+        let id = value
+            .get("id")
+            .and_then(serde_json::Value::as_str)
+            .filter(|id| !id.trim().is_empty())
+            .ok_or_else(|| RegistryError::ProviderError {
+                provider: self.provider(),
+                stage: "parse",
+                why: "bd item omitted a non-empty id".into(),
+            })?;
+        let make_ref = |provider_item_id: &str| WorkItemRef {
+            provider: WorkItemProvider::Bd,
+            provider_item_id: provider_item_id.to_string(),
+            project_root: project_root.to_path_buf(),
+            external_url: None,
+        };
+        let mut parent = None;
+        let mut dependencies = Vec::new();
+        if let Some(edges) = value
+            .get("dependencies")
+            .and_then(serde_json::Value::as_array)
+        {
+            for edge in edges {
+                let dependency_id = edge
+                    .get("depends_on_id")
+                    .or_else(|| edge.get("id"))
+                    .and_then(serde_json::Value::as_str);
+                let relation = edge
+                    .get("type")
+                    .or_else(|| edge.get("dependency_type"))
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or_default();
+                let Some(dependency_id) =
+                    dependency_id.filter(|candidate| !candidate.trim().is_empty())
+                else {
+                    continue;
+                };
+                if relation == "parent-child" {
+                    parent = Some(make_ref(dependency_id));
+                } else if dependency_id != id {
+                    dependencies.push(make_ref(dependency_id));
+                }
+            }
+        }
+        dependencies.sort_by(|left, right| left.provider_item_id.cmp(&right.provider_item_id));
+        dependencies.dedup_by(|left, right| left.provider_item_id == right.provider_item_id);
+
+        let string_list = |key: &str| -> Vec<String> {
+            match value.get(key) {
+                Some(serde_json::Value::Array(values)) => values
+                    .iter()
+                    .filter_map(serde_json::Value::as_str)
+                    .map(str::trim)
+                    .filter(|entry| !entry.is_empty())
+                    .map(str::to_string)
+                    .collect(),
+                Some(serde_json::Value::String(entry)) if !entry.trim().is_empty() => {
+                    vec![entry.trim().to_string()]
+                }
+                _ => Vec::new(),
+            }
+        };
+        let mut spec_refs = string_list("spec_refs");
+        spec_refs.extend(
+            string_list("labels")
+                .into_iter()
+                .filter_map(|label| label.strip_prefix("spec:").map(str::to_string)),
+        );
+        spec_refs.sort();
+        spec_refs.dedup();
+
+        Ok(WorkItem {
+            provider: WorkItemProvider::Bd,
+            provider_item_id: id.to_string(),
+            project_root: project_root.to_path_buf(),
+            provider_status: Self::status_from_string(
+                value
+                    .get("status")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("unknown"),
+            ),
+            title: value
+                .get("title")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("untitled bd work item")
+                .to_string(),
+            priority: value
+                .get("priority")
+                .and_then(serde_json::Value::as_i64)
+                .and_then(|priority| i32::try_from(priority).ok())
+                .unwrap_or(2),
+            parent,
+            dependencies,
+            acceptance_criteria: string_list("acceptance_criteria"),
+            spec_refs,
+            blocked_reason: value
+                .get("blocked_reason")
+                .or_else(|| value.get("blocker_reason"))
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_string),
+            url: value
+                .get("url")
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_string),
+            revision: value
+                .get("revision")
+                .or_else(|| value.get("updated_at"))
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_string),
+        })
     }
 }
 
@@ -90,7 +233,7 @@ impl ProviderAdapter for BdAdapter {
     async fn resolve(&self, work_item: &WorkItemRef) -> RegistryResult<WorkItem> {
         let args = ["show", &work_item.provider_item_id, "--json"];
         let (code, stdout, stderr) =
-            self.run_bd(&args)
+            self.run_bd_at(&work_item.project_root, &args)
                 .ok_or_else(|| RegistryError::ProviderNotInstalled {
                     provider: self.provider(),
                     missing: vec![self.bd_path.clone()],
@@ -102,41 +245,59 @@ impl ProviderAdapter for BdAdapter {
                 why: format!("bd show exit={code} stderr={stderr}"),
             });
         }
-        // bd show --json output shape varies; tolerate both single-object
-        // and array-of-objects.
-        let v: serde_json::Value =
-            serde_json::from_str(&stdout).map_err(|e| RegistryError::ProviderError {
+        let payload: serde_json::Value =
+            serde_json::from_str(&stdout).map_err(|error| RegistryError::ProviderError {
                 provider: self.provider(),
                 stage: "resolve",
-                why: format!("bd show returned invalid JSON: {e}"),
+                why: format!("bd show returned invalid JSON: {error}"),
             })?;
-        let obj = if let Some(arr) = v.as_array().and_then(|a| a.first().cloned()) {
-            arr
-        } else {
-            v
-        };
-        let id = obj
-            .get("id")
-            .and_then(|x| x.as_str())
-            .unwrap_or(&work_item.provider_item_id)
-            .to_string();
-        let status_str = obj
-            .get("status")
-            .and_then(|x| x.as_str())
-            .unwrap_or("unknown");
-        let title = obj
-            .get("title")
-            .and_then(|x| x.as_str())
-            .unwrap_or("")
-            .to_string();
-        Ok(WorkItem {
-            provider: self.provider(),
-            provider_item_id: id,
-            provider_status: Self::status_from_string(status_str),
-            title,
-            url: None,
-            revision: None,
-        })
+        let value = payload
+            .as_array()
+            .and_then(|items| items.first())
+            .unwrap_or(&payload);
+        self.parse_work_item(value, &work_item.project_root)
+    }
+
+    async fn list(&self, query: &WorkItemQuery) -> RegistryResult<Vec<WorkItem>> {
+        let limit = query.limit.max(1).to_string();
+        let (code, stdout, stderr) = self
+            .run_bd_at(
+                &query.project_root,
+                &["list", "--all", "--json", "--limit", &limit],
+            )
+            .ok_or_else(|| RegistryError::ProviderNotInstalled {
+                provider: self.provider(),
+                missing: vec![self.bd_path.clone()],
+            })?;
+        if code != 0 {
+            return Err(RegistryError::ProviderError {
+                provider: self.provider(),
+                stage: "list",
+                why: format!("bd list exit={code} stderr={stderr}"),
+            });
+        }
+        let values: Vec<serde_json::Value> =
+            serde_json::from_str(&stdout).map_err(|error| RegistryError::ProviderError {
+                provider: self.provider(),
+                stage: "list",
+                why: format!("bd list returned invalid JSON: {error}"),
+            })?;
+        let mut items = Vec::with_capacity(values.len());
+        for value in values {
+            let Some(id) = value.get("id").and_then(|id| id.as_str()) else {
+                continue;
+            };
+            items.push(
+                self.resolve(&WorkItemRef {
+                    provider: WorkItemProvider::Bd,
+                    provider_item_id: id.to_string(),
+                    project_root: query.project_root.clone(),
+                    external_url: None,
+                })
+                .await?,
+            );
+        }
+        Ok(items)
     }
 
     async fn validate_ref(&self, work_item: &WorkItemRef) -> RegistryResult<()> {
@@ -172,7 +333,7 @@ impl ProviderAdapter for BdAdapter {
             "closed via focusa work-item closure",
         ];
         let (code, _stdout, stderr) =
-            self.run_bd(&args)
+            self.run_bd_at(&work_item.project_root, &args)
                 .ok_or_else(|| RegistryError::ProviderNotInstalled {
                     provider: self.provider(),
                     missing: vec![self.bd_path.clone()],
@@ -227,12 +388,59 @@ mod tests {
 
     #[tokio::test]
     async fn bd_status_mapping_async_smoke() {
-        // This test does not shell out; we just exercise the async
-        // dispatcher.
-        let a = BdAdapter::new();
-        // We don't require bd to be installed in CI; a no-op assertion.
-        let _ = a.provider();
-        let _ = a.capabilities();
+        let adapter = BdAdapter::new();
+        let _ = adapter.provider();
+        let _ = adapter.capabilities();
         let _ = bd_ref("focusa-glny");
+    }
+
+    #[test]
+    fn parser_normalizes_parent_dependencies_and_acceptance() {
+        let adapter = BdAdapter::new();
+        let value = serde_json::json!({
+            "id": "focusa-child",
+            "title": "child",
+            "status": "open",
+            "priority": 1,
+            "acceptance_criteria": "proof passes",
+            "labels": ["work-loop", "spec:docs/79.md"],
+            "dependencies": [
+                {"depends_on_id": "focusa-parent", "type": "parent-child"},
+                {"depends_on_id": "focusa-dep", "type": "blocks"},
+                {"id": "focusa-dep", "dependency_type": "blocks"}
+            ]
+        });
+        let item = adapter
+            .parse_work_item(&value, Path::new("/project"))
+            .unwrap();
+        assert_eq!(item.project_root, Path::new("/project"));
+        assert_eq!(item.parent.unwrap().provider_item_id, "focusa-parent");
+        assert_eq!(item.dependencies.len(), 1);
+        assert_eq!(item.dependencies[0].provider_item_id, "focusa-dep");
+        assert_eq!(item.acceptance_criteria, vec!["proof passes"]);
+        assert_eq!(item.spec_refs, vec!["docs/79.md"]);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn jsonl_only_projects_retry_with_no_db_mode() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = std::env::temp_dir().join(format!("focusa-bd-no-db-{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(root.join(".beads")).unwrap();
+        std::fs::write(root.join(".beads/issues.jsonl"), "").unwrap();
+        let script = root.join("fake-bd");
+        std::fs::write(
+            &script,
+            "#!/bin/sh\nif [ \"$1\" = \"--no-db\" ]; then echo '[]'; exit 0; fi\necho 'Error: no beads database found' >&2\nexit 1\n",
+        )
+        .unwrap();
+        let mut permissions = std::fs::metadata(&script).unwrap().permissions();
+        permissions.set_mode(0o755);
+        std::fs::set_permissions(&script, permissions).unwrap();
+        let adapter = BdAdapter::with_bd_path(script.to_string_lossy());
+        let result = adapter.run_bd_at(&root, &["list", "--json"]).unwrap();
+        assert_eq!(result.0, 0);
+        assert_eq!(result.1.trim(), "[]");
+        std::fs::remove_dir_all(root).unwrap();
     }
 }
