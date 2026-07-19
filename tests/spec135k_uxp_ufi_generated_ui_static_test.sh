@@ -8,8 +8,9 @@ MANIFEST="$ROOT_DIR/docs/135-series-current-manifest.md"
 fail(){ echo "✗ FAIL: $*" >&2; exit 1; }
 pass(){ echo "✓ PASS: $*"; }
 
-[[ -f "$SPEC" ]] || fail "Spec 135K is missing"
-[[ -f "$DIRECTIVE" ]] || fail "Spec 135 UXP/UFI directive is missing"
+for file in "$SPEC" "$DIRECTIVE" "$MANIFEST"; do
+  [[ -f "$file" ]] || fail "missing required Spec 135K file: $file"
+done
 
 for needle in \
   'Spec 14' \
@@ -19,30 +20,38 @@ for needle in \
   'confirmation_preference' \
   'interruption_sensitivity' \
   'review_cadence' \
-  'No friction from normal completion' \
-  'Why this presentation?' \
+  'Completion time' \
+  'Why is Focusa presenting this this way?' \
   'User override' \
   'Safety invariants' \
-  'PlainLanguageProjection integration' \
-  'Nontechnical completion benchmark'; do
+  'PlainLanguageProjection' \
+  'Nontechnical completion benchmark' \
+  'UIAI Engine Eval scenarios'; do
   rg -n -F "$needle" "$SPEC" >/dev/null || fail "Spec 135K missing UXP/UFI decision: $needle"
 done
-pass "canonical UXP/UFI reuse and nontechnical baseline are explicit"
+pass "canonical UXP/UFI and nontechnical baseline are explicit"
 
 for needle in \
   'Do not create a simple mode' \
-  'Use the existing canonical UXP/UFI system' \
-  'safe nontechnical baseline' \
+  'canonical UXP/UFI system' \
+  'safe baseline' \
   'Record only observable' \
   'Every adaptation must answer' \
+  'UIAI Engine Eval' \
+  'Do not add Playwright' \
   'uxp_ufi:' \
-  'A missing UXP/UFI section blocks'; do
+  'uiai_eval_scenarios:' \
+  'A missing UXP/UFI or UIAI Eval section blocks'; do
   rg -n -F "$needle" "$DIRECTIVE" >/dev/null || fail "UXP/UFI agent directive missing: $needle"
 done
-pass "agents receive canonical adaptive-UI rules"
+pass "agents receive canonical adaptive-UI and browser-proof rules"
 
-rg -n -F '135K' "$MANIFEST" >/dev/null || fail "Spec 135K missing from current manifest"
-rg -n -F 'Spec 135 UXP/UFI generated UI directive' "$MANIFEST" >/dev/null || fail "UXP/UFI directive missing from manifest"
-pass "Spec 135K and directive are discoverable"
+if rg -n 'Playwright tests|playwright_flow_ref' "$SPEC" "$DIRECTIVE"; then
+  fail "stale browser-test ownership remains in Spec 135K"
+fi
+
+rg -n -F '135K' "$MANIFEST" >/dev/null || fail "Spec 135K missing from Delivery Contract"
+rg -n -F 'UIAI Engine Eval' "$MANIFEST" >/dev/null || fail "UIAI Engine Eval decision missing from Delivery Contract"
+pass "Spec 135K and proof ownership are discoverable"
 
 echo "Spec 135K UXP/UFI generated UI static test: PASS"
