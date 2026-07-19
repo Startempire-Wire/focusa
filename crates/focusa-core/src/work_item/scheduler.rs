@@ -321,6 +321,33 @@ mod tests {
     }
 
     #[test]
+    fn blocked_ordered_leaf_does_not_sweep_later_siblings() {
+        let root = reference("root", Path::new("/project"));
+        let mut first = item("first", WorkItemStatus::Blocked, 0);
+        first.parent = Some(root.clone());
+        first.blocked_reason = Some("genuine blocker".into());
+        let mut second = item("second", WorkItemStatus::Open, 1);
+        second.parent = Some(root.clone());
+        second
+            .dependencies
+            .push(reference("first", Path::new("/project")));
+        let result = evaluate_readiness(
+            &[first, second],
+            &WorkItemQuery {
+                project_root: PathBuf::from("/project"),
+                parent: Some(root),
+                limit: 100,
+            },
+        );
+        assert!(result.ready.is_empty());
+        assert_eq!(result.blocked.len(), 2);
+        assert!(result.blocked.iter().any(|entry| {
+            entry.item.provider_item_id == "second"
+                && entry.reason.starts_with("dependency_incomplete:first")
+        }));
+    }
+
+    #[test]
     fn root_query_reaches_nested_ready_leaves_before_parent_gates() {
         let root = reference("root", Path::new("/project"));
         let mut phase = item("phase", WorkItemStatus::Open, 0);
