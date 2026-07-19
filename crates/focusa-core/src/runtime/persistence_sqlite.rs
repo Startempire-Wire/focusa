@@ -8,8 +8,8 @@
 
 use crate::clt::retain_hot_window;
 use crate::silent_session::{
-    SilentSession, SilentSessionEvent, SilentSessionEventId, SilentSessionId, SilentSessionRun,
-    SilentSessionRunId,
+    SilentSession, SilentSessionEvent, SilentSessionEventId, SilentSessionId,
+    SilentSessionLifecycleState, SilentSessionRun, SilentSessionRunId,
 };
 use crate::silent_session_authorization::{SilentSessionApproval, SilentSessionPrincipal};
 use crate::sync::{CrdtEvent, VectorClock};
@@ -2253,6 +2253,25 @@ impl SqlitePersistence {
         Ok(())
     }
 
+    pub fn load_silent_session_approval(
+        &self,
+        approval_id: &str,
+    ) -> anyhow::Result<Option<SilentSessionApproval>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let json: Option<String> = conn
+            .query_row(
+                "SELECT approval_json FROM silent_session_approvals WHERE approval_id=?1 AND consumed_at IS NULL",
+                [approval_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        json.map(|value| serde_json::from_str(&value).map_err(Into::into))
+            .transpose()
+    }
+
     pub fn redeem_silent_session_approval(
         &self,
         approval_id: &str,
@@ -2391,6 +2410,148 @@ impl SqlitePersistence {
             &event.occurred_at.to_rfc3339(),
             &payload_sha256,
         );
+        tx.execute(
+            "INSERT INTO silent_session_events(event_id, session_id, run_id, seq, occurred_at, event_json, payload_sha256, previous_hash, event_hash) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+            params![event.event_id.to_string(), event.session_id.to_string(), event.run_id.to_string(),
+                i64::try_from(event.seq)?, event.occurred_at.to_rfc3339(), event_json,
+                payload_sha256, previous_hash, event_hash],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// Atomically compare-and-swap one lifecycle projection and append its
+    /// canonical event. Both the lifecycle state and run event cursor fence
+    /// concurrent controls; the run generation fences controls delayed across
+    /// restart/adoption.
+    pub fn persist_silent_session_lifecycle_cas(
+        &self,
+        expected_lifecycle: SilentSessionLifecycleState,
+        expected_generation: u64,
+        approval_id: &str,
+        action_digest: &str,
+        authorized_at: DateTime<Utc>,
+        session: &SilentSession,
+        run: &SilentSessionRun,
+        event: &SilentSessionEvent,
+    ) -> anyhow::Result<()> {
+        session
+            .validate()
+            .map_err(|error| anyhow::anyhow!("invalid silent-session projection: {error:?}"))?;
+        run.validate(session)
+            .map_err(|error| anyhow::anyhow!("invalid silent-session run: {error:?}"))?;
+        event
+            .validate(session, run)
+            .map_err(|error| anyhow::anyhow!("invalid silent-session event: {error:?}"))?;
+        anyhow::ensure!(
+            run.generation == expected_generation,
+            "silent-session generation conflict"
+        );
+        anyhow::ensure!(
+            run.current_event_seq == event.seq,
+            "silent-session run cursor must advance to event sequence"
+        );
+
+        let projection_json = serde_json::to_string(session)?;
+        let run_json = serde_json::to_string(run)?;
+        let event_json = serde_json::to_string(event)?;
+        let payload_sha256 = sha256_hex(event_json.as_bytes());
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let tx = conn.transaction()?;
+
+        let (stored_digest, expires_at, consumed_at): (String, String, Option<String>) = tx
+            .query_row(
+                "SELECT action_digest, expires_at, consumed_at FROM silent_session_approvals WHERE approval_id=?1",
+                [approval_id],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )?;
+        anyhow::ensure!(
+            consumed_at.is_none(),
+            "silent-session approval already consumed"
+        );
+        anyhow::ensure!(
+            stored_digest == action_digest,
+            "silent-session approval digest mismatch"
+        );
+        let expiry = DateTime::parse_from_rfc3339(&expires_at)?.with_timezone(&Utc);
+        anyhow::ensure!(expiry > authorized_at, "silent-session approval expired");
+
+        let stored_session_json: String = tx.query_row(
+            "SELECT projection_json FROM silent_sessions WHERE session_id=?1",
+            [session.session_id.to_string()],
+            |row| row.get(0),
+        )?;
+        let stored_session: SilentSession = serde_json::from_str(&stored_session_json)?;
+        anyhow::ensure!(
+            stored_session.lifecycle_state == expected_lifecycle,
+            "silent-session lifecycle conflict"
+        );
+        anyhow::ensure!(
+            stored_session.project_root == session.project_root
+                && stored_session.project_identity_ref == session.project_identity_ref
+                && stored_session.continuity_id == session.continuity_id,
+            "silent-session scope mutation"
+        );
+
+        let (stored_generation, stored_run_json): (i64, String) = tx.query_row(
+            "SELECT generation, run_json FROM silent_session_runs WHERE session_id=?1 AND run_id=?2",
+            params![session.session_id.to_string(), run.run_id.to_string()],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?;
+        let stored_run: SilentSessionRun = serde_json::from_str(&stored_run_json)?;
+        anyhow::ensure!(
+            u64::try_from(stored_generation)? == expected_generation
+                && stored_run.generation == expected_generation,
+            "silent-session generation conflict"
+        );
+        anyhow::ensure!(
+            event.seq == stored_run.current_event_seq.saturating_add(1),
+            "silent-session event cursor conflict"
+        );
+
+        let previous: Option<(i64, String)> = tx
+            .query_row(
+                "SELECT seq, event_hash FROM silent_session_events WHERE session_id=?1 AND run_id=?2 ORDER BY seq DESC LIMIT 1",
+                params![event.session_id.to_string(), event.run_id.to_string()],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        let (last_seq, previous_hash) = previous
+            .map(|(seq, hash)| (seq, hash))
+            .unwrap_or((0, "GENESIS".into()));
+        anyhow::ensure!(
+            i64::try_from(event.seq)? == last_seq + 1,
+            "silent-session event sequence gap"
+        );
+        let event_hash = event_chain_hash(
+            &previous_hash,
+            &event.event_id.to_string(),
+            &event.occurred_at.to_rfc3339(),
+            &payload_sha256,
+        );
+
+        tx.execute(
+            "INSERT INTO silent_session_action_redemptions(action_digest, approval_id, redeemed_at) VALUES (?1,?2,?3)",
+            params![action_digest, approval_id, authorized_at.to_rfc3339()],
+        )?;
+        let consumed = tx.execute(
+            "UPDATE silent_session_approvals SET consumed_at=?2 WHERE approval_id=?1 AND consumed_at IS NULL",
+            params![approval_id, authorized_at.to_rfc3339()],
+        )?;
+        anyhow::ensure!(consumed == 1, "silent-session approval redemption conflict");
+        tx.execute(
+            "UPDATE silent_sessions SET lifecycle_state=?2, projection_json=?3, projection_version=?4, updated_at=?5 WHERE session_id=?1",
+            params![session.session_id.to_string(), format!("{:?}", session.lifecycle_state), projection_json,
+                i64::try_from(event.seq)?, Utc::now().to_rfc3339()],
+        )?;
+        tx.execute(
+            "UPDATE silent_session_runs SET run_json=?3, updated_at=?4 WHERE session_id=?1 AND run_id=?2 AND generation=?5",
+            params![session.session_id.to_string(), run.run_id.to_string(), run_json,
+                Utc::now().to_rfc3339(), i64::try_from(expected_generation)?],
+        )?;
         tx.execute(
             "INSERT INTO silent_session_events(event_id, session_id, run_id, seq, occurred_at, event_json, payload_sha256, previous_hash, event_hash) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
             params![event.event_id.to_string(), event.session_id.to_string(), event.run_id.to_string(),

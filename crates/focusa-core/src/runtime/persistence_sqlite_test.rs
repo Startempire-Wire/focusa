@@ -340,7 +340,7 @@ fn sqlite_crdt_import_is_scoped_and_idempotent() {
 }
 
 #[test]
-fn sqlite_schema_migrates_v1_through_authorization_schema_v4() {
+fn sqlite_schema_migrates_v1_through_silent_session_lifecycle_schema_v5() {
     let dir = temp_dir();
     let mut cfg = FocusaConfig::default();
     cfg.data_dir = dir.to_string_lossy().to_string();
@@ -365,7 +365,7 @@ fn sqlite_schema_migrates_v1_through_authorization_schema_v4() {
             |row| row.get(0),
         )
         .unwrap();
-    assert_eq!(version, "4");
+    assert_eq!(version, "5");
     let table_count: i64 = conn
         .query_row(
             "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='crdt_events'",
@@ -578,6 +578,148 @@ fn silent_session_run_projection_survives_restart_and_fences_identity_and_genera
             .unwrap(),
         None
     );
+}
+
+#[test]
+fn silent_session_lifecycle_cas_is_atomic_and_rejects_stale_state_generation_and_cursor() {
+    let dir = temp_dir();
+    let mut config = FocusaConfig::default();
+    config.data_dir = dir.to_string_lossy().to_string();
+    let persistence = SqlitePersistence::new(&config).unwrap();
+    let (session, first) = sample_silent_session(&dir);
+    let run = sample_silent_run(&session);
+    persistence
+        .persist_silent_session_event(&session, &first)
+        .unwrap();
+    persistence.put_silent_session_run(&session, &run).unwrap();
+    let approval = |approval_id: &str, action_digest: &str| SilentSessionApproval {
+        schema: SILENT_SESSION_APPROVAL_SCHEMA.into(),
+        approval_id: approval_id.into(),
+        operator_actor_ref: "operator:test".into(),
+        action: "pause".into(),
+        project_identity_ref: session.project_identity_ref.clone(),
+        continuity_id: session.continuity_id.clone(),
+        workpoint_ref: None,
+        session_id: Some(session.session_id),
+        run_id: Some(run.run_id),
+        config_hash: "config:test".into(),
+        action_digest: action_digest.into(),
+        model_binding: "test/test-model".into(),
+        workspace_ref: "workspace:test".into(),
+        risk_class: "controlled".into(),
+        expires_at: Utc::now() + chrono::Duration::minutes(5),
+        permitted_side_effects: vec!["lifecycle:pausing".into()],
+    };
+    let accepted_approval = approval("approval:pause", "digest:pause");
+    let stale_approval = approval("approval:stale", "digest:stale");
+    persistence
+        .put_silent_session_approval(&accepted_approval)
+        .unwrap();
+    persistence
+        .put_silent_session_approval(&stale_approval)
+        .unwrap();
+
+    let mut pausing = session.clone();
+    pausing.lifecycle_state = SilentSessionLifecycleState::Pausing;
+    let mut advanced_run = run.clone();
+    advanced_run.current_event_seq = 2;
+    let mut transition = first.clone();
+    transition.event_id = SilentSessionEventId::new();
+    transition.seq = 2;
+    transition.kind = "lifecycle.pausing".into();
+    transition.payload = serde_json::json!({"reason_code": "operator_pause"});
+
+    persistence
+        .persist_silent_session_lifecycle_cas(
+            SilentSessionLifecycleState::Running,
+            1,
+            &accepted_approval.approval_id,
+            &accepted_approval.action_digest,
+            Utc::now(),
+            &pausing,
+            &advanced_run,
+            &transition,
+        )
+        .unwrap();
+    assert_eq!(
+        persistence
+            .load_silent_session(session.session_id)
+            .unwrap()
+            .unwrap()
+            .lifecycle_state,
+        SilentSessionLifecycleState::Pausing
+    );
+    assert_eq!(
+        persistence
+            .load_silent_session_run(session.session_id, run.run_id)
+            .unwrap()
+            .unwrap()
+            .current_event_seq,
+        2
+    );
+    assert_eq!(
+        persistence
+            .load_silent_session_approval(&accepted_approval.approval_id)
+            .unwrap(),
+        None
+    );
+
+    let mut stale_event = transition.clone();
+    stale_event.event_id = SilentSessionEventId::new();
+    assert!(
+        persistence
+            .persist_silent_session_lifecycle_cas(
+                SilentSessionLifecycleState::Running,
+                1,
+                &stale_approval.approval_id,
+                &stale_approval.action_digest,
+                Utc::now(),
+                &pausing,
+                &advanced_run,
+                &stale_event,
+            )
+            .is_err()
+    );
+    assert!(
+        persistence
+            .persist_silent_session_lifecycle_cas(
+                SilentSessionLifecycleState::Pausing,
+                2,
+                &stale_approval.approval_id,
+                &stale_approval.action_digest,
+                Utc::now(),
+                &pausing,
+                &advanced_run,
+                &stale_event,
+            )
+            .is_err()
+    );
+    assert_eq!(
+        persistence
+            .load_silent_session_events(session.session_id)
+            .unwrap()
+            .len(),
+        2
+    );
+    assert_eq!(
+        persistence
+            .load_silent_session_approval(&stale_approval.approval_id)
+            .unwrap(),
+        Some(stale_approval.clone())
+    );
+    assert_eq!(
+        persistence
+            .redeem_silent_session_approval(
+                &stale_approval.approval_id,
+                &stale_approval.action_digest,
+                Utc::now(),
+            )
+            .unwrap(),
+        stale_approval
+    );
+    persistence
+        .verify_silent_session_event_chain(session.session_id)
+        .unwrap();
 }
 
 #[test]
