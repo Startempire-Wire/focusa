@@ -1,12 +1,14 @@
-# Mac App Mission Control
+# Mac App Mission Canvas
 
 **Spec:** [`docs/92-agent-first-polish-hooks-efficiency-spec.md`](../92-agent-first-polish-hooks-efficiency-spec.md)
 
-The Mac menubar app includes a **Mission** tab backed by live Focusa APIs.
+The Mac menubar app includes a **Mission Canvas / Now** preview backed by live Focusa APIs.
+
+The menubar is a compact Focusa projection. It is not the UIAI Engine Cockpit and does not own the full multiplexed Mission Canvas.
 
 ## Mission-centered main panel
 
-The primary Cockpit/Mission view must show the operator what matters first:
+The primary Mission Canvas/Now view must show the operator what matters first:
 
 - ProjectIdentity
 - Continuity ID
@@ -45,4 +47,4 @@ bun run build
 
 ## Empty/offline behavior
 
-If the daemon is unavailable, the Mission tab shows recovery state from the runtime store and surfaces the restart command documented in [`DAEMON_RESILIENCE.md`](DAEMON_RESILIENCE.md).
+If the daemon is unavailable, the Mission Canvas/Now preview shows recovery state from the runtime store and surfaces the restart command documented in [`DAEMON_RESILIENCE.md`](DAEMON_RESILIENCE.md).
