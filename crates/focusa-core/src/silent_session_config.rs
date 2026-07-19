@@ -1,0 +1,556 @@
+use crate::silent_session::{
+    ConfigValidationResult, SILENT_SESSION_CONFIG_REVISION_SCHEMA, SilentSessionConfig,
+    SilentSessionConfigRevision, SilentSessionConfigRevisionId, SilentSessionId,
+};
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
+use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ConfigSource {
+    BuiltInDefault,
+    GlobalDefault,
+    ProjectDefault,
+    RoleProfile,
+    InvocationPreset,
+    ExplicitOverride,
+    OperatorEdit,
+    PolicyLock,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ConfigLayer {
+    pub source: ConfigSource,
+    pub patch: Value,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SilentSessionProfile {
+    pub profile_id: String,
+    pub persistent_defaults: Value,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SilentSessionPreset {
+    pub preset_id: String,
+    pub invocation_patch: Value,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ConfigPolicyLock {
+    pub json_pointer: String,
+    pub source: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ConfigMutationClass {
+    HotMutable,
+    RestartRequired,
+    Immutable,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EffectiveSilentSessionConfig {
+    pub requested_config: SilentSessionConfig,
+    pub effective_config: SilentSessionConfig,
+    pub field_provenance: BTreeMap<String, String>,
+    pub policy_locks: Vec<ConfigPolicyLock>,
+    pub mutation_classes: BTreeMap<String, ConfigMutationClass>,
+    pub warnings: Vec<String>,
+    pub validation: ConfigValidationResult,
+    pub redacted_config_hash: String,
+}
+
+pub struct SilentSessionConfigManager {
+    session_id: SilentSessionId,
+    current: SilentSessionConfigRevision,
+    history: BTreeMap<SilentSessionConfigRevisionId, SilentSessionConfigRevision>,
+    policy_locks: Vec<ConfigPolicyLock>,
+}
+
+impl SilentSessionConfigManager {
+    pub fn new(
+        session_id: SilentSessionId,
+        config: SilentSessionConfig,
+        policy_locks: Vec<ConfigPolicyLock>,
+    ) -> anyhow::Result<Self> {
+        let validation = validate_config(&config);
+        anyhow::ensure!(
+            validation.valid,
+            "initial silent-session config is invalid: {:?}",
+            validation.errors
+        );
+        let current = SilentSessionConfigRevision {
+            schema: SILENT_SESSION_CONFIG_REVISION_SCHEMA.into(),
+            revision_id: SilentSessionConfigRevisionId::new(),
+            session_id,
+            parent_revision_id: None,
+            requested_changes: Value::Object(Map::new()),
+            effective_diff: Value::Object(Map::new()),
+            field_provenance: BTreeMap::new(),
+            policy_lock_results: BTreeMap::new(),
+            operator_approval_ref: None,
+            validation_result: validation,
+            applied_at: Some(Utc::now()),
+            rollback_target: None,
+            config,
+        };
+        let history = BTreeMap::from([(current.revision_id, current.clone())]);
+        Ok(Self {
+            session_id,
+            current,
+            history,
+            policy_locks,
+        })
+    }
+
+    pub fn current(&self) -> &SilentSessionConfigRevision {
+        &self.current
+    }
+
+    pub fn preview(
+        &self,
+        mut layers: Vec<ConfigLayer>,
+    ) -> anyhow::Result<EffectiveSilentSessionConfig> {
+        layers.sort_by_key(|layer| layer.source);
+        let requested_config = self.current.config.clone();
+        let mut value = serde_json::to_value(&requested_config)?;
+        let mut provenance = BTreeMap::new();
+        for layer in layers {
+            reject_inline_secrets(&layer.patch)?;
+            let mut leaves = vec![];
+            collect_leaf_paths("", &layer.patch, &mut leaves);
+            for pointer in &leaves {
+                if let Some(lock) = self.policy_locks.iter().find(|lock| {
+                    pointer == &lock.json_pointer
+                        || pointer.starts_with(&(lock.json_pointer.clone() + "/"))
+                }) {
+                    anyhow::bail!("config field {pointer} is locked by {}", lock.source);
+                }
+                provenance.insert(pointer.clone(), format!("{:?}", layer.source));
+            }
+            merge_json(&mut value, layer.patch);
+        }
+        let effective_config: SilentSessionConfig = serde_json::from_value(value)?;
+        let validation = validate_config(&effective_config);
+        let mutation_classes = classify_changes(&self.current.config, &effective_config)?;
+        let redacted_config_hash = config_hash(&effective_config)?;
+        Ok(EffectiveSilentSessionConfig {
+            requested_config,
+            effective_config,
+            field_provenance: provenance,
+            policy_locks: self.policy_locks.clone(),
+            mutation_classes,
+            warnings: validation.warnings.clone(),
+            validation,
+            redacted_config_hash,
+        })
+    }
+
+    pub fn apply(
+        &mut self,
+        expected_revision: SilentSessionConfigRevisionId,
+        layers: Vec<ConfigLayer>,
+        operator_approval_ref: Option<String>,
+    ) -> anyhow::Result<SilentSessionConfigRevision> {
+        anyhow::ensure!(
+            self.current.revision_id == expected_revision,
+            "stale config revision"
+        );
+        let preview = self.preview(layers.clone())?;
+        anyhow::ensure!(preview.validation.valid, "config validation rejected apply");
+        anyhow::ensure!(
+            !preview
+                .mutation_classes
+                .values()
+                .any(|class| *class == ConfigMutationClass::Immutable),
+            "immutable session config cannot be revised in place"
+        );
+        if preview
+            .mutation_classes
+            .values()
+            .any(|class| *class == ConfigMutationClass::RestartRequired)
+        {
+            anyhow::ensure!(
+                operator_approval_ref.is_some(),
+                "restart-required config change needs approval"
+            );
+        }
+        let requested_changes = serde_json::to_value(&layers)?;
+        let effective_diff = serde_json::to_value(&preview.mutation_classes)?;
+        let revision = SilentSessionConfigRevision {
+            schema: SILENT_SESSION_CONFIG_REVISION_SCHEMA.into(),
+            revision_id: SilentSessionConfigRevisionId::new(),
+            session_id: self.session_id,
+            parent_revision_id: Some(self.current.revision_id),
+            config: preview.effective_config,
+            requested_changes,
+            effective_diff,
+            field_provenance: preview.field_provenance,
+            policy_lock_results: self
+                .policy_locks
+                .iter()
+                .map(|lock| (lock.json_pointer.clone(), true))
+                .collect(),
+            operator_approval_ref,
+            validation_result: preview.validation,
+            applied_at: Some(Utc::now()),
+            rollback_target: None,
+        };
+        self.history.insert(revision.revision_id, revision.clone());
+        self.current = revision.clone();
+        Ok(revision)
+    }
+
+    pub fn verify_current_hash(&self, expected_hash: &str) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            config_hash(&self.current.config)? == expected_hash,
+            "effective config verification mismatch"
+        );
+        Ok(())
+    }
+
+    pub fn rollback(
+        &mut self,
+        expected_revision: SilentSessionConfigRevisionId,
+        target: SilentSessionConfigRevisionId,
+        operator_approval_ref: String,
+    ) -> anyhow::Result<SilentSessionConfigRevision> {
+        anyhow::ensure!(
+            self.current.revision_id == expected_revision,
+            "stale config revision"
+        );
+        let target_revision = self
+            .history
+            .get(&target)
+            .cloned()
+            .ok_or_else(|| anyhow::anyhow!("unknown rollback target"))?;
+        let mut revision = target_revision;
+        revision.revision_id = SilentSessionConfigRevisionId::new();
+        revision.parent_revision_id = Some(self.current.revision_id);
+        revision.rollback_target = Some(target);
+        revision.operator_approval_ref = Some(operator_approval_ref);
+        revision.applied_at = Some(Utc::now());
+        self.history.insert(revision.revision_id, revision.clone());
+        self.current = revision.clone();
+        Ok(revision)
+    }
+}
+
+fn validate_config(config: &SilentSessionConfig) -> ConfigValidationResult {
+    let mut errors = vec![];
+    let mut warnings = vec![];
+    if config.schema != crate::silent_session::SILENT_SESSION_CONFIG_SCHEMA {
+        errors.push("unsupported config schema".into());
+    }
+    if !config.identity.project_root.is_absolute() {
+        errors.push("project_root must be absolute".into());
+    }
+    if config.identity.continuity_id.trim().is_empty() {
+        errors.push("continuity_id is required".into());
+    }
+    if config.model.auth_profile_ref.trim().is_empty() {
+        errors.push("auth_profile_ref is required; raw credentials are forbidden".into());
+    }
+    if config.output.chunk_max_bytes == 0 {
+        errors.push("chunk_max_bytes must be positive".into());
+    }
+    if config.model.allowed_fallbacks.is_empty()
+        && matches!(
+            config.model.fallback_policy,
+            crate::silent_session::ModelFallbackPolicy::ExplicitAllowList
+        )
+    {
+        errors.push("explicit fallback policy requires allowed_fallbacks".into());
+    }
+    if config.resources.max_wall_clock_seconds.is_none() {
+        warnings.push("wall-clock budget is unbounded".into());
+    }
+    ConfigValidationResult {
+        valid: errors.is_empty(),
+        errors,
+        warnings,
+    }
+}
+
+fn reject_inline_secrets(value: &Value) -> anyhow::Result<()> {
+    if let Value::Object(map) = value {
+        for (key, value) in map {
+            let normalized = key.to_ascii_lowercase();
+            let secret_shaped = normalized.contains("password")
+                || normalized.contains("api_key")
+                || normalized.contains("access_token")
+                || normalized.contains("refresh_token")
+                || normalized == "secret"
+                || normalized.ends_with("_secret")
+                || normalized.contains("credential");
+            anyhow::ensure!(
+                !secret_shaped || normalized.ends_with("_ref"),
+                "inline secrets are forbidden; use a secret reference"
+            );
+            reject_inline_secrets(value)?;
+        }
+    }
+    Ok(())
+}
+
+fn merge_json(target: &mut Value, patch: Value) {
+    match (target, patch) {
+        (Value::Object(target), Value::Object(patch)) => {
+            for (key, value) in patch {
+                merge_json(target.entry(key).or_insert(Value::Null), value);
+            }
+        }
+        (target, patch) => *target = patch,
+    }
+}
+
+fn collect_leaf_paths(prefix: &str, value: &Value, output: &mut Vec<String>) {
+    if let Value::Object(map) = value {
+        for (key, value) in map {
+            let path = format!("{prefix}/{}", key.replace('~', "~0").replace('/', "~1"));
+            collect_leaf_paths(&path, value, output);
+        }
+    } else {
+        output.push(prefix.to_string());
+    }
+}
+
+fn classify_changes(
+    before: &SilentSessionConfig,
+    after: &SilentSessionConfig,
+) -> anyhow::Result<BTreeMap<String, ConfigMutationClass>> {
+    let before = serde_json::to_value(before)?;
+    let after = serde_json::to_value(after)?;
+    let mut paths = BTreeSet::new();
+    changed_paths("", &before, &after, &mut paths);
+    Ok(paths
+        .into_iter()
+        .map(|path| {
+            let class = if path.starts_with("/identity/project_identity_ref")
+                || path.starts_with("/identity/continuity_id")
+            {
+                ConfigMutationClass::Immutable
+            } else if path.starts_with("/harness")
+                || path.starts_with("/model")
+                || path.starts_with("/identity/project_root")
+                || path.starts_with("/workspace")
+            {
+                ConfigMutationClass::RestartRequired
+            } else {
+                ConfigMutationClass::HotMutable
+            };
+            (path, class)
+        })
+        .collect())
+}
+
+fn changed_paths(prefix: &str, before: &Value, after: &Value, output: &mut BTreeSet<String>) {
+    match (before, after) {
+        (Value::Object(a), Value::Object(b)) => {
+            for key in a.keys().chain(b.keys()).collect::<BTreeSet<_>>() {
+                let path = format!("{prefix}/{}", key.replace('~', "~0").replace('/', "~1"));
+                changed_paths(
+                    &path,
+                    a.get(key).unwrap_or(&Value::Null),
+                    b.get(key).unwrap_or(&Value::Null),
+                    output,
+                );
+            }
+        }
+        _ if before != after => {
+            output.insert(prefix.to_string());
+        }
+        _ => {}
+    }
+}
+
+fn config_hash(config: &SilentSessionConfig) -> anyhow::Result<String> {
+    let bytes = serde_json::to_vec(config)?;
+    Ok(hex::encode(Sha256::digest(bytes)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::silent_session::*;
+    use std::path::PathBuf;
+
+    fn config() -> SilentSessionConfig {
+        SilentSessionConfig {
+            schema: SILENT_SESSION_CONFIG_SCHEMA.into(),
+            identity: SilentSessionIdentityConfig {
+                display_name: "test".into(),
+                project_root: PathBuf::from("/tmp/project"),
+                project_identity_ref: "project:test".into(),
+                continuity_id: "main".into(),
+                work_item_ref: Some("item".into()),
+                mission: "mission".into(),
+                agent_identity_ref: "agent".into(),
+                role_profile_ref: "role".into(),
+            },
+            harness: HarnessConfig {
+                kind: HarnessKind::Pi,
+                adapter_version: "1".into(),
+                native_resume_policy: NativeResumePolicy::Prefer,
+            },
+            model: SilentSessionModelConfig {
+                requested: ModelBinding {
+                    provider: "openai".into(),
+                    model: "gpt".into(),
+                    thinking: None,
+                },
+                selection_policy: ModelSelectionPolicy::Exact,
+                fallback_policy: ModelFallbackPolicy::Disabled,
+                allowed_fallbacks: vec![],
+                auth_profile_ref: "auth:test".into(),
+                require_entitlement_preflight: true,
+                require_runtime_model_confirmation: true,
+            },
+            workspace: WorkspaceConfig {
+                strategy: WorkspaceStrategy::IsolatedWorktree,
+                source_root: PathBuf::from("/tmp/project"),
+                worktree_root: Some(PathBuf::from("/tmp/worktree")),
+                base_ref: Some("main".into()),
+                branch_name: Some("work".into()),
+                integration_policy: IntegrationPolicy::Manual,
+            },
+            bootstrap_target_profile: "pi".into(),
+            bootstrap_packet_mode: "rules_and_context".into(),
+            bootstrap_verification_required: true,
+            supervision: SupervisionConfig {
+                restart_policy: "on_failure".into(),
+                max_process_restarts: 1,
+                max_transport_retries: 2,
+                retry_backoff_ms: 100,
+                soft_pause_timeout_ms: 1000,
+                graceful_stop_timeout_ms: 1000,
+                checkpoint_interval_seconds: 60,
+                checkpoint_event_interval: 100,
+                waiting_input_timeout_seconds: 300,
+                silent_output_warning_seconds: 120,
+            },
+            resources: ResourceLimits {
+                priority: 0,
+                max_wall_clock_seconds: Some(3600),
+                max_cpu_percent: Some(100.0),
+                max_memory_bytes: Some(1_000_000),
+                max_pids: Some(10),
+                max_disk_bytes: Some(1_000_000),
+                max_output_bytes: Some(1_000_000),
+                max_tokens: Some(10_000),
+                max_cost_usd: Some(1.0),
+                max_turns: Some(20),
+            },
+            output: OutputPolicy {
+                persist_stdout: true,
+                persist_stderr: true,
+                persist_semantic_events: true,
+                chunk_max_bytes: 1024,
+                chunk_max_seconds: 60,
+                redaction_profile_ref: "redact".into(),
+                operator_projection_budget: 1000,
+                raw_retention_policy_ref: "retention".into(),
+            },
+            governance: GovernancePolicy {
+                context_authority_required: true,
+                risky_mutation_preflight_required: true,
+                destructive_actions_allowed: false,
+                writer_lease_required: true,
+                completion_receipt_required: true,
+                evidence_policy_ref: "evidence".into(),
+                policy_locks: vec![],
+            },
+            notifications: NotificationPolicy {
+                waiting_input: true,
+                blocked: true,
+                failed: true,
+                completed: true,
+                model_mismatch: true,
+                budget_pressure: true,
+                channels: vec!["operator".into()],
+            },
+            retention: RetentionConfig {
+                policy_ref: "retention".into(),
+                evidence_hold: false,
+            },
+        }
+    }
+
+    #[test]
+    fn precedence_locks_and_mutation_classes_fail_closed() {
+        let session_id = SilentSessionId::new();
+        let manager = SilentSessionConfigManager::new(
+            session_id,
+            config(),
+            vec![ConfigPolicyLock {
+                json_pointer: "/governance/destructive_actions_allowed".into(),
+                source: "org".into(),
+            }],
+        )
+        .unwrap();
+        assert!(
+            manager
+                .preview(vec![ConfigLayer {
+                    source: ConfigSource::OperatorEdit,
+                    patch: serde_json::json!({"governance":{"destructive_actions_allowed":true}}),
+                }])
+                .is_err()
+        );
+        assert!(
+            manager
+                .preview(vec![ConfigLayer {
+                    source: ConfigSource::ExplicitOverride,
+                    patch: serde_json::json!({"model":{"api_key":"raw-secret"}}),
+                }])
+                .is_err()
+        );
+        let hot = manager
+            .preview(vec![ConfigLayer {
+                source: ConfigSource::ExplicitOverride,
+                patch: serde_json::json!({"notifications":{"completed":false}}),
+            }])
+            .unwrap();
+        assert_eq!(
+            hot.mutation_classes["/notifications/completed"],
+            ConfigMutationClass::HotMutable
+        );
+        let immutable = manager
+            .preview(vec![ConfigLayer {
+                source: ConfigSource::ExplicitOverride,
+                patch: serde_json::json!({"identity":{"continuity_id":"other"}}),
+            }])
+            .unwrap();
+        assert_eq!(
+            immutable.mutation_classes["/identity/continuity_id"],
+            ConfigMutationClass::Immutable
+        );
+    }
+
+    #[test]
+    fn transactional_apply_requires_cas_and_approval_then_can_verify_and_rollback() {
+        let mut manager =
+            SilentSessionConfigManager::new(SilentSessionId::new(), config(), vec![]).unwrap();
+        let original = manager.current().revision_id;
+        let layer = ConfigLayer {
+            source: ConfigSource::OperatorEdit,
+            patch: serde_json::json!({"model":{"requested":{"model":"gpt-next"}}}),
+        };
+        assert!(manager.apply(original, vec![layer.clone()], None).is_err());
+        let applied = manager
+            .apply(original, vec![layer], Some("approval:test".into()))
+            .unwrap();
+        let hash = config_hash(&applied.config).unwrap();
+        manager.verify_current_hash(&hash).unwrap();
+        assert!(manager.apply(original, vec![], None).is_err());
+        let rolled_back = manager
+            .rollback(applied.revision_id, original, "approval:rollback".into())
+            .unwrap();
+        assert_eq!(rolled_back.config, config());
+        assert_eq!(rolled_back.rollback_target, Some(original));
+    }
+}
