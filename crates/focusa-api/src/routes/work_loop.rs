@@ -1294,7 +1294,7 @@ async fn maybe_auto_advance_from_blocked(
     };
 
     let Some(task) = current_task else {
-        if maybe_select_global_ready_work_item(state, &scope_root).await? {
+        if maybe_select_rooted_ready_work_item(state, &scope_root).await? {
             let _ = state
                 .command_tx
                 .send(Action::CheckpointContinuousLoop {
@@ -1357,7 +1357,7 @@ async fn maybe_auto_advance_from_blocked(
     Ok(true)
 }
 
-async fn maybe_select_global_ready_work_item(
+async fn maybe_select_rooted_ready_work_item(
     state: &Arc<AppState>,
     scope_root: &Path,
 ) -> Result<bool, (StatusCode, Json<Value>)> {
@@ -1371,8 +1371,11 @@ async fn maybe_select_global_ready_work_item(
     if boundary_reason.is_some() {
         return Ok(false);
     }
+    let Some(root_work_item_id) = root_work_item_id else {
+        return Ok(false);
+    };
     let (provider, readiness) =
-        provider_neutral_readiness(state, scope_root, root_work_item_id.as_deref())
+        provider_neutral_readiness(state, scope_root, Some(&root_work_item_id))
             .await
             .map_err(|error| {
                 work_loop_failure(
@@ -1491,7 +1494,7 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
     };
 
     if current_task.is_none() {
-        if maybe_select_global_ready_work_item(state, &scope_root).await? {
+        if maybe_select_rooted_ready_work_item(state, &scope_root).await? {
             let refreshed_task = {
                 let focusa = state.focusa.read().await;
                 focusa.work_loop.current_task.clone()
