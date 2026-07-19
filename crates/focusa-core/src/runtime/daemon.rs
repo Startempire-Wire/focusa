@@ -3206,14 +3206,7 @@ Return:
                 Self::task_packet_from_work_item(item),
             )));
         }
-        self.next_ready_packet_global(
-            self.state
-                .work_loop
-                .current_task
-                .as_ref()
-                .map(|task| task.work_item_id.as_str()),
-        )
-        .await
+        Ok(None)
     }
 
     async fn tranche_has_remaining_ready_work(
