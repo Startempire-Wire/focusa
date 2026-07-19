@@ -190,6 +190,21 @@ fn pi_rpc_bin() -> String {
     std::env::var("FOCUSA_PI_BIN").unwrap_or_else(|_| "pi".to_string())
 }
 
+fn extension_ui_response(request: &Value) -> Option<Value> {
+    if request.get("type").and_then(Value::as_str) != Some("extension_ui_request") {
+        return None;
+    }
+    let method = request.get("method").and_then(Value::as_str)?;
+    if !matches!(method, "select" | "confirm" | "input" | "editor") {
+        return None;
+    }
+    Some(json!({
+        "type": "extension_ui_response",
+        "id": request.get("id")?.clone(),
+        "cancelled": true
+    }))
+}
+
 fn pi_focusa_api_base_url(api_bind: &str) -> String {
     let child_host = api_bind
         .strip_prefix("0.0.0.0:")
@@ -3408,6 +3423,16 @@ async fn start_pi_driver(
                 .and_then(Value::as_str)
                 .unwrap_or("unknown")
                 .to_string();
+            if let Some(response) = extension_ui_response(&parsed) {
+                let encoded = format!("{}\n", response);
+                let mut session_guard = state_for_events.pi_rpc_session.lock().await;
+                if let Some(session) = session_guard.as_mut()
+                    && session.session_id == attach_session_id
+                {
+                    let _ = session.stdin.write_all(encoded.as_bytes()).await;
+                    let _ = session.stdin.flush().await;
+                }
+            }
             if kind == "turn_start" || kind == "agent_start" {
                 last_assistant_output.clear();
             }
@@ -3440,6 +3465,12 @@ async fn start_pi_driver(
                         .and_then(|v| v.get("type"))
                         .and_then(Value::as_str)
                         .map(|s| s.to_string())
+                })
+                .or_else(|| {
+                    parsed
+                        .get("method")
+                        .and_then(Value::as_str)
+                        .map(|method| format!("{kind}:{method}"))
                 })
                 .or_else(|| {
                     parsed
@@ -4267,6 +4298,37 @@ pub fn router() -> Router<Arc<AppState>> {
 mod tests {
     use super::*;
     use focusa_core::scoped_state::ScopeRef;
+
+    #[test]
+    fn extension_ui_dialogs_receive_fail_closed_matching_responses() {
+        for method in ["select", "confirm", "input", "editor"] {
+            let response = extension_ui_response(&json!({
+                "type": "extension_ui_request",
+                "id": "request-1",
+                "method": method
+            }))
+            .unwrap();
+            assert_eq!(response["type"], "extension_ui_response");
+            assert_eq!(response["id"], "request-1");
+            assert_eq!(response["cancelled"], true);
+        }
+        for method in [
+            "notify",
+            "setStatus",
+            "setWidget",
+            "setTitle",
+            "set_editor_text",
+        ] {
+            assert!(
+                extension_ui_response(&json!({
+                    "type": "extension_ui_request",
+                    "id": "request-2",
+                    "method": method
+                }))
+                .is_none()
+            );
+        }
+    }
 
     #[test]
     fn spawned_pi_uses_owning_daemon_endpoint_not_installed_default() {
