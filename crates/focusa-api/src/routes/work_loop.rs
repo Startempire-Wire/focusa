@@ -19,6 +19,10 @@ use focusa_core::types::{
     SpecLinkedTaskPacket, TaskClass, WorkLoopPolicy, WorkLoopPolicyOverrides, WorkLoopPreset,
     WorkLoopStatus,
 };
+use focusa_core::work_item::{
+    BdAdapter, NoneAdapter, ProviderAdapter, WorkItemProvider, WorkItemQuery, WorkItemReadiness,
+    WorkItemRef, evaluate_readiness,
+};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
@@ -847,58 +851,83 @@ async fn worktree_status_snapshot(project_root: &Path) -> Value {
     })
 }
 
+async fn provider_neutral_readiness(
+    state: &Arc<AppState>,
+    project_root: &Path,
+    parent_work_item_id: Option<&str>,
+) -> Result<(WorkItemProvider, WorkItemReadiness), String> {
+    let configured_provider = {
+        let focusa = state.focusa.read().await;
+        focusa.work_loop.policy.work_item_provider
+    };
+    let provider =
+        if configured_provider == WorkItemProvider::None && project_root.join(".beads").exists() {
+            WorkItemProvider::Bd
+        } else {
+            configured_provider
+        };
+    let adapter: Arc<dyn ProviderAdapter> = match provider {
+        WorkItemProvider::Bd => Arc::new(BdAdapter::new()),
+        WorkItemProvider::None => Arc::new(NoneAdapter::new()),
+        unsupported => {
+            return Err(format!(
+                "work item provider {unsupported} has no registered traversal adapter"
+            ));
+        }
+    };
+    if !adapter.detect().await {
+        return Err(format!("work item provider {provider} is not operational"));
+    }
+    let query = WorkItemQuery {
+        project_root: project_root.to_path_buf(),
+        parent: parent_work_item_id.map(|provider_item_id| WorkItemRef {
+            provider,
+            provider_item_id: provider_item_id.to_string(),
+            project_root: project_root.to_path_buf(),
+            external_url: None,
+        }),
+        limit: 1_000,
+    };
+    let items = adapter
+        .list(&query)
+        .await
+        .map_err(|error| error.to_string())?;
+    Ok((provider, evaluate_readiness(&items, &query)))
+}
+
 async fn alternate_ready_work_snapshot(
+    state: &Arc<AppState>,
     current_task: Option<&focusa_core::types::SpecLinkedTaskPacket>,
     project_root: &Path,
 ) -> Value {
     let Some(task) = current_task else {
-        return json!({ "exists": false });
+        return json!({ "exists": false, "reason": "no_current_task" });
     };
-    let Some(parent_work_item_id) = task.dependencies.first() else {
-        return json!({ "exists": false });
+    let root_work_item_id = {
+        let focusa = state.focusa.read().await;
+        focusa.work_loop.execution_work_item_id.clone()
     };
-
-    let output = match Command::new("bd")
-        .args(["show", parent_work_item_id, "--json"])
-        .current_dir(project_root)
-        .output()
-        .await
-    {
-        Ok(output) if output.status.success() => output,
-        Ok(output) => {
-            return json!({
-                "exists": false,
-                "error": String::from_utf8_lossy(&output.stderr).trim().to_string(),
-            });
+    let Some(root_work_item_id) = root_work_item_id else {
+        return json!({ "exists": false, "reason": "execution_root_unbound" });
+    };
+    match provider_neutral_readiness(state, project_root, Some(&root_work_item_id)).await {
+        Ok((provider, readiness)) => {
+            let alternate = readiness
+                .ready
+                .iter()
+                .find(|item| item.provider_item_id != task.work_item_id);
+            json!({
+                "exists": alternate.is_some(),
+                "provider": provider,
+                "candidate_work_item_id": alternate.map(|item| item.provider_item_id.as_str()),
+                "blocked_count": readiness.blocked.len(),
+            })
         }
-        Err(e) => return json!({ "exists": false, "error": e.to_string() }),
-    };
-
-    let payload: Vec<Value> = match serde_json::from_slice(&output.stdout) {
-        Ok(payload) => payload,
-        Err(e) => return json!({ "exists": false, "error": e.to_string() }),
-    };
-    let Some(parent) = payload.first() else {
-        return json!({ "exists": false });
-    };
-    let Some(dependents) = parent.get("dependents").and_then(Value::as_array) else {
-        return json!({ "exists": false });
-    };
-    let candidate = dependents.iter().find(|dep| {
-        dep.get("id").and_then(Value::as_str) != Some(task.work_item_id.as_str())
-            && matches!(
-                dep.get("status").and_then(Value::as_str),
-                Some("open") | Some("in_progress")
-            )
-    });
-
-    match candidate {
-        Some(dep) => json!({
-            "exists": true,
-            "work_item_id": dep.get("id").and_then(Value::as_str),
-            "title": dep.get("title").and_then(Value::as_str),
+        Err(error) => json!({
+            "exists": false,
+            "reason": "provider_query_failed",
+            "error": error,
         }),
-        None => json!({ "exists": false }),
     }
 }
 
@@ -1278,96 +1307,32 @@ async fn maybe_auto_advance_from_blocked(
     Ok(true)
 }
 
-fn item_text(item: &Value, key: &str) -> String {
-    item.get(key)
-        .and_then(Value::as_str)
-        .unwrap_or_default()
-        .to_string()
-}
-
-fn is_ontology_work_item(item: &Value) -> bool {
-    let haystack = format!(
-        "{} {} {}",
-        item_text(item, "title"),
-        item_text(item, "description"),
-        item_text(item, "notes")
-    )
-    .to_ascii_lowercase();
-    haystack.contains("ontology")
-}
-
-fn extract_work_item_id_and_title(item: &Value) -> Option<(String, String)> {
-    let id = item.get("id").and_then(Value::as_str)?;
-    if id.trim().is_empty() {
-        return None;
-    }
-    let title = item
-        .get("title")
-        .and_then(Value::as_str)
-        .unwrap_or("untitled work item")
-        .to_string();
-    Some((id.to_string(), title))
-}
-
 async fn maybe_select_global_ready_work_item(
     state: &Arc<AppState>,
     scope_root: &Path,
 ) -> Result<bool, (StatusCode, Json<Value>)> {
-    let boundary_reason = {
+    let (boundary_reason, root_work_item_id) = {
         let focusa = state.focusa.read().await;
-        continuation_boundary_reason(&focusa.work_loop)
+        (
+            continuation_boundary_reason(&focusa.work_loop),
+            focusa.work_loop.execution_work_item_id.clone(),
+        )
     };
     if boundary_reason.is_some() {
         return Ok(false);
     }
-
-    let all_items_output = Command::new("bd")
-        .args(["list", "--all", "--limit", "0", "--json"])
-        .current_dir(scope_root)
-        .output()
-        .await
-        .map_err(|e| bad_request(format!("failed to run bd list --all --json: {e}")))?;
-
-    let selected_from_ontology = if all_items_output.status.success() {
-        let all_items = serde_json::from_slice::<Vec<Value>>(&all_items_output.stdout)
-            .map_err(|e| bad_request(format!("failed to parse bd list json: {e}")))?;
-
-        ["in_progress", "open"].iter().find_map(|target_status| {
-            all_items.iter().find_map(|item| {
-                let status_matches = item
-                    .get("status")
-                    .and_then(Value::as_str)
-                    .map(|s| s == *target_status)
-                    .unwrap_or(false);
-                if !status_matches || !is_ontology_work_item(item) {
-                    return None;
-                }
-                extract_work_item_id_and_title(item)
-            })
-        })
-    } else {
-        None
-    };
-
-    let selected = if let Some(priority_item) = selected_from_ontology {
-        Some(priority_item)
-    } else {
-        let output = Command::new("bd")
-            .args(["ready", "--json"])
-            .current_dir(scope_root)
-            .output()
+    let (provider, readiness) =
+        provider_neutral_readiness(state, scope_root, root_work_item_id.as_deref())
             .await
-            .map_err(|e| bad_request(format!("failed to run bd ready --json: {e}")))?;
-        if !output.status.success() {
-            return Ok(false);
-        }
-
-        let ready_items = serde_json::from_slice::<Vec<Value>>(&output.stdout)
-            .map_err(|e| bad_request(format!("failed to parse bd ready json: {e}")))?;
-        ready_items.iter().find_map(extract_work_item_id_and_title)
-    };
-
-    let Some((work_item_id, title)) = selected else {
+            .map_err(|error| {
+                work_loop_failure(
+                    StatusCode::BAD_GATEWAY,
+                    "work_loop_select_next",
+                    "provider_query_failed",
+                    error,
+                )
+            })?;
+    let Some(selected) = readiness.ready.into_iter().next() else {
         return Ok(false);
     };
 
@@ -1375,29 +1340,30 @@ async fn maybe_select_global_ready_work_item(
         let focusa = state.focusa.read().await;
         focusa.work_loop.run.task_run_id
     };
-
     state
         .command_tx
         .send(Action::SetContinuousWorkItem {
             task_run_id,
             packet: SpecLinkedTaskPacket {
-                work_item_id,
-                title: title.clone(),
+                work_item_id: selected.provider_item_id,
+                title: selected.title,
                 task_class: focusa_core::types::TaskClass::Unknown,
-                linked_spec_refs: vec![
-                    "docs/79-focusa-governed-continuous-work-loop.md".to_string(),
-                ],
-                acceptance_criteria: vec![],
+                linked_spec_refs: selected.spec_refs,
+                acceptance_criteria: selected.acceptance_criteria,
                 required_verification_tier: Some("task-class".to_string()),
                 allowed_scope: vec![],
-                dependencies: vec![],
+                dependencies: selected
+                    .dependencies
+                    .into_iter()
+                    .map(|dependency| dependency.provider_item_id)
+                    .collect(),
                 tranche_id: None,
                 blocker_class: None,
-                checkpoint_summary: None,
+                checkpoint_summary: Some(format!("selected by provider-neutral {provider} graph")),
             },
         })
         .await
-        .map_err(|e| work_loop_dispatch_failed("work_loop_dispatch", e))?;
+        .map_err(|error| work_loop_dispatch_failed("work_loop_dispatch", error))?;
 
     sleep(Duration::from_millis(120)).await;
     Ok(true)
@@ -2560,7 +2526,7 @@ async fn status(
     let scope_root = request_scope_root(&scope);
     let worktree = worktree_status_snapshot(&scope_root).await;
     let alternate_ready_work =
-        alternate_ready_work_snapshot(wl.current_task.as_ref(), &scope_root).await;
+        alternate_ready_work_snapshot(&state, wl.current_task.as_ref(), &scope_root).await;
     let blocker_package = build_blocker_package(wl, alternate_ready_work.clone());
     let transport_health = transport_health_for_status(wl);
     let execution_environment =

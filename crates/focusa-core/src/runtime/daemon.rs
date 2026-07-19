@@ -47,6 +47,10 @@ use crate::runtime::events::create_entry;
 use crate::runtime::persistence_actor::PersistenceActor;
 use crate::runtime::persistence_sqlite::SqlitePersistence as Persistence;
 use crate::types::*;
+use crate::work_item::{
+    BdAdapter, NoneAdapter, ProviderAdapter, WorkItem, WorkItemProvider, WorkItemQuery,
+    WorkItemRef, evaluate_readiness,
+};
 use crate::workers::{executor, priority_queue};
 use chrono::{DateTime, Utc};
 use serde_json::Value;
@@ -3017,193 +3021,114 @@ Return:
             .await;
     }
 
+    fn work_item_provider_and_root(
+        &self,
+    ) -> anyhow::Result<(WorkItemProvider, std::path::PathBuf)> {
+        let root = self
+            .state
+            .work_loop
+            .execution_scope
+            .as_ref()
+            .map(|scope| scope.root_scope.root_path.clone())
+            .context("Work Loop execution scope is not bound to a project root")?;
+        let configured = self.state.work_loop.policy.work_item_provider;
+        let provider = if configured == WorkItemProvider::None && root.join(".beads").exists() {
+            WorkItemProvider::Bd
+        } else {
+            configured
+        };
+        Ok((provider, root))
+    }
+
+    fn work_item_adapter(provider: WorkItemProvider) -> anyhow::Result<Arc<dyn ProviderAdapter>> {
+        match provider {
+            WorkItemProvider::Bd => Ok(Arc::new(BdAdapter::new())),
+            WorkItemProvider::None => Ok(Arc::new(NoneAdapter::new())),
+            unsupported => anyhow::bail!(
+                "work item provider {unsupported} has no registered traversal adapter"
+            ),
+        }
+    }
+
+    fn task_packet_from_work_item(item: WorkItem) -> SpecLinkedTaskPacket {
+        let title = item.title;
+        SpecLinkedTaskPacket {
+            work_item_id: item.provider_item_id,
+            task_class: Self::infer_task_class(&title),
+            title,
+            linked_spec_refs: item.spec_refs,
+            acceptance_criteria: item.acceptance_criteria,
+            required_verification_tier: Some("task-class".to_string()),
+            allowed_scope: vec![],
+            dependencies: item
+                .dependencies
+                .into_iter()
+                .map(|dependency| dependency.provider_item_id)
+                .collect(),
+            tranche_id: None,
+            blocker_class: item.blocked_reason.map(|_| BlockerClass::Dependency),
+            checkpoint_summary: None,
+        }
+    }
+
     async fn next_ready_packet_global(
         &self,
         skip_work_item_id: Option<&str>,
     ) -> anyhow::Result<Option<SpecLinkedTaskPacket>> {
-        let output = tokio::process::Command::new("bd")
-            .args(["ready", "--json"])
-            .output()
-            .await
-            .context("failed to run bd ready --json")?;
-        if !output.status.success() {
-            return Ok(None);
+        let (provider, project_root) = self.work_item_provider_and_root()?;
+        let adapter = Self::work_item_adapter(provider)?;
+        if !adapter.detect().await {
+            anyhow::bail!("work item provider {provider} is not operational");
         }
-
-        let ready_items: Vec<Value> = serde_json::from_slice(&output.stdout).unwrap_or_default();
-        let picked = ready_items.iter().find(|item| {
-            let id = item.get("id").and_then(Value::as_str).unwrap_or_default();
-            if id.is_empty() {
-                return false;
-            }
-            if let Some(skip) = skip_work_item_id
-                && id == skip
-            {
-                return false;
-            }
-            true
-        });
-
-        let Some(picked) = picked else {
-            return Ok(None);
+        let query = WorkItemQuery {
+            project_root,
+            parent: None,
+            limit: 1_000,
         };
-
-        let work_item_id = picked
-            .get("id")
-            .and_then(Value::as_str)
-            .unwrap_or_default()
-            .to_string();
-        let title = picked
-            .get("title")
-            .and_then(Value::as_str)
-            .unwrap_or("untitled work item")
-            .to_string();
-
-        Ok(Some(self.adapt_packet_for_current_loop_state(
-            SpecLinkedTaskPacket {
-                work_item_id,
-                title: title.clone(),
-                task_class: Self::infer_task_class(&title),
-                linked_spec_refs: vec![
-                    "docs/79-focusa-governed-continuous-work-loop.md".to_string(),
-                ],
-                acceptance_criteria: vec![],
-                required_verification_tier: Some("task-class".to_string()),
-                allowed_scope: vec![],
-                dependencies: vec![],
-                tranche_id: None,
-                blocker_class: None,
-                checkpoint_summary: None,
-            },
-        )))
+        let items = adapter.list(&query).await?;
+        let readiness = evaluate_readiness(&items, &query);
+        Ok(readiness
+            .ready
+            .into_iter()
+            .find(|item| skip_work_item_id != Some(item.provider_item_id.as_str()))
+            .map(Self::task_packet_from_work_item)
+            .map(|packet| self.adapt_packet_for_current_loop_state(packet)))
     }
 
     async fn next_ready_packet_for_parent(
         &self,
         parent_work_item_id: &str,
     ) -> anyhow::Result<Option<SpecLinkedTaskPacket>> {
-        let output = tokio::process::Command::new("bd")
-            .args(["show", parent_work_item_id, "--json"])
-            .output()
-            .await
-            .context("failed to run bd show --json")?;
-        if !output.status.success() {
-            return self
-                .next_ready_packet_global(
-                    self.state
-                        .work_loop
-                        .current_task
-                        .as_ref()
-                        .map(|t| t.work_item_id.as_str()),
-                )
-                .await;
+        let (provider, project_root) = self.work_item_provider_and_root()?;
+        let adapter = Self::work_item_adapter(provider)?;
+        if !adapter.detect().await {
+            anyhow::bail!("work item provider {provider} is not operational");
         }
-        let payload: Vec<Value> =
-            serde_json::from_slice(&output.stdout).context("failed to parse bd show json")?;
-        let Some(parent) = payload.first() else {
-            return self
-                .next_ready_packet_global(
-                    self.state
-                        .work_loop
-                        .current_task
-                        .as_ref()
-                        .map(|t| t.work_item_id.as_str()),
-                )
-                .await;
+        let query = WorkItemQuery {
+            parent: Some(WorkItemRef {
+                provider,
+                provider_item_id: parent_work_item_id.to_string(),
+                project_root: project_root.clone(),
+                external_url: None,
+            }),
+            project_root,
+            limit: 1_000,
         };
-        let Some(dependents) = parent.get("dependents").and_then(Value::as_array) else {
-            return self
-                .next_ready_packet_global(
-                    self.state
-                        .work_loop
-                        .current_task
-                        .as_ref()
-                        .map(|t| t.work_item_id.as_str()),
-                )
-                .await;
-        };
-        let degraded = self.state.work_loop.status == WorkLoopStatus::TransportDegraded;
-        let blocked_current_id = self
-            .state
-            .work_loop
-            .current_task
-            .as_ref()
-            .map(|t| t.work_item_id.clone());
-        let is_blocked_current = |dep: &&Value| {
-            blocked_current_id
-                .as_deref()
-                .map(|id| dep.get("id").and_then(Value::as_str) == Some(id))
-                .unwrap_or(false)
-        };
-        let next = dependents
-            .iter()
-            .find(|dep: &&Value| {
-                if is_blocked_current(dep) {
-                    return false;
-                }
-                let status_ok = dep.get("status").and_then(Value::as_str) == Some("open");
-                let title = dep.get("title").and_then(Value::as_str).unwrap_or_default();
-                status_ok && (!degraded || !Self::work_item_is_risky_under_degradation(title))
-            })
-            .or_else(|| {
-                dependents.iter().find(|dep: &&Value| {
-                    if is_blocked_current(dep) {
-                        return false;
-                    }
-                    let status_ok =
-                        dep.get("status").and_then(Value::as_str) == Some("in_progress");
-                    let title = dep.get("title").and_then(Value::as_str).unwrap_or_default();
-                    status_ok && (!degraded || !Self::work_item_is_risky_under_degradation(title))
-                })
-            })
-            .or_else(|| {
-                if degraded {
-                    None
-                } else {
-                    dependents.iter().find(|dep: &&Value| {
-                        !is_blocked_current(dep)
-                            && dep.get("status").and_then(Value::as_str) == Some("open")
-                    })
-                }
-            });
-        let Some(next) = next else {
-            return self
-                .next_ready_packet_global(
-                    self.state
-                        .work_loop
-                        .current_task
-                        .as_ref()
-                        .map(|t| t.work_item_id.as_str()),
-                )
-                .await;
-        };
-        let work_item_id = next
-            .get("id")
-            .and_then(Value::as_str)
-            .unwrap_or_default()
-            .to_string();
-        let title = next
-            .get("title")
-            .and_then(Value::as_str)
-            .unwrap_or("untitled work item")
-            .to_string();
-        Ok(Some(self.adapt_packet_for_current_loop_state(
-            SpecLinkedTaskPacket {
-                work_item_id,
-                title: title.clone(),
-                task_class: Self::infer_task_class(&title),
-                linked_spec_refs: vec![
-                    "docs/79-focusa-governed-continuous-work-loop.md".to_string(),
-                ],
-                acceptance_criteria: vec![],
-                required_verification_tier: Some("task-class".to_string()),
-                allowed_scope: vec![],
-                dependencies: vec![parent_work_item_id.to_string()],
-                tranche_id: Some(parent_work_item_id.to_string()),
-                blocker_class: None,
-                checkpoint_summary: None,
-            },
-        )))
+        let items = adapter.list(&query).await?;
+        let readiness = evaluate_readiness(&items, &query);
+        if let Some(item) = readiness.ready.into_iter().next() {
+            return Ok(Some(self.adapt_packet_for_current_loop_state(
+                Self::task_packet_from_work_item(item),
+            )));
+        }
+        self.next_ready_packet_global(
+            self.state
+                .work_loop
+                .current_task
+                .as_ref()
+                .map(|task| task.work_item_id.as_str()),
+        )
+        .await
     }
 
     async fn tranche_has_remaining_ready_work(
@@ -3211,27 +3136,26 @@ Return:
         tranche_id: &str,
         current_work_item_id: Option<&str>,
     ) -> anyhow::Result<bool> {
-        let output = tokio::process::Command::new("bd")
-            .args(["show", tranche_id, "--json"])
-            .output()
-            .await
-            .context("failed to run bd show for tranche readiness")?;
-        if !output.status.success() {
-            return Ok(false);
+        let (provider, project_root) = self.work_item_provider_and_root()?;
+        let adapter = Self::work_item_adapter(provider)?;
+        if !adapter.detect().await {
+            anyhow::bail!("work item provider {provider} is not operational");
         }
-        let payload: Vec<Value> = serde_json::from_slice(&output.stdout)
-            .context("failed to parse tranche bd show json")?;
-        let Some(parent) = payload.first() else {
-            return Ok(false);
+        let query = WorkItemQuery {
+            parent: Some(WorkItemRef {
+                provider,
+                provider_item_id: tranche_id.to_string(),
+                project_root: project_root.clone(),
+                external_url: None,
+            }),
+            project_root,
+            limit: 1_000,
         };
-        let Some(dependents) = parent.get("dependents").and_then(Value::as_array) else {
-            return Ok(false);
-        };
-        Ok(dependents.iter().any(|dep| {
-            let id = dep.get("id").and_then(Value::as_str);
-            let status = dep.get("status").and_then(Value::as_str);
-            id != current_work_item_id && matches!(status, Some("open") | Some("in_progress"))
-        }))
+        let items = adapter.list(&query).await?;
+        Ok(evaluate_readiness(&items, &query)
+            .ready
+            .iter()
+            .any(|item| current_work_item_id != Some(item.provider_item_id.as_str())))
     }
 
     fn adapt_packet_for_current_loop_state(
