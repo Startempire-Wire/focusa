@@ -1,15 +1,15 @@
 # Tauri Menubar Up-to-Speed Spec
 
-**Product:** Focusa Tauri menubar app (`apps/menubar`)
-**Target runtime:** Focusa `v0.9.25-dev` current state
-**Status:** implementation spec
+**Product:** Focusa Tauri menubar app (`apps/menubar`)  
+**Target runtime:** Focusa `v0.9.25-dev` current state  
+**Status:** implementation spec  
 **Source audit:** [`TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md`](TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md)
 
 ## 1. Goal
 
-Ship a Tauri menubar app that acts as an **Ambient Focusa Runtime Cockpit**: a calm, glanceable window into whether the current agent/project is oriented, canonical, evidence-backed, healthy, and safe to continue.
+Ship a Tauri menubar app that acts as an **Ambient Focusa Mission Canvas Preview**: a calm, glanceable window into whether the current agent/project is oriented, canonical, evidence-backed, healthy, and safe to continue.
 
-The app is not a replacement for Pi or the CLI, and it must not become the primary interface. It keeps the original Tauri app spirit: ambient cognitive awareness, soft visual emergence, no notifications, no modal interruption, no focus stealing, and no silent state mutation.
+The app is not a replacement for Pi, the full Focusa Mission Canvas, UIAI Engine Cockpit, or the CLI, and it must not become the primary interface. It keeps the original Tauri app spirit: ambient cognitive awareness, soft visual emergence, no notifications, no modal interruption, no focus stealing, and no silent state mutation.
 
 ## 2. Product principles
 
@@ -30,6 +30,7 @@ The app is not a replacement for Pi or the CLI, and it must not become the prima
 4. **Hot path stays bounded.** Poll lightweight health/readiness routes; deep diagnostics are explicit user actions.
 5. **Safe mutations only.** Any write operation shows confirmation, payload summary, and returned `tool_result_v1` status.
 6. **Degraded is a first-class state.** `pending`, `blocked`, `canonical=false`, `degraded=true`, writer conflicts, and retry posture are visible, not hidden.
+7. **Menubar focus is not authority.** Selecting a peek never changes canonical project, Workpoint, or session scope.
 
 ## 3. Target interaction model
 
@@ -39,14 +40,14 @@ Do not turn the app into a dense admin console by default. Keep the original sma
 |---|---|---|
 | **Ambient icon** | Show daemon/project/workpoint/work-loop state at a glance. | Soft outline/fill/pulse/ring states; no badges or numbers. |
 | **Default bubble view** | Centered current Focus/Workpoint bubble with background thought clouds. | Organic, quiet, hover labels only. |
-| **Peek drawers** | Trajectory, Workpoint, Proof, Work Loop, Focus/Gate, Sync/Settings details. | Small vertical panels; dismissable; no modal blocks. |
+| **Peek drawers** | Mission Canvas summary, Trajectory, Workpoint, Proof, Work Loop, Focus/Gate, Sync/Settings details. | Small vertical panels; dismissable; no modal blocks. |
 | **Explicit actions** | Rare safe mutations such as gate pin/suppress or evidence link. | Confirmation drawer with reversible/copyable CLI alternative. |
 
-The detailed cockpit layout is a set of **peek drawers**, not always-visible tabs:
+The detailed Mission Canvas preview is a set of **peek drawers**, not always-visible tabs:
 
 | Drawer | Purpose | Primary routes |
 |---|---|---|
-| **Cockpit** | One-screen health/orientation summary. | `/v1/health`, `/v1/doctor`, `/v1/project/identity`, `/v1/trajectory/view`, `/v1/workpoint/resume`, `/v1/work-loop/health`, `/v1/telemetry/memory` |
+| **Mission Canvas / Now** | One-screen health/orientation summary. | `/v1/health`, `/v1/doctor`, `/v1/project/identity`, `/v1/trajectory/view`, `/v1/workpoint/resume`, `/v1/work-loop/health`, `/v1/telemetry/memory` |
 | **Trajectory** | Project goals, current state, active gap, drift boundaries, proposed next Workpoint. | `/v1/trajectory/view`, `/v1/trajectory/assess`, `/v1/trajectory/propose-workpoint`, `/v1/trajectory/checkpoint` |
 | **Workpoint** | Canonical continuation packet, next action, blockers, target objects, drift check, linked evidence. | `/v1/workpoint/resume`, `/v1/workpoint/current`, `/v1/workpoint/drift-check`, `/v1/workpoint/active-object/resolve`, `/v1/workpoint/evidence/link` |
 | **Proof** | Evidence, predictions, metacognition, lineage/snapshots in one proof/recovery area. | `/v1/traverse`, `/v1/predictions/recent`, `/v1/predictions/stats`, `/v1/metacognition/status`, `/v1/metacognition/evaluations/recent`, `/v1/focus/snapshots/recent`, `/v1/lineage/tree` |
@@ -54,11 +55,11 @@ The detailed cockpit layout is a set of **peek drawers**, not always-visible tab
 | **Focus/Gate** | Legacy Focus State and Focus Gate, with safe suppress/pin controls. | `/v1/focus/frame/current`, `/v1/focus/stack`, `/v1/focus-gate/candidates`, `/v1/focus-gate/*` |
 | **Sync/Settings** | Connection, sync peers, API base, build/runtime version, security guidance. | `/v1/sync/*`, `/v1/info`, `/v1/ontology/tool-contracts`, `/v1/resource/mode` |
 
-## 4. Cockpit drawer requirements
+## 4. Mission Canvas summary requirements
 
 ### 4.1 Ambient status strip
 
-Show these states quietly when the cockpit drawer is open. In the collapsed icon, map them to soft visual states rather than badges/numbers:
+Show these states quietly when the Mission Canvas/Now drawer is open. In the collapsed icon, map them to soft visual states rather than badges/numbers:
 
 | Chip | Good state | Warning/bad state |
 |---|---|---|
@@ -69,7 +70,7 @@ Show these states quietly when the cockpit drawer is open. In the collapsed icon
 | Work Loop | `dispatch_ready=true` or equivalent readiness | paused, writer conflict, degraded, boundary reason |
 | Memory | normal pressure | LowMem/emergency pressure |
 
-### 4.2 Cockpit cards
+### 4.2 Mission Canvas cards
 
 Required cards:
 
@@ -289,14 +290,14 @@ Every card should render normalized fields when present:
 
 **Acceptance:** clean checkout can run documented app proof without order-dependent failure.
 
-### Phase 1 — Ambient Cockpit MVP
+### Phase 1 — Ambient Mission Canvas preview
 
 - Central API client. ✅ Implemented.
 - Ambient icon state plus default Focus/Workpoint bubble. Partial: Focus bubble/cloud hierarchy implemented; tray icon state remains future work.
-- Cockpit drawer with health, doctor, project identity, trajectory view, Workpoint resume, work-loop health, memory telemetry. Partial: Cockpit/Now peek implemented; true drawer shell remains future work.
-- Result envelope badges inside drawers, not on the menubar icon. ✅ Implemented for Cockpit/Workpoint status chips.
+- Mission Canvas/Now summary with health, doctor, project identity, trajectory view, Workpoint resume, work-loop health, memory telemetry. Partial: Mission Canvas/Now peek implemented; true drawer shell remains future work.
+- Result envelope badges inside drawers, not on the menubar icon. ✅ Implemented for Mission Canvas/Workpoint status chips.
 
-**Acceptance:** collapsed app stays calm; opened cockpit answers project, trajectory, Workpoint canonicality, dispatch readiness, and memory pressure in one view.
+**Acceptance:** collapsed app stays calm; opened Mission Canvas preview answers project, trajectory, Workpoint canonicality, dispatch readiness, and memory pressure in one view.
 
 ### Phase 2 — Workpoint + Trajectory depth
 
@@ -333,6 +334,7 @@ Every card should render normalized fields when present:
 ## 13. Non-goals for this version
 
 - Full replacement for Pi extension tools.
+- Full multiplexed Mission Canvas; the menubar is a compact projection and launcher.
 - Editing arbitrary Focusa stores.
 - Destructive snapshot restore from GUI by default.
 - Background autonomous dispatch without explicit work-loop writer semantics.
@@ -353,3 +355,4 @@ The app is “fully up to speed” when:
 - [ ] build/check/package proof is deterministic from a clean checkout.
 - [ ] app version/runtime version/source-available boundary are current.
 - [ ] remote connection guidance is tunnel-first and security-aware.
+- [ ] UI labels use Mission Canvas terminology; Cockpit remains reserved for UIAI Engine Cockpit.
