@@ -2505,7 +2505,8 @@ async fn health(
         return Err(forbid("work-loop:read"));
     }
 
-    let s = state.focusa.read().await;
+    // Never hold the daemon projection lock while acquiring another lock.
+    let s = { state.focusa.read().await.clone() };
     let wl = &s.work_loop;
     let claim_key = writer_claim_key_from_scope(&scope, &s);
     let active_lease = {
@@ -2564,7 +2565,9 @@ async fn status(
         return Err(forbid("work-loop:read"));
     }
 
-    let s = state.focusa.read().await;
+    // Status performs provider, worktree, and transport awaits below. Clone
+    // first so daemon projection writes cannot be starved behind this reader.
+    let s = { state.focusa.read().await.clone() };
     let wl = &s.work_loop;
     let claim_key = writer_claim_key_from_scope(&scope, &s);
     let active_lease = {
