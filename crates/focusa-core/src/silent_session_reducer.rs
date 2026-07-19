@@ -57,6 +57,11 @@ pub enum SilentSessionFact {
         target: SilentSessionLifecycleState,
         evidence: LifecycleTransitionEvidence,
     },
+    ControlIssued {
+        control: String,
+        event_ref: String,
+        reason_code: String,
+    },
     HealthObserved {
         health: SilentSessionHealth,
         source: String,
@@ -101,6 +106,7 @@ pub enum SilentSessionReduceError {
     WaitingInputRequiresExplicitFreshObservation,
     BlockedRequiresTypedBlocker,
     CompletedRequiresReceiptReadyEvaluation,
+    InvalidControlFact,
     InvalidHealthObservation,
     InvalidSemanticObservation,
 }
@@ -179,6 +185,18 @@ pub fn reduce_silent_session(
                     next.active_blocker = None;
                 }
                 _ => {}
+            }
+        }
+        SilentSessionFact::ControlIssued {
+            control,
+            event_ref,
+            reason_code,
+        } => {
+            if control.trim().is_empty()
+                || event_ref.trim().is_empty()
+                || reason_code.trim().is_empty()
+            {
+                return Err(SilentSessionReduceError::InvalidControlFact);
             }
         }
         SilentSessionFact::HealthObserved {
