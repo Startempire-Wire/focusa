@@ -73,6 +73,8 @@
       <div class="label">Execution partition</div>
       <p>{text(partition.project_root_key, 'unbound project')}</p>
       <p class="muted">continuity {text(partition.workstream_key, 'unbound')} · work item {text(partition.work_item_key, 'unbound')}</p>
+      <p class="muted">provider {text(partition.work_item_provider, 'unknown')} · workpoint {text(partition.workpoint_id, 'unbound')}</p>
+      <p class="muted">transport {text(partition.transport_session_id, 'detached')} · item {text(partition.transport_work_item_id, 'unbound')}</p>
       <p class="muted">fence {text(partition.fencing_token, 'none')} · expires {text(partition.lease_expires_at, 'not leased')}</p>
       <p class="muted">budget {text(budget.state, 'unknown')} · wall clock {text(budget.remaining_wall_clock_ms, 'unbounded')} ms</p>
       {#if budget.exhaustion}

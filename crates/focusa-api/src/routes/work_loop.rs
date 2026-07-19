@@ -1746,12 +1746,28 @@ fn work_loop_execution_partition_payload(
         .split('|')
         .filter_map(|part| part.split_once(':'))
         .collect();
+    let effective_provider = if wl.policy.work_item_provider == WorkItemProvider::None
+        && wl
+            .execution_scope
+            .as_ref()
+            .is_some_and(|scope| scope.root_scope.root_path.join(".beads").exists())
+    {
+        WorkItemProvider::Bd
+    } else {
+        wl.policy.work_item_provider
+    };
     json!({
         "schema": "focusa.work_loop_execution_partition.v2",
         "project_root_key": parts.get("project").copied(),
         "workstream_key": parts.get("workstream").copied(),
         "work_item_key": parts.get("work_item").copied(),
+        "work_item_provider": effective_provider,
+        "workpoint_id": wl.execution_workpoint_id,
         "current_task_work_item_id": wl.current_task.as_ref().map(|task| task.work_item_id.as_str()),
+        "deferred_work_item_ids": wl.deferred_items.iter().map(|item| item.work_item_id.as_str()).collect::<Vec<_>>(),
+        "transport_session_id": wl.transport_session_id,
+        "transport_work_item_id": wl.transport_work_item_id,
+        "transport_workpoint_id": wl.transport_workpoint_id,
         "writer_key": active_lease.map(|lease| lease.writer_id.as_str()),
         "fencing_token": active_lease.map(|lease| lease.fencing_token),
         "lease_acquired_at": active_lease.map(|lease| lease.acquired_at),
@@ -1784,6 +1800,15 @@ fn resume_payload_for_status(
             "degraded"
         } else {
             "healthy"
+        },
+        "exact_recovery_action": if wl.budget_exhaustion.is_some() {
+            "approved resume with renew_budget=true"
+        } else if !wl.deferred_items.is_empty() {
+            "select next non-deferred ready WorkItem under execution root"
+        } else if wl.status == focusa_core::types::WorkLoopStatus::TransportDegraded {
+            "attach a transport matching the execution partition"
+        } else {
+            "continue current selected WorkItem"
         },
         "current_ask_and_scope_posture": json!({
             "current_ask": wl.decision_context.current_ask,
