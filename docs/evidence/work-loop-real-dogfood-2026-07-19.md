@@ -99,4 +99,6 @@ Independent proof passed:
 
 Scoped closure claim `claim_bd_019f7bdd03d67312` reconciled `focusa-a6yq6.3.3.3` to provider status `closed`.
 
-The Work Loop then implemented exact-run interactive APIs in `ba4946d`. Independent proof passed 11/11 focused API tests and `cargo check -p focusa-api`; scoped claim `claim_bd_019f7bfd665f7791` reconciled `focusa-a6yq6.3.3.4`. The remaining ordered child is `.3.3.5` (transactional config APIs).
+The Work Loop then implemented exact-run interactive APIs in `ba4946d`. Independent proof passed 11/11 focused API tests and `cargo check -p focusa-api`; scoped claim `claim_bd_019f7bfd665f7791` reconciled `focusa-a6yq6.3.3.4`.
+
+The final config child was implemented in `72568ed`, `660fccd`, `9c861d7`, and `6099608`. Proof passed 12/12 API tests, 4/4 config tests, 14/14 persistence tests, and API check. Claim `claim_bd_019f7c3920487540` closed `.3.3.5`; aggregate claim `claim_bd_019f7c3926de7240` closed the complete `.3.3` §23 API tranche.
