@@ -4,42 +4,46 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SPEC="$ROOT_DIR/docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md"
 DIRECTIVE="$ROOT_DIR/docs/agent/spec135-real-time-generated-ui-directive.md"
+DELIVERY="$ROOT_DIR/docs/135-series-current-manifest.md"
 fail(){ echo "✗ FAIL: $*" >&2; exit 1; }
 pass(){ echo "✓ PASS: $*"; }
 
-[[ -f "$SPEC" ]] || fail "Spec 135I is missing"
-[[ -f "$DIRECTIVE" ]] || fail "Spec 135 generated UI agent directive is missing"
+for file in "$SPEC" "$DIRECTIVE" "$DELIVERY"; do
+  [[ -f "$file" ]] || fail "missing required Spec 135 generated UI file: $file"
+done
 
 for needle in \
-  'Every C.R.I.S.T. and onboarding interaction must be presented as a live, incrementally regenerated' \
+  'live, incrementally regenerated, plain-language' \
   'A2UI protocol v0.9.1' \
   '@a2ui/web_core/v0_9' \
   '@a2ui/lit/v0_9' \
-  'AG-UI protocol' \
-  'openapi-fetch' \
+  'Focusa Svelte Custom Elements' \
+  'OpenAPI 3.0.3' \
+  'JSON Schema 2020-12' \
+  'oapi-codegen v2.7.x' \
   'focusa.generated_surface.v1' \
   'focusa.ui_action_binding.v1' \
-  'No generic mutation escape hatch' \
-  'Deterministic shell and generative content boundary' \
-  'Trusted Focusa component catalog' \
-  'Nontechnical experience constitution'; do
+  'UIAI Engine Eval contract' \
+  'Pi RPC AgentExecutionAdapter' \
+  'Greater Focusa primitive'; do
   rg -n -F "$needle" "$SPEC" >/dev/null || fail "Spec 135I missing decision: $needle"
 done
-pass "generated UI protocol, authority, and nontechnical decisions are explicit"
+pass "generated UI, contracts, runtime, and browser-proof decisions are explicit"
 
 for needle in \
-  'C — Context generated UI' \
-  'R — Role generated UI' \
-  'I — Interview generated UI' \
-  'S — Spec generated UI' \
-  'T — Tasks generated UI' \
-  'Operational continuation UI'; do
-  rg -n -F "$needle" "$SPEC" >/dev/null || fail "Spec 135I missing complete stage UI: $needle"
+  '### Context' \
+  '### Role' \
+  '### Interview' \
+  '### Spec' \
+  '### Tasks' \
+  '### Operational continuation'; do
+  rg -n -F "$needle" "$SPEC" >/dev/null || fail "Spec 135I missing stage surface: $needle"
 done
 pass "all C.R.I.S.T. and continuation stages require generated UI"
 
 for needle in \
   'GET  /v1/ui/catalogs' \
+  'GET  /v1/ui/operations' \
   'POST /v1/ui/surfaces' \
   'GET  /v1/ui/surfaces/:surface_id/stream' \
   'POST /v1/ui/actions/preview' \
@@ -47,34 +51,24 @@ for needle in \
   'focusa-core/src/ui_intent/' \
   'focusa-api/src/ui_projection/' \
   'focusa-api/src/ag_ui/'; do
-  rg -n -F "$needle" "$SPEC" >/dev/null || fail "Spec 135I missing Focusa API integration: $needle"
+  rg -n -F "$needle" "$SPEC" >/dev/null || fail "Spec 135I missing API integration: $needle"
 done
 pass "generated UI is integrated through typed Focusa APIs"
 
 for needle in \
-  'A2UI Composer/Theater fixtures' \
-  'Schemathesis' \
-  'Vitest' \
-  'Svelte Testing Library' \
-  'Playwright' \
-  'No custom generated-UI DSL' \
-  'A2UI reuse plan' \
-  'Catalog-first implementation'; do
-  rg -n -F "$needle" "$SPEC" >/dev/null || fail "Spec 135I missing speed/reuse opportunity: $needle"
+  'UIAI Engine Eval only' \
+  'MUST NOT use Playwright Test' \
+  'complete custom Svelte A2UI renderer' \
+  'AG-UI implementation proceeds in parallel' \
+  'Vercel WorkflowAgent' \
+  'A missing generated-UI or UIAI Eval section blocks the ticket'; do
+  rg -n -F "$needle" "$SPEC" "$DIRECTIVE" "$DELIVERY" >/dev/null || fail "missing hardening decision: $needle"
 done
-pass "generated UI speed and non-reinvention stack is explicit"
+pass "browser, renderer, streaming, and model-runtime ownership is guarded"
 
-for needle in \
-  'Do not implement:' \
-  'static wizard pages as the primary experience' \
-  'A2UI v0.9.1' \
-  'Every generated action binds to a registered typed Focusa operation' \
-  'Required stage surfaces' \
-  'Every relevant implementation ticket includes:' \
-  'A missing generated-UI section blocks the ticket'; do
-  rg -n -F "$needle" "$DIRECTIVE" >/dev/null || fail "agent directive missing generated UI instruction: $needle"
-done
-pass "decomposing agents receive mandatory generated UI instructions"
+if rg -n 'playwright_flow_ref|OpenAPI 3\.1|make Svelte renderer primary|Playwright tests full' "$SPEC" "$DIRECTIVE"; then
+  fail "stale Spec 135I implementation decision remains"
+fi
 
 for needle in \
   'Alpha 0' \
@@ -86,8 +80,8 @@ for needle in \
   'Alpha 6' \
   'Alpha 7' \
   'Alpha 8'; do
-  rg -n -F "$needle" "$SPEC" >/dev/null || fail "Spec 135I missing Cross-Functional Alpha amendment: $needle"
+  rg -n -F "$needle" "$SPEC" "$DELIVERY" >/dev/null || fail "missing Cross-Functional Alpha requirement: $needle"
 done
-pass "every Alpha slice is amended to include generated UI"
+pass "every Alpha slice includes generated UI and proof"
 
 echo "Spec 135I real-time generated UI static test: PASS"
