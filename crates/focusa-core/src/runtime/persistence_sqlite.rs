@@ -13,6 +13,7 @@ use crate::silent_session::{
     SilentSessionRunId,
 };
 use crate::silent_session_authorization::{SilentSessionApproval, SilentSessionPrincipal};
+use crate::silent_session_config::redacted_config_hash;
 use crate::sync::{CrdtEvent, VectorClock};
 use crate::types::{
     CallStackDesign, CognitionOptimizerArtifact, CuratorEvalRun, DeviceRecord, EventLogEntry,
@@ -2444,6 +2445,8 @@ impl SqlitePersistence {
         session: &SilentSession,
         run: &SilentSessionRun,
         event: &SilentSessionEvent,
+        initial_config_revision: &SilentSessionConfigRevision,
+        effective_config_hash: &str,
     ) -> anyhow::Result<()> {
         session
             .validate()
@@ -2464,10 +2467,22 @@ impl SqlitePersistence {
                 && event.seq == 1,
             "silent-session create requires generation-one genesis event"
         );
+        anyhow::ensure!(
+            initial_config_revision.session_id == session.session_id
+                && initial_config_revision.revision_id == session.config_revision_id
+                && initial_config_revision.parent_revision_id.is_none()
+                && initial_config_revision.applied_at.is_some(),
+            "silent-session create requires matching initial config revision"
+        );
+        anyhow::ensure!(
+            redacted_config_hash(&initial_config_revision.config)? == effective_config_hash,
+            "silent-session initial config hash mismatch"
+        );
 
         let projection_json = serde_json::to_string(session)?;
         let run_json = serde_json::to_string(run)?;
         let event_json = serde_json::to_string(event)?;
+        let config_revision_json = serde_json::to_string(initial_config_revision)?;
         let payload_sha256 = sha256_hex(event_json.as_bytes());
         let event_hash = event_chain_hash(
             "GENESIS",
@@ -2511,6 +2526,11 @@ impl SqlitePersistence {
             params![session.session_id.to_string(), session.project_root.to_string_lossy(),
                 session.continuity_id, format!("{:?}", session.lifecycle_state), projection_json,
                 i64::try_from(event.seq)?, authorized_at.to_rfc3339()],
+        )?;
+        tx.execute(
+            "INSERT INTO silent_session_config_revisions(revision_id, session_id, parent_revision_id, revision_json, effective_hash, applied_at) VALUES (?1,?2,NULL,?3,?4,?5)",
+            params![initial_config_revision.revision_id.to_string(), session.session_id.to_string(),
+                config_revision_json, effective_config_hash, authorized_at.to_rfc3339()],
         )?;
         tx.execute(
             "INSERT INTO silent_session_runs(run_id, session_id, generation, run_json, updated_at) VALUES (?1,?2,?3,?4,?5)",

@@ -78,6 +78,24 @@ impl SilentSessionConfigManager {
         config: SilentSessionConfig,
         policy_locks: Vec<ConfigPolicyLock>,
     ) -> anyhow::Result<Self> {
+        Self::new_with_revision_id(
+            session_id,
+            SilentSessionConfigRevisionId::new(),
+            config,
+            policy_locks,
+        )
+    }
+
+    pub fn new_with_revision_id(
+        session_id: SilentSessionId,
+        revision_id: SilentSessionConfigRevisionId,
+        config: SilentSessionConfig,
+        policy_locks: Vec<ConfigPolicyLock>,
+    ) -> anyhow::Result<Self> {
+        anyhow::ensure!(
+            revision_id.is_uuid_v7(),
+            "config revision id must be UUIDv7"
+        );
         let validation = validate_config(&config);
         anyhow::ensure!(
             validation.valid,
@@ -86,7 +104,7 @@ impl SilentSessionConfigManager {
         );
         let current = SilentSessionConfigRevision {
             schema: SILENT_SESSION_CONFIG_REVISION_SCHEMA.into(),
-            revision_id: SilentSessionConfigRevisionId::new(),
+            revision_id,
             session_id,
             parent_revision_id: None,
             requested_changes: Value::Object(Map::new()),
