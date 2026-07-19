@@ -190,6 +190,8 @@ fn pi_rpc_bin() -> String {
     std::env::var("FOCUSA_PI_BIN").unwrap_or_else(|_| "pi".to_string())
 }
 
+const PI_HEADLESS_VITAL_INFO_PROMPT_MODE: &str = "warn_only";
+
 fn extension_ui_response(request: &Value, authorized_project_root: &Path) -> Option<Value> {
     if request.get("type").and_then(Value::as_str) != Some("extension_ui_request") {
         return None;
@@ -3353,7 +3355,11 @@ async fn start_pi_driver(
             "FOCUSA_PI_API_BASE_URL",
             pi_focusa_api_base_url(&state.config.api_bind),
         )
-        .args(["--mode", "rpc", "--no-session"])>>>>>>> 6ca6e8c3 (fix(work-loop): bind Pi to owning daemon)
+        .env(
+            "FOCUSA_PI_VITAL_INFO_PROMPT_MODE",
+            PI_HEADLESS_VITAL_INFO_PROMPT_MODE,
+        )
+        .args(["--mode", "rpc", "--no-session"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -4385,6 +4391,7 @@ mod tests {
 
     #[test]
     fn spawned_pi_uses_owning_daemon_endpoint_not_installed_default() {
+        assert_eq!(PI_HEADLESS_VITAL_INFO_PROMPT_MODE, "warn_only");
         assert_eq!(
             pi_focusa_api_base_url("127.0.0.1:18787"),
             "http://127.0.0.1:18787/v1"
