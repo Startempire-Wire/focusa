@@ -190,7 +190,7 @@ fn pi_rpc_bin() -> String {
     std::env::var("FOCUSA_PI_BIN").unwrap_or_else(|_| "pi".to_string())
 }
 
-fn extension_ui_response(request: &Value) -> Option<Value> {
+fn extension_ui_response(request: &Value, authorized_project_root: &Path) -> Option<Value> {
     if request.get("type").and_then(Value::as_str) != Some("extension_ui_request") {
         return None;
     }
@@ -198,9 +198,31 @@ fn extension_ui_response(request: &Value) -> Option<Value> {
     if !matches!(method, "select" | "confirm" | "input" | "editor") {
         return None;
     }
+    let id = request.get("id")?.clone();
+    if method == "select"
+        && let Some(options) = request.get("options").and_then(Value::as_array)
+    {
+        let root = authorized_project_root.to_string_lossy();
+        let safe_matches = options
+            .iter()
+            .filter_map(Value::as_str)
+            .filter(|option| {
+                option.contains(root.as_ref())
+                    || option.to_ascii_lowercase().contains("skip")
+                    || option.to_ascii_lowercase().contains("leave unchanged")
+            })
+            .collect::<Vec<_>>();
+        if safe_matches.len() == 1 {
+            return Some(json!({
+                "type": "extension_ui_response",
+                "id": id,
+                "value": safe_matches[0]
+            }));
+        }
+    }
     Some(json!({
         "type": "extension_ui_response",
-        "id": request.get("id")?.clone(),
+        "id": id,
         "cancelled": true
     }))
 }
@@ -3423,7 +3445,7 @@ async fn start_pi_driver(
                 .and_then(Value::as_str)
                 .unwrap_or("unknown")
                 .to_string();
-            if let Some(response) = extension_ui_response(&parsed) {
+            if let Some(response) = extension_ui_response(&parsed, &work_loop_root) {
                 let encoded = format!("{}\n", response);
                 let mut session_guard = state_for_events.pi_rpc_session.lock().await;
                 if let Some(session) = session_guard.as_mut()
@@ -4300,13 +4322,41 @@ mod tests {
     use focusa_core::scoped_state::ScopeRef;
 
     #[test]
-    fn extension_ui_dialogs_receive_fail_closed_matching_responses() {
-        for method in ["select", "confirm", "input", "editor"] {
-            let response = extension_ui_response(&json!({
+    fn extension_ui_dialogs_receive_safe_or_fail_closed_matching_responses() {
+        let root = Path::new("/project");
+        let skip = extension_ui_response(
+            &json!({
                 "type": "extension_ui_request",
-                "id": "request-1",
-                "method": method
-            }))
+                "id": "request-skip",
+                "method": "select",
+                "options": ["A) Define trajectory", "F) Skip — leave warning active"]
+            }),
+            root,
+        )
+        .unwrap();
+        assert_eq!(skip["value"], "F) Skip — leave warning active");
+
+        let ambiguous = extension_ui_response(
+            &json!({
+                "type": "extension_ui_request",
+                "id": "request-ambiguous",
+                "method": "select",
+                "options": ["Skip once", "Skip always"]
+            }),
+            root,
+        )
+        .unwrap();
+        assert_eq!(ambiguous["cancelled"], true);
+
+        for method in ["confirm", "input", "editor"] {
+            let response = extension_ui_response(
+                &json!({
+                    "type": "extension_ui_request",
+                    "id": "request-1",
+                    "method": method
+                }),
+                root,
+            )
             .unwrap();
             assert_eq!(response["type"], "extension_ui_response");
             assert_eq!(response["id"], "request-1");
@@ -4320,11 +4370,14 @@ mod tests {
             "set_editor_text",
         ] {
             assert!(
-                extension_ui_response(&json!({
-                    "type": "extension_ui_request",
-                    "id": "request-2",
-                    "method": method
-                }))
+                extension_ui_response(
+                    &json!({
+                        "type": "extension_ui_request",
+                        "id": "request-2",
+                        "method": method
+                    }),
+                    root,
+                )
                 .is_none()
             );
         }
