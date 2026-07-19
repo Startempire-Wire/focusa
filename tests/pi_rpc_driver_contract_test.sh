@@ -24,6 +24,13 @@ else
   log_fail "Pi RPC driver routes missing"
 fi
 
+if rg -n 'never push, deploy, merge, or release' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
+  && rg -n 'must not be reported as blockers' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1; then
+  log_pass "Pi turn packets exclude prohibited delivery from blocker outcomes"
+else
+  log_fail "Pi can treat prohibited delivery actions as acceptance blockers"
+fi
+
 if rg -n 'if kind == "agent_end"' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
   && ! rg -n 'if kind == "turn_end" \|\| kind == "agent_end"' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1; then
   log_pass "Pi outcome governance waits for the complete agent tool loop"
