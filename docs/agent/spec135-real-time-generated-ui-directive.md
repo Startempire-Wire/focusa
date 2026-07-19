@@ -81,6 +81,7 @@ A2UI action
 → preview when required
 → operator confirmation
 → typed Focusa commit
+→ shared Focusa ToolResult/error envelope
 → canonical event
 → Evidence / Receipt when required
 → generated UI delta
