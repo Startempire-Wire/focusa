@@ -7,6 +7,7 @@
 //! ECS objects remain filesystem-backed (see reference::store).
 
 use crate::clt::retain_hot_window;
+use crate::silent_session::{SilentSession, SilentSessionEvent, SilentSessionId};
 use crate::sync::{CrdtEvent, VectorClock};
 use crate::types::{
     CallStackDesign, CognitionOptimizerArtifact, CuratorEvalRun, DeviceRecord, EventLogEntry,
@@ -20,7 +21,7 @@ use std::sync::{Arc, Mutex};
 use tracing::debug;
 use uuid::Uuid;
 
-const SCHEMA_VERSION: i64 = 2;
+const SCHEMA_VERSION: i64 = 3;
 
 fn hot_clt_snapshot_max_nodes() -> usize {
     std::env::var("FOCUSA_HOT_CLT_MAX_NODES")
@@ -269,6 +270,35 @@ impl SqlitePersistence {
                 updated_at TEXT NOT NULL,
                 FOREIGN KEY (peer_id) REFERENCES peers(peer_id) ON DELETE CASCADE
             );
+
+            -- V3: Spec 133 canonical SilentSession projections and append-only event chain.
+            CREATE TABLE IF NOT EXISTS silent_sessions (
+              session_id TEXT PRIMARY KEY,
+              project_root TEXT NOT NULL,
+              continuity_id TEXT NOT NULL,
+              lifecycle_state TEXT NOT NULL,
+              projection_json TEXT NOT NULL,
+              projection_version INTEGER NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_silent_sessions_scope
+              ON silent_sessions(project_root, continuity_id);
+
+            CREATE TABLE IF NOT EXISTS silent_session_events (
+              event_id TEXT PRIMARY KEY,
+              session_id TEXT NOT NULL,
+              run_id TEXT NOT NULL,
+              seq INTEGER NOT NULL,
+              occurred_at TEXT NOT NULL,
+              event_json TEXT NOT NULL,
+              payload_sha256 TEXT NOT NULL,
+              previous_hash TEXT NOT NULL,
+              event_hash TEXT NOT NULL,
+              UNIQUE(session_id, run_id, seq),
+              FOREIGN KEY(session_id) REFERENCES silent_sessions(session_id) ON DELETE RESTRICT
+            );
+            CREATE INDEX IF NOT EXISTS idx_silent_session_events_order
+              ON silent_session_events(session_id, run_id, seq);
 
             CREATE TABLE IF NOT EXISTS snapshots (
               name TEXT PRIMARY KEY,
@@ -2113,6 +2143,173 @@ impl SqlitePersistence {
         use std::io::Write;
         writeln!(file, "{}", line)?;
         debug!("Appended CognitionOptimizerArtifact to {:?}", ledger_file);
+        Ok(())
+    }
+
+    /// Atomically append a Spec 133 event and advance its session projection.
+    pub fn persist_silent_session_event(
+        &self,
+        session: &SilentSession,
+        event: &SilentSessionEvent,
+    ) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            event.session_id == session.session_id,
+            "silent-session event scope mismatch"
+        );
+        let projection_json = serde_json::to_string(session)?;
+        let event_json = serde_json::to_string(event)?;
+        let payload_sha256 = sha256_hex(event_json.as_bytes());
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let tx = conn.transaction()?;
+        tx.execute(
+            r#"INSERT INTO silent_sessions(session_id, project_root, continuity_id, lifecycle_state, projection_json, projection_version, updated_at)
+               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+               ON CONFLICT(session_id) DO UPDATE SET project_root=excluded.project_root,
+                 continuity_id=excluded.continuity_id, lifecycle_state=excluded.lifecycle_state,
+                 projection_json=excluded.projection_json, projection_version=excluded.projection_version,
+                 updated_at=excluded.updated_at"#,
+            params![session.session_id.to_string(), session.project_root.to_string_lossy(),
+                session.continuity_id, format!("{:?}", session.lifecycle_state), projection_json,
+                i64::try_from(event.seq)?, Utc::now().to_rfc3339()],
+        )?;
+        let replay: Option<String> = tx
+            .query_row(
+                "SELECT event_json FROM silent_session_events WHERE event_id=?1",
+                [event.event_id.to_string()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        if let Some(existing) = replay {
+            anyhow::ensure!(
+                existing == event_json,
+                "silent-session event id replay conflict"
+            );
+            tx.commit()?;
+            return Ok(());
+        }
+        let previous: Option<(i64, String)> = tx.query_row(
+            "SELECT seq, event_hash FROM silent_session_events WHERE session_id=?1 AND run_id=?2 ORDER BY seq DESC LIMIT 1",
+            params![event.session_id.to_string(), event.run_id.to_string()],
+            |row| Ok((row.get(0)?, row.get(1)?))).optional()?;
+        if let Some((last_seq, _)) = previous.as_ref() {
+            anyhow::ensure!(
+                i64::try_from(event.seq)? == last_seq + 1,
+                "silent-session event sequence gap"
+            );
+        }
+        let previous_hash = previous
+            .map(|(_, hash)| hash)
+            .unwrap_or_else(|| "GENESIS".into());
+        let event_hash = event_chain_hash(
+            &previous_hash,
+            &event.event_id.to_string(),
+            &event.occurred_at.to_rfc3339(),
+            &payload_sha256,
+        );
+        tx.execute(
+            "INSERT INTO silent_session_events(event_id, session_id, run_id, seq, occurred_at, event_json, payload_sha256, previous_hash, event_hash) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+            params![event.event_id.to_string(), event.session_id.to_string(), event.run_id.to_string(),
+                i64::try_from(event.seq)?, event.occurred_at.to_rfc3339(), event_json,
+                payload_sha256, previous_hash, event_hash],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    pub fn load_silent_session(
+        &self,
+        session_id: SilentSessionId,
+    ) -> anyhow::Result<Option<SilentSession>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let json: Option<String> = conn
+            .query_row(
+                "SELECT projection_json FROM silent_sessions WHERE session_id=?1",
+                [session_id.to_string()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        json.map(|value| serde_json::from_str(&value).map_err(Into::into))
+            .transpose()
+    }
+
+    pub fn load_silent_session_events(
+        &self,
+        session_id: SilentSessionId,
+    ) -> anyhow::Result<Vec<SilentSessionEvent>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let mut statement = conn.prepare(
+            "SELECT event_json FROM silent_session_events WHERE session_id=?1 ORDER BY run_id, seq",
+        )?;
+        let rows = statement.query_map([session_id.to_string()], |row| row.get::<_, String>(0))?;
+        rows.map(|row| Ok(serde_json::from_str(&row?)?)).collect()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn corrupt_silent_session_event_hash_for_test(
+        &self,
+        event_id: &str,
+    ) -> anyhow::Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        conn.execute(
+            "UPDATE silent_session_events SET event_hash='tampered' WHERE event_id=?1",
+            [event_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn verify_silent_session_event_chain(
+        &self,
+        session_id: SilentSessionId,
+    ) -> anyhow::Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let mut statement = conn.prepare(
+            "SELECT event_id, run_id, seq, occurred_at, payload_sha256, previous_hash, event_hash FROM silent_session_events WHERE session_id=?1 ORDER BY run_id, seq")?;
+        let mut rows = statement.query([session_id.to_string()])?;
+        let mut prior_run = String::new();
+        let mut prior_hash = "GENESIS".to_string();
+        let mut prior_seq: Option<i64> = None;
+        while let Some(row) = rows.next()? {
+            let (event_id, run_id, seq, occurred_at, payload_sha256, stored_previous, stored_hash):
+                (String, String, i64, String, String, String, String) =
+                (row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?);
+            if run_id != prior_run {
+                prior_run = run_id;
+                prior_hash = "GENESIS".into();
+                prior_seq = None;
+            }
+            anyhow::ensure!(
+                stored_previous == prior_hash,
+                "silent-session event chain predecessor mismatch"
+            );
+            if let Some(previous_seq) = prior_seq {
+                anyhow::ensure!(
+                    seq == previous_seq + 1,
+                    "silent-session event chain sequence gap"
+                );
+            }
+            let expected = event_chain_hash(&prior_hash, &event_id, &occurred_at, &payload_sha256);
+            anyhow::ensure!(
+                stored_hash == expected,
+                "silent-session event chain hash mismatch"
+            );
+            prior_hash = stored_hash;
+            prior_seq = Some(seq);
+        }
         Ok(())
     }
 

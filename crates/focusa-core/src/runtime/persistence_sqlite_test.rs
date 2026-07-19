@@ -1,10 +1,68 @@
 #![allow(clippy::field_reassign_with_default)]
 
 use crate::runtime::persistence_sqlite::SqlitePersistence;
-use crate::types::{EventLogEntry, FocusaConfig, FocusaEvent, SignalOrigin};
+use crate::silent_session::{
+    ObservationProvenance, RedactionMetadata, SILENT_SESSION_EVENT_SCHEMA, SILENT_SESSION_SCHEMA,
+    SilentSession, SilentSessionConfigRevisionId, SilentSessionEvent, SilentSessionEventId,
+    SilentSessionHealth, SilentSessionId, SilentSessionLeaseId, SilentSessionLifecycleState,
+    SilentSessionRunId, SilentSessionVersions,
+};
+use crate::types::{EventLogEntry, FocusaConfig, FocusaEvent, FocusaState, SignalOrigin};
 use chrono::Utc;
 use rusqlite::Connection;
 use uuid::Uuid;
+
+fn sample_silent_session(dir: &std::path::Path) -> (SilentSession, SilentSessionEvent) {
+    let session_id = SilentSessionId::new();
+    let run_id = SilentSessionRunId::new();
+    let now = Utc::now();
+    let session = SilentSession {
+        schema: SILENT_SESSION_SCHEMA.into(),
+        versions: SilentSessionVersions::default(),
+        session_id,
+        display_name: "persistence canary".into(),
+        created_at: now,
+        created_by_actor_ref: "test".into(),
+        operator_principal_ref: "operator:test".into(),
+        os_execution_user: "test".into(),
+        project_root: dir.to_path_buf(),
+        project_identity_ref: "project:test".into(),
+        continuity_id: "continuity:test".into(),
+        trajectory_ref: None,
+        workpoint_ref: None,
+        work_item_ref: Some("item:test".into()),
+        mission: "prove durable replay".into(),
+        lifecycle_state: SilentSessionLifecycleState::Running,
+        health: SilentSessionHealth::Healthy,
+        semantic_observation: None,
+        active_run_id: Some(run_id),
+        config_revision_id: SilentSessionConfigRevisionId::new(),
+        writer_lease_ref: Some(SilentSessionLeaseId::new()),
+        retention_policy_ref: "retention:test".into(),
+        receipt_refs: vec![],
+    };
+    let event = SilentSessionEvent {
+        schema: SILENT_SESSION_EVENT_SCHEMA.into(),
+        event_id: SilentSessionEventId::new(),
+        session_id,
+        run_id,
+        seq: 1,
+        occurred_at: now,
+        observed_at: now,
+        kind: "run_started".into(),
+        source: "test".into(),
+        provenance: ObservationProvenance::RuntimeObserved,
+        canonical: true,
+        payload: serde_json::json!({"pid": 42}),
+        artifact_refs: vec![],
+        correlation_id: Uuid::now_v7(),
+        redaction: RedactionMetadata {
+            applied: false,
+            classes: vec![],
+        },
+    };
+    (session, event)
+}
 
 fn temp_dir() -> std::path::PathBuf {
     let mut dir = std::env::temp_dir();
@@ -240,7 +298,7 @@ fn sqlite_crdt_import_is_scoped_and_idempotent() {
 }
 
 #[test]
-fn sqlite_schema_migrates_v1_to_crdt_schema_v2() {
+fn sqlite_schema_migrates_v1_through_silent_session_schema_v3() {
     let dir = temp_dir();
     let mut cfg = FocusaConfig::default();
     cfg.data_dir = dir.to_string_lossy().to_string();
@@ -265,7 +323,7 @@ fn sqlite_schema_migrates_v1_to_crdt_schema_v2() {
             |row| row.get(0),
         )
         .unwrap();
-    assert_eq!(version, "2");
+    assert_eq!(version, "3");
     let table_count: i64 = conn
         .query_row(
             "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='crdt_events'",
@@ -343,4 +401,61 @@ fn sqlite_crdt_same_root_two_daemon_reconciliation_converges() {
     let ids_b: std::collections::BTreeSet<_> = final_b.iter().map(|e| e.entry.id).collect();
     assert_eq!(ids_a, ids_b);
     assert_eq!(ids_a.len(), 2);
+}
+
+#[test]
+fn silent_session_projection_and_hash_chain_are_atomic_replay_safe_and_tamper_evident() {
+    let dir = temp_dir();
+    let mut config = FocusaConfig::default();
+    config.data_dir = dir.to_string_lossy().to_string();
+    let persistence = SqlitePersistence::new(&config).unwrap();
+    let (session, first) = sample_silent_session(&dir);
+
+    persistence
+        .persist_silent_session_event(&session, &first)
+        .unwrap();
+    persistence
+        .persist_silent_session_event(&session, &first)
+        .unwrap();
+    assert_eq!(
+        persistence.load_silent_session(session.session_id).unwrap(),
+        Some(session.clone())
+    );
+    assert_eq!(
+        persistence
+            .load_silent_session_events(session.session_id)
+            .unwrap(),
+        vec![first.clone()]
+    );
+    persistence
+        .verify_silent_session_event_chain(session.session_id)
+        .unwrap();
+
+    let mut conflicting = first.clone();
+    conflicting.payload = serde_json::json!({"pid": 99});
+    assert!(
+        persistence
+            .persist_silent_session_event(&session, &conflicting)
+            .is_err()
+    );
+
+    let mut second = first.clone();
+    second.event_id = SilentSessionEventId::new();
+    second.seq = 2;
+    second.kind = "activity_observed".into();
+    persistence
+        .persist_silent_session_event(&session, &second)
+        .unwrap();
+    persistence
+        .verify_silent_session_event_chain(session.session_id)
+        .unwrap();
+
+    persistence
+        .corrupt_silent_session_event_hash_for_test(&second.event_id.to_string())
+        .unwrap();
+    assert!(
+        persistence
+            .verify_silent_session_event_chain(session.session_id)
+            .is_err()
+    );
 }
