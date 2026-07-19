@@ -633,6 +633,7 @@ fn silent_session_lifecycle_cas_is_atomic_and_rejects_stale_state_generation_and
         .persist_silent_session_lifecycle_cas(
             SilentSessionLifecycleState::Running,
             1,
+            run.run_id,
             &accepted_approval.approval_id,
             &accepted_approval.action_digest,
             Utc::now(),
@@ -671,6 +672,7 @@ fn silent_session_lifecycle_cas_is_atomic_and_rejects_stale_state_generation_and
             .persist_silent_session_lifecycle_cas(
                 SilentSessionLifecycleState::Running,
                 1,
+                run.run_id,
                 &stale_approval.approval_id,
                 &stale_approval.action_digest,
                 Utc::now(),
@@ -685,6 +687,7 @@ fn silent_session_lifecycle_cas_is_atomic_and_rejects_stale_state_generation_and
             .persist_silent_session_lifecycle_cas(
                 SilentSessionLifecycleState::Pausing,
                 2,
+                run.run_id,
                 &stale_approval.approval_id,
                 &stale_approval.action_digest,
                 Utc::now(),
@@ -724,6 +727,7 @@ fn silent_session_lifecycle_cas_is_atomic_and_rejects_stale_state_generation_and
         .persist_silent_session_lifecycle_cas(
             SilentSessionLifecycleState::Pausing,
             1,
+            run.run_id,
             &stale_approval.approval_id,
             &stale_approval.action_digest,
             Utc::now(),

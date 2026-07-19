@@ -2424,10 +2424,12 @@ impl SqlitePersistence {
     /// canonical event. Both the lifecycle state and run event cursor fence
     /// concurrent controls; the run generation fences controls delayed across
     /// restart/adoption.
+    #[allow(clippy::too_many_arguments)]
     pub fn persist_silent_session_lifecycle_cas(
         &self,
         expected_lifecycle: SilentSessionLifecycleState,
         expected_generation: u64,
+        expected_run_id: SilentSessionRunId,
         approval_id: &str,
         action_digest: &str,
         authorized_at: DateTime<Utc>,
@@ -2443,12 +2445,14 @@ impl SqlitePersistence {
         event
             .validate(session, run)
             .map_err(|error| anyhow::anyhow!("invalid silent-session event: {error:?}"))?;
+        let creates_generation = run.run_id != expected_run_id;
         anyhow::ensure!(
-            run.generation == expected_generation,
+            (!creates_generation && run.generation == expected_generation)
+                || (creates_generation && run.generation == expected_generation.saturating_add(1)),
             "silent-session generation conflict"
         );
         anyhow::ensure!(
-            run.current_event_seq == event.seq,
+            run.current_event_seq == event.seq && (!creates_generation || event.seq == 1),
             "silent-session run cursor must advance to event sequence"
         );
 
@@ -2498,7 +2502,7 @@ impl SqlitePersistence {
 
         let (stored_generation, stored_run_json): (i64, String) = tx.query_row(
             "SELECT generation, run_json FROM silent_session_runs WHERE session_id=?1 AND run_id=?2",
-            params![session.session_id.to_string(), run.run_id.to_string()],
+            params![session.session_id.to_string(), expected_run_id.to_string()],
             |row| Ok((row.get(0)?, row.get(1)?)),
         )?;
         let stored_run: SilentSessionRun = serde_json::from_str(&stored_run_json)?;
@@ -2514,7 +2518,9 @@ impl SqlitePersistence {
             "silent-session generation conflict"
         );
         anyhow::ensure!(
-            event.seq == stored_run.current_event_seq.saturating_add(1),
+            (creates_generation && event.seq == 1)
+                || (!creates_generation
+                    && event.seq == stored_run.current_event_seq.saturating_add(1)),
             "silent-session event cursor conflict"
         );
 
@@ -2525,9 +2531,7 @@ impl SqlitePersistence {
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .optional()?;
-        let (last_seq, previous_hash) = previous
-            .map(|(seq, hash)| (seq, hash))
-            .unwrap_or((0, "GENESIS".into()));
+        let (last_seq, previous_hash) = previous.unwrap_or((0, "GENESIS".into()));
         anyhow::ensure!(
             i64::try_from(event.seq)? == last_seq + 1,
             "silent-session event sequence gap"
@@ -2553,11 +2557,19 @@ impl SqlitePersistence {
             params![session.session_id.to_string(), format!("{:?}", session.lifecycle_state), projection_json,
                 i64::try_from(event.seq)?, Utc::now().to_rfc3339()],
         )?;
-        tx.execute(
-            "UPDATE silent_session_runs SET run_json=?3, updated_at=?4 WHERE session_id=?1 AND run_id=?2 AND generation=?5",
-            params![session.session_id.to_string(), run.run_id.to_string(), run_json,
-                Utc::now().to_rfc3339(), i64::try_from(expected_generation)?],
-        )?;
+        if creates_generation {
+            tx.execute(
+                "INSERT INTO silent_session_runs(run_id, session_id, generation, run_json, updated_at) VALUES (?1,?2,?3,?4,?5)",
+                params![run.run_id.to_string(), session.session_id.to_string(),
+                    i64::try_from(run.generation)?, run_json, Utc::now().to_rfc3339()],
+            )?;
+        } else {
+            tx.execute(
+                "UPDATE silent_session_runs SET run_json=?3, updated_at=?4 WHERE session_id=?1 AND run_id=?2 AND generation=?5",
+                params![session.session_id.to_string(), run.run_id.to_string(), run_json,
+                    Utc::now().to_rfc3339(), i64::try_from(expected_generation)?],
+            )?;
+        }
         tx.execute(
             "INSERT INTO silent_session_events(event_id, session_id, run_id, seq, occurred_at, event_json, payload_sha256, previous_hash, event_hash) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
             params![event.event_id.to_string(), event.session_id.to_string(), event.run_id.to_string(),
