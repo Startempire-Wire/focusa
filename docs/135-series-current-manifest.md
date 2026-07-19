@@ -27,6 +27,7 @@ Every decomposing or implementing agent must read:
 
 1. [Spec 135 implementation acceleration directive](agent/spec135-implementation-acceleration-directive.md)
 2. [Spec 135 real-time generated UI directive](agent/spec135-real-time-generated-ui-directive.md)
+3. [Spec 135 UXP/UFI generated UI directive](agent/spec135-uxp-ufi-generated-ui-directive.md)
 
 ## Closure rule
 
