@@ -2502,9 +2502,15 @@ impl SqlitePersistence {
             |row| Ok((row.get(0)?, row.get(1)?)),
         )?;
         let stored_run: SilentSessionRun = serde_json::from_str(&stored_run_json)?;
+        let latest_generation: i64 = tx.query_row(
+            "SELECT MAX(generation) FROM silent_session_runs WHERE session_id=?1",
+            [session.session_id.to_string()],
+            |row| row.get(0),
+        )?;
         anyhow::ensure!(
             u64::try_from(stored_generation)? == expected_generation
-                && stored_run.generation == expected_generation,
+                && stored_run.generation == expected_generation
+                && u64::try_from(latest_generation)? == expected_generation,
             "silent-session generation conflict"
         );
         anyhow::ensure!(

@@ -707,6 +707,43 @@ fn silent_session_lifecycle_cas_is_atomic_and_rejects_stale_state_generation_and
             .unwrap(),
         Some(stale_approval.clone())
     );
+
+    let mut newer_run = run.clone();
+    newer_run.run_id = SilentSessionRunId::new();
+    newer_run.generation = 2;
+    newer_run.current_event_seq = 0;
+    persistence
+        .put_silent_session_run(&pausing, &newer_run)
+        .unwrap();
+    let mut delayed_run = advanced_run.clone();
+    delayed_run.current_event_seq = 3;
+    let mut delayed_event = transition.clone();
+    delayed_event.event_id = SilentSessionEventId::new();
+    delayed_event.seq = 3;
+    let delayed_error = persistence
+        .persist_silent_session_lifecycle_cas(
+            SilentSessionLifecycleState::Pausing,
+            1,
+            &stale_approval.approval_id,
+            &stale_approval.action_digest,
+            Utc::now(),
+            &pausing,
+            &delayed_run,
+            &delayed_event,
+        )
+        .unwrap_err();
+    assert!(
+        delayed_error
+            .to_string()
+            .contains("silent-session generation conflict"),
+        "unexpected delayed-control error: {delayed_error:#}"
+    );
+    assert_eq!(
+        persistence
+            .load_silent_session_approval(&stale_approval.approval_id)
+            .unwrap(),
+        Some(stale_approval.clone())
+    );
     assert_eq!(
         persistence
             .redeem_silent_session_approval(
