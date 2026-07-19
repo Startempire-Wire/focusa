@@ -24,6 +24,13 @@ else
   log_fail "Pi RPC driver routes missing"
 fi
 
+if rg -n 'if kind == "agent_end"' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
+  && ! rg -n 'if kind == "turn_end" \|\| kind == "agent_end"' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1; then
+  log_pass "Pi outcome governance waits for the complete agent tool loop"
+else
+  log_fail "Pi outcome governance can stop at an intermediate tool turn"
+fi
+
 if rg -n '"--no-extensions"' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
   && rg -n '"--no-skills"' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
   && rg -n '"--no-prompt-templates"' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \

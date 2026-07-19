@@ -3533,7 +3533,7 @@ async fn start_pi_driver(
                 )
                 .await;
             }
-            if kind == "turn_end" || kind == "agent_end" {
+            if kind == "agent_end" {
                 let current_task = {
                     let focusa = state_for_events.focusa.read().await;
                     focusa.work_loop.current_task.clone()
@@ -3588,7 +3588,7 @@ async fn start_pi_driver(
                             .await;
                         let _ = maybe_dispatch_continuous_turn_prompt(
                             &state_for_events,
-                            "pi rpc turn_end/agent_end observed and ready work remains",
+                            "pi rpc agent_end observed and ready work remains",
                         )
                         .await;
                     } else {
