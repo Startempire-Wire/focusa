@@ -86,6 +86,7 @@ run_gate bash ./tests/spec135h_implementation_acceleration_static_test.sh
 run_gate bash ./tests/spec135i_real_time_generated_ui_static_test.sh
 run_gate bash ./tests/spec135j_core_api_runtime_reuse_static_test.sh
 run_gate bash ./tests/spec135k_uxp_ufi_generated_ui_static_test.sh
+run_gate bash ./tests/spec135_generated_ui_core_integration_audit_static_test.sh
 run_gate bash ./tests/phone_bridge_public_url_static_test.sh
 run_gate bash ./tests/phone_bridge_automatic_callback_static_test.sh
 run_gate bash ./tests/release_notes_workflow_static_test.sh
