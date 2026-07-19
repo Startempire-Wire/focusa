@@ -4,9 +4,11 @@ use sha2::{Digest, Sha256};
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
+use std::sync::mpsc::{Receiver, SyncSender, TrySendError, sync_channel};
 use uuid::Uuid;
 
 pub const SILENT_STREAM_MANIFEST_SCHEMA: &str = "focusa.silent_stream_manifest.v1";
+pub const SILENT_STREAM_COMPLETION_SCHEMA: &str = "focusa.silent_stream_completion.v1";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -213,8 +215,150 @@ impl SecureSilentStreamChunk {
             file_name: final_name,
             redaction_applied: self.redaction_applied,
         };
-        atomic_secure_json(&self.run_root.join("manifest.json"), &manifest)?;
+        atomic_secure_json(
+            &self.run_root.join(format!(
+                "manifest-{}-{:06}.json",
+                self.stream.file_stem(),
+                self.chunk_index
+            )),
+            &manifest,
+        )?;
         Ok(manifest)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SilentStreamCompletionArtifact {
+    pub schema: String,
+    pub session_id: SilentSessionId,
+    pub run_id: SilentSessionRunId,
+    pub chunks: Vec<SilentStreamChunkManifest>,
+    pub total_bytes: u64,
+    pub last_cursor: Option<SilentStreamCursor>,
+}
+
+pub struct RotatingSilentStreamWriter {
+    data_root: PathBuf,
+    session_id: SilentSessionId,
+    run_id: SilentSessionRunId,
+    config_hash: String,
+    stream: SilentStreamKind,
+    max_chunk_bytes: u64,
+    next_chunk_index: u64,
+    active: Option<SecureSilentStreamChunk>,
+    closed: Vec<SilentStreamChunkManifest>,
+}
+
+impl RotatingSilentStreamWriter {
+    pub fn new(
+        data_root: PathBuf,
+        session_id: SilentSessionId,
+        run_id: SilentSessionRunId,
+        config_hash: impl Into<String>,
+        stream: SilentStreamKind,
+        max_chunk_bytes: u64,
+    ) -> anyhow::Result<Self> {
+        anyhow::ensure!(max_chunk_bytes > 0, "stream chunk size must be positive");
+        Ok(Self {
+            data_root,
+            session_id,
+            run_id,
+            config_hash: config_hash.into(),
+            stream,
+            max_chunk_bytes,
+            next_chunk_index: 1,
+            active: None,
+            closed: vec![],
+        })
+    }
+
+    pub fn append(
+        &mut self,
+        seq: u64,
+        data: &str,
+        secrets: &[String],
+    ) -> anyhow::Result<SilentStreamCursor> {
+        if self.active.is_none() {
+            self.active = Some(SecureSilentStreamChunk::create(
+                &self.data_root,
+                self.session_id,
+                self.run_id,
+                self.config_hash.clone(),
+                self.stream,
+                self.next_chunk_index,
+            )?);
+            self.next_chunk_index += 1;
+        }
+        let active = self
+            .active
+            .as_mut()
+            .expect("active stream chunk was created");
+        let cursor = active.append(seq, data, secrets)?;
+        if active.byte_count >= self.max_chunk_bytes {
+            self.close_active()?;
+        }
+        Ok(cursor)
+    }
+
+    fn close_active(&mut self) -> anyhow::Result<()> {
+        if let Some(active) = self.active.take() {
+            self.closed.push(active.close()?);
+        }
+        Ok(())
+    }
+
+    pub fn finish(mut self) -> anyhow::Result<SilentStreamCompletionArtifact> {
+        self.close_active()?;
+        let artifact = SilentStreamCompletionArtifact {
+            schema: SILENT_STREAM_COMPLETION_SCHEMA.into(),
+            session_id: self.session_id,
+            run_id: self.run_id,
+            total_bytes: self.closed.iter().map(|chunk| chunk.byte_count).sum(),
+            last_cursor: self.closed.last().map(|chunk| chunk.last_cursor.clone()),
+            chunks: self.closed,
+        };
+        let artifact_path = self
+            .data_root
+            .join("silent-sessions")
+            .join(self.session_id.to_string())
+            .join(self.run_id.to_string())
+            .join("artifacts/stream-completion.json");
+        atomic_secure_json(&artifact_path, &artifact)?;
+        Ok(artifact)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StreamCaptureRecord {
+    pub seq: u64,
+    pub data: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CaptureAdmission {
+    Queued,
+    BackpressureApplied,
+    ConsumerDisconnected,
+}
+
+#[derive(Clone)]
+pub struct NonBlockingStreamCapture {
+    sender: SyncSender<StreamCaptureRecord>,
+}
+
+impl NonBlockingStreamCapture {
+    pub fn bounded(capacity: usize) -> anyhow::Result<(Self, Receiver<StreamCaptureRecord>)> {
+        anyhow::ensure!(capacity > 0, "capture queue capacity must be positive");
+        let (sender, receiver) = sync_channel(capacity);
+        Ok((Self { sender }, receiver))
+    }
+
+    pub fn try_capture(&self, record: StreamCaptureRecord) -> CaptureAdmission {
+        match self.sender.try_send(record) {
+            Ok(()) => CaptureAdmission::Queued,
+            Err(TrySendError::Full(_)) => CaptureAdmission::BackpressureApplied,
+            Err(TrySendError::Disconnected(_)) => CaptureAdmission::ConsumerDisconnected,
+        }
     }
 }
 
@@ -349,5 +493,64 @@ mod tests {
             fs::remove_file(link).unwrap();
         }
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn rotating_stream_emits_terminal_completion_artifact() {
+        let root = std::env::temp_dir().join(format!("focusa-rotate-{}", Uuid::now_v7()));
+        fs::create_dir_all(&root).unwrap();
+        let session_id = SilentSessionId::new();
+        let run_id = SilentSessionRunId::new();
+        let mut writer = RotatingSilentStreamWriter::new(
+            root.clone(),
+            session_id,
+            run_id,
+            "config",
+            SilentStreamKind::Semantic,
+            1,
+        )
+        .unwrap();
+        writer.append(1, "first", &[]).unwrap();
+        writer.append(2, "second", &[]).unwrap();
+        let artifact = writer.finish().unwrap();
+        assert_eq!(artifact.chunks.len(), 2);
+        assert_eq!(artifact.last_cursor.unwrap().seq, 2);
+        assert!(artifact.total_bytes > 0);
+        assert!(
+            root.join("silent-sessions")
+                .join(session_id.to_string())
+                .join(run_id.to_string())
+                .join("artifacts/stream-completion.json")
+                .is_file()
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn bounded_capture_reports_backpressure_without_blocking() {
+        let (capture, receiver) = NonBlockingStreamCapture::bounded(1).unwrap();
+        assert_eq!(
+            capture.try_capture(StreamCaptureRecord {
+                seq: 1,
+                data: "one".into()
+            }),
+            CaptureAdmission::Queued
+        );
+        assert_eq!(
+            capture.try_capture(StreamCaptureRecord {
+                seq: 2,
+                data: "two".into()
+            }),
+            CaptureAdmission::BackpressureApplied
+        );
+        assert_eq!(receiver.recv().unwrap().seq, 1);
+        drop(receiver);
+        assert_eq!(
+            capture.try_capture(StreamCaptureRecord {
+                seq: 3,
+                data: "three".into()
+            }),
+            CaptureAdmission::ConsumerDisconnected
+        );
     }
 }
