@@ -5,13 +5,13 @@
 **Created:** 2026-07-17  
 **Parent:** [Spec 135](135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md)  
 **Closure relationship:** required companion; Spec 135 cannot close without Spec 135D.  
-**Scope:** complete feature ledger, decomposition law, dependency ordering, cross-spec ownership, domain-general ontology and domain-pack foundations, snapshot/event compatibility, framework qualification, code reuse, shared contracts, performance, parallel execution, UX completeness, proof discipline, and final closure.
+**Scope:** complete feature ledger, decomposition law, dependency ordering, cross-spec ownership, domain-general ontology and domain-pack foundations, typed multiplexed runtime, Mission Canvas and Work Surface contracts, browser-context isolation, snapshot/event compatibility, framework qualification, code reuse, shared contracts, performance, parallel execution, UX completeness, proof discipline, and final closure.
 
 ---
 
 ## 0. One-line definition
 
-Spec 135 must be implemented as one complete dependency graph: sequence by dependency, parallelize where safe, reuse and integrate existing systems, never silently omit or indefinitely defer accepted features, and never claim completion from stubs, schemas, mock providers, backend-only behavior, or surrogate proof.
+Spec 135 must be implemented as one complete dependency graph: sequence by dependency, parallelize where safe, reuse and integrate existing systems, preserve multi-project and multi-session scope, never silently omit or indefinitely defer accepted features, and never claim completion from stubs, schemas, mock providers, backend-only behavior, or surrogate proof.
 
 ---
 
@@ -21,6 +21,7 @@ Spec 135 must be implemented as one complete dependency graph: sequence by depen
 Sequence by dependency.
 Parallelize where safe.
 Integrate existing systems.
+Preserve multiplexing and typed scope.
 Do not omit.
 Do not silently defer.
 Do not declare partial infrastructure to be the completed product.
@@ -28,7 +29,7 @@ Do not declare partial infrastructure to be the completed product.
 
 The implementation orders in this document are execution ordering. They do not split the series into “real now” and “maybe someday.”
 
-Every accepted normative feature in Spec 135/135A/135B/135C/135D/135E/135F must enter the implementation graph before implementation begins.
+Every accepted normative feature in Spec 135/135A/135B/135C/135D/135E/135F/135G must enter the implementation graph before implementation begins.
 
 ---
 
@@ -141,6 +142,8 @@ requirements:
       native_tui: false
       uiai: false
       connector: false
+      mission_canvas: false
+      multiplexing: false
     acceptance_criteria: []
     evidence_requirements: []
     closure_status: open | blocked | verified | operator_removed
@@ -154,7 +157,7 @@ The parent series cannot close while a required ledger entry is missing, partial
 
 Different ownership does not mean deferred dependency.
 
-Required dependencies from Specs 45–50, 61, 70, 72, 74, 75, 77, 88, 100, 109, 111, 116, 117, 119, 120, 121, 124, 125, 130, 133, and 135F remain explicit blockers in the Spec 135 graph until implemented and proven.
+Required dependencies from Specs 38–41, 43, 45–50, 61, 70, 72, 74, 75, 77, 88, 98, 100, 104, 109, 111, 116, 117, 119, 120, 121, 124, 125, 130, 133, 135F, and 135G remain explicit blockers in the Spec 135 graph until implemented and proven.
 
 A task may be owned by its original spec and cross-linked to Spec 135. It may not disappear from the Spec 135 completion ledger.
 
@@ -168,26 +171,30 @@ Do not create:
 
 - a workspace daemon;
 - a C.R.I.S.T. daemon;
+- a Mission Canvas authority daemon;
 - a connector-state daemon;
 - a sidebar state service;
 - a second task authority;
 - a second evidence store;
 - a second project-memory system;
-- a second spec engine.
+- a second spec engine;
+- a second session or browser authority model.
 
-Use the existing Focusa runtime.
+Use the existing Focusa runtime, Instance/Session/Attachment model, scoped project/workstream state, Silent Session control plane, and UIAI session model.
 
 ### 6.2 One canonical persistence path
 
-Canonical workspace, Project Genesis, context claim, role, interview, task plan, artifact-link, ontology registry, candidate/canonical graph, verification-ledger, domain-pack binding, slice-policy, and semantic-subscription events use Focusa reducers, event persistence, state snapshots, and event-chain discipline in the local Focusa node’s SQLite-backed runtime. Large source and evidence payloads remain externalized through ECS/content-addressed handles.
+Canonical workspace, Project Genesis, context claim, role, interview, task plan, artifact-link, ontology registry, candidate/canonical graph, verification-ledger, domain-pack binding, slice-policy, semantic-subscription, Instance, Session, Attachment, proposal-resolution, writer-lease, and runtime-session events use Focusa reducers, event persistence, state snapshots, and event-chain discipline in the local Focusa node’s SQLite-backed runtime. Large source and evidence payloads remain externalized through ECS/content-addressed handles.
 
-Project JSON, Pi globals, browser storage, Svelte stores, menubar state, UIAI state, connector caches, `.focusa-project.json`, and `.pi/settings.json` may identify, configure, project, import, export, or cache state but may not become canonical Project Genesis truth. Approved repository specs are written only through the operator-gated Spec 120 repo-write path. Raw connected documents and email are not copied into a repository by default.
+Mission Canvas and Work Surface layout state may be persisted as user/device projection state, but focused tabs, selected panes, and layout order may not become canonical project/session authority.
+
+Project JSON, Pi globals, browser storage, Svelte stores, menubar state, UIAI state, connector caches, `.focusa-project.json`, and `.pi/settings.json` may identify, configure, project, import, export, or cache state but may not become canonical Project Genesis or session authority. Approved repository specs are written only through the operator-gated Spec 120 repo-write path. Raw connected documents and email are not copied into a repository by default.
 
 Focusa Cloud may provide opt-in encrypted synchronization, relay, hosted Receipts, and team projections. It does not silently replace local project-semantic authority. Multi-node reconciliation follows existing ProjectIdentity/CRDT and scoped authority rules.
 
 ### 6.3 One browser/research/document execution engine
 
-UIAI owns browser/search/session/media/diagnostics execution and the rich Documents execution boundary. Focusa does not rebuild those systems. Focusa consumes normalized, source-linked artifacts, claims, chunks, diagnostics, and handles through typed contracts.
+UIAI owns browser/search/session/media/diagnostics execution and the rich Documents execution boundary. Focusa does not rebuild those systems. Focusa consumes normalized, source-linked artifacts, claims, chunks, diagnostics, browser-context identities, target identities, and handles through typed contracts.
 
 ### 6.4 One specification engine
 
@@ -205,16 +212,33 @@ Pi, PWA, UIAI Engine Cockpit/Tauri, menubar, and native TUI share:
 - read models;
 - action IDs;
 - status enums;
-- workspace manifests;
+- Workspace View Profile manifests;
+- Mission Canvas and Work Surface schemas;
+- Instance/Session/Attachment identities;
+- browser-context and browser-target identities;
 - theme tokens;
 - artifact descriptors;
 - invalidation events.
 
-No client reimplements domain policy.
+No client reimplements domain, session, routing, isolation, conflict, or authority policy.
 
 ### 6.7 One semantic substrate
 
-Do not create separate legal, markets, research, software, connector, C.R.I.S.T., UIAI, or client-local ontology engines. Spec 135F extends the existing Focusa ontology through one core-owned registry, candidate graph, canonical graph, verification ledger, V1 compatibility projection, domain-pack composition system, and semantic delta plane.
+Do not create separate legal, markets, research, software, connector, C.R.I.S.T., UIAI, session-local, or client-local ontology engines. Spec 135F extends the existing Focusa ontology through one core-owned registry, candidate graph, canonical graph, verification ledger, V1 compatibility projection, domain-pack composition system, and semantic delta plane.
+
+### 6.8 One concurrency substrate
+
+Specs 40, 41, 98, 104, 133, and 135G own the concurrency model:
+
+```text
+ProjectRootKey
+→ WorkstreamKey
+→ AttachmentKey
+→ runtime-specific session/run/context/target identities
+→ Work Surface projection
+```
+
+Mission Canvas visual focus must never replace this hierarchy.
 
 ---
 
@@ -232,9 +256,13 @@ Use the existing Rust workspace and conventions:
 - ECS/content-addressed handles;
 - Tokio for async work.
 
-New domain modules should align with existing crate boundaries rather than become a separate service. Required semantic modules or equivalent boundaries include:
+New domain modules should align with existing crate boundaries rather than become a separate service. Required modules or equivalent boundaries include:
 
 ```text
+focusa-core/src/workspace/
+focusa-core/src/mission_canvas/
+focusa-core/src/work_surface/
+focusa-core/src/runtime_attachments/
 focusa-core/src/ontology_registry/
 focusa-core/src/ontology_graph/
 focusa-core/src/domain_packs/
@@ -242,6 +270,8 @@ focusa-core/src/verification_policy/
 focusa-core/src/slice_policy/
 focusa-core/src/semantic_subscriptions/
 ```
+
+Mission Canvas modules own projection contracts and restoration metadata only. Canonical Instance/Session/Attachment, Silent Session, Workpoint, proposal, and lease authority remains in the appropriate existing core subsystems.
 
 ### 7.2 Schema generation
 
@@ -253,7 +283,7 @@ Required flow:
 Rust/domain schemas
 → generated JSON Schema and OpenAPI
 → generated TypeScript contracts/client
-→ Pi, Svelte, connector, and test consumers
+→ Pi, Svelte, connector, UIAI, and test consumers
 ```
 
 Hand-maintained duplicate request/response interfaces are forbidden where generation can preserve the contract.
@@ -268,7 +298,7 @@ Use the existing Focusa/UIAI frontend direction:
 - Vite;
 - static adapter;
 - Tauri 2 in the UIAI Engine Cockpit;
-- shared design/workspace packages.
+- shared design/Mission Canvas packages.
 
 Required packages or equivalent workspace modules:
 
@@ -284,6 +314,10 @@ focusa-design-system
 
 focusa-workspace-ui
   panel/layout/theme/renderer/profile registries
+
+focusa-mission-canvas-ui
+  Work Surface strip, splits, session inventory, routing, restoration,
+  contention, and aggregate/local projection behavior
 ```
 
 The Mission Deck PWA, UIAI Engine Cockpit, and menubar must consume shared packages rather than copy screens.
@@ -294,6 +328,8 @@ The selected generic component foundation is **shadcn-svelte with Bits UI primit
 
 Custom development remains focused on Focusa-specific components:
 
+- Mission Canvas Work Surface strip;
+- session switcher and split manager;
 - Mission Ladder;
 - Work Rail;
 - Evidence and Receipt cards;
@@ -301,7 +337,9 @@ Custom development remains focused on Focusa-specific components:
 - Role redline;
 - Interview compendium;
 - Spec approval;
-- vertical artifact viewers.
+- vertical artifact viewers;
+- contention and proposal-resolution views;
+- browser-context isolation indicators.
 
 The dependency versions must be pinned and validated against static/PWA/Tauri builds, keyboard-only behavior, reduced motion, high contrast, and bundle budgets. Implementation-time substitution requires a versioned operator amendment rather than an informal framework swap.
 
@@ -309,7 +347,7 @@ The dependency versions must be pinned and validated against static/PWA/Tauri bu
 
 The selected server-state framework is **TanStack Query for Svelte**. It owns typed server-state reads, stale state, mutation state, targeted invalidation, bounded background refetch, reconnect behavior, and optimistic UI only where Focusa preview/commit and version contracts make it safe.
 
-SSE events map to stable query keys and targeted invalidation. TanStack Query is a projection/cache layer only; it does not become a normalized canonical client database.
+SSE events map to stable query keys and targeted invalidation. TanStack Query is a projection/cache layer only; it does not become a normalized canonical client database or session authority store.
 
 ### 7.6 Pi package convergence — selected namespace
 
@@ -322,7 +360,7 @@ The canonical Pi runtime, SDK, TUI, peer-dependency, and extension import namesp
 @earendil-works/pi-tui
 ```
 
-All Focusa, UIAI Engine, queue-steering, and Cockpit integration packages must pin one tested compatible Earendil Pi release and share a compatibility suite.
+All Focusa, UIAI Engine, queue-steering, and UIAI Engine Cockpit integration packages must pin one tested compatible Earendil Pi release and share a compatibility suite.
 
 Required migration:
 
@@ -331,7 +369,8 @@ inventory legacy @mariozechner/pi-* imports and pins
 → migrate Focusa extension to @earendil-works/pi-*
 → align UIAI and queue-steering extensions
 → establish one lock/version matrix
-→ run extension, RPC, SDK, dock, theme, image, and event compatibility proof
+→ run extension, RPC, SDK, Mission Canvas dock, theme, image, event,
+  multi-session, and targeted-steering compatibility proof
 ```
 
 The Focusa-enhanced Pi distribution is a packaged configuration over the upstream Earendil Pi runtime, not a separately renamed Pi fork. A future public Focusa npm package name is contingent only on verified registry-scope ownership and does not reopen this runtime-namespace decision.
@@ -435,31 +474,40 @@ Every order is required. Orders are not release-deferral buckets.
 
 Required outputs:
 
-1. approved Spec 135 series, including Spec 135F;
+1. approved Spec 135 series, including Specs 135F and 135G;
 2. Complete Feature Ledger;
 3. current-code Reality Pack;
-4. cross-spec dependency graph;
+4. cross-spec dependency graph including Specs 38–41, 43, 98, 104, and 133;
 5. resolved framework decision record and exact pinned dependency/model matrix;
-6. canonical/projection/domain-semantic ownership map;
-7. snapshot and event compatibility constitution;
-8. V1 ontology compatibility fixtures and expected projections;
-9. domain-pack conformance and isolation matrix;
-10. security/privacy model;
-11. full parent/child task graph;
-12. acceptance/proof mapping;
-13. client parity matrix;
-14. migration and downgrade matrix;
-15. resolved-decision conformance check against Spec 135 §17.
+6. canonical/projection/domain-semantic/session-origin ownership map;
+7. Instance/Session/Attachment and Mission Canvas compatibility constitution;
+8. browser-context/target isolation and retention matrix;
+9. snapshot and event compatibility constitution;
+10. V1 ontology compatibility fixtures and expected projections;
+11. domain-pack conformance and isolation matrix;
+12. security/privacy model;
+13. full parent/child task graph;
+14. acceptance/proof mapping;
+15. client parity matrix;
+16. migration and downgrade matrix;
+17. resolved-decision conformance check against Spec 135 §17.
 
 ### Order 1 — Contract and runtime convergence
 
 - Pi package convergence on `@earendil-works/pi-*`;
 - operation/schema/status IDs;
+- ProjectRootKey, WorkstreamKey, and AttachmentKey generated contracts;
+- Instance/Session/Attachment inventory and role contracts;
+- Mission Canvas and Work Surface contracts;
+- Work Surface attachment/runtime-ref contracts;
+- browser-session/context/target and isolation-class contracts;
+- targeted steering/follow-up recipient contracts;
+- contention/proposal and writer-lease projections;
 - Workspace Profile contracts;
 - C.R.I.S.T./Project Genesis contracts;
 - Context source/artifact/claim/delta contracts;
 - Role/Interview contracts;
-- Workspace Artifact contracts;
+- Workspace Artifact contracts with session-origin identity;
 - task/read models;
 - invalidation events;
 - core ontology registry and namespaced semantic IDs;
@@ -477,6 +525,9 @@ Suggested modules:
 
 ```text
 focusa-core/src/workspace/
+focusa-core/src/mission_canvas/
+focusa-core/src/work_surface/
+focusa-core/src/runtime_attachments/
 focusa-core/src/project_genesis/
 focusa-core/src/project_context/
 focusa-core/src/project_role/
@@ -492,12 +543,17 @@ focusa-core/src/semantic_subscriptions/
 
 Required:
 
-- reducers;
+- reducers and existing session/attachment integration;
 - SQLite persistence;
 - event-chain participation;
 - versions;
 - scope enforcement;
 - provenance;
+- Instance/Session/Attachment inventory;
+- proposal-resolution and contention projections;
+- writer-lease and worktree projections;
+- Work Surface durable refs and user/device restoration metadata;
+- explicit separation of focused Work Surface from canonical active state;
 - answer supersession;
 - role revisions;
 - workspace-selection history;
@@ -516,14 +572,22 @@ Required:
 
 No placeholder success routes.
 
-### Order 3 — Shared dynamic UI substrate
+### Order 3 — Shared dynamic UI and Mission Canvas substrate
 
 - design tokens;
 - state vocabulary;
 - shadcn-svelte/Bits UI primitives;
 - TanStack Query server-state layer;
+- Mission Canvas Work Surface strip;
+- session/workstream/project switcher;
+- tab grouping, pinning, unread state, and splits;
+- close-view versus pause/terminate actions;
 - layout/panel/home-canvas registries;
 - renderer/action/terminology/theme/icon/history registries;
+- session-kind and attachment-role presentation registry;
+- contention/proposal and writer-lease views;
+- targeted steering/follow-up routing UI;
+- aggregate versus surface-local Work Rail;
 - domain-semantic binding registry that consumes, but never owns, canonical domain policy;
 - workspace resolver/inheritance/composition;
 - responsive behavior;
@@ -531,7 +595,8 @@ No placeholder success routes.
 - reduced motion/high contrast;
 - server-state query keys;
 - invalidation mapping;
-- loading/empty/stale/degraded/blocked/offline/recovery states.
+- loading/empty/stale/degraded/blocked/offline/recovery states;
+- deterministic Work Surface rehydration.
 
 ### Order 4 — Context ingestion and continuous growth
 
@@ -548,7 +613,7 @@ Implement all accepted source classes and complete connector lifecycles:
 - work-item providers;
 - operator notes/uploads.
 
-Include extraction, OAuth, bounded import, delta sync, health, revocation, FTS5/sqlite-vec/fastembed indexing, claims, contradiction, impact, Context Cognition, candidate-semantic writes, verification-policy evaluation, reviewed canonical promotion, and live UI.
+Include extraction, OAuth, bounded import, delta sync, health, revocation, FTS5/sqlite-vec/fastembed indexing, claims, contradiction, impact, Context Cognition, candidate-semantic writes, verification-policy evaluation, reviewed canonical promotion, session-origin attribution, and live UI.
 
 ### Order 5 — Role and Interview
 
@@ -609,27 +674,35 @@ Generated Markdown alone is insufficient.
 - provider health;
 - ontology-derived/operator-authored Workpoint candidate validation;
 - Workpoint binding through existing authority;
-- Work Rail;
+- Work Rail surface-local/project-aggregate/cross-project-advisory modes;
+- session and Work Surface linkage;
 - closure/reconciliation;
 - verified strike-through;
 - Receipt/history.
 
-### Order 8 — UIAI rich artifacts and live browser integration
+### Order 8 — UIAI rich artifacts and multiplexed browser integration
 
-- Workspace Artifact descriptor;
+- Workspace Artifact descriptor with project/workstream and session-origin identity;
+- UIAI session inventory;
+- browser-context inventory and isolation classes;
+- browser-target inventory and context membership;
+- multiple targets per context;
+- multiple isolated contexts per project/workstream;
+- explicit shared-context behavior;
 - screenshots;
 - research documents;
 - snapshots;
 - diagnostics;
 - charts/datasets;
-- FPV;
+- FPV per UIAI session/context;
 - evidence linkage;
 - provenance;
 - renderer dispatch;
 - SSE invalidation;
 - image tiers;
 - terminal fallback;
-- redaction/freshness.
+- redaction/freshness;
+- context/target close, move, duplicate, restore, and retention behavior.
 
 ### Order 9 — Complete vertical workspace set
 
@@ -641,14 +714,14 @@ Generated Markdown alone is insufficient.
 - Custom;
 - composite profiles.
 
-Each requires theme, visual grammar, home canvas, panels, terminology, icons, density, renderers, history, C.R.I.S.T., evidence, controls, all states, a demo project, and an operational or truthfully degraded domain-pack composition. Visual completeness without semantic-pack conformance is incomplete.
+Each requires theme, visual grammar, home canvas, panels, terminology, icons, density, renderers, history, C.R.I.S.T., Mission Canvas behavior, session/Work Surface presentation, evidence, controls, all states, a demo project, and an operational or truthfully degraded domain-pack composition. Visual completeness without semantic-pack and multiplexing conformance is incomplete.
 
 ### Order 10 — Complete client/package parity
 
-- stock Pi compatibility;
-- enhanced Pi sidebar/docks;
+- stock Pi compatibility and session switcher;
+- enhanced Pi Mission Canvas sidebar/docks;
 - Mission Deck PWA;
-- UIAI Engine Cockpit Tauri shell hosting Focusa projections;
+- UIAI Engine Cockpit Tauri shell hosting Focusa Mission Canvas projections;
 - menubar;
 - native TUI;
 - API/CLI/headless.
@@ -661,13 +734,17 @@ Each requires theme, visual grammar, home canvas, panels, terminology, icons, de
 - old-writer and downgrade protection;
 - V1 projection replay equivalence;
 - migrations;
-- isolation;
+- project/workstream/session/attachment isolation;
+- browser cookie/storage/permission isolation;
 - connector expiry/recovery/revocation;
 - replay;
 - SSE reconnect;
+- Work Surface rehydration;
 - offline states;
-- rate/size limits;
-- large project/document/interview/task/artifact tests;
+- rate/size/concurrency limits;
+- large project/document/interview/task/artifact/session tests;
+- concurrent observations and decision conflicts;
+- writer lease/worktree isolation;
 - accessibility;
 - visual regression;
 - all client tests;
@@ -681,16 +758,20 @@ Each requires theme, visual grammar, home canvas, panels, terminology, icons, de
 After stable contracts/core:
 
 ```text
-                    ┌─ UI substrate and workspace engine
+                    ┌─ Mission Canvas and workspace engine
 Contracts + Core ───┼─ Context extraction and connectors
                     ├─ Pi convergence and docks
-                    ├─ UIAI artifact bridge
+                    ├─ UIAI artifact/browser-context bridge
+                    ├─ session/attachment/rehydration substrate
                     └─ Spec Workbench integration
 ```
 
 Convergence:
 
 ```text
+Scoped runtime + Mission Canvas
+→ multiplexed Work Surfaces
+
 Context + UI
 → Role and Interview
 
@@ -700,7 +781,7 @@ Role + Interview + Workbench
 Approved Spec + adapters
 → Tasks and Work Rail
 
-Workspace engine + artifacts + manifests
+Workspace engine + artifacts + sessions + manifests
 → professional verticals
 
 All lanes
@@ -713,7 +794,7 @@ All lanes
 
 ### No dead ends
 
-Every blocked, stale, disconnected, unauthorized, empty, or failed state shows:
+Every blocked, stale, disconnected, unauthorized, empty, failed, ended-session, missing-context, or rehydration state shows:
 
 ```text
 what happened
@@ -727,13 +808,13 @@ exact recovery action
 
 ```text
 Beginner → one next action
-Operator → dense state and controls
-Advanced → policy, schemas, connectors, diagnostics, receipts
+Operator → dense state, sessions, and controls
+Advanced → policy, schemas, connectors, diagnostics, contention, and receipts
 ```
 
 ### Autosave and resumability
 
-Persist uploads, cursors, role drafts, answers, open questions, spec progress, approvals, task edits, workspace choice, and panel preferences.
+Persist uploads, cursors, role drafts, answers, open questions, spec progress, approvals, task edits, workspace choice, Mission Canvas open/pinned/grouped/split surfaces, unread cursors, and panel preferences.
 
 ### Preview before consequential mutation
 
@@ -744,6 +825,8 @@ dry run
 → commit
 → Receipt
 ```
+
+Closing a view, pausing a session, terminating a session, closing a browser target, and closing a browser context are distinct actions with distinct previews.
 
 ### One obvious primary action
 
@@ -756,11 +839,14 @@ Answer Next Question
 Open Spec Workbench
 Approve Task Plan
 Start First Workpoint
+Open Work Surface
+Respond to Waiting Session
+Resolve Contention
 ```
 
 ### Dynamic capability truth
 
-Buttons and panels derive availability from capabilities/provider health rather than failing after activation.
+Buttons and panels derive availability from capabilities, attachment roles, session health, browser isolation, writer leases, and provider health rather than failing after activation.
 
 ---
 
@@ -770,15 +856,17 @@ Buttons and panels derive availability from capabilities/provider health rather 
 2. SSE invalidation with targeted refetch.
 3. Stable handles for large blobs.
 4. Background extraction/indexing/sync outside canonical locks.
-5. Virtualized large lists.
-6. Lazy rich artifacts.
-7. Incremental provider sync.
-8. Resource-mode-aware queues and throttling.
+5. Virtualized large lists and Work Surface inventories.
+6. Lazy rich artifacts and inactive pane content.
+7. Incremental provider and session synchronization.
+8. Resource-mode-aware queues, concurrency limits, and throttling.
 9. Content hashing and deduplication.
-10. Paged dataset/history reads.
+10. Paged dataset/history/event/session reads.
 11. Bounded diagnostics/transcripts.
 12. No whole-state client mirroring.
-13. Semantic events carry bounded refs, scope, versions, and cursors rather than full graph or artifact payloads.
+13. Semantic and session events carry bounded refs, scope, origin IDs, versions, and cursors rather than full graph, browser, or artifact payloads.
+14. Background Work Surfaces do not rerender high-frequency content unless visible or subscribed.
+15. FPV/browser streams are scoped per UIAI session/context and do not block Focusa state updates.
 
 ---
 
@@ -805,18 +893,19 @@ Do not use “later,” “future enhancement,” “post-MVP,” “nice to hav
 
 A blocked dependency remains open and blocks parent closure.
 
-Do not implement a second system when Focusa, UIAI Engine, Pi, Spec 120,
-Spec 116, Spec 119, Spec 135F, or the existing Svelte/Tauri stack already owns the
-relevant primitive.
+Do not implement a second system when Focusa, UIAI Engine, Pi, Specs 40, 41,
+98, 104, 116, 119, 120, 133, 135F, 135G, or the existing Svelte/Tauri stack
+already owns the relevant primitive.
 
 Do not claim completion from schemas, stubs, static cards, mock providers,
-placeholder success envelopes, or backend-only behavior when the specification
-requires an integrated user experience.
+placeholder success envelopes, backend-only behavior, or a single-active-session
+UI when the specification requires an integrated multiplexed experience.
 
-All accepted professional workspaces, connectors, clients, artifact renderers,
-approval paths, recovery states, and proof requirements remain required for
-specification closure unless the operator explicitly removes them through a
-versioned specification amendment.
+All accepted professional workspaces, connectors, clients, Mission Canvas
+Work Surfaces, session attachments, browser-context isolation, artifact
+renderers, approval paths, recovery states, and proof requirements remain
+required for specification closure unless the operator explicitly removes them
+through a versioned specification amendment.
 ```
 
 ---
@@ -824,8 +913,8 @@ versioned specification amendment.
 ## 13. Required decomposition hierarchy
 
 ```text
-EPIC A — Contracts, schemas, and Pi convergence
-EPIC B — Canonical state, reducers, events, and persistence
+EPIC A — Contracts, schemas, Pi convergence, and typed scope
+EPIC B — Canonical state, reducers, events, attachments, and persistence
 EPIC C — Shared design system and dynamic workspace engine
 EPIC D — Context ingestion, indexing, OAuth, and connectors
 EPIC E — Role Composer and approval
@@ -833,17 +922,18 @@ EPIC F — Dynamic Interview and compendium
 EPIC G — Spec 120 Project Genesis integration
 EPIC H — Provider-neutral decomposition and adapters
 EPIC I — Work Rail, closure, and Receipts
-EPIC J — UIAI rich artifacts and FPV
+EPIC J — UIAI rich artifacts, contexts, targets, and FPV
 EPIC K — Software workspace
 EPIC L — Legal workspace
 EPIC M — Markets workspace
 EPIC N — Research workspace
 EPIC O — General, Custom, and composite workspaces
 EPIC P — Pi enhanced distribution and compatibility
-EPIC Q — Mission Deck PWA and UIAI Cockpit integration
+EPIC Q — Mission Deck PWA and UIAI Engine Cockpit integration
 EPIC R — Menubar and native TUI parity
 EPIC S — Migration, accessibility, security, performance, and release proof
 EPIC T — Domain-general ontology registry, semantic graphs, domain packs, slices, and reactions
+EPIC U — Multiplexed Mission Canvas, Work Surfaces, session attachments, contention, and rehydration
 ```
 
 Each epic includes implementation, integration, tests, docs, and evidence children.
@@ -865,14 +955,17 @@ Spec 135D is accepted when:
 9. Incremental sync and the selected FTS5/sqlite-vec/fastembed hybrid retrieval architecture are implemented and proven.
 10. All Orders 0–11 remain in the closure graph.
 11. Parallel work preserves dependencies and integration tests.
-12. Performance, accessibility, security, migration, and recovery tasks are first-class.
+12. Performance, accessibility, security, migration, recovery, and concurrency tasks are first-class.
 13. Parent closure is mechanically blocked by incomplete ledger entries.
 14. Actual integrated proof exists across every acceptance-critical surface.
 15. Spec 135F requirements appear in the Complete Feature Ledger and Orders 0–2 before vertical/client implementation.
-16. Archived V1 snapshots/events replay to an equivalent compatibility projection, while unknown future events are preserved and incompatible old writers are blocked.
-17. Every accepted vertical has tested domain-pack conformance, isolation, verification, slice, Workpoint-candidate, and degraded-mode behavior.
-18. Google Drive proves the full reference-connector contract before the shared connector substrate is considered stable.
-19. UIAI Documents/Docling extraction proves all required fixture, provenance, isolation, and recovery paths.
+16. Spec 135G requirements appear in the Complete Feature Ledger and Orders 0–3 before Mission Canvas/vertical/client completion.
+17. Archived V1 snapshots/events replay to an equivalent compatibility projection, while unknown future events are preserved and incompatible old writers are blocked.
+18. Every accepted vertical has tested domain-pack conformance, isolation, verification, slice, Workpoint-candidate, Mission Canvas, and degraded-mode behavior.
+19. Google Drive proves the full reference-connector contract before the shared connector substrate is considered stable.
+20. UIAI Documents/Docling extraction proves all required fixture, provenance, isolation, and recovery paths.
+21. Multi-project, same-project multi-session, same-workstream contention, browser-container isolation, shared-context warning, Work Surface close semantics, restart rehydration, and concurrent-writer scenarios pass with actual evidence.
+22. The word Cockpit is used only for UIAI Engine Cockpit in the Spec 135 series and new implementation labels.
 
 ---
 
@@ -888,9 +981,14 @@ This spec cannot close while:
 - schema/client contracts are manually divergent;
 - selected document extraction or search frameworks are not pinned, integrated, migrated, and proven;
 - client parity is absent from the graph;
-- security/accessibility/performance are cleanup-only tasks;
+- security/accessibility/performance/concurrency are cleanup-only tasks;
 - backend success is used as proof of complete UX;
 - any accepted feature is silently deferred;
-- client or vertical work begins before the semantic registry and compatibility contracts are stable;
+- client or vertical work begins before the semantic registry, typed scope, session attachment, and compatibility contracts are stable;
 - domain-pack, candidate/canonical graph, verification-policy, slice-policy, or semantic-subscription work is omitted as generic future ontology work;
-- a different framework, Pi namespace, connector reference, or desktop shell is substituted without a versioned operator amendment.
+- Mission Canvas or Work Surface multiplexing is omitted as future UI work;
+- the UI assumes one global active session or uses focused view state as canonical authority;
+- browser context and target identity or isolation is omitted;
+- session-origin identity is omitted from artifacts/events;
+- a different framework, Pi namespace, connector reference, desktop shell, or Mission Canvas naming is substituted without a versioned operator amendment;
+- a generic Focusa/Pi surface uses the word Cockpit.
