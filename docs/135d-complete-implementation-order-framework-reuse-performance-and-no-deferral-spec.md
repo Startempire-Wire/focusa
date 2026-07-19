@@ -179,13 +179,15 @@ Use the existing Focusa runtime.
 
 ### 6.2 One canonical persistence path
 
-Canonical workspace, Project Genesis, context claim, role, interview, task plan, artifact-link, ontology registry, candidate/canonical graph, verification-ledger, domain-pack binding, slice-policy, and semantic-subscription events use Focusa reducers, event persistence, state snapshots, and event-chain discipline.
+Canonical workspace, Project Genesis, context claim, role, interview, task plan, artifact-link, ontology registry, candidate/canonical graph, verification-ledger, domain-pack binding, slice-policy, and semantic-subscription events use Focusa reducers, event persistence, state snapshots, and event-chain discipline in the local Focusa node’s SQLite-backed runtime. Large source and evidence payloads remain externalized through ECS/content-addressed handles.
 
-Project JSON, Pi globals, browser storage, Svelte stores, menubar state, UIAI state, and connector caches may project/cache state but may not become canonical truth.
+Project JSON, Pi globals, browser storage, Svelte stores, menubar state, UIAI state, connector caches, `.focusa-project.json`, and `.pi/settings.json` may identify, configure, project, import, export, or cache state but may not become canonical Project Genesis truth. Approved repository specs are written only through the operator-gated Spec 120 repo-write path. Raw connected documents and email are not copied into a repository by default.
 
-### 6.3 One browser/research engine
+Focusa Cloud may provide opt-in encrypted synchronization, relay, hosted Receipts, and team projections. It does not silently replace local project-semantic authority. Multi-node reconciliation follows existing ProjectIdentity/CRDT and scoped authority rules.
 
-UIAI owns browser/search/session/media/diagnostics execution. Focusa does not rebuild it.
+### 6.3 One browser/research/document execution engine
+
+UIAI owns browser/search/session/media/diagnostics execution and the rich Documents execution boundary. Focusa does not rebuild those systems. Focusa consumes normalized, source-linked artifacts, claims, chunks, diagnostics, and handles through typed contracts.
 
 ### 6.4 One specification engine
 
@@ -197,7 +199,7 @@ C.R.I.S.T. `T` uses Spec 120 decomposition, Spec 116 adapters/closure, Workpoint
 
 ### 6.6 One shared UI contract
 
-Pi, PWA, Tauri, menubar, and native TUI share:
+Pi, PWA, UIAI Engine Cockpit/Tauri, menubar, and native TUI share:
 
 - generated schemas/types;
 - read models;
@@ -258,13 +260,14 @@ Hand-maintained duplicate request/response interfaces are forbidden where genera
 
 ### 7.3 Shared rich UI stack
 
-Use the existing Focusa frontend direction:
+Use the existing Focusa/UIAI frontend direction:
 
 - SvelteKit 2;
 - Svelte 5;
+- Tailwind CSS 4;
 - Vite;
 - static adapter;
-- Tauri 2;
+- Tauri 2 in the UIAI Engine Cockpit;
 - shared design/workspace packages.
 
 Required packages or equivalent workspace modules:
@@ -283,13 +286,13 @@ focusa-workspace-ui
   panel/layout/theme/renderer/profile registries
 ```
 
-The PWA, Tauri app, and menubar must consume shared packages rather than copy screens.
+The Mission Deck PWA, UIAI Engine Cockpit, and menubar must consume shared packages rather than copy screens.
 
-### 7.4 UI primitives
+### 7.4 UI primitives — selected framework
 
-Use established accessible Svelte-compatible primitives for generic dialogs, sheets, tabs, radio groups, forms, command palettes, menus, tooltips, and scroll areas.
+The selected generic component foundation is **shadcn-svelte with Bits UI primitives**, using Svelte 5 and Tailwind CSS 4. This stack owns generic dialogs, sheets, tabs, radio groups, forms, command palettes, menus, tooltips, scroll areas, focus behavior, and accessibility primitives.
 
-Custom development should focus on Focusa-specific components:
+Custom development remains focused on Focusa-specific components:
 
 - Mission Ladder;
 - Work Rail;
@@ -300,80 +303,95 @@ Custom development should focus on Focusa-specific components:
 - Spec approval;
 - vertical artifact viewers.
 
-A component framework selection must be qualified for Svelte 5, Tailwind 4, accessibility, licensing, bundle size, and Tauri/static compatibility before the UI substrate task closes.
+The dependency versions must be pinned and validated against static/PWA/Tauri builds, keyboard-only behavior, reduced motion, high contrast, and bundle budgets. Implementation-time substitution requires a versioned operator amendment rather than an informal framework swap.
 
-### 7.5 Server-state synchronization
+### 7.5 Server-state synchronization — selected framework
 
-Use a mature Svelte server-state query/cache framework or a documented equivalent that provides:
+The selected server-state framework is **TanStack Query for Svelte**. It owns typed server-state reads, stale state, mutation state, targeted invalidation, bounded background refetch, reconnect behavior, and optimistic UI only where Focusa preview/commit and version contracts make it safe.
 
-- typed queries;
-- stale state;
-- mutation state;
-- targeted invalidation;
-- background refetch;
-- optimistic UI only where safe;
-- SSR/static/Tauri compatibility.
+SSE events map to stable query keys and targeted invalidation. TanStack Query is a projection/cache layer only; it does not become a normalized canonical client database.
 
-The default candidate is TanStack Query for Svelte, subject to repository qualification.
+### 7.6 Pi package convergence — selected namespace
 
-Do not build a second normalized canonical client database.
-
-### 7.6 Pi package convergence
-
-Mandatory foundation work:
+The canonical Pi runtime, SDK, TUI, peer-dependency, and extension import namespace is:
 
 ```text
-choose canonical Pi distribution/package namespace
-→ migrate Focusa extension
-→ migrate UIAI extension
-→ compatibility suite
-→ shared dock, theme, image, and event contracts
+@earendil-works/pi-coding-agent
+@earendil-works/pi-agent-core
+@earendil-works/pi-ai
+@earendil-works/pi-tui
 ```
 
-Focusa and UIAI currently target different Pi package roots. No sidebar/editor/theme/artifact implementation may assume this mismatch can remain indefinitely.
+All Focusa, UIAI Engine, queue-steering, and Cockpit integration packages must pin one tested compatible Earendil Pi release and share a compatibility suite.
 
-### 7.7 Local document extraction qualification
+Required migration:
+
+```text
+inventory legacy @mariozechner/pi-* imports and pins
+→ migrate Focusa extension to @earendil-works/pi-*
+→ align UIAI and queue-steering extensions
+→ establish one lock/version matrix
+→ run extension, RPC, SDK, dock, theme, image, and event compatibility proof
+```
+
+The Focusa-enhanced Pi distribution is a packaged configuration over the upstream Earendil Pi runtime, not a separately renamed Pi fork. A future public Focusa npm package name is contingent only on verified registry-scope ownership and does not reopen this runtime-namespace decision.
+
+### 7.7 Local document extraction — selected framework
 
 Do not hand-write parsers for PDF, DOCX, PPTX, XLSX, email, images, and archives.
 
-Before Context ingestion implementation, select a document extraction foundation through a recorded qualification matrix:
+The selected structured extraction engine is **Docling**, hosted by the UIAI Engine Documents subsystem as a persistent isolated local worker/service. It is responsible for PDF and Office structure, page/layout order, tables, images, email formats, OCR-capable inputs, normalized document JSON, Markdown projections, and page/source provenance.
+
+Plain text, Markdown, source code, JSON, JSONL, and CSV use direct bounded ingestion because they are already structured/textual inputs and do not require a second document-conversion framework.
+
+Required execution contract:
 
 ```text
-license and commercial redistribution
-supported formats
-Rust/local integration
-cross-platform packaging
-binary/runtime footprint
-memory behavior
-text/table/image quality
-OCR posture
-sandboxability
-security maintenance
-batch performance
-provenance/page mapping
+Focusa context-source adapter
+→ UIAI Documents extraction request
+→ isolated Docling worker
+→ normalized document + source/page refs + diagnostics
+→ Focusa Workspace Artifact / Project Context Artifact
+→ chunk/index/candidate-claim pipeline
 ```
 
-Candidate classes include:
+Required proof covers:
 
-- a Rust-native extraction library/service;
-- an isolated MIT-compatible converter adapter such as Microsoft MarkItDown;
-- Apache Tika when its JVM/service footprint is justified.
+- MIT/code and model-license inventory;
+- macOS/Linux/Windows x86_64 and arm64 packaging;
+- persistent-worker startup and health;
+- CPU/memory/resource-mode budgets;
+- malformed and hostile document isolation;
+- PDF/DOCX/PPTX/XLSX/EML/MSG/image fixtures;
+- OCR and non-OCR paths;
+- table and page provenance;
+- cancellation, timeout, and recovery.
 
-The selection is a required Order 0 decision. It is not a future TODO.
+No separate default MarkItDown or Tika pipeline is introduced. A per-format fallback may be added only through the same extraction interface after a failing conformance fixture proves a Docling capability gap and the fallback passes license, security, provenance, and performance gates.
 
-### 7.8 Context retrieval
+### 7.8 Context retrieval — selected stack
 
-Use local SQLite lexical search, preferably FTS5, as the canonical local text-index baseline rather than a mandatory external search server.
+The selected local hybrid retrieval stack is:
 
-Semantic retrieval remains required. Its embedding/vector implementation must be qualified for:
+```text
+SQLite FTS5
++ sqlite-vec behind a pinned versioned adapter
++ fastembed-rs for local ONNX embeddings and reranking
+```
 
-- local-first operation;
-- cross-platform packaging;
-- bounded memory;
-- license compatibility;
-- source linkage;
-- deterministic filtering;
-- no required cloud dependency.
+FTS5 is the canonical local lexical index. `sqlite-vec` is isolated behind a Focusa adapter because it is pre-v1 and may introduce storage/API changes; its exact version, vector dimensions, distance metric, and migration format are pinned. `fastembed-rs` provides local embedding and reranking without a mandatory cloud dependency.
+
+The initial versioned embedding profile is:
+
+```yaml
+id: focusa.embedding.bge-small-en-v1.5.v1
+model: BAAI/bge-small-en-v1.5
+runtime: fastembed-rs
+storage: sqlite-vec
+lexical: sqlite-fts5
+```
+
+Every embedding record persists model ID, model revision/hash, dimensions, normalization, chunking profile, source revision, and generation version. Projects may select another registered compatible embedding profile without changing the retrieval contract; profile changes require deterministic re-embedding and migration state.
 
 Target retrieval:
 
@@ -383,10 +401,11 @@ project/workstream scope
 + freshness filter
 + lexical rank
 + semantic rank
-+ provenance-preserving rerank
++ optional local rerank
++ provenance-preserving result assembly
 ```
 
-### 7.9 Connected-source synchronization
+### 7.9 Connected-source synchronization and reference connector
 
 Use provider-native delta/change mechanisms rather than repeated full crawling.
 
@@ -402,7 +421,9 @@ bounded initial import
 → recover expired cursor/subscription
 ```
 
-Google, Microsoft, and mail connectors must implement their real incremental models and recovery paths.
+**Google Drive is the first reference connector.** It must prove minimum-scope OAuth, account/folder scoping, bounded import, Google-native document export, revisions, permission/provenance capture, changes-feed cursors, incremental synchronization, cursor recovery, health, revocation, and ProjectContextDelta emission.
+
+The Google OAuth/account substrate is reused by Gmail. OneDrive, SharePoint, Outlook/Microsoft mail, task-provider connectors, and the remaining accepted sources remain required in the same implementation graph. Reference order does not create deferral authority.
 
 ---
 
@@ -418,7 +439,7 @@ Required outputs:
 2. Complete Feature Ledger;
 3. current-code Reality Pack;
 4. cross-spec dependency graph;
-5. framework qualification records;
+5. resolved framework decision record and exact pinned dependency/model matrix;
 6. canonical/projection/domain-semantic ownership map;
 7. snapshot and event compatibility constitution;
 8. V1 ontology compatibility fixtures and expected projections;
@@ -428,11 +449,11 @@ Required outputs:
 12. acceptance/proof mapping;
 13. client parity matrix;
 14. migration and downgrade matrix;
-15. open decisions resolved or explicit blockers.
+15. resolved-decision conformance check against Spec 135 §17.
 
 ### Order 1 — Contract and runtime convergence
 
-- Pi package convergence;
+- Pi package convergence on `@earendil-works/pi-*`;
 - operation/schema/status IDs;
 - Workspace Profile contracts;
 - C.R.I.S.T./Project Genesis contracts;
@@ -499,6 +520,8 @@ No placeholder success routes.
 
 - design tokens;
 - state vocabulary;
+- shadcn-svelte/Bits UI primitives;
+- TanStack Query server-state layer;
 - layout/panel/home-canvas registries;
 - renderer/action/terminology/theme/icon/history registries;
 - domain-semantic binding registry that consumes, but never owns, canonical domain policy;
@@ -514,18 +537,18 @@ No placeholder success routes.
 
 Implement all accepted source classes and complete connector lifecycles:
 
-- local files/folders;
+- local files/folders through UIAI Documents/Docling where extraction is required;
 - repository docs/code;
 - existing Focusa state;
 - UIAI public research;
-- Google Drive;
+- Google Drive as the first reference connector;
 - OneDrive/SharePoint;
 - Gmail;
 - Outlook/Microsoft mail;
 - work-item providers;
 - operator notes/uploads.
 
-Include extraction, OAuth, bounded import, delta sync, health, revocation, indexing, claims, contradiction, impact, Context Cognition, candidate-semantic writes, verification-policy evaluation, reviewed canonical promotion, and live UI.
+Include extraction, OAuth, bounded import, delta sync, health, revocation, FTS5/sqlite-vec/fastembed indexing, claims, contradiction, impact, Context Cognition, candidate-semantic writes, verification-policy evaluation, reviewed canonical promotion, and live UI.
 
 ### Order 5 — Role and Interview
 
@@ -625,7 +648,7 @@ Each requires theme, visual grammar, home canvas, panels, terminology, icons, de
 - stock Pi compatibility;
 - enhanced Pi sidebar/docks;
 - Mission Deck PWA;
-- Tauri shell;
+- UIAI Engine Cockpit Tauri shell hosting Focusa projections;
 - menubar;
 - native TUI;
 - API/CLI/headless.
@@ -817,7 +840,7 @@ EPIC M — Markets workspace
 EPIC N — Research workspace
 EPIC O — General, Custom, and composite workspaces
 EPIC P — Pi enhanced distribution and compatibility
-EPIC Q — Mission Deck PWA and Tauri
+EPIC Q — Mission Deck PWA and UIAI Cockpit integration
 EPIC R — Menubar and native TUI parity
 EPIC S — Migration, accessibility, security, performance, and release proof
 EPIC T — Domain-general ontology registry, semantic graphs, domain packs, slices, and reactions
@@ -835,11 +858,11 @@ Spec 135D is accepted when:
 2. Every normative requirement maps to implementation and proof tasks.
 3. No indefinite deferral language remains.
 4. Cross-spec dependencies remain visible blockers.
-5. Framework qualification records are approved.
-6. Pi package convergence is resolved.
+5. The selected framework stack is pinned, integrated, and proven against its qualification matrix.
+6. Pi package convergence on `@earendil-works/pi-*` is resolved and proven.
 7. Generated schemas/types serve clients.
 8. Shared UI packages replace duplicated client logic.
-9. Incremental sync and hybrid retrieval architecture are defined and proven.
+9. Incremental sync and the selected FTS5/sqlite-vec/fastembed hybrid retrieval architecture are implemented and proven.
 10. All Orders 0–11 remain in the closure graph.
 11. Parallel work preserves dependencies and integration tests.
 12. Performance, accessibility, security, migration, and recovery tasks are first-class.
@@ -848,6 +871,8 @@ Spec 135D is accepted when:
 15. Spec 135F requirements appear in the Complete Feature Ledger and Orders 0–2 before vertical/client implementation.
 16. Archived V1 snapshots/events replay to an equivalent compatibility projection, while unknown future events are preserved and incompatible old writers are blocked.
 17. Every accepted vertical has tested domain-pack conformance, isolation, verification, slice, Workpoint-candidate, and degraded-mode behavior.
+18. Google Drive proves the full reference-connector contract before the shared connector substrate is considered stable.
+19. UIAI Documents/Docling extraction proves all required fixture, provenance, isolation, and recovery paths.
 
 ---
 
@@ -861,10 +886,11 @@ This spec cannot close while:
 - duplicated frameworks replace existing Focusa/UIAI/Pi primitives;
 - Pi package mismatch remains;
 - schema/client contracts are manually divergent;
-- document extraction/search frameworks remain unqualified;
+- selected document extraction or search frameworks are not pinned, integrated, migrated, and proven;
 - client parity is absent from the graph;
 - security/accessibility/performance are cleanup-only tasks;
 - backend success is used as proof of complete UX;
 - any accepted feature is silently deferred;
 - client or vertical work begins before the semantic registry and compatibility contracts are stable;
-- domain-pack, candidate/canonical graph, verification-policy, slice-policy, or semantic-subscription work is omitted as generic future ontology work.
+- domain-pack, candidate/canonical graph, verification-policy, slice-policy, or semantic-subscription work is omitted as generic future ontology work;
+- a different framework, Pi namespace, connector reference, or desktop shell is substituted without a versioned operator amendment.
