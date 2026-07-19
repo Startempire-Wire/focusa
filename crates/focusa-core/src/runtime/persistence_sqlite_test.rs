@@ -7,6 +7,10 @@ use crate::silent_session::{
     SilentSessionHealth, SilentSessionId, SilentSessionLeaseId, SilentSessionLifecycleState,
     SilentSessionRunId, SilentSessionVersions,
 };
+use crate::silent_session_authorization::{
+    SILENT_SESSION_APPROVAL_SCHEMA, SilentSessionApproval, SilentSessionPrincipal,
+    SilentSessionRole, SilentSessionScope,
+};
 use crate::types::{EventLogEntry, FocusaConfig, FocusaEvent, FocusaState, SignalOrigin};
 use chrono::Utc;
 use rusqlite::Connection;
@@ -298,7 +302,7 @@ fn sqlite_crdt_import_is_scoped_and_idempotent() {
 }
 
 #[test]
-fn sqlite_schema_migrates_v1_through_silent_session_schema_v3() {
+fn sqlite_schema_migrates_v1_through_authorization_schema_v4() {
     let dir = temp_dir();
     let mut cfg = FocusaConfig::default();
     cfg.data_dir = dir.to_string_lossy().to_string();
@@ -323,7 +327,7 @@ fn sqlite_schema_migrates_v1_through_silent_session_schema_v3() {
             |row| row.get(0),
         )
         .unwrap();
-    assert_eq!(version, "3");
+    assert_eq!(version, "4");
     let table_count: i64 = conn
         .query_row(
             "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='crdt_events'",
@@ -458,4 +462,90 @@ fn silent_session_projection_and_hash_chain_are_atomic_replay_safe_and_tamper_ev
             .verify_silent_session_event_chain(session.session_id)
             .is_err()
     );
+}
+
+#[test]
+fn silent_session_principals_approvals_and_runner_keys_survive_restart_and_replay_fails() {
+    let dir = temp_dir();
+    let mut config = FocusaConfig::default();
+    config.data_dir = dir.to_string_lossy().to_string();
+    let principal = SilentSessionPrincipal {
+        actor_ref: "operator:test".into(),
+        actor_instance_ref: "operator:test:instance".into(),
+        role: SilentSessionRole::Operator,
+        os_user: "test".into(),
+        project_root: dir.join("project"),
+        project_identity_ref: "project:test".into(),
+        continuity_id: "main".into(),
+        workpoint_ref: Some("workpoint:test".into()),
+        scopes: [SilentSessionScope::Control, SilentSessionScope::Read]
+            .into_iter()
+            .collect(),
+    };
+    let approval = SilentSessionApproval {
+        schema: SILENT_SESSION_APPROVAL_SCHEMA.into(),
+        approval_id: "approval:test".into(),
+        operator_actor_ref: principal.actor_ref.clone(),
+        action: "start".into(),
+        project_identity_ref: principal.project_identity_ref.clone(),
+        continuity_id: principal.continuity_id.clone(),
+        workpoint_ref: principal.workpoint_ref.clone(),
+        session_id: None,
+        run_id: None,
+        config_hash: "config-hash".into(),
+        action_digest: "digest:test".into(),
+        model_binding: "openai/model".into(),
+        workspace_ref: "workspace:test".into(),
+        risk_class: "controlled".into(),
+        expires_at: Utc::now() + chrono::Duration::minutes(5),
+        permitted_side_effects: vec!["write_project".into()],
+    };
+    {
+        let persistence = SqlitePersistence::new(&config).unwrap();
+        persistence
+            .put_silent_session_principal(&principal)
+            .unwrap();
+        persistence.put_silent_session_approval(&approval).unwrap();
+        persistence
+            .put_silent_session_runner_identity(
+                "runner:test",
+                "base64-public-key",
+                "test",
+                "project:test",
+            )
+            .unwrap();
+    }
+    let persistence = SqlitePersistence::new(&config).unwrap();
+    assert_eq!(
+        persistence
+            .load_silent_session_principal(&principal.actor_instance_ref)
+            .unwrap(),
+        Some(principal)
+    );
+    assert_eq!(
+        persistence
+            .load_silent_session_runner_identity("runner:test")
+            .unwrap(),
+        Some((
+            "base64-public-key".into(),
+            "test".into(),
+            "project:test".into()
+        ))
+    );
+    assert_eq!(
+        persistence
+            .redeem_silent_session_approval(
+                &approval.approval_id,
+                &approval.action_digest,
+                Utc::now(),
+            )
+            .unwrap(),
+        approval
+    );
+    assert!(
+        persistence
+            .redeem_silent_session_approval("approval:test", "digest:test", Utc::now())
+            .is_err()
+    );
+    assert!(persistence.put_silent_session_approval(&approval).is_err());
 }

@@ -53,6 +53,7 @@ pub mod runtime;
 pub mod scope_safety;
 pub mod scoped_state;
 pub mod silent_session;
+pub mod silent_session_authorization;
 pub mod silent_session_config;
 pub mod silent_session_reducer;
 pub mod silent_session_stream;

@@ -148,6 +148,40 @@ fn route_scope(method: &Method, path: &str) -> &'static str {
             "work_loop:control"
         };
     }
+    if path == "/v1/silent-sessions"
+        || path.starts_with("/v1/silent-sessions/")
+        || path == "/v1/silent_sessions"
+        || path.starts_with("/v1/silent_sessions/")
+    {
+        if path.contains("/forensics") || path.contains("/raw-output") {
+            return "silent_sessions:forensics";
+        }
+        if path.contains("/admin") || path.ends_with("/adopt") || path.ends_with("/force-kill") {
+            return "silent_sessions:admin";
+        }
+        if path.contains("/events")
+            || path.contains("/output")
+            || path.ends_with("/follow")
+            || path.ends_with("/stream")
+        {
+            return "silent_sessions:stream";
+        }
+        if path.contains("/config") {
+            return "silent_sessions:config";
+        }
+        if (method == Method::POST && path.ends_with("/preflight"))
+            || (method == Method::POST && path.ends_with("/start"))
+            || (method == Method::POST
+                && (path == "/v1/silent-sessions" || path == "/v1/silent_sessions"))
+        {
+            return "silent_sessions:create";
+        }
+        return if method == Method::GET {
+            "silent_sessions:read"
+        } else {
+            "silent_sessions:control"
+        };
+    }
     if path.starts_with("/v1/focus")
         || path.starts_with("/v1/ascc")
         || path.starts_with("/v1/state")
@@ -299,5 +333,55 @@ mod tests {
             route_scope(&Method::GET, "/v1/events/recent"),
             "events:read"
         );
+    }
+
+    #[test]
+    fn silent_session_routes_use_exact_spec_133_scopes() {
+        let cases = [
+            (Method::GET, "/v1/silent-sessions", "silent_sessions:read"),
+            (
+                Method::GET,
+                "/v1/silent-sessions/session-1",
+                "silent_sessions:read",
+            ),
+            (
+                Method::GET,
+                "/v1/silent-sessions/session-1/events",
+                "silent_sessions:stream",
+            ),
+            (
+                Method::POST,
+                "/v1/silent-sessions",
+                "silent_sessions:create",
+            ),
+            (
+                Method::POST,
+                "/v1/silent-sessions/session-1/start",
+                "silent_sessions:create",
+            ),
+            (
+                Method::POST,
+                "/v1/silent-sessions/session-1/input",
+                "silent_sessions:control",
+            ),
+            (
+                Method::PUT,
+                "/v1/silent-sessions/session-1/config",
+                "silent_sessions:config",
+            ),
+            (
+                Method::POST,
+                "/v1/silent-sessions/session-1/adopt",
+                "silent_sessions:admin",
+            ),
+            (
+                Method::GET,
+                "/v1/silent-sessions/session-1/raw-output",
+                "silent_sessions:forensics",
+            ),
+        ];
+        for (method, path, expected) in cases {
+            assert_eq!(route_scope(&method, path), expected, "{method} {path}");
+        }
     }
 }

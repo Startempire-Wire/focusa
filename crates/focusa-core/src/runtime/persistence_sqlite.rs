@@ -8,6 +8,7 @@
 
 use crate::clt::retain_hot_window;
 use crate::silent_session::{SilentSession, SilentSessionEvent, SilentSessionId};
+use crate::silent_session_authorization::{SilentSessionApproval, SilentSessionPrincipal};
 use crate::sync::{CrdtEvent, VectorClock};
 use crate::types::{
     CallStackDesign, CognitionOptimizerArtifact, CuratorEvalRun, DeviceRecord, EventLogEntry,
@@ -21,7 +22,7 @@ use std::sync::{Arc, Mutex};
 use tracing::debug;
 use uuid::Uuid;
 
-const SCHEMA_VERSION: i64 = 3;
+const SCHEMA_VERSION: i64 = 4;
 
 fn hot_clt_snapshot_max_nodes() -> usize {
     std::env::var("FOCUSA_HOT_CLT_MAX_NODES")
@@ -299,6 +300,36 @@ impl SqlitePersistence {
             );
             CREATE INDEX IF NOT EXISTS idx_silent_session_events_order
               ON silent_session_events(session_id, run_id, seq);
+
+            -- V4: durable Spec 133 control-plane identities and one-shot approvals.
+            CREATE TABLE IF NOT EXISTS silent_session_principals (
+              actor_instance_ref TEXT PRIMARY KEY,
+              actor_ref TEXT NOT NULL,
+              principal_json TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS silent_session_approvals (
+              approval_id TEXT PRIMARY KEY,
+              action_digest TEXT NOT NULL,
+              approval_json TEXT NOT NULL,
+              expires_at TEXT NOT NULL,
+              consumed_at TEXT
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_silent_session_approval_digest
+              ON silent_session_approvals(action_digest);
+            CREATE TABLE IF NOT EXISTS silent_session_action_redemptions (
+              action_digest TEXT PRIMARY KEY,
+              approval_id TEXT NOT NULL,
+              redeemed_at TEXT NOT NULL,
+              FOREIGN KEY(approval_id) REFERENCES silent_session_approvals(approval_id) ON DELETE RESTRICT
+            );
+            CREATE TABLE IF NOT EXISTS silent_session_runner_identities (
+              runner_id TEXT PRIMARY KEY,
+              verifying_key_base64 TEXT NOT NULL,
+              os_user TEXT NOT NULL,
+              project_identity_ref TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
 
             CREATE TABLE IF NOT EXISTS snapshots (
               name TEXT PRIMARY KEY,
@@ -2144,6 +2175,141 @@ impl SqlitePersistence {
         writeln!(file, "{}", line)?;
         debug!("Appended CognitionOptimizerArtifact to {:?}", ledger_file);
         Ok(())
+    }
+
+    pub fn put_silent_session_principal(
+        &self,
+        principal: &SilentSessionPrincipal,
+    ) -> anyhow::Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        conn.execute(
+            r#"INSERT INTO silent_session_principals(actor_instance_ref, actor_ref, principal_json, updated_at)
+               VALUES (?1, ?2, ?3, ?4)
+               ON CONFLICT(actor_instance_ref) DO UPDATE SET actor_ref=excluded.actor_ref,
+                 principal_json=excluded.principal_json, updated_at=excluded.updated_at"#,
+            params![principal.actor_instance_ref, principal.actor_ref, serde_json::to_string(principal)?, Utc::now().to_rfc3339()],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_silent_session_principal(
+        &self,
+        actor_instance_ref: &str,
+    ) -> anyhow::Result<Option<SilentSessionPrincipal>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let json: Option<String> = conn
+            .query_row(
+                "SELECT principal_json FROM silent_session_principals WHERE actor_instance_ref=?1",
+                [actor_instance_ref],
+                |row| row.get(0),
+            )
+            .optional()?;
+        json.map(|value| serde_json::from_str(&value).map_err(Into::into))
+            .transpose()
+    }
+
+    pub fn put_silent_session_approval(
+        &self,
+        approval: &SilentSessionApproval,
+    ) -> anyhow::Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let changed = conn.execute(
+            r#"INSERT INTO silent_session_approvals(approval_id, action_digest, approval_json, expires_at, consumed_at)
+               VALUES (?1, ?2, ?3, ?4, NULL)
+               ON CONFLICT(approval_id) DO UPDATE SET action_digest=excluded.action_digest,
+                 approval_json=excluded.approval_json, expires_at=excluded.expires_at
+               WHERE silent_session_approvals.consumed_at IS NULL"#,
+            params![approval.approval_id, approval.action_digest, serde_json::to_string(approval)?, approval.expires_at.to_rfc3339()],
+        )?;
+        anyhow::ensure!(
+            changed == 1,
+            "consumed silent-session approval is immutable"
+        );
+        Ok(())
+    }
+
+    pub fn redeem_silent_session_approval(
+        &self,
+        approval_id: &str,
+        action_digest: &str,
+        now: DateTime<Utc>,
+    ) -> anyhow::Result<SilentSessionApproval> {
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let tx = conn.transaction()?;
+        let (json, stored_digest, expires_at, consumed_at): (String, String, String, Option<String>) = tx.query_row(
+            "SELECT approval_json, action_digest, expires_at, consumed_at FROM silent_session_approvals WHERE approval_id=?1",
+            [approval_id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)))?;
+        anyhow::ensure!(
+            consumed_at.is_none(),
+            "silent-session approval already consumed"
+        );
+        anyhow::ensure!(
+            stored_digest == action_digest,
+            "silent-session approval digest mismatch"
+        );
+        let expiry = DateTime::parse_from_rfc3339(&expires_at)?.with_timezone(&Utc);
+        anyhow::ensure!(expiry > now, "silent-session approval expired");
+        tx.execute(
+            "INSERT INTO silent_session_action_redemptions(action_digest, approval_id, redeemed_at) VALUES (?1,?2,?3)",
+            params![action_digest, approval_id, now.to_rfc3339()],
+        )?;
+        tx.execute(
+            "UPDATE silent_session_approvals SET consumed_at=?2 WHERE approval_id=?1 AND consumed_at IS NULL",
+            params![approval_id, now.to_rfc3339()],
+        )?;
+        tx.commit()?;
+        Ok(serde_json::from_str(&json)?)
+    }
+
+    pub fn put_silent_session_runner_identity(
+        &self,
+        runner_id: &str,
+        verifying_key_base64: &str,
+        os_user: &str,
+        project_identity_ref: &str,
+    ) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            !runner_id.trim().is_empty() && !verifying_key_base64.trim().is_empty(),
+            "runner identity and key are required"
+        );
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        conn.execute(
+            r#"INSERT INTO silent_session_runner_identities(runner_id, verifying_key_base64, os_user, project_identity_ref, updated_at)
+               VALUES (?1,?2,?3,?4,?5)
+               ON CONFLICT(runner_id) DO UPDATE SET verifying_key_base64=excluded.verifying_key_base64,
+                 os_user=excluded.os_user, project_identity_ref=excluded.project_identity_ref,
+                 updated_at=excluded.updated_at"#,
+            params![runner_id, verifying_key_base64, os_user, project_identity_ref, Utc::now().to_rfc3339()],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_silent_session_runner_identity(
+        &self,
+        runner_id: &str,
+    ) -> anyhow::Result<Option<(String, String, String)>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        conn.query_row(
+            "SELECT verifying_key_base64, os_user, project_identity_ref FROM silent_session_runner_identities WHERE runner_id=?1",
+            [runner_id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?))).optional().map_err(Into::into)
     }
 
     /// Atomically append a Spec 133 event and advance its session projection.
