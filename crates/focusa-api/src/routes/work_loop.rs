@@ -190,6 +190,19 @@ fn pi_rpc_bin() -> String {
     std::env::var("FOCUSA_PI_BIN").unwrap_or_else(|_| "pi".to_string())
 }
 
+fn pi_focusa_api_base_url(api_bind: &str) -> String {
+    let child_host = api_bind
+        .strip_prefix("0.0.0.0:")
+        .map(|port| format!("127.0.0.1:{port}"))
+        .or_else(|| {
+            api_bind
+                .strip_prefix("[::]:")
+                .map(|port| format!("127.0.0.1:{port}"))
+        })
+        .unwrap_or_else(|| api_bind.to_string());
+    format!("http://{child_host}/v1")
+}
+
 fn pi_rpc_node_bin_dir() -> Option<String> {
     std::env::var("FOCUSA_NODE_BIN_DIR")
         .ok()
@@ -3299,6 +3312,11 @@ async fn start_pi_driver(
     };
 
     cmd.env("PATH", merged_path)
+        .env(
+            "FOCUSA_PI_API_BASE_URL",
+            pi_focusa_api_base_url(&state.config.api_bind),
+        )
+        .args(["--mode", "rpc", "--no-session"])>>>>>>> 6ca6e8c3 (fix(work-loop): bind Pi to owning daemon)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -4249,6 +4267,22 @@ pub fn router() -> Router<Arc<AppState>> {
 mod tests {
     use super::*;
     use focusa_core::scoped_state::ScopeRef;
+
+    #[test]
+    fn spawned_pi_uses_owning_daemon_endpoint_not_installed_default() {
+        assert_eq!(
+            pi_focusa_api_base_url("127.0.0.1:18787"),
+            "http://127.0.0.1:18787/v1"
+        );
+        assert_eq!(
+            pi_focusa_api_base_url("0.0.0.0:8787"),
+            "http://127.0.0.1:8787/v1"
+        );
+        assert_eq!(
+            pi_focusa_api_base_url("[::]:8788"),
+            "http://127.0.0.1:8788/v1"
+        );
+    }
 
     #[test]
     fn writer_scope_rejects_host_and_cross_continuity_authority() {
