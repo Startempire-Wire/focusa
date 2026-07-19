@@ -3359,7 +3359,14 @@ async fn start_pi_driver(
             "FOCUSA_PI_VITAL_INFO_PROMPT_MODE",
             PI_HEADLESS_VITAL_INFO_PROMPT_MODE,
         )
-        .args(["--mode", "rpc", "--no-session", "--no-extensions"])
+        .args([
+            "--mode",
+            "rpc",
+            "--no-session",
+            "--no-extensions",
+            "--no-skills",
+            "--no-prompt-templates",
+        ])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

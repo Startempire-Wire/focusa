@@ -25,10 +25,12 @@ else
 fi
 
 if rg -n '"--no-extensions"' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
+  && rg -n '"--no-skills"' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
+  && rg -n '"--no-prompt-templates"' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
   && rg -n 'FOCUSA_PI_VITAL_INFO_PROMPT_MODE' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1; then
-  log_pass "Supervised Pi is extension-isolated and non-interactive"
+  log_pass "Supervised Pi is orchestration-isolated and non-interactive"
 else
-  log_fail "Supervised Pi can load competing authority extensions or block on UI"
+  log_fail "Supervised Pi can load competing orchestration or block on UI"
 fi
 
 if rg -n 'process_group\(0\)' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
