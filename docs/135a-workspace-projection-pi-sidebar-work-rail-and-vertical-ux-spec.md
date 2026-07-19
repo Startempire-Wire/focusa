@@ -155,11 +155,33 @@ The dock contract must provide:
 
 Focusa and queue-steering extensions must not install competing editor wrappers.
 
-### 4.3 Focusa Cockpit
+### 4.3 UIAI Engine Cockpit integration and Focusa Mission Deck projection
 
-A Focusa-owned PWA/Tauri outer shell may run Pi through SDK/RPC and fully control transcript, editor, sidebar, images, charts, FPV, task rail, and modal panes.
+The established **UIAI Engine Cockpit** is the shared rich desktop operator environment for browser execution, FPV, Test Lab, Documents, research, artifacts, diagnostics, and audited operator control. It may run or interact with Pi through SDK/RPC and host Focusa Mission Deck and professional-workspace projections.
 
-It must consume the same contracts and read models as Pi mode.
+The product and authority boundary is explicit:
+
+```text
+UIAI Engine Cockpit
+  Operator shell, orchestration, visualization, browser-facing controls,
+  rich documents, research, testing, FPV, and artifact inspection.
+
+UIAI Engine
+  Browser/search/session/media/diagnostics execution and stable artifact handles.
+
+Focusa
+  ProjectIdentity, C.R.I.S.T., semantic project truth, Role, Trajectory,
+  Workpoints, Work Rail, authority, Evidence, Receipts, history, recovery,
+  and next-safe-action cognition.
+
+Pi
+  Conversational agent interaction, coding-agent execution, tools,
+  steering, and follow-up delivery.
+```
+
+Focusa may also expose the same Mission Deck and professional-workspace projections through its standalone Mission Deck PWA, native TUI, Pi sidebar, and menubar. These are Focusa surfaces; they are not a second product named **Cockpit**.
+
+Every surface must consume the same generated contracts and bounded read models. Hosting a Focusa projection inside UIAI Engine Cockpit does not transfer canonical Focusa authority to the Cockpit or UIAI Engine.
 
 ---
 
