@@ -169,10 +169,11 @@ fn route_scope(method: &Method, path: &str) -> &'static str {
         if path.contains("/config") {
             return "silent_sessions:config";
         }
-        if (method == Method::POST && path.ends_with("/preflight"))
-            || (method == Method::POST && path.ends_with("/start"))
-            || (method == Method::POST
-                && (path == "/v1/silent-sessions" || path == "/v1/silent_sessions"))
+        if method == Method::POST
+            && (path.ends_with("/preflight")
+                || path.ends_with("/start")
+                || path == "/v1/silent-sessions"
+                || path == "/v1/silent_sessions")
         {
             return "silent_sessions:create";
         }

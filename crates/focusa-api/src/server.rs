@@ -571,6 +571,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::ontology::router())
         .merge(routes::events_sqlite::router())
         .merge(routes::session::router())
+        .merge(routes::silent_sessions::router())
         .merge(routes::proxy::router())
         .merge(routes::license::router())
         .merge(routes::clt::router())
