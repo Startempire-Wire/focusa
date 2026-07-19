@@ -118,6 +118,23 @@ impl ClaimStorage {
         Ok(claim)
     }
 
+    /// Find the canonical claim for an idempotency key, ignoring rotated snapshots.
+    pub fn find_by_idempotency_key(
+        &self,
+        idempotency_key: &str,
+    ) -> ClaimStorageResult<Option<ClosureClaim>> {
+        for claim_id in self.list()? {
+            if claim_id.contains('.') {
+                continue;
+            }
+            let claim = self.load(&claim_id)?;
+            if claim.idempotency_key == idempotency_key {
+                return Ok(Some(claim));
+            }
+        }
+        Ok(None)
+    }
+
     /// List claim ids currently on disk.
     pub fn list(&self) -> ClaimStorageResult<Vec<String>> {
         let mut out = Vec::new();

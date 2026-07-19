@@ -48,8 +48,9 @@ use crate::runtime::persistence_actor::PersistenceActor;
 use crate::runtime::persistence_sqlite::SqlitePersistence as Persistence;
 use crate::types::*;
 use crate::work_item::{
-    BdAdapter, NoneAdapter, ProviderAdapter, WorkItem, WorkItemProvider, WorkItemQuery,
-    WorkItemRef, evaluate_readiness,
+    BdAdapter, ClosureAuthorityContext, ClosureBlock, ClosureClaim, ClosureKind, EvidenceCitation,
+    EvidenceKind, Lifecycle, LifecycleStage, NoneAdapter, ProviderAdapter, WorkItem,
+    WorkItemProvider, WorkItemQuery, WorkItemRef, evaluate_readiness,
 };
 use crate::workers::{executor, priority_queue};
 use chrono::{DateTime, Utc};
@@ -2502,13 +2503,6 @@ Return:
         (certificate_id, note)
     }
 
-    async fn record_bd_closure_certificate_if_possible(work_item_id: &str, certificate_note: &str) {
-        let _ = tokio::process::Command::new("bd")
-            .args(["update", work_item_id, "--append-notes", certificate_note])
-            .output()
-            .await;
-    }
-
     fn subject_hijack_trace_flags(
         operator_subject: &str,
         active_subject_after_routing: &str,
@@ -3010,17 +3004,6 @@ Return:
             .await;
     }
 
-    async fn record_bd_completion_transition_if_possible(work_item_id: &str, summary: &str) {
-        let reason = format!(
-            "Completed via continuous loop: {}",
-            summary.chars().take(220).collect::<String>()
-        );
-        let _ = tokio::process::Command::new("bd")
-            .args(["close", work_item_id, "--reason", &reason])
-            .output()
-            .await;
-    }
-
     fn work_item_provider_and_root(
         &self,
     ) -> anyhow::Result<(WorkItemProvider, std::path::PathBuf)> {
@@ -3048,6 +3031,111 @@ Return:
                 "work item provider {unsupported} has no registered traversal adapter"
             ),
         }
+    }
+
+    fn closure_kind_for_task(task: &SpecLinkedTaskPacket) -> ClosureKind {
+        match task.task_class {
+            TaskClass::DocSpec => ClosureKind::Docs,
+            TaskClass::Architecture => ClosureKind::Investigation,
+            TaskClass::Integration => ClosureKind::Deploy,
+            TaskClass::Code | TaskClass::Refactor | TaskClass::Unknown => ClosureKind::Code,
+        }
+    }
+
+    async fn complete_work_item_via_lifecycle(
+        &self,
+        task: &SpecLinkedTaskPacket,
+        summary: &str,
+        mut citations: Vec<EvidenceCitation>,
+    ) -> Result<ClosureClaim, ClosureBlock> {
+        let scope = self
+            .state
+            .work_loop
+            .execution_scope
+            .as_ref()
+            .ok_or_else(|| {
+                ClosureBlock::new(
+                    "authority_scope_invalid",
+                    "execution_scope_required",
+                    "Work Loop closure requires a reducer-owned execution scope",
+                    "bind the Work Loop to a verified project and continuity before retrying",
+                    LifecycleStage::Prepare,
+                )
+            })?;
+        let workpoint_id = self.state.workpoint.active_workpoint_id.ok_or_else(|| {
+            ClosureBlock::new(
+                "authority_scope_invalid",
+                "canonical_workpoint_required",
+                "Work Loop closure requires an active canonical Workpoint",
+                "checkpoint and bind the active Workpoint before retrying closure",
+                LifecycleStage::Prepare,
+            )
+        })?;
+        let workpoint = self
+            .state
+            .workpoint
+            .records
+            .iter()
+            .find(|record| record.workpoint_id == workpoint_id && record.canonical)
+            .ok_or_else(|| {
+                ClosureBlock::new(
+                    "authority_scope_invalid",
+                    "canonical_workpoint_not_found",
+                    "the active Workpoint is missing or non-canonical",
+                    "resume or checkpoint a canonical Workpoint in this workstream",
+                    LifecycleStage::Prepare,
+                )
+            })?;
+        let root = scope.root_scope.root_path.clone();
+        if workpoint.project_root.as_deref() != Some(root.to_string_lossy().as_ref())
+            || workpoint.continuity_id.as_deref() != Some(scope.continuity_id.as_str())
+        {
+            return Err(ClosureBlock::new(
+                "scope_mismatch",
+                "workpoint_workstream_mismatch",
+                "active Workpoint does not belong to the Work Loop execution workstream",
+                "checkpoint a Workpoint with the exact project_root and continuity_id",
+                LifecycleStage::Prepare,
+            ));
+        }
+        citations.push(EvidenceCitation {
+            kind: EvidenceKind::Workpoint,
+            ref_: workpoint_id.to_string(),
+            line: None,
+            line_end: None,
+            required: true,
+            result: None,
+            verified: false,
+        });
+        let (provider, project_root) = self.work_item_provider_and_root().map_err(|error| {
+            ClosureBlock::new(
+                "provider_resolution_failed",
+                "work_item_provider_unavailable",
+                error.to_string(),
+                "configure an operational WorkItem provider for this project",
+                LifecycleStage::Prepare,
+            )
+        })?;
+        let closure_kind = Self::closure_kind_for_task(task);
+        Lifecycle::open_for_kind(closure_kind)
+            .run_scoped(
+                "focusa-work-loop",
+                WorkItemRef {
+                    provider,
+                    provider_item_id: task.work_item_id.clone(),
+                    project_root,
+                    external_url: None,
+                },
+                summary,
+                closure_kind,
+                citations,
+                ClosureAuthorityContext {
+                    continuity_id: scope.continuity_id.clone(),
+                    workpoint_id: workpoint_id.to_string(),
+                    agent_session_id: None,
+                },
+            )
+            .await
     }
 
     fn task_packet_from_work_item(item: WorkItem) -> SpecLinkedTaskPacket {
@@ -3882,6 +3970,8 @@ Return:
                 continue_reason,
                 verification_satisfied,
                 spec_conformant,
+                outcome_status,
+                evidence_citations,
             } => {
                 self.state.work_loop.pending_proposals_requiring_resolution =
                     crate::pre::pending_count(&self.state.pre);
@@ -4287,55 +4377,102 @@ Return:
                         replay_closure_evidence.as_ref(),
                     )
                 });
-                let mut events = vec![
-                    FocusaEvent::ContinuousTurnObserved {
-                        task_run_id,
-                        summary,
-                    },
-                    FocusaEvent::ContinuousTurnCompleted {
-                        task_run_id,
-                        work_item_id: work_item_id.clone(),
-                        continue_reason,
-                        verification_satisfied,
-                        spec_conformant,
-                    },
-                ];
-                if verification_satisfied {
-                    events.push(FocusaEvent::ContinuousLoopRecoveryCheckpointed {
-                        checkpoint_id: Uuid::now_v7(),
-                        summary: "checkpoint: verification satisfied".to_string(),
-                    });
-                }
-                if let Some(id) = work_item_id.as_deref() {
-                    if let Some((certificate_id, certificate_note)) = closure_certificate.as_ref() {
-                        Self::record_bd_closure_certificate_if_possible(id, certificate_note).await;
-                        Self::record_bd_completion_transition_if_possible(
-                            id,
-                            &format!(
-                                "verified completion; closure_certificate={certificate_id}; continuous loop advanced outcome"
-                            ),
-                        )
-                        .await;
+                let mut closure_block = None;
+                let mut closure_claim = None;
+                if outcome_status == WorkLoopOutcomeStatus::Completed {
+                    if !verification_satisfied || !spec_conformant {
+                        closure_block = Some(ClosureBlock::new(
+                            "validation_rejected",
+                            "completion_receipt_unverified",
+                            "completion was claimed without verified, spec-conformant evidence",
+                            "emit a typed completion receipt with stable evidence citations",
+                            LifecycleStage::Validate,
+                        ));
+                    } else if let Some(task) = current_task.as_ref() {
+                        if work_item_id.as_deref() != Some(task.work_item_id.as_str()) {
+                            closure_block = Some(ClosureBlock::new(
+                                "scope_mismatch",
+                                "completion_work_item_mismatch",
+                                "completion receipt does not match the selected WorkItem",
+                                "retry with the selected WorkItem id",
+                                LifecycleStage::Prepare,
+                            ));
+                        } else {
+                            match self
+                                .complete_work_item_via_lifecycle(
+                                    task,
+                                    &summary_for_trace,
+                                    evidence_citations.clone(),
+                                )
+                                .await
+                            {
+                                Ok(claim) => closure_claim = Some(claim),
+                                Err(block) => closure_block = Some(block),
+                            }
+                        }
                     } else {
-                        Self::record_bd_completion_transition_if_possible(
-                            id,
-                            "verified completion; continuous loop advanced outcome",
-                        )
-                        .await;
+                        closure_block = Some(ClosureBlock::new(
+                            "authority_scope_invalid",
+                            "selected_work_item_required",
+                            "completion receipt arrived without a selected WorkItem",
+                            "select a scoped WorkItem before reporting completion",
+                            LifecycleStage::Prepare,
+                        ));
                     }
                 }
-                if let Some(task) = current_task.as_ref() {
+
+                let mut events = vec![FocusaEvent::ContinuousTurnObserved {
+                    task_run_id,
+                    summary,
+                }];
+                if let Some(block) = closure_block.as_ref() {
+                    events.push(FocusaEvent::ContinuousTurnBlocked {
+                        blocker_class: BlockerClass::Verification,
+                        reason: format!("{}:{}: {}", block.failure_class, block.code, block.why),
+                        work_item_id: work_item_id.clone(),
+                    });
+                } else {
+                    events.push(FocusaEvent::ContinuousTurnCompleted {
+                        task_run_id,
+                        work_item_id: work_item_id.clone(),
+                        continue_reason: continue_reason.clone(),
+                        verification_satisfied,
+                        spec_conformant,
+                        outcome_status,
+                        evidence_citations: evidence_citations.clone(),
+                    });
+                }
+                if closure_block.is_none() && verification_satisfied {
+                    events.push(FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                        checkpoint_id: Uuid::now_v7(),
+                        summary: closure_claim
+                            .as_ref()
+                            .map(|claim| {
+                                format!("checkpoint: closure reconciled {}", claim.claim_id)
+                            })
+                            .unwrap_or_else(|| "checkpoint: verification satisfied".to_string()),
+                    });
+                }
+                if outcome_status == WorkLoopOutcomeStatus::Completed
+                    && let Some(task) = current_task.as_ref()
+                {
                     let certificate_id = closure_certificate.as_ref().map(|(id, _)| id.as_str());
+                    let (verdict, reason) = closure_block
+                        .as_ref()
+                        .map(|block| ("rejected", Some(block.why.as_str())))
+                        .unwrap_or(("approved", None));
                     self.record_secondary_closure_trace(
                         task,
-                        "approved",
-                        None,
+                        verdict,
+                        reason,
                         &summary_for_trace,
                         certificate_id,
                         replay_closure_evidence.as_ref(),
                     );
                 }
-                if let Some(task) = current_task.as_ref() {
+                if closure_claim.is_some()
+                    && let Some(task) = current_task.as_ref()
+                {
                     if let Some(parent_work_item_id) = task.dependencies.first() {
                         if let Some(boundary_reason) = Self::secondary_loop_boundary_reason(
                             &self.state.work_loop.decision_context,
@@ -5816,6 +5953,8 @@ mod tests {
                 ),
                 verification_satisfied: true,
                 spec_conformant: true,
+                outcome_status: WorkLoopOutcomeStatus::Continue,
+                evidence_citations: vec![],
             })
             .await
             .expect("observe outcome events");
@@ -5942,6 +6081,8 @@ mod tests {
                 continue_reason: Some("reviewing options".to_string()),
                 verification_satisfied: false,
                 spec_conformant: false,
+                outcome_status: WorkLoopOutcomeStatus::Continue,
+                evidence_citations: vec![],
             })
             .await
             .expect("observe outcome events");
@@ -6002,6 +6143,8 @@ mod tests {
                 continue_reason: Some("".to_string()),
                 verification_satisfied: false,
                 spec_conformant: false,
+                outcome_status: WorkLoopOutcomeStatus::Continue,
+                evidence_citations: vec![],
             })
             .await
             .expect("observe outcome events");
@@ -6053,6 +6196,8 @@ mod tests {
                 continue_reason: Some(String::new()),
                 verification_satisfied: false,
                 spec_conformant: false,
+                outcome_status: WorkLoopOutcomeStatus::Continue,
+                evidence_citations: vec![],
             })
             .await
             .expect("baseline outcome");
@@ -6067,6 +6212,8 @@ mod tests {
                 continue_reason: Some("validated proposal against spec78".to_string()),
                 verification_satisfied: true,
                 spec_conformant: true,
+                outcome_status: WorkLoopOutcomeStatus::Continue,
+                evidence_citations: vec![],
             })
             .await
             .expect("secondary-loop-improved outcome");
@@ -6163,6 +6310,8 @@ mod tests {
                 continue_reason: Some("tests pending".to_string()),
                 verification_satisfied: false,
                 spec_conformant: true,
+                outcome_status: WorkLoopOutcomeStatus::Continue,
+                evidence_citations: vec![],
             })
             .await
             .expect("observe outcome events");

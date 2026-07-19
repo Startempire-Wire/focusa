@@ -8,7 +8,7 @@
 //!            it does not belong in Focusa.
 
 use crate::scoped_state::WorkstreamKey;
-use crate::work_item::WorkItemProvider;
+use crate::work_item::{EvidenceCitation, WorkItemProvider};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -153,6 +153,15 @@ pub enum TaskClass {
     DocSpec,
     Architecture,
     Integration,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkLoopOutcomeStatus {
+    #[default]
+    Continue,
+    Completed,
+    Blocked,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -3582,6 +3591,10 @@ pub enum FocusaEvent {
         continue_reason: Option<String>,
         verification_satisfied: bool,
         spec_conformant: bool,
+        #[serde(default)]
+        outcome_status: WorkLoopOutcomeStatus,
+        #[serde(default)]
+        evidence_citations: Vec<EvidenceCitation>,
     },
     /// Replay/audit event for doc78 secondary-loop comparative evidence.
     ContinuousSecondaryLoopOutcomeRecorded {
@@ -4303,6 +4316,8 @@ pub enum Action {
         continue_reason: Option<String>,
         verification_satisfied: bool,
         spec_conformant: bool,
+        outcome_status: WorkLoopOutcomeStatus,
+        evidence_citations: Vec<EvidenceCitation>,
     },
     CheckpointContinuousLoop {
         checkpoint_id: CheckpointId,

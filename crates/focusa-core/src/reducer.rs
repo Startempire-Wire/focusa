@@ -1984,6 +1984,7 @@ pub fn reduce_with_meta(
             continue_reason,
             verification_satisfied: _,
             spec_conformant: _,
+            ..
         } => {
             state.work_loop.status = WorkLoopStatus::AdvancingTask;
             state.work_loop.run.task_run_id = task_run_id;

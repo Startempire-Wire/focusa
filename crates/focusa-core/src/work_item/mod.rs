@@ -1,10 +1,10 @@
 //! Provider-Neutral Work Item Closure Authority (Spec 116).
 //!
-// Focusa validates closure truth; providers store and display the closure.
-// bd is adapter #1. Asana, Linear, GitHub Issues, GitLab, Jira, and
+//! Focusa validates closure truth; providers store and display the closure.
+//! bd is adapter #1. Asana, Linear, GitHub Issues, GitLab, Jira, and
 //! future providers plug in via the [`ProviderAdapter`] trait.
 //!
-// ## Module map
+//! ## Module map
 //!
 // - [`types`]   — Provider, WorkItemRef, EvidenceCitation, ClosureClaim,
 //                 ClaimStatus, ClosureKind, ClosureProfile, closure envelopes.
@@ -44,7 +44,8 @@ pub use policy::{ACTIVE_PROFILE_RELEASE_PROOF, ClosurePolicy, ClosureProfile, Pr
 pub use scheduler::{BlockedWorkItem, WorkItemReadiness, evaluate_readiness, select_next_ready};
 pub use storage::{ClaimStorage, ClaimStorageError, ClaimStorageResult};
 pub use types::{
-    ClaimStatus, ClosureBlock, ClosureClaim, ClosureClaimBuilder, ClosureError, ClosureKind,
-    EvidenceCitation, EvidenceKind, LifecycleStage, ProviderCapabilities, RECLAIMED_BY_OPERATOR,
-    WorkItem, WorkItemProvider, WorkItemQuery, WorkItemRef, WorkItemStatus,
+    ClaimStatus, ClosureAuthorityContext, ClosureBlock, ClosureClaim, ClosureClaimBuilder,
+    ClosureError, ClosureKind, EvidenceCitation, EvidenceKind, LifecycleStage,
+    ProviderCapabilities, RECLAIMED_BY_OPERATOR, WorkItem, WorkItemProvider, WorkItemQuery,
+    WorkItemRef, WorkItemStatus,
 };

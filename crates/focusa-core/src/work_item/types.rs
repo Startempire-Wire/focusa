@@ -15,7 +15,9 @@ use std::path::PathBuf;
 pub const RECLAIMED_BY_OPERATOR: &str = "operator.override";
 
 /// Provider kind. Provider-neutral: bd is one of many.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkItemProvider {
     /// Beads (`bd`). Adapter #1, not the sole authority.
@@ -33,13 +35,8 @@ pub enum WorkItemProvider {
     /// No provider configured for this work item. Used for repos that
     /// do not host a tracker. The `none` adapter is a no-op submit
     /// that records the closure locally without mutating any backend.
+    #[default]
     None,
-}
-
-impl Default for WorkItemProvider {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 impl fmt::Display for WorkItemProvider {
@@ -295,6 +292,7 @@ pub struct EvidenceCitation {
     /// - workpoint: `019f3b0f-7068-7a11-aabc-26969ee39dde`
     /// - ci:      `gh run 28845429408 pass`
     /// - deploy:   `version 0.9.74-dev uptime_ms 1494 ok=true`
+    #[serde(rename = "ref", alias = "ref_")]
     pub ref_: String,
     /// Optional 1-based line range for code/spec artifacts.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -434,6 +432,15 @@ impl ProviderCapabilities {
     pub fn none() -> Self {
         Self::default()
     }
+}
+
+/// Typed authority scope required when autonomous execution requests closure.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ClosureAuthorityContext {
+    pub continuity_id: String,
+    pub workpoint_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_session_id: Option<String>,
 }
 
 /// Top-level typed closure claim (Spec 116 §7.4). Serialized verbatim

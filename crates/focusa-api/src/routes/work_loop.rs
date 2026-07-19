@@ -16,12 +16,12 @@ use focusa_core::scoped_state::WorkstreamKey;
 use focusa_core::tool_result::{ToolResultV1, ToolStatus};
 use focusa_core::types::{
     Action, BlockerClass, EventLogEntry, FocusaEvent, FocusaState, ProjectRunId, SignalOrigin,
-    SpecLinkedTaskPacket, TaskClass, WorkLoopPolicy, WorkLoopPolicyOverrides, WorkLoopPreset,
-    WorkLoopStatus,
+    SpecLinkedTaskPacket, TaskClass, WorkLoopOutcomeStatus, WorkLoopPolicy,
+    WorkLoopPolicyOverrides, WorkLoopPreset, WorkLoopStatus,
 };
 use focusa_core::work_item::{
-    BdAdapter, NoneAdapter, ProviderAdapter, WorkItemProvider, WorkItemQuery, WorkItemReadiness,
-    WorkItemRef, evaluate_readiness,
+    BdAdapter, EvidenceCitation, NoneAdapter, ProviderAdapter, WorkItemProvider, WorkItemQuery,
+    WorkItemReadiness, WorkItemRef, evaluate_readiness,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -1155,6 +1155,32 @@ fn extract_assistant_text(message: &Value) -> Option<String> {
         .filter(|s| !s.is_empty())
 }
 
+const WORK_LOOP_OUTCOME_PREFIX: &str = "FOCUSA_WORK_LOOP_OUTCOME ";
+const WORK_LOOP_OUTCOME_SCHEMA: &str = "focusa.work_loop_outcome.v1";
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct WorkLoopOutcomeReceipt {
+    schema: String,
+    pub(crate) work_item_id: String,
+    pub(crate) status: WorkLoopOutcomeStatus,
+    #[serde(default)]
+    pub(crate) summary: Option<String>,
+    #[serde(default)]
+    pub(crate) spec_conformant: bool,
+    #[serde(default)]
+    pub(crate) evidence_citations: Vec<EvidenceCitation>,
+}
+
+pub(crate) fn parse_work_loop_outcome_receipt(output: &str) -> Option<WorkLoopOutcomeReceipt> {
+    let payload = output
+        .lines()
+        .rev()
+        .find_map(|line| line.trim().strip_prefix(WORK_LOOP_OUTCOME_PREFIX))?;
+    let receipt: WorkLoopOutcomeReceipt = serde_json::from_str(payload).ok()?;
+    (receipt.schema == WORK_LOOP_OUTCOME_SCHEMA).then_some(receipt)
+}
+
 fn render_continuous_turn_prompt(
     task: &SpecLinkedTaskPacket,
     mission: Option<String>,
@@ -1181,7 +1207,7 @@ fn render_continuous_turn_prompt(
         task.linked_spec_refs.join(", ")
     };
     format!(
-        "Continuous work mode.\nWork item: {id} — {title}\nMission: {mission}\nFocus: {focus}\nAllowed scope: {scope}\nLinked specs: {refs}\nAcceptance criteria:\n{acceptance}\nLast checkpoint: {checkpoint}\nExecute the next concrete step only within scope. Verify before claiming completion. If blocked, say why explicitly.",
+        "Continuous work mode.\nWork item: {id} — {title}\nMission: {mission}\nFocus: {focus}\nAllowed scope: {scope}\nLinked specs: {refs}\nAcceptance criteria:\n{acceptance}\nLast checkpoint: {checkpoint}\nExecute the next concrete step only within scope. Never claim completion from prose alone. End with one typed line: FOCUSA_WORK_LOOP_OUTCOME {{\"schema\":\"focusa.work_loop_outcome.v1\",\"work_item_id\":\"{id}\",\"status\":\"continue|completed|blocked\",\"summary\":\"bounded result\",\"spec_conformant\":true|false,\"evidence_citations\":[{{\"kind\":\"test\",\"ref\":\"stable/path/or/proof\",\"required\":true}}]}}. Use completed only when acceptance evidence is stable and verifiable.",
         id = task.work_item_id,
         title = task.title,
         mission = mission.unwrap_or_else(|| "(none)".to_string()),
@@ -3301,21 +3327,46 @@ async fn start_pi_driver(
                     if has_assistant_output {
                         let assistant_excerpt =
                             assistant_output.chars().take(220).collect::<String>();
-                        let spec_conformant = !assistant_output.contains("BLOCKER:")
-                            && !assistant_output.contains("ESCALATE:");
+                        let receipt = parse_work_loop_outcome_receipt(assistant_output);
+                        let receipt_matches = receipt
+                            .as_ref()
+                            .is_some_and(|receipt| receipt.work_item_id == task.work_item_id);
+                        let outcome_status = receipt
+                            .as_ref()
+                            .filter(|_| receipt_matches)
+                            .map(|receipt| receipt.status)
+                            .unwrap_or(WorkLoopOutcomeStatus::Continue);
+                        let evidence_citations = receipt
+                            .as_ref()
+                            .filter(|_| receipt_matches)
+                            .map(|receipt| receipt.evidence_citations.clone())
+                            .unwrap_or_default();
+                        let spec_conformant = receipt
+                            .as_ref()
+                            .filter(|_| receipt_matches)
+                            .is_some_and(|receipt| receipt.spec_conformant);
+                        let verification_satisfied = outcome_status
+                            == WorkLoopOutcomeStatus::Completed
+                            && !evidence_citations.is_empty();
+                        let summary = receipt
+                            .as_ref()
+                            .filter(|_| receipt_matches)
+                            .and_then(|receipt| receipt.summary.clone())
+                            .unwrap_or_else(|| {
+                                format!("{kind} for {}: {assistant_excerpt}", task.work_item_id)
+                            });
                         let _ = command_tx
                             .send(Action::ObserveContinuousTurnOutcome {
                                 task_run_id: None,
                                 work_item_id: Some(task.work_item_id.clone()),
-                                summary: format!(
-                                    "{kind} for {}: {assistant_excerpt}",
-                                    task.work_item_id
-                                ),
+                                summary,
                                 continue_reason: Some(format!(
                                     "{kind} observed from pi rpc stream: {assistant_excerpt}"
                                 )),
-                                verification_satisfied: true,
+                                verification_satisfied,
                                 spec_conformant,
+                                outcome_status,
+                                evidence_citations,
                             })
                             .await;
                         let _ = maybe_dispatch_continuous_turn_prompt(
@@ -5263,4 +5314,27 @@ mod tests {
         );
         assert!(!args.iter().any(|arg| arg == "--no-session"));
     }
+
+    #[test]
+    fn prose_without_typed_receipt_never_claims_completion() {
+        assert!(parse_work_loop_outcome_receipt("implemented and all tests pass").is_none());
+    }
+
+    #[test]
+    fn typed_completion_receipt_carries_stable_evidence() {
+        let output = r#"work done
+FOCUSA_WORK_LOOP_OUTCOME {"schema":"focusa.work_loop_outcome.v1","work_item_id":"focusa-1","status":"completed","summary":"verified","spec_conformant":true,"evidence_citations":[{"kind":"test","ref":"tests/work_loop.rs","required":true}]}"#;
+        let receipt = parse_work_loop_outcome_receipt(output).unwrap();
+        assert_eq!(receipt.work_item_id, "focusa-1");
+        assert_eq!(receipt.status, WorkLoopOutcomeStatus::Completed);
+        assert!(receipt.spec_conformant);
+        assert_eq!(receipt.evidence_citations.len(), 1);
+        assert_eq!(receipt.evidence_citations[0].ref_, "tests/work_loop.rs");
+    }
+
+    #[test]
+    fn mismatched_or_unknown_receipt_schema_is_rejected() {
+        let output = r#"FOCUSA_WORK_LOOP_OUTCOME {"schema":"focusa.work_loop_outcome.v2","work_item_id":"focusa-1","status":"completed","spec_conformant":true,"evidence_citations":[]}"#;
+        assert!(parse_work_loop_outcome_receipt(output).is_none());
+    }>>>>>>> 700ee048 (feat(work-loop): gate closure on typed evidence lifecycle)
 }
