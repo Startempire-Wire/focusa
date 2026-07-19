@@ -11,7 +11,7 @@
 
 ## 0. One-line definition
 
-Focusa should project one canonical project runtime into a dynamic, project-selectable professional cockpit that stays visible and live inside Pi and other Focusa clients, while each vertical becomes visually striking through layout, artifact views, terminology, geometry, density, iconography, and theme — not through color alone.
+Focusa should project one canonical project runtime into a dynamic, project-selectable professional workspace that stays visible and live inside Pi and other Focusa clients, while each vertical becomes visually striking through layout, artifact views, terminology, geometry, density, iconography, and theme — not through color alone.
 
 ---
 
@@ -157,7 +157,7 @@ Focusa and queue-steering extensions must not install competing editor wrappers.
 
 ### 4.3 UIAI Engine Cockpit integration and Focusa Mission Deck projection
 
-The established **UIAI Engine Cockpit** is the shared rich desktop operator environment for browser execution, FPV, Test Lab, Documents, research, artifacts, diagnostics, and audited operator control. It may run or interact with Pi through SDK/RPC and host Focusa Mission Deck and professional-workspace projections.
+The established **UIAI Engine Cockpit** in `apps/cockpit/` is the single primary rich desktop operator environment for browser execution, FPV, Test Lab, Documents, research, artifacts, diagnostics, and audited operator control. It may run or interact with Pi through SDK/RPC and host Focusa Mission Deck and professional-workspace projections.
 
 The product and authority boundary is explicit:
 
@@ -179,7 +179,7 @@ Pi
   steering, and follow-up delivery.
 ```
 
-Focusa may also expose the same Mission Deck and professional-workspace projections through its standalone Mission Deck PWA, native TUI, Pi sidebar, and menubar. These are Focusa surfaces; they are not a second product named **Cockpit**.
+The Focusa-enhanced Pi distribution is the primary terminal and coding-harness experience. Focusa may also expose the same Mission Deck and professional-workspace projections through its standalone Mission Deck PWA, native TUI, Pi sidebar, and menubar. These are Focusa surfaces; they are not a second product named **Cockpit**.
 
 Every surface must consume the same generated contracts and bounded read models. Hosting a Focusa projection inside UIAI Engine Cockpit does not transfer canonical Focusa authority to the Cockpit or UIAI Engine.
 
@@ -251,8 +251,8 @@ history_projection:
 focusa.base
 → vertical profile
 → optional domain overlay
-→ project overrides
-→ user accessibility preferences
+→ project workspace defaults and constraints
+→ user presentation/accessibility overrides
 → runtime capability fallback
 ```
 
@@ -283,6 +283,31 @@ project-selected domain packs
 ```
 
 An unavailable required domain pack produces an explicit degraded workspace state with migration/recovery guidance. It must not silently fall back to visually convincing but semantically incorrect controls.
+
+### 5.4 Project and user layout ownership
+
+The project owns the shared semantic and team baseline:
+
+- active Workspace View Profile;
+- required domain packs;
+- required/non-hideable authority, proof, safety, and compliance panels;
+- default panel set and order;
+- terminology;
+- artifact-renderer bindings;
+- team-shared workspace overrides.
+
+The user owns personal presentation preferences:
+
+- visual variant;
+- density;
+- sidebar width and dock position;
+- collapsed/expanded state;
+- optional panel ordering where the project permits it;
+- keyboard shortcuts;
+- accessibility and reduced-motion settings;
+- device-specific layout overrides.
+
+Project-required safety, authority, proof, and compliance surfaces take precedence over personal hiding or reordering. Runtime capability fallbacks are temporary projections and must not overwrite project defaults or user preferences.
 
 ---
 
@@ -624,12 +649,12 @@ All clients consume shared contracts:
 - stock Pi compatibility widgets/drawer;
 - enhanced Pi docks/sidebar;
 - Mission Deck PWA;
-- Tauri shell;
+- UIAI Engine Cockpit Tauri shell hosting Focusa projections;
 - menubar peeks/living field;
 - native Ratatui TUI;
 - CLI and JSON read models.
 
-The menubar remains compact and ambient under Spec 121A. It must not expose the entire professional cockpit as equal tabs.
+The UIAI Engine Cockpit is the primary rich desktop surface. The Focusa-enhanced Pi distribution is the primary terminal/harness-native surface. The menubar remains compact and ambient under Spec 121A and must not expose the entire professional workspace as equal tabs.
 
 ---
 
@@ -648,11 +673,12 @@ Spec 135A is accepted when:
 9. Artifact renderer dispatch works by profile and artifact kind.
 10. All verticals are visually striking beyond color changes.
 11. Responsive, keyboard, reduced-motion, and high-contrast tests pass.
-12. PWA, Tauri, Pi, menubar, native TUI, API, and CLI use shared contracts.
+12. PWA, UIAI Cockpit/Tauri, Pi, menubar, native TUI, API, and CLI use shared contracts.
 13. Visual selection cannot escalate permissions.
 14. Actual visual-regression and live-update evidence is captured.
 15. Every workspace profile declares its domain-pack requirements or explicitly declares itself presentation-only.
-16. No Pi, PWA, Tauri, menubar, TUI, or renderer implementation owns or duplicates canonical domain policy.
+16. No Pi, PWA, UIAI Cockpit/Tauri, menubar, TUI, or renderer implementation owns or duplicates canonical domain policy.
+17. Project-owned workspace defaults and user-owned presentation preferences resolve deterministically and preserve non-hideable authority/proof/safety panels.
 
 ---
 
@@ -669,4 +695,6 @@ This spec cannot close while:
 - narrow-terminal or accessibility states are unproven;
 - shared client contracts are replaced by duplicated local interfaces;
 - a visual profile silently substitutes for a missing domain pack;
-- a client or renderer embeds canonical domain policy instead of consuming generated semantic contracts.
+- a client or renderer embeds canonical domain policy instead of consuming generated semantic contracts;
+- project and user layout ownership is ambiguous or a personal override can hide required authority/proof/safety state;
+- a second independently branded Focusa desktop cockpit is introduced.
