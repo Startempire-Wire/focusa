@@ -362,6 +362,235 @@ impl NonBlockingStreamCapture {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StreamRecoveryReport {
+    pub scanned_runs: usize,
+    pub valid_chunks: usize,
+    pub quarantined_paths: Vec<PathBuf>,
+    pub degraded_sessions: Vec<SilentSessionId>,
+}
+
+pub fn recover_registered_streams(
+    data_root: &Path,
+    registered_runs: &[(SilentSessionId, SilentSessionRunId)],
+) -> anyhow::Result<StreamRecoveryReport> {
+    let mut report = StreamRecoveryReport {
+        scanned_runs: 0,
+        valid_chunks: 0,
+        quarantined_paths: vec![],
+        degraded_sessions: vec![],
+    };
+    for (session_id, run_id) in registered_runs {
+        let run_root = data_root
+            .join("silent-sessions")
+            .join(session_id.to_string())
+            .join(run_id.to_string());
+        if !run_root.is_dir() {
+            continue;
+        }
+        reject_symlink(&run_root)?;
+        report.scanned_runs += 1;
+        let recovery = run_root.join("recovery");
+        secure_dir(&recovery)?;
+        let streams = run_root.join("streams");
+        let mut indexed = std::collections::BTreeSet::new();
+        for entry in fs::read_dir(&run_root)? {
+            let path = entry?.path();
+            let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+                continue;
+            };
+            if !name.starts_with("manifest-") || !name.ends_with(".json") {
+                continue;
+            }
+            let verification = (|| -> anyhow::Result<String> {
+                reject_symlink(&path)?;
+                let manifest: SilentStreamChunkManifest =
+                    serde_json::from_slice(&fs::read(&path)?)?;
+                anyhow::ensure!(
+                    manifest.session_id == *session_id && manifest.run_id == *run_id,
+                    "manifest scope mismatch"
+                );
+                let chunk_path = streams.join(&manifest.file_name);
+                reject_symlink(&chunk_path)?;
+                let bytes = fs::read(&chunk_path)?;
+                anyhow::ensure!(
+                    u64::try_from(bytes.len())? == manifest.byte_count,
+                    "chunk byte count mismatch"
+                );
+                anyhow::ensure!(
+                    hex::encode(Sha256::digest(&bytes)) == manifest.content_sha256,
+                    "chunk hash mismatch"
+                );
+                Ok(manifest.file_name)
+            })();
+            match verification {
+                Ok(file_name) => {
+                    indexed.insert(file_name);
+                    report.valid_chunks += 1;
+                }
+                Err(_) => quarantine(&path, &recovery, &mut report.quarantined_paths)?,
+            }
+        }
+        if streams.is_dir() {
+            for entry in fs::read_dir(&streams)? {
+                let path = entry?.path();
+                let name = path
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .unwrap_or_default();
+                if name.contains(".partial-")
+                    || (name.ends_with(".jsonl") && !indexed.contains(name))
+                {
+                    quarantine(&path, &recovery, &mut report.quarantined_paths)?;
+                }
+            }
+        }
+        if report
+            .quarantined_paths
+            .iter()
+            .any(|path| path.starts_with(&recovery))
+            && !report.degraded_sessions.contains(session_id)
+        {
+            report.degraded_sessions.push(*session_id);
+        }
+    }
+    Ok(report)
+}
+
+fn quarantine(path: &Path, recovery: &Path, recorded: &mut Vec<PathBuf>) -> anyhow::Result<()> {
+    let name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("unknown");
+    let destination = recovery.join(format!("{name}.quarantine-{}", Uuid::now_v7()));
+    fs::rename(path, &destination)?;
+    recorded.push(destination);
+    Ok(())
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LegacyImportRecord {
+    pub alias: String,
+    pub session_id: SilentSessionId,
+    pub run_id: SilentSessionRunId,
+    pub original_log_path: PathBuf,
+    pub imported_bytes: u64,
+    pub trust: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LegacyImportReport {
+    pub records: Vec<LegacyImportRecord>,
+    pub rejected_aliases: Vec<String>,
+    pub stored_commands_executed: bool,
+}
+
+pub fn import_untrusted_legacy_registry(
+    registry_path: &Path,
+    data_root: &Path,
+    secrets: &[String],
+) -> anyhow::Result<LegacyImportReport> {
+    reject_symlink(registry_path)?;
+    let registry_metadata = fs::metadata(registry_path)?;
+    anyhow::ensure!(
+        registry_metadata.is_file(),
+        "legacy registry must be a regular file"
+    );
+    let value: serde_json::Value = serde_json::from_slice(&fs::read(registry_path)?)?;
+    let records = value
+        .as_object()
+        .ok_or_else(|| anyhow::anyhow!("legacy registry must be an object"))?;
+    let sessions_root = data_root.join("silent-sessions");
+    secure_dir(&sessions_root)?;
+    let mapping_path = sessions_root.join("legacy-import-map.json");
+    let mut stable_ids: std::collections::BTreeMap<String, (SilentSessionId, SilentSessionRunId)> =
+        if mapping_path.is_file() {
+            reject_symlink(&mapping_path)?;
+            serde_json::from_slice(&fs::read(&mapping_path)?)?
+        } else {
+            std::collections::BTreeMap::new()
+        };
+    let mut report = LegacyImportReport {
+        records: vec![],
+        rejected_aliases: vec![],
+        stored_commands_executed: false,
+    };
+    for (alias, record) in records {
+        let Some(log_path) = record
+            .get("log_path")
+            .and_then(|value| value.as_str())
+            .map(PathBuf::from)
+        else {
+            report.rejected_aliases.push(alias.clone());
+            continue;
+        };
+        let accepted = (|| -> anyhow::Result<LegacyImportRecord> {
+            anyhow::ensure!(log_path.is_absolute(), "legacy log path must be absolute");
+            reject_symlink(&log_path)?;
+            let metadata = fs::metadata(&log_path)?;
+            anyhow::ensure!(metadata.is_file(), "legacy log must be a regular file");
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::MetadataExt;
+                anyhow::ensure!(
+                    metadata.uid() == registry_metadata.uid(),
+                    "legacy registry/log owner mismatch"
+                );
+            }
+            let bytes = fs::read(&log_path)?;
+            anyhow::ensure!(
+                bytes.len() <= 16 * 1024 * 1024,
+                "legacy log exceeds bounded import size"
+            );
+            let stable = format!("{}\0{}", alias, log_path.display());
+            let (session_id, run_id) = *stable_ids
+                .entry(stable)
+                .or_insert_with(|| (SilentSessionId::new(), SilentSessionRunId::new()));
+            let completion_path = sessions_root
+                .join(session_id.to_string())
+                .join(run_id.to_string())
+                .join("artifacts/stream-completion.json");
+            let imported_bytes = if completion_path.is_file() {
+                let artifact: SilentStreamCompletionArtifact =
+                    serde_json::from_slice(&fs::read(completion_path)?)?;
+                artifact.total_bytes
+            } else {
+                let mut writer = RotatingSilentStreamWriter::new(
+                    data_root.to_path_buf(),
+                    session_id,
+                    run_id,
+                    "legacy_unverified",
+                    SilentStreamKind::Stdout,
+                    1024 * 1024,
+                )?;
+                writer.append(1, &String::from_utf8_lossy(&bytes), secrets)?;
+                writer.finish()?.total_bytes
+            };
+            Ok(LegacyImportRecord {
+                alias: alias.clone(),
+                session_id,
+                run_id,
+                original_log_path: log_path.clone(),
+                imported_bytes,
+                trust: "legacy_unverified".into(),
+            })
+        })();
+        match accepted {
+            Ok(record) => report.records.push(record),
+            Err(_) => report.rejected_aliases.push(alias.clone()),
+        }
+    }
+    if mapping_path.exists() {
+        let previous = mapping_path.with_extension("previous");
+        fs::rename(&mapping_path, &previous)?;
+        atomic_secure_json(&mapping_path, &stable_ids)?;
+        fs::remove_file(previous)?;
+    } else {
+        atomic_secure_json(&mapping_path, &stable_ids)?;
+    }
+    Ok(report)
+}
+
 fn reject_symlink(path: &Path) -> anyhow::Result<()> {
     if path.exists() {
         anyhow::ensure!(
@@ -524,6 +753,77 @@ mod tests {
                 .is_file()
         );
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn recovery_quarantines_corrupt_registered_chunks_and_marks_degraded() {
+        let root = std::env::temp_dir().join(format!("focusa-recovery-{}", Uuid::now_v7()));
+        fs::create_dir_all(&root).unwrap();
+        let session_id = SilentSessionId::new();
+        let run_id = SilentSessionRunId::new();
+        let mut writer = RotatingSilentStreamWriter::new(
+            root.clone(),
+            session_id,
+            run_id,
+            "config",
+            SilentStreamKind::Stdout,
+            1024,
+        )
+        .unwrap();
+        writer.append(1, "valid before tamper", &[]).unwrap();
+        let artifact = writer.finish().unwrap();
+        let chunk = root
+            .join("silent-sessions")
+            .join(session_id.to_string())
+            .join(run_id.to_string())
+            .join("streams")
+            .join(&artifact.chunks[0].file_name);
+        fs::write(&chunk, "tampered").unwrap();
+        let report = recover_registered_streams(&root, &[(session_id, run_id)]).unwrap();
+        assert_eq!(report.scanned_runs, 1);
+        assert!(report.degraded_sessions.contains(&session_id));
+        assert!(report.quarantined_paths.len() >= 2);
+        assert!(!chunk.exists());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn legacy_import_is_stable_redacted_and_never_executes_stored_commands() {
+        let source = std::env::temp_dir().join(format!("focusa-legacy-{}", Uuid::now_v7()));
+        let import_root = source.join("imported");
+        fs::create_dir_all(&import_root).unwrap();
+        let log = source.join("legacy.log");
+        fs::write(&log, "credential=secret").unwrap();
+        let registry = source.join("registry.json");
+        fs::write(
+            &registry,
+            serde_json::to_vec(&serde_json::json!({
+                "old-session": {"log_path": log, "command": "touch /tmp/must-not-run"},
+                "unsafe": {"log_path": "relative.log", "command": "false"}
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let first =
+            import_untrusted_legacy_registry(&registry, &import_root, &["secret".into()]).unwrap();
+        let second =
+            import_untrusted_legacy_registry(&registry, &import_root, &["secret".into()]).unwrap();
+        assert_eq!(first.records.len(), 1);
+        assert_eq!(first.records[0].session_id, second.records[0].session_id);
+        assert_eq!(first.records[0].trust, "legacy_unverified");
+        assert_eq!(first.rejected_aliases, vec!["unsafe"]);
+        assert!(!first.stored_commands_executed);
+        let imported = fs::read_to_string(
+            import_root
+                .join("silent-sessions")
+                .join(first.records[0].session_id.to_string())
+                .join(first.records[0].run_id.to_string())
+                .join("streams/stdout-000001.jsonl"),
+        )
+        .unwrap();
+        assert!(imported.contains("[REDACTED]"));
+        assert!(!imported.contains("secret"));
+        let _ = fs::remove_dir_all(source);
     }
 
     #[test]
