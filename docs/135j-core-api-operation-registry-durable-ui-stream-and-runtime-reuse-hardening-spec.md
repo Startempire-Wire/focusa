@@ -4,74 +4,75 @@
 **Owner:** Focusa / Verious Smith  
 **Created:** 2026-07-18  
 **Parent:** [Spec 135](135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md)  
-**Amends:** [Spec 109](109-agent-first-api-redesign-ax-spec.md), [Spec 135C](135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md), [Spec 135D](135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md), [Spec 135H](135h-cross-functional-alpha-grill-interview-and-implementation-acceleration-spec.md), and [Spec 135I](135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md)  
 **Closure relationship:** mandatory companion; Spec 135 cannot close without Spec 135J.  
-**Scope:** generated operation registry, OpenAPI-derived UI action bindings, durable replayable SSE, AG-UI translation, canonical event reuse, shared ToolResult/error envelopes, capability and permission projection, read-model reuse, schema annotations, caching, and API integration proof.
+**Precedence:** [Spec 135 Series Current Authoritative Delivery Contract](135-series-current-manifest.md) governs current contract, streaming, generated-UI, and compatibility decisions.
 
 ---
 
 ## 0. One-line definition
 
-The generated C.R.I.S.T. UI must be a thin projection over one typed Focusa API and one canonical event history: action bindings are generated from registered operations, live updates replay from SQLite and tail the existing event bus, permissions and capabilities come from existing authority systems, and recovery comes from the shared result envelope rather than parallel UI-specific logic.
+Generated C.R.I.S.T. UI is a thin projection over one typed Focusa API and one canonical Focusa event history: actions are generated from registered operations, updates replay from SQLite and tail the existing event bus, capabilities and permissions reuse existing authority systems, and recovery reuses the shared ToolResult envelope.
 
 ---
 
-## 1. Current runtime seams to reuse
+## 1. Existing seams to reuse
 
 Focusa already has:
 
 - Axum route families;
-- project/workstream scope and permission checks;
-- a shared HTTP error-envelope middleware;
-- `tool_result_v1` response conventions and JSON schema;
-- an in-process broadcast channel for live events;
-- a canonical SQLite event history with bounded cursor reads;
-- Evidence and Receipt systems;
-- typed scoped state, Workpoints, Instances, Sessions, and Attachments;
-- project and agent capability read surfaces.
+- project/workstream/attachment scope and permission checks;
+- shared HTTP error-envelope middleware;
+- `tool_result_v1` conventions;
+- an existing in-process broadcast channel;
+- SQLite canonical events with bounded cursor reads;
+- Evidence and Receipts;
+- Workpoints, Instances, Sessions, and Attachments;
+- capability read surfaces.
 
-The generated UI implementation extends these seams. It must not create:
+Generated UI MUST NOT create:
 
 - a second event database;
-- a UI-only workflow engine;
-- a manually maintained second route/action registry;
+- a UI workflow authority;
+- a manual route/action registry;
 - a UI permission system;
-- a second error taxonomy;
-- a UI canonical state store;
+- a second error or retry taxonomy;
+- a canonical frontend state store;
 - direct client access to SQLite;
-- route-local copies of Focusa business rules.
+- route-local copies of core business rules.
 
 ---
 
-## 2. Core ownership model
+## 2. Ownership
 
 ```text
 focusa-core
-  Canonical reducers, state, domain services, interaction intent,
-  read-model builders, capabilities, authority decisions.
+  canonical reducers, domain services, read models, UiInteractionIntent,
+  capabilities, permissions, and authority decisions
 
 focusa-api
-  Axum routes, generated OpenAPI, operation registry, UI projections,
-  action binding, durable event streaming, AG-UI translation.
+  Axum routes, OpenAPI 3.0.3, Operation Registry, UI projections,
+  action bindings, durable native event stream, AG-UI compatibility
 
 focusa-client
-  Generated typed HTTP client, query keys, reconnect, action invocation.
+  generated typed HTTP client, query keys, reconnect, action invocation
 
-A2UI renderers
-  Trusted rendering, local field state, validation display, action dispatch.
+A2UI web core and permanent Lit renderer
+  trusted rendering, local field drafts, validation presentation, dispatch
+
+Focusa Svelte Custom Elements
+  domain-specific catalog components only
 ```
 
-No UI route may directly reproduce a reducer rule already owned by `focusa-core`.
+No UI route or component reproduces a reducer rule.
 
 ---
 
 ## 3. Generated Focusa Operation Registry
 
-The authoritative operation registry is generated from Rust route/input/output definitions and Utoipa/OpenAPI metadata.
+The authoritative registry is generated from Rust route/input/output definitions and Utoipa/OpenAPI metadata.
 
 ```yaml
 schema: focusa.operation_descriptor.v1
-
 operation_id:
 route:
 method:
@@ -113,9 +114,7 @@ ui:
   sensitivity:
 ```
 
-### 3.1 OpenAPI annotations
-
-Use OpenAPI vendor extensions generated from Rust metadata:
+### OpenAPI vendor extensions
 
 ```text
 x-focusa-subsystem
@@ -135,90 +134,91 @@ x-focusa-advanced-only
 x-focusa-sensitive
 ```
 
-The registry, API reference, generated client, and UI action catalog are generated from one source. Agents must not hand-maintain equivalent metadata in Svelte, A2UI prompts, or connector code.
+Generate from one source:
+
+```text
+Rust + Serde + Schemars + Utoipa
+→ JSON Schema 2020-12
+→ OpenAPI 3.0.3
+→ Operation Registry
+→ TypeScript openapi-typescript/openapi-fetch
+→ Go oapi-codegen v2.7.x
+→ A2UI catalog schemas and UI action bindings
+```
+
+Manual equivalent metadata is forbidden.
 
 ---
 
 ## 4. Generated UI action binding
 
-`focusa.ui_action_binding.v1` is generated from the Operation Registry plus resolved project/workstream scope and current capability snapshot.
-
 ```text
 Operation Descriptor
-+ current ProjectRootKey / WorkstreamKey / AttachmentKey
++ ProjectRootKey / WorkstreamKey / AttachmentKey
 + capability and permission snapshot
-+ current canonical revision
-→ UI Action Binding
++ canonical revision
+→ focusa.ui_action_binding.v1
 ```
 
-The generated UI may narrow or hide an operation because it is unavailable. It may not broaden its authority.
-
-### 4.1 Action execution
+Action execution:
 
 ```text
-A2UI action event
-→ validate catalog/action binding
+A2UI action
+→ validate trusted catalog/action binding
 → load Operation Descriptor
-→ validate scope/capability/permission
-→ validate schema
-→ preview if required
-→ confirm
-→ invoke existing typed Focusa route/core action
-→ return shared ToolResult envelope
-→ persist canonical event/Receipt where required
-→ stream UI delta
+→ validate schema and exact scope
+→ validate capability and permission
+→ preview when required
+→ operator confirmation
+→ invoke typed Focusa operation
+→ shared Focusa ToolResult/error envelope
+→ canonical event
+→ Evidence / Receipt when required
+→ A2UI delta
 ```
 
-There is no generic generated mutation route that bypasses the Operation Registry.
+There is no generic mutation route that bypasses the Operation Registry.
 
 ---
 
 ## 5. Capability and permission projection
 
-Create one bounded projection:
-
 ```yaml
 schema: focusa.ui_capability_snapshot.v1
-
 project_root:
 continuity_id:
 attachment_id:
 agent_id:
-
 capabilities:
   - capability_id:
     status: available | degraded | unavailable | approval_required
     reason:
     recovery_action_ref:
-
 permissions:
   granted_scopes: []
   missing_scopes: []
-
 providers: []
 connectors: []
 client_capabilities: []
 source_state_revision:
 ```
 
-This projection composes existing permission middleware, capabilities APIs, provider health, connector health, and client capabilities. It does not create a parallel permission registry.
-
-Generated components and actions resolve availability from this snapshot.
+This projection composes existing middleware, capability APIs, provider health, connector health, and client capabilities. It is not a second permission registry.
 
 ---
 
 ## 6. Shared result and recovery envelope
 
-All generated UI errors, blocked states, retries, and recovery cards derive from the shared Focusa response envelope and `tool_result_v1` schema.
+All generated errors, blocked states, retries, and recovery cards derive from the shared Focusa ToolResult/error envelope.
 
-Required fields consumed by the UI include:
+Required consumed fields:
 
 ```text
 status
 canonical
 degraded
 failure_class
-summary / message
+summary/message
 retry
 recovery_hint
 misuse_hint
@@ -228,67 +228,60 @@ next_tools
 correlation_id
 ```
 
-### 6.1 One typed envelope implementation
-
-Replace route-local copies of failure-envelope builders through expand-contract migration:
+### One typed envelope implementation
 
 ```text
-add shared typed ToolResult/Error constructors
-→ adapt route families in bounded batches
-→ verify response compatibility
+add shared typed ToolResult/error constructors
+→ migrate route families in bounded batches
+→ verify compatibility
 → remove duplicate route-local builders
 ```
 
-Generated UI must not define a second recovery taxonomy. `PlainLanguageProjection` converts the shared envelope into nontechnical copy while preserving advanced diagnostic details.
+PlainLanguageProjection adapts presentation without changing failure semantics.
 
 ---
 
 ## 7. Durable replayable event stream
 
-### 7.1 One event history
-
-Use:
+### One event history
 
 ```text
 SQLite canonical events
-  Durable history, replay, cursor recovery.
+  durable history, cursor replay, recovery
 
 existing in-process broadcast channel
-  Low-latency live tail.
+  low-latency live tail
 ```
 
-Do not add an AG-UI event database, UI event log, Redis stream, or message broker for the initial architecture.
+Do not add Redis, Kafka, NATS, AG-UI storage, a UI event log, or another broker.
 
-### 7.2 Durable stream algorithm
+### Algorithm
 
 ```text
 client connects with cursor / Last-Event-ID
-→ read missing matching events from SQLite
-→ emit replay events in canonical order
+→ read missed matching events from SQLite
+→ emit replay in canonical order
 → subscribe to broadcast live tail
-→ deduplicate by stable event ID/sequence
+→ deduplicate by stable event ID and sequence
 → continue until disconnect
 ```
 
-The current behavior that silently drops lagged broadcast events is not sufficient for generated UI. A lagged receiver must replay from the canonical SQLite cursor before resuming the live tail.
+A lagged receiver replays from SQLite before resuming the tail.
 
-### 7.3 Required event envelope
+### Event envelope
 
 ```yaml
 schema: focusa.stream_event.v1
-
 event_id:
 sequence:
 timestamp:
 event_type:
 schema_version:
-
 scope:
   project_root:
   continuity_id:
   attachment_id:
   work_surface_id:
-
 source_state_revision:
 payload_ref:
 invalidate: []
@@ -296,196 +289,163 @@ correlation_id:
 causation_id:
 ```
 
-Large payloads remain behind stable refs.
+Large payloads remain behind handles.
 
-### 7.4 Stream APIs
+### APIs
 
 ```text
 GET /v1/events/stream
-  Adds cursor/Last-Event-ID, scope filters, event IDs, sequence, and replay.
+  cursor, Last-Event-ID, filters, replay, live tail
 
 GET /v1/events/recent
-  Remains the bounded durable read/recovery route.
+  bounded durable read and recovery
 
 GET /v1/ui/surfaces/:surface_id/stream
-  Filtered generated-surface stream composed from the same event history.
+  native Focusa/A2UI surface stream over the same history
 
-POST /v1/ag-ui/run or equivalent typed AG-UI adapter route
-  Translates Focusa events; does not persist a second history.
+POST /v1/ag-ui/run
+  external compatibility translation over the native stream
 ```
 
 ---
 
 ## 8. AG-UI translation boundary
 
-AG-UI events are generated views over Focusa events and operation activity.
+AG-UI is a generated compatibility view:
 
 ```text
-Focusa run/action event
-→ AG-UI lifecycle/activity/tool event
-
-Focusa generated surface state
-→ AG-UI STATE_SNAPSHOT
-
-bounded surface update
-→ AG-UI STATE_DELTA
-
-A2UI message
-→ AG-UI CUSTOM focusa.a2ui.message.v0_9
+Focusa run/action event → AG-UI lifecycle/activity/tool event
+Focusa surface snapshot → AG-UI STATE_SNAPSHOT
+bounded surface update → AG-UI STATE_DELTA
+A2UI message → AG-UI CUSTOM focusa.a2ui.message.v0_9
 ```
 
-AG-UI `threadId` and `runId` are interaction references. They never replace ProjectRootKey, WorkstreamKey, AttachmentKey, Focusa Session, Workpoint, or canonical event IDs.
+AG-UI IDs never replace ProjectRootKey, WorkstreamKey, AttachmentKey, Focusa Session, Workpoint, or canonical event IDs.
+
+AG-UI implementation proceeds after the native replay/A2UI path is stable and MUST NOT block Alpha 0–8 native delivery.
 
 ---
 
 ## 9. Read-model and UI-intent reuse
 
-Generated surfaces are built from bounded read models and pure interaction intent, not route-local database queries.
-
-Required pattern:
-
 ```text
-canonical state/services
+canonical state and services
 → bounded subsystem read models
 → Resolved Project Operating Profile
 → UiInteractionIntent
 → Generated Surface Envelope / A2UI messages
 ```
 
-`UiInteractionIntent` contains:
-
-- current stage and readiness;
-- primary action;
-- required decisions;
-- available operation IDs;
-- source/evidence refs;
-- recovery posture;
-- plain-language semantic inputs;
-- component/catalog hints.
-
-It does not contain client framework objects.
+UiInteractionIntent contains stage, readiness, primary action, required decisions, allowed operation IDs, source/Evidence refs, recovery posture, plain-language semantic inputs, and catalog hints. It contains no client framework objects.
 
 ---
 
 ## 10. Surface cache and invalidation
 
-Cache generated deterministic surfaces by:
+Cache deterministic surfaces by:
 
 ```text
 project/workstream/attachment scope
-+ canonical source-state revision
-+ generated-surface kind
++ canonical revision
++ surface kind
 + catalog/version
 + workspace profile
 + domain-pack composition
-+ language/accessibility profile
++ UXP/accessibility profile
 ```
 
-AI-generated wording may be cached separately from deterministic surface structure.
+AI-generated wording is cached separately. Registered event-to-read-model keys drive targeted invalidation. Do not regenerate every surface after every event.
 
-Invalidation uses registered event-to-read-model keys. It must not regenerate all C.R.I.S.T. surfaces after every event.
+TanStack Query remains the web cache/refetch layer and never becomes canonical state.
 
 ---
 
-## 11. Speed decisions
+## 11. Speed and reuse decisions
 
-### 11.1 Generate action catalogs
+### Do not hand-author A2UI action definitions
 
-Do not hand-author A2UI action definitions. Generate catalog action schemas and bindings from the Operation Registry.
+Generate action schemas and bindings from the Operation Registry.
 
-### 11.2 Generate ordinary inputs
+### JSON Schema + x-focusa UI annotations
 
-For ordinary strings, numbers, booleans, dates, enums, arrays, and file references:
+Ordinary strings, numbers, booleans, dates, enums, arrays, and file references map to maintained A2UI inputs and inline validation. Custom Focusa components are limited to genuine domain interactions.
 
-```text
-JSON Schema + x-focusa UI annotations
-→ A2UI basic input component
-→ inline validation
-```
+### Deterministic UI without model calls
 
-Create a custom Focusa component only for interactions such as redlines, claim review, source scope, dependency graphs, evidence, Receipts, or Workpoint launch.
+Loading, progress, validation, capabilities, approvals, recovery, and standard action surfaces render without a model call.
 
-### 11.3 Deterministic UI without model calls
+### Scaffold from fixtures
 
-Loading, progress, validation, capability, approval, recovery, and standard action surfaces must render without an LLM call.
+Implement catalog and surfaces against generated schemas, read-model snapshots, and A2UI fixtures while backend operations are implemented. Replace fixtures with live operations without changing contracts.
 
-Use models only for:
+### Schemathesis stateful preview/commit tests
 
-- Interview questions and recommendations;
-- Role drafting;
-- source summaries;
-- plain-language explanation where a cached/template projection is insufficient;
-- Spec Workbench cognition.
+Use generated OpenAPI workflows for read/preview/commit, idempotency, concurrency, permission, and failure-envelope proof.
 
-### 11.4 Reuse current client query layer
+### UIAI Engine Eval
 
-TanStack Query remains the web cache/refetch layer. AG-UI/A2UI events invalidate or patch the same query/read-model keys; they do not create a competing canonical frontend store.
-
-### 11.5 Scaffold from fixtures
-
-Before backend completion, use generated OpenAPI schemas, A2UI fixtures, AG-UI event fixtures, and snapshot read models to implement and prove components. Replace fixtures with live routes without changing the component contracts.
+All browser, end-to-end, visual, responsive, reconnect, isolation, diagnostic, and browser-accessibility proof uses UIAI Engine Eval. Focusa MUST NOT add Playwright.
 
 ---
 
-## 12. API conformance and testing
+## 12. API conformance and proof
 
 Required:
 
-- Utoipa/OpenAPI generation tests;
-- Operation Registry snapshot tests;
-- action-binding generation tests;
+- Utoipa/OpenAPI 3.0.3 generation tests;
+- JSON Schema 2020-12 tests;
+- Operation Registry snapshots;
+- TypeScript and Go client drift gates;
+- action-binding tests;
 - capability/permission projection tests;
-- shared ToolResult envelope compatibility tests;
-- Schemathesis stateful preview/commit tests;
-- durable SSE replay and lag recovery tests;
-- duplicate-event and ordering tests;
-- project/workstream/attachment stream isolation tests;
-- AG-UI translation fixture tests;
-- A2UI action-to-operation tests;
+- ToolResult compatibility tests;
+- Schemathesis stateful tests;
+- durable replay, lag recovery, ordering, deduplication, and isolation tests;
+- native A2UI action-to-operation tests;
+- AG-UI translation fixtures;
 - surface cache/invalidation tests;
-- no-direct-SQL-in-UI-projection static gate.
+- no-direct-SQL-in-UI static gate;
+- UIAI Engine Eval scenarios for browser-facing operations.
 
 ---
 
-## 13. Cross-Functional Alpha amendment
+## 13. Cross-Functional Alpha
 
-Alpha 0 must deliver:
+Alpha 0 delivers:
 
 ```text
-OpenAPI operation registry
-→ generated TypeScript/openapi-fetch client
-→ generated UI action binding
+JSON Schema/OpenAPI 3.0.3
+→ generated TypeScript/Go clients
+→ Operation Registry and UI action bindings
 → capability snapshot
-→ shared result envelope mapping
-→ one replayable event stream
-→ one A2UI surface updated through AG-UI
+→ shared ToolResult mapping
+→ durable native event stream
+→ A2UI web core and permanent Lit renderer
+→ Pi RPC AgentExecutionAdapter
+→ first UIAI Engine Eval scenario
+→ one real Context generated surface
 ```
 
-No later Alpha slice may introduce an unregistered manual UI action or a second stream/state path.
+AG-UI compatibility proceeds in parallel after the native stream stabilizes. No Alpha slice introduces a manual action or second state path.
 
 ---
 
-## 14. Agent decomposition directive
-
-Every decomposing and implementing agent must receive this instruction verbatim or equivalently:
+## 14. Agent directive
 
 ```text
-Integrate generated C.R.I.S.T. UI through the existing Focusa core and API.
-Generate UI actions from one Rust/OpenAPI Operation Registry. Reuse existing
-scope, permissions, capabilities, ToolResult/error envelopes, canonical SQLite
-events, broadcast event tail, read models, Evidence, Receipts, Workpoints, and
-Attachments. Do not build a UI-only workflow engine, permission registry, event
-store, route catalog, error taxonomy, or canonical frontend state.
+Integrate generated C.R.I.S.T. UI through existing Focusa core and typed APIs.
+Generate operations and action bindings from Rust/OpenAPI 3.0.3. Reuse exact
+scope, capabilities, permissions, ToolResult envelopes, SQLite events, broadcast
+tail, read models, Evidence, Receipts, Workpoints, and Attachments.
 
-Upgrade the current SSE path by replaying missed events from SQLite using a
-stable event cursor/Last-Event-ID, then tailing the existing broadcast channel.
-AG-UI translates this stream and does not own another history.
+Implement the native replayable Focusa/A2UI stream first. AG-UI is external
+compatibility and never owns history or blocks native Alpha delivery.
 
-Generate ordinary A2UI inputs and action schemas from JSON Schema/OpenAPI
-metadata. Add custom components only for genuine Focusa domain interactions.
-Render deterministic shell, progress, validation, recovery, and capability
-states without model calls. Use model generation only where cognition or
-plain-language synthesis is actually required.
+Use maintained A2UI web core and Lit renderer. Add Svelte Custom Elements only
+for Focusa domain interactions. Render deterministic states without model calls.
+Use Pi RPC/Spec 133 for model work and UIAI Engine Eval for browser proof.
+Do not add Playwright, Vercel AI SDK runtime authority, a generic UI mutation
+route, or any duplicate store, registry, permission system, or error taxonomy.
 ```
 
 ---
@@ -494,37 +454,23 @@ plain-language synthesis is actually required.
 
 Spec 135J is accepted when:
 
-1. One generated Operation Registry describes every generated-UI operation.
-2. A2UI action bindings are generated from that registry and resolved scope/capabilities.
-3. No generic mutation escape hatch exists.
-4. Generated UI uses existing Focusa core actions and read models.
-5. Existing permission and capability systems drive component/action availability.
-6. All generated UI recovery derives from the shared ToolResult/error envelope.
-7. Route-local duplicate envelope builders are removed through expand-contract migration.
-8. The live stream replays missed events from SQLite before tailing broadcast.
-9. Stable event IDs, sequence, cursor/Last-Event-ID, deduplication, and ordering are proven.
-10. AG-UI persists no second event history.
-11. Project/workstream/attachment stream isolation is proven.
-12. Ordinary inputs and action schemas are generated from OpenAPI/JSON Schema.
-13. Deterministic surfaces do not require an LLM call.
-14. Surface caching and targeted invalidation are proven.
-15. Schemathesis, SSE replay, envelope, operation-registry, AG-UI, and A2UI binding tests pass.
-16. Alpha 0 establishes the complete generated UI/API spine used by all later slices.
-
----
+1. one Generated Focusa Operation Registry describes every generated-UI operation;
+2. action bindings are generated and exactly scoped;
+3. no generic mutation escape hatch exists;
+4. current core actions/read models remain canonical;
+5. capabilities and permissions drive availability;
+6. all recovery uses the shared ToolResult envelope;
+7. route-local duplicate envelope builders are removed;
+8. missed events replay from SQLite before the live tail;
+9. event IDs, sequence, cursor, deduplication, ordering, and isolation are proven;
+10. AG-UI stores no history and does not block native Alpha;
+11. ordinary inputs and actions are generated from schemas;
+12. deterministic surfaces need no LLM;
+13. cache and targeted invalidation are proven;
+14. TypeScript and Go client drift gates pass;
+15. UIAI Engine Eval proves browser-facing flows;
+16. Alpha 0 establishes the shared spine used by every later slice.
 
 ## 16. Closure blockers
 
-This specification cannot close while:
-
-- generated UI has a manually maintained route/action registry;
-- UI action availability duplicates permission logic;
-- a UI-specific error taxonomy exists;
-- route families continue adding new duplicate envelope builders;
-- the live stream silently loses lagged events without replay;
-- AG-UI or A2UI state is treated as canonical project state;
-- a second event store or broker is introduced without approved evidence;
-- generated UI reads SQLite directly;
-- ordinary schema-driven fields require custom components;
-- deterministic UI unnecessarily waits for a model call;
-- an Alpha slice bypasses the Operation Registry or durable stream.
+Spec 135J cannot close while generated UI has a manual registry; a generic mutation route exists; UI routes duplicate core rules; permissions/errors have UI-specific stores; event replay is incomplete; AG-UI owns state/history or blocks native delivery; contracts drift across Rust/TypeScript/Go; a custom renderer duplicates A2UI; browser proof bypasses UIAI Engine Eval; Playwright exists in Focusa; or the complete native Alpha spine lacks Evidence and Receipt proof.
