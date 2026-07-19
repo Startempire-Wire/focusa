@@ -6,194 +6,155 @@
 **Parent:** [Spec 135](135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md)  
 **Amends:** [Spec 135A](135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md), [Spec 135B](135b-crist-project-genesis-context-role-interview-spec-tasks.md), [Spec 135C](135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md), [Spec 135D](135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md), [Spec 135E](135e-cross-spec-amendments-migration-and-closure-matrix.md), and [Spec 135H](135h-cross-functional-alpha-grill-interview-and-implementation-acceleration-spec.md)  
 **Closure relationship:** mandatory companion; Spec 135 cannot close without Spec 135I.  
-**Scope:** real-time generated user interfaces for the complete C.R.I.S.T. and onboarding lifecycle, nontechnical UX, A2UI declarative surfaces, AG-UI streaming compatibility, Focusa core API integration, trusted component catalogs, action binding, progressive disclosure, accessibility, responsive clients, generated UI testing, speed accelerators, and closure proof.
+**Precedence:** [Spec 135 Series Current Authoritative Delivery Contract](135-series-current-manifest.md) governs any conflict.
 
 ---
 
 ## 0. One-line definition
 
-Every C.R.I.S.T. and onboarding interaction must be presented as a live, incrementally regenerated, plain-language, capability-aware user interface that a nontechnical operator can complete without seeing raw APIs, schemas, identifiers, command syntax, or agent internals, while every read and mutation remains bound to canonical Focusa APIs, scope, authority, Evidence, and Receipts.
+Every onboarding and C.R.I.S.T. interaction MUST be presented as a live, incrementally regenerated, plain-language, capability-aware interface that a nontechnical operator can complete, recover, close, reopen, and resume without raw APIs, schemas, identifiers, command syntax, or agent internals, while every read and mutation remains bound to canonical Focusa scope, APIs, authority, Evidence, and Receipts.
 
 ---
 
-## 1. Gap closed by this specification
-
-The existing Spec 135 series requires:
-
-- dynamic Interview questions;
-- autosave and resume;
-- a Project Genesis status view;
-- generated contracts;
-- dynamic registries;
-- real-time invalidation;
-- Mission Canvas and Work Surfaces;
-- non-admin living-field presentation.
-
-Those requirements are necessary but not sufficient. A static five-stage screen with hard-coded forms could still satisfy much of the prior wording.
-
-This specification closes that ambiguity:
+## 1. Product law
 
 ```text
 C.R.I.S.T. is not a collection of static forms.
-C.R.I.S.T. is not a CLI workflow with a decorative web status page.
 C.R.I.S.T. is not a transcript rendered inside a panel.
-
+C.R.I.S.T. is not a CLI workflow with a decorative status page.
 C.R.I.S.T. is a server-driven, real-time generated interaction experience.
 ```
 
-Every stage, transition, approval, recovery state, and continuation action is generated from current canonical project state, capabilities, domain packs, operator progress, source health, and authority posture.
+Every stage, transition, approval, recovery state, and continuation action MUST derive from current canonical project state, domain packs, capabilities, permissions, connector/provider health, operator progress, UXP/UFI, and explicit scope.
+
+A backend-complete feature is incomplete when a nontechnical operator cannot understand, complete, recover, and resume it through generated UI.
 
 ---
 
-## 2. Decided protocol and framework stack
+## 2. Fixed protocol and framework stack
 
-This specification makes implementation decisions. Agents must not present alternatives for these choices.
+Agents MUST use these decisions and MUST NOT present alternatives.
 
-### 2.1 Generated UI protocol
-
-The canonical generated-UI representation is:
+### 2.1 Generated UI protocol and renderer
 
 ```text
 A2UI protocol v0.9.1
-```
-
-Use:
-
-```text
 @a2ui/web_core/v0_9
-  Message processing, surface state, data binding, catalog validation,
-  incremental updates, and action routing.
-
 @a2ui/lit/v0_9
-  Cross-Functional Alpha renderer and compatibility renderer embedded as
-  Web Components in Svelte clients.
+Focusa Svelte Custom Elements
+Focusa versioned trusted A2UI catalog
 ```
 
-A2UI is Apache-2.0 licensed. Exact package versions are pinned in the dependency matrix and lockfile. The protocol version remains explicitly `v0.9` until a versioned Focusa migration approves another protocol version.
+Ownership:
 
-### 2.2 Production Svelte renderer
-
-The full production web experience uses a Focusa Svelte renderer built on `@a2ui/web_core/v0_9` and the existing Focusa component/design stack.
-
-It must not reimplement A2UI message processing, data models, schema validation, component catalogs, or action dispatch.
-
-Required expand-contract sequence:
-
-```text
-embed maintained A2UI Lit renderer for immediate Alpha
-→ build Focusa Svelte component mappings on web_core
-→ prove catalog, action, accessibility, and visual parity
-→ make Svelte renderer primary
-→ retain Lit renderer as compatibility/test renderer until removal is approved
-```
-
-This work remains inside the complete closure graph. The Lit renderer provides immediate usable UI; it does not remove the Svelte renderer requirement.
-
-### 2.3 Real-time agent/user protocol
-
-The real-time interaction compatibility layer is:
-
-```text
-AG-UI protocol
-@ag-ui/core
-@ag-ui/client
-```
-
-AG-UI is MIT licensed.
-
-Focusa adopts AG-UI as a compatibility and client-streaming adapter over its existing APIs and SSE event bus. It does not replace Focusa canonical event records, reducers, AX routes, Workpoints, Attachments, Evidence, or Receipts.
-
-Use the middleware translation pattern:
-
-```text
-Focusa canonical events and read models
-→ Focusa AG-UI adapter
-→ lifecycle / activity / tool / state snapshot / state delta events
-→ A2UI messages and UI state
-→ client action
-→ typed Focusa preview/commit API
-```
-
-### 2.4 Typed API client
-
-The generated client stack is extended to:
-
-```text
-Rust + Serde + Schemars + Utoipa
-→ OpenAPI 3.1 + JSON Schema
-→ openapi-typescript
-→ openapi-fetch
-```
-
-`openapi-fetch` is the selected typed HTTP client for web clients. Clients must not hand-write duplicate DTOs or untyped endpoint wrappers when generated contracts cover the operation.
-
-### 2.5 Testing additions
-
-The generated UI test stack is:
-
-```text
-Vitest
-Svelte Testing Library
-Playwright
-Schemathesis
-A2UI Composer/Theater fixtures
-AG-UI event fixtures/Dojo patterns
-```
-
-- Vitest and Svelte Testing Library test components, renderers, catalogs, and actions.
-- Playwright tests full onboarding, C.R.I.S.T., reconnect, responsive, keyboard, and visual behavior across Chromium, Firefox, and WebKit.
-- Schemathesis property-tests generated OpenAPI routes and stateful workflows.
-- A2UI fixtures replay incremental surfaces without requiring a live model.
-
----
-
-## 3. Ownership and authority boundary
-
-```text
-Focusa core/reducers
-  Canonical project, C.R.I.S.T., scope, Role, Interview, Spec, Tasks,
-  Workpoint, Evidence, Receipts, capabilities, and authority.
-
-Focusa API
-  Typed read models, preview/commit actions, idempotency, versions,
-  generated surface endpoints, and AG-UI compatibility stream.
-
-Generated UI projection
-  A2UI surfaces, components, copy, recommendations, validation presentation,
-  progress, recovery, and action bindings.
-
-Clients
-  Render trusted catalogs, maintain ephemeral presentation state,
-  collect user input, and invoke bound typed Focusa actions.
-```
-
-The generated UI is a projection. It is not a second canonical store, workflow engine, permission system, Interview database, or task authority.
-
-### 3.1 No generic mutation escape hatch
-
-A generated button or form may invoke only a registered `FocusaUiActionBinding` that resolves to an existing typed Focusa operation or an approved new typed operation.
+- `@a2ui/web_core/v0_9` owns message processing, surface state, validation, data binding, incremental updates, catalog behavior, and action routing.
+- `@a2ui/lit/v0_9` is the permanent web renderer for A2UI v0.9.1.
+- Focusa-specific domain controls are authored in Svelte, compiled as Custom Elements, and registered in the trusted Focusa catalog.
 
 Forbidden:
 
+- a complete custom Svelte A2UI renderer;
+- a second A2UI message processor;
+- a second `SurfaceModel` or data-binding implementation;
+- arbitrary generated JavaScript, HTML, frontend functions, components, or iframes.
+
+### 2.2 Native real-time stream
+
+The primary product stream is:
+
 ```text
-POST /v1/ui/execute-arbitrary
-POST /v1/ui/run-generated-code
-POST /v1/ui/mutate-anything
+Focusa SQLite canonical event history
++ stable event ID and sequence
++ cursor / Last-Event-ID replay
++ existing broadcast live tail
++ scoped invalidation
++ A2UI snapshots and incremental messages
 ```
 
-Every consequential action follows:
+AG-UI is a required compatibility adapter for external agent clients. It MUST NOT own canonical state, persistence, event history, action authority, or approval. AG-UI implementation proceeds in parallel after the native Focusa/A2UI path is stable and MUST NOT block the first complete C.R.I.S.T. traversal.
+
+### 2.3 Typed contracts and clients
 
 ```text
-input validation
-→ scope validation
-→ capability validation
-→ preview where required
-→ operator confirmation
-→ typed commit operation
-→ canonical event
-→ Receipt where required
+Rust + Serde + Schemars + Utoipa
+→ JSON Schema 2020-12
+→ OpenAPI 3.0.3
+→ openapi-typescript + openapi-fetch
+→ oapi-codegen v2.7.x Go client/models for UIAI Engine
+→ generated A2UI catalog schemas and UI action bindings
+```
+
+OpenAPI 3.1 is not the Spec 135 transport contract. Manual duplicate DTOs, route wrappers, action registries, and UIAI Focusa client models are forbidden when generation can represent the contract.
+
+### 2.4 Model execution
+
+Role Composer, Grill Interview, grounded recommendations, synthesis, and generated explanations use:
+
+```text
+Focusa typed operation
+→ Spec 133 daemon-owned governed execution session
+→ Pi RPC AgentExecutionAdapter reference implementation
+→ structured result
+→ reducer
+→ Evidence / Receipt
 → generated UI delta
 ```
+
+The browser client MUST NOT call model providers directly.
+
+Forbidden as Focusa runtime dependencies:
+
+```text
+Vercel WorkflowAgent
+Vercel ToolLoopAgent
+AI SDK UI / @ai-sdk/svelte
+Vercel AI Gateway as a required service
+any Vercel-owned durable workflow or tool authority
+```
+
+### 2.5 Testing and browser proof
+
+Required stack:
+
+```text
+Rust: cargo-nextest, rstest, proptest, insta, wiremock
+Components: Vitest, Svelte Testing Library
+API: Schemathesis and generated contract fixtures
+Generated UI: A2UI Composer/Theater fixtures and catalog/action fixtures
+Browser/E2E/visual/responsive/reconnect/browser accessibility: UIAI Engine Eval only
+```
+
+Focusa MUST NOT use Playwright Test, Playwright Library, Playwright CLI, Playwright MCP, `@playwright/test`, `playwright.config.*`, or Playwright browser fixtures.
+
+UIAI Engine Eval MUST produce stable browser-session, context, screenshot, diagnostic, accessibility, visual-comparison, Evidence, and Receipt references.
+
+---
+
+## 3. Authority boundary
+
+```text
+Focusa core and reducers
+  Canonical Project Genesis, Context, Role, Interview, Spec, Tasks,
+  Workpoint, scope, capabilities, permissions, Evidence, Receipts, and recovery.
+
+Focusa API
+  Typed reads, preview/commit, idempotency, versions, operation metadata,
+  generated surfaces, action bindings, capabilities, and durable event replay.
+
+Generated UI projection
+  A2UI surfaces, trusted components, plain-language copy, recommendations,
+  validation presentation, progress, recovery, and bound actions.
+
+Clients
+  Render trusted catalogs, retain ephemeral drafts, collect input,
+  and invoke generated typed Focusa actions.
+
+UIAI Engine
+  Browser execution, browser Eval, screenshots, diagnostics, visual proof,
+  responsive proof, accessibility browser proof, and browser artifacts.
+```
+
+Generated UI is a projection. It is not a second canonical store, workflow engine, permission system, Interview database, task authority, browser engine, or model-execution runtime.
 
 ---
 
@@ -201,14 +162,12 @@ input validation
 
 ```yaml
 schema: focusa.generated_surface.v1
-
 surface_id:
 surface_revision:
 surface_kind: onboarding | crist_context | crist_role | crist_interview | crist_spec | crist_tasks | project_profile | recovery
 
 protocol:
   a2ui_version: v0.9
-  ag_ui_version:
   catalog_id:
   catalog_version:
 
@@ -231,7 +190,7 @@ inputs:
   capability_snapshot_ref:
   domain_pack_refs: []
   connector_health_ref:
-  user_experience_profile_ref:
+  uxp_profile_ref:
   client_capability_profile_ref:
 
 messages:
@@ -260,7 +219,7 @@ provenance:
   evidence_refs: []
 ```
 
-The envelope wraps A2UI messages and Focusa action bindings. It does not create another component-description language.
+The envelope wraps A2UI messages and Focusa action bindings. It MUST NOT become another component-description language or state store.
 
 ---
 
@@ -268,7 +227,6 @@ The envelope wraps A2UI messages and Focusa action bindings. It does not create 
 
 ```yaml
 schema: focusa.ui_action_binding.v1
-
 action_binding_id:
 ui_action_name:
 label:
@@ -292,8 +250,8 @@ control:
   capability_ref:
   permission_ref:
   confirmation: none | simple | consequential
-  idempotency_required: true
-  optimistic_concurrency_required: true
+  idempotency_required:
+  optimistic_concurrency_required:
   receipt_required:
   reversible:
 
@@ -303,11 +261,33 @@ presentation:
   recovery_action_ref:
 ```
 
-A2UI component actions reference the binding ID. The client never derives canonical routes or authority from component text.
+A2UI actions reference the binding ID. Clients MUST NOT derive canonical routes, methods, or authority from component text.
+
+Every consequential action follows:
+
+```text
+validate input
+→ validate scope
+→ validate capability and permission
+→ preview when required
+→ operator confirmation
+→ typed commit
+→ canonical event
+→ Receipt when required
+→ A2UI delta
+```
+
+Forbidden:
+
+```text
+POST /v1/ui/execute-arbitrary
+POST /v1/ui/run-generated-code
+POST /v1/ui/mutate-anything
+```
 
 ---
 
-## 6. Core API integration
+## 6. Core API and primitive integration
 
 Required API families:
 
@@ -315,6 +295,7 @@ Required API families:
 GET  /v1/ui/catalogs
 GET  /v1/ui/catalogs/:catalog_id
 GET  /v1/ui/capabilities
+GET  /v1/ui/operations
 
 POST /v1/ui/surfaces
 GET  /v1/ui/surfaces/:surface_id
@@ -328,94 +309,95 @@ POST /v1/ui/actions/preview
 POST /v1/ui/actions/commit
 ```
 
-### 6.1 Core implementation placement
-
-Required boundaries or equivalent:
+Required placement:
 
 ```text
 focusa-core/src/ui_intent/
-  Pure, bounded interaction intent and action-binding projections from
-  canonical state. No A2UI or client dependency required.
+  Pure bounded interaction intent and action-binding projections.
 
 focusa-api/src/ui_projection/
-  A2UI serialization, catalogs, generated-surface envelopes, and routes.
+  A2UI serialization, catalogs, surface envelopes, and routes.
 
 focusa-api/src/ag_ui/
-  AG-UI compatibility adapter over existing Focusa event/read-model streams.
+  External compatibility translation over the native durable stream.
 
 packages/focusa-generated-ui/
-  A2UI web_core integration, catalog contracts, renderer adapters,
-  query keys, and action client.
+  A2UI web_core, permanent Lit renderer integration, Svelte Custom Elements,
+  catalog contracts, typed action client, query keys, and fixtures.
 ```
 
-### 6.2 Existing API reuse law
+Generated UI routes MUST compose existing Context, Role, Interview, Spec, Task, Workpoint, Evidence, Receipt, connector, provider, session, capability, permission, and ToolResult primitives. Canonical business logic MUST NOT be copied into UI routes or components.
 
-Generated UI routes compose existing Focusa read models and operations. They must not duplicate Context, Role, Interview, Spec, Task, Workpoint, Evidence, Receipt, connector, provider, or session business logic.
+General behavior MUST be submitted to the greater Focusa primitive before C.R.I.S.T.-specific projection code is added.
 
-New typed operations are added only when the existing API lacks a real required user action. A UI-specific route may orchestrate presentation, but canonical mutations remain owned by the primitive subsystem.
+---
 
-### 6.3 Surface regeneration
+## 7. Surface regeneration and resume
 
-A surface regenerates when relevant state changes:
+Native flow:
 
 ```text
 canonical event
 → invalidation map
-→ recompute bounded interaction intent
-→ produce A2UI incremental message or fresh snapshot
-→ AG-UI stream
-→ client renderer update
+→ recompute bounded UiInteractionIntent
+→ produce A2UI delta or snapshot
+→ durable cursor advances
+→ subscribed client updates
 ```
 
-Manual refresh is a recovery action, not normal operation.
+Required behavior:
+
+- deterministic shell renders before generated explanatory copy completes;
+- connector, extraction, Interview, Spec, task, and provider progress stream;
+- user draft input survives unrelated surface deltas;
+- reconnect uses event cursor or `Last-Event-ID`;
+- missed events replay from SQLite before live-tail subscription;
+- divergence requests a fresh bounded snapshot;
+- manual refresh is a recovery action, not normal operation;
+- reopening loads canonical progress rather than inferring from transcript history.
+
+Resume flow:
+
+```text
+load canonical Project Genesis state
+→ replay missed events
+→ load current generated surface
+→ restore unsent local draft separately
+→ show saved and unsaved state truthfully
+```
 
 ---
 
-## 7. Deterministic shell and generative content boundary
+## 8. Deterministic and generative boundary
 
-The UI is generated, but authority-critical structure is deterministic.
+Deterministic from Focusa state and schemas:
 
-### Deterministic from Focusa state and schemas
-
-- current C.R.I.S.T. stage;
-- progress and readiness;
-- required fields;
-- valid input types;
+- current stage and readiness;
+- required fields and valid input types;
 - action bindings;
-- capability and permission posture;
-- approval requirements;
-- source and evidence references;
-- validation rules;
-- primary next action;
-- recovery actions;
-- hidden/non-hideable safety state.
+- scope, capabilities, permissions, and approvals;
+- source, Evidence, and Receipt references;
+- validation, completion, and recovery state;
+- one primary next action;
+- non-hideable safety and authority state.
 
-### AI-generated or adapted content
+AI-generated or adapted:
 
 - concise plain-language explanations;
-- question wording;
-- recommendations and basis summaries;
+- Grill question wording;
+- recommendations and source-basis summaries;
 - contextual help;
 - source summaries;
 - suggested defaults;
-- stage-specific guidance;
-- terminology adapted to the active workspace/domain pack.
+- workspace/domain terminology.
 
-AI-generated content may not invent actions, routes, permissions, required fields, completion state, evidence, or authority.
+Generated content MUST NOT invent actions, routes, permissions, required fields, completion state, evidence, or authority.
 
 ---
 
-## 8. Trusted Focusa component catalog
+## 9. Trusted Focusa component catalog
 
-The generated UI may render only pre-approved catalog components.
-
-### 8.1 Base A2UI catalog
-
-Use the maintained A2UI components for standard layout, content, and input primitives where they satisfy the requirement.
-
-### 8.2 Focusa catalog
-
-Required initial components:
+Use maintained A2UI primitives for ordinary layout and inputs. Initial Focusa catalog:
 
 ```text
 FocusaStageShell
@@ -451,31 +433,13 @@ FocusaAdvancedDetails
 FocusaHelpPopover
 ```
 
-The catalog is versioned and generated from shared component contracts. Workspace profiles and domain packs may select presentation variants but cannot redefine action authority.
-
-### 8.3 Security
-
-Generated surfaces may not contain:
-
-- arbitrary executable JavaScript;
-- arbitrary HTML;
-- unvalidated component types;
-- unregistered frontend functions;
-- unapproved remote iframes;
-- direct filesystem paths exposed to nontechnical mode;
-- raw secrets, cookies, tokens, or connector credentials.
-
-Unknown components or actions render an explicit unsupported/recovery card and are not executed.
+Unknown components or actions render an explicit unsupported/recovery card and MUST NOT execute.
 
 ---
 
-## 9. Nontechnical experience constitution
+## 10. Nontechnical experience constitution
 
-The default C.R.I.S.T. and onboarding experience targets a person who does not know Focusa’s internal terminology.
-
-### 9.1 Plain-language default
-
-The default interface uses:
+Default language:
 
 ```text
 Project
@@ -490,517 +454,168 @@ Proof
 Next step
 ```
 
-It does not require the user to understand:
+Raw `project_root`, continuity, attachment, reducer, schema, route, operation, provider, Evidence-handle, A2UI, AG-UI, and transport details remain under **Advanced details**.
 
-```text
-project_root
-continuity_id
-AttachmentKey
-reducer
-canonical projection
-provider-neutral materialization
-operation_id
-JSON Schema
-SSE
-A2UI
-AG-UI
-```
+Every surface MUST provide:
 
-Those details remain available under **Advanced details** for expert diagnosis.
+- one dominant primary action;
+- explanation before input;
+- recommendation and source basis;
+- consequences and reversibility;
+- progressive disclosure;
+- autosave and visible save state;
+- inline validation;
+- explicit recovery;
+- keyboard completion;
+- visible focus and screen-reader semantics;
+- color-independent state and reduced motion;
+- responsive desktop, tablet, mobile, Pi, and TUI projection.
 
-### 9.2 One primary action
-
-Every generated surface has one visually dominant next action. Secondary and advanced actions remain available but subordinate.
-
-Examples:
-
-```text
-Add your project information
-Connect Google Drive
-Review what Focusa found
-Approve the project role
-Answer the next question
-Review the project plan
-Approve the work plan
-Start the first task
-Fix the connection
-```
-
-### 9.3 Explain before asking
-
-Before collecting input, the UI explains:
-
-- why the information matters;
-- what Focusa already knows;
-- the recommended answer or default;
-- what will happen after submission;
-- whether the decision can be changed later;
-- which source supports the recommendation.
-
-### 9.4 Progressive disclosure
-
-The default view shows only information needed for the current decision. Source IDs, schema refs, provider IDs, evidence handles, diagnostics, and raw payloads are collapsed.
-
-### 9.5 Error and recovery language
-
-Do not display raw stack traces or transport errors as the primary message.
-
-Required recovery presentation:
-
-```text
-What happened
-What is still safe
-What Focusa kept
-What you can do now
-Try again / reconnect / review / continue without this source
-Advanced diagnostic details
-```
-
-### 9.6 Autosave and confidence
-
-Every accepted input is autosaved. The interface visibly confirms save state and permits return, revision, and supersession.
-
-### 9.7 Accessibility and responsive behavior
-
-Required:
-
-- keyboard completion of all stages;
-- visible focus;
-- screen-reader labels and live-region updates for generated changes;
-- color-independent status;
-- reduced motion;
-- responsive desktop/tablet/mobile layouts;
-- minimum touch targets;
-- no interaction available only on hover;
-- terminal-safe equivalent for Pi/TUI clients.
+UX adaptation MUST use Spec 14 UXP/UFI and MUST NOT change authority, evidence, approval, or safety requirements.
 
 ---
 
-# Part I — Stage-Generated UI
+## 11. C.R.I.S.T. stage surfaces
 
-## 10. Entry and onboarding UI
+### Context
 
-The first surface is generated from discovered reality.
+Generate local file/folder input, recommended connector cards, account/folder/label scope, plain-language permissions, import preview, extraction/sync progress, source health, summaries, candidate claims, contradictions, privacy/retention, and next action. Update live as sources change.
 
-Inputs:
+### Role
 
-- whether a project is already bound;
-- repository/project markers;
-- existing Focusa state;
-- current Trajectory/Workpoint;
-- available connectors;
-- existing context;
-- current client capability;
-- user experience profile.
+Generate one role-seed input, grounded draft, title, purpose, responsibilities, non-responsibilities, outputs, quality standards, assumptions, sources, redline, permission separation, approve, edit, regenerate-section, and defer actions. Approved Role state is never silently replaced.
 
-The generated entry surface chooses the relevant presentation without asking technical setup questions already answerable from the environment.
+### Interview
 
-Nontechnical entry labels:
+Implement `focusa.interview.strategy.grill-with-docs.v1`. Each generated question shows one decision, why it matters, facts already checked, recommended answer, sources, consequences, schema-selected input, branch progress, linked gaps, pause, defer, skip, answer, and autosave state. Commit the answer, evaluate it, then stream the next question. Preserve the reviewable compendium.
 
-```text
-Start quickly
-  Create a first mission and prove one action.
+### Spec
 
-Build the full project profile
-  Let Focusa gather context, define its role, ask questions, build the plan,
-  and prepare the work.
+Generate Project Genesis Spec progress, section state, plain-language summaries, proposer/challenger disagreement, contradictions, stale references, sources, pending approvals, one primary action, and launch/open of the full Spec 120 Workbench. Do not duplicate the Workbench.
 
-Continue setup
-  Resume the exact saved stage.
+### Tasks
 
-Import an existing project
-  Review what Focusa inferred before accepting it.
-```
+Generate work-plan summary, parent/child graph, dependencies, blockers, acceptance, proof requirements, provider health, edit/split/merge/reorder, mutation preview, approval, first-task recommendation, and first Workpoint launch.
 
-## 11. C — Context generated UI
+### Operational continuation
 
-The Context surface generates:
-
-- local file/folder drop area;
-- recommended connector cards based on available capabilities;
-- account/folder/label scope selectors;
-- plain-language permission explanations;
-- import preview;
-- extraction/sync progress;
-- source health;
-- bounded summaries;
-- candidate claim review;
-- contradiction review;
-- privacy/retention explanation;
-- next Context action.
-
-The UI updates in real time as documents are discovered, extracted, indexed, contradicted, accepted, or rejected.
-
-A source connector does not appear operational unless its health and capabilities say it is operational.
-
-## 12. R — Role generated UI
-
-The Role surface generates:
-
-- one plain-language role seed input;
-- AI-produced role title and summary;
-- responsibilities and non-responsibilities;
-- expected outputs and quality standards;
-- source grounding;
-- assumptions and open questions;
-- before/after redline on revision;
-- permission boundary shown separately;
-- approve, edit, regenerate section, and defer actions.
-
-The UI regenerates after new Context or Interview answers affect the draft. Approved Role state is never silently replaced.
-
-## 13. I — Interview generated UI
-
-The Interview surface implements `focusa.interview.strategy.grill-with-docs.v1` through generated UI.
-
-Each question surface contains:
-
-- one primary question;
-- why it matters;
-- what Focusa already checked;
-- recommended answer;
-- recommendation sources;
-- consequences;
-- input control chosen from the answer schema;
-- branch progress;
-- linked project-plan gaps;
-- pause, defer, skip, and answer actions;
-- visible autosave state.
-
-After the answer commits, Focusa evaluates it and streams the next generated question surface. The user never fills a large static questionnaire.
-
-The full compendium remains available as a generated review surface with answered, open, deferred, amended, and blocker filters.
-
-## 14. S — Spec generated UI
-
-The generated Spec surface does not duplicate the full Spec Workbench.
-
-It generates:
-
-- Project Genesis Spec progress;
-- section states;
-- current plain-language section summary;
-- proposer/challenger disagreement summary;
-- contradictions and stale refs;
-- pending approvals;
-- source grounding;
-- one primary action;
-- launch/open the full Spec Workbench;
-- section approval cards and final approval confirmation where supported.
-
-The full Workbench remains the rich authoring/research surface. The generated UI makes the workflow understandable and operable for a nontechnical owner.
-
-## 15. T — Tasks generated UI
-
-The Tasks surface generates:
-
-- plain-language work-plan summary;
-- parent/child task graph;
-- dependencies and blockers;
-- acceptance and proof requirements;
-- provider capability and connection state;
-- task edit/split/merge/reorder controls;
-- materialization preview;
-- approval action;
-- first-task recommendation;
-- first Workpoint launch.
-
-Provider names and technical IDs remain secondary. The user sees what work will be created, where it will appear, what it depends on, and what proof will mark it complete.
-
-## 16. Operational continuation UI
-
-After C.R.I.S.T. completes, generated surfaces remain available for:
-
-- add Context;
-- reconnect source;
-- review new contradiction;
-- revise Role;
-- continue Interview;
-- approve a Spec amendment;
-- revise Tasks;
-- inspect Receipt;
-- launch the next Workpoint.
-
-Project Genesis does not disappear into a completed onboarding record.
+Continue to generate add-context, reconnect, contradiction review, Role revision, Interview continuation, Spec amendment, Task revision, Receipt inspection, and next Workpoint actions after onboarding completes.
 
 ---
 
-# Part II — Real-Time Behavior
+## 12. UIAI Engine Eval contract
 
-## 17. AG-UI event mapping
-
-Required mappings:
-
-```text
-Focusa operation/run starts
-→ AG-UI RUN_STARTED / STEP_STARTED / ACTIVITY_SNAPSHOT
-
-plain-language streaming explanation
-→ TEXT_MESSAGE_START / CONTENT / END
-
-typed Focusa tool/action lifecycle
-→ TOOL_CALL_START / ARGS / END / RESULT
-
-resolved operating profile or surface state
-→ STATE_SNAPSHOT
-
-bounded changes
-→ STATE_DELTA using RFC 6902 JSON Patch
-
-A2UI surface messages
-→ AG-UI CUSTOM event name: focusa.a2ui.message.v0_9
-
-completion/failure
-→ RUN_FINISHED / RUN_ERROR with Focusa recovery refs
+```yaml
+schema: uiai.focusa_ui_eval_scenario.v1
+scenario_id:
+requirement_refs: []
+project_scope:
+work_surface_ref:
+browser_context:
+  isolation_class:
+  authentication_fixture_ref:
+viewport_matrix: []
+steps: []
+functional_assertions: []
+accessibility_assertions: []
+diagnostic_assertions: []
+visual_assertions: []
+reconnect_assertions: []
+expected_focusa_events: []
+expected_evidence: []
+expected_receipts: []
 ```
 
-AG-UI run/thread identifiers remain interaction identifiers. They do not replace Focusa ProjectRootKey, WorkstreamKey, AttachmentKey, Workpoint, or session authority.
-
-## 18. Streaming requirements
-
-- Show stage and activity immediately.
-- Render the deterministic shell before AI-generated explanatory copy completes.
-- Stream extraction and connector progress.
-- Stream Interview recommendation and question when validated.
-- Stream Spec Workbench progress and approval needs.
-- Stream task-plan changes and provider reconciliation.
-- Preserve user input during surface deltas.
-- Reconnect using event cursors.
-- Request a fresh snapshot after divergence.
-- Avoid full-surface replacement when a bounded patch is sufficient.
-- Do not render hidden high-frequency surfaces unless subscribed.
-
-## 19. Resume and rehydration
-
-After closing or restarting a client:
-
-```text
-load canonical Project Genesis state
-→ load current generated-surface envelope
-→ resume AG-UI cursor or request fresh snapshot
-→ restore unsent local draft separately
-→ show saved/unsaved state accurately
+```yaml
+schema: uiai.focusa_ui_eval_result.v1
+scenario_id:
+status:
+browser_session_refs: []
+browser_context_refs: []
+step_results: []
+screenshots: []
+diagnostics: []
+accessibility_report_ref:
+visual_comparison_refs: []
+focusa_evidence_refs: []
+receipt_refs: []
+failure_class:
+recovery_action:
 ```
 
-The client must not infer progress from transcript history.
+UIAI Engine Eval MUST prove onboarding, all C.R.I.S.T. stages, responsive behavior, keyboard/browser accessibility, reconnect, visual state, isolation, recovery, and dogfood flows.
 
 ---
 
-# Part III — Speed and Reuse Opportunities
-
-## 20. No custom generated-UI DSL
-
-Focusa must not create a custom component tree, form-description language, streaming patch language, or generated-UI protocol.
-
-Use A2UI for declarative surfaces and AG-UI for real-time agent/user compatibility.
-
-Focusa-specific behavior belongs in:
-
-- trusted component catalogs;
-- typed action bindings;
-- deterministic interaction intent;
-- domain-pack presentation metadata;
-- Focusa API adapters.
-
-## 21. A2UI reuse plan
-
-Use maintained A2UI functionality for:
-
-- message parsing;
-- schema validation;
-- surface creation;
-- incremental component updates;
-- data binding;
-- basic forms and layout;
-- action routing;
-- catalog registration;
-- multi-surface handling.
-
-Use A2UI Composer and Theater to create and replay fixtures for each C.R.I.S.T. stage before live model integration.
-
-This avoids rebuilding thousands of lines of protocol, state, validation, and rendering infrastructure.
-
-## 22. Schema-driven component and action generation
-
-Generate:
-
-- action input/output TypeScript types from OpenAPI;
-- client calls through openapi-fetch;
-- input controls from JSON Schema metadata;
-- validation messages from schema constraints;
-- component catalog contract snapshots;
-- UI fixtures from stage read models.
-
-Use the A2UI basic catalog for ordinary layout/input primitives. Create a Focusa custom component only when the basic catalog and existing Focusa design components cannot express a required domain interaction.
-
-## 23. API testing acceleration
-
-Schemathesis becomes a required generated-API gate for:
-
-- schema conformance;
-- invalid input rejection;
-- preview/commit workflows;
-- idempotency;
-- optimistic concurrency;
-- project/workstream scope;
-- stateful C.R.I.S.T. sequences;
-- generated UI action bindings.
-
-It supplements, rather than replaces, focused Rust integration tests.
-
-## 24. UI test acceleration
-
-Use:
-
-- A2UI fixture replay for component/surface behavior;
-- Vitest for catalog and projection logic;
-- Svelte Testing Library for user interaction semantics;
-- Playwright for complete nontechnical flows, reconnect, browser/client parity, responsive behavior, and visual snapshots;
-- UIAI Engine for screenshot and visual evidence capture.
-
-A live LLM is not required for most generated UI tests. Store deterministic question, recommendation, stage, error, and delta fixtures.
-
-## 25. Generated help and terminology
-
-Use active Workspace View Profiles, domain packs, and approved glossary terms to generate labels and explanations. Do not duplicate terminology logic in each screen.
-
-One `PlainLanguageProjection` service should produce:
-
-- user-facing names;
-- short descriptions;
-- advanced labels;
-- help text;
-- technical-term mappings;
-- workspace-specific language.
-
-## 26. Catalog-first implementation
-
-Implement generated UI in this order:
+## 13. Cross-Functional Alpha amendment
 
 ```text
-A2UI/AG-UI adapter and one StageShell
-→ Context components
-→ Role components
-→ Interview components
-→ Spec status/approval components
-→ Task-plan components
-→ recovery and advanced-details components
-→ vertical presentation variants
+Alpha 0 — contracts, Operation Registry, durable stream, A2UI/Lit, first UIAI Eval
+Alpha 1 — Context through generated UI
+Alpha 2 — Role and Grill Interview through generated UI, close and resume
+Alpha 3 — Spec progress and real Beads task through generated UI
+Alpha 4 — Workpoint, Evidence, closure, and Receipt through generated UI
+Alpha 5 — UIAI artifact refresh without manual reload
+Alpha 6 — two isolated generated Work Surfaces and targeted steering
+Alpha 7 — General, Software, and Research projections over identical semantics
+Alpha 8 — permanent nontechnical Spec 135 dogfood traversal
 ```
 
-Each component enters a catalog fixture and test gallery immediately.
+AG-UI compatibility proceeds in parallel after the native stream and A2UI path are stable. It does not block Alpha 0–8 native traversal.
 
 ---
 
-# Part IV — Cross-Functional Alpha Amendment
+## 14. Mandatory decomposer directive
 
-## 27. Alpha changes
-
-Spec 135H Alpha execution is amended:
-
-### Alpha 0
-
-Add:
-
-```text
-A2UI v0.9 surface contract
-AG-UI adapter contract
-Generated Surface Envelope
-UI Action Binding
-openapi-fetch generated client
-one catalog and one streamed fixture
-```
-
-### Alpha 1
-
-The first Context ingestion must be completed through the generated nontechnical onboarding surface, not CLI-only execution.
-
-### Alpha 2
-
-Role approval and Grill Interview must use generated A2UI surfaces and live deltas, including recommendation, answer input, autosave, close, and resume.
-
-### Alpha 3
-
-Spec progress, objection, and approval state must be understandable and actionable through generated UI while the full Spec Workbench remains available.
-
-### Alpha 4
-
-Task-plan approval, first Workpoint selection, Evidence, closure, and Receipt must be surfaced through generated UI.
-
-### Alpha 5
-
-UIAI artifacts must update the relevant generated Work Surface without manual refresh.
-
-### Alpha 6
-
-Two simultaneous generated Work Surfaces must retain independent scope, input drafts, action bindings, and event cursors.
-
-### Alpha 7
-
-The same A2UI semantic surface must render through General, Software, and Research presentation catalogs without changing action bindings or canonical state.
-
-### Alpha 8
-
-The permanent Spec 135 dogfood path is completed by a nontechnical operator entirely through generated UI, except for explicit advanced diagnostics.
-
----
-
-# Part V — Agent Decomposition Instructions
-
-## 28. Mandatory decomposer directive
-
-Every agent decomposing or implementing Spec 135 must receive this instruction verbatim or equivalently:
+Every decomposing and implementing agent MUST receive this instruction:
 
 ```text
 Implement every C.R.I.S.T. and onboarding stage as real-time generated UI for a
-nontechnical operator. Do not decompose the UI as static forms, a transcript,
-a CLI workflow with a status page, or hard-coded stage screens.
+nontechnical operator. Do not build static forms, transcript panels, hard-coded
+stage screens, or a CLI workflow with a status page.
 
-Use A2UI v0.9.1 as the generated UI protocol, @a2ui/web_core/v0_9 for message
-processing/state/validation, the maintained A2UI Lit renderer for the immediate
-Cross-Functional Alpha, and a Focusa Svelte renderer built on web_core for the
-full production surface. Use AG-UI as a compatibility adapter over Focusa's
-existing APIs and SSE event bus. Do not replace Focusa canonical events or
-create a second streaming protocol.
+Use A2UI v0.9.1, @a2ui/web_core/v0_9, and the maintained @a2ui/lit/v0_9
+renderer. Build Focusa-specific Svelte Custom Elements for the trusted catalog.
+Do not build a complete second Svelte A2UI renderer.
 
-Every generated component action must bind to a typed Focusa operation with
-explicit project/workstream scope, capabilities, validation, preview/commit,
-idempotency, concurrency, authority, and Receipt posture. Do not create a
-generic generated mutation endpoint.
+Use Focusa's SQLite event history plus cursor replay and broadcast live tail as
+the primary stream. Implement AG-UI only as a compatibility adapter and do not
+place it on the native Alpha critical path.
 
-The default experience must use plain language, one primary action, progressive
-disclosure, recommendations with sources, autosave, resume, inline validation,
-accessible controls, and explicit recovery. Hide raw identifiers, API routes,
-schemas, provider IDs, and diagnostic payloads under Advanced details.
+Bind every component action to a generated typed Focusa operation with explicit
+scope, capability, permission, preview/commit, idempotency, concurrency,
+authority, Evidence, and Receipt posture. Do not create a generic UI mutation
+endpoint or duplicate canonical business logic in the UI.
 
-Generate the deterministic shell, stage, required fields, validation, actions,
-progress, and authority from canonical Focusa state. AI may generate wording,
-recommendations, summaries, and help, but may not invent actions, permissions,
-completion, evidence, or required fields.
+Use OpenAPI 3.0.3, JSON Schema 2020-12, openapi-typescript/openapi-fetch, and
+oapi-codegen for UIAI Engine. Do not maintain duplicate DTOs.
 
-Reuse A2UI's basic catalog, web_core, catalogs, data binding, incremental
-updates, multi-surface behavior, and action routing. Build only Focusa-specific
-components. Use openapi-typescript + openapi-fetch for typed clients,
-Schemathesis for OpenAPI workflow testing, and A2UI fixtures + Vitest + Svelte
-Testing Library + Playwright for UI proof.
+Use UIAI Engine Eval for every browser, end-to-end, responsive, visual,
+reconnect, diagnostic, and browser-accessibility proof. Do not add Playwright.
 
-Every Alpha slice must be usable through generated UI immediately. CLI and raw
-JSON remain parity and diagnostic surfaces, not the primary onboarding path.
-A feature is incomplete when its backend exists but a nontechnical operator
-cannot understand, complete, recover, and resume it through generated UI.
+Use the Pi RPC AgentExecutionAdapter and Spec 133 sessions for model-backed
+Role, Interview, synthesis, and explanation work. Do not add Vercel AI SDK,
+WorkflowAgent, ToolLoopAgent, AI SDK UI, or Vercel AI Gateway as Focusa runtime
+owners or dependencies.
+
+Submit general behavior to the greater Focusa primitive before adding the
+C.R.I.S.T.-specific projection. Every Alpha slice remains usable through
+plain-language generated UI and leaves the permanent dogfood path operational.
 ```
 
-## 29. Ticket requirements
+---
 
-Every C.R.I.S.T. implementation ticket must state:
+## 15. Ticket contract
 
 ```yaml
 generated_ui:
   surface_kind:
+  requirement_refs: []
+  primitive_owner:
   a2ui_catalog_components: []
   read_model_refs: []
+  operation_ids: []
   action_binding_refs: []
-  ag_ui_events: []
   plain_language_copy:
   primary_action:
   autosave_behavior:
@@ -1009,57 +624,54 @@ generated_ui:
   advanced_details: []
   terminal_fallback:
   accessibility_tests: []
-  playwright_flow_ref:
+  uiai_eval_scenarios: []
+  evidence_requirements: []
+  receipt_requirements: []
 ```
 
-A missing generated-UI section blocks the ticket.
+A missing generated-UI or UIAI Eval section blocks the ticket.
 
 ---
 
-## 30. Acceptance criteria
+## 16. Acceptance criteria
 
 Spec 135I is accepted when:
 
-1. Every C.R.I.S.T. stage has a generated-surface implementation.
-2. Project onboarding starts and resumes through generated UI.
-3. A2UI v0.9.1 is used instead of a custom component protocol.
-4. `@a2ui/web_core/v0_9` owns message processing, state, validation, binding, and catalog behavior.
-5. The maintained Lit renderer provides the immediate Alpha path.
-6. The Focusa Svelte renderer reaches production parity using web_core rather than reimplementing it.
-7. AG-UI maps Focusa activity, tools, state snapshots/deltas, and A2UI messages over the existing event architecture.
-8. Every generated action resolves to a typed Focusa operation and correct scope.
-9. No generic generated mutation endpoint exists.
-10. The default UI contains no required raw technical identifiers or command syntax.
-11. Every screen has one primary action and progressive disclosure.
-12. Recommendations show source basis.
-13. All inputs autosave and resume truthfully.
-14. Context, Role, Interview, Spec, Tasks, Workpoint, Evidence, Receipt, and recovery flows operate without CLI use.
-15. Generated surfaces update incrementally without manual refresh.
-16. Two concurrent Work Surfaces retain isolated state and action bindings.
-17. General, Software, and Research render the same semantic surface through different visual catalogs without authority changes.
-18. Pi/TUI clients provide a terminal-safe generated UI projection and action parity.
-19. Vitest, component, Playwright, Schemathesis, reconnect, accessibility, and visual proof pass.
-20. A nontechnical evaluator can complete the Spec 135 dogfood flow without assistance from raw diagnostics.
+1. Every C.R.I.S.T. and onboarding stage has a real generated-surface implementation.
+2. A2UI v0.9.1 and `web_core` own protocol processing and state.
+3. The maintained Lit renderer is the permanent A2UI renderer.
+4. Focusa-specific Svelte Custom Elements provide domain components without duplicating the renderer.
+5. Native Focusa event replay and live tail update surfaces without manual refresh.
+6. AG-UI compatibility exists without owning state or blocking the native Alpha path.
+7. OpenAPI 3.0.3 and JSON Schema 2020-12 generate TypeScript and Go clients.
+8. Every action resolves to a generated typed Focusa operation and exact scope.
+9. Every default screen uses plain language, one primary action, progressive disclosure, autosave, resume, and recovery.
+10. Context, Role, Interview, Spec, Tasks, Workpoint, Evidence, Receipt, and recovery operate without CLI use.
+11. Two concurrent Work Surfaces retain isolated drafts, scope, action bindings, and cursors.
+12. General, Software, and Research render identical semantic state through different visual profiles without authority changes.
+13. Pi/TUI provides terminal-safe projection and action parity.
+14. UIAI Engine Eval proves browser, responsive, accessibility, reconnect, visual, isolation, and recovery behavior.
+15. No Playwright dependency or fixture exists.
+16. No Vercel AI SDK runtime dependency exists.
+17. A nontechnical evaluator completes the full dogfood path without raw diagnostics or developer intervention.
 
 ---
 
-## 31. Closure blockers
+## 17. Closure blockers
 
-This specification cannot close while:
+Spec 135I cannot close while:
 
-- any C.R.I.S.T. stage is CLI-only;
-- onboarding is a static wizard disconnected from current canonical state;
-- Interview is a static questionnaire or transcript-only experience;
-- a backend-complete feature lacks a generated UI path;
-- UI components invent or embed authority logic;
-- a custom generated-UI or streaming protocol duplicates A2UI or AG-UI;
-- generated actions bypass typed Focusa APIs;
-- raw IDs, routes, schemas, or stack traces are required in the default flow;
+- any stage is CLI-only, static-form-only, transcript-only, or mock-only;
+- a backend-complete feature lacks generated UI;
+- a custom renderer duplicates A2UI web core or Lit;
+- AG-UI replaces or blocks the native durable Focusa stream;
+- generated actions bypass generated typed Focusa APIs;
+- raw IDs, routes, schemas, stack traces, or commands are required in the default flow;
 - manual refresh is required during normal operation;
-- input is lost during a streamed update or restart;
-- unsupported actions render as enabled;
-- generated surfaces can execute arbitrary code or components;
-- nontechnical error recovery is missing;
-- concurrent surfaces bleed drafts, scope, or action bindings;
-- Alpha or dogfood proof relies on CLI rather than the generated UI;
-- any required client lacks a truthful generated UI or fallback projection.
+- input is lost during update or restart;
+- unsupported actions render enabled;
+- concurrent surfaces bleed drafts, scope, authority, or action bindings;
+- browser proof uses Playwright or bypasses UIAI Engine Eval;
+- model execution bypasses governed Focusa/Pi sessions;
+- general reusable behavior remains trapped in C.R.I.S.T. or client code;
+- the permanent nontechnical dogfood traversal lacks actual Evidence and Receipts.
