@@ -3,7 +3,7 @@
 //! Adapters return snapshots; this module alone decides dependency readiness
 //! and ordering. Provider commands must never become scheduler authority.
 
-use super::{WorkItem, WorkItemProvider, WorkItemQuery, WorkItemStatus};
+use super::{WorkItem, WorkItemProvider, WorkItemQuery, WorkItemRef, WorkItemStatus};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
@@ -45,6 +45,46 @@ fn parent_matches(item: &WorkItem, query: &WorkItemQuery) -> bool {
         }),
         None => true,
     }
+}
+
+fn is_descendant_of(
+    item: &WorkItem,
+    ancestor: &WorkItemRef,
+    items: &HashMap<WorkItemKey, &WorkItem>,
+) -> bool {
+    let mut parent = item.parent.as_ref();
+    let mut visited = HashSet::new();
+    while let Some(reference) = parent {
+        if reference.provider == ancestor.provider
+            && reference.project_root == ancestor.project_root
+            && reference.provider_item_id == ancestor.provider_item_id
+        {
+            return true;
+        }
+        let key = WorkItemKey {
+            provider: reference.provider,
+            project_root: reference.project_root.clone(),
+            provider_item_id: reference.provider_item_id.clone(),
+        };
+        if !visited.insert(key.clone()) {
+            return false;
+        }
+        parent = items
+            .get(&key)
+            .and_then(|parent_item| parent_item.parent.as_ref());
+    }
+    false
+}
+
+fn has_nonterminal_child(item: &WorkItem, items: &[WorkItem]) -> bool {
+    items.iter().any(|candidate| {
+        !candidate.is_terminal()
+            && candidate.parent.as_ref().is_some_and(|parent| {
+                parent.provider == item.provider
+                    && parent.project_root == item.project_root
+                    && parent.provider_item_id == item.provider_item_id
+            })
+    })
 }
 
 fn has_reachable_cycle(
@@ -93,7 +133,12 @@ pub fn evaluate_readiness(items: &[WorkItem], query: &WorkItemQuery) -> WorkItem
 
     for item in items
         .iter()
-        .filter(|item| parent_matches(item, query))
+        .filter(|item| {
+            query.parent.as_ref().map_or_else(
+                || parent_matches(item, query),
+                |parent| is_descendant_of(item, parent, &by_key),
+            )
+        })
         .filter(|item| !item.is_terminal())
     {
         let reason = if item.project_root != query.project_root {
@@ -108,6 +153,8 @@ pub fn evaluate_readiness(items: &[WorkItem], query: &WorkItemQuery) -> WorkItem
             Some(format!("provider_status:{:?}", item.provider_status))
         } else if let Some(reason) = item.blocked_reason.as_deref() {
             Some(format!("provider_blocked:{reason}"))
+        } else if has_nonterminal_child(item, items) {
+            Some("nonterminal_children".to_string())
         } else if has_reachable_cycle(
             &WorkItemKey::from_item(item),
             &by_key,
@@ -170,7 +217,6 @@ pub fn select_next_ready(items: &[WorkItem], query: &WorkItemQuery) -> Option<Wo
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::work_item::WorkItemRef;
 
     fn item(id: &str, status: WorkItemStatus, priority: i32) -> WorkItem {
         WorkItem {
@@ -272,6 +318,36 @@ mod tests {
                 .iter()
                 .all(|entry| entry.reason == "dependency_cycle")
         );
+    }
+
+    #[test]
+    fn root_query_reaches_nested_ready_leaves_before_parent_gates() {
+        let root = reference("root", Path::new("/project"));
+        let mut phase = item("phase", WorkItemStatus::Open, 0);
+        phase.parent = Some(root.clone());
+        let mut leaf = item("leaf", WorkItemStatus::Open, 1);
+        leaf.parent = Some(reference("phase", Path::new("/project")));
+        let nested_query = WorkItemQuery {
+            project_root: PathBuf::from("/project"),
+            parent: Some(root.clone()),
+            limit: 100,
+        };
+        let result = evaluate_readiness(&[phase.clone(), leaf.clone()], &nested_query);
+        assert_eq!(result.ready.len(), 1);
+        assert_eq!(result.ready[0].provider_item_id, "leaf");
+        assert_eq!(
+            result
+                .blocked
+                .iter()
+                .find(|entry| entry.item.provider_item_id == "phase")
+                .map(|entry| entry.reason.as_str()),
+            Some("nonterminal_children")
+        );
+
+        leaf.provider_status = WorkItemStatus::Closed;
+        let result = evaluate_readiness(&[phase, leaf], &nested_query);
+        assert_eq!(result.ready.len(), 1);
+        assert_eq!(result.ready[0].provider_item_id, "phase");
     }
 
     #[test]
