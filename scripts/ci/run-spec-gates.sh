@@ -84,6 +84,7 @@ run_gate bash ./tests/spec96_menubar_mission_canvas_foundation_static_test.sh
 run_gate bash ./tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh
 run_gate bash ./tests/spec135h_implementation_acceleration_static_test.sh
 run_gate bash ./tests/spec135i_real_time_generated_ui_static_test.sh
+run_gate bash ./tests/spec135j_core_api_runtime_reuse_static_test.sh
 run_gate bash ./tests/phone_bridge_public_url_static_test.sh
 run_gate bash ./tests/phone_bridge_automatic_callback_static_test.sh
 run_gate bash ./tests/release_notes_workflow_static_test.sh
