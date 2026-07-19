@@ -1,13 +1,13 @@
 # Spec 135 UXP/UFI Generated UI Directive for Agents
 
-**Authority:** [Spec 14](../14-uxp-ufi-schema.md) and [Spec 135K](../135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md)  
+**Authority:** [Spec 135 Series Current Authoritative Delivery Contract](../135-series-current-manifest.md), [Spec 14](../14-uxp-ufi-schema.md), and [Spec 135K](../135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md)  
 **Applies to:** every agent implementing generated C.R.I.S.T., onboarding, Mission Canvas, plain-language, personalization, help, confirmation, pacing, or usability behavior.
 
-## Mandatory rule
+## 1. Canonical rule
 
 Use the existing canonical UXP/UFI system. Do not create a simple mode, expert mode, expertise score, hidden technical-skill inference, emotion profile, or second personalization store.
 
-## Safe baseline
+## 2. Safe baseline
 
 Before calibration exists, render:
 
@@ -19,12 +19,12 @@ recommendation with sources
 consequences before commitment
 autosave confirmation
 advanced details collapsed
-required safety/authority/evidence visible
+required safety, authority, Evidence, and recovery visible
 ```
 
-## Allowed adaptation
+## 3. Allowed adaptation
 
-Use existing UXP dimensions:
+Use only existing UXP dimensions:
 
 ```text
 verbosity_preference
@@ -36,15 +36,15 @@ risk_tolerance
 autonomy_tolerance
 ```
 
-These affect presentation and advisory pacing only. They never affect permission, canonical scope, evidence requirements, action bindings, approval gates, or provider authority.
+These affect presentation and advisory pacing only. They never affect permission, scope, Evidence, action bindings, approval gates, provider authority, or safety.
 
-## UFI rule
+## 4. UFI rule
 
-Record only observable Spec 14 friction signals with citations and exact user/agent/model/harness/project/surface scope.
+Record only observable Spec 14 friction signals with citations and exact user, agent, model, harness, project, attachment, and generated-surface scope.
 
 Do not interpret completion time, Advanced-details use, help use, or accessibility controls as technical incompetence or friction by default.
 
-## Transparency
+## 5. Transparency
 
 Every adaptation must answer:
 
@@ -57,9 +57,15 @@ Can the user change it?
 
 User overrides freeze learning for that dimension until released.
 
-## Ticket requirement
+## 6. Proof ownership
 
-Every adaptive generated-UI ticket identifies:
+Use A2UI fixtures, Vitest, and Svelte Testing Library for deterministic generated-surface proof.
+
+Use UIAI Engine Eval for browser, responsive, visual, reconnect, recovery, and browser-accessibility proof across UXP variants.
+
+Do not add Playwright or another browser test runtime to Focusa.
+
+## 7. Ticket requirement
 
 ```yaml
 uxp_ufi:
@@ -72,6 +78,7 @@ uxp_ufi:
   user_override_behavior:
   fixture_variants: []
   accessibility_invariants: []
+  uiai_eval_scenarios: []
 ```
 
-A missing UXP/UFI section blocks any ticket claiming adaptive or personalized generated UI.
+A missing UXP/UFI or UIAI Eval section blocks any ticket claiming adaptive or personalized generated UI.
