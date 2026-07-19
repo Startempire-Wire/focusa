@@ -152,6 +152,10 @@ fn route_scope(method: &Method, path: &str) -> &'static str {
         || path.starts_with("/v1/silent-sessions/")
         || path == "/v1/silent_sessions"
         || path.starts_with("/v1/silent_sessions/")
+        || path == "/v1/harnesses"
+        || path.starts_with("/v1/harnesses/")
+        || path == "/v1/providers"
+        || path.starts_with("/v1/providers/")
     {
         if path.contains("/forensics") || path.contains("/raw-output") {
             return "silent_sessions:forensics";
@@ -379,6 +383,18 @@ mod tests {
                 Method::GET,
                 "/v1/silent-sessions/session-1/raw-output",
                 "silent_sessions:forensics",
+            ),
+            (Method::GET, "/v1/harnesses", "silent_sessions:read"),
+            (
+                Method::POST,
+                "/v1/harnesses/pi/preflight",
+                "silent_sessions:create",
+            ),
+            (Method::GET, "/v1/providers", "silent_sessions:read"),
+            (
+                Method::POST,
+                "/v1/providers/openai/models/preflight",
+                "silent_sessions:create",
             ),
         ];
         for (method, path, expected) in cases {
