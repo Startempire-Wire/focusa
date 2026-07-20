@@ -125,48 +125,14 @@ impl<T: PiRpcTransport> HarnessAdapter for PiRpcAdapter<T> {
             return Ok(vec![]);
         }
 
-        let kind = match event_type {
-            "agent_start" => "agent.started",
-            "agent_end" => "agent.run_ended",
-            "agent_settled" => "agent.settled",
-            "turn_start" => "agent.turn_started",
-            "turn_end" => "agent.turn_ended",
-            "message_start" => "agent.message_started",
-            "message_end" => "agent.message_ended",
-            "tool_execution_start" => "tool.started",
-            "tool_execution_update" => "tool.output",
-            "tool_execution_end" if value.get("isError").and_then(Value::as_bool) == Some(true) => {
-                "tool.failed"
-            }
-            "tool_execution_end" => "tool.completed",
-            "queue_update" => "agent.queue_updated",
-            "compaction_start" => "agent.compaction_started",
-            "compaction_end" => "agent.compaction_ended",
-            "auto_retry_start" => "retry.scheduled",
-            "auto_retry_end" => "retry.completed",
-            "extension_error" => "agent.error",
-            "extension_ui_request" => "prompt.detected",
-            "message_update" => match value
-                .get("assistantMessageEvent")
-                .and_then(|event| event.get("type"))
-                .and_then(Value::as_str)
-            {
-                Some("text_delta") => "assistant.text_delta",
-                Some("thinking_delta") => "assistant.thinking_delta",
-                Some("toolcall_start" | "toolcall_delta" | "toolcall_end") => {
-                    "agent.tool_call_delta"
-                }
-                Some("error") => "agent.error",
-                _ => "agent.message_delta",
-            },
-            _ => "harness.unknown",
-        };
-        Ok(vec![HarnessEvent {
-            kind: kind.into(),
-            source: PI_RPC_ADAPTER_ID.into(),
-            provenance: ObservationProvenance::RuntimeObserved,
-            payload: value,
-        }])
+        let mut events = vec![runtime_event(
+            pi_event_kind(event_type, &value),
+            value.clone(),
+        )];
+        if event_type == "message_end" {
+            events.extend(assistant_message_observations(&value)?);
+        }
+        Ok(events)
     }
 
     fn send_prompt(
@@ -253,8 +219,13 @@ impl<T: PiRpcTransport> HarnessAdapter for PiRpcAdapter<T> {
             .unwrap_or(0);
         let native_session_ref = data
             .get("sessionFile")
-            .or_else(|| data.get("sessionId"))
             .and_then(Value::as_str)
+            .filter(|value| !value.trim().is_empty())
+            .or_else(|| {
+                data.get("sessionId")
+                    .and_then(Value::as_str)
+                    .filter(|value| !value.trim().is_empty())
+            })
             .map(str::to_owned);
         Ok(HarnessState {
             activity: if is_streaming {
@@ -295,6 +266,26 @@ impl<T: PiRpcTransport> HarnessAdapter for PiRpcAdapter<T> {
         })
     }
 
+    fn query_usage(&mut self, run: RunRef) -> Result<HarnessUsage, HarnessAdapterError> {
+        run.validate()?;
+        require_capability(
+            &self.capabilities(),
+            HarnessCapability::TokenUsage,
+            CapabilityRequirement::Native,
+        )?;
+        require_capability(
+            &self.capabilities(),
+            HarnessCapability::CostUsage,
+            CapabilityRequirement::Native,
+        )?;
+        let response = self
+            .transport
+            .request(Some(&run), json!({"type": "get_session_stats"}))
+            .map_err(HarnessAdapterError::Transport)?;
+        let data = expect_success(response, "get_session_stats")?;
+        usage_from_session_stats(data)
+    }
+
     fn resume_native_session(&mut self, native_ref: &str) -> Result<(), HarnessAdapterError> {
         require_capability(
             &self.capabilities(),
@@ -313,9 +304,247 @@ impl<T: PiRpcTransport> HarnessAdapter for PiRpcAdapter<T> {
                 json!({"type": "switch_session", "sessionPath": native_ref}),
             )
             .map_err(HarnessAdapterError::Transport)?;
-        expect_success(response, "switch_session")?;
-        Ok(())
+        let data = expect_success(response, "switch_session")?;
+        match data.get("cancelled").and_then(Value::as_bool) {
+            Some(false) => Ok(()),
+            Some(true) => Err(HarnessAdapterError::InvalidResponse(
+                "native session switch was cancelled".into(),
+            )),
+            None => Err(HarnessAdapterError::InvalidResponse(
+                "switch_session cancelled status is required".into(),
+            )),
+        }
     }
+}
+
+fn runtime_event(kind: &str, payload: Value) -> HarnessEvent {
+    HarnessEvent {
+        kind: kind.into(),
+        source: PI_RPC_ADAPTER_ID.into(),
+        provenance: ObservationProvenance::RuntimeObserved,
+        payload,
+    }
+}
+
+fn pi_event_kind(event_type: &str, value: &Value) -> &'static str {
+    match event_type {
+        "agent_start" => "agent.started",
+        "agent_end" => "agent.run_ended",
+        "agent_settled" => "agent.settled",
+        "turn_start" => "agent.turn_started",
+        "turn_end" => "agent.turn_ended",
+        "message_start" => "agent.message_started",
+        "message_end" => "agent.message_ended",
+        "tool_execution_start" => "tool.started",
+        "tool_execution_update" => "tool.output",
+        "tool_execution_end" if value.get("isError").and_then(Value::as_bool) == Some(true) => {
+            "tool.failed"
+        }
+        "tool_execution_end" => "tool.completed",
+        "queue_update" => "agent.queue_updated",
+        "compaction_start" => "agent.compaction_started",
+        "compaction_end" => "agent.compaction_ended",
+        "auto_retry_start" => "retry.scheduled",
+        "auto_retry_end" => "retry.completed",
+        "extension_error" => "agent.error",
+        "extension_ui_request" => "prompt.detected",
+        "message_update" => match value
+            .get("assistantMessageEvent")
+            .and_then(|event| event.get("type"))
+            .and_then(Value::as_str)
+        {
+            Some("start") => "assistant.message_generation_started",
+            Some("text_start") => "assistant.text_started",
+            Some("text_delta") => "assistant.text_delta",
+            Some("text_end") => "assistant.text_completed",
+            Some("thinking_start") => "assistant.thinking_started",
+            Some("thinking_delta") => "assistant.thinking_delta",
+            Some("thinking_end") => "assistant.thinking_completed",
+            Some("toolcall_start") => "agent.tool_call_started",
+            Some("toolcall_delta") => "agent.tool_call_delta",
+            Some("toolcall_end") => "agent.tool_call_completed",
+            Some("done") => "assistant.message_completed",
+            Some("error") => "agent.error",
+            _ => "agent.message_delta",
+        },
+        _ => "harness.unknown",
+    }
+}
+
+fn assistant_message_observations(event: &Value) -> Result<Vec<HarnessEvent>, HarnessAdapterError> {
+    let message = event
+        .get("message")
+        .and_then(Value::as_object)
+        .ok_or_else(|| {
+            HarnessAdapterError::InvalidFrame("message_end message is required".into())
+        })?;
+    if message.get("role").and_then(Value::as_str) != Some("assistant") {
+        return Ok(vec![]);
+    }
+    let provider = required_frame_string(message, "provider")?;
+    let model = required_frame_string(message, "model")?;
+    let usage = message
+        .get("usage")
+        .cloned()
+        .ok_or_else(|| HarnessAdapterError::InvalidFrame("assistant usage is required".into()))?;
+    let usage = usage_from_assistant_message(usage)?;
+    let usage_payload = serde_json::to_value(&usage)
+        .map_err(|error| HarnessAdapterError::InvalidFrame(error.to_string()))?;
+    Ok(vec![
+        runtime_event(
+            "model.observed",
+            json!({
+                "provider": provider,
+                "model": model,
+                "api": message.get("api").cloned().unwrap_or(Value::Null),
+            }),
+        ),
+        runtime_event("usage.observed", usage_payload),
+    ])
+}
+
+fn usage_from_assistant_message(usage: Value) -> Result<HarnessUsage, HarnessAdapterError> {
+    let usage_object = usage.as_object().ok_or_else(|| {
+        HarnessAdapterError::InvalidFrame("assistant usage must be an object".into())
+    })?;
+    let input_tokens = required_frame_u64(usage_object, "input")?;
+    let output_tokens = required_frame_u64(usage_object, "output")?;
+    let cache_read_tokens = required_frame_u64(usage_object, "cacheRead")?;
+    let cache_write_tokens = required_frame_u64(usage_object, "cacheWrite")?;
+    let total_tokens = usage_object
+        .get("totalTokens")
+        .and_then(Value::as_u64)
+        .unwrap_or_else(|| {
+            input_tokens
+                .saturating_add(output_tokens)
+                .saturating_add(cache_read_tokens)
+                .saturating_add(cache_write_tokens)
+        });
+    let cost_usd = usage_object
+        .get("cost")
+        .and_then(Value::as_object)
+        .and_then(|cost| cost.get("total"))
+        .and_then(Value::as_f64)
+        .filter(|cost| cost.is_finite() && *cost >= 0.0)
+        .ok_or_else(|| {
+            HarnessAdapterError::InvalidFrame("assistant total cost is required".into())
+        })?;
+    Ok(HarnessUsage {
+        input_tokens,
+        output_tokens,
+        cache_read_tokens,
+        cache_write_tokens,
+        total_tokens,
+        cost_usd,
+        context_tokens: None,
+        context_window: None,
+        context_percent: None,
+        raw: usage,
+    })
+}
+
+fn usage_from_session_stats(data: Value) -> Result<HarnessUsage, HarnessAdapterError> {
+    let tokens = data
+        .get("tokens")
+        .and_then(Value::as_object)
+        .ok_or_else(|| HarnessAdapterError::InvalidResponse("tokens are required".into()))?;
+    let input_tokens = required_response_u64(tokens, "input")?;
+    let output_tokens = required_response_u64(tokens, "output")?;
+    let cache_read_tokens = required_response_u64(tokens, "cacheRead")?;
+    let cache_write_tokens = required_response_u64(tokens, "cacheWrite")?;
+    let total_tokens = tokens
+        .get("total")
+        .or_else(|| tokens.get("totalTokens"))
+        .and_then(Value::as_u64)
+        .unwrap_or_else(|| {
+            input_tokens
+                .saturating_add(output_tokens)
+                .saturating_add(cache_read_tokens)
+                .saturating_add(cache_write_tokens)
+        });
+    let cost_usd = data
+        .get("cost")
+        .and_then(Value::as_f64)
+        .filter(|cost| cost.is_finite() && *cost >= 0.0)
+        .ok_or_else(|| HarnessAdapterError::InvalidResponse("cost is required".into()))?;
+    let context = data.get("contextUsage").and_then(Value::as_object);
+    let context_tokens = optional_response_u64(context, "tokens")?;
+    let context_window = optional_response_u64(context, "contextWindow")?;
+    let context_percent = optional_response_f64(context, "percent")?;
+    Ok(HarnessUsage {
+        input_tokens,
+        output_tokens,
+        cache_read_tokens,
+        cache_write_tokens,
+        total_tokens,
+        cost_usd,
+        context_tokens,
+        context_window,
+        context_percent,
+        raw: data,
+    })
+}
+
+fn required_frame_string(
+    object: &Map<String, Value>,
+    key: &str,
+) -> Result<String, HarnessAdapterError> {
+    object
+        .get(key)
+        .and_then(Value::as_str)
+        .filter(|value| !value.trim().is_empty())
+        .map(str::to_owned)
+        .ok_or_else(|| HarnessAdapterError::InvalidFrame(format!("assistant {key} is required")))
+}
+
+fn required_frame_u64(object: &Map<String, Value>, key: &str) -> Result<u64, HarnessAdapterError> {
+    object.get(key).and_then(Value::as_u64).ok_or_else(|| {
+        HarnessAdapterError::InvalidFrame(format!("assistant usage {key} is required"))
+    })
+}
+
+fn required_response_u64(
+    object: &Map<String, Value>,
+    key: &str,
+) -> Result<u64, HarnessAdapterError> {
+    object
+        .get(key)
+        .and_then(Value::as_u64)
+        .ok_or_else(|| HarnessAdapterError::InvalidResponse(format!("tokens.{key} is required")))
+}
+
+fn optional_response_u64(
+    object: Option<&Map<String, Value>>,
+    key: &str,
+) -> Result<Option<u64>, HarnessAdapterError> {
+    let Some(value) = object.and_then(|object| object.get(key)) else {
+        return Ok(None);
+    };
+    if value.is_null() {
+        return Ok(None);
+    }
+    value.as_u64().map(Some).ok_or_else(|| {
+        HarnessAdapterError::InvalidResponse(format!("contextUsage.{key} must be unsigned"))
+    })
+}
+
+fn optional_response_f64(
+    object: Option<&Map<String, Value>>,
+    key: &str,
+) -> Result<Option<f64>, HarnessAdapterError> {
+    let Some(value) = object.and_then(|object| object.get(key)) else {
+        return Ok(None);
+    };
+    if value.is_null() {
+        return Ok(None);
+    }
+    value
+        .as_f64()
+        .filter(|number| number.is_finite() && *number >= 0.0)
+        .map(Some)
+        .ok_or_else(|| {
+            HarnessAdapterError::InvalidResponse(format!("contextUsage.{key} must be non-negative"))
+        })
 }
 
 fn build_pi_manifest(

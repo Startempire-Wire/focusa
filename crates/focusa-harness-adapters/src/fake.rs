@@ -181,6 +181,22 @@ impl HarnessAdapter for DeterministicFakeAdapter {
         Ok(self.model.clone())
     }
 
+    fn query_usage(&mut self, run: RunRef) -> Result<HarnessUsage, HarnessAdapterError> {
+        run.validate()?;
+        Ok(HarnessUsage {
+            input_tokens: 0,
+            output_tokens: 0,
+            cache_read_tokens: 0,
+            cache_write_tokens: 0,
+            total_tokens: 0,
+            cost_usd: 0.0,
+            context_tokens: Some(0),
+            context_window: Some(1),
+            context_percent: Some(0.0),
+            raw: json!({"deterministic": true}),
+        })
+    }
+
     fn resume_native_session(&mut self, native_ref: &str) -> Result<(), HarnessAdapterError> {
         if native_ref.trim().is_empty() {
             return Err(HarnessAdapterError::InvalidConfig(

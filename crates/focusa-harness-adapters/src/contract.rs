@@ -335,6 +335,20 @@ pub struct HarnessEvent {
     pub payload: Value,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct HarnessUsage {
+    pub input_tokens: u64,
+    pub output_tokens: u64,
+    pub cache_read_tokens: u64,
+    pub cache_write_tokens: u64,
+    pub total_tokens: u64,
+    pub cost_usd: f64,
+    pub context_tokens: Option<u64>,
+    pub context_window: Option<u64>,
+    pub context_percent: Option<f64>,
+    pub raw: Value,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum HarnessAdapterError {
     #[error("run reference must contain a UUIDv7 run id and positive generation")]
@@ -380,6 +394,7 @@ pub trait HarnessAdapter {
     fn abort(&mut self, run: RunRef) -> Result<(), HarnessAdapterError>;
     fn query_state(&mut self, run: RunRef) -> Result<HarnessState, HarnessAdapterError>;
     fn query_model(&mut self, run: RunRef) -> Result<ModelBinding, HarnessAdapterError>;
+    fn query_usage(&mut self, run: RunRef) -> Result<HarnessUsage, HarnessAdapterError>;
     fn resume_native_session(&mut self, native_ref: &str) -> Result<(), HarnessAdapterError>;
 }
 

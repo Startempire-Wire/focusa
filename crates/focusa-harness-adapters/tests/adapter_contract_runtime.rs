@@ -299,19 +299,34 @@ fn pi_rpc_negotiates_truthful_capabilities_and_builds_exact_launch() {
 
 #[test]
 fn pi_rpc_control_query_and_event_translation_follow_published_jsonl_contract() {
+    let state_response = json!({
+        "type":"response",
+        "command":"get_state",
+        "success":true,
+        "data": {
+            "model":{"provider":"openai-codex","id":"gpt-test"},
+            "thinkingLevel":"high",
+            "isStreaming":true,
+            "pendingMessageCount":1,
+            "sessionFile":"/sessions/test.jsonl",
+            "sessionId":"native-session-id"
+        }
+    });
     let responses = [
         json!({"type":"response","command":"prompt","success":true}),
         json!({"type":"response","command":"steer","success":true}),
+        state_response.clone(),
+        state_response,
         json!({
             "type":"response",
-            "command":"get_state",
+            "command":"get_session_stats",
             "success":true,
             "data": {
-                "model":{"provider":"openai-codex","id":"gpt-test"},
-                "thinkingLevel":"high",
-                "isStreaming":true,
-                "pendingMessageCount":1,
-                "sessionFile":"/sessions/test.jsonl"
+                "tokens": {
+                    "input":50,"output":10,"cacheRead":40,"cacheWrite":5,"total":105
+                },
+                "cost":0.45,
+                "contextUsage":{"tokens":60,"contextWindow":200,"percent":30.0}
             }
         }),
         json!({"type":"response","command":"switch_session","success":true,"data":{"cancelled":false}}),
@@ -338,12 +353,32 @@ fn pi_rpc_control_query_and_event_translation_follow_published_jsonl_contract() 
             },
         )
         .expect("steering should be accepted");
+    let state = adapter
+        .query_state(run.clone())
+        .expect("state and native session ref should parse");
+    assert_eq!(state.activity, HarnessActivity::Working);
+    assert_eq!(
+        state.native_session_ref.as_deref(),
+        Some("/sessions/test.jsonl")
+    );
     assert_eq!(
         adapter
             .query_model(run.clone())
             .expect("model should parse"),
         model()
     );
+    let usage = adapter
+        .query_usage(run.clone())
+        .expect("token, cost, and context usage should parse");
+    assert_eq!(usage.input_tokens, 50);
+    assert_eq!(usage.output_tokens, 10);
+    assert_eq!(usage.cache_read_tokens, 40);
+    assert_eq!(usage.cache_write_tokens, 5);
+    assert_eq!(usage.total_tokens, 105);
+    assert_eq!(usage.cost_usd, 0.45);
+    assert_eq!(usage.context_tokens, Some(60));
+    assert_eq!(usage.context_window, Some(200));
+    assert_eq!(usage.context_percent, Some(30.0));
     adapter
         .resume_native_session("/sessions/test.jsonl")
         .expect("native session should switch");
@@ -352,14 +387,16 @@ fn pi_rpc_control_query_and_event_translation_follow_published_jsonl_contract() 
         .expect("abort should be accepted");
 
     let requests = &adapter.transport().requests;
-    assert_eq!(requests.len(), 5);
+    assert_eq!(requests.len(), 7);
     assert_eq!(requests[0].0.as_ref(), Some(&run));
     assert_eq!(requests[0].1["type"], "prompt");
     assert_eq!(requests[1].1["type"], "steer");
     assert_eq!(requests[2].1["type"], "get_state");
-    assert!(requests[3].0.is_none());
-    assert_eq!(requests[3].1["type"], "switch_session");
-    assert_eq!(requests[4].1["type"], "abort");
+    assert_eq!(requests[3].1["type"], "get_state");
+    assert_eq!(requests[4].1["type"], "get_session_stats");
+    assert!(requests[5].0.is_none());
+    assert_eq!(requests[5].1["type"], "switch_session");
+    assert_eq!(requests[6].1["type"], "abort");
 
     let text = adapter
         .parse_event(
@@ -376,6 +413,106 @@ fn pi_rpc_control_query_and_event_translation_follow_published_jsonl_contract() 
         .expect("unknown additive event should be preserved");
     assert_eq!(unknown[0].kind, "harness.unknown");
     assert_eq!(unknown[0].payload["type"], "future_pi_event");
+
+    let mut cancelled = PiRpcAdapter::new(ScriptedTransport::with_responses([json!({
+        "type":"response","command":"switch_session","success":true,"data":{"cancelled":true}
+    })]));
+    assert!(matches!(
+        cancelled.resume_native_session("/sessions/cancelled.jsonl"),
+        Err(HarnessAdapterError::InvalidResponse(_))
+    ));
+}
+
+#[test]
+fn pi_rpc_normalizes_structured_turn_message_tool_model_and_usage_events() {
+    let adapter = PiRpcAdapter::new(ScriptedTransport::default());
+
+    let turn_start = adapter
+        .parse_event(br#"{"type":"turn_start"}"#)
+        .expect("turn start should parse");
+    assert_eq!(turn_start[0].kind, "agent.turn_started");
+    let turn_end = adapter
+        .parse_event(br#"{"type":"turn_end","message":{"role":"assistant"},"toolResults":[]}"#)
+        .expect("turn end should parse");
+    assert_eq!(turn_end[0].kind, "agent.turn_ended");
+    assert!(turn_end[0].payload["toolResults"].is_array());
+
+    let delta_kinds = [
+        ("text_start", "assistant.text_started"),
+        ("text_delta", "assistant.text_delta"),
+        ("text_end", "assistant.text_completed"),
+        ("thinking_start", "assistant.thinking_started"),
+        ("thinking_delta", "assistant.thinking_delta"),
+        ("thinking_end", "assistant.thinking_completed"),
+        ("toolcall_start", "agent.tool_call_started"),
+        ("toolcall_delta", "agent.tool_call_delta"),
+        ("toolcall_end", "agent.tool_call_completed"),
+        ("done", "assistant.message_completed"),
+    ];
+    for (pi_kind, focusa_kind) in delta_kinds {
+        let frame = serde_json::to_vec(&json!({
+            "type":"message_update",
+            "assistantMessageEvent":{"type":pi_kind}
+        }))
+        .unwrap();
+        let parsed = adapter.parse_event(&frame).expect("delta should parse");
+        assert_eq!(parsed[0].kind, focusa_kind);
+    }
+
+    let message_end = adapter
+        .parse_event(
+            br#"{
+                "type":"message_end",
+                "message":{
+                    "role":"assistant",
+                    "api":"openai-responses",
+                    "provider":"openai-codex",
+                    "model":"gpt-test",
+                    "usage":{
+                        "input":12,"output":4,"cacheRead":5,"cacheWrite":1,
+                        "totalTokens":22,
+                        "cost":{"input":0.1,"output":0.2,"cacheRead":0.01,"cacheWrite":0.02,"total":0.33}
+                    },
+                    "stopReason":"stop"
+                }
+            }"#,
+        )
+        .expect("assistant completion should produce semantic observations");
+    assert_eq!(
+        message_end
+            .iter()
+            .map(|event| event.kind.as_str())
+            .collect::<Vec<_>>(),
+        vec!["agent.message_ended", "model.observed", "usage.observed"]
+    );
+    assert_eq!(message_end[1].payload["provider"], "openai-codex");
+    assert_eq!(message_end[1].payload["model"], "gpt-test");
+    assert_eq!(message_end[2].payload["input_tokens"], 12);
+    assert_eq!(message_end[2].payload["total_tokens"], 22);
+    assert_eq!(message_end[2].payload["cost_usd"], 0.33);
+
+    for (frame, expected) in [
+        (
+            br#"{"type":"tool_execution_start","toolCallId":"call-1","toolName":"bash","args":{"command":"pwd"}}"#.as_slice(),
+            "tool.started",
+        ),
+        (
+            br#"{"type":"tool_execution_update","toolCallId":"call-1","toolName":"bash","partialResult":{"content":[]}}"#.as_slice(),
+            "tool.output",
+        ),
+        (
+            br#"{"type":"tool_execution_end","toolCallId":"call-1","toolName":"bash","result":{"content":[]},"isError":false}"#.as_slice(),
+            "tool.completed",
+        ),
+        (
+            br#"{"type":"tool_execution_end","toolCallId":"call-2","toolName":"bash","result":{"content":[]},"isError":true}"#.as_slice(),
+            "tool.failed",
+        ),
+    ] {
+        let parsed = adapter.parse_event(frame).expect("tool event should parse");
+        assert_eq!(parsed[0].kind, expected);
+        assert!(parsed[0].payload["toolCallId"].is_string());
+    }
 }
 
 #[test]
@@ -419,6 +556,7 @@ fn deterministic_fake_adapter_replays_identical_frames_and_controls() {
     assert_eq!(state.activity, HarnessActivity::Working);
     assert_eq!(state.pending_message_count, 1);
     assert_eq!(adapter.query_model(run.clone()).unwrap(), model());
+    assert_eq!(adapter.query_usage(run.clone()).unwrap().total_tokens, 0);
     adapter.abort(run).expect("fake abort should run");
     adapter
         .resume_native_session("fake-native-ref")
