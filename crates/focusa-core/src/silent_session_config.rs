@@ -620,8 +620,10 @@ mod tests {
     fn config_revisions_survive_restart_and_persistence_cas_rejects_stale_writers() {
         let dir = std::env::temp_dir().join(format!("focusa-config-test-{}", uuid::Uuid::now_v7()));
         std::fs::create_dir_all(&dir).unwrap();
-        let mut daemon_config = FocusaConfig::default();
-        daemon_config.data_dir = dir.to_string_lossy().into_owned();
+        let daemon_config = FocusaConfig {
+            data_dir: dir.to_string_lossy().into_owned(),
+            ..FocusaConfig::default()
+        };
         let persistence = SqlitePersistence::new(&daemon_config).unwrap();
         let session_id = SilentSessionId::new();
         let run_id = SilentSessionRunId::new();

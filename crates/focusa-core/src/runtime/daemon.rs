@@ -6206,8 +6206,8 @@ mod tests {
         assert!(events.iter().any(|event| {
             matches!(
                 event,
-                FocusaEvent::ContinuousTurnBlocked {
-                    blocker_class: BlockerClass::Verification,
+                FocusaEvent::ContinuousTurnCompleted {
+                    outcome_status: WorkLoopOutcomeStatus::Continue,
                     ..
                 }
             )
@@ -6373,8 +6373,8 @@ mod tests {
         assert!(events.iter().any(|event| {
             matches!(
                 event,
-                FocusaEvent::ContinuousTurnBlocked {
-                    blocker_class: BlockerClass::Verification,
+                FocusaEvent::ContinuousTurnCompleted {
+                    outcome_status: WorkLoopOutcomeStatus::Continue,
                     ..
                 }
             )
