@@ -864,6 +864,52 @@ fn build_operations() -> Vec<OperationEntry> {
             "docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md",
             None,
         ),
+        op(
+            "focusa.context.source.ingest",
+            "Ingest Context Source",
+            "context",
+            "POST",
+            "/v1/context/sources/ingest",
+            true,
+            None,
+            "write_context",
+            "canonical_event",
+            vec!["commit"],
+            true,
+            true,
+            false,
+            vec!["context:write"],
+            false,
+            "heavy_write",
+            vec!["compact", "standard", "debug"],
+            "focusa.context_source_ingest.request.v1",
+            "focusa.context_source_ingest_result.v1",
+            "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+            None,
+        ),
+        op(
+            "focusa.context.adapter.docling.health",
+            "Read Docling Context Adapter Health",
+            "context",
+            "GET",
+            "/v1/context/adapters/docling/health",
+            true,
+            None,
+            "read_context",
+            "advisory_read",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec!["context:read"],
+            false,
+            "light_read",
+            vec!["compact", "standard", "debug"],
+            "focusa.context_adapter_health.request.v1",
+            "focusa.context_adapter_health.v1",
+            "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+            None,
+        ),
         // ── tool doctor ──────────────────────────────────────────────────────
         op(
             "focusa.tool_doctor",
@@ -2070,7 +2116,7 @@ fn context_source_record_schema() -> Value {
             "continuity_id": {"type": "string"}, "attachment_id": {"type": "string"},
             "source_kind": {"enum": ["markdown", "text", "code", "pdf"]},
             "title": {"type": "string", "maxLength": 240},
-            "content": {"type": "string", "maxLength": 65536},
+            "content": {"type": "string", "maxLength": 2097152},
             "content_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
             "idempotency_key": {"type": "string", "maxLength": 160},
             "revision": {"type": "integer", "minimum": 1},
@@ -2089,12 +2135,29 @@ fn context_source_record_schema() -> Value {
                 "required": ["receipt_ref", "operation_id", "idempotency_key", "before_state_version", "after_state_version", "reversible", "committed_at"],
                 "properties": {
                     "receipt_ref": {"type": "string"},
-                    "operation_id": {"const": "focusa.context.source.commit"},
+                    "operation_id": {"enum": ["focusa.context.source.commit", "focusa.context.source.ingest"]},
                     "idempotency_key": {"type": "string"},
                     "before_state_version": {"type": "integer", "minimum": 0},
                     "after_state_version": {"type": "integer", "minimum": 1},
                     "reversible": {"type": "boolean"},
                     "committed_at": {"type": "string", "format": "date-time"}
+                }
+            },
+            "source_locator": {"type": "string"},
+            "source_revision": {"type": "string"},
+            "mime_type": {"type": "string"},
+            "adapter_id": {"type": "string"},
+            "ingestion_status": {"type": "string"},
+            "extraction_diagnostics": {"type": "array", "items": {"type": "string"}},
+            "health": {
+                "type": "object",
+                "required": ["status", "adapter_id", "message"],
+                "properties": {
+                    "status": {"type": "string"},
+                    "adapter_id": {"type": "string"},
+                    "message": {"type": "string"},
+                    "recovery_action": {"type": "string"},
+                    "last_successful_sync": {"type": "string", "format": "date-time"}
                 }
             }
         }
@@ -2138,6 +2201,77 @@ fn json_schema_document(schema_id: &str) -> Value {
             },
             "x-focusa-schema-id": schema_id,
             "x-focusa-generated-from": "ContextSourceCommitResponse"
+        });
+    }
+    if schema_id == "focusa.context_source_ingest.request.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false,
+            "required": ["project_root", "continuity_id", "attachment_id", "idempotency_key", "expected_state_version", "source_kind", "source_locator", "source_revision", "title", "mime_type"],
+            "properties": {
+                "project_root": {"type": "string", "minLength": 1, "maxLength": 4096},
+                "continuity_id": {"type": "string", "minLength": 1, "maxLength": 256},
+                "attachment_id": {"type": "string", "minLength": 1, "maxLength": 256},
+                "idempotency_key": {"type": "string", "minLength": 1, "maxLength": 160},
+                "expected_state_version": {"type": "integer", "minimum": 0},
+                "source_kind": {"enum": ["markdown", "code", "pdf"]},
+                "source_locator": {"type": "string", "minLength": 1, "maxLength": 1024},
+                "source_revision": {"type": "string", "minLength": 1, "maxLength": 256},
+                "title": {"type": "string", "minLength": 1, "maxLength": 240},
+                "mime_type": {"type": "string", "minLength": 1, "maxLength": 128},
+                "content": {"type": "string", "maxLength": 2097152},
+                "content_base64": {"type": "string", "maxLength": 27962028}
+            },
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "ContextSourceIngestRequest"
+        });
+    }
+    if schema_id == "focusa.context_source_ingest_result.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object",
+            "required": ["schema", "canonical", "replayed", "state_version", "source", "evidence_ref", "receipt_ref", "tool_result"],
+            "properties": {
+                "schema": {"const": "focusa.context_source_ingest_result.v1"},
+                "canonical": {"const": true}, "replayed": {"type": "boolean"},
+                "state_version": {"type": "integer", "minimum": 1},
+                "source": context_source_record_schema(),
+                "evidence_ref": {"type": "string"}, "receipt_ref": {"type": "string"},
+                "tool_result": {"type": "object"}
+            },
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "ContextSourceIngestResponse"
+        });
+    }
+    if schema_id == "focusa.context_adapter_health.request.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false, "properties": {},
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "DoclingHealthRequest"
+        });
+    }
+    if schema_id == "focusa.context_adapter_health.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object",
+            "required": ["schema", "adapter_id", "configured", "status", "message", "checked_at"],
+            "properties": {
+                "schema": {"const": "focusa.context_adapter_health.v1"},
+                "adapter_id": {"const": "docling-serve.v1"},
+                "configured": {"type": "boolean"},
+                "status": {"enum": ["healthy", "degraded", "offline"]},
+                "endpoint": {"type": "string"},
+                "message": {"type": "string"},
+                "recovery_action": {"type": "string"},
+                "checked_at": {"type": "string", "format": "date-time"}
+            },
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "DoclingHealthResponse"
         });
     }
     if schema_id == "focusa.context_source_list.request.v1" {

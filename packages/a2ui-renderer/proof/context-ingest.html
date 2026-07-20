@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22><text y=%22.9em%22>C1</text></svg>" />
+    <title>Focusa Context Ingestion Alpha 1</title>
+    <style>
+      :root { color: #172033; background: #eef2f8; font: 16px/1.5 system-ui, sans-serif; }
+      body { margin: 0; }
+      main { width: min(58rem, calc(100% - 2rem)); margin: 2rem auto; }
+      h1 { font-size: clamp(1.5rem, 5vw, 2.4rem); }
+      #ingest-result { margin-block: 1rem; padding: .75rem; border-radius: .5rem; background: #fff; }
+      @media (max-width: 34rem) { main { margin-block: 1rem; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Import real project sources</h1>
+      <p>One generated action imports Markdown, code, and PDF through canonical Focusa adapters.</p>
+      <div id="ingest-result" role="status" aria-live="polite">Ready to ingest Context</div>
+      <section id="context-ingest-surface" aria-label="Context ingestion generated surface"></section>
+    </main>
+    <script type="module" src="/context-ingest.ts"></script>
+  </body>
+</html>

@@ -19,3 +19,8 @@ UIAI Engine remains the browser execution owner.
 real generated Context action across the generated binding/client, canonical
 reducer event and restart-safe state, durable stream, Evidence, Receipt, and
 UIAI Eval result.
+
+`spec135-c1-context-ingestion-proof.json` links the first Alpha 1 critical-path
+lane gate to real Markdown/code ingestion, real PDF extraction through Docling
+Serve v1, incremental canonical reducer state, generated clients/UI, source
+health and recovery, UIAI desktop/mobile proof, Evidence, and Receipts.

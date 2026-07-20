@@ -350,7 +350,7 @@
         "Generated Context UI shows progress, health, retry, and source scope"
       ],
       "bead_id": "focusa-mc-c1",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "ingestion integration tests",
         "UIAI Context eval"

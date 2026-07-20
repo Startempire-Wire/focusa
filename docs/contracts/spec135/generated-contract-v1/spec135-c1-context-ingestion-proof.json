@@ -1,0 +1,56 @@
+{
+  "schema": "focusa.spec135_c1_context_ingestion_proof.v1",
+  "requirement_id": "SPEC135-C1",
+  "status": "verified",
+  "critical_path": ["SPEC135-F12", "SPEC135-C1", "SPEC135-C2", "SPEC135-C3", "SPEC135-ALPHA1"],
+  "operations": ["focusa.context.source.ingest", "focusa.context.adapter.docling.health", "focusa.context.source.list"],
+  "source_kinds": ["markdown", "code", "pdf"],
+  "scope": {
+    "project_root": "/example/focusa",
+    "continuity_id": "focusa-cont-c1-generated-ui",
+    "attachment_id": "attachment:c1-context"
+  },
+  "runtime_proof": {
+    "canonical_source_count": 3,
+    "markdown_adapter": "focusa.local_text.v1",
+    "code_adapter": "focusa.local_text.v1",
+    "pdf_adapter": "docling-serve.v1",
+    "pdf_extraction_status": "success",
+    "pdf_processing_seconds": 11.455,
+    "pdf_error_count": 0,
+    "incremental_code_revision": 2,
+    "idempotent_replay_status": "no_op",
+    "restart_source_count": 3,
+    "durable_event_type": "ContextSourceIngested"
+  },
+  "docling_proof_environment": {
+    "docling_serve": "1.9.0",
+    "docling": "2.64.0",
+    "docling_parse": "4.7.2",
+    "easyocr": "1.7.2",
+    "numpy": "1.26.4",
+    "api_contract": "/v1/convert/file",
+    "license": "MIT",
+    "upstream": "https://github.com/docling-project/docling-serve"
+  },
+  "evidence_refs": [
+    "evidence:context-ingest:9138ff896bd19898c9d2eccd",
+    "evidence:context-ingest:cb9ae2f1e8308e8ec9179e48",
+    "evidence:context-ingest:05a5338ab405d49025532bcd",
+    "uiai-browser:session=DOsySCMn:desktop:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/DOsySCMn-1784580257199498000.png",
+    "uiai-browser:session=DOsySCMn:mobile:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/DOsySCMn-1784580329795181000.png",
+    "browser-diagnostics:2026-07-20T20:45:58.296Z"
+  ],
+  "receipt_refs": [
+    "receipt:context-ingest:9138ff896bd19898c9d2eccd",
+    "receipt:context-ingest:cb9ae2f1e8308e8ec9179e48",
+    "receipt:context-ingest:05a5338ab405d49025532bcd"
+  ],
+  "ui_eval_result_ref": "docs/contracts/spec135/generated-contract-v1/uiai-eval.c1-context-ingestion.result.json",
+  "tests": [
+    "tests/spec135_context_ingestion_test.py",
+    "tests/spec135_context_ingestion_e2e_test.py",
+    "packages/a2ui-renderer:check",
+    "packages/a2ui-renderer:proof:build"
+  ]
+}

@@ -1,5 +1,5 @@
 {
-  "$id": "/v1/agent/schemas/focusa.context_source_commit_result.v1",
+  "$id": "/v1/agent/schemas/focusa.context_source_ingest_result.v1",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "properties": {
     "canonical": {
@@ -15,7 +15,7 @@
       "type": "boolean"
     },
     "schema": {
-      "const": "focusa.context_source_commit_result.v1"
+      "const": "focusa.context_source_ingest_result.v1"
     },
     "source": {
       "properties": {
@@ -215,8 +215,8 @@
     "receipt_ref",
     "tool_result"
   ],
-  "title": "focusa.context_source_commit_result.v1",
+  "title": "focusa.context_source_ingest_result.v1",
   "type": "object",
-  "x-focusa-generated-from": "ContextSourceCommitResponse",
-  "x-focusa-schema-id": "focusa.context_source_commit_result.v1"
+  "x-focusa-generated-from": "ContextSourceIngestResponse",
+  "x-focusa-schema-id": "focusa.context_source_ingest_result.v1"
 }

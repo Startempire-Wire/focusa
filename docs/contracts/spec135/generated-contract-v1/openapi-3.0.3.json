@@ -308,6 +308,61 @@
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.compatibility_lock.v1"
       },
+      "focusa_context_adapter_health_request_v1": {
+        "additionalProperties": false,
+        "properties": {},
+        "title": "focusa.context_adapter_health.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "DoclingHealthRequest",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.context_adapter_health.request.v1"
+      },
+      "focusa_context_adapter_health_v1": {
+        "properties": {
+          "adapter_id": {
+            "const": "docling-serve.v1"
+          },
+          "checked_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery_action": {
+            "type": "string"
+          },
+          "schema": {
+            "const": "focusa.context_adapter_health.v1"
+          },
+          "status": {
+            "enum": [
+              "healthy",
+              "degraded",
+              "offline"
+            ]
+          }
+        },
+        "required": [
+          "schema",
+          "adapter_id",
+          "configured",
+          "status",
+          "message",
+          "checked_at"
+        ],
+        "title": "focusa.context_adapter_health.v1",
+        "type": "object",
+        "x-focusa-generated-from": "DoclingHealthResponse",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.context_adapter_health.v1"
+      },
       "focusa_context_cognition_curate_request_v1": {
         "additionalProperties": true,
         "description": "Generated contract for Focusa schema focusa.context_cognition_curate.request.v1",
@@ -429,6 +484,9 @@
           },
           "source": {
             "properties": {
+              "adapter_id": {
+                "type": "string"
+              },
               "attachment_id": {
                 "type": "string"
               },
@@ -437,7 +495,7 @@
                 "type": "string"
               },
               "content": {
-                "maxLength": 65536,
+                "maxLength": 2097152,
                 "type": "string"
               },
               "content_hash": {
@@ -475,8 +533,46 @@
                 ],
                 "type": "object"
               },
+              "extraction_diagnostics": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "health": {
+                "properties": {
+                  "adapter_id": {
+                    "type": "string"
+                  },
+                  "last_successful_sync": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "recovery_action": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "status",
+                  "adapter_id",
+                  "message"
+                ],
+                "type": "object"
+              },
               "idempotency_key": {
                 "maxLength": 160,
+                "type": "string"
+              },
+              "ingestion_status": {
+                "type": "string"
+              },
+              "mime_type": {
                 "type": "string"
               },
               "project_root": {
@@ -500,7 +596,10 @@
                     "type": "string"
                   },
                   "operation_id": {
-                    "const": "focusa.context.source.commit"
+                    "enum": [
+                      "focusa.context.source.commit",
+                      "focusa.context.source.ingest"
+                    ]
                   },
                   "receipt_ref": {
                     "type": "string"
@@ -534,6 +633,12 @@
                   "code",
                   "pdf"
                 ]
+              },
+              "source_locator": {
+                "type": "string"
+              },
+              "source_revision": {
+                "type": "string"
               },
               "title": {
                 "maxLength": 240,
@@ -581,6 +686,308 @@
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.context_source_commit_result.v1"
       },
+      "focusa_context_source_ingest_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "attachment_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "content": {
+            "maxLength": 2097152,
+            "type": "string"
+          },
+          "content_base64": {
+            "maxLength": 27962028,
+            "type": "string"
+          },
+          "continuity_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "expected_state_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "idempotency_key": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "mime_type": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "project_root": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "markdown",
+              "code",
+              "pdf"
+            ]
+          },
+          "source_locator": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "type": "string"
+          },
+          "source_revision": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 240,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "attachment_id",
+          "idempotency_key",
+          "expected_state_version",
+          "source_kind",
+          "source_locator",
+          "source_revision",
+          "title",
+          "mime_type"
+        ],
+        "title": "focusa.context_source_ingest.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "ContextSourceIngestRequest",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.context_source_ingest.request.v1"
+      },
+      "focusa_context_source_ingest_result_v1": {
+        "properties": {
+          "canonical": {
+            "const": true
+          },
+          "evidence_ref": {
+            "type": "string"
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "schema": {
+            "const": "focusa.context_source_ingest_result.v1"
+          },
+          "source": {
+            "properties": {
+              "adapter_id": {
+                "type": "string"
+              },
+              "attachment_id": {
+                "type": "string"
+              },
+              "committed_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "content": {
+                "maxLength": 2097152,
+                "type": "string"
+              },
+              "content_hash": {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              "continuity_id": {
+                "type": "string"
+              },
+              "evidence": {
+                "properties": {
+                  "captured_at": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "content_hash": {
+                    "type": "string"
+                  },
+                  "evidence_ref": {
+                    "type": "string"
+                  },
+                  "result": {
+                    "type": "string"
+                  },
+                  "target_ref": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "evidence_ref",
+                  "target_ref",
+                  "result",
+                  "content_hash",
+                  "captured_at"
+                ],
+                "type": "object"
+              },
+              "extraction_diagnostics": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "health": {
+                "properties": {
+                  "adapter_id": {
+                    "type": "string"
+                  },
+                  "last_successful_sync": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "recovery_action": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "status",
+                  "adapter_id",
+                  "message"
+                ],
+                "type": "object"
+              },
+              "idempotency_key": {
+                "maxLength": 160,
+                "type": "string"
+              },
+              "ingestion_status": {
+                "type": "string"
+              },
+              "mime_type": {
+                "type": "string"
+              },
+              "project_root": {
+                "type": "string"
+              },
+              "receipt": {
+                "properties": {
+                  "after_state_version": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "before_state_version": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "committed_at": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "idempotency_key": {
+                    "type": "string"
+                  },
+                  "operation_id": {
+                    "enum": [
+                      "focusa.context.source.commit",
+                      "focusa.context.source.ingest"
+                    ]
+                  },
+                  "receipt_ref": {
+                    "type": "string"
+                  },
+                  "reversible": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "receipt_ref",
+                  "operation_id",
+                  "idempotency_key",
+                  "before_state_version",
+                  "after_state_version",
+                  "reversible",
+                  "committed_at"
+                ],
+                "type": "object"
+              },
+              "revision": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "source_id": {
+                "type": "string"
+              },
+              "source_kind": {
+                "enum": [
+                  "markdown",
+                  "text",
+                  "code",
+                  "pdf"
+                ]
+              },
+              "source_locator": {
+                "type": "string"
+              },
+              "source_revision": {
+                "type": "string"
+              },
+              "title": {
+                "maxLength": 240,
+                "type": "string"
+              }
+            },
+            "required": [
+              "source_id",
+              "project_root",
+              "continuity_id",
+              "attachment_id",
+              "source_kind",
+              "title",
+              "content",
+              "content_hash",
+              "idempotency_key",
+              "revision",
+              "committed_at",
+              "evidence",
+              "receipt"
+            ],
+            "type": "object"
+          },
+          "state_version": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "tool_result": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "schema",
+          "canonical",
+          "replayed",
+          "state_version",
+          "source",
+          "evidence_ref",
+          "receipt_ref",
+          "tool_result"
+        ],
+        "title": "focusa.context_source_ingest_result.v1",
+        "type": "object",
+        "x-focusa-generated-from": "ContextSourceIngestResponse",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.context_source_ingest_result.v1"
+      },
       "focusa_context_source_list_request_v1": {
         "additionalProperties": false,
         "properties": {
@@ -619,6 +1026,9 @@
           "sources": {
             "items": {
               "properties": {
+                "adapter_id": {
+                  "type": "string"
+                },
                 "attachment_id": {
                   "type": "string"
                 },
@@ -627,7 +1037,7 @@
                   "type": "string"
                 },
                 "content": {
-                  "maxLength": 65536,
+                  "maxLength": 2097152,
                   "type": "string"
                 },
                 "content_hash": {
@@ -665,8 +1075,46 @@
                   ],
                   "type": "object"
                 },
+                "extraction_diagnostics": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "health": {
+                  "properties": {
+                    "adapter_id": {
+                      "type": "string"
+                    },
+                    "last_successful_sync": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "recovery_action": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "adapter_id",
+                    "message"
+                  ],
+                  "type": "object"
+                },
                 "idempotency_key": {
                   "maxLength": 160,
+                  "type": "string"
+                },
+                "ingestion_status": {
+                  "type": "string"
+                },
+                "mime_type": {
                   "type": "string"
                 },
                 "project_root": {
@@ -690,7 +1138,10 @@
                       "type": "string"
                     },
                     "operation_id": {
-                      "const": "focusa.context.source.commit"
+                      "enum": [
+                        "focusa.context.source.commit",
+                        "focusa.context.source.ingest"
+                      ]
                     },
                     "receipt_ref": {
                       "type": "string"
@@ -724,6 +1175,12 @@
                     "code",
                     "pdf"
                   ]
+                },
+                "source_locator": {
+                  "type": "string"
+                },
+                "source_revision": {
+                  "type": "string"
                 },
                 "title": {
                   "maxLength": 240,
@@ -2907,6 +3364,104 @@
         "x-focusa-subsystem": "context_cognition"
       }
     },
+    "/v1/context/adapters/docling/health": {
+      "get": {
+        "description": "Read Docling Context Adapter Health \u2014 family=context budget=light_read materialization=advisory_read",
+        "operationId": "focusa.context.adapter.docling.health",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_context_adapter_health_v1"
+                }
+              }
+            },
+            "description": "Read Docling Context Adapter Health response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Read Docling Context Adapter Health",
+        "tags": [
+          "context"
+        ],
+        "x-focusa": {
+          "budget_profile": "light_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "context",
+          "materialization_mode": "advisory_read",
+          "requires_preview_token": false,
+          "side_effect_profile": "read_context",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "context"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.context.adapter.docling.health",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "context:read"
+        ],
+        "x-focusa-plain-label": "Read Docling Context Adapter Health",
+        "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "context"
+      }
+    },
     "/v1/context/sources": {
       "get": {
         "description": "List Canonical Context Sources \u2014 family=context budget=standard_read materialization=canonical_read",
@@ -3100,6 +3655,113 @@
           "context:write"
         ],
         "x-focusa-plain-label": "Commit Context Source",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "context"
+      }
+    },
+    "/v1/context/sources/ingest": {
+      "post": {
+        "description": "Ingest Context Source \u2014 family=context budget=heavy_write materialization=canonical_event",
+        "operationId": "focusa.context.source.ingest",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_context_source_ingest_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_context_source_ingest_result_v1"
+                }
+              }
+            },
+            "description": "Ingest Context Source response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Ingest Context Source",
+        "tags": [
+          "context"
+        ],
+        "x-focusa": {
+          "budget_profile": "heavy_write",
+          "canonical": true,
+          "deprecation": null,
+          "family": "context",
+          "materialization_mode": "canonical_event",
+          "requires_preview_token": false,
+          "side_effect_profile": "write_context",
+          "supports_side_effect_policy": [
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "context"
+        ],
+        "x-focusa-concurrency": true,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.context.source.ingest",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "context:write"
+        ],
+        "x-focusa-plain-label": "Ingest Context Source",
         "x-focusa-receipt": true,
         "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,

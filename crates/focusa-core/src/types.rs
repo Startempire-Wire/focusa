@@ -1630,6 +1630,18 @@ pub struct ContextSourceReceipt {
     pub committed_at: DateTime<Utc>,
 }
 
+/// Health and recovery state for the adapter that produced a Context source.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContextSourceHealth {
+    pub status: String,
+    pub adapter_id: String,
+    pub message: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recovery_action: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_successful_sync: Option<DateTime<Utc>>,
+}
+
 /// Canonical, scoped Context source retained by the Focusa reducer.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ContextSourceRecord {
@@ -1646,6 +1658,20 @@ pub struct ContextSourceRecord {
     pub committed_at: DateTime<Utc>,
     pub evidence: ContextSourceEvidence,
     pub receipt: ContextSourceReceipt,
+    #[serde(default)]
+    pub source_locator: String,
+    #[serde(default)]
+    pub source_revision: String,
+    #[serde(default)]
+    pub mime_type: String,
+    #[serde(default)]
+    pub adapter_id: String,
+    #[serde(default)]
+    pub ingestion_status: String,
+    #[serde(default)]
+    pub extraction_diagnostics: Vec<String>,
+    #[serde(default)]
+    pub health: ContextSourceHealth,
 }
 
 /// The complete cognitive state of a Focusa instance.
@@ -2353,6 +2379,9 @@ pub struct AsccSlotMetadata {
 pub enum FocusaEvent {
     // Context corpus
     ContextSourceCommitted {
+        source: ContextSourceRecord,
+    },
+    ContextSourceIngested {
         source: ContextSourceRecord,
     },
 

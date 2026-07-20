@@ -297,6 +297,51 @@ pub fn reduce_with_meta(
             }
             state.context_sources.push(source);
         }
+        FocusaEvent::ContextSourceIngested { source } => {
+            if source.receipt.before_state_version != state.version
+                || source.receipt.after_state_version != state.version + 1
+            {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Context ingestion receipt version mismatch: state={} before={} after={}",
+                    state.version,
+                    source.receipt.before_state_version,
+                    source.receipt.after_state_version
+                )));
+            }
+            if state.context_sources.iter().any(|existing| {
+                existing.project_root == source.project_root
+                    && existing.continuity_id == source.continuity_id
+                    && existing.attachment_id == source.attachment_id
+                    && existing.idempotency_key == source.idempotency_key
+            }) {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "duplicate Context source ingestion: {}",
+                    source.idempotency_key
+                )));
+            }
+            if let Some(index) = state
+                .context_sources
+                .iter()
+                .position(|existing| existing.source_id == source.source_id)
+            {
+                let expected_revision = state.context_sources[index].revision + 1;
+                if source.revision != expected_revision {
+                    return Err(ReducerError::InvalidEvent(format!(
+                        "Context source revision mismatch: source={} expected={} actual={}",
+                        source.source_id, expected_revision, source.revision
+                    )));
+                }
+                state.context_sources[index] = source;
+            } else {
+                if source.revision != 1 {
+                    return Err(ReducerError::InvalidEvent(format!(
+                        "new Context source must start at revision 1: {}",
+                        source.source_id
+                    )));
+                }
+                state.context_sources.push(source);
+            }
+        }
 
         // ─── Instance Lifecycle ─────────────────────────────────────────
         FocusaEvent::InstanceConnected { instance_id, kind } => {
@@ -3263,6 +3308,13 @@ mod tests {
                 reversible: true,
                 committed_at,
             },
+            source_locator: String::new(),
+            source_revision: String::new(),
+            mime_type: String::new(),
+            adapter_id: "focusa.context.commit".to_string(),
+            ingestion_status: "committed".to_string(),
+            extraction_diagnostics: Vec::new(),
+            health: Default::default(),
         };
         let event = FocusaEvent::ContextSourceCommitted {
             source: source.clone(),

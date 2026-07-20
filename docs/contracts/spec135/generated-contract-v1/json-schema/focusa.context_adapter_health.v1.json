@@ -1,0 +1,47 @@
+{
+  "$id": "/v1/agent/schemas/focusa.context_adapter_health.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "adapter_id": {
+      "const": "docling-serve.v1"
+    },
+    "checked_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "configured": {
+      "type": "boolean"
+    },
+    "endpoint": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string"
+    },
+    "recovery_action": {
+      "type": "string"
+    },
+    "schema": {
+      "const": "focusa.context_adapter_health.v1"
+    },
+    "status": {
+      "enum": [
+        "healthy",
+        "degraded",
+        "offline"
+      ]
+    }
+  },
+  "required": [
+    "schema",
+    "adapter_id",
+    "configured",
+    "status",
+    "message",
+    "checked_at"
+  ],
+  "title": "focusa.context_adapter_health.v1",
+  "type": "object",
+  "x-focusa-generated-from": "DoclingHealthResponse",
+  "x-focusa-schema-id": "focusa.context_adapter_health.v1"
+}

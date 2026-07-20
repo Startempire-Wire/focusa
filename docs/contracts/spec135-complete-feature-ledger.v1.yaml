@@ -929,9 +929,9 @@
         "typescript",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "context",
       "dependencies": [
         "SPEC135-F12"

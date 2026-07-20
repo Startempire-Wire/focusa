@@ -1,5 +1,6 @@
 {
-  "operation_count": 57,
+  "generated_at": "2026-07-20T18:41:40.061663+00:00",
+  "operation_count": 59,
   "operations": [
     {
       "alias_of": null,
@@ -1857,6 +1858,163 @@
         "plain_language_description": "Commit Context Source",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "heavy_write",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.context_source_ingest.request.v1",
+        "output_schema_ref": "focusa.context_source_ingest_result.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "context"
+        ],
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": true,
+        "permission_scopes": [
+          "context:write"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "context",
+      "label": "Ingest Context Source",
+      "materialization_mode": "canonical_event",
+      "method": "POST",
+      "operation_id": "focusa.context.source.ingest",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.context.source.ingest",
+        "subsystem": "context"
+      },
+      "path": "/v1/context/sources/ingest",
+      "permissions_required": [
+        "context:write"
+      ],
+      "request_schema_ref": "focusa.context_source_ingest.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": true,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard",
+        "debug"
+      ],
+      "response_schema_ref": "focusa.context_source_ingest_result.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.context_source_ingest.request.v1",
+      "scope": {
+        "attachment_scoped": true,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "write_context",
+      "supports_side_effect_policy": [
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Ingest Context Source",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Ingest Context Source",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.context_adapter_health.request.v1",
+        "output_schema_ref": "focusa.context_adapter_health.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "context"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "context:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "context",
+      "label": "Read Docling Context Adapter Health",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.context.adapter.docling.health",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.context.adapter.docling.health",
+        "subsystem": "context"
+      },
+      "path": "/v1/context/adapters/docling/health",
+      "permissions_required": [
+        "context:read"
+      ],
+      "request_schema_ref": "focusa.context_adapter_health.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard",
+        "debug"
+      ],
+      "response_schema_ref": "focusa.context_adapter_health.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.context_adapter_health.request.v1",
+      "scope": {
+        "attachment_scoped": true,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_context",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Read Docling Context Adapter Health",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Read Docling Context Adapter Health",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
       }
     },
     {

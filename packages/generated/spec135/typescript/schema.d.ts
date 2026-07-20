@@ -224,6 +224,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/context/adapters/docling/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Docling Context Adapter Health
+         * @description Read Docling Context Adapter Health — family=context budget=light_read materialization=advisory_read
+         */
+        get: operations["focusa.context.adapter.docling.health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/context/sources": {
         parameters: {
             query?: never;
@@ -258,6 +278,26 @@ export interface paths {
          * @description Commit Context Source — family=context budget=standard_write materialization=canonical_event
          */
         post: operations["focusa.context.source.commit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/context/sources/ingest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ingest Context Source
+         * @description Ingest Context Source — family=context budget=heavy_write materialization=canonical_event
+         */
+        post: operations["focusa.context.source.ingest"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1275,6 +1315,23 @@ export interface components {
             uiai_engine?: string;
             uiai_focusa_client?: string;
         };
+        /** focusa.context_adapter_health.request.v1 */
+        focusa_context_adapter_health_request_v1: Record<string, never>;
+        /** focusa.context_adapter_health.v1 */
+        focusa_context_adapter_health_v1: {
+            /** @constant */
+            adapter_id: "docling-serve.v1";
+            /** Format: date-time */
+            checked_at: string;
+            configured: boolean;
+            endpoint?: string;
+            message: string;
+            recovery_action?: string;
+            /** @constant */
+            schema: "focusa.context_adapter_health.v1";
+            /** @enum {unknown} */
+            status: "healthy" | "degraded" | "offline";
+        };
         /**
          * focusa.context_cognition_curate.request.v1
          * @description Generated contract for Focusa schema focusa.context_cognition_curate.request.v1
@@ -1325,6 +1382,7 @@ export interface components {
             /** @constant */
             schema: "focusa.context_source_commit_result.v1";
             source: {
+                adapter_id?: string;
                 attachment_id: string;
                 /** Format: date-time */
                 committed_at: string;
@@ -1339,7 +1397,18 @@ export interface components {
                     result: string;
                     target_ref: string;
                 };
+                extraction_diagnostics?: string[];
+                health?: {
+                    adapter_id: string;
+                    /** Format: date-time */
+                    last_successful_sync?: string;
+                    message: string;
+                    recovery_action?: string;
+                    status: string;
+                };
                 idempotency_key: string;
+                ingestion_status?: string;
+                mime_type?: string;
                 project_root: string;
                 receipt: {
                     after_state_version: number;
@@ -1347,8 +1416,8 @@ export interface components {
                     /** Format: date-time */
                     committed_at: string;
                     idempotency_key: string;
-                    /** @constant */
-                    operation_id: "focusa.context.source.commit";
+                    /** @enum {unknown} */
+                    operation_id: "focusa.context.source.commit" | "focusa.context.source.ingest";
                     receipt_ref: string;
                     reversible: boolean;
                 };
@@ -1356,6 +1425,84 @@ export interface components {
                 source_id: string;
                 /** @enum {unknown} */
                 source_kind: "markdown" | "text" | "code" | "pdf";
+                source_locator?: string;
+                source_revision?: string;
+                title: string;
+            };
+            state_version: number;
+            tool_result: Record<string, never>;
+        };
+        /** focusa.context_source_ingest.request.v1 */
+        focusa_context_source_ingest_request_v1: {
+            attachment_id: string;
+            content?: string;
+            content_base64?: string;
+            continuity_id: string;
+            expected_state_version: number;
+            idempotency_key: string;
+            mime_type: string;
+            project_root: string;
+            /** @enum {unknown} */
+            source_kind: "markdown" | "code" | "pdf";
+            source_locator: string;
+            source_revision: string;
+            title: string;
+        };
+        /** focusa.context_source_ingest_result.v1 */
+        focusa_context_source_ingest_result_v1: {
+            /** @constant */
+            canonical: true;
+            evidence_ref: string;
+            receipt_ref: string;
+            replayed: boolean;
+            /** @constant */
+            schema: "focusa.context_source_ingest_result.v1";
+            source: {
+                adapter_id?: string;
+                attachment_id: string;
+                /** Format: date-time */
+                committed_at: string;
+                content: string;
+                content_hash: string;
+                continuity_id: string;
+                evidence: {
+                    /** Format: date-time */
+                    captured_at: string;
+                    content_hash: string;
+                    evidence_ref: string;
+                    result: string;
+                    target_ref: string;
+                };
+                extraction_diagnostics?: string[];
+                health?: {
+                    adapter_id: string;
+                    /** Format: date-time */
+                    last_successful_sync?: string;
+                    message: string;
+                    recovery_action?: string;
+                    status: string;
+                };
+                idempotency_key: string;
+                ingestion_status?: string;
+                mime_type?: string;
+                project_root: string;
+                receipt: {
+                    after_state_version: number;
+                    before_state_version: number;
+                    /** Format: date-time */
+                    committed_at: string;
+                    idempotency_key: string;
+                    /** @enum {unknown} */
+                    operation_id: "focusa.context.source.commit" | "focusa.context.source.ingest";
+                    receipt_ref: string;
+                    reversible: boolean;
+                };
+                revision: number;
+                source_id: string;
+                /** @enum {unknown} */
+                source_kind: "markdown" | "text" | "code" | "pdf";
+                source_locator?: string;
+                source_revision?: string;
                 title: string;
             };
             state_version: number;
@@ -1374,6 +1521,7 @@ export interface components {
             /** @constant */
             schema: "focusa.context_source_list.v1";
             sources: {
+                adapter_id?: string;
                 attachment_id: string;
                 /** Format: date-time */
                 committed_at: string;
@@ -1388,7 +1536,18 @@ export interface components {
                     result: string;
                     target_ref: string;
                 };
+                extraction_diagnostics?: string[];
+                health?: {
+                    adapter_id: string;
+                    /** Format: date-time */
+                    last_successful_sync?: string;
+                    message: string;
+                    recovery_action?: string;
+                    status: string;
+                };
                 idempotency_key: string;
+                ingestion_status?: string;
+                mime_type?: string;
                 project_root: string;
                 receipt: {
                     after_state_version: number;
@@ -1396,8 +1555,8 @@ export interface components {
                     /** Format: date-time */
                     committed_at: string;
                     idempotency_key: string;
-                    /** @constant */
-                    operation_id: "focusa.context.source.commit";
+                    /** @enum {unknown} */
+                    operation_id: "focusa.context.source.commit" | "focusa.context.source.ingest";
                     receipt_ref: string;
                     reversible: boolean;
                 };
@@ -1405,6 +1564,8 @@ export interface components {
                 source_id: string;
                 /** @enum {unknown} */
                 source_kind: "markdown" | "text" | "code" | "pdf";
+                source_locator?: string;
+                source_revision?: string;
                 title: string;
             }[];
             state_version: number;
@@ -2483,6 +2644,42 @@ export interface operations {
             };
         };
     };
+    "focusa.context.adapter.docling.health": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Read Docling Context Adapter Health response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_context_adapter_health_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
     "focusa.context.source.list": {
         parameters: {
             query: {
@@ -2546,6 +2743,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_context_source_commit_result_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.context.source.ingest": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_context_source_ingest_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Ingest Context Source response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_context_source_ingest_result_v1"];
                 };
             };
             /** @description Standard error envelope */
