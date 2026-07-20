@@ -308,6 +308,32 @@ Alpha 8 — permanent nontechnical dogfood traversal
 
 Every Alpha ticket crosses requirement ID, greater primitive, schema, reducer, API, generated clients, generated UI, real integration, tests, UIAI Eval when browser-facing, Evidence, and Receipt.
 
+### 10.1 Critical paths to the vertical slices
+
+All listed feeder paths are mandatory merge gates, not optional implementation suggestions. Branches may execute in parallel, but every branch must reach the Alpha merge gate before the vertical slice closes.
+
+| Vertical slice | Critical feeder paths |
+|---|---|
+| Alpha 1 — Context ingestion | `F12 → C1 → C2 → C3 → Alpha 1`; `F12 → U1 → U2 → Alpha 1` |
+| Alpha 2 — Role and Grill Interview | `Alpha 1 → Alpha 2`; `C3 → RI1 → RI2 → RI3 → Alpha 2` |
+| Alpha 3 — Spec 120 and Beads task | `Alpha 2 → Alpha 3`; `RI3 → ST1 → ST2 → ST3 → Alpha 3`; `F8 → P1 → ST2 → ST3 → Alpha 3` |
+| Alpha 4 — Workpoint and Work Rail | `Alpha 3 → Alpha 4`; `ST3 → ST4 → Alpha 4`; `F12 → M1 → M2 → Alpha 4`; `ST4 → M2 → Alpha 4` |
+| Alpha 5 — UIAI artifact live refresh | `Alpha 4 → Alpha 5`; `U1 → U2 → U3 → Alpha 5`; `F12 → M1 → M3 → M4 → M5 → U3 → Alpha 5` |
+| Alpha 6 — isolated Pi/UIAI Work Surfaces | `Alpha 5 → Alpha 6`; `M4 → M5 → M6 → Alpha 6`; `F6 → M6 → Alpha 6` |
+| Alpha 7 — domain projections | `Alpha 6 → Alpha 7`; `F6 → V1 → V2 → V3 → V6 → Alpha 7`; `V2 → V4 → V6 → Alpha 7`; `V2 → V5 → V6 → Alpha 7`; `U1 → V5 → V6 → Alpha 7` |
+| Alpha 8 — permanent dogfood traversal | `Alpha 7 → Alpha 8`; `U3 → U4 → Alpha 8`; `M1 → M2 → M7 → U4 → Alpha 8`; `M1 → M3 → M7 → U4 → Alpha 8`; `F7 → Q1 → Q2 → Alpha 8`; `F12 → Q3 → Alpha 8` |
+
+Every path terminates in the same functional integration traversal:
+
+```text
+requirement → greater primitive → schema → reducer/event → typed API
+→ generated TypeScript/Go clients → Operation Registry action binding
+→ A2UI/Lit + trusted Focusa Svelte element → real integration
+→ focused/runtime tests → UIAI Eval when browser-facing → Evidence → Receipt → closure
+```
+
+The machine-readable authority for these paths is `docs/contracts/spec135-delivery-dag.v1.yaml#critical_path_contract`; CI must prove that every adjacent path step is a real blocking edge and that all eight Alpha gates are covered.
+
 Mocks, static cards, transcript-only Interview, manual refresh, ambient scope, placeholder success, provider-only closure, and browser proof outside UIAI Engine Eval do not satisfy an Alpha slice.
 
 ---

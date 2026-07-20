@@ -14,6 +14,7 @@ SPEC_H="$ROOT_DIR/docs/135h-cross-functional-alpha-grill-interview-and-implement
 SPEC_I="$ROOT_DIR/docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md"
 SPEC_J="$ROOT_DIR/docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md"
 SPEC_K="$ROOT_DIR/docs/135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md"
+DAG="$ROOT_DIR/docs/contracts/spec135-delivery-dag.v1.yaml"
 
 fail(){ echo "✗ FAIL: $*" >&2; exit 1; }
 pass(){ echo "✓ PASS: $*"; }
@@ -94,7 +95,11 @@ for needle in \
     || fail "machine-readable delivery graph requirement missing: $needle"
 done
 require_in "$SPEC_D" 'Agents MUST NOT infer the delivery DAG from prose alone.'
-pass "machine-readable feature ledger, DAG, parity, framework, and proof requirements are guarded"
+require_in "$SPEC_D" '### 10.1 Critical paths to the vertical slices'
+require_in "$SPEC_D" 'requirement → greater primitive → schema → reducer/event → typed API'
+require_in "$DAG" '"critical_path_contract"'
+require_in "$DAG" '"SPEC135-ALPHA8"'
+pass "machine-readable feature ledger, DAG, vertical-slice critical paths, framework, and proof requirements are guarded"
 
 for needle in \
   'primitive_submission:' \

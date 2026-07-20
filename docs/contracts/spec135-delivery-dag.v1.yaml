@@ -10,6 +10,273 @@
     "SPEC135-ALPHA8"
   ],
   "authority": "docs/135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md",
+  "critical_path_contract": {
+    "integration_traversal": [
+      "requirement_id",
+      "greater_primitive",
+      "schema",
+      "reducer_event",
+      "typed_api",
+      "generated_typescript_client",
+      "generated_go_client",
+      "operation_registry_action_binding",
+      "a2ui_lit_renderer",
+      "trusted_focusa_svelte_element",
+      "real_integration",
+      "focused_runtime_tests",
+      "uiai_eval_when_browser_facing",
+      "evidence",
+      "receipt",
+      "closure"
+    ],
+    "rule": "All feeder paths and the preceding Alpha trunk gate must close before the vertical slice closes; parallel branches never waive merge gates.",
+    "slices": [
+      {
+        "feeder_paths": [
+          [
+            "SPEC135-F12",
+            "SPEC135-C1",
+            "SPEC135-C2",
+            "SPEC135-C3",
+            "SPEC135-ALPHA1"
+          ],
+          [
+            "SPEC135-F12",
+            "SPEC135-U1",
+            "SPEC135-U2",
+            "SPEC135-ALPHA1"
+          ]
+        ],
+        "merge_gates": [
+          "SPEC135-C3",
+          "SPEC135-U2",
+          "SPEC135-F12"
+        ],
+        "operator_outcome": "Real Markdown/code and PDF Context ingestion, provenance, retrieval, and generated UI",
+        "slice_id": "SPEC135-ALPHA1"
+      },
+      {
+        "feeder_paths": [
+          [
+            "SPEC135-ALPHA1",
+            "SPEC135-ALPHA2"
+          ],
+          [
+            "SPEC135-C3",
+            "SPEC135-RI1",
+            "SPEC135-RI2",
+            "SPEC135-RI3",
+            "SPEC135-ALPHA2"
+          ]
+        ],
+        "merge_gates": [
+          "SPEC135-ALPHA1",
+          "SPEC135-RI3"
+        ],
+        "operator_outcome": "Grounded Role approval and Grill Interview autosave, close, and resume",
+        "slice_id": "SPEC135-ALPHA2"
+      },
+      {
+        "feeder_paths": [
+          [
+            "SPEC135-ALPHA2",
+            "SPEC135-ALPHA3"
+          ],
+          [
+            "SPEC135-RI3",
+            "SPEC135-ST1",
+            "SPEC135-ST2",
+            "SPEC135-ST3",
+            "SPEC135-ALPHA3"
+          ],
+          [
+            "SPEC135-F8",
+            "SPEC135-P1",
+            "SPEC135-ST2",
+            "SPEC135-ST3",
+            "SPEC135-ALPHA3"
+          ]
+        ],
+        "merge_gates": [
+          "SPEC135-ALPHA2",
+          "SPEC135-ST3"
+        ],
+        "operator_outcome": "Real Spec 120 cycle and provider-neutral Beads task",
+        "slice_id": "SPEC135-ALPHA3"
+      },
+      {
+        "feeder_paths": [
+          [
+            "SPEC135-ALPHA3",
+            "SPEC135-ALPHA4"
+          ],
+          [
+            "SPEC135-ST3",
+            "SPEC135-ST4",
+            "SPEC135-ALPHA4"
+          ],
+          [
+            "SPEC135-F12",
+            "SPEC135-M1",
+            "SPEC135-M2",
+            "SPEC135-ALPHA4"
+          ],
+          [
+            "SPEC135-ST4",
+            "SPEC135-M2",
+            "SPEC135-ALPHA4"
+          ]
+        ],
+        "merge_gates": [
+          "SPEC135-ALPHA3",
+          "SPEC135-ST4",
+          "SPEC135-M2"
+        ],
+        "operator_outcome": "Workpoint, Work Rail, Evidence, closure reconciliation, and Receipt",
+        "slice_id": "SPEC135-ALPHA4"
+      },
+      {
+        "feeder_paths": [
+          [
+            "SPEC135-ALPHA4",
+            "SPEC135-ALPHA5"
+          ],
+          [
+            "SPEC135-U1",
+            "SPEC135-U2",
+            "SPEC135-U3",
+            "SPEC135-ALPHA5"
+          ],
+          [
+            "SPEC135-F12",
+            "SPEC135-M1",
+            "SPEC135-M3",
+            "SPEC135-M4",
+            "SPEC135-M5",
+            "SPEC135-U3",
+            "SPEC135-ALPHA5"
+          ]
+        ],
+        "merge_gates": [
+          "SPEC135-ALPHA4",
+          "SPEC135-U3"
+        ],
+        "operator_outcome": "UIAI artifact, Evidence, canonical event, and automatic Work Surface refresh",
+        "slice_id": "SPEC135-ALPHA5"
+      },
+      {
+        "feeder_paths": [
+          [
+            "SPEC135-ALPHA5",
+            "SPEC135-ALPHA6"
+          ],
+          [
+            "SPEC135-M4",
+            "SPEC135-M5",
+            "SPEC135-M6",
+            "SPEC135-ALPHA6"
+          ],
+          [
+            "SPEC135-F6",
+            "SPEC135-M6",
+            "SPEC135-ALPHA6"
+          ]
+        ],
+        "merge_gates": [
+          "SPEC135-ALPHA5",
+          "SPEC135-M6"
+        ],
+        "operator_outcome": "Isolated Pi and UIAI Work Surfaces with targeted steering and restart proof",
+        "slice_id": "SPEC135-ALPHA6"
+      },
+      {
+        "feeder_paths": [
+          [
+            "SPEC135-ALPHA6",
+            "SPEC135-ALPHA7"
+          ],
+          [
+            "SPEC135-F6",
+            "SPEC135-V1",
+            "SPEC135-V2",
+            "SPEC135-V3",
+            "SPEC135-V6",
+            "SPEC135-ALPHA7"
+          ],
+          [
+            "SPEC135-V2",
+            "SPEC135-V4",
+            "SPEC135-V6",
+            "SPEC135-ALPHA7"
+          ],
+          [
+            "SPEC135-V2",
+            "SPEC135-V5",
+            "SPEC135-V6",
+            "SPEC135-ALPHA7"
+          ],
+          [
+            "SPEC135-U1",
+            "SPEC135-V5",
+            "SPEC135-V6",
+            "SPEC135-ALPHA7"
+          ]
+        ],
+        "merge_gates": [
+          "SPEC135-ALPHA6",
+          "SPEC135-V6"
+        ],
+        "operator_outcome": "General, Software, and Research projections over identical canonical state",
+        "slice_id": "SPEC135-ALPHA7"
+      },
+      {
+        "feeder_paths": [
+          [
+            "SPEC135-ALPHA7",
+            "SPEC135-ALPHA8"
+          ],
+          [
+            "SPEC135-U3",
+            "SPEC135-U4",
+            "SPEC135-ALPHA8"
+          ],
+          [
+            "SPEC135-M1",
+            "SPEC135-M2",
+            "SPEC135-M7",
+            "SPEC135-U4",
+            "SPEC135-ALPHA8"
+          ],
+          [
+            "SPEC135-M1",
+            "SPEC135-M3",
+            "SPEC135-M7",
+            "SPEC135-U4",
+            "SPEC135-ALPHA8"
+          ],
+          [
+            "SPEC135-F7",
+            "SPEC135-Q1",
+            "SPEC135-Q2",
+            "SPEC135-ALPHA8"
+          ],
+          [
+            "SPEC135-F12",
+            "SPEC135-Q3",
+            "SPEC135-ALPHA8"
+          ]
+        ],
+        "merge_gates": [
+          "SPEC135-ALPHA7",
+          "SPEC135-U4",
+          "SPEC135-Q2",
+          "SPEC135-Q3"
+        ],
+        "operator_outcome": "Permanent nontechnical end-to-end dogfood traversal",
+        "slice_id": "SPEC135-ALPHA8"
+      }
+    ]
+  },
   "edges": [
     {
       "from": "SPEC135-F0",
