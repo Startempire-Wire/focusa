@@ -149,6 +149,7 @@ pub enum AdoptionRejection {
     ExecutableMismatch,
     ManifestMismatch,
     ProcessIdentityMismatch,
+    ProcessNotOwned,
     StaleHeartbeat,
 }
 
@@ -164,6 +165,18 @@ pub struct AdoptionDecision {
 }
 
 impl AdoptionExpectation {
+    pub fn rejected(&self, rejection: AdoptionRejection) -> AdoptionDecision {
+        AdoptionDecision {
+            runner_id: self.runner_id.clone(),
+            session_id: self.session_id,
+            run_id: self.run_id,
+            generation: self.generation,
+            accepted: false,
+            rejection: Some(rejection),
+            signed_runner_record_ref: None,
+        }
+    }
+
     /// Compare every authority-bearing field required by Spec 133 orphan adoption.
     pub fn evaluate(&self, record: &ActiveRunRecord) -> Result<AdoptionDecision, ProtocolError> {
         let rejection = if self.runner_id != record.runner_id

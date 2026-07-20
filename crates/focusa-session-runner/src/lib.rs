@@ -4,6 +4,8 @@
 //! communication and operating-system process supervision.
 
 pub mod identity;
+#[cfg(unix)]
+pub mod process_posix;
 pub mod protocol;
 #[cfg(unix)]
 pub mod transport;

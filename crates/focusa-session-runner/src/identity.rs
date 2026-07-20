@@ -62,11 +62,11 @@ pub struct ExecutionIdentityRequest {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VerifiedExecutionContext {
-    pub mode: ExecutionMode,
-    pub owner: OsIdentity,
-    pub project_root: PathBuf,
-    pub project_identity_ref: String,
-    pub workspace_root: PathBuf,
+    mode: ExecutionMode,
+    owner: OsIdentity,
+    project_root: PathBuf,
+    project_identity_ref: String,
+    workspace_root: PathBuf,
 }
 
 impl VerifiedExecutionContext {
@@ -110,6 +110,49 @@ impl VerifiedExecutionContext {
             project_identity_ref: request.project_identity_ref.clone(),
             workspace_root,
         })
+    }
+
+    pub fn mode(&self) -> ExecutionMode {
+        self.mode
+    }
+
+    pub fn owner(&self) -> &OsIdentity {
+        &self.owner
+    }
+
+    pub fn project_root(&self) -> &Path {
+        &self.project_root
+    }
+
+    pub fn project_identity_ref(&self) -> &str {
+        &self.project_identity_ref
+    }
+
+    pub fn workspace_root(&self) -> &Path {
+        &self.workspace_root
+    }
+
+    /// Re-check the effective OS identity and both authority-bearing roots at
+    /// the last responsible moment before a process or mutation starts.
+    pub fn revalidate(&self) -> Result<(), IdentityError> {
+        let current = OsIdentity::current()?;
+        if current.uid != self.owner.uid || current.user_name != self.owner.user_name {
+            return Err(IdentityError::RunnerUserMismatch {
+                expected_user: self.owner.user_name.clone(),
+                expected_uid: self.owner.uid,
+                actual_user: current.user_name,
+                actual_uid: current.uid,
+            });
+        }
+        if current.gid != self.owner.gid {
+            return Err(IdentityError::RunnerGroupMismatch {
+                expected_gid: self.owner.gid,
+                actual_gid: current.gid,
+            });
+        }
+        verify_owned_directory(&self.project_root, self.owner.uid)?;
+        verify_owned_directory(&self.workspace_root, self.owner.uid)?;
+        Ok(())
     }
 
     /// Resolve one workspace-relative mutation path without accepting absolute
@@ -257,6 +300,8 @@ pub enum IdentityError {
         actual_user: String,
         actual_uid: u32,
     },
+    #[error("runner primary group mismatch: expected gid {expected_gid}, got {actual_gid}")]
+    RunnerGroupMismatch { expected_gid: u32, actual_gid: u32 },
     #[error("path is not a directory: {0}")]
     NotDirectory(PathBuf),
     #[error("symlink path is not allowed for project execution: {0}")]
