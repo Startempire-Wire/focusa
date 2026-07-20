@@ -14,6 +14,7 @@ pub mod commands;
 pub mod compaction;
 pub mod constitution;
 pub mod context_cognition;
+pub mod context_sources;
 pub mod deck;
 pub mod device_pairing;
 pub mod dxux;

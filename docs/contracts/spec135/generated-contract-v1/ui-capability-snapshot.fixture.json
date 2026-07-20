@@ -1,6 +1,6 @@
 {
   "agent_id": null,
-  "attachment_id": null,
+  "attachment_id": "example",
   "capabilities": [
     {
       "capability_id": "agent",
@@ -25,6 +25,13 @@
     },
     {
       "capability_id": "call_stack",
+      "missing_permission_scopes": [],
+      "reason": "Required permission scopes are granted",
+      "recovery_action_ref": null,
+      "status": "available"
+    },
+    {
+      "capability_id": "context",
       "missing_permission_scopes": [],
       "reason": "Required permission scopes are granted",
       "recovery_action_ref": null,
@@ -194,6 +201,7 @@
       "call_stack:read",
       "call_stack:write",
       "context:read",
+      "context:write",
       "device:read",
       "device:write",
       "diagnostics:read",

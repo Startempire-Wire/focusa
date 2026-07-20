@@ -14,3 +14,8 @@ A2UI catalog, and UI capability snapshot.
 boundary. The Alpha 0 scenario/result fixtures retain bounded browser session,
 screenshot, diagnostics, accessibility, Focusa Evidence, and recovery refs;
 UIAI Engine remains the browser execution owner.
+
+`spec135-alpha0-context-seed-proof.json` closes Alpha 0 by linking the first
+real generated Context action across the generated binding/client, canonical
+reducer event and restart-safe state, durable stream, Evidence, Receipt, and
+UIAI Eval result.

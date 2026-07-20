@@ -200,6 +200,7 @@ fn op(
             | "evidence"
             | "prediction"
             | "context_cognition"
+            | "context"
             | "turn"
             | "memory"
             | "work_loop"
@@ -209,7 +210,7 @@ fn op(
             | "focusa.ui_capability_snapshot.read"
             | "focusa.protocol.handshake"
     );
-    let attachment_scoped = id.contains("attachment");
+    let attachment_scoped = id.contains("attachment") || family == "context";
     let mut required_keys = Vec::new();
     if project_scoped {
         required_keys.push("project_root");
@@ -814,6 +815,53 @@ fn build_operations() -> Vec<OperationEntry> {
             "focusa.context_cognition_curate.request.v1",
             "focusa.context_cognition_curate.response.v1",
             "docs/focusa-api/routes/context_cognition.md",
+            None,
+        ),
+        // ── canonical Context corpus ─────────────────────────────────────────
+        op(
+            "focusa.context.source.list",
+            "List Canonical Context Sources",
+            "context",
+            "GET",
+            "/v1/context/sources",
+            true,
+            None,
+            "read_context",
+            "canonical_read",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec!["context:read"],
+            false,
+            "standard_read",
+            vec!["compact", "standard"],
+            "focusa.context_source_list.request.v1",
+            "focusa.context_source_list.v1",
+            "docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md",
+            None,
+        ),
+        op(
+            "focusa.context.source.commit",
+            "Commit Context Source",
+            "context",
+            "POST",
+            "/v1/context/sources/commit",
+            true,
+            None,
+            "write_context",
+            "canonical_event",
+            vec!["commit"],
+            true,
+            true,
+            false,
+            vec!["context:write"],
+            false,
+            "standard_write",
+            vec!["compact", "standard"],
+            "focusa.context_source_commit.request.v1",
+            "focusa.context_source_commit_result.v1",
+            "docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md",
             None,
         ),
         // ── tool doctor ──────────────────────────────────────────────────────
@@ -1604,6 +1652,7 @@ fn build_families() -> Vec<&'static str> {
         "evidence",
         "prediction",
         "context_cognition",
+        "context",
         "diagnostics",
         "awareness",
         "resource",
@@ -2012,7 +2061,117 @@ fn registered_schema_ids() -> std::collections::BTreeSet<&'static str> {
     schema_ids
 }
 
+fn context_source_record_schema() -> Value {
+    json!({
+        "type": "object",
+        "required": ["source_id", "project_root", "continuity_id", "attachment_id", "source_kind", "title", "content", "content_hash", "idempotency_key", "revision", "committed_at", "evidence", "receipt"],
+        "properties": {
+            "source_id": {"type": "string"}, "project_root": {"type": "string"},
+            "continuity_id": {"type": "string"}, "attachment_id": {"type": "string"},
+            "source_kind": {"enum": ["markdown", "text", "code", "pdf"]},
+            "title": {"type": "string", "maxLength": 240},
+            "content": {"type": "string", "maxLength": 65536},
+            "content_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+            "idempotency_key": {"type": "string", "maxLength": 160},
+            "revision": {"type": "integer", "minimum": 1},
+            "committed_at": {"type": "string", "format": "date-time"},
+            "evidence": {
+                "type": "object",
+                "required": ["evidence_ref", "target_ref", "result", "content_hash", "captured_at"],
+                "properties": {
+                    "evidence_ref": {"type": "string"}, "target_ref": {"type": "string"},
+                    "result": {"type": "string"}, "content_hash": {"type": "string"},
+                    "captured_at": {"type": "string", "format": "date-time"}
+                }
+            },
+            "receipt": {
+                "type": "object",
+                "required": ["receipt_ref", "operation_id", "idempotency_key", "before_state_version", "after_state_version", "reversible", "committed_at"],
+                "properties": {
+                    "receipt_ref": {"type": "string"},
+                    "operation_id": {"const": "focusa.context.source.commit"},
+                    "idempotency_key": {"type": "string"},
+                    "before_state_version": {"type": "integer", "minimum": 0},
+                    "after_state_version": {"type": "integer", "minimum": 1},
+                    "reversible": {"type": "boolean"},
+                    "committed_at": {"type": "string", "format": "date-time"}
+                }
+            }
+        }
+    })
+}
+
 fn json_schema_document(schema_id: &str) -> Value {
+    if schema_id == "focusa.context_source_commit.request.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false,
+            "required": ["project_root", "continuity_id", "attachment_id", "idempotency_key", "expected_state_version", "source_kind", "title", "content"],
+            "properties": {
+                "project_root": {"type": "string", "minLength": 1, "maxLength": 4096},
+                "continuity_id": {"type": "string", "minLength": 1, "maxLength": 256},
+                "attachment_id": {"type": "string", "minLength": 1, "maxLength": 256},
+                "idempotency_key": {"type": "string", "minLength": 1, "maxLength": 160},
+                "expected_state_version": {"type": "integer", "minimum": 0},
+                "source_kind": {"enum": ["markdown", "text", "code", "pdf"]},
+                "title": {"type": "string", "minLength": 1, "maxLength": 240},
+                "content": {"type": "string", "minLength": 1, "maxLength": 65536}
+            },
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "ContextSourceCommitRequest"
+        });
+    }
+    if schema_id == "focusa.context_source_commit_result.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object",
+            "required": ["schema", "canonical", "replayed", "state_version", "source", "evidence_ref", "receipt_ref", "tool_result"],
+            "properties": {
+                "schema": {"const": "focusa.context_source_commit_result.v1"},
+                "canonical": {"const": true}, "replayed": {"type": "boolean"},
+                "state_version": {"type": "integer", "minimum": 1},
+                "source": context_source_record_schema(),
+                "evidence_ref": {"type": "string"}, "receipt_ref": {"type": "string"},
+                "tool_result": {"type": "object"}
+            },
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "ContextSourceCommitResponse"
+        });
+    }
+    if schema_id == "focusa.context_source_list.request.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false,
+            "required": ["project_root", "continuity_id", "attachment_id"],
+            "properties": {
+                "project_root": {"type": "string", "minLength": 1},
+                "continuity_id": {"type": "string", "minLength": 1},
+                "attachment_id": {"type": "string", "minLength": 1}
+            },
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "ContextSourceListQuery"
+        });
+    }
+    if schema_id == "focusa.context_source_list.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object",
+            "required": ["schema", "canonical", "state_version", "sources"],
+            "properties": {
+                "schema": {"const": "focusa.context_source_list.v1"},
+                "canonical": {"const": true},
+                "state_version": {"type": "integer", "minimum": 0},
+                "sources": {"type": "array", "items": context_source_record_schema()}
+            },
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "ContextSourceListResponse"
+        });
+    }
+
     if schema_id == "focusa.agent_execution_start.request.v1" {
         return json!({
             "$schema": JSON_SCHEMA_DIALECT_2020_12,

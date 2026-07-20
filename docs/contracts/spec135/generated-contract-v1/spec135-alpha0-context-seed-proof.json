@@ -1,0 +1,52 @@
+{
+  "schema": "focusa.alpha0_context_seed_proof.v1",
+  "requirement_id": "SPEC135-F12",
+  "status": "verified",
+  "operation_id": "focusa.context.source.commit",
+  "source_id": "context-source:88d1806b49ebfb8a756c5984",
+  "scope": {
+    "project_root": "/example/focusa",
+    "continuity_id": "focusa-cont-f12-generated-ui",
+    "attachment_id": "attachment:f12-context"
+  },
+  "stack": [
+    "generated A2UI action binding",
+    "permanent Lit renderer",
+    "trusted Focusa Svelte Custom Element",
+    "generated OpenAPI TypeScript client",
+    "Axum typed Context route",
+    "single-writer Action::EmitEvent",
+    "FocusaEvent::ContextSourceCommitted",
+    "canonical reducer state",
+    "SQLite event/snapshot persistence",
+    "generated Evidence and Receipt",
+    "durable UI delta"
+  ],
+  "contract_refs": [
+    "docs/contracts/spec135/generated-contract-v1/operation-registry.json#focusa.context.source.commit",
+    "docs/contracts/spec135/generated-contract-v1/openapi-3.0.3.json#/paths/~1v1~1context~1sources~1commit",
+    "docs/contracts/spec135/generated-contract-v1/ui-action-bindings.fixture.json#focusa.context.source.commit",
+    "focusa.context_source_commit.request.v1",
+    "focusa.context_source_commit_result.v1"
+  ],
+  "runtime_proof": {
+    "initial_state_version": 16,
+    "committed_state_version": 17,
+    "restart_state_version": 19,
+    "resume_state_version": 20,
+    "source_count_after_commit": 1,
+    "source_count_after_restart": 1,
+    "idempotent_resume_status": "no_op",
+    "replayed": true,
+    "durable_event_type": "ContextSourceCommitted"
+  },
+  "evidence_ref": "evidence:context-source:88d1806b49ebfb8a756c5984",
+  "receipt_ref": "receipt:context-source:88d1806b49ebfb8a756c5984",
+  "ui_eval_result_ref": "docs/contracts/spec135/generated-contract-v1/uiai-eval.alpha0-context-commit.result.json",
+  "diagnostics_ref": "browser-diagnostics:2026-07-20T15:51:46.721Z",
+  "tests": [
+    "focusa-core reducer::tests::context_source_commit_is_canonical_scoped_and_idempotency_guarded",
+    "tests/spec135_context_source_e2e_test.py",
+    "tests/spec135_context_generated_ui_test.py"
+  ]
+}

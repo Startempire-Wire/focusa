@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/oapi-codegen/runtime"
 )
@@ -377,6 +378,94 @@ type FocusaContextCognitionCurateResponseV1 map[string]interface{}
 // FocusaContextCognitionPacketResponseV1 Generated contract for Focusa schema focusa.context_cognition_packet.response.v1
 type FocusaContextCognitionPacketResponseV1 map[string]interface{}
 
+// FocusaContextSourceCommitRequestV1 defines model for focusa_context_source_commit_request_v1.
+type FocusaContextSourceCommitRequestV1 struct {
+	AttachmentId         string      `json:"attachment_id"`
+	Content              string      `json:"content"`
+	ContinuityId         string      `json:"continuity_id"`
+	ExpectedStateVersion int         `json:"expected_state_version"`
+	IdempotencyKey       string      `json:"idempotency_key"`
+	ProjectRoot          string      `json:"project_root"`
+	SourceKind           interface{} `json:"source_kind"`
+	Title                string      `json:"title"`
+}
+
+// FocusaContextSourceCommitResultV1 defines model for focusa_context_source_commit_result_v1.
+type FocusaContextSourceCommitResultV1 struct {
+	Canonical   interface{} `json:"canonical"`
+	EvidenceRef string      `json:"evidence_ref"`
+	ReceiptRef  string      `json:"receipt_ref"`
+	Replayed    bool        `json:"replayed"`
+	Schema      interface{} `json:"schema"`
+	Source      struct {
+		AttachmentId string    `json:"attachment_id"`
+		CommittedAt  time.Time `json:"committed_at"`
+		Content      string    `json:"content"`
+		ContentHash  string    `json:"content_hash"`
+		ContinuityId string    `json:"continuity_id"`
+		Evidence     struct {
+			CapturedAt  time.Time `json:"captured_at"`
+			ContentHash string    `json:"content_hash"`
+			EvidenceRef string    `json:"evidence_ref"`
+			Result      string    `json:"result"`
+			TargetRef   string    `json:"target_ref"`
+		} `json:"evidence"`
+		IdempotencyKey string `json:"idempotency_key"`
+		ProjectRoot    string `json:"project_root"`
+		Receipt        struct {
+			AfterStateVersion  int         `json:"after_state_version"`
+			BeforeStateVersion int         `json:"before_state_version"`
+			CommittedAt        time.Time   `json:"committed_at"`
+			IdempotencyKey     string      `json:"idempotency_key"`
+			OperationId        interface{} `json:"operation_id"`
+			ReceiptRef         string      `json:"receipt_ref"`
+			Reversible         bool        `json:"reversible"`
+		} `json:"receipt"`
+		Revision   int         `json:"revision"`
+		SourceId   string      `json:"source_id"`
+		SourceKind interface{} `json:"source_kind"`
+		Title      string      `json:"title"`
+	} `json:"source"`
+	StateVersion int                    `json:"state_version"`
+	ToolResult   map[string]interface{} `json:"tool_result"`
+}
+
+// FocusaContextSourceListV1 defines model for focusa_context_source_list_v1.
+type FocusaContextSourceListV1 struct {
+	Canonical interface{} `json:"canonical"`
+	Schema    interface{} `json:"schema"`
+	Sources   []struct {
+		AttachmentId string    `json:"attachment_id"`
+		CommittedAt  time.Time `json:"committed_at"`
+		Content      string    `json:"content"`
+		ContentHash  string    `json:"content_hash"`
+		ContinuityId string    `json:"continuity_id"`
+		Evidence     struct {
+			CapturedAt  time.Time `json:"captured_at"`
+			ContentHash string    `json:"content_hash"`
+			EvidenceRef string    `json:"evidence_ref"`
+			Result      string    `json:"result"`
+			TargetRef   string    `json:"target_ref"`
+		} `json:"evidence"`
+		IdempotencyKey string `json:"idempotency_key"`
+		ProjectRoot    string `json:"project_root"`
+		Receipt        struct {
+			AfterStateVersion  int         `json:"after_state_version"`
+			BeforeStateVersion int         `json:"before_state_version"`
+			CommittedAt        time.Time   `json:"committed_at"`
+			IdempotencyKey     string      `json:"idempotency_key"`
+			OperationId        interface{} `json:"operation_id"`
+			ReceiptRef         string      `json:"receipt_ref"`
+			Reversible         bool        `json:"reversible"`
+		} `json:"receipt"`
+		Revision   int         `json:"revision"`
+		SourceId   string      `json:"source_id"`
+		SourceKind interface{} `json:"source_kind"`
+		Title      string      `json:"title"`
+	} `json:"sources"`
+	StateVersion int `json:"state_version"`
+}
+
 // FocusaDevicePairStartRequestV1 Generated contract for Focusa schema focusa.device_pair_start.request.v1
 type FocusaDevicePairStartRequestV1 map[string]interface{}
 
@@ -717,6 +806,30 @@ type FocusaContextCognitionPacketParams struct {
 
 	// ContinuityId Required Focusa scope key: continuity_id
 	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+}
+
+// FocusaContextSourceListParams defines parameters for FocusaContextSourceList.
+type FocusaContextSourceListParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+}
+
+// FocusaContextSourceCommitParams defines parameters for FocusaContextSourceCommit.
+type FocusaContextSourceCommitParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
 }
 
 // FocusaDxuxReportParams defines parameters for FocusaDxuxReport.
@@ -1066,6 +1179,9 @@ type FocusaCallStackVerifyJSONRequestBody = FocusaCallStackVerifyRequestV1
 
 // FocusaContextCognitionCurateJSONRequestBody defines body for FocusaContextCognitionCurate for application/json ContentType.
 type FocusaContextCognitionCurateJSONRequestBody = FocusaContextCognitionCurateRequestV1
+
+// FocusaContextSourceCommitJSONRequestBody defines body for FocusaContextSourceCommit for application/json ContentType.
+type FocusaContextSourceCommitJSONRequestBody = FocusaContextSourceCommitRequestV1
 
 // FocusaDevicePairStartJSONRequestBody defines body for FocusaDevicePairStart for application/json ContentType.
 type FocusaDevicePairStartJSONRequestBody = FocusaDevicePairStartRequestV1
@@ -1481,6 +1597,14 @@ type ClientInterface interface {
 	// FocusaContextCognitionPacket request
 	FocusaContextCognitionPacket(ctx context.Context, params *FocusaContextCognitionPacketParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// FocusaContextSourceList request
+	FocusaContextSourceList(ctx context.Context, params *FocusaContextSourceListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaContextSourceCommitWithBody request with any body
+	FocusaContextSourceCommitWithBody(ctx context.Context, params *FocusaContextSourceCommitParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	FocusaContextSourceCommit(ctx context.Context, params *FocusaContextSourceCommitParams, body FocusaContextSourceCommitJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// FocusaDevicePairStartWithBody request with any body
 	FocusaDevicePairStartWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1850,6 +1974,42 @@ func (c *Client) FocusaContextCognitionCurate(ctx context.Context, params *Focus
 
 func (c *Client) FocusaContextCognitionPacket(ctx context.Context, params *FocusaContextCognitionPacketParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewFocusaContextCognitionPacketRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaContextSourceList(ctx context.Context, params *FocusaContextSourceListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaContextSourceListRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaContextSourceCommitWithBody(ctx context.Context, params *FocusaContextSourceCommitParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaContextSourceCommitRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaContextSourceCommit(ctx context.Context, params *FocusaContextSourceCommitParams, body FocusaContextSourceCommitJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaContextSourceCommitRequest(c.Server, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -3340,6 +3500,151 @@ func NewFocusaContextCognitionPacketRequest(server string, params *FocusaContext
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewFocusaContextSourceListRequest generates requests for FocusaContextSourceList
+func NewFocusaContextSourceListRequest(server string, params *FocusaContextSourceListParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/context/sources")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewFocusaContextSourceCommitRequest calls the generic FocusaContextSourceCommit builder with application/json body
+func NewFocusaContextSourceCommitRequest(server string, params *FocusaContextSourceCommitParams, body FocusaContextSourceCommitJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewFocusaContextSourceCommitRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewFocusaContextSourceCommitRequestWithBody generates requests for FocusaContextSourceCommit with any type of body
+func NewFocusaContextSourceCommitRequestWithBody(server string, params *FocusaContextSourceCommitParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/context/sources/commit")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -6148,6 +6453,14 @@ type ClientWithResponsesInterface interface {
 	// FocusaContextCognitionPacketWithResponse request
 	FocusaContextCognitionPacketWithResponse(ctx context.Context, params *FocusaContextCognitionPacketParams, reqEditors ...RequestEditorFn) (*FocusaContextCognitionPacketResponse, error)
 
+	// FocusaContextSourceListWithResponse request
+	FocusaContextSourceListWithResponse(ctx context.Context, params *FocusaContextSourceListParams, reqEditors ...RequestEditorFn) (*FocusaContextSourceListResponse, error)
+
+	// FocusaContextSourceCommitWithBodyWithResponse request with any body
+	FocusaContextSourceCommitWithBodyWithResponse(ctx context.Context, params *FocusaContextSourceCommitParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaContextSourceCommitResponse, error)
+
+	FocusaContextSourceCommitWithResponse(ctx context.Context, params *FocusaContextSourceCommitParams, body FocusaContextSourceCommitJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaContextSourceCommitResponse, error)
+
 	// FocusaDevicePairStartWithBodyWithResponse request with any body
 	FocusaDevicePairStartWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaDevicePairStartResponse, error)
 
@@ -6670,6 +6983,68 @@ func (r FocusaContextCognitionPacketResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r FocusaContextCognitionPacketResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaContextSourceListResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaContextSourceListV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaContextSourceListResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaContextSourceListResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaContextSourceListResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaContextSourceCommitResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaContextSourceCommitResultV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaContextSourceCommitResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaContextSourceCommitResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaContextSourceCommitResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -8178,6 +8553,32 @@ func (c *ClientWithResponses) FocusaContextCognitionPacketWithResponse(ctx conte
 	return ParseFocusaContextCognitionPacketResponse(rsp)
 }
 
+// FocusaContextSourceListWithResponse request returning *FocusaContextSourceListResponse
+func (c *ClientWithResponses) FocusaContextSourceListWithResponse(ctx context.Context, params *FocusaContextSourceListParams, reqEditors ...RequestEditorFn) (*FocusaContextSourceListResponse, error) {
+	rsp, err := c.FocusaContextSourceList(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaContextSourceListResponse(rsp)
+}
+
+// FocusaContextSourceCommitWithBodyWithResponse request with arbitrary body returning *FocusaContextSourceCommitResponse
+func (c *ClientWithResponses) FocusaContextSourceCommitWithBodyWithResponse(ctx context.Context, params *FocusaContextSourceCommitParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaContextSourceCommitResponse, error) {
+	rsp, err := c.FocusaContextSourceCommitWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaContextSourceCommitResponse(rsp)
+}
+
+func (c *ClientWithResponses) FocusaContextSourceCommitWithResponse(ctx context.Context, params *FocusaContextSourceCommitParams, body FocusaContextSourceCommitJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaContextSourceCommitResponse, error) {
+	rsp, err := c.FocusaContextSourceCommit(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaContextSourceCommitResponse(rsp)
+}
+
 // FocusaDevicePairStartWithBodyWithResponse request with arbitrary body returning *FocusaDevicePairStartResponse
 func (c *ClientWithResponses) FocusaDevicePairStartWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaDevicePairStartResponse, error) {
 	rsp, err := c.FocusaDevicePairStartWithBody(ctx, contentType, body, reqEditors...)
@@ -9136,6 +9537,72 @@ func ParseFocusaContextCognitionPacketResponse(rsp *http.Response) (*FocusaConte
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest FocusaContextCognitionPacketResponseV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaContextSourceListResponse parses an HTTP response from a FocusaContextSourceListWithResponse call
+func ParseFocusaContextSourceListResponse(rsp *http.Response) (*FocusaContextSourceListResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaContextSourceListResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaContextSourceListV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaContextSourceCommitResponse parses an HTTP response from a FocusaContextSourceCommitWithResponse call
+func ParseFocusaContextSourceCommitResponse(rsp *http.Response) (*FocusaContextSourceCommitResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaContextSourceCommitResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaContextSourceCommitResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

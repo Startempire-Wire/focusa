@@ -224,6 +224,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/context/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Canonical Context Sources
+         * @description List Canonical Context Sources — family=context budget=standard_read materialization=canonical_read
+         */
+        get: operations["focusa.context.source.list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/context/sources/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Commit Context Source
+         * @description Commit Context Source — family=context budget=standard_write materialization=canonical_event
+         */
+        post: operations["focusa.context.source.commit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/device/pair/start": {
         parameters: {
             query?: never;
@@ -1262,6 +1302,112 @@ export interface components {
          */
         focusa_context_cognition_packet_response_v1: {
             [key: string]: unknown;
+        };
+        /** focusa.context_source_commit.request.v1 */
+        focusa_context_source_commit_request_v1: {
+            attachment_id: string;
+            content: string;
+            continuity_id: string;
+            expected_state_version: number;
+            idempotency_key: string;
+            project_root: string;
+            /** @enum {unknown} */
+            source_kind: "markdown" | "text" | "code" | "pdf";
+            title: string;
+        };
+        /** focusa.context_source_commit_result.v1 */
+        focusa_context_source_commit_result_v1: {
+            /** @constant */
+            canonical: true;
+            evidence_ref: string;
+            receipt_ref: string;
+            replayed: boolean;
+            /** @constant */
+            schema: "focusa.context_source_commit_result.v1";
+            source: {
+                attachment_id: string;
+                /** Format: date-time */
+                committed_at: string;
+                content: string;
+                content_hash: string;
+                continuity_id: string;
+                evidence: {
+                    /** Format: date-time */
+                    captured_at: string;
+                    content_hash: string;
+                    evidence_ref: string;
+                    result: string;
+                    target_ref: string;
+                };
+                idempotency_key: string;
+                project_root: string;
+                receipt: {
+                    after_state_version: number;
+                    before_state_version: number;
+                    /** Format: date-time */
+                    committed_at: string;
+                    idempotency_key: string;
+                    /** @constant */
+                    operation_id: "focusa.context.source.commit";
+                    receipt_ref: string;
+                    reversible: boolean;
+                };
+                revision: number;
+                source_id: string;
+                /** @enum {unknown} */
+                source_kind: "markdown" | "text" | "code" | "pdf";
+                title: string;
+            };
+            state_version: number;
+            tool_result: Record<string, never>;
+        };
+        /** focusa.context_source_list.request.v1 */
+        focusa_context_source_list_request_v1: {
+            attachment_id: string;
+            continuity_id: string;
+            project_root: string;
+        };
+        /** focusa.context_source_list.v1 */
+        focusa_context_source_list_v1: {
+            /** @constant */
+            canonical: true;
+            /** @constant */
+            schema: "focusa.context_source_list.v1";
+            sources: {
+                attachment_id: string;
+                /** Format: date-time */
+                committed_at: string;
+                content: string;
+                content_hash: string;
+                continuity_id: string;
+                evidence: {
+                    /** Format: date-time */
+                    captured_at: string;
+                    content_hash: string;
+                    evidence_ref: string;
+                    result: string;
+                    target_ref: string;
+                };
+                idempotency_key: string;
+                project_root: string;
+                receipt: {
+                    after_state_version: number;
+                    before_state_version: number;
+                    /** Format: date-time */
+                    committed_at: string;
+                    idempotency_key: string;
+                    /** @constant */
+                    operation_id: "focusa.context.source.commit";
+                    receipt_ref: string;
+                    reversible: boolean;
+                };
+                revision: number;
+                source_id: string;
+                /** @enum {unknown} */
+                source_kind: "markdown" | "text" | "code" | "pdf";
+                title: string;
+            }[];
+            state_version: number;
         };
         /**
          * focusa.device_pair_start.request.v1
@@ -2324,6 +2470,82 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_context_cognition_packet_response_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.context.source.list": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List Canonical Context Sources response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_context_source_list_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.context.source.commit": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_context_source_commit_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Commit Context Source response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_context_source_commit_result_v1"];
                 };
             };
             /** @description Standard error envelope */

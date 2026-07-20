@@ -324,7 +324,7 @@
         "Result survives restart and exact resume"
       ],
       "bead_id": "focusa-mc-f12",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "end-to-end Alpha seed proof",
         "Receipt and Evidence refs"

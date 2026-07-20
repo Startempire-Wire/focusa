@@ -1,5 +1,5 @@
 {
-  "operation_count": 55,
+  "operation_count": 57,
   "operations": [
     {
       "alias_of": null,
@@ -1700,6 +1700,161 @@
         "default_label": "Context Cognition Curate",
         "input_presentation_ref": "focusa.generated_form.v1",
         "plain_language_description": "Context Cognition Curate",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "standard_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.context_source_list.request.v1",
+        "output_schema_ref": "focusa.context_source_list.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "context"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "context:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "context",
+      "label": "List Canonical Context Sources",
+      "materialization_mode": "canonical_read",
+      "method": "GET",
+      "operation_id": "focusa.context.source.list",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.context.source.list",
+        "subsystem": "context"
+      },
+      "path": "/v1/context/sources",
+      "permissions_required": [
+        "context:read"
+      ],
+      "request_schema_ref": "focusa.context_source_list.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.context_source_list.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.context_source_list.request.v1",
+      "scope": {
+        "attachment_scoped": true,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_context",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "List Canonical Context Sources",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "List Canonical Context Sources",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "standard_write",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.context_source_commit.request.v1",
+        "output_schema_ref": "focusa.context_source_commit_result.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "context"
+        ],
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": true,
+        "permission_scopes": [
+          "context:write"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "context",
+      "label": "Commit Context Source",
+      "materialization_mode": "canonical_event",
+      "method": "POST",
+      "operation_id": "focusa.context.source.commit",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.context.source.commit",
+        "subsystem": "context"
+      },
+      "path": "/v1/context/sources/commit",
+      "permissions_required": [
+        "context:write"
+      ],
+      "request_schema_ref": "focusa.context_source_commit.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": true,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.context_source_commit_result.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.context_source_commit.request.v1",
+      "scope": {
+        "attachment_scoped": true,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "write_context",
+      "supports_side_effect_policy": [
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Commit Context Source",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Commit Context Source",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
       }

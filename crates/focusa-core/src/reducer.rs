@@ -271,6 +271,33 @@ pub fn reduce_with_meta(
     let emitted_event = event.clone();
 
     match event {
+        // ─── Context corpus ─────────────────────────────────────────────
+        FocusaEvent::ContextSourceCommitted { source } => {
+            if source.receipt.before_state_version != state.version
+                || source.receipt.after_state_version != state.version + 1
+            {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Context receipt version mismatch: state={} before={} after={}",
+                    state.version,
+                    source.receipt.before_state_version,
+                    source.receipt.after_state_version
+                )));
+            }
+            if state.context_sources.iter().any(|existing| {
+                existing.source_id == source.source_id
+                    || (existing.project_root == source.project_root
+                        && existing.continuity_id == source.continuity_id
+                        && existing.attachment_id == source.attachment_id
+                        && existing.idempotency_key == source.idempotency_key)
+            }) {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "duplicate Context source commit: {}",
+                    source.source_id
+                )));
+            }
+            state.context_sources.push(source);
+        }
+
         // ─── Instance Lifecycle ─────────────────────────────────────────
         FocusaEvent::InstanceConnected { instance_id, kind } => {
             if !state.instances.iter().any(|i| i.id == instance_id) {
@@ -3203,6 +3230,50 @@ mod tests {
             continuity_id: Some("cont-test".to_string()),
         };
         reduce(state, event).unwrap().new_state
+    }
+
+    #[test]
+    fn context_source_commit_is_canonical_scoped_and_idempotency_guarded() {
+        let committed_at = Utc::now();
+        let source = ContextSourceRecord {
+            source_id: "context-source:test".to_string(),
+            project_root: "/repo/test".to_string(),
+            continuity_id: "cont-test".to_string(),
+            attachment_id: "attachment:test".to_string(),
+            source_kind: "markdown".to_string(),
+            title: "Project context".to_string(),
+            content: "# Context".to_string(),
+            content_hash: "abc123".to_string(),
+            idempotency_key: "idem-test".to_string(),
+            revision: 1,
+            committed_at,
+            evidence: ContextSourceEvidence {
+                evidence_ref: "evidence:context-source:test".to_string(),
+                target_ref: "context-source:test".to_string(),
+                result: "committed".to_string(),
+                content_hash: "abc123".to_string(),
+                captured_at: committed_at,
+            },
+            receipt: ContextSourceReceipt {
+                receipt_ref: "receipt:context-source:test".to_string(),
+                operation_id: "focusa.context.source.commit".to_string(),
+                idempotency_key: "idem-test".to_string(),
+                before_state_version: 0,
+                after_state_version: 1,
+                reversible: true,
+                committed_at,
+            },
+        };
+        let event = FocusaEvent::ContextSourceCommitted {
+            source: source.clone(),
+        };
+        let reduced = reduce(fresh_state(), event.clone()).expect("Context commit reduces");
+        assert_eq!(reduced.new_state.version, 1);
+        assert_eq!(reduced.new_state.context_sources, vec![source]);
+        assert!(matches!(
+            reduce(reduced.new_state, event),
+            Err(ReducerError::InvalidEvent(message)) if message.contains("version mismatch")
+        ));
     }
 
     fn push_frame(state: FocusaState, title: &str) -> (FocusaState, FrameId) {

@@ -1604,8 +1604,49 @@ pub const FOCUSA_STATE_PLANE_CONTRACT: &[(&str, AuthorityPlane)] = &[
     ("threads", AuthorityPlane::RuntimeCorrelation),
     ("active_turn", AuthorityPlane::RuntimeCorrelation),
     ("anticipated_context", AuthorityPlane::AdvisoryProjection),
+    ("context_sources", AuthorityPlane::CanonicalCognition),
     ("version", AuthorityPlane::CanonicalCognition),
 ];
+
+/// Evidence emitted by a canonical Context source commit.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContextSourceEvidence {
+    pub evidence_ref: String,
+    pub target_ref: String,
+    pub result: String,
+    pub content_hash: String,
+    pub captured_at: DateTime<Utc>,
+}
+
+/// Receipt proving the exact state transition for a Context source commit.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContextSourceReceipt {
+    pub receipt_ref: String,
+    pub operation_id: String,
+    pub idempotency_key: String,
+    pub before_state_version: u64,
+    pub after_state_version: u64,
+    pub reversible: bool,
+    pub committed_at: DateTime<Utc>,
+}
+
+/// Canonical, scoped Context source retained by the Focusa reducer.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContextSourceRecord {
+    pub source_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub source_kind: String,
+    pub title: String,
+    pub content: String,
+    pub content_hash: String,
+    pub idempotency_key: String,
+    pub revision: u64,
+    pub committed_at: DateTime<Utc>,
+    pub evidence: ContextSourceEvidence,
+    pub receipt: ContextSourceReceipt,
+}
 
 /// The complete cognitive state of a Focusa instance.
 ///
@@ -1655,6 +1696,9 @@ pub struct FocusaState {
     /// Used by next turn's pre-enrichment before Mem0/Wiki queries.
     #[serde(default)]
     pub anticipated_context: Vec<String>,
+    /// Canonical Context corpus seed, scoped by project/workstream/attachment.
+    #[serde(default)]
+    pub context_sources: Vec<ContextSourceRecord>,
     /// Monotonic version — incremented on every successful reduction.
     pub version: u64,
 }
@@ -1713,6 +1757,7 @@ impl FocusaState {
             threads: vec![],
             active_turn: None,
             anticipated_context: vec![],
+            context_sources: vec![],
             version: 0,
         }
     }
@@ -2306,6 +2351,11 @@ pub struct AsccSlotMetadata {
 #[serde(tag = "type")]
 #[allow(clippy::large_enum_variant)]
 pub enum FocusaEvent {
+    // Context corpus
+    ContextSourceCommitted {
+        source: ContextSourceRecord,
+    },
+
     // Instance lifecycle (multi-device / multi-surface observability)
     InstanceConnected {
         instance_id: Uuid,

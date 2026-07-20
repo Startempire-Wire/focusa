@@ -1,0 +1,31 @@
+{
+  "schema": "uiai.focusa_ui_eval_scenario.v1",
+  "scenario_id": "spec135-alpha0-real-context-commit-restart-resume",
+  "feature_scope": {
+    "project_root": "/example/focusa",
+    "continuity_id": "focusa-cont-f12-generated-ui",
+    "attachment_id": "attachment:f12-context"
+  },
+  "route_or_target": "packages/a2ui-renderer/proof/context-commit.html",
+  "preconditions": [
+    "focusa.context.source.commit is generated from the Operation Registry",
+    "TypeScript and Go clients are regenerated from OpenAPI 3.0.3",
+    "The proof server proxies the generated client to a real Focusa daemon"
+  ],
+  "steps": [
+    {"step_id": "open", "action": "open", "target": "Context commit proof target", "expected": "Generated Context surface renders", "evidence_kind": "dom"},
+    {"step_id": "binding", "action": "read", "target": "generated action binding", "expected": "focusa.context.source.commit requires scope, idempotency, concurrency, and Receipt", "evidence_kind": "action"},
+    {"step_id": "commit", "action": "click", "target": "Commit Context", "expected": "Canonical Context source commits through generated TypeScript client", "evidence_kind": "action"},
+    {"step_id": "proof", "action": "snapshot", "target": "Context source committed", "expected": "Evidence and Receipt refs render in generated UI", "evidence_kind": "screenshot"},
+    {"step_id": "restart", "action": "read", "target": "restarted Focusa daemon", "expected": "Canonical source survives restart with exact refs", "evidence_kind": "diagnostics"},
+    {"step_id": "resume", "action": "click", "target": "Commit Context after restart", "expected": "Same idempotency key returns replayed no_op with one source", "evidence_kind": "action"},
+    {"step_id": "diagnostics", "action": "diagnostics", "target": "UIAI browser session", "expected": "No console exception or failed request", "evidence_kind": "diagnostics"},
+    {"step_id": "close", "action": "close", "target": "UIAI browser session", "expected": "Session resources are released", "evidence_kind": "diagnostics"}
+  ],
+  "required_capabilities": ["context", "a2ui-web_core-0.9.1", "a2ui-lit-0.9.1", "focusa-svelte-elements-0.9.120-dev", "uiai-browser-diagnostics"],
+  "required_scopes": ["project_root", "continuity_id", "attachment_id"],
+  "expected_visible_states": ["ready", "saved", "replayed", "restart resume"],
+  "expected_actions": ["focusa.context.source.commit allowed and exact-scoped"],
+  "expected_evidence": ["canonical Evidence ref", "commit screenshot", "restart/resume screenshot", "bounded diagnostics"],
+  "expected_receipts": ["canonical Context commit Receipt ref"]
+}

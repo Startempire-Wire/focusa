@@ -1,0 +1,172 @@
+{
+  "$id": "/v1/agent/schemas/focusa.context_source_commit_result.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "canonical": {
+      "const": true
+    },
+    "evidence_ref": {
+      "type": "string"
+    },
+    "receipt_ref": {
+      "type": "string"
+    },
+    "replayed": {
+      "type": "boolean"
+    },
+    "schema": {
+      "const": "focusa.context_source_commit_result.v1"
+    },
+    "source": {
+      "properties": {
+        "attachment_id": {
+          "type": "string"
+        },
+        "committed_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "content": {
+          "maxLength": 65536,
+          "type": "string"
+        },
+        "content_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "continuity_id": {
+          "type": "string"
+        },
+        "evidence": {
+          "properties": {
+            "captured_at": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "content_hash": {
+              "type": "string"
+            },
+            "evidence_ref": {
+              "type": "string"
+            },
+            "result": {
+              "type": "string"
+            },
+            "target_ref": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "evidence_ref",
+            "target_ref",
+            "result",
+            "content_hash",
+            "captured_at"
+          ],
+          "type": "object"
+        },
+        "idempotency_key": {
+          "maxLength": 160,
+          "type": "string"
+        },
+        "project_root": {
+          "type": "string"
+        },
+        "receipt": {
+          "properties": {
+            "after_state_version": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "before_state_version": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "committed_at": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "idempotency_key": {
+              "type": "string"
+            },
+            "operation_id": {
+              "const": "focusa.context.source.commit"
+            },
+            "receipt_ref": {
+              "type": "string"
+            },
+            "reversible": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "receipt_ref",
+            "operation_id",
+            "idempotency_key",
+            "before_state_version",
+            "after_state_version",
+            "reversible",
+            "committed_at"
+          ],
+          "type": "object"
+        },
+        "revision": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "source_id": {
+          "type": "string"
+        },
+        "source_kind": {
+          "enum": [
+            "markdown",
+            "text",
+            "code",
+            "pdf"
+          ]
+        },
+        "title": {
+          "maxLength": 240,
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "project_root",
+        "continuity_id",
+        "attachment_id",
+        "source_kind",
+        "title",
+        "content",
+        "content_hash",
+        "idempotency_key",
+        "revision",
+        "committed_at",
+        "evidence",
+        "receipt"
+      ],
+      "type": "object"
+    },
+    "state_version": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "tool_result": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema",
+    "canonical",
+    "replayed",
+    "state_version",
+    "source",
+    "evidence_ref",
+    "receipt_ref",
+    "tool_result"
+  ],
+  "title": "focusa.context_source_commit_result.v1",
+  "type": "object",
+  "x-focusa-generated-from": "ContextSourceCommitResponse",
+  "x-focusa-schema-id": "focusa.context_source_commit_result.v1"
+}

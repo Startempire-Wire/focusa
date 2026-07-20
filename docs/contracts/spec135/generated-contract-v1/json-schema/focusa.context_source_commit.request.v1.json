@@ -1,0 +1,63 @@
+{
+  "$id": "/v1/agent/schemas/focusa.context_source_commit.request.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attachment_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "content": {
+      "maxLength": 65536,
+      "minLength": 1,
+      "type": "string"
+    },
+    "continuity_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "expected_state_version": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "idempotency_key": {
+      "maxLength": 160,
+      "minLength": 1,
+      "type": "string"
+    },
+    "project_root": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    },
+    "source_kind": {
+      "enum": [
+        "markdown",
+        "text",
+        "code",
+        "pdf"
+      ]
+    },
+    "title": {
+      "maxLength": 240,
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "project_root",
+    "continuity_id",
+    "attachment_id",
+    "idempotency_key",
+    "expected_state_version",
+    "source_kind",
+    "title",
+    "content"
+  ],
+  "title": "focusa.context_source_commit.request.v1",
+  "type": "object",
+  "x-focusa-generated-from": "ContextSourceCommitRequest",
+  "x-focusa-schema-id": "focusa.context_source_commit.request.v1"
+}
