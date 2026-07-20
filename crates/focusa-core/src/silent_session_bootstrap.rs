@@ -381,7 +381,6 @@ impl VerifiedProjectMutationGrant {
         &self,
         project_root: &Path,
         project_identity_ref: &str,
-        workspace_ref: &str,
         workspace_root: &Path,
         now: DateTime<Utc>,
     ) -> Result<(), AgentBootstrapBarrierError> {
@@ -390,7 +389,6 @@ impl VerifiedProjectMutationGrant {
         }
         if project_root != self.project_root
             || project_identity_ref != self.project_identity_ref
-            || workspace_ref != self.workspace_ref
             || workspace_root != self.workspace_root
         {
             return Err(AgentBootstrapBarrierError::ScopeMismatch("execution_scope"));
@@ -772,7 +770,6 @@ mod tests {
                 .verify_execution_scope(
                     &fixture.packet.project_identity.project_root,
                     &fixture.packet.project_identity.project_identity_ref,
-                    &fixture.packet.workspace.workspace_ref,
                     &fixture.packet.workspace.workspace_root,
                     fixture.now,
                 )
@@ -782,8 +779,7 @@ mod tests {
             grant.verify_execution_scope(
                 &fixture.packet.project_identity.project_root,
                 &fixture.packet.project_identity.project_identity_ref,
-                "workspace:other",
-                &fixture.packet.workspace.workspace_root,
+                Path::new("/projects/other-worktree"),
                 fixture.now,
             ),
             Err(AgentBootstrapBarrierError::ScopeMismatch("execution_scope"))
@@ -792,7 +788,6 @@ mod tests {
             grant.verify_execution_scope(
                 &fixture.packet.project_identity.project_root,
                 &fixture.packet.project_identity.project_identity_ref,
-                &fixture.packet.workspace.workspace_ref,
                 &fixture.packet.workspace.workspace_root,
                 grant.valid_until(),
             ),

@@ -7,6 +7,10 @@
 //! writes outside the verified workspace.
 
 use crate::identity::{IdentityError, VerifiedExecutionContext};
+use chrono::Utc;
+use focusa_core::silent_session_bootstrap::{
+    AgentBootstrapBarrierError, VerifiedProjectMutationGrant,
+};
 use nix::errno::Errno;
 use nix::fcntl::{AtFlags, OFlag, open, openat, renameat};
 use nix::sys::stat::{Mode, SFlag, fstat, fstatat};
@@ -46,10 +50,17 @@ pub struct MutationReceipt {
 /// `new_file_mode` applies only when the target does not exist.
 pub fn write_project_file_atomic(
     context: &VerifiedExecutionContext,
+    mutation_grant: &VerifiedProjectMutationGrant,
     relative_path: impl AsRef<Path>,
     contents: &[u8],
     new_file_mode: u32,
 ) -> Result<MutationReceipt, MutationError> {
+    mutation_grant.verify_execution_scope(
+        context.project_root(),
+        context.project_identity_ref(),
+        context.workspace_root(),
+        Utc::now(),
+    )?;
     context.revalidate()?;
     validate_mode(new_file_mode)?;
     let (parents, file_name) = split_relative_path(relative_path.as_ref())?;
@@ -280,6 +291,8 @@ pub enum MutationError {
         expected_uid: u32,
         actual_uid: u32,
     },
+    #[error("project mutation bootstrap barrier failed: {0}")]
+    BootstrapBarrier(#[from] AgentBootstrapBarrierError),
     #[error("project mutation identity verification failed: {0}")]
     Identity(#[from] IdentityError),
     #[error("project mutation OS operation failed: {0}")]
@@ -292,6 +305,18 @@ pub enum MutationError {
 mod tests {
     use super::*;
     use crate::identity::{ExecutionIdentityRequest, OsIdentity};
+    use chrono::Duration;
+    use focusa_core::silent_session::{
+        ModelBinding, SILENT_SESSION_LEASE_SCHEMA, SilentSessionId, SilentSessionLease,
+        SilentSessionLeaseId, SilentSessionRunId, WorkpointBinding,
+    };
+    use focusa_core::silent_session_authorization::ContextAuthorityGrant;
+    use focusa_core::silent_session_bootstrap::{
+        AGENT_BOOTSTRAP_PACKET_SCHEMA, AgentBootstrapPacket, BootstrapWorkspaceBinding,
+        ContextBootstrapBinding, ProjectIdentityBootstrapBinding, ProjectMutationBarrierRequest,
+        TrajectoryBootstrapBinding, WorkpointBootstrapBinding, verify_agent_bootstrap_packet,
+        verify_project_mutation_barrier,
+    };
     use std::os::unix::fs::{MetadataExt, symlink};
     use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -334,6 +359,132 @@ mod tests {
                 context,
             }
         }
+
+        fn mutation_grant(&self) -> VerifiedProjectMutationGrant {
+            let now = Utc::now();
+            let fresh_until = now + Duration::minutes(5);
+            let project_identity_ref = self.context.project_identity_ref().to_owned();
+            let continuity_id = "continuity:runner-mutation-test".to_owned();
+            let trajectory_ref = "trajectory:runner-mutation-test".to_owned();
+            let workpoint_ref = WorkpointBinding {
+                workpoint_id: "workpoint:runner-mutation-test".into(),
+                revision: Some(1),
+            };
+            let model = ModelBinding {
+                provider: "openai-codex".into(),
+                model: "gpt-test".into(),
+                thinking: Some("high".into()),
+            };
+            let packet = AgentBootstrapPacket {
+                schema: AGENT_BOOTSTRAP_PACKET_SCHEMA.into(),
+                packet_id: Uuid::now_v7(),
+                session_id: SilentSessionId::new(),
+                run_id: SilentSessionRunId::new(),
+                generation: 1,
+                generated_at: now,
+                fresh_until,
+                project_identity: ProjectIdentityBootstrapBinding {
+                    project_identity_ref: project_identity_ref.clone(),
+                    project_root: self.context.project_root().to_path_buf(),
+                    fingerprint: "runner-mutation-fingerprint".into(),
+                    snapshot_ref: "project-snapshot:runner-mutation".into(),
+                    snapshot_sha256: "1".repeat(64),
+                    verified_at: now,
+                    fresh_until,
+                },
+                continuity_id: continuity_id.clone(),
+                trajectory: TrajectoryBootstrapBinding {
+                    trajectory_ref: trajectory_ref.clone(),
+                    project_identity_ref: project_identity_ref.clone(),
+                    continuity_id: continuity_id.clone(),
+                    snapshot_ref: "trajectory-snapshot:runner-mutation".into(),
+                    snapshot_sha256: "2".repeat(64),
+                    generated_at: now,
+                    fresh_until,
+                },
+                workpoint: WorkpointBootstrapBinding {
+                    workpoint_ref: workpoint_ref.clone(),
+                    project_identity_ref: project_identity_ref.clone(),
+                    continuity_id: continuity_id.clone(),
+                    snapshot_ref: "workpoint-snapshot:runner-mutation".into(),
+                    snapshot_sha256: "3".repeat(64),
+                    generated_at: now,
+                    fresh_until,
+                },
+                context: ContextBootstrapBinding {
+                    context_packet_ref: "context-packet:runner-mutation".into(),
+                    project_identity_ref: project_identity_ref.clone(),
+                    continuity_id: continuity_id.clone(),
+                    trajectory_ref,
+                    workpoint_ref: workpoint_ref.clone(),
+                    source_snapshot_ref: "context-snapshot:runner-mutation".into(),
+                    packet_sha256: "4".repeat(64),
+                    generated_at: now,
+                    fresh_until,
+                    advisory: true,
+                    canonical: false,
+                    canonical_mutation_allowed: false,
+                    selected_context: vec!["src/generated.rs".into()],
+                    excluded_context: vec![],
+                },
+                work_item_ref: Some("focusa-a6yq6.4.4".into()),
+                workspace: BootstrapWorkspaceBinding {
+                    workspace_ref: "workspace:runner-mutation-test".into(),
+                    workspace_root: self.context.workspace_root().to_path_buf(),
+                },
+                model: model.clone(),
+                role_ref: "role:runner-test".into(),
+                mission: "prove guarded project mutation".into(),
+                exact_next_action: "write one scoped fixture".into(),
+                active_object_refs: vec!["src/generated.rs".into()],
+                blockers: vec![],
+                do_not_drift: vec!["do not write outside the workspace".into()],
+                evidence_refs: vec!["test:runner-bootstrap-barrier".into()],
+                proof_gaps: vec![],
+                completion_expectations: vec!["owner write is atomic".into()],
+            };
+            let verification = verify_agent_bootstrap_packet(&packet, now)
+                .expect("runner bootstrap packet should verify");
+            let actor_instance_ref = "actor-instance:runner-mutation-test";
+            let lease = SilentSessionLease {
+                schema: SILENT_SESSION_LEASE_SCHEMA.into(),
+                lease_id: SilentSessionLeaseId::new(),
+                session_id: packet.session_id,
+                project_root: packet.project_identity.project_root.clone(),
+                project_identity_ref: project_identity_ref.clone(),
+                continuity_id: continuity_id.clone(),
+                work_item_ref: packet.work_item_ref.clone(),
+                workspace_ref: packet.workspace.workspace_ref.clone(),
+                path_intents: vec![PathBuf::from("src")],
+                writer_role: "primary".into(),
+                owner_actor_instance_ref: actor_instance_ref.into(),
+                fencing_token: 9,
+                acquired_at: now - Duration::seconds(1),
+                heartbeat_at: now,
+                expires_at: now + Duration::minutes(2),
+                adoption_policy: "operator_only".into(),
+            };
+            let authority = ContextAuthorityGrant {
+                verdict_ref: "context-authority:runner-mutation-test".into(),
+                allowed: true,
+                project_identity_ref,
+                continuity_id,
+                workpoint_ref: Some(workpoint_ref.workpoint_id),
+                expires_at: now + Duration::minutes(1),
+            };
+            verify_project_mutation_barrier(&ProjectMutationBarrierRequest {
+                packet: &packet,
+                bootstrap_verification: &verification,
+                lease: &lease,
+                context_authority: &authority,
+                actor_instance_ref,
+                requested_model: &model,
+                effective_model: Some(&model),
+                observed_model: Some(&model),
+                now,
+            })
+            .expect("all runner project-mutation barriers should pass")
+        }
     }
 
     impl Drop for TestProject {
@@ -345,10 +496,16 @@ mod tests {
     #[test]
     fn atomic_write_creates_owner_file_and_preserves_existing_safe_mode() {
         let project = TestProject::new();
+        let grant = project.mutation_grant();
         let current = OsIdentity::current().expect("current identity should resolve");
-        let receipt =
-            write_project_file_atomic(&project.context, "src/generated.rs", b"first\n", 0o644)
-                .expect("new owner file should be written");
+        let receipt = write_project_file_atomic(
+            &project.context,
+            &grant,
+            "src/generated.rs",
+            b"first\n",
+            0o644,
+        )
+        .expect("new owner file should be written");
         assert_eq!(
             receipt.path,
             project.context.workspace_root().join("src/generated.rs")
@@ -366,9 +523,14 @@ mod tests {
 
         fs::set_permissions(&receipt.path, fs::Permissions::from_mode(0o700))
             .expect("fixture mode should change");
-        let replacement =
-            write_project_file_atomic(&project.context, "src/generated.rs", b"second\n", 0o600)
-                .expect("existing owner file should be replaced");
+        let replacement = write_project_file_atomic(
+            &project.context,
+            &grant,
+            "src/generated.rs",
+            b"second\n",
+            0o600,
+        )
+        .expect("existing owner file should be replaced");
         assert_eq!(replacement.mode, 0o700);
         assert_eq!(
             fs::read(&replacement.path).expect("replacement should be readable"),
@@ -394,8 +556,31 @@ mod tests {
     }
 
     #[test]
+    fn bootstrap_grant_scope_is_checked_before_any_project_file_is_created() {
+        let project = TestProject::new();
+        let other_project = TestProject::new();
+        let wrong_scope_grant = other_project.mutation_grant();
+        let target = project.workspace.join("src/blocked.rs");
+
+        assert!(matches!(
+            write_project_file_atomic(
+                &project.context,
+                &wrong_scope_grant,
+                "src/blocked.rs",
+                b"must not exist",
+                0o600,
+            ),
+            Err(MutationError::BootstrapBarrier(
+                AgentBootstrapBarrierError::ScopeMismatch("execution_scope")
+            ))
+        ));
+        assert!(!target.exists());
+    }
+
+    #[test]
     fn final_and_intermediate_symlinks_cannot_redirect_mutation() {
         let project = TestProject::new();
+        let grant = project.mutation_grant();
         let outside = project.root.join("outside");
         fs::create_dir(&outside).expect("outside directory should exist");
         fs::set_permissions(&outside, fs::Permissions::from_mode(0o700))
@@ -406,7 +591,7 @@ mod tests {
         let final_link = project.workspace.join("src/final-link");
         symlink(&outside_file, &final_link).expect("final symlink should exist");
         assert!(matches!(
-            write_project_file_atomic(&project.context, "src/final-link", b"attack", 0o600),
+            write_project_file_atomic(&project.context, &grant, "src/final-link", b"attack", 0o600),
             Err(MutationError::TargetNotRegularFile(_))
         ));
         assert_eq!(
@@ -419,6 +604,7 @@ mod tests {
         assert!(matches!(
             write_project_file_atomic(
                 &project.context,
+                &grant,
                 "parent-link/protected.txt",
                 b"attack",
                 0o600
@@ -434,16 +620,17 @@ mod tests {
     #[test]
     fn traversal_shared_parent_and_unsafe_modes_fail_closed() {
         let project = TestProject::new();
+        let grant = project.mutation_grant();
         assert_eq!(
-            write_project_file_atomic(&project.context, "../outside", b"bad", 0o600),
+            write_project_file_atomic(&project.context, &grant, "../outside", b"bad", 0o600),
             Err(MutationError::UnsafeRelativePath)
         );
         assert_eq!(
-            write_project_file_atomic(&project.context, "/tmp/outside", b"bad", 0o600),
+            write_project_file_atomic(&project.context, &grant, "/tmp/outside", b"bad", 0o600),
             Err(MutationError::UnsafeRelativePath)
         );
         assert_eq!(
-            write_project_file_atomic(&project.context, "src/file", b"bad", 0o666),
+            write_project_file_atomic(&project.context, &grant, "src/file", b"bad", 0o666),
             Err(MutationError::UnsafeFileMode(0o666))
         );
 
@@ -453,7 +640,7 @@ mod tests {
         )
         .expect("source directory should become group writable");
         assert!(matches!(
-            write_project_file_atomic(&project.context, "src/file", b"bad", 0o600),
+            write_project_file_atomic(&project.context, &grant, "src/file", b"bad", 0o600),
             Err(MutationError::UnsafeParent { .. })
         ));
     }
