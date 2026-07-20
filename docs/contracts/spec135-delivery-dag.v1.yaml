@@ -1,0 +1,1304 @@
+{
+  "alpha_order": [
+    "SPEC135-ALPHA1",
+    "SPEC135-ALPHA2",
+    "SPEC135-ALPHA3",
+    "SPEC135-ALPHA4",
+    "SPEC135-ALPHA5",
+    "SPEC135-ALPHA6",
+    "SPEC135-ALPHA7",
+    "SPEC135-ALPHA8"
+  ],
+  "authority": "docs/135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md",
+  "edges": [
+    {
+      "from": "SPEC135-F0",
+      "kind": "blocks",
+      "to": "SPEC135-F1"
+    },
+    {
+      "from": "SPEC135-F1",
+      "kind": "blocks",
+      "to": "SPEC135-F2"
+    },
+    {
+      "from": "SPEC135-F2",
+      "kind": "blocks",
+      "to": "SPEC135-F3"
+    },
+    {
+      "from": "SPEC135-F2",
+      "kind": "blocks",
+      "to": "SPEC135-F4"
+    },
+    {
+      "from": "SPEC135-F3",
+      "kind": "blocks",
+      "to": "SPEC135-F4"
+    },
+    {
+      "from": "SPEC135-F4",
+      "kind": "blocks",
+      "to": "SPEC135-F5"
+    },
+    {
+      "from": "SPEC135-F5",
+      "kind": "blocks",
+      "to": "SPEC135-F6"
+    },
+    {
+      "from": "SPEC135-F4",
+      "kind": "blocks",
+      "to": "SPEC135-F7"
+    },
+    {
+      "from": "SPEC135-F6",
+      "kind": "blocks",
+      "to": "SPEC135-F7"
+    },
+    {
+      "from": "SPEC135-F5",
+      "kind": "blocks",
+      "to": "SPEC135-F8"
+    },
+    {
+      "from": "SPEC135-F7",
+      "kind": "blocks",
+      "to": "SPEC135-F8"
+    },
+    {
+      "from": "SPEC135-F4",
+      "kind": "blocks",
+      "to": "SPEC135-F9"
+    },
+    {
+      "from": "SPEC135-F6",
+      "kind": "blocks",
+      "to": "SPEC135-F9"
+    },
+    {
+      "from": "SPEC135-F7",
+      "kind": "blocks",
+      "to": "SPEC135-F9"
+    },
+    {
+      "from": "SPEC135-F9",
+      "kind": "blocks",
+      "to": "SPEC135-F10"
+    },
+    {
+      "from": "SPEC135-F9",
+      "kind": "blocks",
+      "to": "SPEC135-F11"
+    },
+    {
+      "from": "SPEC135-F10",
+      "kind": "blocks",
+      "to": "SPEC135-F11"
+    },
+    {
+      "from": "SPEC135-F3",
+      "kind": "blocks",
+      "to": "SPEC135-F12"
+    },
+    {
+      "from": "SPEC135-F4",
+      "kind": "blocks",
+      "to": "SPEC135-F12"
+    },
+    {
+      "from": "SPEC135-F5",
+      "kind": "blocks",
+      "to": "SPEC135-F12"
+    },
+    {
+      "from": "SPEC135-F6",
+      "kind": "blocks",
+      "to": "SPEC135-F12"
+    },
+    {
+      "from": "SPEC135-F7",
+      "kind": "blocks",
+      "to": "SPEC135-F12"
+    },
+    {
+      "from": "SPEC135-F8",
+      "kind": "blocks",
+      "to": "SPEC135-F12"
+    },
+    {
+      "from": "SPEC135-F9",
+      "kind": "blocks",
+      "to": "SPEC135-F12"
+    },
+    {
+      "from": "SPEC135-F10",
+      "kind": "blocks",
+      "to": "SPEC135-F12"
+    },
+    {
+      "from": "SPEC135-F11",
+      "kind": "blocks",
+      "to": "SPEC135-F12"
+    },
+    {
+      "from": "SPEC135-F12",
+      "kind": "blocks",
+      "to": "SPEC135-C1"
+    },
+    {
+      "from": "SPEC135-C1",
+      "kind": "blocks",
+      "to": "SPEC135-C2"
+    },
+    {
+      "from": "SPEC135-F6",
+      "kind": "blocks",
+      "to": "SPEC135-C2"
+    },
+    {
+      "from": "SPEC135-C2",
+      "kind": "blocks",
+      "to": "SPEC135-C3"
+    },
+    {
+      "from": "SPEC135-F7",
+      "kind": "blocks",
+      "to": "SPEC135-C3"
+    },
+    {
+      "from": "SPEC135-C3",
+      "kind": "blocks",
+      "to": "SPEC135-C4"
+    },
+    {
+      "from": "SPEC135-P2",
+      "kind": "blocks",
+      "to": "SPEC135-C4"
+    },
+    {
+      "from": "SPEC135-F12",
+      "kind": "blocks",
+      "to": "SPEC135-RI1"
+    },
+    {
+      "from": "SPEC135-C3",
+      "kind": "blocks",
+      "to": "SPEC135-RI1"
+    },
+    {
+      "from": "SPEC135-RI1",
+      "kind": "blocks",
+      "to": "SPEC135-RI2"
+    },
+    {
+      "from": "SPEC135-RI2",
+      "kind": "blocks",
+      "to": "SPEC135-RI3"
+    },
+    {
+      "from": "SPEC135-F6",
+      "kind": "blocks",
+      "to": "SPEC135-RI3"
+    },
+    {
+      "from": "SPEC135-RI3",
+      "kind": "blocks",
+      "to": "SPEC135-RI4"
+    },
+    {
+      "from": "SPEC135-RI3",
+      "kind": "blocks",
+      "to": "SPEC135-ST1"
+    },
+    {
+      "from": "SPEC135-C3",
+      "kind": "blocks",
+      "to": "SPEC135-ST1"
+    },
+    {
+      "from": "SPEC135-ST1",
+      "kind": "blocks",
+      "to": "SPEC135-ST2"
+    },
+    {
+      "from": "SPEC135-P1",
+      "kind": "blocks",
+      "to": "SPEC135-ST2"
+    },
+    {
+      "from": "SPEC135-ST2",
+      "kind": "blocks",
+      "to": "SPEC135-ST3"
+    },
+    {
+      "from": "SPEC135-ST3",
+      "kind": "blocks",
+      "to": "SPEC135-ST4"
+    },
+    {
+      "from": "SPEC135-F6",
+      "kind": "blocks",
+      "to": "SPEC135-ST4"
+    },
+    {
+      "from": "SPEC135-F7",
+      "kind": "blocks",
+      "to": "SPEC135-ST4"
+    },
+    {
+      "from": "SPEC135-F12",
+      "kind": "blocks",
+      "to": "SPEC135-M1"
+    },
+    {
+      "from": "SPEC135-M1",
+      "kind": "blocks",
+      "to": "SPEC135-M2"
+    },
+    {
+      "from": "SPEC135-ST4",
+      "kind": "blocks",
+      "to": "SPEC135-M2"
+    },
+    {
+      "from": "SPEC135-M1",
+      "kind": "blocks",
+      "to": "SPEC135-M3"
+    },
+    {
+      "from": "SPEC135-M3",
+      "kind": "blocks",
+      "to": "SPEC135-M4"
+    },
+    {
+      "from": "SPEC135-M4",
+      "kind": "blocks",
+      "to": "SPEC135-M5"
+    },
+    {
+      "from": "SPEC135-U1",
+      "kind": "blocks",
+      "to": "SPEC135-M5"
+    },
+    {
+      "from": "SPEC135-M4",
+      "kind": "blocks",
+      "to": "SPEC135-M6"
+    },
+    {
+      "from": "SPEC135-M5",
+      "kind": "blocks",
+      "to": "SPEC135-M6"
+    },
+    {
+      "from": "SPEC135-F6",
+      "kind": "blocks",
+      "to": "SPEC135-M6"
+    },
+    {
+      "from": "SPEC135-M2",
+      "kind": "blocks",
+      "to": "SPEC135-M7"
+    },
+    {
+      "from": "SPEC135-M3",
+      "kind": "blocks",
+      "to": "SPEC135-M7"
+    },
+    {
+      "from": "SPEC135-F11",
+      "kind": "blocks",
+      "to": "SPEC135-U1"
+    },
+    {
+      "from": "SPEC135-F12",
+      "kind": "blocks",
+      "to": "SPEC135-U1"
+    },
+    {
+      "from": "SPEC135-U1",
+      "kind": "blocks",
+      "to": "SPEC135-U2"
+    },
+    {
+      "from": "SPEC135-F6",
+      "kind": "blocks",
+      "to": "SPEC135-U2"
+    },
+    {
+      "from": "SPEC135-U2",
+      "kind": "blocks",
+      "to": "SPEC135-U3"
+    },
+    {
+      "from": "SPEC135-M5",
+      "kind": "blocks",
+      "to": "SPEC135-U3"
+    },
+    {
+      "from": "SPEC135-U3",
+      "kind": "blocks",
+      "to": "SPEC135-U4"
+    },
+    {
+      "from": "SPEC135-M7",
+      "kind": "blocks",
+      "to": "SPEC135-U4"
+    },
+    {
+      "from": "SPEC135-U4",
+      "kind": "blocks",
+      "to": "SPEC135-U5"
+    },
+    {
+      "from": "SPEC135-ALPHA8",
+      "kind": "blocks",
+      "to": "SPEC135-U5"
+    },
+    {
+      "from": "SPEC135-U5",
+      "kind": "blocks",
+      "to": "SPEC135-U6"
+    },
+    {
+      "from": "SPEC135-Q1",
+      "kind": "blocks",
+      "to": "SPEC135-U6"
+    },
+    {
+      "from": "SPEC135-F4",
+      "kind": "blocks",
+      "to": "SPEC135-V1"
+    },
+    {
+      "from": "SPEC135-F5",
+      "kind": "blocks",
+      "to": "SPEC135-V1"
+    },
+    {
+      "from": "SPEC135-F6",
+      "kind": "blocks",
+      "to": "SPEC135-V1"
+    },
+    {
+      "from": "SPEC135-V1",
+      "kind": "blocks",
+      "to": "SPEC135-V2"
+    },
+    {
+      "from": "SPEC135-V2",
+      "kind": "blocks",
+      "to": "SPEC135-V3"
+    },
+    {
+      "from": "SPEC135-V2",
+      "kind": "blocks",
+      "to": "SPEC135-V4"
+    },
+    {
+      "from": "SPEC135-V2",
+      "kind": "blocks",
+      "to": "SPEC135-V5"
+    },
+    {
+      "from": "SPEC135-U1",
+      "kind": "blocks",
+      "to": "SPEC135-V5"
+    },
+    {
+      "from": "SPEC135-V3",
+      "kind": "blocks",
+      "to": "SPEC135-V6"
+    },
+    {
+      "from": "SPEC135-V4",
+      "kind": "blocks",
+      "to": "SPEC135-V6"
+    },
+    {
+      "from": "SPEC135-V5",
+      "kind": "blocks",
+      "to": "SPEC135-V6"
+    },
+    {
+      "from": "SPEC135-F6",
+      "kind": "blocks",
+      "to": "SPEC135-V6"
+    },
+    {
+      "from": "SPEC135-F3",
+      "kind": "blocks",
+      "to": "SPEC135-P1"
+    },
+    {
+      "from": "SPEC135-F4",
+      "kind": "blocks",
+      "to": "SPEC135-P1"
+    },
+    {
+      "from": "SPEC135-F5",
+      "kind": "blocks",
+      "to": "SPEC135-P1"
+    },
+    {
+      "from": "SPEC135-F8",
+      "kind": "blocks",
+      "to": "SPEC135-P1"
+    },
+    {
+      "from": "SPEC135-P1",
+      "kind": "blocks",
+      "to": "SPEC135-P2"
+    },
+    {
+      "from": "SPEC135-F7",
+      "kind": "blocks",
+      "to": "SPEC135-P2"
+    },
+    {
+      "from": "SPEC135-P2",
+      "kind": "blocks",
+      "to": "SPEC135-P3"
+    },
+    {
+      "from": "SPEC135-F6",
+      "kind": "blocks",
+      "to": "SPEC135-P4"
+    },
+    {
+      "from": "SPEC135-F9",
+      "kind": "blocks",
+      "to": "SPEC135-P4"
+    },
+    {
+      "from": "SPEC135-P1",
+      "kind": "blocks",
+      "to": "SPEC135-P5"
+    },
+    {
+      "from": "SPEC135-P2",
+      "kind": "blocks",
+      "to": "SPEC135-P5"
+    },
+    {
+      "from": "SPEC135-P4",
+      "kind": "blocks",
+      "to": "SPEC135-P5"
+    },
+    {
+      "from": "SPEC135-F7",
+      "kind": "blocks",
+      "to": "SPEC135-Q1"
+    },
+    {
+      "from": "SPEC135-Q1",
+      "kind": "blocks",
+      "to": "SPEC135-Q2"
+    },
+    {
+      "from": "SPEC135-F12",
+      "kind": "blocks",
+      "to": "SPEC135-Q3"
+    },
+    {
+      "from": "SPEC135-F6",
+      "kind": "blocks",
+      "to": "SPEC135-Q4"
+    },
+    {
+      "from": "SPEC135-F7",
+      "kind": "blocks",
+      "to": "SPEC135-Q4"
+    },
+    {
+      "from": "SPEC135-F3",
+      "kind": "blocks",
+      "to": "SPEC135-Q5"
+    },
+    {
+      "from": "SPEC135-F9",
+      "kind": "blocks",
+      "to": "SPEC135-Q5"
+    },
+    {
+      "from": "SPEC135-F10",
+      "kind": "blocks",
+      "to": "SPEC135-Q5"
+    },
+    {
+      "from": "SPEC135-P2",
+      "kind": "blocks",
+      "to": "SPEC135-Q5"
+    },
+    {
+      "from": "SPEC135-Q2",
+      "kind": "blocks",
+      "to": "SPEC135-Q6"
+    },
+    {
+      "from": "SPEC135-Q3",
+      "kind": "blocks",
+      "to": "SPEC135-Q6"
+    },
+    {
+      "from": "SPEC135-Q4",
+      "kind": "blocks",
+      "to": "SPEC135-Q6"
+    },
+    {
+      "from": "SPEC135-Q5",
+      "kind": "blocks",
+      "to": "SPEC135-Q6"
+    },
+    {
+      "from": "SPEC135-C3",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA1"
+    },
+    {
+      "from": "SPEC135-U2",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA1"
+    },
+    {
+      "from": "SPEC135-F12",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA1"
+    },
+    {
+      "from": "SPEC135-ALPHA1",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA2"
+    },
+    {
+      "from": "SPEC135-RI3",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA2"
+    },
+    {
+      "from": "SPEC135-ALPHA2",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA3"
+    },
+    {
+      "from": "SPEC135-ST3",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA3"
+    },
+    {
+      "from": "SPEC135-ALPHA3",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA4"
+    },
+    {
+      "from": "SPEC135-ST4",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA4"
+    },
+    {
+      "from": "SPEC135-M2",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA4"
+    },
+    {
+      "from": "SPEC135-ALPHA4",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA5"
+    },
+    {
+      "from": "SPEC135-U3",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA5"
+    },
+    {
+      "from": "SPEC135-ALPHA5",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA6"
+    },
+    {
+      "from": "SPEC135-M6",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA6"
+    },
+    {
+      "from": "SPEC135-ALPHA6",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA7"
+    },
+    {
+      "from": "SPEC135-V6",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA7"
+    },
+    {
+      "from": "SPEC135-ALPHA7",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA8"
+    },
+    {
+      "from": "SPEC135-U4",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA8"
+    },
+    {
+      "from": "SPEC135-Q2",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA8"
+    },
+    {
+      "from": "SPEC135-Q3",
+      "kind": "blocks",
+      "to": "SPEC135-ALPHA8"
+    },
+    {
+      "from": "SPEC135-F1",
+      "kind": "blocks",
+      "to": "SPEC135-E1"
+    },
+    {
+      "from": "SPEC135-E1",
+      "kind": "blocks",
+      "to": "SPEC135-E2"
+    },
+    {
+      "from": "SPEC135-F6",
+      "kind": "blocks",
+      "to": "SPEC135-E2"
+    },
+    {
+      "from": "SPEC135-E1",
+      "kind": "blocks",
+      "to": "SPEC135-E3"
+    },
+    {
+      "from": "SPEC135-F3",
+      "kind": "blocks",
+      "to": "SPEC135-E3"
+    },
+    {
+      "from": "SPEC135-F4",
+      "kind": "blocks",
+      "to": "SPEC135-E3"
+    },
+    {
+      "from": "SPEC135-F5",
+      "kind": "blocks",
+      "to": "SPEC135-E3"
+    },
+    {
+      "from": "SPEC135-E1",
+      "kind": "blocks",
+      "to": "SPEC135-E4"
+    },
+    {
+      "from": "SPEC135-F8",
+      "kind": "blocks",
+      "to": "SPEC135-E4"
+    },
+    {
+      "from": "SPEC135-F9",
+      "kind": "blocks",
+      "to": "SPEC135-E4"
+    },
+    {
+      "from": "SPEC135-F10",
+      "kind": "blocks",
+      "to": "SPEC135-E4"
+    },
+    {
+      "from": "SPEC135-E2",
+      "kind": "blocks",
+      "to": "SPEC135-E5"
+    },
+    {
+      "from": "SPEC135-E3",
+      "kind": "blocks",
+      "to": "SPEC135-E5"
+    },
+    {
+      "from": "SPEC135-E4",
+      "kind": "blocks",
+      "to": "SPEC135-E5"
+    },
+    {
+      "from": "SPEC135-P5",
+      "kind": "blocks",
+      "to": "SPEC135-E5"
+    },
+    {
+      "from": "SPEC135-C4",
+      "kind": "blocks",
+      "to": "SPEC135-Z1"
+    },
+    {
+      "from": "SPEC135-RI4",
+      "kind": "blocks",
+      "to": "SPEC135-Z1"
+    },
+    {
+      "from": "SPEC135-ST4",
+      "kind": "blocks",
+      "to": "SPEC135-Z1"
+    },
+    {
+      "from": "SPEC135-M6",
+      "kind": "blocks",
+      "to": "SPEC135-Z1"
+    },
+    {
+      "from": "SPEC135-U6",
+      "kind": "blocks",
+      "to": "SPEC135-Z1"
+    },
+    {
+      "from": "SPEC135-V6",
+      "kind": "blocks",
+      "to": "SPEC135-Z1"
+    },
+    {
+      "from": "SPEC135-P5",
+      "kind": "blocks",
+      "to": "SPEC135-Z1"
+    },
+    {
+      "from": "SPEC135-Q6",
+      "kind": "blocks",
+      "to": "SPEC135-Z1"
+    },
+    {
+      "from": "SPEC135-E5",
+      "kind": "blocks",
+      "to": "SPEC135-Z1"
+    },
+    {
+      "from": "SPEC135-ALPHA8",
+      "kind": "blocks",
+      "to": "SPEC135-Z1"
+    },
+    {
+      "from": "SPEC135-ALPHA8",
+      "kind": "blocks",
+      "to": "SPEC135-Z2"
+    },
+    {
+      "from": "SPEC135-M6",
+      "kind": "blocks",
+      "to": "SPEC135-Z2"
+    },
+    {
+      "from": "SPEC135-ST4",
+      "kind": "blocks",
+      "to": "SPEC135-Z2"
+    },
+    {
+      "from": "SPEC135-U3",
+      "kind": "blocks",
+      "to": "SPEC135-Z2"
+    },
+    {
+      "from": "SPEC135-Z2",
+      "kind": "blocks",
+      "to": "SPEC135-Z3"
+    },
+    {
+      "from": "SPEC135-Q4",
+      "kind": "blocks",
+      "to": "SPEC135-Z3"
+    },
+    {
+      "from": "SPEC135-Z1",
+      "kind": "blocks",
+      "to": "SPEC135-Z4"
+    },
+    {
+      "from": "SPEC135-Z2",
+      "kind": "blocks",
+      "to": "SPEC135-Z4"
+    },
+    {
+      "from": "SPEC135-Z3",
+      "kind": "blocks",
+      "to": "SPEC135-Z4"
+    },
+    {
+      "from": "SPEC135-Q6",
+      "kind": "blocks",
+      "to": "SPEC135-Z4"
+    },
+    {
+      "from": "SPEC135-Z4",
+      "kind": "blocks",
+      "to": "SPEC135-Z5"
+    },
+    {
+      "from": "SPEC135-E5",
+      "kind": "blocks",
+      "to": "SPEC135-Z5"
+    },
+    {
+      "from": "SPEC135-P5",
+      "kind": "blocks",
+      "to": "SPEC135-Z5"
+    }
+  ],
+  "final_closure": "SPEC135-Z5",
+  "foundation_order": [
+    "SPEC135-F0",
+    "SPEC135-F1",
+    "SPEC135-F2",
+    "SPEC135-F3",
+    "SPEC135-F4",
+    "SPEC135-F5",
+    "SPEC135-F6",
+    "SPEC135-F7",
+    "SPEC135-F8",
+    "SPEC135-F9",
+    "SPEC135-F10",
+    "SPEC135-F11",
+    "SPEC135-F12"
+  ],
+  "nodes": [
+    {
+      "bead_id": "focusa-mc-f0",
+      "lane": "foundation",
+      "requirement_id": "SPEC135-F0",
+      "status": "verified"
+    },
+    {
+      "bead_id": "focusa-mc-f1",
+      "lane": "foundation",
+      "requirement_id": "SPEC135-F1",
+      "status": "partial"
+    },
+    {
+      "bead_id": "focusa-mc-f2",
+      "lane": "foundation",
+      "requirement_id": "SPEC135-F2",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-f3",
+      "lane": "foundation",
+      "requirement_id": "SPEC135-F3",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-f4",
+      "lane": "foundation",
+      "requirement_id": "SPEC135-F4",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-f5",
+      "lane": "foundation",
+      "requirement_id": "SPEC135-F5",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-f6",
+      "lane": "foundation",
+      "requirement_id": "SPEC135-F6",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-f7",
+      "lane": "foundation",
+      "requirement_id": "SPEC135-F7",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-f8",
+      "lane": "foundation",
+      "requirement_id": "SPEC135-F8",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-f9",
+      "lane": "foundation",
+      "requirement_id": "SPEC135-F9",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-f10",
+      "lane": "foundation",
+      "requirement_id": "SPEC135-F10",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-f11",
+      "lane": "foundation",
+      "requirement_id": "SPEC135-F11",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-f12",
+      "lane": "foundation",
+      "requirement_id": "SPEC135-F12",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-c1",
+      "lane": "context",
+      "requirement_id": "SPEC135-C1",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-c2",
+      "lane": "context",
+      "requirement_id": "SPEC135-C2",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-c3",
+      "lane": "context",
+      "requirement_id": "SPEC135-C3",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-c4",
+      "lane": "context",
+      "requirement_id": "SPEC135-C4",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-ri1",
+      "lane": "role_interview",
+      "requirement_id": "SPEC135-RI1",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-ri2",
+      "lane": "role_interview",
+      "requirement_id": "SPEC135-RI2",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-ri3",
+      "lane": "role_interview",
+      "requirement_id": "SPEC135-RI3",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-ri4",
+      "lane": "role_interview",
+      "requirement_id": "SPEC135-RI4",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-st1",
+      "lane": "spec_tasks",
+      "requirement_id": "SPEC135-ST1",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-st2",
+      "lane": "spec_tasks",
+      "requirement_id": "SPEC135-ST2",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-st3",
+      "lane": "spec_tasks",
+      "requirement_id": "SPEC135-ST3",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-st4",
+      "lane": "spec_tasks",
+      "requirement_id": "SPEC135-ST4",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-m1",
+      "lane": "mission_canvas",
+      "requirement_id": "SPEC135-M1",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-m2",
+      "lane": "mission_canvas",
+      "requirement_id": "SPEC135-M2",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-m3",
+      "lane": "mission_canvas",
+      "requirement_id": "SPEC135-M3",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-m4",
+      "lane": "mission_canvas",
+      "requirement_id": "SPEC135-M4",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-m5",
+      "lane": "mission_canvas",
+      "requirement_id": "SPEC135-M5",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-m6",
+      "lane": "mission_canvas",
+      "requirement_id": "SPEC135-M6",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-m7",
+      "lane": "mission_canvas",
+      "requirement_id": "SPEC135-M7",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-u1",
+      "lane": "uiai_uxp",
+      "requirement_id": "SPEC135-U1",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-u2",
+      "lane": "uiai_uxp",
+      "requirement_id": "SPEC135-U2",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-u3",
+      "lane": "uiai_uxp",
+      "requirement_id": "SPEC135-U3",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-u4",
+      "lane": "uiai_uxp",
+      "requirement_id": "SPEC135-U4",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-u5",
+      "lane": "uiai_uxp",
+      "requirement_id": "SPEC135-U5",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-u6",
+      "lane": "uiai_uxp",
+      "requirement_id": "SPEC135-U6",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-v1",
+      "lane": "ontology_domain",
+      "requirement_id": "SPEC135-V1",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-v2",
+      "lane": "ontology_domain",
+      "requirement_id": "SPEC135-V2",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-v3",
+      "lane": "ontology_domain",
+      "requirement_id": "SPEC135-V3",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-v4",
+      "lane": "ontology_domain",
+      "requirement_id": "SPEC135-V4",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-v5",
+      "lane": "ontology_domain",
+      "requirement_id": "SPEC135-V5",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-v6",
+      "lane": "ontology_domain",
+      "requirement_id": "SPEC135-V6",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-p1",
+      "lane": "providers_connectors",
+      "requirement_id": "SPEC135-P1",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-p2",
+      "lane": "providers_connectors",
+      "requirement_id": "SPEC135-P2",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-p3",
+      "lane": "providers_connectors",
+      "requirement_id": "SPEC135-P3",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-p4",
+      "lane": "providers_connectors",
+      "requirement_id": "SPEC135-P4",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-p5",
+      "lane": "providers_connectors",
+      "requirement_id": "SPEC135-P5",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-q1",
+      "lane": "quality",
+      "requirement_id": "SPEC135-Q1",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-q2",
+      "lane": "quality",
+      "requirement_id": "SPEC135-Q2",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-q3",
+      "lane": "quality",
+      "requirement_id": "SPEC135-Q3",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-q4",
+      "lane": "quality",
+      "requirement_id": "SPEC135-Q4",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-q5",
+      "lane": "quality",
+      "requirement_id": "SPEC135-Q5",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-q6",
+      "lane": "quality",
+      "requirement_id": "SPEC135-Q6",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-alpha1",
+      "lane": "alpha",
+      "requirement_id": "SPEC135-ALPHA1",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-alpha2",
+      "lane": "alpha",
+      "requirement_id": "SPEC135-ALPHA2",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-alpha3",
+      "lane": "alpha",
+      "requirement_id": "SPEC135-ALPHA3",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-alpha4",
+      "lane": "alpha",
+      "requirement_id": "SPEC135-ALPHA4",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-alpha5",
+      "lane": "alpha",
+      "requirement_id": "SPEC135-ALPHA5",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-alpha6",
+      "lane": "alpha",
+      "requirement_id": "SPEC135-ALPHA6",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-alpha7",
+      "lane": "alpha",
+      "requirement_id": "SPEC135-ALPHA7",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-alpha8",
+      "lane": "alpha",
+      "requirement_id": "SPEC135-ALPHA8",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-e1",
+      "lane": "migration",
+      "requirement_id": "SPEC135-E1",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-e2",
+      "lane": "migration",
+      "requirement_id": "SPEC135-E2",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-e3",
+      "lane": "migration",
+      "requirement_id": "SPEC135-E3",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-e4",
+      "lane": "migration",
+      "requirement_id": "SPEC135-E4",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-e5",
+      "lane": "migration",
+      "requirement_id": "SPEC135-E5",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-z1",
+      "lane": "closure",
+      "requirement_id": "SPEC135-Z1",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-z2",
+      "lane": "closure",
+      "requirement_id": "SPEC135-Z2",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-z3",
+      "lane": "closure",
+      "requirement_id": "SPEC135-Z3",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-z4",
+      "lane": "closure",
+      "requirement_id": "SPEC135-Z4",
+      "status": "missing"
+    },
+    {
+      "bead_id": "focusa-mc-z5",
+      "lane": "closure",
+      "requirement_id": "SPEC135-Z5",
+      "status": "missing"
+    }
+  ],
+  "parallel_lane_gate": "SPEC135-F4",
+  "permanent_integration_gate": "SPEC135-Z2",
+  "schema": "focusa.spec135.delivery_dag.v1"
+}
