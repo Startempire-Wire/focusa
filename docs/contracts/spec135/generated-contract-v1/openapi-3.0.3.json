@@ -467,6 +467,26 @@
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.metacog_retrieve.response.v1"
       },
+      "focusa_operation_registry_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.operation_registry.request.v1",
+        "properties": {},
+        "title": "focusa.operation_registry.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.operation_registry.request.v1"
+      },
+      "focusa_operation_registry_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.operation_registry.response.v1",
+        "properties": {},
+        "title": "focusa.operation_registry.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.operation_registry.response.v1"
+      },
       "focusa_prediction_evaluate_request_v1": {
         "additionalProperties": true,
         "description": "Generated contract for Focusa schema focusa.prediction_evaluate.request.v1",
@@ -827,6 +847,46 @@
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.turn_start.response.v1"
       },
+      "focusa_ui_action_bindings_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.ui_action_bindings.request.v1",
+        "properties": {},
+        "title": "focusa.ui_action_bindings.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.ui_action_bindings.request.v1"
+      },
+      "focusa_ui_action_bindings_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.ui_action_bindings.response.v1",
+        "properties": {},
+        "title": "focusa.ui_action_bindings.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.ui_action_bindings.response.v1"
+      },
+      "focusa_ui_capability_snapshot_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.ui_capability_snapshot.request.v1",
+        "properties": {},
+        "title": "focusa.ui_capability_snapshot.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.ui_capability_snapshot.request.v1"
+      },
+      "focusa_ui_capability_snapshot_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.ui_capability_snapshot.response.v1",
+        "properties": {},
+        "title": "focusa.ui_capability_snapshot.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.ui_capability_snapshot.response.v1"
+      },
       "focusa_work_loop_control_request_v1": {
         "additionalProperties": true,
         "description": "Generated contract for Focusa schema focusa.work_loop_control.request.v1",
@@ -936,23 +996,245 @@
   },
   "openapi": "3.0.3",
   "paths": {
+    "/v1/agent/operations": {
+      "get": {
+        "description": "Read Operation Registry \u2014 family=agent budget=standard_read materialization=registry_read",
+        "operationId": "focusa.operation_registry.read",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_operation_registry_response_v1"
+                }
+              }
+            },
+            "description": "Read Operation Registry response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Read Operation Registry",
+        "tags": [
+          "agent"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "agent",
+          "materialization_mode": "registry_read",
+          "requires_preview_token": false,
+          "side_effect_profile": "read_state",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "agent"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.operation_registry.read",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [],
+        "x-focusa-plain-label": "Read Operation Registry",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "agent"
+      }
+    },
+    "/v1/agent/ui-action-bindings": {
+      "get": {
+        "description": "Read Generated UI Action Bindings \u2014 family=agent budget=standard_read materialization=registry_projection",
+        "operationId": "focusa.ui_action_bindings.read",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_ui_action_bindings_response_v1"
+                }
+              }
+            },
+            "description": "Read Generated UI Action Bindings response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Read Generated UI Action Bindings",
+        "tags": [
+          "agent"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "agent",
+          "materialization_mode": "registry_projection",
+          "requires_preview_token": false,
+          "side_effect_profile": "read_state",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "agent"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.ui_action_bindings.read",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "project:read"
+        ],
+        "x-focusa-plain-label": "Read Generated UI Action Bindings",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "agent"
+      }
+    },
+    "/v1/agent/ui-capabilities": {
+      "get": {
+        "description": "Read Generated UI Capability Snapshot \u2014 family=agent budget=standard_read materialization=capability_projection",
+        "operationId": "focusa.ui_capability_snapshot.read",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_ui_capability_snapshot_response_v1"
+                }
+              }
+            },
+            "description": "Read Generated UI Capability Snapshot response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Read Generated UI Capability Snapshot",
+        "tags": [
+          "agent"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "agent",
+          "materialization_mode": "capability_projection",
+          "requires_preview_token": false,
+          "side_effect_profile": "read_state",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "agent"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.ui_capability_snapshot.read",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "project:read"
+        ],
+        "x-focusa-plain-label": "Read Generated UI Capability Snapshot",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "agent"
+      }
+    },
     "/v1/awareness/packet": {
       "post": {
         "description": "Awareness Packet \u2014 family=awareness budget=standard_read materialization=advisory_read",
         "operationId": "focusa.awareness.packet",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1000,17 +1282,34 @@
           "deprecation": null,
           "family": "awareness",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "awareness:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_awareness",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "awareness"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.awareness.packet",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "awareness:read"
+        ],
+        "x-focusa-plain-label": "Awareness Packet",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "awareness"
       }
     },
     "/v1/bloatgaurd/report": {
@@ -1019,17 +1318,10 @@
         "operationId": "focusa.bloatgaurd.report",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1067,17 +1359,34 @@
           "deprecation": null,
           "family": "bloatgaurd",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "bloatgaurd:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_bloatgaurd",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": true,
+        "x-focusa-capabilities": [
+          "bloatgaurd"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.bloatgaurd.report",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "bloatgaurd:read"
+        ],
+        "x-focusa-plain-label": "Bloatgaurd Report",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "bloatgaurd"
       }
     },
     "/v1/call-stack/design": {
@@ -1086,17 +1395,10 @@
         "operationId": "focusa.call_stack.design",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1144,18 +1446,35 @@
           "deprecation": null,
           "family": "call_stack",
           "materialization_mode": "daemon_dispatch",
-          "permissions_required": [
-            "call_stack:write"
-          ],
-          "requires_idempotency_key": true,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "write_call_stack",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "call_stack"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.call_stack.design",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "call_stack:write"
+        ],
+        "x-focusa-plain-label": "Call Stack Design",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "call_stack"
       }
     },
     "/v1/call-stack/verify": {
@@ -1164,17 +1483,10 @@
         "operationId": "focusa.call_stack.verify",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1222,17 +1534,34 @@
           "deprecation": null,
           "family": "call_stack",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "call_stack:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_call_stack_verify",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "call_stack"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.call_stack.verify",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "call_stack:read"
+        ],
+        "x-focusa-plain-label": "Call Stack Verify",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "call_stack"
       }
     },
     "/v1/context-cognition/curate": {
@@ -1241,17 +1570,19 @@
         "operationId": "focusa.context_cognition.curate",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1299,17 +1630,35 @@
           "deprecation": null,
           "family": "context_cognition",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "context:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_context_curate",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "context_cognition"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.context_cognition.curate",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "context:read"
+        ],
+        "x-focusa-plain-label": "Context Cognition Curate",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "context_cognition"
       }
     },
     "/v1/context-cognition/packet": {
@@ -1318,17 +1667,19 @@
         "operationId": "focusa.context_cognition.packet",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1366,41 +1717,42 @@
           "deprecation": null,
           "family": "context_cognition",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "context:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_context",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "context_cognition"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.context_cognition.packet",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "context:read"
+        ],
+        "x-focusa-plain-label": "Context Cognition Packet",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "context_cognition"
       }
     },
     "/v1/device/pair/start": {
       "post": {
         "description": "Device Pair Start \u2014 family=device budget=standard_mutation materialization=daemon_dispatch",
         "operationId": "focusa.device_pair.start",
-        "parameters": [
-          {
-            "description": "Project root for scoping",
-            "in": "query",
-            "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1443,42 +1795,40 @@
           "deprecation": null,
           "family": "device",
           "materialization_mode": "daemon_dispatch",
-          "permissions_required": [
-            "device:write"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "write_pairing",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "device"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.device_pair.start",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "device:write"
+        ],
+        "x-focusa-plain-label": "Device Pair Start",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "device"
       }
     },
     "/v1/device/pair/status": {
       "get": {
         "description": "Device Pair Status \u2014 family=device budget=light_read materialization=advisory_read",
         "operationId": "focusa.device_pair.status",
-        "parameters": [
-          {
-            "description": "Project root for scoping",
-            "in": "query",
-            "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
             "content": {
@@ -1511,17 +1861,32 @@
           "deprecation": null,
           "family": "device",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "device:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_pairing",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "device"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.device_pair.status",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "device:read"
+        ],
+        "x-focusa-plain-label": "Device Pair Status",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "device"
       }
     },
     "/v1/dxux/report": {
@@ -1530,17 +1895,10 @@
         "operationId": "focusa.dxux.report",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1578,17 +1936,34 @@
           "deprecation": null,
           "family": "dxux",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "dxux:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_dxux",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": true,
+        "x-focusa-capabilities": [
+          "dxux"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.dxux.report",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "dxux:read"
+        ],
+        "x-focusa-plain-label": "DXUX Report",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "dxux"
       }
     },
     "/v1/evidence/capture": {
@@ -1597,17 +1972,19 @@
         "operationId": "focusa.evidence.capture",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1655,42 +2032,43 @@
           "deprecation": null,
           "family": "evidence",
           "materialization_mode": "daemon_dispatch",
-          "permissions_required": [
-            "evidence:write"
-          ],
-          "requires_idempotency_key": true,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "write_evidence",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "evidence"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.evidence.capture",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "evidence:write"
+        ],
+        "x-focusa-plain-label": "Evidence Capture",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "evidence"
       }
     },
     "/v1/health": {
       "get": {
         "description": "Health Check \u2014 family=health budget=light_read materialization=advisory_read",
         "operationId": "focusa.health.check",
-        "parameters": [
-          {
-            "description": "Project root for scoping",
-            "in": "query",
-            "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
             "content": {
@@ -1723,41 +2101,39 @@
           "deprecation": null,
           "family": "health",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "health:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_health",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "health"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.health.check",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "health:read"
+        ],
+        "x-focusa-plain-label": "Health Check",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "health"
       }
     },
     "/v1/license/validate": {
       "post": {
         "description": "License Validate \u2014 family=license budget=standard_mutation materialization=daemon_dispatch",
         "operationId": "focusa.license.validate",
-        "parameters": [
-          {
-            "description": "Project root for scoping",
-            "in": "query",
-            "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1800,18 +2176,33 @@
           "deprecation": null,
           "family": "license",
           "materialization_mode": "daemon_dispatch",
-          "permissions_required": [
-            "license:write"
-          ],
-          "requires_idempotency_key": true,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "write_license",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "license"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.license.validate",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "license:write"
+        ],
+        "x-focusa-plain-label": "License Validate",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "license"
       }
     },
     "/v1/lineage/head": {
@@ -1820,17 +2211,10 @@
         "operationId": "focusa.lineage.head",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1868,17 +2252,34 @@
           "deprecation": null,
           "family": "lineage",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "lineage:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_lineage",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "lineage"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.lineage.head",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "lineage:read"
+        ],
+        "x-focusa-plain-label": "Lineage Head",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "lineage"
       }
     },
     "/v1/lineage/tree": {
@@ -1887,17 +2288,10 @@
         "operationId": "focusa.lineage.tree",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1935,17 +2329,34 @@
           "deprecation": null,
           "family": "lineage",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "lineage:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_lineage_tree",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "lineage"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.lineage.tree",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "lineage:read"
+        ],
+        "x-focusa-plain-label": "Lineage Tree",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "lineage"
       }
     },
     "/v1/memory/procedural": {
@@ -1954,17 +2365,19 @@
         "operationId": "focusa.memory.procedural.read",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2002,17 +2415,35 @@
           "deprecation": null,
           "family": "memory",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "memory:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_memory",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "memory"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.memory.procedural.read",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "memory:read"
+        ],
+        "x-focusa-plain-label": "Read Procedural Memory",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "memory"
       }
     },
     "/v1/memory/procedural/reinforce": {
@@ -2021,17 +2452,19 @@
         "operationId": "focusa.memory.procedural.reinforce",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2079,16 +2512,34 @@
           "deprecation": null,
           "family": "memory",
           "materialization_mode": "daemon_dispatch",
-          "permissions_required": [
-            "memory:write"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "write_memory",
           "supports_side_effect_policy": [
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "memory"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.memory.procedural.reinforce",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "memory:write"
+        ],
+        "x-focusa-plain-label": "Reinforce Procedural Rule",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "memory"
       }
     },
     "/v1/memory/semantic": {
@@ -2097,17 +2548,19 @@
         "operationId": "focusa.memory.semantic.read",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2145,17 +2598,35 @@
           "deprecation": null,
           "family": "memory",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "memory:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_memory",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "memory"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.memory.semantic.read",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "memory:read"
+        ],
+        "x-focusa-plain-label": "Read Semantic Memory",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "memory"
       }
     },
     "/v1/memory/semantic/upsert": {
@@ -2164,17 +2635,19 @@
         "operationId": "focusa.memory.semantic.upsert",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2222,16 +2695,34 @@
           "deprecation": null,
           "family": "memory",
           "materialization_mode": "daemon_dispatch",
-          "permissions_required": [
-            "memory:write"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "write_memory",
           "supports_side_effect_policy": [
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "memory"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.memory.semantic.upsert",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "memory:write"
+        ],
+        "x-focusa-plain-label": "Upsert Semantic Memory",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "memory"
       }
     },
     "/v1/metacognition/capture": {
@@ -2240,17 +2731,19 @@
         "operationId": "focusa.metacog.capture",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2298,18 +2791,36 @@
           "deprecation": null,
           "family": "metacognition",
           "materialization_mode": "daemon_dispatch",
-          "permissions_required": [
-            "metacog:write"
-          ],
-          "requires_idempotency_key": true,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "write_metacog_signal",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "metacognition"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.metacog.capture",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "metacog:write"
+        ],
+        "x-focusa-plain-label": "Metacog Capture",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "metacognition"
       }
     },
     "/v1/metacognition/doctor": {
@@ -2318,17 +2829,19 @@
         "operationId": "focusa.metacog.doctor",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2376,17 +2889,35 @@
           "deprecation": null,
           "family": "metacognition",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "metacog:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_metacog_doctor",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "metacognition"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.metacog.doctor",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "metacog:read"
+        ],
+        "x-focusa-plain-label": "Metacog Doctor",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "metacognition"
       }
     },
     "/v1/metacognition/reflect": {
@@ -2395,17 +2926,19 @@
         "operationId": "focusa.metacog.reflect",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2453,17 +2986,35 @@
           "deprecation": null,
           "family": "metacognition",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "metacog:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_metacog_reflect",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "metacognition"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.metacog.reflect",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "metacog:read"
+        ],
+        "x-focusa-plain-label": "Metacog Reflect",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "metacognition"
       }
     },
     "/v1/metacognition/retrieve": {
@@ -2472,17 +3023,19 @@
         "operationId": "focusa.metacog.retrieve",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2530,17 +3083,35 @@
           "deprecation": null,
           "family": "metacognition",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "metacog:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_metacog",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "metacognition"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.metacog.retrieve",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "metacog:read"
+        ],
+        "x-focusa-plain-label": "Metacog Retrieve",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "metacognition"
       }
     },
     "/v1/predictions/evaluate": {
@@ -2549,17 +3120,19 @@
         "operationId": "focusa.prediction.evaluate",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2607,18 +3180,36 @@
           "deprecation": null,
           "family": "prediction",
           "materialization_mode": "daemon_dispatch",
-          "permissions_required": [
-            "prediction:write"
-          ],
-          "requires_idempotency_key": true,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "write_prediction_eval",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "prediction"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.prediction.evaluate",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "prediction:write"
+        ],
+        "x-focusa-plain-label": "Prediction Evaluate",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "prediction"
       }
     },
     "/v1/predictions/recent": {
@@ -2627,17 +3218,19 @@
         "operationId": "focusa.prediction.recent",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2675,17 +3268,35 @@
           "deprecation": null,
           "family": "prediction",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "prediction:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_prediction",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "prediction"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.prediction.recent",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "prediction:read"
+        ],
+        "x-focusa-plain-label": "Prediction Recent",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "prediction"
       }
     },
     "/v1/predictions/record": {
@@ -2694,17 +3305,19 @@
         "operationId": "focusa.prediction.record",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2752,18 +3365,36 @@
           "deprecation": null,
           "family": "prediction",
           "materialization_mode": "daemon_dispatch",
-          "permissions_required": [
-            "prediction:write"
-          ],
-          "requires_idempotency_key": true,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "write_prediction",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "prediction"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.prediction.record",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "prediction:write"
+        ],
+        "x-focusa-plain-label": "Prediction Record",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "prediction"
       }
     },
     "/v1/project/identity": {
@@ -2772,17 +3403,10 @@
         "operationId": "focusa.project.identity",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2820,17 +3444,34 @@
           "deprecation": null,
           "family": "project",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "project:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_identity",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "project"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.project.identity",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "project:read"
+        ],
+        "x-focusa-plain-label": "Project Identity",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "project"
       }
     },
     "/v1/project/verify": {
@@ -2839,17 +3480,10 @@
         "operationId": "focusa.project.verify",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2887,17 +3521,34 @@
           "deprecation": null,
           "family": "project",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "project:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_verify",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "project"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.project.verify",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "project:read"
+        ],
+        "x-focusa-plain-label": "Project Verify",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "project"
       }
     },
     "/v1/resource/mode": {
@@ -2906,17 +3557,10 @@
         "operationId": "focusa.resource_mode",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2954,17 +3598,34 @@
           "deprecation": null,
           "family": "resource",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "resource:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_resource",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "resource"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.resource_mode",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "resource:read"
+        ],
+        "x-focusa-plain-label": "Resource Mode",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "resource"
       }
     },
     "/v1/state/current": {
@@ -2973,17 +3634,10 @@
         "operationId": "focusa.state.current",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3021,17 +3675,34 @@
           "deprecation": null,
           "family": "state",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "state:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_state",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "state"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.state.current",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "state:read"
+        ],
+        "x-focusa-plain-label": "State Current",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "state"
       }
     },
     "/v1/tool-doctor": {
@@ -3040,17 +3711,10 @@
         "operationId": "focusa.tool_doctor",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3088,17 +3752,34 @@
           "deprecation": null,
           "family": "diagnostics",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "diagnostics:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_diagnostics",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "diagnostics"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.tool_doctor",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "diagnostics:read"
+        ],
+        "x-focusa-plain-label": "Tool Doctor",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "diagnostics"
       }
     },
     "/v1/trajectory/assess": {
@@ -3107,17 +3788,19 @@
         "operationId": "focusa.trajectory.assess",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3165,17 +3848,35 @@
           "deprecation": null,
           "family": "trajectory",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "trajectory:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_trajectory_assess",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "trajectory"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.trajectory.assess",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "trajectory:read"
+        ],
+        "x-focusa-plain-label": "Trajectory Assess",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "trajectory"
       }
     },
     "/v1/trajectory/checkpoint": {
@@ -3184,17 +3885,19 @@
         "operationId": "focusa.trajectory.checkpoint",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3242,18 +3945,36 @@
           "deprecation": null,
           "family": "trajectory",
           "materialization_mode": "daemon_dispatch",
-          "permissions_required": [
-            "trajectory:write"
-          ],
-          "requires_idempotency_key": true,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "write_trajectory_checkpoint",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "trajectory"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.trajectory.checkpoint",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "trajectory:write"
+        ],
+        "x-focusa-plain-label": "Trajectory Checkpoint",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "trajectory"
       }
     },
     "/v1/trajectory/define-goal": {
@@ -3262,17 +3983,19 @@
         "operationId": "focusa.trajectory.define_goal",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3320,18 +4043,36 @@
           "deprecation": null,
           "family": "trajectory",
           "materialization_mode": "daemon_dispatch",
-          "permissions_required": [
-            "trajectory:write"
-          ],
-          "requires_idempotency_key": true,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "write_trajectory_goal",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "trajectory"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.trajectory.define_goal",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "trajectory:write"
+        ],
+        "x-focusa-plain-label": "Trajectory Define Goal",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "trajectory"
       }
     },
     "/v1/trajectory/propose-workpoint": {
@@ -3340,17 +4081,19 @@
         "operationId": "focusa.trajectory.propose_workpoint",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3398,17 +4141,35 @@
           "deprecation": null,
           "family": "trajectory",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "trajectory:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_trajectory_propose",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "trajectory"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.trajectory.propose_workpoint",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "trajectory:read"
+        ],
+        "x-focusa-plain-label": "Trajectory Propose Workpoint",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "trajectory"
       }
     },
     "/v1/trajectory/resume": {
@@ -3417,17 +4178,19 @@
         "operationId": "focusa.trajectory.resume",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3475,17 +4238,35 @@
           "deprecation": null,
           "family": "trajectory",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "trajectory:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_trajectory_resume",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "trajectory"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.trajectory.resume",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "trajectory:read"
+        ],
+        "x-focusa-plain-label": "Trajectory Resume",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "trajectory"
       }
     },
     "/v1/trajectory/view": {
@@ -3494,17 +4275,19 @@
         "operationId": "focusa.trajectory.view",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3542,17 +4325,35 @@
           "deprecation": null,
           "family": "trajectory",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "trajectory:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_trajectory",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "trajectory"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.trajectory.view",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "trajectory:read"
+        ],
+        "x-focusa-plain-label": "Trajectory View",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "trajectory"
       }
     },
     "/v1/traverse": {
@@ -3561,17 +4362,10 @@
         "operationId": "focusa.traverse",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3619,17 +4413,34 @@
           "deprecation": null,
           "family": "traverse",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "traverse:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_traverse",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": true,
+        "x-focusa-capabilities": [
+          "traverse"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.traverse",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "traverse:read"
+        ],
+        "x-focusa-plain-label": "Traverse",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "traverse"
       }
     },
     "/v1/turn/append": {
@@ -3638,17 +4449,19 @@
         "operationId": "focusa.turn.append",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3696,16 +4509,34 @@
           "deprecation": null,
           "family": "turn",
           "materialization_mode": "daemon_dispatch",
-          "permissions_required": [
-            "turn:write"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "write_turn_chunk",
           "supports_side_effect_policy": [
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "turn"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.turn.append",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "turn:write"
+        ],
+        "x-focusa-plain-label": "Append Turn Chunk",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "turn"
       }
     },
     "/v1/turn/complete": {
@@ -3714,17 +4545,19 @@
         "operationId": "focusa.turn.complete",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3772,16 +4605,34 @@
           "deprecation": null,
           "family": "turn",
           "materialization_mode": "daemon_dispatch",
-          "permissions_required": [
-            "turn:write"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "write_turn_completion",
           "supports_side_effect_policy": [
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "turn"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.turn.complete",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "turn:write"
+        ],
+        "x-focusa-plain-label": "Complete Turn",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "turn"
       }
     },
     "/v1/turn/start": {
@@ -3790,17 +4641,19 @@
         "operationId": "focusa.turn.start",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3848,16 +4701,34 @@
           "deprecation": null,
           "family": "turn",
           "materialization_mode": "daemon_dispatch",
-          "permissions_required": [
-            "turn:write"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "write_turn",
           "supports_side_effect_policy": [
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "turn"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.turn.start",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "turn:write"
+        ],
+        "x-focusa-plain-label": "Start Turn",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "turn"
       }
     },
     "/v1/work-loop/control": {
@@ -3866,17 +4737,10 @@
         "operationId": "focusa.work_loop.control",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3924,18 +4788,35 @@
           "deprecation": null,
           "family": "work_loop",
           "materialization_mode": "daemon_dispatch",
-          "permissions_required": [
-            "work_loop:write"
-          ],
-          "requires_idempotency_key": true,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "write_work_loop",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "work_loop"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.work_loop.control",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "work_loop:write"
+        ],
+        "x-focusa-plain-label": "Work Loop Control",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "work_loop"
       }
     },
     "/v1/work-loop/status": {
@@ -3944,17 +4825,10 @@
         "operationId": "focusa.work_loop.status",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Session continuity ID",
-            "in": "query",
-            "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3992,17 +4866,34 @@
           "deprecation": null,
           "family": "work_loop",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "work_loop:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_work_loop",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "work_loop"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.work_loop.status",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "work_loop:read"
+        ],
+        "x-focusa-plain-label": "Work Loop Status",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "work_loop"
       }
     },
     "/v1/workpoint/checkpoint": {
@@ -4011,17 +4902,19 @@
         "operationId": "focusa.workpoint.checkpoint",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -4069,18 +4962,36 @@
           "deprecation": null,
           "family": "workpoint",
           "materialization_mode": "daemon_dispatch",
-          "permissions_required": [
-            "workpoint:write"
-          ],
-          "requires_idempotency_key": true,
-          "requires_if_match_version": true,
+          "requires_preview_token": false,
           "side_effect_profile": "write_workpoint_checkpoint",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "workpoint"
+        ],
+        "x-focusa-concurrency": true,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.workpoint.checkpoint",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "workpoint:write"
+        ],
+        "x-focusa-plain-label": "Workpoint Checkpoint",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "workpoint"
       }
     },
     "/v1/workpoint/link-evidence": {
@@ -4089,17 +5000,19 @@
         "operationId": "focusa.workpoint.link_evidence",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -4147,18 +5060,36 @@
           "deprecation": null,
           "family": "workpoint",
           "materialization_mode": "daemon_dispatch",
-          "permissions_required": [
-            "workpoint:write"
-          ],
-          "requires_idempotency_key": true,
-          "requires_if_match_version": true,
+          "requires_preview_token": false,
           "side_effect_profile": "write_workpoint_evidence",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "workpoint"
+        ],
+        "x-focusa-concurrency": true,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.workpoint.link_evidence",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "workpoint:write"
+        ],
+        "x-focusa-plain-label": "Workpoint Link Evidence",
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "workpoint"
       }
     },
     "/v1/workpoint/resume": {
@@ -4167,17 +5098,19 @@
         "operationId": "focusa.workpoint.resume",
         "parameters": [
           {
-            "description": "Project root for scoping",
+            "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Session continuity ID",
+            "description": "Required Focusa scope key: continuity_id",
             "in": "query",
             "name": "continuity_id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -4215,17 +5148,35 @@
           "deprecation": null,
           "family": "workpoint",
           "materialization_mode": "advisory_read",
-          "permissions_required": [
-            "workpoint:read"
-          ],
-          "requires_idempotency_key": false,
-          "requires_if_match_version": false,
+          "requires_preview_token": false,
           "side_effect_profile": "read_workpoint_resume",
           "supports_side_effect_policy": [
             "preview",
             "commit"
           ]
-        }
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "workpoint"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.workpoint.resume",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "workpoint:read"
+        ],
+        "x-focusa-plain-label": "Workpoint Resume",
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "workpoint"
       }
     }
   },

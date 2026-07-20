@@ -130,6 +130,9 @@ type FocusaMetacogRetrieveRequestV1 map[string]interface{}
 // FocusaMetacogRetrieveResponseV1 Generated contract for Focusa schema focusa.metacog_retrieve.response.v1
 type FocusaMetacogRetrieveResponseV1 map[string]interface{}
 
+// FocusaOperationRegistryResponseV1 Generated contract for Focusa schema focusa.operation_registry.response.v1
+type FocusaOperationRegistryResponseV1 map[string]interface{}
+
 // FocusaPredictionEvaluateRequestV1 Generated contract for Focusa schema focusa.prediction_evaluate.request.v1
 type FocusaPredictionEvaluateRequestV1 map[string]interface{}
 
@@ -217,6 +220,12 @@ type FocusaTurnStartRequestV1 map[string]interface{}
 // FocusaTurnStartResponseV1 Generated contract for Focusa schema focusa.turn_start.response.v1
 type FocusaTurnStartResponseV1 map[string]interface{}
 
+// FocusaUiActionBindingsResponseV1 Generated contract for Focusa schema focusa.ui_action_bindings.response.v1
+type FocusaUiActionBindingsResponseV1 map[string]interface{}
+
+// FocusaUiCapabilitySnapshotResponseV1 Generated contract for Focusa schema focusa.ui_capability_snapshot.response.v1
+type FocusaUiCapabilitySnapshotResponseV1 map[string]interface{}
+
 // FocusaWorkLoopControlRequestV1 Generated contract for Focusa schema focusa.work_loop_control.request.v1
 type FocusaWorkLoopControlRequestV1 map[string]interface{}
 
@@ -241,409 +250,346 @@ type FocusaWorkpointLinkEvidenceResponseV1 map[string]interface{}
 // FocusaWorkpointResumeResponseV1 Generated contract for Focusa schema focusa.workpoint_resume.response.v1
 type FocusaWorkpointResumeResponseV1 map[string]interface{}
 
+// FocusaOperationRegistryReadParams defines parameters for FocusaOperationRegistryRead.
+type FocusaOperationRegistryReadParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+}
+
+// FocusaUiActionBindingsReadParams defines parameters for FocusaUiActionBindingsRead.
+type FocusaUiActionBindingsReadParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+}
+
+// FocusaUiCapabilitySnapshotReadParams defines parameters for FocusaUiCapabilitySnapshotRead.
+type FocusaUiCapabilitySnapshotReadParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+}
+
 // FocusaAwarenessPacketParams defines parameters for FocusaAwarenessPacket.
 type FocusaAwarenessPacketParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
 // FocusaBloatgaurdReportParams defines parameters for FocusaBloatgaurdReport.
 type FocusaBloatgaurdReportParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
 // FocusaCallStackDesignParams defines parameters for FocusaCallStackDesign.
 type FocusaCallStackDesignParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
 // FocusaCallStackVerifyParams defines parameters for FocusaCallStackVerify.
 type FocusaCallStackVerifyParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
 // FocusaContextCognitionCurateParams defines parameters for FocusaContextCognitionCurate.
 type FocusaContextCognitionCurateParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaContextCognitionPacketParams defines parameters for FocusaContextCognitionPacket.
 type FocusaContextCognitionPacketParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
-}
-
-// FocusaDevicePairStartParams defines parameters for FocusaDevicePairStart.
-type FocusaDevicePairStartParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
-}
-
-// FocusaDevicePairStatusParams defines parameters for FocusaDevicePairStatus.
-type FocusaDevicePairStatusParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaDxuxReportParams defines parameters for FocusaDxuxReport.
 type FocusaDxuxReportParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
 // FocusaEvidenceCaptureParams defines parameters for FocusaEvidenceCapture.
 type FocusaEvidenceCaptureParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
-}
-
-// FocusaHealthCheckParams defines parameters for FocusaHealthCheck.
-type FocusaHealthCheckParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
-}
-
-// FocusaLicenseValidateParams defines parameters for FocusaLicenseValidate.
-type FocusaLicenseValidateParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaLineageHeadParams defines parameters for FocusaLineageHead.
 type FocusaLineageHeadParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
 // FocusaLineageTreeParams defines parameters for FocusaLineageTree.
 type FocusaLineageTreeParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
 // FocusaMemoryProceduralReadParams defines parameters for FocusaMemoryProceduralRead.
 type FocusaMemoryProceduralReadParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaMemoryProceduralReinforceParams defines parameters for FocusaMemoryProceduralReinforce.
 type FocusaMemoryProceduralReinforceParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaMemorySemanticReadParams defines parameters for FocusaMemorySemanticRead.
 type FocusaMemorySemanticReadParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaMemorySemanticUpsertParams defines parameters for FocusaMemorySemanticUpsert.
 type FocusaMemorySemanticUpsertParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaMetacogCaptureParams defines parameters for FocusaMetacogCapture.
 type FocusaMetacogCaptureParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaMetacogDoctorParams defines parameters for FocusaMetacogDoctor.
 type FocusaMetacogDoctorParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaMetacogReflectParams defines parameters for FocusaMetacogReflect.
 type FocusaMetacogReflectParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaMetacogRetrieveParams defines parameters for FocusaMetacogRetrieve.
 type FocusaMetacogRetrieveParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaPredictionEvaluateParams defines parameters for FocusaPredictionEvaluate.
 type FocusaPredictionEvaluateParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaPredictionRecentParams defines parameters for FocusaPredictionRecent.
 type FocusaPredictionRecentParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaPredictionRecordParams defines parameters for FocusaPredictionRecord.
 type FocusaPredictionRecordParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaProjectIdentityParams defines parameters for FocusaProjectIdentity.
 type FocusaProjectIdentityParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
 // FocusaProjectVerifyParams defines parameters for FocusaProjectVerify.
 type FocusaProjectVerifyParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
 // FocusaResourceModeParams defines parameters for FocusaResourceMode.
 type FocusaResourceModeParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
 // FocusaStateCurrentParams defines parameters for FocusaStateCurrent.
 type FocusaStateCurrentParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
 // FocusaToolDoctorParams defines parameters for FocusaToolDoctor.
 type FocusaToolDoctorParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
 // FocusaTrajectoryAssessParams defines parameters for FocusaTrajectoryAssess.
 type FocusaTrajectoryAssessParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaTrajectoryCheckpointParams defines parameters for FocusaTrajectoryCheckpoint.
 type FocusaTrajectoryCheckpointParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaTrajectoryDefineGoalParams defines parameters for FocusaTrajectoryDefineGoal.
 type FocusaTrajectoryDefineGoalParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaTrajectoryProposeWorkpointParams defines parameters for FocusaTrajectoryProposeWorkpoint.
 type FocusaTrajectoryProposeWorkpointParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaTrajectoryResumeParams defines parameters for FocusaTrajectoryResume.
 type FocusaTrajectoryResumeParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaTrajectoryViewParams defines parameters for FocusaTrajectoryView.
 type FocusaTrajectoryViewParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaTraverseParams defines parameters for FocusaTraverse.
 type FocusaTraverseParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
 // FocusaTurnAppendParams defines parameters for FocusaTurnAppend.
 type FocusaTurnAppendParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaTurnCompleteParams defines parameters for FocusaTurnComplete.
 type FocusaTurnCompleteParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaTurnStartParams defines parameters for FocusaTurnStart.
 type FocusaTurnStartParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaWorkLoopControlParams defines parameters for FocusaWorkLoopControl.
 type FocusaWorkLoopControlParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
 // FocusaWorkLoopStatusParams defines parameters for FocusaWorkLoopStatus.
 type FocusaWorkLoopStatusParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
-
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
 // FocusaWorkpointCheckpointParams defines parameters for FocusaWorkpointCheckpoint.
 type FocusaWorkpointCheckpointParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaWorkpointLinkEvidenceParams defines parameters for FocusaWorkpointLinkEvidence.
 type FocusaWorkpointLinkEvidenceParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaWorkpointResumeParams defines parameters for FocusaWorkpointResume.
 type FocusaWorkpointResumeParams struct {
-	// ProjectRoot Project root for scoping
-	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
 
-	// ContinuityId Session continuity ID
-	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaAwarenessPacketJSONRequestBody defines body for FocusaAwarenessPacket for application/json ContentType.
@@ -909,6 +855,15 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// FocusaOperationRegistryRead request
+	FocusaOperationRegistryRead(ctx context.Context, params *FocusaOperationRegistryReadParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaUiActionBindingsRead request
+	FocusaUiActionBindingsRead(ctx context.Context, params *FocusaUiActionBindingsReadParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaUiCapabilitySnapshotRead request
+	FocusaUiCapabilitySnapshotRead(ctx context.Context, params *FocusaUiCapabilitySnapshotReadParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// FocusaAwarenessPacketWithBody request with any body
 	FocusaAwarenessPacketWithBody(ctx context.Context, params *FocusaAwarenessPacketParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -936,12 +891,12 @@ type ClientInterface interface {
 	FocusaContextCognitionPacket(ctx context.Context, params *FocusaContextCognitionPacketParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// FocusaDevicePairStartWithBody request with any body
-	FocusaDevicePairStartWithBody(ctx context.Context, params *FocusaDevicePairStartParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	FocusaDevicePairStartWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	FocusaDevicePairStart(ctx context.Context, params *FocusaDevicePairStartParams, body FocusaDevicePairStartJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	FocusaDevicePairStart(ctx context.Context, body FocusaDevicePairStartJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// FocusaDevicePairStatus request
-	FocusaDevicePairStatus(ctx context.Context, params *FocusaDevicePairStatusParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	FocusaDevicePairStatus(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// FocusaDxuxReport request
 	FocusaDxuxReport(ctx context.Context, params *FocusaDxuxReportParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -952,12 +907,12 @@ type ClientInterface interface {
 	FocusaEvidenceCapture(ctx context.Context, params *FocusaEvidenceCaptureParams, body FocusaEvidenceCaptureJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// FocusaHealthCheck request
-	FocusaHealthCheck(ctx context.Context, params *FocusaHealthCheckParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	FocusaHealthCheck(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// FocusaLicenseValidateWithBody request with any body
-	FocusaLicenseValidateWithBody(ctx context.Context, params *FocusaLicenseValidateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	FocusaLicenseValidateWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	FocusaLicenseValidate(ctx context.Context, params *FocusaLicenseValidateParams, body FocusaLicenseValidateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	FocusaLicenseValidate(ctx context.Context, body FocusaLicenseValidateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// FocusaLineageHead request
 	FocusaLineageHead(ctx context.Context, params *FocusaLineageHeadParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1099,6 +1054,42 @@ type ClientInterface interface {
 	FocusaWorkpointResume(ctx context.Context, params *FocusaWorkpointResumeParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
+func (c *Client) FocusaOperationRegistryRead(ctx context.Context, params *FocusaOperationRegistryReadParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaOperationRegistryReadRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaUiActionBindingsRead(ctx context.Context, params *FocusaUiActionBindingsReadParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaUiActionBindingsReadRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaUiCapabilitySnapshotRead(ctx context.Context, params *FocusaUiCapabilitySnapshotReadParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaUiCapabilitySnapshotReadRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) FocusaAwarenessPacketWithBody(ctx context.Context, params *FocusaAwarenessPacketParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewFocusaAwarenessPacketRequestWithBody(c.Server, params, contentType, body)
 	if err != nil {
@@ -1219,8 +1210,8 @@ func (c *Client) FocusaContextCognitionPacket(ctx context.Context, params *Focus
 	return c.Client.Do(req)
 }
 
-func (c *Client) FocusaDevicePairStartWithBody(ctx context.Context, params *FocusaDevicePairStartParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewFocusaDevicePairStartRequestWithBody(c.Server, params, contentType, body)
+func (c *Client) FocusaDevicePairStartWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaDevicePairStartRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1231,8 +1222,8 @@ func (c *Client) FocusaDevicePairStartWithBody(ctx context.Context, params *Focu
 	return c.Client.Do(req)
 }
 
-func (c *Client) FocusaDevicePairStart(ctx context.Context, params *FocusaDevicePairStartParams, body FocusaDevicePairStartJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewFocusaDevicePairStartRequest(c.Server, params, body)
+func (c *Client) FocusaDevicePairStart(ctx context.Context, body FocusaDevicePairStartJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaDevicePairStartRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1243,8 +1234,8 @@ func (c *Client) FocusaDevicePairStart(ctx context.Context, params *FocusaDevice
 	return c.Client.Do(req)
 }
 
-func (c *Client) FocusaDevicePairStatus(ctx context.Context, params *FocusaDevicePairStatusParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewFocusaDevicePairStatusRequest(c.Server, params)
+func (c *Client) FocusaDevicePairStatus(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaDevicePairStatusRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -1291,8 +1282,8 @@ func (c *Client) FocusaEvidenceCapture(ctx context.Context, params *FocusaEviden
 	return c.Client.Do(req)
 }
 
-func (c *Client) FocusaHealthCheck(ctx context.Context, params *FocusaHealthCheckParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewFocusaHealthCheckRequest(c.Server, params)
+func (c *Client) FocusaHealthCheck(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaHealthCheckRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -1303,8 +1294,8 @@ func (c *Client) FocusaHealthCheck(ctx context.Context, params *FocusaHealthChec
 	return c.Client.Do(req)
 }
 
-func (c *Client) FocusaLicenseValidateWithBody(ctx context.Context, params *FocusaLicenseValidateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewFocusaLicenseValidateRequestWithBody(c.Server, params, contentType, body)
+func (c *Client) FocusaLicenseValidateWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaLicenseValidateRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1315,8 +1306,8 @@ func (c *Client) FocusaLicenseValidateWithBody(ctx context.Context, params *Focu
 	return c.Client.Do(req)
 }
 
-func (c *Client) FocusaLicenseValidate(ctx context.Context, params *FocusaLicenseValidateParams, body FocusaLicenseValidateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewFocusaLicenseValidateRequest(c.Server, params, body)
+func (c *Client) FocusaLicenseValidate(ctx context.Context, body FocusaLicenseValidateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaLicenseValidateRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1963,6 +1954,156 @@ func (c *Client) FocusaWorkpointResume(ctx context.Context, params *FocusaWorkpo
 	return c.Client.Do(req)
 }
 
+// NewFocusaOperationRegistryReadRequest generates requests for FocusaOperationRegistryRead
+func NewFocusaOperationRegistryReadRequest(server string, params *FocusaOperationRegistryReadParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/agent/operations")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewFocusaUiActionBindingsReadRequest generates requests for FocusaUiActionBindingsRead
+func NewFocusaUiActionBindingsReadRequest(server string, params *FocusaUiActionBindingsReadParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/agent/ui-action-bindings")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewFocusaUiCapabilitySnapshotReadRequest generates requests for FocusaUiCapabilitySnapshotRead
+func NewFocusaUiCapabilitySnapshotReadRequest(server string, params *FocusaUiCapabilitySnapshotReadParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/agent/ui-capabilities")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewFocusaAwarenessPacketRequest calls the generic FocusaAwarenessPacket builder with application/json body
 func NewFocusaAwarenessPacketRequest(server string, params *FocusaAwarenessPacketParams, body FocusaAwarenessPacketJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -2002,28 +2143,12 @@ func NewFocusaAwarenessPacketRequestWithBody(server string, params *FocusaAwaren
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -2070,28 +2195,12 @@ func NewFocusaBloatgaurdReportRequest(server string, params *FocusaBloatgaurdRep
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -2147,28 +2256,12 @@ func NewFocusaCallStackDesignRequestWithBody(server string, params *FocusaCallSt
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -2226,28 +2319,12 @@ func NewFocusaCallStackVerifyRequestWithBody(server string, params *FocusaCallSt
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -2305,28 +2382,20 @@ func NewFocusaContextCognitionCurateRequestWithBody(server string, params *Focus
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -2373,28 +2442,20 @@ func NewFocusaContextCognitionPacketRequest(server string, params *FocusaContext
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -2412,18 +2473,18 @@ func NewFocusaContextCognitionPacketRequest(server string, params *FocusaContext
 }
 
 // NewFocusaDevicePairStartRequest calls the generic FocusaDevicePairStart builder with application/json body
-func NewFocusaDevicePairStartRequest(server string, params *FocusaDevicePairStartParams, body FocusaDevicePairStartJSONRequestBody) (*http.Request, error) {
+func NewFocusaDevicePairStartRequest(server string, body FocusaDevicePairStartJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewFocusaDevicePairStartRequestWithBody(server, params, "application/json", bodyReader)
+	return NewFocusaDevicePairStartRequestWithBody(server, "application/json", bodyReader)
 }
 
 // NewFocusaDevicePairStartRequestWithBody generates requests for FocusaDevicePairStart with any type of body
-func NewFocusaDevicePairStartRequestWithBody(server string, params *FocusaDevicePairStartParams, contentType string, body io.Reader) (*http.Request, error) {
+func NewFocusaDevicePairStartRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -2441,45 +2502,6 @@ func NewFocusaDevicePairStartRequestWithBody(server string, params *FocusaDevice
 		return nil, err
 	}
 
-	if params != nil {
-		// queryValues collects non-styled parameters (passthrough, JSON)
-		// that are safe to round-trip through url.Values.Encode().
-		queryValues := queryURL.Query()
-		// rawQueryFragments collects pre-encoded query fragments from
-		// styled parameters, preserving literal commas as delimiters
-		// per the OpenAPI spec (e.g. "color=blue,black,brown").
-		var rawQueryFragments []string
-
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if encoded := queryValues.Encode(); encoded != "" {
-			rawQueryFragments = append(rawQueryFragments, encoded)
-		}
-		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
-	}
-
 	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
 	if err != nil {
 		return nil, err
@@ -2491,7 +2513,7 @@ func NewFocusaDevicePairStartRequestWithBody(server string, params *FocusaDevice
 }
 
 // NewFocusaDevicePairStatusRequest generates requests for FocusaDevicePairStatus
-func NewFocusaDevicePairStatusRequest(server string, params *FocusaDevicePairStatusParams) (*http.Request, error) {
+func NewFocusaDevicePairStatusRequest(server string) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -2507,45 +2529,6 @@ func NewFocusaDevicePairStatusRequest(server string, params *FocusaDevicePairSta
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
-	}
-
-	if params != nil {
-		// queryValues collects non-styled parameters (passthrough, JSON)
-		// that are safe to round-trip through url.Values.Encode().
-		queryValues := queryURL.Query()
-		// rawQueryFragments collects pre-encoded query fragments from
-		// styled parameters, preserving literal commas as delimiters
-		// per the OpenAPI spec (e.g. "color=blue,black,brown").
-		var rawQueryFragments []string
-
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if encoded := queryValues.Encode(); encoded != "" {
-			rawQueryFragments = append(rawQueryFragments, encoded)
-		}
-		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
 	}
 
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
@@ -2584,28 +2567,12 @@ func NewFocusaDxuxReportRequest(server string, params *FocusaDxuxReportParams) (
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -2661,28 +2628,20 @@ func NewFocusaEvidenceCaptureRequestWithBody(server string, params *FocusaEviden
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -2702,7 +2661,7 @@ func NewFocusaEvidenceCaptureRequestWithBody(server string, params *FocusaEviden
 }
 
 // NewFocusaHealthCheckRequest generates requests for FocusaHealthCheck
-func NewFocusaHealthCheckRequest(server string, params *FocusaHealthCheckParams) (*http.Request, error) {
+func NewFocusaHealthCheckRequest(server string) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -2720,45 +2679,6 @@ func NewFocusaHealthCheckRequest(server string, params *FocusaHealthCheckParams)
 		return nil, err
 	}
 
-	if params != nil {
-		// queryValues collects non-styled parameters (passthrough, JSON)
-		// that are safe to round-trip through url.Values.Encode().
-		queryValues := queryURL.Query()
-		// rawQueryFragments collects pre-encoded query fragments from
-		// styled parameters, preserving literal commas as delimiters
-		// per the OpenAPI spec (e.g. "color=blue,black,brown").
-		var rawQueryFragments []string
-
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if encoded := queryValues.Encode(); encoded != "" {
-			rawQueryFragments = append(rawQueryFragments, encoded)
-		}
-		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
-	}
-
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
@@ -2768,18 +2688,18 @@ func NewFocusaHealthCheckRequest(server string, params *FocusaHealthCheckParams)
 }
 
 // NewFocusaLicenseValidateRequest calls the generic FocusaLicenseValidate builder with application/json body
-func NewFocusaLicenseValidateRequest(server string, params *FocusaLicenseValidateParams, body FocusaLicenseValidateJSONRequestBody) (*http.Request, error) {
+func NewFocusaLicenseValidateRequest(server string, body FocusaLicenseValidateJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewFocusaLicenseValidateRequestWithBody(server, params, "application/json", bodyReader)
+	return NewFocusaLicenseValidateRequestWithBody(server, "application/json", bodyReader)
 }
 
 // NewFocusaLicenseValidateRequestWithBody generates requests for FocusaLicenseValidate with any type of body
-func NewFocusaLicenseValidateRequestWithBody(server string, params *FocusaLicenseValidateParams, contentType string, body io.Reader) (*http.Request, error) {
+func NewFocusaLicenseValidateRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -2795,45 +2715,6 @@ func NewFocusaLicenseValidateRequestWithBody(server string, params *FocusaLicens
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
-	}
-
-	if params != nil {
-		// queryValues collects non-styled parameters (passthrough, JSON)
-		// that are safe to round-trip through url.Values.Encode().
-		queryValues := queryURL.Query()
-		// rawQueryFragments collects pre-encoded query fragments from
-		// styled parameters, preserving literal commas as delimiters
-		// per the OpenAPI spec (e.g. "color=blue,black,brown").
-		var rawQueryFragments []string
-
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if encoded := queryValues.Encode(); encoded != "" {
-			rawQueryFragments = append(rawQueryFragments, encoded)
-		}
-		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
 	}
 
 	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
@@ -2874,28 +2755,12 @@ func NewFocusaLineageHeadRequest(server string, params *FocusaLineageHeadParams)
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -2940,28 +2805,12 @@ func NewFocusaLineageTreeRequest(server string, params *FocusaLineageTreeParams)
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -3006,28 +2855,20 @@ func NewFocusaMemoryProceduralReadRequest(server string, params *FocusaMemoryPro
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -3083,28 +2924,20 @@ func NewFocusaMemoryProceduralReinforceRequestWithBody(server string, params *Fo
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -3151,28 +2984,20 @@ func NewFocusaMemorySemanticReadRequest(server string, params *FocusaMemorySeman
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -3228,28 +3053,20 @@ func NewFocusaMemorySemanticUpsertRequestWithBody(server string, params *FocusaM
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -3307,28 +3124,20 @@ func NewFocusaMetacogCaptureRequestWithBody(server string, params *FocusaMetacog
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -3386,28 +3195,20 @@ func NewFocusaMetacogDoctorRequestWithBody(server string, params *FocusaMetacogD
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -3465,28 +3266,20 @@ func NewFocusaMetacogReflectRequestWithBody(server string, params *FocusaMetacog
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -3544,28 +3337,20 @@ func NewFocusaMetacogRetrieveRequestWithBody(server string, params *FocusaMetaco
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -3623,28 +3408,20 @@ func NewFocusaPredictionEvaluateRequestWithBody(server string, params *FocusaPre
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -3691,28 +3468,20 @@ func NewFocusaPredictionRecentRequest(server string, params *FocusaPredictionRec
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -3768,28 +3537,20 @@ func NewFocusaPredictionRecordRequestWithBody(server string, params *FocusaPredi
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -3836,28 +3597,12 @@ func NewFocusaProjectIdentityRequest(server string, params *FocusaProjectIdentit
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -3902,28 +3647,12 @@ func NewFocusaProjectVerifyRequest(server string, params *FocusaProjectVerifyPar
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -3968,28 +3697,12 @@ func NewFocusaResourceModeRequest(server string, params *FocusaResourceModeParam
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -4034,28 +3747,12 @@ func NewFocusaStateCurrentRequest(server string, params *FocusaStateCurrentParam
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -4100,28 +3797,12 @@ func NewFocusaToolDoctorRequest(server string, params *FocusaToolDoctorParams) (
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -4177,28 +3858,20 @@ func NewFocusaTrajectoryAssessRequestWithBody(server string, params *FocusaTraje
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -4256,28 +3929,20 @@ func NewFocusaTrajectoryCheckpointRequestWithBody(server string, params *FocusaT
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -4335,28 +4000,20 @@ func NewFocusaTrajectoryDefineGoalRequestWithBody(server string, params *FocusaT
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -4414,28 +4071,20 @@ func NewFocusaTrajectoryProposeWorkpointRequestWithBody(server string, params *F
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -4493,28 +4142,20 @@ func NewFocusaTrajectoryResumeRequestWithBody(server string, params *FocusaTraje
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -4561,28 +4202,20 @@ func NewFocusaTrajectoryViewRequest(server string, params *FocusaTrajectoryViewP
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -4638,28 +4271,12 @@ func NewFocusaTraverseRequestWithBody(server string, params *FocusaTraverseParam
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -4717,28 +4334,20 @@ func NewFocusaTurnAppendRequestWithBody(server string, params *FocusaTurnAppendP
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -4796,28 +4405,20 @@ func NewFocusaTurnCompleteRequestWithBody(server string, params *FocusaTurnCompl
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -4875,28 +4476,20 @@ func NewFocusaTurnStartRequestWithBody(server string, params *FocusaTurnStartPar
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -4954,28 +4547,12 @@ func NewFocusaWorkLoopControlRequestWithBody(server string, params *FocusaWorkLo
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -5022,28 +4599,12 @@ func NewFocusaWorkLoopStatusRequest(server string, params *FocusaWorkLoopStatusP
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
-		}
-
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -5099,28 +4660,20 @@ func NewFocusaWorkpointCheckpointRequestWithBody(server string, params *FocusaWo
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -5178,28 +4731,20 @@ func NewFocusaWorkpointLinkEvidenceRequestWithBody(server string, params *Focusa
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -5246,28 +4791,20 @@ func NewFocusaWorkpointResumeRequest(server string, params *FocusaWorkpointResum
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.ProjectRoot != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
-		if params.ContinuityId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -5327,6 +4864,15 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// FocusaOperationRegistryReadWithResponse request
+	FocusaOperationRegistryReadWithResponse(ctx context.Context, params *FocusaOperationRegistryReadParams, reqEditors ...RequestEditorFn) (*FocusaOperationRegistryReadResponse, error)
+
+	// FocusaUiActionBindingsReadWithResponse request
+	FocusaUiActionBindingsReadWithResponse(ctx context.Context, params *FocusaUiActionBindingsReadParams, reqEditors ...RequestEditorFn) (*FocusaUiActionBindingsReadResponse, error)
+
+	// FocusaUiCapabilitySnapshotReadWithResponse request
+	FocusaUiCapabilitySnapshotReadWithResponse(ctx context.Context, params *FocusaUiCapabilitySnapshotReadParams, reqEditors ...RequestEditorFn) (*FocusaUiCapabilitySnapshotReadResponse, error)
+
 	// FocusaAwarenessPacketWithBodyWithResponse request with any body
 	FocusaAwarenessPacketWithBodyWithResponse(ctx context.Context, params *FocusaAwarenessPacketParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaAwarenessPacketResponse, error)
 
@@ -5354,12 +4900,12 @@ type ClientWithResponsesInterface interface {
 	FocusaContextCognitionPacketWithResponse(ctx context.Context, params *FocusaContextCognitionPacketParams, reqEditors ...RequestEditorFn) (*FocusaContextCognitionPacketResponse, error)
 
 	// FocusaDevicePairStartWithBodyWithResponse request with any body
-	FocusaDevicePairStartWithBodyWithResponse(ctx context.Context, params *FocusaDevicePairStartParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaDevicePairStartResponse, error)
+	FocusaDevicePairStartWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaDevicePairStartResponse, error)
 
-	FocusaDevicePairStartWithResponse(ctx context.Context, params *FocusaDevicePairStartParams, body FocusaDevicePairStartJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaDevicePairStartResponse, error)
+	FocusaDevicePairStartWithResponse(ctx context.Context, body FocusaDevicePairStartJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaDevicePairStartResponse, error)
 
 	// FocusaDevicePairStatusWithResponse request
-	FocusaDevicePairStatusWithResponse(ctx context.Context, params *FocusaDevicePairStatusParams, reqEditors ...RequestEditorFn) (*FocusaDevicePairStatusResponse, error)
+	FocusaDevicePairStatusWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*FocusaDevicePairStatusResponse, error)
 
 	// FocusaDxuxReportWithResponse request
 	FocusaDxuxReportWithResponse(ctx context.Context, params *FocusaDxuxReportParams, reqEditors ...RequestEditorFn) (*FocusaDxuxReportResponse, error)
@@ -5370,12 +4916,12 @@ type ClientWithResponsesInterface interface {
 	FocusaEvidenceCaptureWithResponse(ctx context.Context, params *FocusaEvidenceCaptureParams, body FocusaEvidenceCaptureJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaEvidenceCaptureResponse, error)
 
 	// FocusaHealthCheckWithResponse request
-	FocusaHealthCheckWithResponse(ctx context.Context, params *FocusaHealthCheckParams, reqEditors ...RequestEditorFn) (*FocusaHealthCheckResponse, error)
+	FocusaHealthCheckWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*FocusaHealthCheckResponse, error)
 
 	// FocusaLicenseValidateWithBodyWithResponse request with any body
-	FocusaLicenseValidateWithBodyWithResponse(ctx context.Context, params *FocusaLicenseValidateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaLicenseValidateResponse, error)
+	FocusaLicenseValidateWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaLicenseValidateResponse, error)
 
-	FocusaLicenseValidateWithResponse(ctx context.Context, params *FocusaLicenseValidateParams, body FocusaLicenseValidateJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaLicenseValidateResponse, error)
+	FocusaLicenseValidateWithResponse(ctx context.Context, body FocusaLicenseValidateJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaLicenseValidateResponse, error)
 
 	// FocusaLineageHeadWithResponse request
 	FocusaLineageHeadWithResponse(ctx context.Context, params *FocusaLineageHeadParams, reqEditors ...RequestEditorFn) (*FocusaLineageHeadResponse, error)
@@ -5515,6 +5061,99 @@ type ClientWithResponsesInterface interface {
 
 	// FocusaWorkpointResumeWithResponse request
 	FocusaWorkpointResumeWithResponse(ctx context.Context, params *FocusaWorkpointResumeParams, reqEditors ...RequestEditorFn) (*FocusaWorkpointResumeResponse, error)
+}
+
+type FocusaOperationRegistryReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaOperationRegistryResponseV1
+	JSONDefault  *ErrorEnvelope
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaOperationRegistryReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaOperationRegistryReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaOperationRegistryReadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaUiActionBindingsReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaUiActionBindingsResponseV1
+	JSONDefault  *ErrorEnvelope
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaUiActionBindingsReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaUiActionBindingsReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaUiActionBindingsReadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaUiCapabilitySnapshotReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaUiCapabilitySnapshotResponseV1
+	JSONDefault  *ErrorEnvelope
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaUiCapabilitySnapshotReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaUiCapabilitySnapshotReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaUiCapabilitySnapshotReadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
 }
 
 type FocusaAwarenessPacketResponse struct {
@@ -6912,6 +6551,33 @@ func (r FocusaWorkpointResumeResponse) ContentType() string {
 	return ""
 }
 
+// FocusaOperationRegistryReadWithResponse request returning *FocusaOperationRegistryReadResponse
+func (c *ClientWithResponses) FocusaOperationRegistryReadWithResponse(ctx context.Context, params *FocusaOperationRegistryReadParams, reqEditors ...RequestEditorFn) (*FocusaOperationRegistryReadResponse, error) {
+	rsp, err := c.FocusaOperationRegistryRead(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaOperationRegistryReadResponse(rsp)
+}
+
+// FocusaUiActionBindingsReadWithResponse request returning *FocusaUiActionBindingsReadResponse
+func (c *ClientWithResponses) FocusaUiActionBindingsReadWithResponse(ctx context.Context, params *FocusaUiActionBindingsReadParams, reqEditors ...RequestEditorFn) (*FocusaUiActionBindingsReadResponse, error) {
+	rsp, err := c.FocusaUiActionBindingsRead(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaUiActionBindingsReadResponse(rsp)
+}
+
+// FocusaUiCapabilitySnapshotReadWithResponse request returning *FocusaUiCapabilitySnapshotReadResponse
+func (c *ClientWithResponses) FocusaUiCapabilitySnapshotReadWithResponse(ctx context.Context, params *FocusaUiCapabilitySnapshotReadParams, reqEditors ...RequestEditorFn) (*FocusaUiCapabilitySnapshotReadResponse, error) {
+	rsp, err := c.FocusaUiCapabilitySnapshotRead(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaUiCapabilitySnapshotReadResponse(rsp)
+}
+
 // FocusaAwarenessPacketWithBodyWithResponse request with arbitrary body returning *FocusaAwarenessPacketResponse
 func (c *ClientWithResponses) FocusaAwarenessPacketWithBodyWithResponse(ctx context.Context, params *FocusaAwarenessPacketParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaAwarenessPacketResponse, error) {
 	rsp, err := c.FocusaAwarenessPacketWithBody(ctx, params, contentType, body, reqEditors...)
@@ -6999,16 +6665,16 @@ func (c *ClientWithResponses) FocusaContextCognitionPacketWithResponse(ctx conte
 }
 
 // FocusaDevicePairStartWithBodyWithResponse request with arbitrary body returning *FocusaDevicePairStartResponse
-func (c *ClientWithResponses) FocusaDevicePairStartWithBodyWithResponse(ctx context.Context, params *FocusaDevicePairStartParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaDevicePairStartResponse, error) {
-	rsp, err := c.FocusaDevicePairStartWithBody(ctx, params, contentType, body, reqEditors...)
+func (c *ClientWithResponses) FocusaDevicePairStartWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaDevicePairStartResponse, error) {
+	rsp, err := c.FocusaDevicePairStartWithBody(ctx, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseFocusaDevicePairStartResponse(rsp)
 }
 
-func (c *ClientWithResponses) FocusaDevicePairStartWithResponse(ctx context.Context, params *FocusaDevicePairStartParams, body FocusaDevicePairStartJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaDevicePairStartResponse, error) {
-	rsp, err := c.FocusaDevicePairStart(ctx, params, body, reqEditors...)
+func (c *ClientWithResponses) FocusaDevicePairStartWithResponse(ctx context.Context, body FocusaDevicePairStartJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaDevicePairStartResponse, error) {
+	rsp, err := c.FocusaDevicePairStart(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -7016,8 +6682,8 @@ func (c *ClientWithResponses) FocusaDevicePairStartWithResponse(ctx context.Cont
 }
 
 // FocusaDevicePairStatusWithResponse request returning *FocusaDevicePairStatusResponse
-func (c *ClientWithResponses) FocusaDevicePairStatusWithResponse(ctx context.Context, params *FocusaDevicePairStatusParams, reqEditors ...RequestEditorFn) (*FocusaDevicePairStatusResponse, error) {
-	rsp, err := c.FocusaDevicePairStatus(ctx, params, reqEditors...)
+func (c *ClientWithResponses) FocusaDevicePairStatusWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*FocusaDevicePairStatusResponse, error) {
+	rsp, err := c.FocusaDevicePairStatus(ctx, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -7051,8 +6717,8 @@ func (c *ClientWithResponses) FocusaEvidenceCaptureWithResponse(ctx context.Cont
 }
 
 // FocusaHealthCheckWithResponse request returning *FocusaHealthCheckResponse
-func (c *ClientWithResponses) FocusaHealthCheckWithResponse(ctx context.Context, params *FocusaHealthCheckParams, reqEditors ...RequestEditorFn) (*FocusaHealthCheckResponse, error) {
-	rsp, err := c.FocusaHealthCheck(ctx, params, reqEditors...)
+func (c *ClientWithResponses) FocusaHealthCheckWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*FocusaHealthCheckResponse, error) {
+	rsp, err := c.FocusaHealthCheck(ctx, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -7060,16 +6726,16 @@ func (c *ClientWithResponses) FocusaHealthCheckWithResponse(ctx context.Context,
 }
 
 // FocusaLicenseValidateWithBodyWithResponse request with arbitrary body returning *FocusaLicenseValidateResponse
-func (c *ClientWithResponses) FocusaLicenseValidateWithBodyWithResponse(ctx context.Context, params *FocusaLicenseValidateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaLicenseValidateResponse, error) {
-	rsp, err := c.FocusaLicenseValidateWithBody(ctx, params, contentType, body, reqEditors...)
+func (c *ClientWithResponses) FocusaLicenseValidateWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaLicenseValidateResponse, error) {
+	rsp, err := c.FocusaLicenseValidateWithBody(ctx, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseFocusaLicenseValidateResponse(rsp)
 }
 
-func (c *ClientWithResponses) FocusaLicenseValidateWithResponse(ctx context.Context, params *FocusaLicenseValidateParams, body FocusaLicenseValidateJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaLicenseValidateResponse, error) {
-	rsp, err := c.FocusaLicenseValidate(ctx, params, body, reqEditors...)
+func (c *ClientWithResponses) FocusaLicenseValidateWithResponse(ctx context.Context, body FocusaLicenseValidateJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaLicenseValidateResponse, error) {
+	rsp, err := c.FocusaLicenseValidate(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -7531,6 +7197,105 @@ func (c *ClientWithResponses) FocusaWorkpointResumeWithResponse(ctx context.Cont
 		return nil, err
 	}
 	return ParseFocusaWorkpointResumeResponse(rsp)
+}
+
+// ParseFocusaOperationRegistryReadResponse parses an HTTP response from a FocusaOperationRegistryReadWithResponse call
+func ParseFocusaOperationRegistryReadResponse(rsp *http.Response) (*FocusaOperationRegistryReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaOperationRegistryReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaOperationRegistryResponseV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest ErrorEnvelope
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaUiActionBindingsReadResponse parses an HTTP response from a FocusaUiActionBindingsReadWithResponse call
+func ParseFocusaUiActionBindingsReadResponse(rsp *http.Response) (*FocusaUiActionBindingsReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaUiActionBindingsReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaUiActionBindingsResponseV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest ErrorEnvelope
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaUiCapabilitySnapshotReadResponse parses an HTTP response from a FocusaUiCapabilitySnapshotReadWithResponse call
+func ParseFocusaUiCapabilitySnapshotReadResponse(rsp *http.Response) (*FocusaUiCapabilitySnapshotReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaUiCapabilitySnapshotReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaUiCapabilitySnapshotResponseV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest ErrorEnvelope
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseFocusaAwarenessPacketResponse parses an HTTP response from a FocusaAwarenessPacketWithResponse call

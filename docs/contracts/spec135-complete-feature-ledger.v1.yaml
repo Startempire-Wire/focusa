@@ -84,9 +84,9 @@
         "typescript",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "partial",
+      "current_status": "verified",
       "delivery_lane": "foundation",
       "dependencies": [
         "SPEC135-F0"
@@ -151,9 +151,9 @@
         "typescript",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "foundation",
       "dependencies": [
         "SPEC135-F1"
@@ -220,9 +220,9 @@
         "typescript",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "foundation",
       "dependencies": [
         "SPEC135-F2"
@@ -291,9 +291,9 @@
         "typescript",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "foundation",
       "dependencies": [
         "SPEC135-F2",

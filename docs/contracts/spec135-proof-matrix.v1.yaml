@@ -42,7 +42,7 @@
         "DAG is acyclic and exposes ready work"
       ],
       "bead_id": "focusa-mc-f1",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "DAG validation",
         "matrix coverage audit"
@@ -66,7 +66,7 @@
         "Contract generation is deterministic"
       ],
       "bead_id": "focusa-mc-f2",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "schema snapshots",
         "OpenAPI validation"
@@ -91,7 +91,7 @@
         "No duplicate manual client DTO catalog"
       ],
       "bead_id": "focusa-mc-f3",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "TypeScript check",
         "Go client compile",
@@ -118,7 +118,7 @@
         "No second route/action catalog"
       ],
       "bead_id": "focusa-mc-f4",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "registry completeness audit",
         "binding fixtures"

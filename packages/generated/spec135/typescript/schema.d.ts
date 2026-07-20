@@ -4,6 +4,66 @@
  */
 
 export interface paths {
+    "/v1/agent/operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Operation Registry
+         * @description Read Operation Registry — family=agent budget=standard_read materialization=registry_read
+         */
+        get: operations["focusa.operation_registry.read"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agent/ui-action-bindings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Generated UI Action Bindings
+         * @description Read Generated UI Action Bindings — family=agent budget=standard_read materialization=registry_projection
+         */
+        get: operations["focusa.ui_action_bindings.read"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agent/ui-capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Generated UI Capability Snapshot
+         * @description Read Generated UI Capability Snapshot — family=agent budget=standard_read materialization=capability_projection
+         */
+        get: operations["focusa.ui_capability_snapshot.read"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/awareness/packet": {
         parameters: {
             query?: never;
@@ -1225,6 +1285,20 @@ export interface components {
             [key: string]: unknown;
         };
         /**
+         * focusa.operation_registry.request.v1
+         * @description Generated contract for Focusa schema focusa.operation_registry.request.v1
+         */
+        focusa_operation_registry_request_v1: {
+            [key: string]: unknown;
+        };
+        /**
+         * focusa.operation_registry.response.v1
+         * @description Generated contract for Focusa schema focusa.operation_registry.response.v1
+         */
+        focusa_operation_registry_response_v1: {
+            [key: string]: unknown;
+        };
+        /**
          * focusa.prediction_evaluate.request.v1
          * @description Generated contract for Focusa schema focusa.prediction_evaluate.request.v1
          */
@@ -1477,6 +1551,34 @@ export interface components {
             [key: string]: unknown;
         };
         /**
+         * focusa.ui_action_bindings.request.v1
+         * @description Generated contract for Focusa schema focusa.ui_action_bindings.request.v1
+         */
+        focusa_ui_action_bindings_request_v1: {
+            [key: string]: unknown;
+        };
+        /**
+         * focusa.ui_action_bindings.response.v1
+         * @description Generated contract for Focusa schema focusa.ui_action_bindings.response.v1
+         */
+        focusa_ui_action_bindings_response_v1: {
+            [key: string]: unknown;
+        };
+        /**
+         * focusa.ui_capability_snapshot.request.v1
+         * @description Generated contract for Focusa schema focusa.ui_capability_snapshot.request.v1
+         */
+        focusa_ui_capability_snapshot_request_v1: {
+            [key: string]: unknown;
+        };
+        /**
+         * focusa.ui_capability_snapshot.response.v1
+         * @description Generated contract for Focusa schema focusa.ui_capability_snapshot.response.v1
+         */
+        focusa_ui_capability_snapshot_response_v1: {
+            [key: string]: unknown;
+        };
+        /**
          * focusa.work_loop_control.request.v1
          * @description Generated contract for Focusa schema focusa.work_loop_control.request.v1
          */
@@ -1555,13 +1657,107 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    "focusa.operation_registry.read": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Read Operation Registry response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_operation_registry_response_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    "focusa.ui_action_bindings.read": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Read Generated UI Action Bindings response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_ui_action_bindings_response_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    "focusa.ui_capability_snapshot.read": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Read Generated UI Capability Snapshot response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_ui_capability_snapshot_response_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     "focusa.awareness.packet": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
             };
             header?: never;
             path?: never;
@@ -1595,11 +1791,9 @@ export interface operations {
     };
     "focusa.bloatgaurd.report": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
             };
             header?: never;
             path?: never;
@@ -1629,11 +1823,9 @@ export interface operations {
     };
     "focusa.call_stack.design": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
             };
             header?: never;
             path?: never;
@@ -1667,11 +1859,9 @@ export interface operations {
     };
     "focusa.call_stack.verify": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
             };
             header?: never;
             path?: never;
@@ -1705,11 +1895,11 @@ export interface operations {
     };
     "focusa.context_cognition.curate": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -1743,11 +1933,11 @@ export interface operations {
     };
     "focusa.context_cognition.packet": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -1777,12 +1967,7 @@ export interface operations {
     };
     "focusa.device_pair.start": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -1815,12 +2000,7 @@ export interface operations {
     };
     "focusa.device_pair.status": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -1849,11 +2029,9 @@ export interface operations {
     };
     "focusa.dxux.report": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
             };
             header?: never;
             path?: never;
@@ -1883,11 +2061,11 @@ export interface operations {
     };
     "focusa.evidence.capture": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -1921,12 +2099,7 @@ export interface operations {
     };
     "focusa.health.check": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -1955,12 +2128,7 @@ export interface operations {
     };
     "focusa.license.validate": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -1993,11 +2161,9 @@ export interface operations {
     };
     "focusa.lineage.head": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
             };
             header?: never;
             path?: never;
@@ -2027,11 +2193,9 @@ export interface operations {
     };
     "focusa.lineage.tree": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
             };
             header?: never;
             path?: never;
@@ -2061,11 +2225,11 @@ export interface operations {
     };
     "focusa.memory.procedural.read": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2095,11 +2259,11 @@ export interface operations {
     };
     "focusa.memory.procedural.reinforce": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2133,11 +2297,11 @@ export interface operations {
     };
     "focusa.memory.semantic.read": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2167,11 +2331,11 @@ export interface operations {
     };
     "focusa.memory.semantic.upsert": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2205,11 +2369,11 @@ export interface operations {
     };
     "focusa.metacog.capture": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2243,11 +2407,11 @@ export interface operations {
     };
     "focusa.metacog.doctor": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2281,11 +2445,11 @@ export interface operations {
     };
     "focusa.metacog.reflect": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2319,11 +2483,11 @@ export interface operations {
     };
     "focusa.metacog.retrieve": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2357,11 +2521,11 @@ export interface operations {
     };
     "focusa.prediction.evaluate": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2395,11 +2559,11 @@ export interface operations {
     };
     "focusa.prediction.recent": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2429,11 +2593,11 @@ export interface operations {
     };
     "focusa.prediction.record": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2467,11 +2631,9 @@ export interface operations {
     };
     "focusa.project.identity": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
             };
             header?: never;
             path?: never;
@@ -2501,11 +2663,9 @@ export interface operations {
     };
     "focusa.project.verify": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
             };
             header?: never;
             path?: never;
@@ -2535,11 +2695,9 @@ export interface operations {
     };
     "focusa.resource_mode": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
             };
             header?: never;
             path?: never;
@@ -2569,11 +2727,9 @@ export interface operations {
     };
     "focusa.state.current": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
             };
             header?: never;
             path?: never;
@@ -2603,11 +2759,9 @@ export interface operations {
     };
     "focusa.tool_doctor": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
             };
             header?: never;
             path?: never;
@@ -2637,11 +2791,11 @@ export interface operations {
     };
     "focusa.trajectory.assess": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2675,11 +2829,11 @@ export interface operations {
     };
     "focusa.trajectory.checkpoint": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2713,11 +2867,11 @@ export interface operations {
     };
     "focusa.trajectory.define_goal": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2751,11 +2905,11 @@ export interface operations {
     };
     "focusa.trajectory.propose_workpoint": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2789,11 +2943,11 @@ export interface operations {
     };
     "focusa.trajectory.resume": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2827,11 +2981,11 @@ export interface operations {
     };
     "focusa.trajectory.view": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2861,11 +3015,9 @@ export interface operations {
     };
     "focusa.traverse": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
             };
             header?: never;
             path?: never;
@@ -2899,11 +3051,11 @@ export interface operations {
     };
     "focusa.turn.append": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2937,11 +3089,11 @@ export interface operations {
     };
     "focusa.turn.complete": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -2975,11 +3127,11 @@ export interface operations {
     };
     "focusa.turn.start": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -3013,11 +3165,9 @@ export interface operations {
     };
     "focusa.work_loop.control": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
             };
             header?: never;
             path?: never;
@@ -3051,11 +3201,9 @@ export interface operations {
     };
     "focusa.work_loop.status": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
             };
             header?: never;
             path?: never;
@@ -3085,11 +3233,11 @@ export interface operations {
     };
     "focusa.workpoint.checkpoint": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -3123,11 +3271,11 @@ export interface operations {
     };
     "focusa.workpoint.link_evidence": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -3161,11 +3309,11 @@ export interface operations {
     };
     "focusa.workpoint.resume": {
         parameters: {
-            query?: {
-                /** @description Project root for scoping */
-                project_root?: string;
-                /** @description Session continuity ID */
-                continuity_id?: string;
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;

@@ -9,7 +9,7 @@
 //! native-adapter capability registry.
 
 use crate::server::AppState;
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::{Json, Router, routing::get};
 use chrono::Utc;
@@ -29,7 +29,53 @@ struct CapabilitiesIndex {
 }
 
 #[derive(Debug, Serialize)]
+struct OperationOwnership {
+    subsystem: &'static str,
+    core_action_ref: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct OperationContracts {
+    input_schema_ref: &'static str,
+    output_schema_ref: &'static str,
+    error_schema_ref: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct OperationScope {
+    required_keys: Vec<&'static str>,
+    project_scoped: bool,
+    workstream_scoped: bool,
+    attachment_scoped: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct OperationControl {
+    capability_refs: Vec<&'static str>,
+    permission_scopes: Vec<&'static str>,
+    mode: &'static str,
+    confirmation: &'static str,
+    idempotency_required: bool,
+    optimistic_concurrency_required: bool,
+    receipt_required: bool,
+    reversible: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct OperationUi {
+    allowed_in_generated_ui: bool,
+    default_label: &'static str,
+    plain_language_description: &'static str,
+    input_presentation_ref: &'static str,
+    result_presentation_ref: &'static str,
+    advanced_only: bool,
+    sensitivity: &'static str,
+}
+
+#[derive(Debug, Serialize)]
 struct OperationEntry {
+    #[serde(rename = "schema")]
+    descriptor_schema: &'static str,
     operation_id: &'static str,
     label: &'static str,
     family: &'static str,
@@ -55,6 +101,11 @@ struct OperationEntry {
     examples_ref: &'static str,
     docs_ref: &'static str,
     deprecation: Option<DeprecationEntry>,
+    ownership: OperationOwnership,
+    contracts: OperationContracts,
+    scope: OperationScope,
+    control: OperationControl,
+    ui: OperationUi,
 }
 
 #[derive(Debug, Serialize)]
@@ -134,7 +185,47 @@ fn op(
     docs: &'static str,
     deprecation: Option<DeprecationEntry>,
 ) -> OperationEntry {
+    let project_scoped = !matches!(family, "health" | "device" | "license");
+    let workstream_scoped = matches!(
+        family,
+        "trajectory"
+            | "workpoint"
+            | "metacognition"
+            | "evidence"
+            | "prediction"
+            | "context_cognition"
+            | "turn"
+            | "memory"
+    );
+    let attachment_scoped = id.contains("attachment");
+    let mut required_keys = Vec::new();
+    if project_scoped {
+        required_keys.push("project_root");
+    }
+    if workstream_scoped {
+        required_keys.push("continuity_id");
+    }
+    if attachment_scoped {
+        required_keys.push("attachment_id");
+    }
+    let mode = if method == "GET" {
+        "read"
+    } else if req_preview {
+        "preview"
+    } else {
+        "commit"
+    };
+    let confirmation = if confirm { "consequential" } else { "none" };
+    let sensitivity = if confirm {
+        "consequential"
+    } else if method == "GET" {
+        "routine"
+    } else {
+        "scoped_mutation"
+    };
+
     OperationEntry {
+        descriptor_schema: "focusa.operation_descriptor.v1",
         operation_id: id,
         label,
         family,
@@ -150,7 +241,7 @@ fn op(
         requires_idempotency_key: req_idempotency,
         requires_if_match_version: req_if_match,
         requires_preview_token: req_preview,
-        permissions_required: permissions,
+        permissions_required: permissions.clone(),
         confirmation_required: confirm,
         budget_profile: budget,
         response_detail_supported: detail,
@@ -160,6 +251,40 @@ fn op(
         examples_ref: "/v1/agent/examples/operations",
         docs_ref: docs,
         deprecation,
+        ownership: OperationOwnership {
+            subsystem: family,
+            core_action_ref: id,
+        },
+        contracts: OperationContracts {
+            input_schema_ref: req_schema,
+            output_schema_ref: res_schema,
+            error_schema_ref: "focusa.tool_result.v1",
+        },
+        scope: OperationScope {
+            required_keys,
+            project_scoped,
+            workstream_scoped,
+            attachment_scoped,
+        },
+        control: OperationControl {
+            capability_refs: vec![family],
+            permission_scopes: permissions.clone(),
+            mode,
+            confirmation,
+            idempotency_required: req_idempotency,
+            optimistic_concurrency_required: req_if_match,
+            receipt_required: method != "GET",
+            reversible: id.contains("restore") || id.contains("rollback"),
+        },
+        ui: OperationUi {
+            allowed_in_generated_ui: canonical && alias_of.is_none(),
+            default_label: label,
+            plain_language_description: label,
+            input_presentation_ref: "focusa.generated_form.v1",
+            result_presentation_ref: "focusa.generated_result.v1",
+            advanced_only: matches!(family, "bloatgaurd" | "dxux" | "traverse"),
+            sensitivity,
+        },
     }
 }
 
@@ -1222,12 +1347,82 @@ fn build_operations() -> Vec<OperationEntry> {
             "docs/G1-detail-04-proxy-adapter.md",
             None,
         ),
+        op(
+            "focusa.operation_registry.read",
+            "Read Operation Registry",
+            "agent",
+            "GET",
+            "/v1/agent/operations",
+            true,
+            None,
+            "read_state",
+            "registry_read",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec![],
+            false,
+            "standard_read",
+            vec!["compact", "standard"],
+            "focusa.operation_registry.request.v1",
+            "focusa.operation_registry.response.v1",
+            "docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md",
+            None,
+        ),
+        op(
+            "focusa.ui_action_bindings.read",
+            "Read Generated UI Action Bindings",
+            "agent",
+            "GET",
+            "/v1/agent/ui-action-bindings",
+            true,
+            None,
+            "read_state",
+            "registry_projection",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec!["project:read"],
+            false,
+            "standard_read",
+            vec!["compact", "standard"],
+            "focusa.ui_action_bindings.request.v1",
+            "focusa.ui_action_bindings.response.v1",
+            "docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md",
+            None,
+        ),
+        op(
+            "focusa.ui_capability_snapshot.read",
+            "Read Generated UI Capability Snapshot",
+            "agent",
+            "GET",
+            "/v1/agent/ui-capabilities",
+            true,
+            None,
+            "read_state",
+            "capability_projection",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec!["project:read"],
+            false,
+            "standard_read",
+            vec!["compact", "standard"],
+            "focusa.ui_capability_snapshot.request.v1",
+            "focusa.ui_capability_snapshot.response.v1",
+            "docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md",
+            None,
+        ),
     ]
 }
 
 fn build_families() -> Vec<&'static str> {
     vec![
         "health",
+        "agent",
         "project",
         "trajectory",
         "workpoint",
@@ -1274,6 +1469,116 @@ pub async fn capabilities_index_handler(State(_state): State<Arc<AppState>>) -> 
         "failure_class": "serialization_error",
         "message": "Failed to serialize capabilities index"
     })))
+}
+
+pub async fn operation_registry_handler(State(_state): State<Arc<AppState>>) -> Json<Value> {
+    let operations = build_operations();
+    Json(json!({
+        "schema": "focusa.operation_registry.v1",
+        "registry_version": "1.0.0",
+        "generated_at": Utc::now().to_rfc3339(),
+        "operation_count": operations.len(),
+        "operations": operations,
+    }))
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct UiProjectionQuery {
+    project_root: Option<String>,
+    continuity_id: Option<String>,
+    attachment_id: Option<String>,
+    agent_id: Option<String>,
+}
+
+fn ui_action_bindings_document(scope: &UiProjectionQuery) -> Value {
+    let bindings: Vec<Value> = build_operations()
+        .into_iter()
+        .filter(|operation| operation.ui.allowed_in_generated_ui)
+        .map(|operation| {
+            json!({
+                "schema": "focusa.ui_action_binding.v1",
+                "action_id": operation.operation_id,
+                "operation_descriptor_ref": format!("/v1/agent/operations#{}", operation.operation_id),
+                "canonical_revision": operation.operation_version,
+                "scope": {
+                    "project_root": scope.project_root.as_deref(),
+                    "continuity_id": scope.continuity_id.as_deref(),
+                    "attachment_id": scope.attachment_id.as_deref(),
+                    "required_keys": operation.scope.required_keys,
+                },
+                "capability_refs": operation.control.capability_refs,
+                "permission_scopes": operation.control.permission_scopes,
+                "contracts": operation.contracts,
+                "control": {
+                    "mode": operation.control.mode,
+                    "confirmation": operation.control.confirmation,
+                    "idempotency_required": operation.control.idempotency_required,
+                    "optimistic_concurrency_required": operation.control.optimistic_concurrency_required,
+                    "receipt_required": operation.control.receipt_required,
+                    "reversible": operation.control.reversible,
+                },
+                "presentation": operation.ui,
+                "result_envelope_ref": "focusa.tool_result.v1",
+                "recovery_envelope_ref": "focusa.tool_result.v1",
+            })
+        })
+        .collect();
+    json!({
+        "schema": "focusa.ui_action_binding_index.v1",
+        "registry_version": "1.0.0",
+        "project_root": scope.project_root.as_deref(),
+        "continuity_id": scope.continuity_id.as_deref(),
+        "attachment_id": scope.attachment_id.as_deref(),
+        "binding_count": bindings.len(),
+        "bindings": bindings,
+    })
+}
+
+async fn ui_action_bindings_handler(Query(scope): Query<UiProjectionQuery>) -> Json<Value> {
+    Json(ui_action_bindings_document(&scope))
+}
+
+fn ui_capability_snapshot_document(scope: &UiProjectionQuery) -> Value {
+    let operations = build_operations();
+    let capability_ids: std::collections::BTreeSet<_> = operations
+        .iter()
+        .flat_map(|operation| operation.control.capability_refs.iter().copied())
+        .collect();
+    let permission_scopes: std::collections::BTreeSet<_> = operations
+        .iter()
+        .flat_map(|operation| operation.control.permission_scopes.iter().copied())
+        .collect();
+    let capabilities: Vec<Value> = capability_ids
+        .into_iter()
+        .map(|capability_id| {
+            json!({
+                "capability_id": capability_id,
+                "status": "available",
+                "reason": "Published by the canonical Focusa Operation Registry",
+                "recovery_action_ref": Value::Null,
+            })
+        })
+        .collect();
+    json!({
+        "schema": "focusa.ui_capability_snapshot.v1",
+        "project_root": scope.project_root.as_deref(),
+        "continuity_id": scope.continuity_id.as_deref(),
+        "attachment_id": scope.attachment_id.as_deref(),
+        "agent_id": scope.agent_id.as_deref(),
+        "capabilities": capabilities,
+        "permissions": {
+            "granted_scopes": [],
+            "missing_scopes": permission_scopes,
+        },
+        "providers": [],
+        "connectors": [],
+        "client_capabilities": ["openapi-3.0.3", "json-schema-2020-12", "a2ui-action-bindings"],
+        "source_state_revision": "operation-registry-1.0.0",
+    })
+}
+
+async fn ui_capability_snapshot_handler(Query(scope): Query<UiProjectionQuery>) -> Json<Value> {
+    Json(ui_capability_snapshot_document(&scope))
 }
 
 const JSON_SCHEMA_DIALECT_2020_12: &str = "https://json-schema.org/draft/2020-12/schema";
@@ -1395,6 +1700,20 @@ fn openapi_document() -> Value {
         let method_key = op.method.to_lowercase();
         let entry = paths.entry(path_key).or_insert_with(|| json!({}));
         if let Some(obj) = entry.as_object_mut() {
+            let parameters: Vec<Value> = op
+                .scope
+                .required_keys
+                .iter()
+                .map(|key| {
+                    json!({
+                        "name": key,
+                        "in": "query",
+                        "required": true,
+                        "schema": {"type": "string"},
+                        "description": format!("Required Focusa scope key: {key}"),
+                    })
+                })
+                .collect();
             let response_schema = json!({
                 "description": format!("{} response", op.label),
                 "content": {
@@ -1410,10 +1729,7 @@ fn openapi_document() -> Value {
                 "summary": op.label,
                 "description": format!("{} — family={} budget={} materialization={}", op.label, op.family, op.budget_profile, op.materialization_mode),
                 "tags": [op.family],
-                "parameters": [
-                    {"name": "project_root", "in": "query", "schema": {"type": "string"}, "description": "Project root for scoping"},
-                    {"name": "continuity_id", "in": "query", "schema": {"type": "string"}, "description": "Session continuity ID"},
-                ],
+                "parameters": parameters,
                 "responses": {
                     "200": response_schema,
                     "default": {
@@ -1425,6 +1741,21 @@ fn openapi_document() -> Value {
                         }
                     }
                 },
+                "x-focusa-subsystem": op.ownership.subsystem,
+                "x-focusa-core-action": op.ownership.core_action_ref,
+                "x-focusa-scope-keys": op.scope.required_keys,
+                "x-focusa-capabilities": op.control.capability_refs,
+                "x-focusa-permissions": op.control.permission_scopes,
+                "x-focusa-mode": op.control.mode,
+                "x-focusa-confirmation": op.control.confirmation,
+                "x-focusa-idempotency": op.control.idempotency_required,
+                "x-focusa-concurrency": op.control.optimistic_concurrency_required,
+                "x-focusa-receipt": op.control.receipt_required,
+                "x-focusa-reversible": op.control.reversible,
+                "x-focusa-generated-ui": op.ui.allowed_in_generated_ui,
+                "x-focusa-plain-label": op.ui.default_label,
+                "x-focusa-advanced-only": op.ui.advanced_only,
+                "x-focusa-sensitive": op.ui.sensitivity,
                 "x-focusa": {
                     "family": op.family,
                     "canonical": op.canonical,
@@ -1432,9 +1763,7 @@ fn openapi_document() -> Value {
                     "side_effect_profile": op.side_effect_profile,
                     "materialization_mode": op.materialization_mode,
                     "supports_side_effect_policy": op.supports_side_effect_policy,
-                    "requires_idempotency_key": op.requires_idempotency_key,
-                    "requires_if_match_version": op.requires_if_match_version,
-                    "permissions_required": op.permissions_required,
+                    "requires_preview_token": op.requires_preview_token,
                     "deprecation": op.deprecation,
                 },
             });
@@ -1481,6 +1810,15 @@ pub fn routes() -> Router<Arc<AppState>> {
         )
         .route("/v1/agent/capabilities", get(capabilities_index_handler))
         .route("/v1/agent/tools", get(capabilities_index_handler))
+        .route("/v1/agent/operations", get(operation_registry_handler))
+        .route(
+            "/v1/agent/ui-action-bindings",
+            get(ui_action_bindings_handler),
+        )
+        .route(
+            "/v1/agent/ui-capabilities",
+            get(ui_capability_snapshot_handler),
+        )
         .route("/v1/agent/schemas", get(list_schemas))
         .route("/v1/agent/schemas/{schema_id}", get(get_schema))
         .route("/v1/openapi.json", get(openapi_export))
@@ -1620,6 +1958,104 @@ mod tests {
             } else {
                 assert!(rendered.get("requestBody").is_some());
             }
+            for extension in [
+                "x-focusa-subsystem",
+                "x-focusa-core-action",
+                "x-focusa-scope-keys",
+                "x-focusa-capabilities",
+                "x-focusa-permissions",
+                "x-focusa-mode",
+                "x-focusa-confirmation",
+                "x-focusa-idempotency",
+                "x-focusa-concurrency",
+                "x-focusa-receipt",
+                "x-focusa-reversible",
+                "x-focusa-generated-ui",
+                "x-focusa-plain-label",
+                "x-focusa-advanced-only",
+                "x-focusa-sensitive",
+            ] {
+                assert!(rendered.get(extension).is_some(), "missing {extension}");
+            }
         }
+    }
+
+    #[test]
+    fn operation_registry_descriptors_are_complete_and_unique() {
+        let operations = build_operations();
+        let mut ids = std::collections::BTreeSet::new();
+        let mut routes = std::collections::BTreeSet::new();
+        for operation in &operations {
+            assert!(ids.insert(operation.operation_id));
+            assert!(routes.insert((operation.method, operation.path)));
+            assert_eq!(
+                operation.descriptor_schema,
+                "focusa.operation_descriptor.v1"
+            );
+            assert_eq!(operation.ownership.core_action_ref, operation.operation_id);
+            assert_eq!(
+                operation.contracts.input_schema_ref,
+                operation.request_schema_ref
+            );
+            assert_eq!(
+                operation.contracts.output_schema_ref,
+                operation.response_schema_ref
+            );
+            assert_eq!(
+                operation.contracts.error_schema_ref,
+                "focusa.tool_result.v1"
+            );
+            assert!(!operation.control.capability_refs.is_empty());
+            assert!(!operation.ui.default_label.is_empty());
+            if operation.method != "GET" {
+                assert!(operation.control.receipt_required);
+            }
+        }
+        assert!(ids.contains("focusa.operation_registry.read"));
+        assert!(ids.contains("focusa.ui_action_bindings.read"));
+        assert!(ids.contains("focusa.ui_capability_snapshot.read"));
+    }
+
+    #[test]
+    fn generated_ui_bindings_and_capability_projection_share_registry_authority() {
+        let scope = UiProjectionQuery {
+            project_root: Some("/tmp/project".into()),
+            continuity_id: Some("continuity-1".into()),
+            attachment_id: None,
+            agent_id: Some("agent-1".into()),
+        };
+        let bindings = ui_action_bindings_document(&scope);
+        let expected = build_operations()
+            .iter()
+            .filter(|operation| operation.ui.allowed_in_generated_ui)
+            .count();
+        assert_eq!(bindings["schema"], "focusa.ui_action_binding_index.v1");
+        assert_eq!(bindings["binding_count"], expected);
+        assert_eq!(
+            bindings["bindings"].as_array().map(Vec::len),
+            Some(expected)
+        );
+        for binding in bindings["bindings"].as_array().expect("bindings") {
+            assert_eq!(binding["schema"], "focusa.ui_action_binding.v1");
+            assert_eq!(binding["result_envelope_ref"], "focusa.tool_result.v1");
+            assert!(ids_contains(
+                binding["action_id"].as_str().unwrap_or_default()
+            ));
+        }
+
+        let snapshot = ui_capability_snapshot_document(&scope);
+        assert_eq!(snapshot["schema"], "focusa.ui_capability_snapshot.v1");
+        assert_eq!(snapshot["project_root"], "/tmp/project");
+        assert!(
+            snapshot["capabilities"]
+                .as_array()
+                .is_some_and(|items| !items.is_empty())
+        );
+    }
+
+    fn ids_contains(id: &str) -> bool {
+        build_operations()
+            .iter()
+            .any(|operation| operation.operation_id == id)
     }
 }
