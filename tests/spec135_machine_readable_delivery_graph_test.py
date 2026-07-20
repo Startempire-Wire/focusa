@@ -53,7 +53,7 @@ for row in requirements:
 
 assert {"SPEC135-F0", "SPEC135-F1", "SPEC135-F12", "SPEC135-ALPHA1", "SPEC135-ALPHA8", "SPEC135-Z5"} <= ids
 assert next(r for r in requirements if r["requirement_id"] == "SPEC135-F0")["closure_status"] == "verified"
-for completed in ("SPEC135-F0", "SPEC135-F1", "SPEC135-F2", "SPEC135-F3", "SPEC135-F4"):
+for completed in ("SPEC135-F0", "SPEC135-F1", "SPEC135-F2", "SPEC135-F3", "SPEC135-F4", "SPEC135-F5"):
     row = next(r for r in requirements if r["requirement_id"] == completed)
     assert row["current_status"] == "verified"
     assert row["closure_status"] == "verified"

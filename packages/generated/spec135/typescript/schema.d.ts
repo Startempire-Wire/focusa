@@ -968,14 +968,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        ErrorEnvelope: {
-            failure_class: string;
-            message: string;
-            next_tools?: string[];
-            recovery_hint?: string;
-        } & {
-            [key: string]: unknown;
-        };
         /**
          * focusa.awareness_packet.request.v1
          * @description Generated contract for Focusa schema focusa.awareness_packet.request.v1
@@ -1411,6 +1403,43 @@ export interface components {
             [key: string]: unknown;
         };
         /**
+         * Focusa ToolResult v1
+         * @description Canonical Focusa success, failure, retry, and recovery envelope
+         */
+        focusa_tool_result_v1: {
+            canonical: boolean;
+            degraded: boolean;
+            endpoint?: string;
+            error?: {
+                [key: string]: unknown;
+            };
+            evidence_refs: string[];
+            /** @enum {string} */
+            failure_class?: "validation_rejected" | "schema_invalid" | "not_found" | "frame_unavailable" | "daemon_unavailable" | "stale_runtime_registry" | "resource_exhausted" | "null_response" | "hot_path_timeout" | "cold_path_timeout" | "writer_conflict" | "scope_mismatch" | "scope_conflict" | "approval_required" | "permission_denied" | "process_control_failed" | "noncanonical_fallback" | "read_model_lag" | "unknown_ambiguous_completion";
+            family?: string;
+            misuse_hint?: string;
+            next_tools: string[];
+            ok: boolean;
+            ontology_candidate_delta_refs?: string[];
+            raw?: unknown;
+            recovery_hint?: string;
+            reflex_suggestions?: string[];
+            retry: {
+                /** @enum {string} */
+                posture: "safe_retry" | "retry_with_idempotency_key" | "check_side_effects_first" | "do_not_retry_unchanged" | "operator_required";
+                reason?: string;
+                safe: boolean;
+            };
+            /** @enum {string} */
+            schema: "focusa.tool_result.v1";
+            side_effects: string[];
+            /** @enum {string} */
+            status: "accepted" | "completed" | "no_op" | "blocked" | "validation_rejected" | "degraded" | "offline" | "error";
+            summary: string;
+            tool?: string;
+            workpoint_id?: string;
+        };
+        /**
          * focusa.trajectory_assess.request.v1
          * @description Generated contract for Focusa schema focusa.trajectory_assess.request.v1
          */
@@ -1684,7 +1713,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -1716,7 +1745,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -1748,7 +1777,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -1784,7 +1813,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -1816,7 +1845,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -1852,7 +1881,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -1888,7 +1917,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -1926,7 +1955,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -1960,7 +1989,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -1993,7 +2022,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2022,7 +2051,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2054,7 +2083,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2092,7 +2121,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2121,7 +2150,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2154,7 +2183,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2186,7 +2215,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2218,7 +2247,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2252,7 +2281,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2290,7 +2319,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2324,7 +2353,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2362,7 +2391,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2400,7 +2429,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2438,7 +2467,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2476,7 +2505,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2514,7 +2543,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2552,7 +2581,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2586,7 +2615,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2624,7 +2653,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2656,7 +2685,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2688,7 +2717,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2720,7 +2749,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2752,7 +2781,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2784,7 +2813,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2822,7 +2851,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2860,7 +2889,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2898,7 +2927,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2936,7 +2965,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -2974,7 +3003,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -3008,7 +3037,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -3044,7 +3073,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -3082,7 +3111,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -3120,7 +3149,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -3158,7 +3187,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -3194,7 +3223,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -3226,7 +3255,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -3264,7 +3293,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -3302,7 +3331,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };
@@ -3336,7 +3365,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
             };
         };

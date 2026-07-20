@@ -144,7 +144,7 @@
         "Generated clients consume the same envelope"
       ],
       "bead_id": "focusa-mc-f5",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "envelope contract tests",
         "failure recovery tests"

@@ -13,6 +13,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::{Json, Router, routing::get};
 use chrono::Utc;
+use focusa_core::tool_result::TOOL_RESULT_SCHEMA;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::sync::{Arc, LazyLock};
@@ -1589,13 +1590,60 @@ fn schema_component_name(schema_id: &str) -> String {
 }
 
 fn registered_schema_ids() -> std::collections::BTreeSet<&'static str> {
-    build_operations()
+    let mut schema_ids: std::collections::BTreeSet<_> = build_operations()
         .iter()
         .flat_map(|op| [op.request_schema_ref, op.response_schema_ref])
-        .collect()
+        .collect();
+    schema_ids.insert(TOOL_RESULT_SCHEMA);
+    schema_ids
 }
 
 fn json_schema_document(schema_id: &str) -> Value {
+    if schema_id == TOOL_RESULT_SCHEMA {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"),
+            "title": "Focusa ToolResult v1",
+            "description": "Canonical Focusa success, failure, retry, and recovery envelope",
+            "type": "object",
+            "required": ["schema", "ok", "status", "canonical", "degraded", "summary", "retry", "side_effects", "evidence_refs", "next_tools"],
+            "properties": {
+                "schema": {"type": "string", "enum": [TOOL_RESULT_SCHEMA]},
+                "ok": {"type": "boolean"},
+                "status": {"type": "string", "enum": ["accepted", "completed", "no_op", "blocked", "validation_rejected", "degraded", "offline", "error"]},
+                "failure_class": {"type": "string", "enum": ["validation_rejected", "schema_invalid", "not_found", "frame_unavailable", "daemon_unavailable", "stale_runtime_registry", "resource_exhausted", "null_response", "hot_path_timeout", "cold_path_timeout", "writer_conflict", "scope_mismatch", "scope_conflict", "approval_required", "permission_denied", "process_control_failed", "noncanonical_fallback", "read_model_lag", "unknown_ambiguous_completion"]},
+                "canonical": {"type": "boolean"},
+                "degraded": {"type": "boolean"},
+                "summary": {"type": "string", "maxLength": 240},
+                "tool": {"type": "string"},
+                "family": {"type": "string"},
+                "endpoint": {"type": "string"},
+                "workpoint_id": {"type": "string"},
+                "retry": {
+                    "type": "object",
+                    "required": ["safe", "posture"],
+                    "properties": {
+                        "safe": {"type": "boolean"},
+                        "posture": {"type": "string", "enum": ["safe_retry", "retry_with_idempotency_key", "check_side_effects_first", "do_not_retry_unchanged", "operator_required"]},
+                        "reason": {"type": "string"}
+                    },
+                    "additionalProperties": false
+                },
+                "recovery_hint": {"type": "string"},
+                "misuse_hint": {"type": "string"},
+                "side_effects": {"type": "array", "items": {"type": "string"}},
+                "evidence_refs": {"type": "array", "items": {"type": "string"}},
+                "next_tools": {"type": "array", "items": {"type": "string"}},
+                "reflex_suggestions": {"type": "array", "items": {"type": "string"}},
+                "ontology_candidate_delta_refs": {"type": "array", "items": {"type": "string"}},
+                "error": {"type": "object", "additionalProperties": true},
+                "raw": {}
+            },
+            "additionalProperties": false,
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "focusa_core::tool_result::ToolResultV1"
+        });
+    }
     json!({
         "$schema": JSON_SCHEMA_DIALECT_2020_12,
         "$id": format!("/v1/agent/schemas/{schema_id}"),
@@ -1623,12 +1671,7 @@ fn openapi_schema_component(schema_id: &str) -> Value {
 }
 
 pub async fn list_schemas(State(_state): State<Arc<AppState>>) -> Json<Value> {
-    let schema_ids: Vec<&str> = build_operations()
-        .iter()
-        .flat_map(|op| vec![op.request_schema_ref, op.response_schema_ref])
-        .collect::<std::collections::BTreeSet<&str>>()
-        .into_iter()
-        .collect();
+    let schema_ids: Vec<&str> = registered_schema_ids().into_iter().collect();
     Json(json!({
         "schema": "focusa.agent_schema_index.v1",
         "api_version": "v1",
@@ -1674,21 +1717,6 @@ fn openapi_document() -> Value {
     let ops = build_operations();
     let mut paths = serde_json::Map::new();
     let mut schemas = serde_json::Map::new();
-    schemas.insert(
-        "ErrorEnvelope".to_string(),
-        json!({
-            "type": "object",
-            "required": ["failure_class", "message"],
-            "properties": {
-                "failure_class": {"type": "string"},
-                "message": {"type": "string"},
-                "recovery_hint": {"type": "string"},
-                "next_tools": {"type": "array", "items": {"type": "string"}},
-            },
-            "additionalProperties": true,
-            "x-focusa-json-schema-dialect": JSON_SCHEMA_DIALECT_2020_12,
-        }),
-    );
     for schema_id in registered_schema_ids() {
         schemas.insert(
             schema_component_name(schema_id),
@@ -1736,7 +1764,7 @@ fn openapi_document() -> Value {
                         "description": "Standard error envelope",
                         "content": {
                             "application/json": {
-                                "schema": {"$ref": "#/components/schemas/ErrorEnvelope"}
+                                "schema": {"$ref": "#/components/schemas/focusa_tool_result_v1"}
                             }
                         }
                     }
@@ -1756,6 +1784,7 @@ fn openapi_document() -> Value {
                 "x-focusa-plain-label": op.ui.default_label,
                 "x-focusa-advanced-only": op.ui.advanced_only,
                 "x-focusa-sensitive": op.ui.sensitivity,
+                "x-focusa-result-envelope": TOOL_RESULT_SCHEMA,
                 "x-focusa": {
                     "family": op.family,
                     "canonical": op.canonical,
@@ -1945,8 +1974,8 @@ mod tests {
         let schemas = document["components"]["schemas"]
             .as_object()
             .expect("OpenAPI component schemas");
-        assert_eq!(schemas.len(), registered_schema_ids().len() + 1);
-        assert!(schemas.contains_key("ErrorEnvelope"));
+        assert_eq!(schemas.len(), registered_schema_ids().len());
+        assert!(schemas.contains_key("focusa_tool_result_v1"));
 
         for operation in build_operations() {
             assert!(schemas.contains_key(&schema_component_name(operation.request_schema_ref)));
@@ -1974,6 +2003,7 @@ mod tests {
                 "x-focusa-plain-label",
                 "x-focusa-advanced-only",
                 "x-focusa-sensitive",
+                "x-focusa-result-envelope",
             ] {
                 assert!(rendered.get(extension).is_some(), "missing {extension}");
             }

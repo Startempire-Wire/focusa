@@ -55,6 +55,7 @@ pub mod skills;
 pub mod sync;
 pub mod telemetry;
 pub mod threads;
+pub mod tool_result;
 pub mod training;
 pub mod types;
 pub mod update;

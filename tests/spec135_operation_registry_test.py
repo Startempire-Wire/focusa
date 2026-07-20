@@ -24,6 +24,7 @@ required_extensions = {
     "x-focusa-confirmation", "x-focusa-idempotency", "x-focusa-concurrency",
     "x-focusa-receipt", "x-focusa-reversible", "x-focusa-generated-ui",
     "x-focusa-plain-label", "x-focusa-advanced-only", "x-focusa-sensitive",
+    "x-focusa-result-envelope",
 }
 openapi_operations = {}
 for path, path_item in openapi["paths"].items():
@@ -37,6 +38,7 @@ for path, path_item in openapi["paths"].items():
         assert operation["x-focusa-core-action"] == descriptor["ownership"]["core_action_ref"]
         assert operation["x-focusa-scope-keys"] == descriptor["scope"]["required_keys"]
         assert operation["x-focusa-permissions"] == descriptor["control"]["permission_scopes"]
+        assert operation["x-focusa-result-envelope"] == "focusa.tool_result.v1"
 
 assert openapi_operations.keys() == operations.keys()
 for operation_id, descriptor in operations.items():

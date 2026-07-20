@@ -16,13 +16,151 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
-// ErrorEnvelope defines model for ErrorEnvelope.
-type ErrorEnvelope struct {
-	FailureClass         string                 `json:"failure_class"`
-	Message              string                 `json:"message"`
-	NextTools            *[]string              `json:"next_tools,omitempty"`
-	RecoveryHint         *string                `json:"recovery_hint,omitempty"`
-	AdditionalProperties map[string]interface{} `json:"-"`
+// Defines values for FocusaToolResultV1FailureClass.
+const (
+	FocusaToolResultV1FailureClassApprovalRequired           FocusaToolResultV1FailureClass = "approval_required"
+	FocusaToolResultV1FailureClassColdPathTimeout            FocusaToolResultV1FailureClass = "cold_path_timeout"
+	FocusaToolResultV1FailureClassDaemonUnavailable          FocusaToolResultV1FailureClass = "daemon_unavailable"
+	FocusaToolResultV1FailureClassFrameUnavailable           FocusaToolResultV1FailureClass = "frame_unavailable"
+	FocusaToolResultV1FailureClassHotPathTimeout             FocusaToolResultV1FailureClass = "hot_path_timeout"
+	FocusaToolResultV1FailureClassNoncanonicalFallback       FocusaToolResultV1FailureClass = "noncanonical_fallback"
+	FocusaToolResultV1FailureClassNotFound                   FocusaToolResultV1FailureClass = "not_found"
+	FocusaToolResultV1FailureClassNullResponse               FocusaToolResultV1FailureClass = "null_response"
+	FocusaToolResultV1FailureClassPermissionDenied           FocusaToolResultV1FailureClass = "permission_denied"
+	FocusaToolResultV1FailureClassProcessControlFailed       FocusaToolResultV1FailureClass = "process_control_failed"
+	FocusaToolResultV1FailureClassReadModelLag               FocusaToolResultV1FailureClass = "read_model_lag"
+	FocusaToolResultV1FailureClassResourceExhausted          FocusaToolResultV1FailureClass = "resource_exhausted"
+	FocusaToolResultV1FailureClassSchemaInvalid              FocusaToolResultV1FailureClass = "schema_invalid"
+	FocusaToolResultV1FailureClassScopeConflict              FocusaToolResultV1FailureClass = "scope_conflict"
+	FocusaToolResultV1FailureClassScopeMismatch              FocusaToolResultV1FailureClass = "scope_mismatch"
+	FocusaToolResultV1FailureClassStaleRuntimeRegistry       FocusaToolResultV1FailureClass = "stale_runtime_registry"
+	FocusaToolResultV1FailureClassUnknownAmbiguousCompletion FocusaToolResultV1FailureClass = "unknown_ambiguous_completion"
+	FocusaToolResultV1FailureClassValidationRejected         FocusaToolResultV1FailureClass = "validation_rejected"
+	FocusaToolResultV1FailureClassWriterConflict             FocusaToolResultV1FailureClass = "writer_conflict"
+)
+
+// Valid indicates whether the value is a known member of the FocusaToolResultV1FailureClass enum.
+func (e FocusaToolResultV1FailureClass) Valid() bool {
+	switch e {
+	case FocusaToolResultV1FailureClassApprovalRequired:
+		return true
+	case FocusaToolResultV1FailureClassColdPathTimeout:
+		return true
+	case FocusaToolResultV1FailureClassDaemonUnavailable:
+		return true
+	case FocusaToolResultV1FailureClassFrameUnavailable:
+		return true
+	case FocusaToolResultV1FailureClassHotPathTimeout:
+		return true
+	case FocusaToolResultV1FailureClassNoncanonicalFallback:
+		return true
+	case FocusaToolResultV1FailureClassNotFound:
+		return true
+	case FocusaToolResultV1FailureClassNullResponse:
+		return true
+	case FocusaToolResultV1FailureClassPermissionDenied:
+		return true
+	case FocusaToolResultV1FailureClassProcessControlFailed:
+		return true
+	case FocusaToolResultV1FailureClassReadModelLag:
+		return true
+	case FocusaToolResultV1FailureClassResourceExhausted:
+		return true
+	case FocusaToolResultV1FailureClassSchemaInvalid:
+		return true
+	case FocusaToolResultV1FailureClassScopeConflict:
+		return true
+	case FocusaToolResultV1FailureClassScopeMismatch:
+		return true
+	case FocusaToolResultV1FailureClassStaleRuntimeRegistry:
+		return true
+	case FocusaToolResultV1FailureClassUnknownAmbiguousCompletion:
+		return true
+	case FocusaToolResultV1FailureClassValidationRejected:
+		return true
+	case FocusaToolResultV1FailureClassWriterConflict:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FocusaToolResultV1RetryPosture.
+const (
+	CheckSideEffectsFirst   FocusaToolResultV1RetryPosture = "check_side_effects_first"
+	DoNotRetryUnchanged     FocusaToolResultV1RetryPosture = "do_not_retry_unchanged"
+	OperatorRequired        FocusaToolResultV1RetryPosture = "operator_required"
+	RetryWithIdempotencyKey FocusaToolResultV1RetryPosture = "retry_with_idempotency_key"
+	SafeRetry               FocusaToolResultV1RetryPosture = "safe_retry"
+)
+
+// Valid indicates whether the value is a known member of the FocusaToolResultV1RetryPosture enum.
+func (e FocusaToolResultV1RetryPosture) Valid() bool {
+	switch e {
+	case CheckSideEffectsFirst:
+		return true
+	case DoNotRetryUnchanged:
+		return true
+	case OperatorRequired:
+		return true
+	case RetryWithIdempotencyKey:
+		return true
+	case SafeRetry:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FocusaToolResultV1Schema.
+const (
+	FocusaToolResultV1SchemaFocusaToolResultV1 FocusaToolResultV1Schema = "focusa.tool_result.v1"
+)
+
+// Valid indicates whether the value is a known member of the FocusaToolResultV1Schema enum.
+func (e FocusaToolResultV1Schema) Valid() bool {
+	switch e {
+	case FocusaToolResultV1SchemaFocusaToolResultV1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FocusaToolResultV1Status.
+const (
+	FocusaToolResultV1StatusAccepted           FocusaToolResultV1Status = "accepted"
+	FocusaToolResultV1StatusBlocked            FocusaToolResultV1Status = "blocked"
+	FocusaToolResultV1StatusCompleted          FocusaToolResultV1Status = "completed"
+	FocusaToolResultV1StatusDegraded           FocusaToolResultV1Status = "degraded"
+	FocusaToolResultV1StatusError              FocusaToolResultV1Status = "error"
+	FocusaToolResultV1StatusNoOp               FocusaToolResultV1Status = "no_op"
+	FocusaToolResultV1StatusOffline            FocusaToolResultV1Status = "offline"
+	FocusaToolResultV1StatusValidationRejected FocusaToolResultV1Status = "validation_rejected"
+)
+
+// Valid indicates whether the value is a known member of the FocusaToolResultV1Status enum.
+func (e FocusaToolResultV1Status) Valid() bool {
+	switch e {
+	case FocusaToolResultV1StatusAccepted:
+		return true
+	case FocusaToolResultV1StatusBlocked:
+		return true
+	case FocusaToolResultV1StatusCompleted:
+		return true
+	case FocusaToolResultV1StatusDegraded:
+		return true
+	case FocusaToolResultV1StatusError:
+		return true
+	case FocusaToolResultV1StatusNoOp:
+		return true
+	case FocusaToolResultV1StatusOffline:
+		return true
+	case FocusaToolResultV1StatusValidationRejected:
+		return true
+	default:
+		return false
+	}
 }
 
 // FocusaAwarenessPacketRequestV1 Generated contract for Focusa schema focusa.awareness_packet.request.v1
@@ -162,6 +300,47 @@ type FocusaStateCurrentResponseV1 map[string]interface{}
 
 // FocusaToolDoctorResponseV1 Generated contract for Focusa schema focusa.tool_doctor.response.v1
 type FocusaToolDoctorResponseV1 map[string]interface{}
+
+// FocusaToolResultV1 Canonical Focusa success, failure, retry, and recovery envelope
+type FocusaToolResultV1 struct {
+	Canonical                  bool                            `json:"canonical"`
+	Degraded                   bool                            `json:"degraded"`
+	Endpoint                   *string                         `json:"endpoint,omitempty"`
+	Error                      *map[string]interface{}         `json:"error,omitempty"`
+	EvidenceRefs               []string                        `json:"evidence_refs"`
+	FailureClass               *FocusaToolResultV1FailureClass `json:"failure_class,omitempty"`
+	Family                     *string                         `json:"family,omitempty"`
+	MisuseHint                 *string                         `json:"misuse_hint,omitempty"`
+	NextTools                  []string                        `json:"next_tools"`
+	Ok                         bool                            `json:"ok"`
+	OntologyCandidateDeltaRefs *[]string                       `json:"ontology_candidate_delta_refs,omitempty"`
+	Raw                        interface{}                     `json:"raw,omitempty"`
+	RecoveryHint               *string                         `json:"recovery_hint,omitempty"`
+	ReflexSuggestions          *[]string                       `json:"reflex_suggestions,omitempty"`
+	Retry                      struct {
+		Posture FocusaToolResultV1RetryPosture `json:"posture"`
+		Reason  *string                        `json:"reason,omitempty"`
+		Safe    bool                           `json:"safe"`
+	} `json:"retry"`
+	Schema      FocusaToolResultV1Schema `json:"schema"`
+	SideEffects []string                 `json:"side_effects"`
+	Status      FocusaToolResultV1Status `json:"status"`
+	Summary     string                   `json:"summary"`
+	Tool        *string                  `json:"tool,omitempty"`
+	WorkpointId *string                  `json:"workpoint_id,omitempty"`
+}
+
+// FocusaToolResultV1FailureClass defines model for FocusaToolResultV1.FailureClass.
+type FocusaToolResultV1FailureClass string
+
+// FocusaToolResultV1RetryPosture defines model for FocusaToolResultV1.Retry.Posture.
+type FocusaToolResultV1RetryPosture string
+
+// FocusaToolResultV1Schema defines model for FocusaToolResultV1.Schema.
+type FocusaToolResultV1Schema string
+
+// FocusaToolResultV1Status defines model for FocusaToolResultV1.Status.
+type FocusaToolResultV1Status string
 
 // FocusaTrajectoryAssessRequestV1 Generated contract for Focusa schema focusa.trajectory_assess.request.v1
 type FocusaTrajectoryAssessRequestV1 map[string]interface{}
@@ -672,115 +851,6 @@ type FocusaWorkpointCheckpointJSONRequestBody = FocusaWorkpointCheckpointRequest
 
 // FocusaWorkpointLinkEvidenceJSONRequestBody defines body for FocusaWorkpointLinkEvidence for application/json ContentType.
 type FocusaWorkpointLinkEvidenceJSONRequestBody = FocusaWorkpointLinkEvidenceRequestV1
-
-// Getter for additional properties for ErrorEnvelope. Returns the specified
-// element and whether it was found
-func (a ErrorEnvelope) Get(fieldName string) (value interface{}, found bool) {
-	if a.AdditionalProperties != nil {
-		value, found = a.AdditionalProperties[fieldName]
-	}
-	return
-}
-
-// Setter for additional properties for ErrorEnvelope
-func (a *ErrorEnvelope) Set(fieldName string, value interface{}) {
-	if a.AdditionalProperties == nil {
-		a.AdditionalProperties = make(map[string]interface{})
-	}
-	a.AdditionalProperties[fieldName] = value
-}
-
-// Override default JSON handling for ErrorEnvelope to handle AdditionalProperties
-func (a *ErrorEnvelope) UnmarshalJSON(b []byte) error {
-	object := make(map[string]json.RawMessage)
-	err := json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["failure_class"]; found {
-		err = json.Unmarshal(raw, &a.FailureClass)
-		if err != nil {
-			return fmt.Errorf("error reading 'failure_class': %w", err)
-		}
-		delete(object, "failure_class")
-	}
-
-	if raw, found := object["message"]; found {
-		err = json.Unmarshal(raw, &a.Message)
-		if err != nil {
-			return fmt.Errorf("error reading 'message': %w", err)
-		}
-		delete(object, "message")
-	}
-
-	if raw, found := object["next_tools"]; found {
-		err = json.Unmarshal(raw, &a.NextTools)
-		if err != nil {
-			return fmt.Errorf("error reading 'next_tools': %w", err)
-		}
-		delete(object, "next_tools")
-	}
-
-	if raw, found := object["recovery_hint"]; found {
-		err = json.Unmarshal(raw, &a.RecoveryHint)
-		if err != nil {
-			return fmt.Errorf("error reading 'recovery_hint': %w", err)
-		}
-		delete(object, "recovery_hint")
-	}
-
-	if len(object) != 0 {
-		a.AdditionalProperties = make(map[string]interface{})
-		for fieldName, fieldBuf := range object {
-			var fieldVal interface{}
-			err := json.Unmarshal(fieldBuf, &fieldVal)
-			if err != nil {
-				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
-			}
-			a.AdditionalProperties[fieldName] = fieldVal
-		}
-	}
-	return nil
-}
-
-// Override default JSON handling for ErrorEnvelope to handle AdditionalProperties
-func (a ErrorEnvelope) MarshalJSON() ([]byte, error) {
-	var err error
-	object := make(map[string]json.RawMessage)
-
-	object["failure_class"], err = json.Marshal(a.FailureClass)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'failure_class': %w", err)
-	}
-
-	object["message"], err = json.Marshal(a.Message)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'message': %w", err)
-	}
-
-	if a.NextTools != nil {
-		object["next_tools"], err = json.Marshal(a.NextTools)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'next_tools': %w", err)
-		}
-	}
-
-	if a.RecoveryHint != nil {
-		object["recovery_hint"], err = json.Marshal(a.RecoveryHint)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'recovery_hint': %w", err)
-		}
-	}
-
-	for fieldName, field := range a.AdditionalProperties {
-		object[fieldName], err = json.Marshal(field)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
-		}
-	}
-	return json.Marshal(object)
-}
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -5067,7 +5137,7 @@ type FocusaOperationRegistryReadResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaOperationRegistryResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5098,7 +5168,7 @@ type FocusaUiActionBindingsReadResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaUiActionBindingsResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5129,7 +5199,7 @@ type FocusaUiCapabilitySnapshotReadResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaUiCapabilitySnapshotResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5160,7 +5230,7 @@ type FocusaAwarenessPacketResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaAwarenessPacketResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5191,7 +5261,7 @@ type FocusaBloatgaurdReportResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaBloatgaurdReportResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5222,7 +5292,7 @@ type FocusaCallStackDesignResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaCallStackDesignResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5253,7 +5323,7 @@ type FocusaCallStackVerifyResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaCallStackVerifyResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5284,7 +5354,7 @@ type FocusaContextCognitionCurateResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaContextCognitionCurateResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5315,7 +5385,7 @@ type FocusaContextCognitionPacketResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaContextCognitionPacketResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5346,7 +5416,7 @@ type FocusaDevicePairStartResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaDevicePairStartResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5377,7 +5447,7 @@ type FocusaDevicePairStatusResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaDevicePairStatusResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5408,7 +5478,7 @@ type FocusaDxuxReportResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaDxuxReportResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5439,7 +5509,7 @@ type FocusaEvidenceCaptureResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaEvidenceCaptureResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5470,7 +5540,7 @@ type FocusaHealthCheckResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaHealthResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5501,7 +5571,7 @@ type FocusaLicenseValidateResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaLicenseValidateResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5532,7 +5602,7 @@ type FocusaLineageHeadResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaLineageHeadResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5563,7 +5633,7 @@ type FocusaLineageTreeResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaLineageTreeResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5594,7 +5664,7 @@ type FocusaMemoryProceduralReadResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaMemoryProceduralReadResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5625,7 +5695,7 @@ type FocusaMemoryProceduralReinforceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaMemoryProceduralReinforceResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5656,7 +5726,7 @@ type FocusaMemorySemanticReadResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaMemorySemanticReadResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5687,7 +5757,7 @@ type FocusaMemorySemanticUpsertResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaMemorySemanticUpsertResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5718,7 +5788,7 @@ type FocusaMetacogCaptureResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaMetacogCaptureResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5749,7 +5819,7 @@ type FocusaMetacogDoctorResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaMetacogDoctorResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5780,7 +5850,7 @@ type FocusaMetacogReflectResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaMetacogReflectResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5811,7 +5881,7 @@ type FocusaMetacogRetrieveResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaMetacogRetrieveResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5842,7 +5912,7 @@ type FocusaPredictionEvaluateResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaPredictionEvaluateResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5873,7 +5943,7 @@ type FocusaPredictionRecentResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaPredictionRecentResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5904,7 +5974,7 @@ type FocusaPredictionRecordResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaPredictionRecordResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5935,7 +6005,7 @@ type FocusaProjectIdentityResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaProjectIdentityResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5966,7 +6036,7 @@ type FocusaProjectVerifyResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaProjectVerifyResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -5997,7 +6067,7 @@ type FocusaResourceModeResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaResourceModeResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -6028,7 +6098,7 @@ type FocusaStateCurrentResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaStateCurrentResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -6059,7 +6129,7 @@ type FocusaToolDoctorResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaToolDoctorResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -6090,7 +6160,7 @@ type FocusaTrajectoryAssessResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaTrajectoryAssessResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -6121,7 +6191,7 @@ type FocusaTrajectoryCheckpointResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaTrajectoryCheckpointResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -6152,7 +6222,7 @@ type FocusaTrajectoryDefineGoalResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaTrajectoryDefineGoalResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -6183,7 +6253,7 @@ type FocusaTrajectoryProposeWorkpointResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaTrajectoryProposeWorkpointResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -6214,7 +6284,7 @@ type FocusaTrajectoryResumeResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaTrajectoryResumeResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -6245,7 +6315,7 @@ type FocusaTrajectoryViewResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaTrajectoryViewResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -6276,7 +6346,7 @@ type FocusaTraverseResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaTraverseResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -6307,7 +6377,7 @@ type FocusaTurnAppendResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaTurnAppendResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -6338,7 +6408,7 @@ type FocusaTurnCompleteResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaTurnCompleteResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -6369,7 +6439,7 @@ type FocusaTurnStartResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaTurnStartResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -6400,7 +6470,7 @@ type FocusaWorkLoopControlResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaWorkLoopControlResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -6431,7 +6501,7 @@ type FocusaWorkLoopStatusResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaWorkLoopStatusResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -6462,7 +6532,7 @@ type FocusaWorkpointCheckpointResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaWorkpointCheckpointResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -6493,7 +6563,7 @@ type FocusaWorkpointLinkEvidenceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaWorkpointLinkEvidenceResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -6524,7 +6594,7 @@ type FocusaWorkpointResumeResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *FocusaWorkpointResumeResponseV1
-	JSONDefault  *ErrorEnvelope
+	JSONDefault  *FocusaToolResultV1
 }
 
 // Status returns HTTPResponse.Status
@@ -7221,7 +7291,7 @@ func ParseFocusaOperationRegistryReadResponse(rsp *http.Response) (*FocusaOperat
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7254,7 +7324,7 @@ func ParseFocusaUiActionBindingsReadResponse(rsp *http.Response) (*FocusaUiActio
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7287,7 +7357,7 @@ func ParseFocusaUiCapabilitySnapshotReadResponse(rsp *http.Response) (*FocusaUiC
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7320,7 +7390,7 @@ func ParseFocusaAwarenessPacketResponse(rsp *http.Response) (*FocusaAwarenessPac
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7353,7 +7423,7 @@ func ParseFocusaBloatgaurdReportResponse(rsp *http.Response) (*FocusaBloatgaurdR
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7386,7 +7456,7 @@ func ParseFocusaCallStackDesignResponse(rsp *http.Response) (*FocusaCallStackDes
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7419,7 +7489,7 @@ func ParseFocusaCallStackVerifyResponse(rsp *http.Response) (*FocusaCallStackVer
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7452,7 +7522,7 @@ func ParseFocusaContextCognitionCurateResponse(rsp *http.Response) (*FocusaConte
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7485,7 +7555,7 @@ func ParseFocusaContextCognitionPacketResponse(rsp *http.Response) (*FocusaConte
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7518,7 +7588,7 @@ func ParseFocusaDevicePairStartResponse(rsp *http.Response) (*FocusaDevicePairSt
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7551,7 +7621,7 @@ func ParseFocusaDevicePairStatusResponse(rsp *http.Response) (*FocusaDevicePairS
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7584,7 +7654,7 @@ func ParseFocusaDxuxReportResponse(rsp *http.Response) (*FocusaDxuxReportRespons
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7617,7 +7687,7 @@ func ParseFocusaEvidenceCaptureResponse(rsp *http.Response) (*FocusaEvidenceCapt
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7650,7 +7720,7 @@ func ParseFocusaHealthCheckResponse(rsp *http.Response) (*FocusaHealthCheckRespo
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7683,7 +7753,7 @@ func ParseFocusaLicenseValidateResponse(rsp *http.Response) (*FocusaLicenseValid
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7716,7 +7786,7 @@ func ParseFocusaLineageHeadResponse(rsp *http.Response) (*FocusaLineageHeadRespo
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7749,7 +7819,7 @@ func ParseFocusaLineageTreeResponse(rsp *http.Response) (*FocusaLineageTreeRespo
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7782,7 +7852,7 @@ func ParseFocusaMemoryProceduralReadResponse(rsp *http.Response) (*FocusaMemoryP
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7815,7 +7885,7 @@ func ParseFocusaMemoryProceduralReinforceResponse(rsp *http.Response) (*FocusaMe
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7848,7 +7918,7 @@ func ParseFocusaMemorySemanticReadResponse(rsp *http.Response) (*FocusaMemorySem
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7881,7 +7951,7 @@ func ParseFocusaMemorySemanticUpsertResponse(rsp *http.Response) (*FocusaMemoryS
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7914,7 +7984,7 @@ func ParseFocusaMetacogCaptureResponse(rsp *http.Response) (*FocusaMetacogCaptur
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7947,7 +8017,7 @@ func ParseFocusaMetacogDoctorResponse(rsp *http.Response) (*FocusaMetacogDoctorR
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7980,7 +8050,7 @@ func ParseFocusaMetacogReflectResponse(rsp *http.Response) (*FocusaMetacogReflec
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8013,7 +8083,7 @@ func ParseFocusaMetacogRetrieveResponse(rsp *http.Response) (*FocusaMetacogRetri
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8046,7 +8116,7 @@ func ParseFocusaPredictionEvaluateResponse(rsp *http.Response) (*FocusaPredictio
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8079,7 +8149,7 @@ func ParseFocusaPredictionRecentResponse(rsp *http.Response) (*FocusaPredictionR
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8112,7 +8182,7 @@ func ParseFocusaPredictionRecordResponse(rsp *http.Response) (*FocusaPredictionR
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8145,7 +8215,7 @@ func ParseFocusaProjectIdentityResponse(rsp *http.Response) (*FocusaProjectIdent
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8178,7 +8248,7 @@ func ParseFocusaProjectVerifyResponse(rsp *http.Response) (*FocusaProjectVerifyR
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8211,7 +8281,7 @@ func ParseFocusaResourceModeResponse(rsp *http.Response) (*FocusaResourceModeRes
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8244,7 +8314,7 @@ func ParseFocusaStateCurrentResponse(rsp *http.Response) (*FocusaStateCurrentRes
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8277,7 +8347,7 @@ func ParseFocusaToolDoctorResponse(rsp *http.Response) (*FocusaToolDoctorRespons
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8310,7 +8380,7 @@ func ParseFocusaTrajectoryAssessResponse(rsp *http.Response) (*FocusaTrajectoryA
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8343,7 +8413,7 @@ func ParseFocusaTrajectoryCheckpointResponse(rsp *http.Response) (*FocusaTraject
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8376,7 +8446,7 @@ func ParseFocusaTrajectoryDefineGoalResponse(rsp *http.Response) (*FocusaTraject
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8409,7 +8479,7 @@ func ParseFocusaTrajectoryProposeWorkpointResponse(rsp *http.Response) (*FocusaT
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8442,7 +8512,7 @@ func ParseFocusaTrajectoryResumeResponse(rsp *http.Response) (*FocusaTrajectoryR
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8475,7 +8545,7 @@ func ParseFocusaTrajectoryViewResponse(rsp *http.Response) (*FocusaTrajectoryVie
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8508,7 +8578,7 @@ func ParseFocusaTraverseResponse(rsp *http.Response) (*FocusaTraverseResponse, e
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8541,7 +8611,7 @@ func ParseFocusaTurnAppendResponse(rsp *http.Response) (*FocusaTurnAppendRespons
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8574,7 +8644,7 @@ func ParseFocusaTurnCompleteResponse(rsp *http.Response) (*FocusaTurnCompleteRes
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8607,7 +8677,7 @@ func ParseFocusaTurnStartResponse(rsp *http.Response) (*FocusaTurnStartResponse,
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8640,7 +8710,7 @@ func ParseFocusaWorkLoopControlResponse(rsp *http.Response) (*FocusaWorkLoopCont
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8673,7 +8743,7 @@ func ParseFocusaWorkLoopStatusResponse(rsp *http.Response) (*FocusaWorkLoopStatu
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8706,7 +8776,7 @@ func ParseFocusaWorkpointCheckpointResponse(rsp *http.Response) (*FocusaWorkpoin
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8739,7 +8809,7 @@ func ParseFocusaWorkpointLinkEvidenceResponse(rsp *http.Response) (*FocusaWorkpo
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8772,7 +8842,7 @@ func ParseFocusaWorkpointResumeResponse(rsp *http.Response) (*FocusaWorkpointRes
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorEnvelope
+		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

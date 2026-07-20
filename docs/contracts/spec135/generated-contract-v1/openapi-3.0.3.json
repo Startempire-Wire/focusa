@@ -1,32 +1,6 @@
 {
   "components": {
     "schemas": {
-      "ErrorEnvelope": {
-        "additionalProperties": true,
-        "properties": {
-          "failure_class": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "next_tools": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "recovery_hint": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "failure_class",
-          "message"
-        ],
-        "type": "object",
-        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema"
-      },
       "focusa_awareness_packet_request_v1": {
         "additionalProperties": true,
         "description": "Generated contract for Focusa schema focusa.awareness_packet.request.v1",
@@ -647,6 +621,164 @@
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.tool_doctor.response.v1"
       },
+      "focusa_tool_result_v1": {
+        "additionalProperties": false,
+        "description": "Canonical Focusa success, failure, retry, and recovery envelope",
+        "properties": {
+          "canonical": {
+            "type": "boolean"
+          },
+          "degraded": {
+            "type": "boolean"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "error": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "failure_class": {
+            "enum": [
+              "validation_rejected",
+              "schema_invalid",
+              "not_found",
+              "frame_unavailable",
+              "daemon_unavailable",
+              "stale_runtime_registry",
+              "resource_exhausted",
+              "null_response",
+              "hot_path_timeout",
+              "cold_path_timeout",
+              "writer_conflict",
+              "scope_mismatch",
+              "scope_conflict",
+              "approval_required",
+              "permission_denied",
+              "process_control_failed",
+              "noncanonical_fallback",
+              "read_model_lag",
+              "unknown_ambiguous_completion"
+            ],
+            "type": "string"
+          },
+          "family": {
+            "type": "string"
+          },
+          "misuse_hint": {
+            "type": "string"
+          },
+          "next_tools": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "ontology_candidate_delta_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "raw": {},
+          "recovery_hint": {
+            "type": "string"
+          },
+          "reflex_suggestions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "retry": {
+            "additionalProperties": false,
+            "properties": {
+              "posture": {
+                "enum": [
+                  "safe_retry",
+                  "retry_with_idempotency_key",
+                  "check_side_effects_first",
+                  "do_not_retry_unchanged",
+                  "operator_required"
+                ],
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "safe": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "safe",
+              "posture"
+            ],
+            "type": "object"
+          },
+          "schema": {
+            "enum": [
+              "focusa.tool_result.v1"
+            ],
+            "type": "string"
+          },
+          "side_effects": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "accepted",
+              "completed",
+              "no_op",
+              "blocked",
+              "validation_rejected",
+              "degraded",
+              "offline",
+              "error"
+            ],
+            "type": "string"
+          },
+          "summary": {
+            "maxLength": 240,
+            "type": "string"
+          },
+          "tool": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema",
+          "ok",
+          "status",
+          "canonical",
+          "degraded",
+          "summary",
+          "retry",
+          "side_effects",
+          "evidence_refs",
+          "next_tools"
+        ],
+        "title": "Focusa ToolResult v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa_core::tool_result::ToolResultV1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.tool_result.v1"
+      },
       "focusa_trajectory_assess_request_v1": {
         "additionalProperties": true,
         "description": "Generated contract for Focusa schema focusa.trajectory_assess.request.v1",
@@ -1026,7 +1158,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -1063,6 +1195,7 @@
         "x-focusa-permissions": [],
         "x-focusa-plain-label": "Read Operation Registry",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root"
@@ -1101,7 +1234,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -1140,6 +1273,7 @@
         ],
         "x-focusa-plain-label": "Read Generated UI Action Bindings",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root"
@@ -1178,7 +1312,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -1217,6 +1351,7 @@
         ],
         "x-focusa-plain-label": "Read Generated UI Capability Snapshot",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root"
@@ -1265,7 +1400,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -1304,6 +1439,7 @@
         ],
         "x-focusa-plain-label": "Awareness Packet",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root"
@@ -1342,7 +1478,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -1381,6 +1517,7 @@
         ],
         "x-focusa-plain-label": "Bloatgaurd Report",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root"
@@ -1429,7 +1566,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -1469,6 +1606,7 @@
         ],
         "x-focusa-plain-label": "Call Stack Design",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root"
@@ -1517,7 +1655,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -1556,6 +1694,7 @@
         ],
         "x-focusa-plain-label": "Call Stack Verify",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root"
@@ -1613,7 +1752,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -1652,6 +1791,7 @@
         ],
         "x-focusa-plain-label": "Context Cognition Curate",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -1700,7 +1840,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -1739,6 +1879,7 @@
         ],
         "x-focusa-plain-label": "Context Cognition Packet",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -1778,7 +1919,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -1818,6 +1959,7 @@
         ],
         "x-focusa-plain-label": "Device Pair Start",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [],
         "x-focusa-sensitive": "scoped_mutation",
@@ -1844,7 +1986,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -1883,6 +2025,7 @@
         ],
         "x-focusa-plain-label": "Device Pair Status",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [],
         "x-focusa-sensitive": "routine",
@@ -1919,7 +2062,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -1958,6 +2101,7 @@
         ],
         "x-focusa-plain-label": "DXUX Report",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root"
@@ -2015,7 +2159,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -2055,6 +2199,7 @@
         ],
         "x-focusa-plain-label": "Evidence Capture",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -2084,7 +2229,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -2123,6 +2268,7 @@
         ],
         "x-focusa-plain-label": "Health Check",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [],
         "x-focusa-sensitive": "routine",
@@ -2159,7 +2305,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -2199,6 +2345,7 @@
         ],
         "x-focusa-plain-label": "License Validate",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [],
         "x-focusa-sensitive": "scoped_mutation",
@@ -2235,7 +2382,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -2274,6 +2421,7 @@
         ],
         "x-focusa-plain-label": "Lineage Head",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root"
@@ -2312,7 +2460,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -2351,6 +2499,7 @@
         ],
         "x-focusa-plain-label": "Lineage Tree",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root"
@@ -2398,7 +2547,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -2437,6 +2586,7 @@
         ],
         "x-focusa-plain-label": "Read Procedural Memory",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -2495,7 +2645,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -2533,6 +2683,7 @@
         ],
         "x-focusa-plain-label": "Reinforce Procedural Rule",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -2581,7 +2732,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -2620,6 +2771,7 @@
         ],
         "x-focusa-plain-label": "Read Semantic Memory",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -2678,7 +2830,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -2716,6 +2868,7 @@
         ],
         "x-focusa-plain-label": "Upsert Semantic Memory",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -2774,7 +2927,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -2814,6 +2967,7 @@
         ],
         "x-focusa-plain-label": "Metacog Capture",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -2872,7 +3026,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -2911,6 +3065,7 @@
         ],
         "x-focusa-plain-label": "Metacog Doctor",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -2969,7 +3124,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -3008,6 +3163,7 @@
         ],
         "x-focusa-plain-label": "Metacog Reflect",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -3066,7 +3222,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -3105,6 +3261,7 @@
         ],
         "x-focusa-plain-label": "Metacog Retrieve",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -3163,7 +3320,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -3203,6 +3360,7 @@
         ],
         "x-focusa-plain-label": "Prediction Evaluate",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -3251,7 +3409,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -3290,6 +3448,7 @@
         ],
         "x-focusa-plain-label": "Prediction Recent",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -3348,7 +3507,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -3388,6 +3547,7 @@
         ],
         "x-focusa-plain-label": "Prediction Record",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -3427,7 +3587,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -3466,6 +3626,7 @@
         ],
         "x-focusa-plain-label": "Project Identity",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root"
@@ -3504,7 +3665,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -3543,6 +3704,7 @@
         ],
         "x-focusa-plain-label": "Project Verify",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root"
@@ -3581,7 +3743,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -3620,6 +3782,7 @@
         ],
         "x-focusa-plain-label": "Resource Mode",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root"
@@ -3658,7 +3821,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -3697,6 +3860,7 @@
         ],
         "x-focusa-plain-label": "State Current",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root"
@@ -3735,7 +3899,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -3774,6 +3938,7 @@
         ],
         "x-focusa-plain-label": "Tool Doctor",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root"
@@ -3831,7 +3996,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -3870,6 +4035,7 @@
         ],
         "x-focusa-plain-label": "Trajectory Assess",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -3928,7 +4094,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -3968,6 +4134,7 @@
         ],
         "x-focusa-plain-label": "Trajectory Checkpoint",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -4026,7 +4193,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -4066,6 +4233,7 @@
         ],
         "x-focusa-plain-label": "Trajectory Define Goal",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -4124,7 +4292,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -4163,6 +4331,7 @@
         ],
         "x-focusa-plain-label": "Trajectory Propose Workpoint",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -4221,7 +4390,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -4260,6 +4429,7 @@
         ],
         "x-focusa-plain-label": "Trajectory Resume",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -4308,7 +4478,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -4347,6 +4517,7 @@
         ],
         "x-focusa-plain-label": "Trajectory View",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -4396,7 +4567,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -4435,6 +4606,7 @@
         ],
         "x-focusa-plain-label": "Traverse",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root"
@@ -4492,7 +4664,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -4530,6 +4702,7 @@
         ],
         "x-focusa-plain-label": "Append Turn Chunk",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -4588,7 +4761,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -4626,6 +4799,7 @@
         ],
         "x-focusa-plain-label": "Complete Turn",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -4684,7 +4858,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -4722,6 +4896,7 @@
         ],
         "x-focusa-plain-label": "Start Turn",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -4771,7 +4946,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -4811,6 +4986,7 @@
         ],
         "x-focusa-plain-label": "Work Loop Control",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root"
@@ -4849,7 +5025,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -4888,6 +5064,7 @@
         ],
         "x-focusa-plain-label": "Work Loop Status",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root"
@@ -4945,7 +5122,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -4985,6 +5162,7 @@
         ],
         "x-focusa-plain-label": "Workpoint Checkpoint",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -5043,7 +5221,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -5083,6 +5261,7 @@
         ],
         "x-focusa-plain-label": "Workpoint Link Evidence",
         "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
@@ -5131,7 +5310,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
                 }
               }
             },
@@ -5170,6 +5349,7 @@
         ],
         "x-focusa-plain-label": "Workpoint Resume",
         "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",

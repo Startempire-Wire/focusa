@@ -3,6 +3,7 @@ use axum::extract::Request;
 use axum::http::{HeaderValue, StatusCode, header};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
+use focusa_core::tool_result::{FailureClass, ToolResultV1, ToolStatus};
 use serde_json::json;
 use uuid::Uuid;
 
@@ -70,18 +71,32 @@ fn severity(status: StatusCode) -> &'static str {
     }
 }
 
-fn failure_class(status: StatusCode) -> &'static str {
+fn failure_class(status: StatusCode) -> FailureClass {
     match status {
-        StatusCode::NOT_FOUND => "not_found",
-        StatusCode::METHOD_NOT_ALLOWED => "validation_rejected",
-        StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => "permission_denied",
+        StatusCode::NOT_FOUND => FailureClass::NotFound,
+        StatusCode::METHOD_NOT_ALLOWED => FailureClass::ValidationRejected,
+        StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => FailureClass::PermissionDenied,
         StatusCode::SERVICE_UNAVAILABLE | StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => {
-            "daemon_unavailable"
+            FailureClass::DaemonUnavailable
         }
-        StatusCode::UNPROCESSABLE_ENTITY | StatusCode::BAD_REQUEST => "validation_rejected",
-        _ if status.is_server_error() => "daemon_unavailable",
-        _ if status.is_client_error() => "validation_rejected",
-        _ => "unknown_ambiguous_completion",
+        StatusCode::UNPROCESSABLE_ENTITY | StatusCode::BAD_REQUEST => {
+            FailureClass::ValidationRejected
+        }
+        _ if status.is_server_error() => FailureClass::DaemonUnavailable,
+        _ if status.is_client_error() => FailureClass::ValidationRejected,
+        _ => FailureClass::UnknownAmbiguousCompletion,
+    }
+}
+
+fn tool_status(status: StatusCode) -> ToolStatus {
+    match status {
+        StatusCode::METHOD_NOT_ALLOWED
+        | StatusCode::UNPROCESSABLE_ENTITY
+        | StatusCode::BAD_REQUEST => ToolStatus::ValidationRejected,
+        StatusCode::SERVICE_UNAVAILABLE | StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => {
+            ToolStatus::Offline
+        }
+        _ => ToolStatus::Blocked,
     }
 }
 
@@ -154,6 +169,20 @@ fn next_tools(status: StatusCode) -> Vec<&'static str> {
     }
 }
 
+fn canonical_tool_result(status: StatusCode) -> ToolResultV1 {
+    ToolResultV1::failure(
+        tool_status(status),
+        failure_class(status),
+        status_message(status),
+    )
+    .with_recovery(
+        recovery_hint(status),
+        misuse_hint(status),
+        next_tools(status),
+    )
+    .with_error(status_code_key(status), status_message(status))
+}
+
 pub async fn error_envelope_layer(req: Request, next: Next) -> Response {
     let request_method = req.method().as_str().to_string();
     let request_path = req.uri().path().to_string();
@@ -191,6 +220,7 @@ pub async fn error_envelope_layer(req: Request, next: Next) -> Response {
     let next_tools = next_tools(status);
     let recovery_hint = recovery_hint(status);
     let misuse_hint = misuse_hint(status);
+    let tool_result = canonical_tool_result(status);
     let envelope = json!({
         "status": "blocked",
         "code": status_code_key(status),
@@ -213,21 +243,7 @@ pub async fn error_envelope_layer(req: Request, next: Next) -> Response {
             "reason": status.canonical_reason().unwrap_or("unknown"),
             "request_method": request_method,
             "request_path": request_path,
-            "tool_result_v1": {
-                "ok": false,
-                "status": "blocked",
-                "failure_class": failure_class,
-                "canonical": false,
-                "degraded": true,
-                "summary": status_message(status),
-                "retry": { "safe": false, "posture": "do_not_retry_unchanged", "reason": failure_class },
-                "recovery_hint": recovery_hint,
-                "misuse_hint": misuse_hint,
-                "side_effects": [],
-                "evidence_refs": [],
-                "next_tools": next_tools,
-                "error": { "code": status_code_key(status), "message": status_message(status) }
-            }
+            "tool_result_v1": tool_result
         },
         "correlation_id": correlation_id,
     });
@@ -237,4 +253,51 @@ pub async fn error_envelope_layer(req: Request, next: Next) -> Response {
         wrapped.headers_mut().insert("x-correlation-id", hv);
     }
     wrapped
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use focusa_core::tool_result::{RetryPosture, TOOL_RESULT_SCHEMA};
+
+    #[test]
+    fn canonical_constructor_covers_http_failure_classes_and_recovery() {
+        for (status, expected_class, expected_status) in [
+            (
+                StatusCode::BAD_REQUEST,
+                FailureClass::ValidationRejected,
+                ToolStatus::ValidationRejected,
+            ),
+            (
+                StatusCode::NOT_FOUND,
+                FailureClass::NotFound,
+                ToolStatus::Blocked,
+            ),
+            (
+                StatusCode::FORBIDDEN,
+                FailureClass::PermissionDenied,
+                ToolStatus::Blocked,
+            ),
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                FailureClass::DaemonUnavailable,
+                ToolStatus::Offline,
+            ),
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                FailureClass::DaemonUnavailable,
+                ToolStatus::Blocked,
+            ),
+        ] {
+            let result = canonical_tool_result(status);
+            assert_eq!(result.schema, TOOL_RESULT_SCHEMA);
+            assert_eq!(result.failure_class, Some(expected_class));
+            assert_eq!(result.status, expected_status);
+            assert_eq!(result.retry.posture, RetryPosture::DoNotRetryUnchanged);
+            assert!(result.recovery_hint.is_some());
+            assert!(result.misuse_hint.is_some());
+            assert!(!result.next_tools.is_empty());
+            assert!(result.error.is_some());
+        }
+    }
 }
