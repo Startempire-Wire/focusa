@@ -123,4 +123,6 @@ Protected runner `.4.1` landed across `e4674ff0` through `4e9b6d10`: authenticat
 
 Typed LaunchManifest `.4.2` landed in `8a93f769`: shell-free argv/cwd/env/secret boundaries, secure mission delivery, exact Pi trust preflight, typed ResourceMode, and redacted reproducibility. Four adversarial tests and strict core lint passed; claim `claim_bd_019f7f4c6fee7480` reconciled closure.
 
+Harness/backend contracts `.4.3` landed in `3859315c`: truthful versioned capabilities, Pi RPC, deterministic fake, direct process, generic RPC/PTY declarations, and explicit unsupported negotiation. Nine focused tests and strict lint passed; claim `claim_bd_019f8060335d7793` reconciled closure.
+
 Transactional config CLI controls and profile/preset catalogs landed in `f794cd01`. Three E2E tests prove resolve/diff/apply/rollback route mapping, exact revision/hash CAS conflict reporting, field provenance, recursive secret redaction, and human/JSON parity; `focusa-a6yq6.3.5.4` closed with stable proof at `crates/focusa-cli/tests/silent_config_parity_e2e.rs`.
