@@ -112,6 +112,12 @@ The following laws are normative:
 18. **Absence is not degradation.** Missing implementation, missing wiring, missing tests, an empty projection, a hard-coded placeholder, a mock, a hidden feature flag, or an unavailable route cannot be reported as degraded-but-complete.
 19. **Later is a governed decision.** A requirement may move to a later tranche only through an explicit operator-approved specification amendment that records the exact requirement IDs, reason, impact, replacement tranche, dependencies, acceptance consequences, and superseding Receipt. It remains visibly open and blocks any conformance level that requires it.
 20. **No implicit optionality.** `MUST`/`SHALL` requirements are mandatory. An unimplemented `SHOULD` requires a recorded variance with evidence and operator acceptance; silence never counts as a variance.
+21. **Temporal primacy is continuous.** Immediately below the verified current operator ask, fresh time awareness constrains every plan, action, tool, response, checkpoint, and continuation; lower-priority context cannot suppress it.
+22. **Every interaction and action is human-calendar grounded.** No agent turn, tool/action decision, schedule interpretation, relative-time phrase, or autonomous continuation may proceed without a fresh trusted local calendar/time context or an explicit temporal-authority-unavailable posture.
+23. **Urgency is continuously computed.** A daemon-owned temporal pulse repeatedly evaluates trusted current time, elapsed time, deadlines, safety margin, slack, no-progress age, and opportunity risk; urgency cannot depend on the model remembering to check.
+24. **Temporal learning is outcome-governed.** Predictions, reflections, and strategy changes about time are continually evaluated, but only evidence-backed settled outcomes may promote durable procedural change.
+25. **Pressure produces calm focus, not panic.** As time pressure rises, the agent becomes progressively narrower, clearer, more execution-oriented, and more evidence-disciplined while remaining calm and preserving every safety/truth boundary.
+26. **Past-due delivery becomes the highest execution priority.** After breach, Focusa first verifies what valid delivery opportunity remains, then freezes unrelated optional work and calmly focuses on the smallest safe path to deliver and settle the overdue item.
 
 ## Completeness, non-deferral, and omission firewall
 
@@ -420,6 +426,92 @@ grounded schedule slack
 
 If critical-path duration is not grounded, slack is `unknown`, not a fabricated number. Parent/child deadline inheritance, conflicts, and overrides must be visible and reason-coded.
 
+## Past-due opportunity assessment and delivery priority
+
+A missed deadline does not authorize resignation, distraction, concealment, or immediate movement to easier work. It creates a `TemporalBreach` and activates a mandatory overdue-delivery protocol.
+
+### Opportunity remaining assessment
+
+Before any post-deadline dispatch, Focusa records:
+
+```yaml
+schema: focusa.overdue_opportunity_assessment.v1
+assessment_id:
+subject_ref:
+deadline_ref:
+temporal_breach_ref:
+assessed_at:
+operator_ask_ref:
+original_target_state:
+current_verified_state:
+remaining_delivery_window:
+opportunity_status: fully_deliverable | partially_deliverable | alternate_delivery_possible | window_closed | delivery_harmful | unknown
+valid_delivery_options:
+  - option_id:
+    target_state:
+    value_preserved:
+    required_actions: []
+    safety_authority_posture:
+    evidence_required: []
+    latest_valid_dispatch_at:
+    latest_valid_settlement_at:
+invalid_or_expired_actions: []
+recommended_delivery_option:
+operator_review_required:
+evidence_refs: []
+reason_codes: []
+```
+
+The assessment determines whether the original delivery remains useful, a partial/alternate delivery preserves value, the opportunity window is closed, or late action would create harm. The agent must not infer remaining opportunity from desire or sunk cost; it uses current external state, calendar/market/session state, recipient/provider capability, authority, and evidence.
+
+### Overdue delivery mode
+
+When `opportunity_status` is `fully_deliverable`, `partially_deliverable`, or `alternate_delivery_possible`, the overdue item becomes the highest execution priority immediately below valid current operator steering and non-waivable safety/truth obligations.
+
+```yaml
+schema: focusa.overdue_delivery_mode.v1
+mode_id:
+subject_ref:
+assessment_ref:
+activated_at:
+selected_delivery_option:
+critical_delivery_path: []
+frozen_unrelated_work_refs: []
+allowed_supporting_actions: []
+prohibited_optional_actions: []
+progress_update_interval_ms:
+operator_notification_ref:
+exit_condition: settled | operator_redirected | opportunity_closed | blocked_by_nonwaivable_constraint
+```
+
+Required behavior:
+
+1. acknowledge the breach calmly and factually;
+2. stop unrelated research, cosmetic work, broad refactoring, optional tests, speculative optimization, and postmortem analysis;
+3. preserve scope, authority, safety, evidence, and reconciliation requirements;
+4. select the smallest valid path to useful delivery;
+5. execute only delivery-critical and required supporting actions;
+6. provide bounded progress updates and surface blockers immediately;
+7. preserve and deliver the best verified partial result if full delivery becomes impossible;
+8. reconcile, verify, settle, and Receipt the actual late outcome;
+9. perform lost-time analysis and learning only after delivery/settlement unless analysis is required to unblock delivery.
+
+The Work Loop pins the overdue item and does not select unrelated ready work while a valid delivery path remains, except for:
+
+- explicit operator redirection after the breach is disclosed;
+- immediate safety/security containment;
+- reconciliation, compensation, or cleanup of a possible external effect;
+- a non-waivable authority/legal constraint;
+- another commitment whose verified consequence is more severe, requiring visible operator conflict resolution.
+
+### Closed or harmful opportunity
+
+When the original window is closed or late dispatch would be harmful—such as an expired market order intent—the agent MUST NOT blindly execute the original action. Highest-priority delivery becomes the truthful residual outcome: cancel/contain, reconcile external state, preserve evidence, provide the best valid partial or alternate deliverable, notify the operator, and settle the breach with open obligations.
+
+`unknown` opportunity status requires bounded reconciliation or operator review; it cannot justify either blind retry or quiet abandonment.
+
+The temporal breach remains in the final Receipt even when late delivery succeeds. Successful late delivery does not rewrite the deadline outcome as on time.
+
 ## Time Awareness Packet
 
 ```yaml
@@ -452,6 +544,15 @@ queue_ms:
 reconciliation_ms:
 settlement_ms:
 nearest_deadline_ref:
+top_deadlines:
+  - deadline_ref:
+    subject_ref:
+    readiness_target_at:
+    operator_deadline_at:
+    pressure:
+    slack_status:
+    critical_path_rank:
+    priority_reason:
 readiness_target_at:
 operator_deadline_at:
 deadline_remaining_ms:
@@ -479,6 +580,210 @@ Packet laws:
 - Pi receives it before every model turn, after long-running tools, at continuation boundaries, and after compaction/resume.
 - During model/tool execution, the daemon watchdog—not prompt memory—enforces deadlines and cancellation.
 - Context Cognition, Awareness, Preload, WorkpointResumePacket, CompactionMissionPacket, Work Loop status, Silent Session status, TUI, Mission Canvas, and menubar consume the same projection.
+
+## Agent temporal primacy and attention ordering
+
+Time awareness MUST remain at the forefront of every agent operation. It is not a background dashboard metric, optional reminder, end-of-task statistic, or prompt appendix.
+
+Within non-waivable safety, legal, scope, identity, permission, evidence, and authority boundaries, the agent's decision order is:
+
+```text
+1. verified immediate operator ask and current steering
+2. fresh TemporalPriorityFrame
+3. exact Workpoint/Workpoint Item and critical next action
+4. acceptance, evidence, reconciliation, and settlement requirements
+5. all other project, historical, research, optimization, and stylistic context
+```
+
+Time is therefore the first universal constraint immediately below the operator's current ask. It does not outrank safety or authorize prohibited work, but no lower-priority context may suppress, displace, hide, or cause the agent to forget it.
+
+### Human calendar grounding
+
+Every interaction and action binds to:
+
+```yaml
+schema: focusa.human_calendar_context.v1
+context_id:
+generated_at:
+expires_at:
+operator_id:
+trusted_local_datetime:
+utc_instant:
+iana_timezone:
+utc_offset:
+local_calendar_date:
+local_day_of_week:
+working_window_status: inside | outside | unknown
+operator_availability_status: available | constrained | unavailable | unknown
+known_commitment_refs: []
+top_deadline_refs: []
+market_or_domain_calendar_refs: []
+relative_time_resolution_policy_ref:
+calendar_visibility: connected | partial | not_connected
+clock_confidence:
+privacy_profile_ref:
+```
+
+Rules:
+
+- `today`, `tonight`, `tomorrow`, `this week`, `EOD`, `next`, `soon`, and similar language resolve against this context and the operator's stated convention.
+- Ambiguous relative time that affects action, scheduling, expiry, authorization, or prioritization requires clarification and an absolute resolved instant in the durable record.
+- When calendar integration is absent, Focusa uses trusted local date/time plus explicitly known deadlines and visibly reports `calendar_visibility=not_connected`; it never invents appointments or availability.
+- Operator location/timezone change invalidates dependent relative-time resolutions.
+- Human calendar context is privacy-minimized; ordinary agents receive availability/constraint projections rather than unrelated event details.
+- Every interaction, tool/action preflight, reducer command, execution intent, checkpoint, and Receipt carries `human_calendar_context_ref` or an explicit reason-coded unavailable posture.
+- Crossing midnight, a working-window boundary, market session boundary, or calendar revision during long work triggers refresh before the next action.
+
+```yaml
+schema: focusa.temporal_priority_frame.v1
+frame_id:
+generated_at:
+expires_at:
+current_ask_id:
+current_ask_revision:
+human_calendar_context_ref:
+time_awareness_ref:
+trusted_now:
+elapsed_summary:
+readiness_target_at:
+operator_deadline_at:
+safety_margin_remaining_ms:
+schedule_slack_status:
+temporal_pressure:
+last_material_progress_at:
+no_progress_elapsed_ms:
+critical_path_ref:
+critical_next_action:
+active_time_risks: []
+known_opportunity_costs: []
+top_approaching_deadlines: []
+deadline_inquiry_required:
+prohibited_time_waste_patterns: []
+required_replan_condition:
+```
+
+### Mandatory use
+
+Before every plan, model turn, tool call, tool retry, mutation, expensive read, research branch, test/build command, browser action, dispatch, checkpoint, compaction, handoff, continuation, status report, estimate, and final response, the active actor MUST either:
+
+- possess a fresh frame matching current ask, scope, Workpoint, deadline, and state revision; or
+- perform only the bounded recovery required to refresh temporal authority.
+
+A cached frame can satisfy multiple low-latency operations until expiry or invalidation, but use is mandatory and auditable. The agent cannot satisfy this rule by merely receiving the frame; planning/action records must preserve the `time_awareness_ref` and temporal decision outcome.
+
+### Decision requirements
+
+Every candidate action is evaluated for:
+
+- alignment with the immediate operator ask;
+- expected contribution to material progress;
+- critical-path relevance;
+- readiness/deadline effect;
+- protected-margin consumption;
+- known opportunity cost;
+- expected operator attention/review burden;
+- narrower/faster evidence-equivalent alternatives;
+- repetition of an already unsuccessful or completed route;
+- cancellation and recovery behavior;
+- safety, authority, evidence, and settlement obligations.
+
+An action with no defensible operator-ask, progress, risk-reduction, reconciliation, or settlement value must not consume wall-clock time merely because a tool is available.
+
+### Freshness and invalidation
+
+The frame invalidates on:
+
+- operator steering or ask revision;
+- project/continuity/Workpoint/item/task change;
+- deadline or calendar revision;
+- material-progress event;
+- pressure-level transition;
+- newly discovered blocker or dependency;
+- authority, permission, lease, risk, model, provider, or capability change;
+- long-running tool completion/failure/timeout;
+- compaction, handoff, fork, resume, restart, sleep/wake, or clock correction;
+- expiry.
+
+Missing, stale, mismatched, or unverifiable temporal priority blocks new durable work, consequential dispatch, estimate display, and autonomous continuation. Safe read-only temporal repair, reconciliation, cleanup, and operator notification remain allowed.
+
+### Prompt and context placement
+
+Pi/agent bootstrap and every turn packet MUST render a bounded, visible priority header in this order:
+
+```text
+CURRENT OPERATOR ASK
+TIME NOW / ELAPSED / READINESS TARGET / DEADLINE / PRESSURE
+LAST MATERIAL PROGRESS / NO-PROGRESS AGE
+CRITICAL NEXT ACTION / KNOWN TIME RISKS
+```
+
+Bloatgaurd, token pressure, output truncation, compaction, tool-output flood, awareness ranking, or model-provider adaptation MUST NOT omit this header. Details may move behind handles; the core time facts, freshness, and pressure cannot.
+
+### Conversational temporal behavior
+
+The agent MUST mention time in every response where time materially affects interpretation or action, including:
+
+- task start, progress, pause, resume, handoff, completion, settlement, or final report;
+- plans, prioritization, sequencing, critical-path choices, and tradeoffs;
+- estimates, delivery questions, `when`/`how long` questions, and schedule-risk discussions;
+- long-running tool/process status;
+- deadline creation/change, readiness-margin consumption, warning, breach, or missed opportunity;
+- blocked work whose wait consumes calendar time;
+- any response issued while temporal pressure is `at_risk`, `critical`, or `expired`.
+
+A relevant response uses trusted facts and includes only the needed subset of:
+
+```text
+current local time and timezone
+elapsed wall-clock and active/proof/blocked posture
+readiness target and external deadline
+time/safety margin remaining
+last material progress and no-progress age
+top approaching deadlines and priority order
+estimate grounding/uncertainty
+time-critical next action
+```
+
+The agent MUST NOT fabricate an ETA merely because time must be mentioned. When duration is ungrounded, it reports observed time/deadline facts and explicitly refuses a forecast.
+
+### Deadline inquiry
+
+When an operator asks the agent to begin, plan, prioritize, sequence, estimate, schedule, or perform consequential work and no applicable deadline/readiness target is known, the agent SHALL ask a concise deadline question when the answer can materially change execution:
+
+> What is the external deadline, timezone, and required readiness/review margin for this work?
+
+The agent may continue safe reversible discovery while awaiting the answer only when policy permits and the missing deadline cannot cause harmful prioritization. It must not repeatedly ask once the operator has answered, explicitly stated there is no deadline, or supplied a governing calendar policy.
+
+A deadline inquiry is not necessary for trivial read-only answers where timing cannot affect the action, but the agent remains internally time-aware. If an unknown deadline creates material risk, durable/consequential work pauses or proceeds only under an explicit bounded policy.
+
+### Top approaching deadlines and prioritization
+
+Temporal awareness MUST include a bounded ranked set of the most important approaching readiness targets and external deadlines across the active authorized scope, not only the current item.
+
+Ranking considers:
+
+1. immediate operator ask and explicit priority;
+2. hard/external deadline and readiness target proximity;
+3. negative/unknown slack and critical-path dependency impact;
+4. consequence severity and reversibility;
+5. blocked downstream work and opportunity-window risk;
+6. required review/verification/delivery margin;
+7. task aging and prior commitment;
+8. confidence and freshness of the temporal data.
+
+The Work Loop, Trajectory, Mission Canvas, Pi, TUI, and menubar consume the same ranking. If the operator asks for lower-ranked work while a critical deadline is endangered, the agent obeys valid steering but MUST surface the conflict, consequence, and safer sequencing option. It never silently changes the operator's ask.
+
+### Runtime continuity
+
+A model cannot literally receive new prompt tokens continuously during one inference or blocking tool call. Therefore continuous awareness is jointly implemented by:
+
+- fresh prompt-bound TemporalPriorityFrame at every model/decision boundary;
+- daemon monotonic watchdog during inference/tool/process execution;
+- progress heartbeat and cancellation for long operations;
+- SSE/event updates to operator surfaces;
+- forced refresh immediately after the operation returns or state changes.
+
+This combined mechanism—not model memory—satisfies continuous temporal awareness.
 
 ## Estimate Claim and conversational response gate
 
@@ -693,6 +998,161 @@ Urgency MUST NOT:
 - skip required Spec 136 stages;
 - encourage blind retry after possible external effect;
 - prevent cleanup, reconciliation, compensation, or settlement after expiry.
+
+## Temporal pulse, urgency control, prediction, and metacognitive improvement
+
+The agent must remain under real temporal pressure without relying on simulated emotion. Focusa represents the practical function of anxiety—awareness that an irreversible window is narrowing—as a typed `TemporalUrgencySignal` that has runtime consequences.
+
+### Temporal pulse policy
+
+```yaml
+schema: focusa.temporal_pulse_policy.v1
+policy_id:
+normal_interval_ms:
+watch_interval_ms:
+at_risk_interval_ms:
+critical_interval_ms:
+max_clock_sample_age_ms:
+max_progress_sample_age_ms:
+operator_update_interval_ms:
+long_tool_heartbeat_interval_ms:
+pressure_transition_thresholds:
+replan_thresholds:
+notification_policy_ref:
+```
+
+At each pulse the daemon evaluates:
+
+- trusted current wall and monotonic time;
+- HumanCalendarContext and top deadlines;
+- readiness margin and external-deadline distance;
+- grounded/unknown critical-path slack;
+- elapsed time in current action/subproblem;
+- time since last material progress;
+- active tool/process heartbeat and cancellation posture;
+- repeated reads/actions/retries and research budget;
+- unresolved blockers, operator wait, and resource contention;
+- estimate invalidation and forecast deviation;
+- opportunity-window risk;
+- evidence, reconciliation, settlement, safety, and authority obligations.
+
+Pulse intervals tighten as pressure rises, within resource and precision policy. Sampling must not itself become waste: the daemon uses efficient timers/events and pushes bounded changes; the agent must not repeatedly invoke shell clock commands to imitate awareness.
+
+### Urgency signal
+
+```yaml
+schema: focusa.temporal_urgency_signal.v1
+signal_id:
+generated_at:
+time_awareness_ref:
+pressure: normal | watch | at_risk | critical | expired
+primary_reason_codes: []
+readiness_margin_status:
+critical_path_status:
+no_progress_status:
+opportunity_risk_refs: []
+required_behavior_changes: []
+prohibited_behavior: []
+required_next_decision_at:
+operator_notification_required:
+```
+
+Required behavior changes may include narrower context, shorter progress intervals, cancellation of low-value work, forced replan, critical-path selection, evidence-first execution, best-verified-partial preservation, or operator escalation. The signal is calm and factual in UX but impossible for the execution policy to ignore.
+
+### Calm focus gradient
+
+The agent MUST remain calm under pressure. Urgency is expressed through disciplined execution, not emotional language, panic, rushed reasoning, repeated status noise, paralysis, or reckless action.
+
+| Pressure | Required agent posture |
+| --- | --- |
+| `normal` | concise planning, bounded discovery, explicit acceptance target, efficient execution |
+| `watch` | reduce optional breadth, stop redundant reading, verify critical path, increase progress checks |
+| `at_risk` | execution-first mode, freeze nonessential scope, prefer smallest evidence-producing action, surface conflict |
+| `critical` | single critical objective, no speculative research or cosmetic work, immediate proof/checkpoint cadence, preserve best verified partial |
+| `expired` | immediately assess remaining delivery opportunity, freeze unrelated optional work, execute the smallest valid overdue-delivery path calmly, or reconcile/contain/settle if the window is closed/harmful |
+
+At every level the agent:
+
+- communicates clearly and factually;
+- preserves scope, security, authority, evidence, reconciliation, and accessibility;
+- avoids panic-driven tool switching and repeated replanning;
+- does not conceal uncertainty, bad news, lateness, or missing proof;
+- does not flood the operator with repetitive warnings;
+- continues decisive safe execution rather than narrating urgency;
+- asks only questions that materially affect authority, deadline, critical path, or outcome;
+- returns to the exact critical action after interruptions.
+
+As pressure rises, context breadth and narration generally decrease while action specificity, verification cadence, and critical-path adherence increase. This focus gradient is deterministic policy, observable in traces, and covered by evals; it is not left to personality prompting.
+
+### Temporal prediction loop
+
+Before a nontrivial route/tool/action, Focusa records a bounded prediction when sufficient evidence exists:
+
+- expected target-state advancement;
+- expected time category/range, if grounded;
+- expected proof/result;
+- probability of material progress;
+- deadline/slack effect;
+- likely blocker/failure class;
+- recommended stop/replan condition;
+- alternative route considered.
+
+After the action or checkpoint, Focusa evaluates:
+
+- actual elapsed and category breakdown;
+- actual material progress;
+- prediction error/calibration;
+- deadline/margin impact;
+- avoidable waste;
+- whether the stop/replan condition fired at the correct time;
+- whether a different route would have been safer or faster, without fabricating counterfactual certainty.
+
+No-history cases still permit a non-duration hypothesis about result/risk, explicitly marked low-confidence; they do not permit invented numeric time.
+
+### Temporal metacognition loop
+
+```text
+TemporalPriorityFrame
+→ bounded action/route prediction
+→ execution with temporal pulse
+→ material-progress and elapsed observation
+→ prediction evaluation
+→ lost-time/route-quality reflection
+→ scoped LearningCandidate
+→ fixed eval/holdout comparison
+→ governed promotion or rejection
+→ versioned policy/routing update
+→ future outcome evaluation and rollback if worse
+```
+
+Metacognitive reflection is required after significant overrun, deadline breach, repeated no-progress incident, avoidable rebuild, duplicate research, cancellation failure, gross estimate error, or unusually effective route. It identifies reusable causes and interventions—not raw transcript blame.
+
+Learning rules:
+
+- one event cannot rewrite global policy;
+- only settled outcomes with causal Evidence can support promotion;
+- reflections remain advisory until Spec 136 governance accepts a LearningCandidate;
+- eval definitions and holdouts cannot be modified by the candidate being evaluated;
+- changes are scoped by project/task family/tool/model/environment/precision profile;
+- promotion requires improved time-to-verified-outcome without quality, safety, accuracy, or operator-attention regression;
+- every promoted change is versioned, observable, reversible, and re-evaluated;
+- failed strategies and negative outcomes remain in forecast/training history;
+- the agent cannot suppress incidents or select only favorable examples.
+
+### Progressive temporal performance
+
+Focusa reports improvement using measured settled outcomes:
+
+- reduced time to first material progress;
+- reduced no-progress and duplicated-work time;
+- improved estimate calibration;
+- earlier readiness-target settlement;
+- fewer deadline breaches and missed windows;
+- lower tail latency and uncertainty in high-consequence paths;
+- lower operator review/interruption burden;
+- equal or better evidence, safety, reconciliation, and settlement quality.
+
+Raw speed, token reduction, shorter narration, or more completed micro-items alone cannot establish improvement.
 
 ## Expensive action and long-running tool contract
 
@@ -1077,6 +1537,8 @@ Remote proposed Spec 136 owns the cross-system lifecycle and MUST consume Spec 1
 | no-progress incident | deterministic policy observation; may propose replan |
 | temporal preflight | Governance Context/AuthorityDecision input |
 | deadline breach | canonical reducer event |
+| overdue opportunity assessment | verified post-breach observation feeding Work Loop/AuthorityDecision |
+| overdue delivery mode | canonical execution-priority constraint until settlement/redirection/window closure |
 | missed opportunity | outcome fact only after evidence verification |
 | lost-time incident | completion/settlement evidence and Receipt lineage |
 | forecast evaluation | outcome verification against exact target event |
@@ -1111,7 +1573,11 @@ clock.uncertainty_exceeded
 precision.profile_unsupported
 precision.calibration_missing
 time.packet_stale
+time.pulse_stale
 time.attribution_degraded
+urgency.required_behavior_ignored
+urgency.focus_thrash_detected
+urgency.excessive_operator_alerting
 deadline.at_risk
 deadline.critical
 deadline.expired
@@ -1121,12 +1587,20 @@ estimate.insufficient_history
 estimate.target_ambiguous
 estimate.scope_invalidated
 estimate.expired
+prediction.temporal_uncalibrated
+metacog.temporal_source_not_settled
 progress.not_material
 progress.stalled
 research.budget_exhausted
 tool.runtime_exceeded
 opportunity.at_risk
 opportunity.window_missed
+opportunity.delivery_still_valid
+opportunity.partial_delivery_only
+opportunity.late_delivery_harmful
+opportunity.status_unknown
+overdue.delivery_mode_required
+overdue.unrelated_work_blocked
 lost_time.avoidable
 lost_time.external
 data.stale
@@ -1326,12 +1800,15 @@ Pi tools SHALL include bounded equivalents for time awareness/status, deadline i
 
 Pi turn behavior:
 
-1. fetch/inject fresh TimeAwareness before the model turn;
-2. route explicit or inferred time-estimate questions to estimate authority;
-3. validate estimate-shaped final output before display;
-4. refresh awareness after long tools, steering, deadline change, Workpoint change, compaction, resume, and scope change;
-5. display temporal authority failure rather than guessing;
-6. keep packets compact and place detailed timelines behind rehydrate refs.
+1. resolve the verified immediate operator ask;
+2. fetch/build and inject a matching fresh TemporalPriorityFrame immediately after the ask and before all other project context;
+3. bind every tool/action/continuation record to the frame used for its temporal decision;
+4. route explicit or inferred time-estimate questions to estimate authority;
+5. validate estimate-shaped final output before display;
+6. refresh awareness after long tools, steering, deadline change, Workpoint change, material progress, pressure transition, compaction, resume, and scope change;
+7. block durable work/autonomous continuation when the frame is stale or unavailable while permitting bounded temporal repair/reconciliation/cleanup;
+8. display temporal authority failure rather than guessing;
+9. keep packets compact and place detailed timelines behind rehydrate refs without omitting the priority header.
 
 ## Operator UI and notification surface
 
@@ -1357,7 +1834,12 @@ Required logical append-only ledgers (SQLite-backed canonical persistence may ma
 - `temporal-authority/{host_hash}/clock-events.jsonl`
 - `deadlines/{scope_hash}/deadline-events.jsonl`
 - `calendar-constraints/{operator_hash}/constraints.jsonl`
+- `human-calendar-context/{operator_hash}/context-receipts.jsonl`
 - `time-awareness/{scope_hash}/packet-receipts.jsonl`
+- `temporal-priority/{scope_hash}/frame-receipts.jsonl`
+- `temporal-pulses/{scope_hash}/pulse-events.jsonl`
+- `temporal-urgency/{scope_hash}/signals.jsonl`
+- `temporal-learning/{project_hash}/prediction-evaluation-links.jsonl`
 - `workpoint-items/{project_hash}/items.jsonl`
 - `work-timing/{project_hash}/timing-events.jsonl`
 - `material-progress/{project_hash}/progress-events.jsonl`
@@ -1366,6 +1848,8 @@ Required logical append-only ledgers (SQLite-backed canonical persistence may ma
 - `no-progress/{project_hash}/incidents.jsonl`
 - `lost-time/{project_hash}/incidents.jsonl`
 - `opportunity-posture/{project_hash}/events.jsonl`
+- `overdue-opportunity/{project_hash}/assessments.jsonl`
+- `overdue-delivery/{project_hash}/mode-events.jsonl`
 - `temporal-breaches/{project_hash}/breaches.jsonl`
 - `work-token-usage/{project_hash}/token-events.jsonl`
 - `closure-authority/{project_hash}/closure-checks.jsonl`
@@ -1409,7 +1893,7 @@ All records must include:
 9. Pause, compaction, model switch, restart, operator wait, and budget renewal do not move deadlines.
 10. Agents cannot set, extend, clear, weaken, or reinterpret deadlines outside an authorized CAS reducer operation.
 11. Deadline inheritance, conflicts, multiple commitments, working windows, and unknown slack are visible.
-12. Deadline expiry blocks prohibited new work but permits reconciliation, compensation, cleanup, evidence preservation, and settlement.
+12. Deadline expiry creates a TemporalBreach, requires an evidence-backed OverdueOpportunityAssessment, pins the smallest valid delivery/partial/alternate path above unrelated optional work, and blocks expired/harmful dispatch while preserving reconciliation, compensation, cleanup, evidence, and settlement.
 
 ### Estimate truth
 
@@ -1428,10 +1912,10 @@ All records must include:
 22. Activity-only signals cannot reset no-progress clocks.
 23. Unchanged rereads, equivalent actions, unbounded research, repeated full proof, silent tools, compaction churn, and duplicated handoff work are detected with false-positive controls.
 24. Long-running processes expose elapsed status, heartbeat/silence posture, timeout, cancellation, cleanup, and partial results.
-25. Temporal pressure triggers registered operational consequences and never weakens safety or authority.
+25. Daemon temporal pulses continuously recompute urgency, tighten intervals under pressure, trigger the calm focus gradient, and never rely on model memory, create panic/thrashing, or weaken safety/authority.
 26. Opportunity risk is distinguished from evidence-proven missed opportunity and unknown counterfactual impact.
-27. Lost-time incidents are append-only, reviewable, disputable, settleable, and linked to remediation/learning.
-28. Agent/model change, compaction, retry, or process restart cannot erase accumulated incident history.
+27. Lost-time incidents are append-only, reviewable, disputable, settleable, and linked through prediction evaluation, metacognitive reflection, fixed evals, governed LearningCandidates, promotion/rejection, and rollback.
+28. Agent/model change, compaction, retry, or process restart cannot erase accumulated incident/prediction history; temporal policy improves only from measured settled outcomes without safety, quality, accuracy, or operator-attention regression.
 
 ### Workpoint, closure, and settlement
 
@@ -1444,38 +1928,43 @@ All records must include:
 35. Spec 136 completion and settlement can represent functional success with temporal failure; Receipts preserve both.
 36. Project cards consume canonical ledgers rather than turn-local timers as estimate authority.
 
-### Cross-system and UX parity
+### Cross-system, agent primacy, and UX parity
 
-37. Time Awareness is injected before every agent turn and refreshed after long tools, steering, deadline/scope/Workpoint change, compaction, and resume.
-38. Daemon watchdog enforcement continues while the model/tool cannot receive a new prompt.
-39. API, CLI, Pi, generated clients, TUI, Mission Canvas, menubar, notifications, Work Loop, and Silent Sessions expose semantically equivalent state and reason codes.
-40. Bloatgaurd keeps hot temporal context bounded while all omitted detail remains reachable through rehydrate refs.
-41. UI clearly distinguishes normal/watch/at-risk/critical/expired, uses accessible non-color-only presentation, and never shows decorative success over a breach.
-42. Operator review time and notification burden are measured and alert deduplication works.
+37. A fresh HumanCalendarContext and TemporalPriorityFrame appear immediately below the verified current operator ask and above all lower-priority context at every interaction/model/decision boundary.
+38. Every plan, tool/action, retry, mutation, research branch, checkpoint, continuation, estimate, and final response preserves the TimeAwareness reference used for its temporal decision.
+39. Missing/stale/mismatched temporal priority blocks new durable work, consequential dispatch, estimate display, and autonomous continuation while preserving bounded repair/reconciliation/cleanup.
+40. Daemon watchdog enforcement continues while the model/tool cannot receive a new prompt.
+41. Relevant responses mention trusted time and deadline/progress posture without fabricating an ETA; relative human-calendar phrases resolve to explicit timezone-aware boundaries or trigger clarification.
+42. The agent asks for external deadline, timezone, and readiness/review margin when missing information can materially alter consequential planning or priority, and does not repeat resolved inquiries.
+43. A bounded ranked set of top approaching deadlines is visible and shared by Work Loop, Trajectory, Pi, TUI, Mission Canvas, and menubar.
+44. Priority follows operator steering while surfacing critical deadline conflicts, consequences, and safer sequencing; the agent never silently changes the ask.
+45. API, CLI, Pi, generated clients, TUI, Mission Canvas, menubar, notifications, Work Loop, and Silent Sessions expose semantically equivalent state and reason codes.
+46. Bloatgaurd keeps hot temporal context bounded but cannot omit the temporal priority header; all detail remains reachable through rehydrate refs.
+47. UI clearly distinguishes normal/watch/at-risk/critical/expired, uses accessible non-color-only presentation, never shows decorative success over a breach, measures operator review burden, and deduplicates alerts.
 
 ### High-consequence precision and Markets profile
 
-43. Precision, resolution, accuracy, uncertainty, latency, and ordering are distinct in schemas, UI, policy, and tests.
-44. High-consequence timestamps include source, capture point, clock domain, synchronization posture, integer unit, uncertainty, and provenance.
-45. Runtime calibration proves effective accuracy on actual deployed host/network/adapter/provider paths; formatted precision cannot substitute.
-46. Policy blocks dispatch when clock uncertainty, market-data age, decision age, or dispatch age exceeds bounds.
-47. Cross-host ordering uses sequence/causation evidence rather than timestamp order alone.
-48. LLM/model paths are absent from latency-critical deterministic execution loops.
-49. Markets operations preserve event/ingestion/decision/authority/dispatch/acknowledgement/fill/cancel/reconciliation timestamps and latency distributions.
-50. Market calendars, timezone/DST, holidays, early closes, auctions, halts, stale data, gaps, overload, disconnect, leap, restart, and clock drift pass deterministic tests.
-51. Duplicate prevention, idempotency, unknown-outcome reconciliation, partial-fill, cancellation-race, and kill-switch behavior pass adversarial runtime proof.
-52. No expired, stale, uncertainty-violating, out-of-scope, or risk-limit-violating market intent dispatches.
-53. Live-market capability remains blocked through simulation/paper/shadow/canary levels until every activation-firewall requirement is evidenced and explicitly approved.
-54. Every high-consequence domain pack declares and proves an applicable TemporalPrecisionProfile without creating a parallel temporal runtime.
+48. Precision, resolution, accuracy, uncertainty, latency, and ordering are distinct in schemas, UI, policy, and tests.
+49. High-consequence timestamps include source, capture point, clock domain, synchronization posture, integer unit, uncertainty, and provenance.
+50. Runtime calibration proves effective accuracy on actual deployed host/network/adapter/provider paths; formatted precision cannot substitute.
+51. Policy blocks dispatch when clock uncertainty, market-data age, decision age, or dispatch age exceeds bounds.
+52. Cross-host ordering uses sequence/causation evidence rather than timestamp order alone.
+53. LLM/model paths are absent from latency-critical deterministic execution loops.
+54. Markets operations preserve event/ingestion/decision/authority/dispatch/acknowledgement/fill/cancel/reconciliation timestamps and latency distributions.
+55. Market calendars, timezone/DST, holidays, early closes, auctions, halts, stale data, gaps, overload, disconnect, leap, restart, and clock drift pass deterministic tests.
+56. Duplicate prevention, idempotency, unknown-outcome reconciliation, partial-fill, cancellation-race, and kill-switch behavior pass adversarial runtime proof.
+57. No expired, stale, uncertainty-violating, out-of-scope, or risk-limit-violating market intent dispatches.
+58. Live-market capability remains blocked through simulation/paper/shadow/canary levels until every activation-firewall requirement is evidenced and explicitly approved.
+59. Every high-consequence domain pack declares and proves an applicable TemporalPrecisionProfile without creating a parallel temporal runtime.
 
 ### Completeness and release
 
-55. Every normative requirement has a stable feature-ledger row, implementation owner, tests, Evidence, and Receipt.
-56. No mandatory row is silently deferred, omitted, mocked, disabled, hidden behind a flag, or marked complete while blocked.
-57. Every approved deferral exists only as an explicit specification amendment and remains visibly open for affected conformance.
-58. Static, unit, contract, runtime, restart, CRDT, security, accessibility, precision, high-consequence, and adversarial tests cover all mandatory behavior.
-59. Current API/CLI docs, tool registry, generated schemas/clients, migrations, architecture docs, operator docs, and conformance manifests match implementation.
-60. Final closure includes a requirement-by-requirement proof matrix and explicit zero-unapproved-omission attestation.
+60. Every normative requirement has a stable feature-ledger row, implementation owner, tests, Evidence, and Receipt.
+61. No mandatory row is silently deferred, omitted, mocked, disabled, hidden behind a flag, or marked complete while blocked.
+62. Every approved deferral exists only as an explicit specification amendment and remains visibly open for affected conformance.
+63. Static, unit, contract, runtime, restart, CRDT, security, accessibility, precision, high-consequence, and adversarial tests cover all mandatory behavior.
+64. Current API/CLI docs, tool registry, generated schemas/clients, migrations, architecture docs, operator docs, and conformance manifests match implementation.
+65. Final closure includes a requirement-by-requirement proof matrix and explicit zero-unapproved-omission attestation.
 
 ## Implementation order
 
@@ -1507,14 +1996,14 @@ Implementation is progressive but no requirement may be silently deferred. Each 
 
 ### Slice 3 — Deadline, readiness target, and calendar authority
 
-- Implement DeadlineContract, CalendarConstraint, hierarchy, conflict resolution, readiness target, safety margin, exact completion target, revision/CAS, approval, clear/revise semantics, and audit.
+- Implement HumanCalendarContext, DeadlineContract, CalendarConstraint, relative-time resolution, hierarchy, conflict resolution, readiness target, safety margin, exact completion target, revision/CAS, approval, clear/revise semantics, OverdueOpportunityAssessment, OverdueDeliveryMode, and audit.
 - Add deterministic pressure/slack evaluation and unknown-slack posture.
 - Integrate operator timezone/working windows with privacy and revocation.
 - Prove agents cannot mutate deadlines, budget renewal cannot move them, and deadlines survive every lifecycle boundary.
 
 ### Slice 4 — Material progress and anti-waste governance
 
-- Implement material-progress verification and derived last-progress projections.
+- Implement material-progress verification, TemporalPulsePolicy, TemporalUrgencySignal, adaptive polling/event refresh, and derived last-progress projections.
 - Implement content-hash reread detection, normalized equivalent-action detection, bounded research contract, diminishing-return checks, duplicate handoff detection, and no-progress watchdog.
 - Implement temporal preflight, long-process heartbeat/silence, timeout, cancellation, process-tree cleanup, partial-result capture, and user-visible update cadence.
 - Add LostTimeIncident, OpportunityRisk, MissedOpportunity, CounterfactualUnknown, TemporalBreach, dispute/review, settlement, and remediation.
@@ -1532,7 +2021,7 @@ Implementation is progressive but no requirement may be silently deferred. Each 
 
 ### Slice 6 — Work Loop and Silent Session enforcement
 
-- Integrate TimeAwareness, deadline revision, critical path, pressure, no-progress, preflight, and consequence policy into Work Loop selection/continuation.
+- Integrate TimeAwareness, deadline revision, critical path, pressure, no-progress, preflight, overdue opportunity assessment, past-due item pinning, delivery-only focus, and consequence policy into Work Loop selection/continuation.
 - Integrate absolute deadlines separately from renewable execution budgets.
 - Integrate Silent Session run/attempt/process timing, heartbeat, adoption, recovery, model changes, operator steering, writer leases, and settlement.
 - Ensure deadline expiry preserves reconciliation/compensation/cleanup truth paths.
@@ -1540,7 +2029,7 @@ Implementation is progressive but no requirement may be silently deferred. Each 
 
 ### Slice 7 — Context, compaction, awareness, and agent delivery
 
-- Extend ContextCognitionPacket optimization frame, AwarenessPacket, Preload Packet, WorkpointResumePacket, Trajectory packet, CompactionMissionPacket, and Bloatgaurd with bounded temporal refs.
+- Extend ContextCognitionPacket optimization frame, AwarenessPacket, Preload Packet, WorkpointResumePacket, Trajectory packet, CompactionMissionPacket, and Bloatgaurd with bounded HumanCalendarContext, TemporalPriorityFrame, and temporal refs.
 - Inject fresh TimeAwareness before every Pi turn and after every invalidating event.
 - Preserve deadlines, elapsed, progress, reread hashes, estimates, incidents, and do-not-repeat work through compaction/handoff.
 - Add daemon-side enforcement during model/tool execution.
@@ -1551,7 +2040,7 @@ Implementation is progressive but no requirement may be silently deferred. Each 
 - Integrate temporal posture into Spec 116 closure and Spec 119 Receipts.
 - Implement Spec 136 proposal/verification/resolution mapping for EstimateClaim; reducer mapping for deadlines/progress/breaches; AuthorityDecision/ExecutionIntent temporal preflight; completion/settlement temporal outcomes; and post-settlement learning.
 - Allow functional success with temporal failure and preserve both.
-- Feed settled estimate accuracy, lost-time patterns, and remediation outcomes to prediction/metacognition/self-heal without self-sovereign learning.
+- Implement the continuous temporal prediction/evaluation/reflection/LearningCandidate/promotion/rollback loop and feed settled estimate accuracy, route quality, lost-time patterns, urgency responses, and remediation outcomes to prediction/metacognition/self-heal without self-sovereign learning.
 - Prove urgency cannot skip proposal-to-settlement stages.
 
 ### Slice 9 — API, Operation Registry, generated clients, CLI, and tools
@@ -1569,7 +2058,7 @@ Implementation is progressive but no requirement may be silently deferred. Each 
 ### Slice 11 — Benchmarks, high-consequence domain proof, security, and anti-gaming
 
 - Extend Golden Tasks, Spec 113/114 benchmarks, replay fixtures, fake clocks, and holdouts with temporal metrics.
-- Test unsupported numeric/qualitative estimates, survivorship bias, scope invalidation, clock skew/rollback, DST, restart, deadline mutation, budget-renewal bypass, fake progress, repeated actions, stuck tools, concurrency overlap, alert fatigue, metric gaming, and urgency safety.
+- Test unsupported numeric/qualitative estimates, survivorship bias, scope invalidation, clock skew/rollback, DST, restart, deadline mutation, budget-renewal bypass, fake progress, repeated actions, stuck tools, temporal-pulse loss/overpolling, pressure transitions, prediction calibration, metacognitive promotion/rollback, concurrency overlap, alert fatigue, metric gaming, and urgency safety.
 - Test calendar privacy, redaction, authority, malicious prompt/tool/provider time claims, and agents attempting to improve scores by category manipulation.
 - Implement and prove precision profiles, integer high-resolution timing, uncertainty propagation, P50/P95/P99/P99.9/max latency, sequence/causation ordering, and deployed-path calibration.
 - Implement the Markets domain temporal contract and simulation/paper/shadow/canary capability gates; test stale/gapped data, market calendars, clock drift, overload, timeout-after-effect, duplicate order, partial fill, cancel race, halt, disconnect, restart, reconciliation, and kill switch.
@@ -1607,8 +2096,16 @@ implementation_slice:
 blocking_refs: []
 scope_model:
 clock_domains: []
+human_calendar_grounding:
+temporal_priority_behavior:
+temporal_pulse_behavior:
+calm_focus_gradient:
 deadline_behavior:
+overdue_opportunity_behavior:
+overdue_delivery_behavior:
 estimate_behavior:
+temporal_prediction_behavior:
+temporal_metacognition_behavior:
 progress_behavior:
 no_progress_behavior:
 lost_time_behavior:
@@ -1648,14 +2145,16 @@ excluded_requirement_refs: []
 
 Spec 131 is complete only when Focusa can prove that:
 
-- the agent and operator continuously receive fresh, truthful, scoped time awareness;
+- every interaction and action is grounded in fresh trusted human calendar/time context, and the agent/operator continuously receive truthful scoped temporal priority;
 - human deadlines and protected readiness targets cannot be silently reset or consumed;
 - unsupported estimates cannot reach any user-facing surface;
 - material progress and activity are structurally distinct;
 - avoidable waste is detected, recorded, consequential, and learnable only after governed settlement;
 - every affected system consumes one canonical temporal authority;
 - functional success cannot hide temporal failure;
-- urgency improves time-to-verified-outcome without weakening any safety or truth boundary;
+- urgency makes the agent progressively calmer, narrower, more execution-focused, and more evidence-disciplined without weakening any safety or truth boundary;
+- temporal pulses, predictions, outcome evaluation, metacognition, governed learning, and rollback measurably improve time execution over settled outcomes;
+- top approaching deadlines are continuously ranked, missing material deadline context triggers a concise inquiry, and breached items enter evidence-backed overdue-delivery mode as highest execution priority while valid delivery opportunity remains;
 - every mandatory requirement is implemented and evidenced with no silent deferral or omission.
 
 The governing watchword remains:
