@@ -5,3 +5,5 @@
 
 pub mod identity;
 pub mod protocol;
+#[cfg(unix)]
+pub mod transport;
