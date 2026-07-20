@@ -28,7 +28,9 @@ const document = {
   package_lock: {
     "@a2ui/web_core": "0.9.1",
     "@a2ui/lit": "0.9.1",
+    "@focusa/elements": "0.9.120-dev",
     lit: "3.3.1",
+    svelte: "5.55.9",
   },
   renderer: "lit",
   capabilities,

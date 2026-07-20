@@ -272,7 +272,7 @@
         "Components pass Vitest and accessibility checks"
       ],
       "bead_id": "focusa-mc-f10",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "component tests",
         "catalog conformance fixtures"

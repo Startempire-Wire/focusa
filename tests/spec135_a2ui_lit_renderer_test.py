@@ -42,7 +42,8 @@ assert catalog["schema"] == "focusa.a2ui_catalog.v1"
 assert catalog["protocol_version"] == "v0.9"
 assert catalog["renderer"] == "lit"
 assert catalog["package_lock"] == {
-    "@a2ui/lit": "0.9.1", "@a2ui/web_core": "0.9.1", "lit": "3.3.1"
+    "@a2ui/lit": "0.9.1", "@a2ui/web_core": "0.9.1",
+    "@focusa/elements": "0.9.120-dev", "lit": "3.3.1", "svelte": "5.55.9"
 }
 assert catalog["capabilities"]["v0.9"]["supportedCatalogIds"]
 assert catalog["capabilities"]["v0.9"]["inlineCatalogs"]

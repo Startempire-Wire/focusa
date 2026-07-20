@@ -1833,7 +1833,7 @@ fn ui_capability_snapshot_document(
         },
         "providers": [],
         "connectors": [],
-        "client_capabilities": ["openapi-3.0.3", "json-schema-2020-12", "a2ui-web_core-0.9.1", "a2ui-lit-0.9.1", "a2ui-action-bindings", "protocol-handshake-v1"],
+        "client_capabilities": ["openapi-3.0.3", "json-schema-2020-12", "a2ui-web_core-0.9.1", "a2ui-lit-0.9.1", "focusa-svelte-elements-0.9.120-dev", "a2ui-action-bindings", "protocol-handshake-v1"],
         "source_state_revision": "operation-registry-1.0.0",
     })
 }

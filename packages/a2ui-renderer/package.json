@@ -16,9 +16,11 @@
     "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dependencies": {
+    "@focusa/elements": "file:../focusa-elements",
     "@a2ui/lit": "0.9.1",
     "@a2ui/web_core": "0.9.1",
-    "lit": "3.3.1"
+    "lit": "3.3.1",
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@types/jsdom": "21.1.7",
