@@ -55,6 +55,7 @@ pub mod scoped_state;
 pub mod silent_session;
 pub mod silent_session_authorization;
 pub mod silent_session_config;
+pub mod silent_session_launch;
 pub mod silent_session_reducer;
 pub mod silent_session_stream;
 pub mod silent_sessions;
