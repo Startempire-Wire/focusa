@@ -1421,6 +1421,7 @@ dependencies = [
  "chrono",
  "ed25519-dalek",
  "focusa-core",
+ "nix",
  "serde",
  "serde_json",
  "sha2",
