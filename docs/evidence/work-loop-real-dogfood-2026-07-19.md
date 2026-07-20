@@ -106,3 +106,5 @@ The final config child was implemented in `72568ed`, `660fccd`, `9c861d7`, and `
 Capability, harness, provider/model catalog and preflight APIs landed in `fb10ad68`. Thirteen focused API tests prove freshness/auth/entitlement metadata and truthful unknown/degraded semantics; claim `claim_bd_019f7c72435e7de0` reconciled `.3.4`.
 
 The first §24 CLI child landed in `ad669abd`: exact list/show/status/watch/output commands with bounded opaque cursors and human/JSON parity. Four CLI E2E tests, 14 focused API tests, 14 persistence tests and CLI check passed; claim `claim_bd_019f7cc938ea7193` reconciled `.3.5.1`.
+
+Lifecycle CLI controls landed in `5110cbe7` with proof commit `3b16aa21`. Four E2E tests prove one-to-one daemon route mapping, stale scope/generation rejection, receipts/recovery and human/JSON parity; claim `claim_bd_019f7cf49a177913` reconciled `.3.5.2`.
