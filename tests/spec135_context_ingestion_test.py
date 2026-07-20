@@ -24,8 +24,8 @@ proof = (ROOT / "packages/a2ui-renderer/proof/context-ingest.ts").read_text()
 ts = (ROOT / "packages/generated/spec135/typescript/schema.d.ts").read_text()
 go = (ROOT / "packages/generated/spec135/go/client.gen.go").read_text()
 
-assert registry["operation_count"] == 59
-assert bindings["binding_count"] == 59
+assert registry["operation_count"] >= 59
+assert bindings["binding_count"] == registry["operation_count"]
 for operation_id, method, path in (
     ("focusa.context.source.ingest", "POST", "/v1/context/sources/ingest"),
     ("focusa.context.adapter.docling.health", "GET", "/v1/context/adapters/docling/health"),

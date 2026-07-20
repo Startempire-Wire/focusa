@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-07-20T18:41:40.061663+00:00",
-  "operation_count": 59,
+  "generated_at": "2026-07-20T22:52:58.711624+00:00",
+  "operation_count": 60,
   "operations": [
     {
       "alias_of": null,
@@ -1934,6 +1934,85 @@
         "default_label": "Ingest Context Source",
         "input_presentation_ref": "focusa.generated_form.v1",
         "plain_language_description": "Ingest Context Source",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "heavy_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.context_retrieve.request.v1",
+        "output_schema_ref": "focusa.context_retrieve_response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "context"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "context:read"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "context",
+      "label": "Retrieve Cited Context",
+      "materialization_mode": "advisory_read",
+      "method": "POST",
+      "operation_id": "focusa.context.retrieve",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.context.retrieve",
+        "subsystem": "context"
+      },
+      "path": "/v1/context/retrieve",
+      "permissions_required": [
+        "context:read"
+      ],
+      "request_schema_ref": "focusa.context_retrieve.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard",
+        "debug"
+      ],
+      "response_schema_ref": "focusa.context_retrieve_response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.context_retrieve.request.v1",
+      "scope": {
+        "attachment_scoped": true,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_context",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Retrieve Cited Context",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Retrieve Cited Context",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
       }

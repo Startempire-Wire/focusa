@@ -119,6 +119,11 @@ impl SqlitePersistence {
         Ok(this)
     }
 
+    /// Canonical SQLite path used by bounded derived indexes such as Context retrieval.
+    pub fn database_path(&self) -> PathBuf {
+        self.data_dir.join("focusa.sqlite")
+    }
+
     fn init_schema(&self) -> anyhow::Result<()> {
         let conn = self
             .conn

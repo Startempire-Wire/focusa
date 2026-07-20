@@ -8,6 +8,7 @@
 //!   - State mutated via internal reducer (event-driven)
 //!   - Concurrency: single owner task with mpsc command channel
 
+pub mod context_retrieval;
 pub mod daemon;
 pub mod event_bus;
 pub mod events;

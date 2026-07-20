@@ -1,0 +1,35 @@
+{
+  "schema": "uiai.focusa_ui_eval_result.v1",
+  "scenario_id": "spec135-c2-cited-context-retrieval",
+  "status": "passed",
+  "browser_session_refs": ["uiai-browser:session=biw4d3UW"],
+  "browser_context_refs": ["focusa-cont-mission-canvas-57e8c074-539f-44a2-86f6-527b478f9d80","attachment:c2-context"],
+  "step_results": [
+    {"step_id":"open","status":"passed","result":"UIAI opened the generated cited Context surface at 1280x900.","evidence_refs":["uiai-browser:session=biw4d3UW"]},
+    {"step_id":"retrieve","status":"passed","result":"One generated focusa.context.retrieve action returned two exact-scope chunks; FTS5 and sqlite-vec capabilities were available and vector-model absence degraded safely to lexical.","evidence_refs":["uiai-browser:session=biw4d3UW:eval:context-retrieval"]},
+    {"step_id":"citations","status":"passed","result":"Both results rendered stable source/revision/chunk/line citations plus Evidence and Receipt refs.","evidence_refs":["citation:669f3c8e99066a516baf278f","citation:142a5009211501ec2d5f602e","evidence:context-retrieval:ca30c935bb40090fde22a89a","receipt:context-retrieval:ca30c935bb40090fde22a89a"]},
+    {"step_id":"contradiction","status":"passed","result":"Opposite-polarity release policy sources surfaced one bounded candidate for operator review.","evidence_refs":["contradiction:c160974415df3342d3a57d14"]},
+    {"step_id":"mobile","status":"passed","result":"390x844 viewport had scrollWidth=390, 324px primary action, and nested button focus=true.","evidence_refs":["uiai-browser:session=biw4d3UW:mobile:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/biw4d3UW-1784588806118638000.png"]},
+    {"step_id":"diagnostics","status":"passed","result":"Eight browser/API requests completed with zero console errors, exceptions, failed requests, 4xx, or 5xx responses.","evidence_refs":["uiai-diagnostics:session=biw4d3UW:seq=8","browser-diagnostics:2026-07-20T23:07:04.444Z"]},
+    {"step_id":"close","status":"passed","result":"UIAI browser session biw4d3UW was explicitly closed.","evidence_refs":["uiai-browser:session=biw4d3UW:closed"]}
+  ],
+  "screenshots": [
+    "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/biw4d3UW-1784588782710293000.png",
+    "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/biw4d3UW-1784588806118638000.png"
+  ],
+  "diagnostics": [
+    {"level":"info","category":"runtime","summary":"FTS5 available; sqlite-vec available; fastembed-disabled path explicitly and safely fell back to deterministic lexical retrieval","diagnostics_ref":"uiai-browser:session=biw4d3UW:eval:context-retrieval"},
+    {"level":"info","category":"network","summary":"requests=8; failed_requests=0; http_4xx=0; http_5xx=0","diagnostics_ref":"uiai-diagnostics:session=biw4d3UW:seq=8"},
+    {"level":"info","category":"console","summary":"console_errors=0; console_warnings=0; exceptions=0","diagnostics_ref":"browser-diagnostics:2026-07-20T23:07:04.444Z"}
+  ],
+  "accessibility_report_ref": "test:focusa-elements:component-semantics-and-nested-button-focus",
+  "visual_comparison_refs": [
+    "uiai-browser:session=biw4d3UW:desktop:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/biw4d3UW-1784588782710293000.png",
+    "uiai-browser:session=biw4d3UW:mobile:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/biw4d3UW-1784588806118638000.png"
+  ],
+  "focusa_evidence_refs": ["evidence:context-retrieval:ca30c935bb40090fde22a89a","browser-diagnostics:2026-07-20T23:07:04.444Z","test:focusa-core:context-vector-fastembed"],
+  "receipt_refs": ["receipt:context-retrieval:ca30c935bb40090fde22a89a"],
+  "failure_class": null,
+  "recovery_action": null,
+  "evaluated_at": "2026-07-20T23:06:46Z"
+}

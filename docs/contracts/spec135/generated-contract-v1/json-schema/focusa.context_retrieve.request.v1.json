@@ -1,0 +1,53 @@
+{
+  "$id": "/v1/agent/schemas/focusa.context_retrieve.request.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attachment_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "continuity_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "include_contradictions": {
+      "default": false,
+      "type": "boolean"
+    },
+    "limit": {
+      "default": 8,
+      "maximum": 50,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "mode": {
+      "default": "hybrid",
+      "enum": [
+        "lexical",
+        "hybrid"
+      ]
+    },
+    "project_root": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    },
+    "query": {
+      "maxLength": 2048,
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "project_root",
+    "continuity_id",
+    "query"
+  ],
+  "title": "focusa.context_retrieve.request.v1",
+  "type": "object",
+  "x-focusa-generated-from": "ContextRetrieveRequest",
+  "x-focusa-schema-id": "focusa.context_retrieve.request.v1"
+}

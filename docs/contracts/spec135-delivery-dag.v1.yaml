@@ -1214,7 +1214,7 @@
       "bead_id": "focusa-mc-c2",
       "lane": "context",
       "requirement_id": "SPEC135-C2",
-      "status": "missing"
+      "status": "verified"
     },
     {
       "bead_id": "focusa-mc-c3",

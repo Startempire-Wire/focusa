@@ -8,6 +8,9 @@ use axum::{
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use chrono::Utc;
 use focusa_core::{
+    runtime::context_retrieval::{
+        ContextRetrievalIndex, ContextRetrievalMode, ContextRetrievalQuery, ContextRetrievalResult,
+    },
     tool_result::{FailureClass, ToolResultV1, ToolStatus},
     types::{
         Action, ContextSourceEvidence, ContextSourceHealth, ContextSourceReceipt,
@@ -22,6 +25,7 @@ use std::{env, sync::Arc, time::Duration};
 
 const COMMIT_OPERATION_ID: &str = "focusa.context.source.commit";
 const INGEST_OPERATION_ID: &str = "focusa.context.source.ingest";
+const RETRIEVE_OPERATION_ID: &str = "focusa.context.retrieve";
 const MAX_CONTEXT_BYTES: usize = 64 * 1024;
 const MAX_TEXT_INGEST_BYTES: usize = 2 * 1024 * 1024;
 const MAX_PDF_INGEST_BYTES: usize = 20 * 1024 * 1024;
@@ -65,6 +69,31 @@ pub struct ContextSourceListResponse {
     pub canonical: bool,
     pub state_version: u64,
     pub sources: Vec<ContextSourceRecord>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ContextRetrieveRequest {
+    pub project_root: String,
+    pub continuity_id: String,
+    #[serde(default)]
+    pub attachment_id: Option<String>,
+    pub query: String,
+    #[serde(default)]
+    pub limit: Option<usize>,
+    #[serde(default)]
+    pub mode: ContextRetrievalMode,
+    #[serde(default)]
+    pub include_contradictions: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ContextRetrieveResponse {
+    pub schema: &'static str,
+    pub canonical_sources: bool,
+    pub result: ContextRetrievalResult,
+    pub evidence_ref: String,
+    pub receipt_ref: String,
+    pub tool_result: ToolResultV1,
 }
 
 fn failure(
@@ -817,6 +846,126 @@ async fn ingest(
     ))
 }
 
+fn retrieval_failure(
+    status: StatusCode,
+    tool_status: ToolStatus,
+    class: FailureClass,
+    summary: impl Into<String>,
+) -> ApiError {
+    let mut result = ToolResultV1::failure(tool_status, class, summary);
+    result.tool = Some("focusa_context_retrieve".to_string());
+    result.family = Some("context".to_string());
+    result.endpoint = Some("/v1/context/retrieve".to_string());
+    result.next_tools = vec![
+        "focusa_context_sources_list".to_string(),
+        "focusa_context_adapter_docling_health".to_string(),
+    ];
+    (status, Json(result))
+}
+
+async fn retrieve(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<ContextRetrieveRequest>,
+) -> Result<Json<ContextRetrieveResponse>, ApiError> {
+    let project_root = validate_nonempty(&request.project_root, "project_root", 4096)?;
+    let continuity_id = validate_nonempty(&request.continuity_id, "continuity_id", 256)?;
+    let attachment_id = request
+        .attachment_id
+        .as_deref()
+        .map(|value| validate_nonempty(value, "attachment_id", 256))
+        .transpose()?;
+    let query = validate_nonempty(&request.query, "query", 2048)?;
+    let limit = request.limit.unwrap_or(8);
+    if !(1..=50).contains(&limit) {
+        return Err(retrieval_failure(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            ToolStatus::ValidationRejected,
+            FailureClass::ValidationRejected,
+            "limit must be between 1 and 50",
+        ));
+    }
+
+    let sources = {
+        let focusa = state.focusa.read().await;
+        focusa
+            .context_sources
+            .iter()
+            .filter(|source| {
+                source.project_root == project_root
+                    && source.continuity_id == continuity_id
+                    && attachment_id
+                        .as_ref()
+                        .map(|attachment| source.attachment_id == *attachment)
+                        .unwrap_or(true)
+            })
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+    let index = ContextRetrievalIndex::from_persistence(&state.persistence);
+    let retrieval_query = ContextRetrievalQuery {
+        project_root: project_root.clone(),
+        continuity_id: continuity_id.clone(),
+        attachment_id: attachment_id.clone(),
+        query: query.clone(),
+        limit,
+        mode: request.mode,
+        include_contradictions: request.include_contradictions,
+    };
+    let result = tokio::task::spawn_blocking(move || index.retrieve(&sources, retrieval_query))
+        .await
+        .map_err(|error| {
+            retrieval_failure(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                ToolStatus::Blocked,
+                FailureClass::ResourceExhausted,
+                format!("Context retrieval worker failed: {error}"),
+            )
+        })?
+        .map_err(|error| {
+            retrieval_failure(
+                StatusCode::SERVICE_UNAVAILABLE,
+                ToolStatus::Degraded,
+                FailureClass::ReadModelLag,
+                format!("Context retrieval is unavailable: {error}"),
+            )
+        })?;
+
+    let result_digest = digest(&[
+        RETRIEVE_OPERATION_ID,
+        &project_root,
+        &continuity_id,
+        attachment_id.as_deref().unwrap_or(""),
+        &query,
+        &serde_json::to_string(&result.hits).unwrap_or_default(),
+    ]);
+    let evidence_ref = format!("evidence:context-retrieval:{}", &result_digest[..24]);
+    let receipt_ref = format!("receipt:context-retrieval:{}", &result_digest[..24]);
+    let mut tool_result = ToolResultV1::success(
+        ToolStatus::Completed,
+        format!(
+            "Retrieved {} exact-scope Context chunks with source-preserving citations",
+            result.result_count
+        ),
+    );
+    tool_result.tool = Some("focusa_context_retrieve".to_string());
+    tool_result.family = Some("context".to_string());
+    tool_result.endpoint = Some("/v1/context/retrieve".to_string());
+    tool_result.evidence_refs = vec![evidence_ref.clone()];
+    tool_result.next_tools = vec![
+        "focusa_context_sources_list".to_string(),
+        "focusa_evidence_capture".to_string(),
+    ];
+
+    Ok(Json(ContextRetrieveResponse {
+        schema: "focusa.context_retrieve_response.v1",
+        canonical_sources: true,
+        result,
+        evidence_ref,
+        receipt_ref,
+        tool_result,
+    }))
+}
+
 async fn docling_health() -> Json<DoclingHealthResponse> {
     let checked_at = Utc::now();
     let Some(base_url) = docling_base_url() else {
@@ -881,5 +1030,6 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/context/sources/commit", post(commit))
         .route("/v1/context/sources/ingest", post(ingest))
         .route("/v1/context/sources", get(list))
+        .route("/v1/context/retrieve", post(retrieve))
         .route("/v1/context/adapters/docling/health", get(docling_health))
 }

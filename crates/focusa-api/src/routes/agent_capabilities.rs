@@ -888,6 +888,29 @@ fn build_operations() -> Vec<OperationEntry> {
             None,
         ),
         op(
+            "focusa.context.retrieve",
+            "Retrieve Cited Context",
+            "context",
+            "POST",
+            "/v1/context/retrieve",
+            true,
+            None,
+            "read_context",
+            "advisory_read",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec!["context:read"],
+            false,
+            "heavy_read",
+            vec!["compact", "standard", "debug"],
+            "focusa.context_retrieve.request.v1",
+            "focusa.context_retrieve_response.v1",
+            "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+            None,
+        ),
+        op(
             "focusa.context.adapter.docling.health",
             "Read Docling Context Adapter Health",
             "context",
@@ -2243,6 +2266,102 @@ fn json_schema_document(schema_id: &str) -> Value {
             },
             "x-focusa-schema-id": schema_id,
             "x-focusa-generated-from": "ContextSourceIngestResponse"
+        });
+    }
+    if schema_id == "focusa.context_retrieve.request.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false,
+            "required": ["project_root", "continuity_id", "query"],
+            "properties": {
+                "project_root": {"type": "string", "minLength": 1, "maxLength": 4096},
+                "continuity_id": {"type": "string", "minLength": 1, "maxLength": 256},
+                "attachment_id": {"type": "string", "minLength": 1, "maxLength": 256},
+                "query": {"type": "string", "minLength": 1, "maxLength": 2048},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 50, "default": 8},
+                "mode": {"enum": ["lexical", "hybrid"], "default": "hybrid"},
+                "include_contradictions": {"type": "boolean", "default": false}
+            },
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "ContextRetrieveRequest"
+        });
+    }
+    if schema_id == "focusa.context_retrieve_response.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false,
+            "required": ["schema", "canonical_sources", "result", "evidence_ref", "receipt_ref", "tool_result"],
+            "properties": {
+                "schema": {"const": "focusa.context_retrieve_response.v1"},
+                "canonical_sources": {"const": true},
+                "result": {
+                    "type": "object", "additionalProperties": false,
+                    "required": ["schema", "query", "mode_requested", "mode_used", "result_count", "indexed_source_count", "indexed_chunk_count", "hits", "contradictions", "capabilities"],
+                    "properties": {
+                        "schema": {"const": "focusa.context_retrieval_result.v1"},
+                        "query": {"type": "string"},
+                        "mode_requested": {"enum": ["lexical", "hybrid"]},
+                        "mode_used": {"enum": ["lexical", "hybrid"]},
+                        "result_count": {"type": "integer", "minimum": 0, "maximum": 50},
+                        "indexed_source_count": {"type": "integer", "minimum": 0},
+                        "indexed_chunk_count": {"type": "integer", "minimum": 0},
+                        "hits": {
+                            "type": "array", "maxItems": 50,
+                            "items": {
+                                "type": "object", "additionalProperties": false,
+                                "required": ["chunk_id", "snippet", "score", "retrieval_modes", "citation", "contradiction_refs"],
+                                "properties": {
+                                    "chunk_id": {"type": "string"}, "snippet": {"type": "string", "maxLength": 1600},
+                                    "score": {"type": "number", "minimum": 0, "maximum": 1},
+                                    "retrieval_modes": {"type": "array", "items": {"enum": ["lexical", "vector"]}, "uniqueItems": true},
+                                    "contradiction_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+                                    "citation": {
+                                        "type": "object", "additionalProperties": false,
+                                        "required": ["citation_id", "source_id", "source_revision", "source_kind", "title", "source_locator", "content_hash", "chunk_id", "chunk_ordinal", "line_start", "line_end"],
+                                        "properties": {
+                                            "citation_id": {"type": "string"}, "source_id": {"type": "string"},
+                                            "source_revision": {"type": "string"}, "source_kind": {"type": "string"},
+                                            "title": {"type": "string"}, "source_locator": {"type": "string"},
+                                            "content_hash": {"type": "string"}, "chunk_id": {"type": "string"},
+                                            "chunk_ordinal": {"type": "integer", "minimum": 0},
+                                            "line_start": {"type": "integer", "minimum": 1},
+                                            "line_end": {"type": "integer", "minimum": 1}
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "contradictions": {
+                            "type": "array", "maxItems": 1225,
+                            "items": {
+                                "type": "object", "additionalProperties": false,
+                                "required": ["contradiction_id", "status", "summary", "left_citation_id", "right_citation_id", "shared_terms"],
+                                "properties": {
+                                    "contradiction_id": {"type": "string"}, "status": {"const": "candidate"},
+                                    "summary": {"type": "string"}, "left_citation_id": {"type": "string"},
+                                    "right_citation_id": {"type": "string"},
+                                    "shared_terms": {"type": "array", "maxItems": 12, "items": {"type": "string"}}
+                                }
+                            }
+                        },
+                        "capabilities": {
+                            "type": "object", "additionalProperties": false,
+                            "required": ["lexical", "vector_index", "embedding_provider", "degraded_to_lexical"],
+                            "properties": {
+                                "lexical": {"type": "string"}, "vector_index": {"type": "string"},
+                                "embedding_provider": {"type": "string"}, "embedding_model": {"type": "string"},
+                                "degraded_to_lexical": {"type": "boolean"}, "degradation_reason": {"type": "string", "maxLength": 320}
+                            }
+                        }
+                    }
+                },
+                "evidence_ref": {"type": "string"}, "receipt_ref": {"type": "string"},
+                "tool_result": {"type": "object"}
+            },
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "ContextRetrieveResponse"
         });
     }
     if schema_id == "focusa.context_adapter_health.request.v1" {

@@ -24,3 +24,8 @@ UIAI Eval result.
 lane gate to real Markdown/code ingestion, real PDF extraction through Docling
 Serve v1, incremental canonical reducer state, generated clients/UI, source
 health and recovery, UIAI desktop/mobile proof, Evidence, and Receipts.
+
+`spec135-c2-context-retrieval-proof.json` proves deterministic exact-scope
+SQLite FTS5 + sqlite-vec retrieval, optional fastembed-rs hybrid vectors,
+source/revision/line citations, candidate contradiction surfacing, lexical
+fallback, restart order, generated clients/UI, Evidence, and Receipt output.

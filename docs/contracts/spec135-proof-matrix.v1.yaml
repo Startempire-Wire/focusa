@@ -375,7 +375,7 @@
         "Vector absence degrades safely to lexical retrieval"
       ],
       "bead_id": "focusa-mc-c2",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "retrieval quality fixtures",
         "restart proof"

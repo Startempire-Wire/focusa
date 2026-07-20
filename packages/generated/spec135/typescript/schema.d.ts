@@ -244,6 +244,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/context/retrieve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retrieve Cited Context
+         * @description Retrieve Cited Context — family=context budget=heavy_read materialization=advisory_read
+         */
+        post: operations["focusa.context.retrieve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/context/sources": {
         parameters: {
             query?: never;
@@ -1359,6 +1379,81 @@ export interface components {
          */
         focusa_context_cognition_packet_response_v1: {
             [key: string]: unknown;
+        };
+        /** focusa.context_retrieve.request.v1 */
+        focusa_context_retrieve_request_v1: {
+            attachment_id?: string;
+            continuity_id: string;
+            /** @default false */
+            include_contradictions: boolean;
+            /** @default 8 */
+            limit: number;
+            /**
+             * @default hybrid
+             * @enum {unknown}
+             */
+            mode: "lexical" | "hybrid";
+            project_root: string;
+            query: string;
+        };
+        /** focusa.context_retrieve_response.v1 */
+        focusa_context_retrieve_response_v1: {
+            /** @constant */
+            canonical_sources: true;
+            evidence_ref: string;
+            receipt_ref: string;
+            result: {
+                capabilities: {
+                    degradation_reason?: string;
+                    degraded_to_lexical: boolean;
+                    embedding_model?: string;
+                    embedding_provider: string;
+                    lexical: string;
+                    vector_index: string;
+                };
+                contradictions: {
+                    contradiction_id: string;
+                    left_citation_id: string;
+                    right_citation_id: string;
+                    shared_terms: string[];
+                    /** @constant */
+                    status: "candidate";
+                    summary: string;
+                }[];
+                hits: {
+                    chunk_id: string;
+                    citation: {
+                        chunk_id: string;
+                        chunk_ordinal: number;
+                        citation_id: string;
+                        content_hash: string;
+                        line_end: number;
+                        line_start: number;
+                        source_id: string;
+                        source_kind: string;
+                        source_locator: string;
+                        source_revision: string;
+                        title: string;
+                    };
+                    contradiction_refs: string[];
+                    retrieval_modes: ("lexical" | "vector")[];
+                    score: number;
+                    snippet: string;
+                }[];
+                indexed_chunk_count: number;
+                indexed_source_count: number;
+                /** @enum {unknown} */
+                mode_requested: "lexical" | "hybrid";
+                /** @enum {unknown} */
+                mode_used: "lexical" | "hybrid";
+                query: string;
+                result_count: number;
+                /** @constant */
+                schema: "focusa.context_retrieval_result.v1";
+            };
+            /** @constant */
+            schema: "focusa.context_retrieve_response.v1";
+            tool_result: Record<string, never>;
         };
         /** focusa.context_source_commit.request.v1 */
         focusa_context_source_commit_request_v1: {
@@ -2667,6 +2762,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_context_adapter_health_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.context.retrieve": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_context_retrieve_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Retrieve Cited Context response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_context_retrieve_response_v1"];
                 };
             };
             /** @description Standard error envelope */
