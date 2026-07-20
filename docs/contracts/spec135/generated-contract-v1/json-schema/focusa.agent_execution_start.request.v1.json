@@ -1,0 +1,36 @@
+{
+  "$id": "/v1/agent/schemas/focusa.agent_execution_start.request.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "cwd": {
+      "type": "string"
+    },
+    "idempotency_key": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "models": {
+      "type": "string"
+    },
+    "resume_session": {
+      "type": "string"
+    },
+    "session_dir": {
+      "type": "string"
+    },
+    "session_name": {
+      "type": "string"
+    },
+    "workpoint_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "idempotency_key"
+  ],
+  "title": "Focusa Pi RPC Agent Execution Start Request v1",
+  "type": "object",
+  "x-focusa-generated-from": "PiDriverStartRequest",
+  "x-focusa-schema-id": "focusa.agent_execution_start.request.v1"
+}

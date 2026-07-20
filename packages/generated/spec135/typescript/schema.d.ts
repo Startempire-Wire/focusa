@@ -944,6 +944,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/work-loop/driver/abort": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Abort Current Pi RPC Turn
+         * @description Abort Current Pi RPC Turn — family=work_loop budget=process_control materialization=pi_rpc
+         */
+        post: operations["focusa.agent_execution.abort"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/work-loop/driver/prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Prompt Governed Pi RPC Execution
+         * @description Prompt Governed Pi RPC Execution — family=work_loop budget=process_control materialization=pi_rpc
+         */
+        post: operations["focusa.agent_execution.prompt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/work-loop/driver/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start or Resume Governed Pi RPC Execution
+         * @description Start or Resume Governed Pi RPC Execution — family=work_loop budget=process_control materialization=pi_rpc
+         */
+        post: operations["focusa.agent_execution.start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/work-loop/driver/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop Governed Pi RPC Execution
+         * @description Stop Governed Pi RPC Execution — family=work_loop budget=process_control materialization=pi_rpc
+         */
+        post: operations["focusa.agent_execution.stop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/work-loop/status": {
         parameters: {
             query?: never;
@@ -1028,6 +1108,45 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** focusa.agent_execution_abort.request.v1 */
+        focusa_agent_execution_abort_request_v1: Record<string, never>;
+        /** Focusa Agent Execution Adapter Result v1 */
+        focusa_agent_execution_adapter_result_v1: {
+            /** @enum {string} */
+            adapter: "pi-rpc";
+            authority: string;
+            cancellation?: Record<string, never>;
+            cancelled?: boolean;
+            idempotent_replay?: boolean;
+            resumable: boolean;
+            resumed_from?: unknown;
+            schema: string;
+            session_id: string;
+            /** @enum {string} */
+            status: "accepted" | "stopped";
+            tool_result: Record<string, never>;
+            workpoint_id?: unknown;
+        } & {
+            [key: string]: unknown;
+        };
+        /** Focusa Pi RPC Agent Execution Prompt Request v1 */
+        focusa_agent_execution_prompt_request_v1: {
+            message: string;
+            /** @enum {string} */
+            streaming_behavior?: "steer" | "followUp";
+        };
+        /** Focusa Pi RPC Agent Execution Start Request v1 */
+        focusa_agent_execution_start_request_v1: {
+            cwd?: string;
+            idempotency_key: string;
+            models?: string;
+            resume_session?: string;
+            session_dir?: string;
+            session_name?: string;
+            workpoint_id?: string;
+        };
+        /** focusa.agent_execution_stop.request.v1 */
+        focusa_agent_execution_stop_request_v1: Record<string, never>;
         /**
          * focusa.awareness_packet.request.v1
          * @description Generated contract for Focusa schema focusa.awareness_packet.request.v1
@@ -3456,6 +3575,8 @@ export interface operations {
             query: {
                 /** @description Required Focusa scope key: project_root */
                 project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -3487,11 +3608,165 @@ export interface operations {
             };
         };
     };
+    "focusa.agent_execution.abort": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_agent_execution_abort_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Abort Current Pi RPC Turn response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_agent_execution_adapter_result_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.agent_execution.prompt": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_agent_execution_prompt_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Prompt Governed Pi RPC Execution response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_agent_execution_adapter_result_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.agent_execution.start": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_agent_execution_start_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Start or Resume Governed Pi RPC Execution response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_agent_execution_adapter_result_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.agent_execution.stop": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_agent_execution_stop_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Stop Governed Pi RPC Execution response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_agent_execution_adapter_result_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
     "focusa.work_loop.status": {
         parameters: {
             query: {
                 /** @description Required Focusa scope key: project_root */
                 project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;

@@ -1,0 +1,59 @@
+{
+  "$id": "/v1/agent/schemas/focusa.agent_execution_adapter_result.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "properties": {
+    "adapter": {
+      "enum": [
+        "pi-rpc"
+      ],
+      "type": "string"
+    },
+    "authority": {
+      "type": "string"
+    },
+    "cancellation": {
+      "type": "object"
+    },
+    "cancelled": {
+      "type": "boolean"
+    },
+    "idempotent_replay": {
+      "type": "boolean"
+    },
+    "resumable": {
+      "type": "boolean"
+    },
+    "resumed_from": {},
+    "schema": {
+      "type": "string"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "accepted",
+        "stopped"
+      ],
+      "type": "string"
+    },
+    "tool_result": {
+      "type": "object"
+    },
+    "workpoint_id": {}
+  },
+  "required": [
+    "schema",
+    "status",
+    "adapter",
+    "session_id",
+    "resumable",
+    "authority",
+    "tool_result"
+  ],
+  "title": "Focusa Agent Execution Adapter Result v1",
+  "type": "object",
+  "x-focusa-generated-from": "Spec133 PiRpcSession",
+  "x-focusa-schema-id": "focusa.agent_execution_adapter_result.v1"
+}

@@ -202,6 +202,7 @@ fn op(
             | "context_cognition"
             | "turn"
             | "memory"
+            | "work_loop"
     ) || matches!(
         id,
         "focusa.ui_action_bindings.read"
@@ -1496,6 +1497,98 @@ fn build_operations() -> Vec<OperationEntry> {
             "docs/135e-cross-spec-amendments-migration-and-closure-matrix.md",
             None,
         ),
+        op(
+            "focusa.agent_execution.start",
+            "Start or Resume Governed Pi RPC Execution",
+            "work_loop",
+            "POST",
+            "/v1/work-loop/driver/start",
+            true,
+            None,
+            "write_process",
+            "pi_rpc",
+            vec!["commit"],
+            true,
+            false,
+            false,
+            vec!["work-loop:write"],
+            false,
+            "process_control",
+            vec!["standard"],
+            "focusa.agent_execution_start.request.v1",
+            "focusa.agent_execution_adapter_result.v1",
+            "docs/133-daemon-native-durable-silent-sessions-and-governed-autonomous-execution-spec.md",
+            None,
+        ),
+        op(
+            "focusa.agent_execution.prompt",
+            "Prompt Governed Pi RPC Execution",
+            "work_loop",
+            "POST",
+            "/v1/work-loop/driver/prompt",
+            true,
+            None,
+            "write_process",
+            "pi_rpc",
+            vec!["commit"],
+            true,
+            false,
+            false,
+            vec!["work-loop:write"],
+            false,
+            "process_control",
+            vec!["standard"],
+            "focusa.agent_execution_prompt.request.v1",
+            "focusa.agent_execution_adapter_result.v1",
+            "docs/133-daemon-native-durable-silent-sessions-and-governed-autonomous-execution-spec.md",
+            None,
+        ),
+        op(
+            "focusa.agent_execution.abort",
+            "Abort Current Pi RPC Turn",
+            "work_loop",
+            "POST",
+            "/v1/work-loop/driver/abort",
+            true,
+            None,
+            "write_process",
+            "pi_rpc",
+            vec!["commit"],
+            true,
+            false,
+            false,
+            vec!["work-loop:write"],
+            false,
+            "process_control",
+            vec!["compact"],
+            "focusa.agent_execution_abort.request.v1",
+            "focusa.agent_execution_adapter_result.v1",
+            "docs/133-daemon-native-durable-silent-sessions-and-governed-autonomous-execution-spec.md",
+            None,
+        ),
+        op(
+            "focusa.agent_execution.stop",
+            "Stop Governed Pi RPC Execution",
+            "work_loop",
+            "POST",
+            "/v1/work-loop/driver/stop",
+            true,
+            None,
+            "write_process",
+            "pi_rpc",
+            vec!["commit"],
+            true,
+            false,
+            false,
+            vec!["work-loop:write"],
+            false,
+            "process_control",
+            vec!["compact"],
+            "focusa.agent_execution_stop.request.v1",
+            "focusa.agent_execution_adapter_result.v1",
+            "docs/133-daemon-native-durable-silent-sessions-and-governed-autonomous-execution-spec.md",
+            None,
+        ),
     ]
 }
 
@@ -1916,6 +2009,83 @@ fn registered_schema_ids() -> std::collections::BTreeSet<&'static str> {
 }
 
 fn json_schema_document(schema_id: &str) -> Value {
+    if schema_id == "focusa.agent_execution_start.request.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"),
+            "title": "Focusa Pi RPC Agent Execution Start Request v1",
+            "type": "object",
+            "required": ["idempotency_key"],
+            "properties": {
+                "cwd": {"type": "string"},
+                "models": {"type": "string"},
+                "resume_session": {"type": "string"},
+                "session_dir": {"type": "string"},
+                "session_name": {"type": "string"},
+                "workpoint_id": {"type": "string"},
+                "idempotency_key": {"type": "string", "minLength": 1}
+            },
+            "additionalProperties": false,
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "PiDriverStartRequest"
+        });
+    }
+    if schema_id == "focusa.agent_execution_prompt.request.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"),
+            "title": "Focusa Pi RPC Agent Execution Prompt Request v1",
+            "type": "object",
+            "required": ["message"],
+            "properties": {
+                "message": {"type": "string", "minLength": 1},
+                "streaming_behavior": {"type": "string", "enum": ["steer", "followUp"]}
+            },
+            "additionalProperties": false,
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "PiDriverPromptRequest"
+        });
+    }
+    if matches!(
+        schema_id,
+        "focusa.agent_execution_abort.request.v1" | "focusa.agent_execution_stop.request.v1"
+    ) {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"),
+            "title": schema_id,
+            "type": "object",
+            "additionalProperties": false,
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "Spec133 Pi RPC process control"
+        });
+    }
+    if schema_id == "focusa.agent_execution_adapter_result.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"),
+            "title": "Focusa Agent Execution Adapter Result v1",
+            "type": "object",
+            "required": ["schema", "status", "adapter", "session_id", "resumable", "authority", "tool_result"],
+            "properties": {
+                "schema": {"type": "string"},
+                "status": {"type": "string", "enum": ["accepted", "stopped"]},
+                "adapter": {"type": "string", "enum": ["pi-rpc"]},
+                "session_id": {"type": "string"},
+                "resumable": {"type": "boolean"},
+                "cancelled": {"type": "boolean"},
+                "idempotent_replay": {"type": "boolean"},
+                "resumed_from": {},
+                "workpoint_id": {},
+                "cancellation": {"type": "object"},
+                "authority": {"type": "string"},
+                "tool_result": {"type": "object"}
+            },
+            "additionalProperties": true,
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "Spec133 PiRpcSession"
+        });
+    }
     if schema_id == "focusa.protocol_handshake.request.v1" {
         return json!({
             "$schema": JSON_SCHEMA_DIALECT_2020_12,

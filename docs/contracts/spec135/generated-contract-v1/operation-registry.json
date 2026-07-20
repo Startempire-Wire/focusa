@@ -1,5 +1,5 @@
 {
-  "operation_count": 51,
+  "operation_count": 55,
   "operations": [
     {
       "alias_of": null,
@@ -2521,9 +2521,10 @@
         "attachment_scoped": false,
         "project_scoped": true,
         "required_keys": [
-          "project_root"
+          "project_root",
+          "continuity_id"
         ],
-        "workstream_scoped": false
+        "workstream_scoped": true
       },
       "side_effect_profile": "read_work_loop",
       "supports_side_effect_policy": [
@@ -2597,9 +2598,10 @@
         "attachment_scoped": false,
         "project_scoped": true,
         "required_keys": [
-          "project_root"
+          "project_root",
+          "continuity_id"
         ],
-        "workstream_scoped": false
+        "workstream_scoped": true
       },
       "side_effect_profile": "write_work_loop",
       "supports_side_effect_policy": [
@@ -3897,6 +3899,306 @@
         "default_label": "Negotiate Focusa Protocol Compatibility",
         "input_presentation_ref": "focusa.generated_form.v1",
         "plain_language_description": "Negotiate Focusa Protocol Compatibility",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "process_control",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.agent_execution_start.request.v1",
+        "output_schema_ref": "focusa.agent_execution_adapter_result.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "work_loop"
+        ],
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "work-loop:write"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/133-daemon-native-durable-silent-sessions-and-governed-autonomous-execution-spec.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "work_loop",
+      "label": "Start or Resume Governed Pi RPC Execution",
+      "materialization_mode": "pi_rpc",
+      "method": "POST",
+      "operation_id": "focusa.agent_execution.start",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.agent_execution.start",
+        "subsystem": "work_loop"
+      },
+      "path": "/v1/work-loop/driver/start",
+      "permissions_required": [
+        "work-loop:write"
+      ],
+      "request_schema_ref": "focusa.agent_execution_start.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "standard"
+      ],
+      "response_schema_ref": "focusa.agent_execution_adapter_result.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.agent_execution_start.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "write_process",
+      "supports_side_effect_policy": [
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Start or Resume Governed Pi RPC Execution",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Start or Resume Governed Pi RPC Execution",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "process_control",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.agent_execution_prompt.request.v1",
+        "output_schema_ref": "focusa.agent_execution_adapter_result.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "work_loop"
+        ],
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "work-loop:write"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/133-daemon-native-durable-silent-sessions-and-governed-autonomous-execution-spec.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "work_loop",
+      "label": "Prompt Governed Pi RPC Execution",
+      "materialization_mode": "pi_rpc",
+      "method": "POST",
+      "operation_id": "focusa.agent_execution.prompt",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.agent_execution.prompt",
+        "subsystem": "work_loop"
+      },
+      "path": "/v1/work-loop/driver/prompt",
+      "permissions_required": [
+        "work-loop:write"
+      ],
+      "request_schema_ref": "focusa.agent_execution_prompt.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "standard"
+      ],
+      "response_schema_ref": "focusa.agent_execution_adapter_result.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.agent_execution_prompt.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "write_process",
+      "supports_side_effect_policy": [
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Prompt Governed Pi RPC Execution",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Prompt Governed Pi RPC Execution",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "process_control",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.agent_execution_abort.request.v1",
+        "output_schema_ref": "focusa.agent_execution_adapter_result.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "work_loop"
+        ],
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "work-loop:write"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/133-daemon-native-durable-silent-sessions-and-governed-autonomous-execution-spec.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "work_loop",
+      "label": "Abort Current Pi RPC Turn",
+      "materialization_mode": "pi_rpc",
+      "method": "POST",
+      "operation_id": "focusa.agent_execution.abort",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.agent_execution.abort",
+        "subsystem": "work_loop"
+      },
+      "path": "/v1/work-loop/driver/abort",
+      "permissions_required": [
+        "work-loop:write"
+      ],
+      "request_schema_ref": "focusa.agent_execution_abort.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact"
+      ],
+      "response_schema_ref": "focusa.agent_execution_adapter_result.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.agent_execution_abort.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "write_process",
+      "supports_side_effect_policy": [
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Abort Current Pi RPC Turn",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Abort Current Pi RPC Turn",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "process_control",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.agent_execution_stop.request.v1",
+        "output_schema_ref": "focusa.agent_execution_adapter_result.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "work_loop"
+        ],
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "work-loop:write"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/133-daemon-native-durable-silent-sessions-and-governed-autonomous-execution-spec.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "work_loop",
+      "label": "Stop Governed Pi RPC Execution",
+      "materialization_mode": "pi_rpc",
+      "method": "POST",
+      "operation_id": "focusa.agent_execution.stop",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.agent_execution.stop",
+        "subsystem": "work_loop"
+      },
+      "path": "/v1/work-loop/driver/stop",
+      "permissions_required": [
+        "work-loop:write"
+      ],
+      "request_schema_ref": "focusa.agent_execution_stop.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact"
+      ],
+      "response_schema_ref": "focusa.agent_execution_adapter_result.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.agent_execution_stop.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "write_process",
+      "supports_side_effect_policy": [
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Stop Governed Pi RPC Execution",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Stop Governed Pi RPC Execution",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
       }

@@ -16,6 +16,57 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for FocusaAgentExecutionAdapterResultV1Adapter.
+const (
+	PiRpc FocusaAgentExecutionAdapterResultV1Adapter = "pi-rpc"
+)
+
+// Valid indicates whether the value is a known member of the FocusaAgentExecutionAdapterResultV1Adapter enum.
+func (e FocusaAgentExecutionAdapterResultV1Adapter) Valid() bool {
+	switch e {
+	case PiRpc:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FocusaAgentExecutionAdapterResultV1Status.
+const (
+	FocusaAgentExecutionAdapterResultV1StatusAccepted FocusaAgentExecutionAdapterResultV1Status = "accepted"
+	FocusaAgentExecutionAdapterResultV1StatusStopped  FocusaAgentExecutionAdapterResultV1Status = "stopped"
+)
+
+// Valid indicates whether the value is a known member of the FocusaAgentExecutionAdapterResultV1Status enum.
+func (e FocusaAgentExecutionAdapterResultV1Status) Valid() bool {
+	switch e {
+	case FocusaAgentExecutionAdapterResultV1StatusAccepted:
+		return true
+	case FocusaAgentExecutionAdapterResultV1StatusStopped:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FocusaAgentExecutionPromptRequestV1StreamingBehavior.
+const (
+	FollowUp FocusaAgentExecutionPromptRequestV1StreamingBehavior = "followUp"
+	Steer    FocusaAgentExecutionPromptRequestV1StreamingBehavior = "steer"
+)
+
+// Valid indicates whether the value is a known member of the FocusaAgentExecutionPromptRequestV1StreamingBehavior enum.
+func (e FocusaAgentExecutionPromptRequestV1StreamingBehavior) Valid() bool {
+	switch e {
+	case FollowUp:
+		return true
+	case Steer:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for FocusaCompatibilityLockV1Schema.
 const (
 	FocusaCompatibilityLockV1SchemaFocusaCompatibilityLockV1 FocusaCompatibilityLockV1Schema = "focusa.compatibility_lock.v1"
@@ -78,67 +129,67 @@ func (e FocusaProtocolHandshakeResponseV1Status) Valid() bool {
 
 // Defines values for FocusaToolResultV1FailureClass.
 const (
-	ApprovalRequired           FocusaToolResultV1FailureClass = "approval_required"
-	ColdPathTimeout            FocusaToolResultV1FailureClass = "cold_path_timeout"
-	DaemonUnavailable          FocusaToolResultV1FailureClass = "daemon_unavailable"
-	FrameUnavailable           FocusaToolResultV1FailureClass = "frame_unavailable"
-	HotPathTimeout             FocusaToolResultV1FailureClass = "hot_path_timeout"
-	NoncanonicalFallback       FocusaToolResultV1FailureClass = "noncanonical_fallback"
-	NotFound                   FocusaToolResultV1FailureClass = "not_found"
-	NullResponse               FocusaToolResultV1FailureClass = "null_response"
-	PermissionDenied           FocusaToolResultV1FailureClass = "permission_denied"
-	ProcessControlFailed       FocusaToolResultV1FailureClass = "process_control_failed"
-	ReadModelLag               FocusaToolResultV1FailureClass = "read_model_lag"
-	ResourceExhausted          FocusaToolResultV1FailureClass = "resource_exhausted"
-	SchemaInvalid              FocusaToolResultV1FailureClass = "schema_invalid"
-	ScopeConflict              FocusaToolResultV1FailureClass = "scope_conflict"
-	ScopeMismatch              FocusaToolResultV1FailureClass = "scope_mismatch"
-	StaleRuntimeRegistry       FocusaToolResultV1FailureClass = "stale_runtime_registry"
-	UnknownAmbiguousCompletion FocusaToolResultV1FailureClass = "unknown_ambiguous_completion"
-	ValidationRejected         FocusaToolResultV1FailureClass = "validation_rejected"
-	WriterConflict             FocusaToolResultV1FailureClass = "writer_conflict"
+	FocusaToolResultV1FailureClassApprovalRequired           FocusaToolResultV1FailureClass = "approval_required"
+	FocusaToolResultV1FailureClassColdPathTimeout            FocusaToolResultV1FailureClass = "cold_path_timeout"
+	FocusaToolResultV1FailureClassDaemonUnavailable          FocusaToolResultV1FailureClass = "daemon_unavailable"
+	FocusaToolResultV1FailureClassFrameUnavailable           FocusaToolResultV1FailureClass = "frame_unavailable"
+	FocusaToolResultV1FailureClassHotPathTimeout             FocusaToolResultV1FailureClass = "hot_path_timeout"
+	FocusaToolResultV1FailureClassNoncanonicalFallback       FocusaToolResultV1FailureClass = "noncanonical_fallback"
+	FocusaToolResultV1FailureClassNotFound                   FocusaToolResultV1FailureClass = "not_found"
+	FocusaToolResultV1FailureClassNullResponse               FocusaToolResultV1FailureClass = "null_response"
+	FocusaToolResultV1FailureClassPermissionDenied           FocusaToolResultV1FailureClass = "permission_denied"
+	FocusaToolResultV1FailureClassProcessControlFailed       FocusaToolResultV1FailureClass = "process_control_failed"
+	FocusaToolResultV1FailureClassReadModelLag               FocusaToolResultV1FailureClass = "read_model_lag"
+	FocusaToolResultV1FailureClassResourceExhausted          FocusaToolResultV1FailureClass = "resource_exhausted"
+	FocusaToolResultV1FailureClassSchemaInvalid              FocusaToolResultV1FailureClass = "schema_invalid"
+	FocusaToolResultV1FailureClassScopeConflict              FocusaToolResultV1FailureClass = "scope_conflict"
+	FocusaToolResultV1FailureClassScopeMismatch              FocusaToolResultV1FailureClass = "scope_mismatch"
+	FocusaToolResultV1FailureClassStaleRuntimeRegistry       FocusaToolResultV1FailureClass = "stale_runtime_registry"
+	FocusaToolResultV1FailureClassUnknownAmbiguousCompletion FocusaToolResultV1FailureClass = "unknown_ambiguous_completion"
+	FocusaToolResultV1FailureClassValidationRejected         FocusaToolResultV1FailureClass = "validation_rejected"
+	FocusaToolResultV1FailureClassWriterConflict             FocusaToolResultV1FailureClass = "writer_conflict"
 )
 
 // Valid indicates whether the value is a known member of the FocusaToolResultV1FailureClass enum.
 func (e FocusaToolResultV1FailureClass) Valid() bool {
 	switch e {
-	case ApprovalRequired:
+	case FocusaToolResultV1FailureClassApprovalRequired:
 		return true
-	case ColdPathTimeout:
+	case FocusaToolResultV1FailureClassColdPathTimeout:
 		return true
-	case DaemonUnavailable:
+	case FocusaToolResultV1FailureClassDaemonUnavailable:
 		return true
-	case FrameUnavailable:
+	case FocusaToolResultV1FailureClassFrameUnavailable:
 		return true
-	case HotPathTimeout:
+	case FocusaToolResultV1FailureClassHotPathTimeout:
 		return true
-	case NoncanonicalFallback:
+	case FocusaToolResultV1FailureClassNoncanonicalFallback:
 		return true
-	case NotFound:
+	case FocusaToolResultV1FailureClassNotFound:
 		return true
-	case NullResponse:
+	case FocusaToolResultV1FailureClassNullResponse:
 		return true
-	case PermissionDenied:
+	case FocusaToolResultV1FailureClassPermissionDenied:
 		return true
-	case ProcessControlFailed:
+	case FocusaToolResultV1FailureClassProcessControlFailed:
 		return true
-	case ReadModelLag:
+	case FocusaToolResultV1FailureClassReadModelLag:
 		return true
-	case ResourceExhausted:
+	case FocusaToolResultV1FailureClassResourceExhausted:
 		return true
-	case SchemaInvalid:
+	case FocusaToolResultV1FailureClassSchemaInvalid:
 		return true
-	case ScopeConflict:
+	case FocusaToolResultV1FailureClassScopeConflict:
 		return true
-	case ScopeMismatch:
+	case FocusaToolResultV1FailureClassScopeMismatch:
 		return true
-	case StaleRuntimeRegistry:
+	case FocusaToolResultV1FailureClassStaleRuntimeRegistry:
 		return true
-	case UnknownAmbiguousCompletion:
+	case FocusaToolResultV1FailureClassUnknownAmbiguousCompletion:
 		return true
-	case ValidationRejected:
+	case FocusaToolResultV1FailureClassValidationRejected:
 		return true
-	case WriterConflict:
+	case FocusaToolResultV1FailureClassWriterConflict:
 		return true
 	default:
 		return false
@@ -222,6 +273,55 @@ func (e FocusaToolResultV1Status) Valid() bool {
 		return false
 	}
 }
+
+// FocusaAgentExecutionAbortRequestV1 defines model for focusa_agent_execution_abort_request_v1.
+type FocusaAgentExecutionAbortRequestV1 = map[string]interface{}
+
+// FocusaAgentExecutionAdapterResultV1 defines model for focusa_agent_execution_adapter_result_v1.
+type FocusaAgentExecutionAdapterResultV1 struct {
+	Adapter              FocusaAgentExecutionAdapterResultV1Adapter `json:"adapter"`
+	Authority            string                                     `json:"authority"`
+	Cancellation         *map[string]interface{}                    `json:"cancellation,omitempty"`
+	Cancelled            *bool                                      `json:"cancelled,omitempty"`
+	IdempotentReplay     *bool                                      `json:"idempotent_replay,omitempty"`
+	Resumable            bool                                       `json:"resumable"`
+	ResumedFrom          interface{}                                `json:"resumed_from,omitempty"`
+	Schema               string                                     `json:"schema"`
+	SessionId            string                                     `json:"session_id"`
+	Status               FocusaAgentExecutionAdapterResultV1Status  `json:"status"`
+	ToolResult           map[string]interface{}                     `json:"tool_result"`
+	WorkpointId          interface{}                                `json:"workpoint_id,omitempty"`
+	AdditionalProperties map[string]interface{}                     `json:"-"`
+}
+
+// FocusaAgentExecutionAdapterResultV1Adapter defines model for FocusaAgentExecutionAdapterResultV1.Adapter.
+type FocusaAgentExecutionAdapterResultV1Adapter string
+
+// FocusaAgentExecutionAdapterResultV1Status defines model for FocusaAgentExecutionAdapterResultV1.Status.
+type FocusaAgentExecutionAdapterResultV1Status string
+
+// FocusaAgentExecutionPromptRequestV1 defines model for focusa_agent_execution_prompt_request_v1.
+type FocusaAgentExecutionPromptRequestV1 struct {
+	Message           string                                                `json:"message"`
+	StreamingBehavior *FocusaAgentExecutionPromptRequestV1StreamingBehavior `json:"streaming_behavior,omitempty"`
+}
+
+// FocusaAgentExecutionPromptRequestV1StreamingBehavior defines model for FocusaAgentExecutionPromptRequestV1.StreamingBehavior.
+type FocusaAgentExecutionPromptRequestV1StreamingBehavior string
+
+// FocusaAgentExecutionStartRequestV1 defines model for focusa_agent_execution_start_request_v1.
+type FocusaAgentExecutionStartRequestV1 struct {
+	Cwd            *string `json:"cwd,omitempty"`
+	IdempotencyKey string  `json:"idempotency_key"`
+	Models         *string `json:"models,omitempty"`
+	ResumeSession  *string `json:"resume_session,omitempty"`
+	SessionDir     *string `json:"session_dir,omitempty"`
+	SessionName    *string `json:"session_name,omitempty"`
+	WorkpointId    *string `json:"workpoint_id,omitempty"`
+}
+
+// FocusaAgentExecutionStopRequestV1 defines model for focusa_agent_execution_stop_request_v1.
+type FocusaAgentExecutionStopRequestV1 = map[string]interface{}
 
 // FocusaAwarenessPacketRequestV1 Generated contract for Focusa schema focusa.awareness_packet.request.v1
 type FocusaAwarenessPacketRequestV1 map[string]interface{}
@@ -875,12 +975,54 @@ type FocusaTurnStartParams struct {
 type FocusaWorkLoopControlParams struct {
 	// ProjectRoot Required Focusa scope key: project_root
 	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+}
+
+// FocusaAgentExecutionAbortParams defines parameters for FocusaAgentExecutionAbort.
+type FocusaAgentExecutionAbortParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+}
+
+// FocusaAgentExecutionPromptParams defines parameters for FocusaAgentExecutionPrompt.
+type FocusaAgentExecutionPromptParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+}
+
+// FocusaAgentExecutionStartParams defines parameters for FocusaAgentExecutionStart.
+type FocusaAgentExecutionStartParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+}
+
+// FocusaAgentExecutionStopParams defines parameters for FocusaAgentExecutionStop.
+type FocusaAgentExecutionStopParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaWorkLoopStatusParams defines parameters for FocusaWorkLoopStatus.
 type FocusaWorkLoopStatusParams struct {
 	// ProjectRoot Required Focusa scope key: project_root
 	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaWorkpointCheckpointParams defines parameters for FocusaWorkpointCheckpoint.
@@ -988,11 +1130,240 @@ type FocusaTurnStartJSONRequestBody = FocusaTurnStartRequestV1
 // FocusaWorkLoopControlJSONRequestBody defines body for FocusaWorkLoopControl for application/json ContentType.
 type FocusaWorkLoopControlJSONRequestBody = FocusaWorkLoopControlRequestV1
 
+// FocusaAgentExecutionAbortJSONRequestBody defines body for FocusaAgentExecutionAbort for application/json ContentType.
+type FocusaAgentExecutionAbortJSONRequestBody = FocusaAgentExecutionAbortRequestV1
+
+// FocusaAgentExecutionPromptJSONRequestBody defines body for FocusaAgentExecutionPrompt for application/json ContentType.
+type FocusaAgentExecutionPromptJSONRequestBody = FocusaAgentExecutionPromptRequestV1
+
+// FocusaAgentExecutionStartJSONRequestBody defines body for FocusaAgentExecutionStart for application/json ContentType.
+type FocusaAgentExecutionStartJSONRequestBody = FocusaAgentExecutionStartRequestV1
+
+// FocusaAgentExecutionStopJSONRequestBody defines body for FocusaAgentExecutionStop for application/json ContentType.
+type FocusaAgentExecutionStopJSONRequestBody = FocusaAgentExecutionStopRequestV1
+
 // FocusaWorkpointCheckpointJSONRequestBody defines body for FocusaWorkpointCheckpoint for application/json ContentType.
 type FocusaWorkpointCheckpointJSONRequestBody = FocusaWorkpointCheckpointRequestV1
 
 // FocusaWorkpointLinkEvidenceJSONRequestBody defines body for FocusaWorkpointLinkEvidence for application/json ContentType.
 type FocusaWorkpointLinkEvidenceJSONRequestBody = FocusaWorkpointLinkEvidenceRequestV1
+
+// Getter for additional properties for FocusaAgentExecutionAdapterResultV1. Returns the specified
+// element and whether it was found
+func (a FocusaAgentExecutionAdapterResultV1) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for FocusaAgentExecutionAdapterResultV1
+func (a *FocusaAgentExecutionAdapterResultV1) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for FocusaAgentExecutionAdapterResultV1 to handle AdditionalProperties
+func (a *FocusaAgentExecutionAdapterResultV1) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["adapter"]; found {
+		err = json.Unmarshal(raw, &a.Adapter)
+		if err != nil {
+			return fmt.Errorf("error reading 'adapter': %w", err)
+		}
+		delete(object, "adapter")
+	}
+
+	if raw, found := object["authority"]; found {
+		err = json.Unmarshal(raw, &a.Authority)
+		if err != nil {
+			return fmt.Errorf("error reading 'authority': %w", err)
+		}
+		delete(object, "authority")
+	}
+
+	if raw, found := object["cancellation"]; found {
+		err = json.Unmarshal(raw, &a.Cancellation)
+		if err != nil {
+			return fmt.Errorf("error reading 'cancellation': %w", err)
+		}
+		delete(object, "cancellation")
+	}
+
+	if raw, found := object["cancelled"]; found {
+		err = json.Unmarshal(raw, &a.Cancelled)
+		if err != nil {
+			return fmt.Errorf("error reading 'cancelled': %w", err)
+		}
+		delete(object, "cancelled")
+	}
+
+	if raw, found := object["idempotent_replay"]; found {
+		err = json.Unmarshal(raw, &a.IdempotentReplay)
+		if err != nil {
+			return fmt.Errorf("error reading 'idempotent_replay': %w", err)
+		}
+		delete(object, "idempotent_replay")
+	}
+
+	if raw, found := object["resumable"]; found {
+		err = json.Unmarshal(raw, &a.Resumable)
+		if err != nil {
+			return fmt.Errorf("error reading 'resumable': %w", err)
+		}
+		delete(object, "resumable")
+	}
+
+	if raw, found := object["resumed_from"]; found {
+		err = json.Unmarshal(raw, &a.ResumedFrom)
+		if err != nil {
+			return fmt.Errorf("error reading 'resumed_from': %w", err)
+		}
+		delete(object, "resumed_from")
+	}
+
+	if raw, found := object["schema"]; found {
+		err = json.Unmarshal(raw, &a.Schema)
+		if err != nil {
+			return fmt.Errorf("error reading 'schema': %w", err)
+		}
+		delete(object, "schema")
+	}
+
+	if raw, found := object["session_id"]; found {
+		err = json.Unmarshal(raw, &a.SessionId)
+		if err != nil {
+			return fmt.Errorf("error reading 'session_id': %w", err)
+		}
+		delete(object, "session_id")
+	}
+
+	if raw, found := object["status"]; found {
+		err = json.Unmarshal(raw, &a.Status)
+		if err != nil {
+			return fmt.Errorf("error reading 'status': %w", err)
+		}
+		delete(object, "status")
+	}
+
+	if raw, found := object["tool_result"]; found {
+		err = json.Unmarshal(raw, &a.ToolResult)
+		if err != nil {
+			return fmt.Errorf("error reading 'tool_result': %w", err)
+		}
+		delete(object, "tool_result")
+	}
+
+	if raw, found := object["workpoint_id"]; found {
+		err = json.Unmarshal(raw, &a.WorkpointId)
+		if err != nil {
+			return fmt.Errorf("error reading 'workpoint_id': %w", err)
+		}
+		delete(object, "workpoint_id")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for FocusaAgentExecutionAdapterResultV1 to handle AdditionalProperties
+func (a FocusaAgentExecutionAdapterResultV1) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["adapter"], err = json.Marshal(a.Adapter)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'adapter': %w", err)
+	}
+
+	object["authority"], err = json.Marshal(a.Authority)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'authority': %w", err)
+	}
+
+	if a.Cancellation != nil {
+		object["cancellation"], err = json.Marshal(a.Cancellation)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'cancellation': %w", err)
+		}
+	}
+
+	if a.Cancelled != nil {
+		object["cancelled"], err = json.Marshal(a.Cancelled)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'cancelled': %w", err)
+		}
+	}
+
+	if a.IdempotentReplay != nil {
+		object["idempotent_replay"], err = json.Marshal(a.IdempotentReplay)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'idempotent_replay': %w", err)
+		}
+	}
+
+	object["resumable"], err = json.Marshal(a.Resumable)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'resumable': %w", err)
+	}
+
+	object["resumed_from"], err = json.Marshal(a.ResumedFrom)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'resumed_from': %w", err)
+	}
+
+	object["schema"], err = json.Marshal(a.Schema)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'schema': %w", err)
+	}
+
+	object["session_id"], err = json.Marshal(a.SessionId)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'session_id': %w", err)
+	}
+
+	object["status"], err = json.Marshal(a.Status)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'status': %w", err)
+	}
+
+	if a.ToolResult != nil {
+		object["tool_result"], err = json.Marshal(a.ToolResult)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'tool_result': %w", err)
+		}
+	}
+
+	object["workpoint_id"], err = json.Marshal(a.WorkpointId)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'workpoint_id': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -1259,6 +1630,26 @@ type ClientInterface interface {
 	FocusaWorkLoopControlWithBody(ctx context.Context, params *FocusaWorkLoopControlParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	FocusaWorkLoopControl(ctx context.Context, params *FocusaWorkLoopControlParams, body FocusaWorkLoopControlJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaAgentExecutionAbortWithBody request with any body
+	FocusaAgentExecutionAbortWithBody(ctx context.Context, params *FocusaAgentExecutionAbortParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	FocusaAgentExecutionAbort(ctx context.Context, params *FocusaAgentExecutionAbortParams, body FocusaAgentExecutionAbortJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaAgentExecutionPromptWithBody request with any body
+	FocusaAgentExecutionPromptWithBody(ctx context.Context, params *FocusaAgentExecutionPromptParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	FocusaAgentExecutionPrompt(ctx context.Context, params *FocusaAgentExecutionPromptParams, body FocusaAgentExecutionPromptJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaAgentExecutionStartWithBody request with any body
+	FocusaAgentExecutionStartWithBody(ctx context.Context, params *FocusaAgentExecutionStartParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	FocusaAgentExecutionStart(ctx context.Context, params *FocusaAgentExecutionStartParams, body FocusaAgentExecutionStartJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaAgentExecutionStopWithBody request with any body
+	FocusaAgentExecutionStopWithBody(ctx context.Context, params *FocusaAgentExecutionStopParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	FocusaAgentExecutionStop(ctx context.Context, params *FocusaAgentExecutionStopParams, body FocusaAgentExecutionStopJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// FocusaWorkLoopStatus request
 	FocusaWorkLoopStatus(ctx context.Context, params *FocusaWorkLoopStatusParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2143,6 +2534,102 @@ func (c *Client) FocusaWorkLoopControlWithBody(ctx context.Context, params *Focu
 
 func (c *Client) FocusaWorkLoopControl(ctx context.Context, params *FocusaWorkLoopControlParams, body FocusaWorkLoopControlJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewFocusaWorkLoopControlRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaAgentExecutionAbortWithBody(ctx context.Context, params *FocusaAgentExecutionAbortParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaAgentExecutionAbortRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaAgentExecutionAbort(ctx context.Context, params *FocusaAgentExecutionAbortParams, body FocusaAgentExecutionAbortJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaAgentExecutionAbortRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaAgentExecutionPromptWithBody(ctx context.Context, params *FocusaAgentExecutionPromptParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaAgentExecutionPromptRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaAgentExecutionPrompt(ctx context.Context, params *FocusaAgentExecutionPromptParams, body FocusaAgentExecutionPromptJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaAgentExecutionPromptRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaAgentExecutionStartWithBody(ctx context.Context, params *FocusaAgentExecutionStartParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaAgentExecutionStartRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaAgentExecutionStart(ctx context.Context, params *FocusaAgentExecutionStartParams, body FocusaAgentExecutionStartJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaAgentExecutionStartRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaAgentExecutionStopWithBody(ctx context.Context, params *FocusaAgentExecutionStopParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaAgentExecutionStopRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaAgentExecutionStop(ctx context.Context, params *FocusaAgentExecutionStopParams, body FocusaAgentExecutionStopJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaAgentExecutionStopRequest(c.Server, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -5009,6 +5496,298 @@ func NewFocusaWorkLoopControlRequestWithBody(server string, params *FocusaWorkLo
 			}
 		}
 
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewFocusaAgentExecutionAbortRequest calls the generic FocusaAgentExecutionAbort builder with application/json body
+func NewFocusaAgentExecutionAbortRequest(server string, params *FocusaAgentExecutionAbortParams, body FocusaAgentExecutionAbortJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewFocusaAgentExecutionAbortRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewFocusaAgentExecutionAbortRequestWithBody generates requests for FocusaAgentExecutionAbort with any type of body
+func NewFocusaAgentExecutionAbortRequestWithBody(server string, params *FocusaAgentExecutionAbortParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/work-loop/driver/abort")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewFocusaAgentExecutionPromptRequest calls the generic FocusaAgentExecutionPrompt builder with application/json body
+func NewFocusaAgentExecutionPromptRequest(server string, params *FocusaAgentExecutionPromptParams, body FocusaAgentExecutionPromptJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewFocusaAgentExecutionPromptRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewFocusaAgentExecutionPromptRequestWithBody generates requests for FocusaAgentExecutionPrompt with any type of body
+func NewFocusaAgentExecutionPromptRequestWithBody(server string, params *FocusaAgentExecutionPromptParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/work-loop/driver/prompt")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewFocusaAgentExecutionStartRequest calls the generic FocusaAgentExecutionStart builder with application/json body
+func NewFocusaAgentExecutionStartRequest(server string, params *FocusaAgentExecutionStartParams, body FocusaAgentExecutionStartJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewFocusaAgentExecutionStartRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewFocusaAgentExecutionStartRequestWithBody generates requests for FocusaAgentExecutionStart with any type of body
+func NewFocusaAgentExecutionStartRequestWithBody(server string, params *FocusaAgentExecutionStartParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/work-loop/driver/start")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewFocusaAgentExecutionStopRequest calls the generic FocusaAgentExecutionStop builder with application/json body
+func NewFocusaAgentExecutionStopRequest(server string, params *FocusaAgentExecutionStopParams, body FocusaAgentExecutionStopJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewFocusaAgentExecutionStopRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewFocusaAgentExecutionStopRequestWithBody generates requests for FocusaAgentExecutionStop with any type of body
+func NewFocusaAgentExecutionStopRequestWithBody(server string, params *FocusaAgentExecutionStopParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/work-loop/driver/stop")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
 		if encoded := queryValues.Encode(); encoded != "" {
 			rawQueryFragments = append(rawQueryFragments, encoded)
 		}
@@ -5054,6 +5833,14 @@ func NewFocusaWorkLoopStatusRequest(server string, params *FocusaWorkLoopStatusP
 		var rawQueryFragments []string
 
 		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 			return nil, err
 		} else {
 			for _, qp := range strings.Split(queryFrag, "&") {
@@ -5510,6 +6297,26 @@ type ClientWithResponsesInterface interface {
 	FocusaWorkLoopControlWithBodyWithResponse(ctx context.Context, params *FocusaWorkLoopControlParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaWorkLoopControlResponse, error)
 
 	FocusaWorkLoopControlWithResponse(ctx context.Context, params *FocusaWorkLoopControlParams, body FocusaWorkLoopControlJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaWorkLoopControlResponse, error)
+
+	// FocusaAgentExecutionAbortWithBodyWithResponse request with any body
+	FocusaAgentExecutionAbortWithBodyWithResponse(ctx context.Context, params *FocusaAgentExecutionAbortParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaAgentExecutionAbortResponse, error)
+
+	FocusaAgentExecutionAbortWithResponse(ctx context.Context, params *FocusaAgentExecutionAbortParams, body FocusaAgentExecutionAbortJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaAgentExecutionAbortResponse, error)
+
+	// FocusaAgentExecutionPromptWithBodyWithResponse request with any body
+	FocusaAgentExecutionPromptWithBodyWithResponse(ctx context.Context, params *FocusaAgentExecutionPromptParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaAgentExecutionPromptResponse, error)
+
+	FocusaAgentExecutionPromptWithResponse(ctx context.Context, params *FocusaAgentExecutionPromptParams, body FocusaAgentExecutionPromptJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaAgentExecutionPromptResponse, error)
+
+	// FocusaAgentExecutionStartWithBodyWithResponse request with any body
+	FocusaAgentExecutionStartWithBodyWithResponse(ctx context.Context, params *FocusaAgentExecutionStartParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaAgentExecutionStartResponse, error)
+
+	FocusaAgentExecutionStartWithResponse(ctx context.Context, params *FocusaAgentExecutionStartParams, body FocusaAgentExecutionStartJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaAgentExecutionStartResponse, error)
+
+	// FocusaAgentExecutionStopWithBodyWithResponse request with any body
+	FocusaAgentExecutionStopWithBodyWithResponse(ctx context.Context, params *FocusaAgentExecutionStopParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaAgentExecutionStopResponse, error)
+
+	FocusaAgentExecutionStopWithResponse(ctx context.Context, params *FocusaAgentExecutionStopParams, body FocusaAgentExecutionStopJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaAgentExecutionStopResponse, error)
 
 	// FocusaWorkLoopStatusWithResponse request
 	FocusaWorkLoopStatusWithResponse(ctx context.Context, params *FocusaWorkLoopStatusParams, reqEditors ...RequestEditorFn) (*FocusaWorkLoopStatusResponse, error)
@@ -6984,6 +7791,130 @@ func (r FocusaWorkLoopControlResponse) ContentType() string {
 	return ""
 }
 
+type FocusaAgentExecutionAbortResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaAgentExecutionAdapterResultV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaAgentExecutionAbortResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaAgentExecutionAbortResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaAgentExecutionAbortResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaAgentExecutionPromptResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaAgentExecutionAdapterResultV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaAgentExecutionPromptResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaAgentExecutionPromptResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaAgentExecutionPromptResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaAgentExecutionStartResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaAgentExecutionAdapterResultV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaAgentExecutionStartResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaAgentExecutionStartResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaAgentExecutionStartResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaAgentExecutionStopResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaAgentExecutionAdapterResultV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaAgentExecutionStopResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaAgentExecutionStopResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaAgentExecutionStopResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type FocusaWorkLoopStatusResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -7737,6 +8668,74 @@ func (c *ClientWithResponses) FocusaWorkLoopControlWithResponse(ctx context.Cont
 		return nil, err
 	}
 	return ParseFocusaWorkLoopControlResponse(rsp)
+}
+
+// FocusaAgentExecutionAbortWithBodyWithResponse request with arbitrary body returning *FocusaAgentExecutionAbortResponse
+func (c *ClientWithResponses) FocusaAgentExecutionAbortWithBodyWithResponse(ctx context.Context, params *FocusaAgentExecutionAbortParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaAgentExecutionAbortResponse, error) {
+	rsp, err := c.FocusaAgentExecutionAbortWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaAgentExecutionAbortResponse(rsp)
+}
+
+func (c *ClientWithResponses) FocusaAgentExecutionAbortWithResponse(ctx context.Context, params *FocusaAgentExecutionAbortParams, body FocusaAgentExecutionAbortJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaAgentExecutionAbortResponse, error) {
+	rsp, err := c.FocusaAgentExecutionAbort(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaAgentExecutionAbortResponse(rsp)
+}
+
+// FocusaAgentExecutionPromptWithBodyWithResponse request with arbitrary body returning *FocusaAgentExecutionPromptResponse
+func (c *ClientWithResponses) FocusaAgentExecutionPromptWithBodyWithResponse(ctx context.Context, params *FocusaAgentExecutionPromptParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaAgentExecutionPromptResponse, error) {
+	rsp, err := c.FocusaAgentExecutionPromptWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaAgentExecutionPromptResponse(rsp)
+}
+
+func (c *ClientWithResponses) FocusaAgentExecutionPromptWithResponse(ctx context.Context, params *FocusaAgentExecutionPromptParams, body FocusaAgentExecutionPromptJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaAgentExecutionPromptResponse, error) {
+	rsp, err := c.FocusaAgentExecutionPrompt(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaAgentExecutionPromptResponse(rsp)
+}
+
+// FocusaAgentExecutionStartWithBodyWithResponse request with arbitrary body returning *FocusaAgentExecutionStartResponse
+func (c *ClientWithResponses) FocusaAgentExecutionStartWithBodyWithResponse(ctx context.Context, params *FocusaAgentExecutionStartParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaAgentExecutionStartResponse, error) {
+	rsp, err := c.FocusaAgentExecutionStartWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaAgentExecutionStartResponse(rsp)
+}
+
+func (c *ClientWithResponses) FocusaAgentExecutionStartWithResponse(ctx context.Context, params *FocusaAgentExecutionStartParams, body FocusaAgentExecutionStartJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaAgentExecutionStartResponse, error) {
+	rsp, err := c.FocusaAgentExecutionStart(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaAgentExecutionStartResponse(rsp)
+}
+
+// FocusaAgentExecutionStopWithBodyWithResponse request with arbitrary body returning *FocusaAgentExecutionStopResponse
+func (c *ClientWithResponses) FocusaAgentExecutionStopWithBodyWithResponse(ctx context.Context, params *FocusaAgentExecutionStopParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaAgentExecutionStopResponse, error) {
+	rsp, err := c.FocusaAgentExecutionStopWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaAgentExecutionStopResponse(rsp)
+}
+
+func (c *ClientWithResponses) FocusaAgentExecutionStopWithResponse(ctx context.Context, params *FocusaAgentExecutionStopParams, body FocusaAgentExecutionStopJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaAgentExecutionStopResponse, error) {
+	rsp, err := c.FocusaAgentExecutionStop(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaAgentExecutionStopResponse(rsp)
 }
 
 // FocusaWorkLoopStatusWithResponse request returning *FocusaWorkLoopStatusResponse
@@ -9318,6 +10317,138 @@ func ParseFocusaWorkLoopControlResponse(rsp *http.Response) (*FocusaWorkLoopCont
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest FocusaWorkLoopControlResponseV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaAgentExecutionAbortResponse parses an HTTP response from a FocusaAgentExecutionAbortWithResponse call
+func ParseFocusaAgentExecutionAbortResponse(rsp *http.Response) (*FocusaAgentExecutionAbortResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaAgentExecutionAbortResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaAgentExecutionAdapterResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaAgentExecutionPromptResponse parses an HTTP response from a FocusaAgentExecutionPromptWithResponse call
+func ParseFocusaAgentExecutionPromptResponse(rsp *http.Response) (*FocusaAgentExecutionPromptResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaAgentExecutionPromptResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaAgentExecutionAdapterResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaAgentExecutionStartResponse parses an HTTP response from a FocusaAgentExecutionStartWithResponse call
+func ParseFocusaAgentExecutionStartResponse(rsp *http.Response) (*FocusaAgentExecutionStartResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaAgentExecutionStartResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaAgentExecutionAdapterResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaAgentExecutionStopResponse parses an HTTP response from a FocusaAgentExecutionStopWithResponse call
+func ParseFocusaAgentExecutionStopResponse(rsp *http.Response) (*FocusaAgentExecutionStopResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaAgentExecutionStopResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaAgentExecutionAdapterResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

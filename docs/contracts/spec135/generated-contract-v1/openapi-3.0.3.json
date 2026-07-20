@@ -1,6 +1,139 @@
 {
   "components": {
     "schemas": {
+      "focusa_agent_execution_abort_request_v1": {
+        "additionalProperties": false,
+        "title": "focusa.agent_execution_abort.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "Spec133 Pi RPC process control",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.agent_execution_abort.request.v1"
+      },
+      "focusa_agent_execution_adapter_result_v1": {
+        "additionalProperties": true,
+        "properties": {
+          "adapter": {
+            "enum": [
+              "pi-rpc"
+            ],
+            "type": "string"
+          },
+          "authority": {
+            "type": "string"
+          },
+          "cancellation": {
+            "type": "object"
+          },
+          "cancelled": {
+            "type": "boolean"
+          },
+          "idempotent_replay": {
+            "type": "boolean"
+          },
+          "resumable": {
+            "type": "boolean"
+          },
+          "resumed_from": {},
+          "schema": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "accepted",
+              "stopped"
+            ],
+            "type": "string"
+          },
+          "tool_result": {
+            "type": "object"
+          },
+          "workpoint_id": {}
+        },
+        "required": [
+          "schema",
+          "status",
+          "adapter",
+          "session_id",
+          "resumable",
+          "authority",
+          "tool_result"
+        ],
+        "title": "Focusa Agent Execution Adapter Result v1",
+        "type": "object",
+        "x-focusa-generated-from": "Spec133 PiRpcSession",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.agent_execution_adapter_result.v1"
+      },
+      "focusa_agent_execution_prompt_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "streaming_behavior": {
+            "enum": [
+              "steer",
+              "followUp"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "Focusa Pi RPC Agent Execution Prompt Request v1",
+        "type": "object",
+        "x-focusa-generated-from": "PiDriverPromptRequest",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.agent_execution_prompt.request.v1"
+      },
+      "focusa_agent_execution_start_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "cwd": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "models": {
+            "type": "string"
+          },
+          "resume_session": {
+            "type": "string"
+          },
+          "session_dir": {
+            "type": "string"
+          },
+          "session_name": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "idempotency_key"
+        ],
+        "title": "Focusa Pi RPC Agent Execution Start Request v1",
+        "type": "object",
+        "x-focusa-generated-from": "PiDriverStartRequest",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.agent_execution_start.request.v1"
+      },
+      "focusa_agent_execution_stop_request_v1": {
+        "additionalProperties": false,
+        "title": "focusa.agent_execution_stop.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "Spec133 Pi RPC process control",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.agent_execution_stop.request.v1"
+      },
       "focusa_awareness_packet_request_v1": {
         "additionalProperties": true,
         "description": "Generated contract for Focusa schema focusa.awareness_packet.request.v1",
@@ -5472,6 +5605,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -5542,7 +5684,396 @@
         "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
-          "project_root"
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "work_loop"
+      }
+    },
+    "/v1/work-loop/driver/abort": {
+      "post": {
+        "description": "Abort Current Pi RPC Turn \u2014 family=work_loop budget=process_control materialization=pi_rpc",
+        "operationId": "focusa.agent_execution.abort",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_agent_execution_abort_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_agent_execution_adapter_result_v1"
+                }
+              }
+            },
+            "description": "Abort Current Pi RPC Turn response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Abort Current Pi RPC Turn",
+        "tags": [
+          "work_loop"
+        ],
+        "x-focusa": {
+          "budget_profile": "process_control",
+          "canonical": true,
+          "deprecation": null,
+          "family": "work_loop",
+          "materialization_mode": "pi_rpc",
+          "requires_preview_token": false,
+          "side_effect_profile": "write_process",
+          "supports_side_effect_policy": [
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "work_loop"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.agent_execution.abort",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "work-loop:write"
+        ],
+        "x-focusa-plain-label": "Abort Current Pi RPC Turn",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "work_loop"
+      }
+    },
+    "/v1/work-loop/driver/prompt": {
+      "post": {
+        "description": "Prompt Governed Pi RPC Execution \u2014 family=work_loop budget=process_control materialization=pi_rpc",
+        "operationId": "focusa.agent_execution.prompt",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_agent_execution_prompt_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_agent_execution_adapter_result_v1"
+                }
+              }
+            },
+            "description": "Prompt Governed Pi RPC Execution response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Prompt Governed Pi RPC Execution",
+        "tags": [
+          "work_loop"
+        ],
+        "x-focusa": {
+          "budget_profile": "process_control",
+          "canonical": true,
+          "deprecation": null,
+          "family": "work_loop",
+          "materialization_mode": "pi_rpc",
+          "requires_preview_token": false,
+          "side_effect_profile": "write_process",
+          "supports_side_effect_policy": [
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "work_loop"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.agent_execution.prompt",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "work-loop:write"
+        ],
+        "x-focusa-plain-label": "Prompt Governed Pi RPC Execution",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "work_loop"
+      }
+    },
+    "/v1/work-loop/driver/start": {
+      "post": {
+        "description": "Start or Resume Governed Pi RPC Execution \u2014 family=work_loop budget=process_control materialization=pi_rpc",
+        "operationId": "focusa.agent_execution.start",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_agent_execution_start_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_agent_execution_adapter_result_v1"
+                }
+              }
+            },
+            "description": "Start or Resume Governed Pi RPC Execution response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Start or Resume Governed Pi RPC Execution",
+        "tags": [
+          "work_loop"
+        ],
+        "x-focusa": {
+          "budget_profile": "process_control",
+          "canonical": true,
+          "deprecation": null,
+          "family": "work_loop",
+          "materialization_mode": "pi_rpc",
+          "requires_preview_token": false,
+          "side_effect_profile": "write_process",
+          "supports_side_effect_policy": [
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "work_loop"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.agent_execution.start",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "work-loop:write"
+        ],
+        "x-focusa-plain-label": "Start or Resume Governed Pi RPC Execution",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "work_loop"
+      }
+    },
+    "/v1/work-loop/driver/stop": {
+      "post": {
+        "description": "Stop Governed Pi RPC Execution \u2014 family=work_loop budget=process_control materialization=pi_rpc",
+        "operationId": "focusa.agent_execution.stop",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_agent_execution_stop_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_agent_execution_adapter_result_v1"
+                }
+              }
+            },
+            "description": "Stop Governed Pi RPC Execution response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Stop Governed Pi RPC Execution",
+        "tags": [
+          "work_loop"
+        ],
+        "x-focusa": {
+          "budget_profile": "process_control",
+          "canonical": true,
+          "deprecation": null,
+          "family": "work_loop",
+          "materialization_mode": "pi_rpc",
+          "requires_preview_token": false,
+          "side_effect_profile": "write_process",
+          "supports_side_effect_policy": [
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "work_loop"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.agent_execution.stop",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "work-loop:write"
+        ],
+        "x-focusa-plain-label": "Stop Governed Pi RPC Execution",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
         ],
         "x-focusa-sensitive": "scoped_mutation",
         "x-focusa-subsystem": "work_loop"
@@ -5557,6 +6088,15 @@
             "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
             "required": true,
             "schema": {
               "type": "string"
@@ -5620,7 +6160,8 @@
         "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
-          "project_root"
+          "project_root",
+          "continuity_id"
         ],
         "x-focusa-sensitive": "routine",
         "x-focusa-subsystem": "work_loop"

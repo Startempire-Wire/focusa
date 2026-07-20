@@ -1,6 +1,6 @@
 {
   "attachment_id": null,
-  "binding_count": 51,
+  "binding_count": 55,
   "bindings": [
     {
       "action_id": "focusa.health.check",
@@ -1463,7 +1463,8 @@
         "continuity_id": "example",
         "project_root": "/example",
         "required_keys": [
-          "project_root"
+          "project_root",
+          "continuity_id"
         ]
       }
     },
@@ -1507,7 +1508,8 @@
         "continuity_id": "example",
         "project_root": "/example",
         "required_keys": [
-          "project_root"
+          "project_root",
+          "continuity_id"
         ]
       }
     },
@@ -2243,6 +2245,186 @@
         "default_label": "Negotiate Focusa Protocol Compatibility",
         "input_presentation_ref": "focusa.generated_form.v1",
         "plain_language_description": "Negotiate Focusa Protocol Compatibility",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "attachment_id": null,
+        "continuity_id": "example",
+        "project_root": "/example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.agent_execution.start",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "work_loop"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.agent_execution_start.request.v1",
+        "output_schema_ref": "focusa.agent_execution_adapter_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.agent_execution.start",
+      "permission_scopes": [
+        "work-loop:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Start or Resume Governed Pi RPC Execution",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Start or Resume Governed Pi RPC Execution",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "attachment_id": null,
+        "continuity_id": "example",
+        "project_root": "/example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.agent_execution.prompt",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "work_loop"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.agent_execution_prompt.request.v1",
+        "output_schema_ref": "focusa.agent_execution_adapter_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.agent_execution.prompt",
+      "permission_scopes": [
+        "work-loop:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Prompt Governed Pi RPC Execution",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Prompt Governed Pi RPC Execution",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "attachment_id": null,
+        "continuity_id": "example",
+        "project_root": "/example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.agent_execution.abort",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "work_loop"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.agent_execution_abort.request.v1",
+        "output_schema_ref": "focusa.agent_execution_adapter_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.agent_execution.abort",
+      "permission_scopes": [
+        "work-loop:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Abort Current Pi RPC Turn",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Abort Current Pi RPC Turn",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "attachment_id": null,
+        "continuity_id": "example",
+        "project_root": "/example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.agent_execution.stop",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "work_loop"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.agent_execution_stop.request.v1",
+        "output_schema_ref": "focusa.agent_execution_adapter_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.agent_execution.stop",
+      "permission_scopes": [
+        "work-loop:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Stop Governed Pi RPC Execution",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Stop Governed Pi RPC Execution",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
       },

@@ -202,6 +202,7 @@ pub struct PiRpcSession {
     pub stdin: ChildStdin,
     pub session_id: String,
     pub cwd: Option<String>,
+    pub idempotency_key: String,
     pub started_at: Instant,
 }
 

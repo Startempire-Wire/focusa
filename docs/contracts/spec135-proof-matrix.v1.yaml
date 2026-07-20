@@ -221,7 +221,7 @@
         "No model runtime bypasses Focusa authority"
       ],
       "bead_id": "focusa-mc-f8",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "Pi RPC integration test",
         "resume/cancel proof"
