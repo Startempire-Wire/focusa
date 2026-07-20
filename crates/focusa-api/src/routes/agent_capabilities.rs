@@ -1276,6 +1276,47 @@ pub async fn capabilities_index_handler(State(_state): State<Arc<AppState>>) -> 
     })))
 }
 
+const JSON_SCHEMA_DIALECT_2020_12: &str = "https://json-schema.org/draft/2020-12/schema";
+const OPENAPI_VERSION: &str = "3.0.3";
+
+fn schema_component_name(schema_id: &str) -> String {
+    schema_id.replace(['.', '/'], "_")
+}
+
+fn registered_schema_ids() -> std::collections::BTreeSet<&'static str> {
+    build_operations()
+        .iter()
+        .flat_map(|op| [op.request_schema_ref, op.response_schema_ref])
+        .collect()
+}
+
+fn json_schema_document(schema_id: &str) -> Value {
+    json!({
+        "$schema": JSON_SCHEMA_DIALECT_2020_12,
+        "$id": format!("/v1/agent/schemas/{schema_id}"),
+        "title": schema_id,
+        "description": format!("Generated contract for Focusa schema {schema_id}"),
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true,
+        "x-focusa-schema-id": schema_id,
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+    })
+}
+
+fn openapi_schema_component(schema_id: &str) -> Value {
+    let mut schema = json_schema_document(schema_id);
+    if let Some(object) = schema.as_object_mut() {
+        object.remove("$schema");
+        object.remove("$id");
+        object.insert(
+            "x-focusa-json-schema-dialect".to_string(),
+            json!(JSON_SCHEMA_DIALECT_2020_12),
+        );
+    }
+    schema
+}
+
 pub async fn list_schemas(State(_state): State<Arc<AppState>>) -> Json<Value> {
     let schema_ids: Vec<&str> = build_operations()
         .iter()
@@ -1297,9 +1338,6 @@ pub async fn get_schema(
     State(_state): State<Arc<AppState>>,
     Path(schema_id): Path<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    // Return a minimal schema descriptor. For a full JSON Schema compatible
-    // document, each schema_id would reference a generated OpenAPI component.
-    // Here we return a placeholder that documents the schema identity.
     let normalized = schema_id.trim().to_string();
     if normalized.is_empty() || normalized.len() > 256 {
         return Err((
@@ -1312,20 +1350,46 @@ pub async fn get_schema(
             })),
         ));
     }
-    Ok(Json(json!({
-        "schema": "focusa.schema_descriptor.v1",
-        "schema_id": normalized,
-        "description": format!("Schema descriptor for {}", normalized),
-        "api_version": "v1",
-        "generated_at": chrono::Utc::now().to_rfc3339(),
-        "fields": [],
-        "full_schema_url": format!("/v1/openapi.json#/components/schemas/{}", normalized.replace(['.', '/'], "_")),
-    })))
+    if !registered_schema_ids().contains(normalized.as_str()) {
+        return Err((
+            StatusCode::NOT_FOUND,
+            Json(json!({
+                "status": "not_found",
+                "failure_class": "unknown_schema_id",
+                "message": format!("Schema ID is not registered: {normalized}"),
+                "requested": normalized,
+                "recovery_hint": "List registered contracts at GET /v1/agent/schemas",
+            })),
+        ));
+    }
+    Ok(Json(json_schema_document(&normalized)))
 }
 
-pub async fn openapi_export(State(_state): State<Arc<AppState>>) -> Json<Value> {
+fn openapi_document() -> Value {
     let ops = build_operations();
     let mut paths = serde_json::Map::new();
+    let mut schemas = serde_json::Map::new();
+    schemas.insert(
+        "ErrorEnvelope".to_string(),
+        json!({
+            "type": "object",
+            "required": ["failure_class", "message"],
+            "properties": {
+                "failure_class": {"type": "string"},
+                "message": {"type": "string"},
+                "recovery_hint": {"type": "string"},
+                "next_tools": {"type": "array", "items": {"type": "string"}},
+            },
+            "additionalProperties": true,
+            "x-focusa-json-schema-dialect": JSON_SCHEMA_DIALECT_2020_12,
+        }),
+    );
+    for schema_id in registered_schema_ids() {
+        schemas.insert(
+            schema_component_name(schema_id),
+            openapi_schema_component(schema_id),
+        );
+    }
     for op in &ops {
         let path_key = op.path.to_string();
         let method_key = op.method.to_lowercase();
@@ -1341,7 +1405,7 @@ pub async fn openapi_export(State(_state): State<Arc<AppState>>) -> Json<Value> 
                     }
                 }
             });
-            obj.insert(method_key, json!({
+            let mut operation = json!({
                 "operationId": op.operation_id,
                 "summary": op.label,
                 "description": format!("{} — family={} budget={} materialization={}", op.label, op.family, op.budget_profile, op.materialization_mode),
@@ -1373,11 +1437,25 @@ pub async fn openapi_export(State(_state): State<Arc<AppState>>) -> Json<Value> 
                     "permissions_required": op.permissions_required,
                     "deprecation": op.deprecation,
                 },
-            }));
+            });
+            if op.method != "GET" {
+                operation["requestBody"] = json!({
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": format!("#/components/schemas/{}", schema_component_name(op.request_schema_ref)),
+                            }
+                        }
+                    }
+                });
+            }
+            obj.insert(method_key, operation);
         }
     }
-    Json(json!({
-        "openapi": "3.1.0",
+    json!({
+        "openapi": OPENAPI_VERSION,
+        "x-focusa-json-schema-dialect": JSON_SCHEMA_DIALECT_2020_12,
         "info": {
             "title": "Focusa Agent Runtime API",
             "version": "v1",
@@ -1386,19 +1464,13 @@ pub async fn openapi_export(State(_state): State<Arc<AppState>>) -> Json<Value> 
         "servers": [{"url": "/", "description": "Focusa daemon"}],
         "paths": paths,
         "components": {
-            "schemas": {
-                "ErrorEnvelope": {
-                    "type": "object",
-                    "properties": {
-                        "failure_class": {"type": "string"},
-                        "message": {"type": "string"},
-                        "recovery_hint": {"type": "string"},
-                        "next_tools": {"type": "array", "items": {"type": "string"}},
-                    },
-                },
-            },
+            "schemas": Value::Object(schemas),
         },
-    }))
+    })
+}
+
+pub async fn openapi_export(State(_state): State<Arc<AppState>>) -> Json<Value> {
+    Json(openapi_document())
 }
 
 pub fn routes() -> Router<Arc<AppState>> {
@@ -1512,5 +1584,42 @@ mod tests {
         let families = build_families();
         assert!(families.contains(&"turn"));
         assert!(families.contains(&"memory"));
+    }
+
+    #[test]
+    fn registered_schema_documents_use_json_schema_2020_12() {
+        for schema_id in registered_schema_ids() {
+            let schema = json_schema_document(schema_id);
+            assert_eq!(schema["$schema"], JSON_SCHEMA_DIALECT_2020_12);
+            assert_eq!(schema["type"], "object");
+            assert_eq!(schema["x-focusa-schema-id"], schema_id);
+        }
+    }
+
+    #[test]
+    fn openapi_export_is_3_0_3_and_resolves_every_operation_schema() {
+        let document = openapi_document();
+        assert_eq!(document["openapi"], OPENAPI_VERSION);
+        assert_eq!(
+            document["x-focusa-json-schema-dialect"],
+            JSON_SCHEMA_DIALECT_2020_12
+        );
+        let schemas = document["components"]["schemas"]
+            .as_object()
+            .expect("OpenAPI component schemas");
+        assert_eq!(schemas.len(), registered_schema_ids().len() + 1);
+        assert!(schemas.contains_key("ErrorEnvelope"));
+
+        for operation in build_operations() {
+            assert!(schemas.contains_key(&schema_component_name(operation.request_schema_ref)));
+            assert!(schemas.contains_key(&schema_component_name(operation.response_schema_ref)));
+            let rendered = &document["paths"][operation.path][operation.method.to_lowercase()];
+            assert_eq!(rendered["operationId"], operation.operation_id);
+            if operation.method == "GET" {
+                assert!(rendered.get("requestBody").is_none());
+            } else {
+                assert!(rendered.get("requestBody").is_some());
+            }
+        }
     }
 }
