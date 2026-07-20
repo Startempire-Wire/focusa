@@ -125,4 +125,6 @@ Typed LaunchManifest `.4.2` landed in `8a93f769`: shell-free argv/cwd/env/secret
 
 Harness/backend contracts `.4.3` landed in `3859315c`: truthful versioned capabilities, Pi RPC, deterministic fake, direct process, generic RPC/PTY declarations, and explicit unsupported negotiation. Nine focused tests and strict lint passed; claim `claim_bd_019f8060335d7793` reconciled closure.
 
+Pi RPC/AgentBootstrap `.4.4` landed across `6e5a5383`, `8cbe138f`, and `a00db124`: structured events/native refs and exact ProjectIdentity, Trajectory, Workpoint, Context, lease, fresh-authority, and model gates block all project mutation until verified. Twelve focused tests and strict lint passed; claim `claim_bd_019f80b6a27e7ed0` reconciled closure.
+
 Transactional config CLI controls and profile/preset catalogs landed in `f794cd01`. Three E2E tests prove resolve/diff/apply/rollback route mapping, exact revision/hash CAS conflict reporting, field provenance, recursive secret redaction, and human/JSON parity; `focusa-a6yq6.3.5.4` closed with stable proof at `crates/focusa-cli/tests/silent_config_parity_e2e.rs`.
