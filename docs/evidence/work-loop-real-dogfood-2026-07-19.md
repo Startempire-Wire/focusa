@@ -110,3 +110,5 @@ The first §24 CLI child landed in `ad669abd`: exact list/show/status/watch/outp
 Lifecycle CLI controls landed in `5110cbe7` with proof commit `3b16aa21`. Four E2E tests prove one-to-one daemon route mapping, stale scope/generation rejection, receipts/recovery and human/JSON parity; claim `claim_bd_019f7cf49a177913` reconciled `.3.5.2`.
 
 Interactive CLI controls landed in `f98f7651`. Four E2E tests prove exact request mapping, authorization/lease rejection, redaction and replay safety; claim `claim_bd_019f7d21289f7911` reconciled `.3.5.3`.
+
+Transactional config CLI controls and profile/preset catalogs landed in `f794cd01`. Three E2E tests prove resolve/diff/apply/rollback route mapping, exact revision/hash CAS conflict reporting, field provenance, recursive secret redaction, and human/JSON parity; `focusa-a6yq6.3.5.4` closed with stable proof at `crates/focusa-cli/tests/silent_config_parity_e2e.rs`.
