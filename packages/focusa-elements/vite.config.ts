@@ -12,7 +12,7 @@ export default defineConfig({
       fileName: "focusa-elements",
     },
     rollupOptions: {
-      external: ["@a2ui/lit/v0_9", "@a2ui/web_core/v0_9", "lit", "lit/static-html.js", "svelte", "zod"],
+      external: [/^svelte(?:\/.*)?$/],
     },
   },
   test: {

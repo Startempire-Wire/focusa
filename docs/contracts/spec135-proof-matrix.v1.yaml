@@ -298,7 +298,7 @@
         "Diagnostics are retained as bounded evidence"
       ],
       "bead_id": "focusa-mc-f11",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "UIAI Eval artifact",
         "browser diagnostics evidence"
