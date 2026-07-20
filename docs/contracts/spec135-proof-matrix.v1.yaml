@@ -246,7 +246,7 @@
         "No complete custom Svelte renderer or Playwright dependency"
       ],
       "bead_id": "focusa-mc-f9",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "A2UI fixture tests",
         "renderer smoke"

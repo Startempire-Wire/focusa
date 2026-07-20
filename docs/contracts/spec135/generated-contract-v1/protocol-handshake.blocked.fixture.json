@@ -13,7 +13,7 @@
   "raw": {
     "client_id": "spec135-test",
     "compatibility_lock": {
-      "a2ui_catalog": "0.0.0",
+      "a2ui_catalog": "0.9.1",
       "a2ui_protocol": "0.9.1",
       "ag_ui_adapter": "0.0.0",
       "docling": "external",
@@ -23,6 +23,8 @@
       "focusa_api": "1.0.0",
       "focusa_runtime": "0.9.120-dev",
       "minimum_reader_versions": {
+        "a2ui_catalog": "0.9.1",
+        "a2ui_protocol": "0.9.1",
         "event_stream": "1.0.0",
         "focusa_api": "1.0.0",
         "json_schema": "2020-12",
@@ -31,6 +33,8 @@
         "tool_result": "1.0.0"
       },
       "minimum_writer_versions": {
+        "a2ui_catalog": "0.9.1",
+        "a2ui_protocol": "0.9.1",
         "event_stream": "1.0.0",
         "focusa_api": "1.0.0",
         "operation_registry": "1.0.0",
@@ -80,6 +84,18 @@
         "component": "json_schema",
         "required": "2020-12",
         "upgrade_action": "upgrade json_schema support to 2020-12"
+      },
+      {
+        "actual": null,
+        "component": "a2ui_protocol",
+        "required": "0.9.1",
+        "upgrade_action": "upgrade a2ui_protocol support to 0.9.1"
+      },
+      {
+        "actual": null,
+        "component": "a2ui_catalog",
+        "required": "0.9.1",
+        "upgrade_action": "upgrade a2ui_catalog support to 0.9.1"
       }
     ],
     "safe_state_retained": true

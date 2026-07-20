@@ -1833,7 +1833,7 @@ fn ui_capability_snapshot_document(
         },
         "providers": [],
         "connectors": [],
-        "client_capabilities": ["openapi-3.0.3", "json-schema-2020-12", "a2ui-action-bindings", "protocol-handshake-v1"],
+        "client_capabilities": ["openapi-3.0.3", "json-schema-2020-12", "a2ui-web_core-0.9.1", "a2ui-lit-0.9.1", "a2ui-action-bindings", "protocol-handshake-v1"],
         "source_state_revision": "operation-registry-1.0.0",
     })
 }
@@ -1850,13 +1850,15 @@ async fn ui_capability_snapshot_handler(
     Ok(Json(ui_capability_snapshot_document(&scope, &permissions)))
 }
 
-const REQUIRED_PROTOCOL_VERSIONS: [(&str, &str); 6] = [
+const REQUIRED_PROTOCOL_VERSIONS: [(&str, &str); 8] = [
     ("focusa_api", "1.0.0"),
     ("operation_registry", "1.0.0"),
     ("tool_result", "1.0.0"),
     ("event_stream", "1.0.0"),
     ("openapi", "3.0.3"),
     ("json_schema", "2020-12"),
+    ("a2ui_protocol", "0.9.1"),
+    ("a2ui_catalog", "0.9.1"),
 ];
 
 #[derive(Debug, Deserialize)]
@@ -1880,7 +1882,7 @@ fn compatibility_lock_document() -> Value {
         "tool_result": "1.0.0",
         "event_stream": "1.0.0",
         "a2ui_protocol": "0.9.1",
-        "a2ui_catalog": "0.0.0",
+        "a2ui_catalog": "0.9.1",
         "ag_ui_adapter": "0.0.0",
         "pi_runtime": env!("CARGO_PKG_VERSION"),
         "uiai_engine": "external",
@@ -1893,7 +1895,9 @@ fn compatibility_lock_document() -> Value {
             "focusa_api": "1.0.0",
             "operation_registry": "1.0.0",
             "tool_result": "1.0.0",
-            "event_stream": "1.0.0"
+            "event_stream": "1.0.0",
+            "a2ui_protocol": "0.9.1",
+            "a2ui_catalog": "0.9.1"
         }
     })
 }

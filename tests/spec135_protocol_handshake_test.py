@@ -31,6 +31,8 @@ required_versions = {
     "event_stream": "1.0.0",
     "openapi": "3.0.3",
     "json_schema": "2020-12",
+    "a2ui_protocol": "0.9.1",
+    "a2ui_catalog": "0.9.1",
 }
 assert required_versions.items() <= lock["minimum_reader_versions"].items()
 

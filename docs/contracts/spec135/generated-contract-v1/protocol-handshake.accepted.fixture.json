@@ -175,6 +175,8 @@
     "client_capabilities": [
       "openapi-3.0.3",
       "json-schema-2020-12",
+      "a2ui-web_core-0.9.1",
+      "a2ui-lit-0.9.1",
       "a2ui-action-bindings",
       "protocol-handshake-v1"
     ],
@@ -214,6 +216,7 @@
         "trajectory:write",
         "traverse:read",
         "turn:write",
+        "work-loop:write",
         "work_loop:read",
         "work_loop:write",
         "workpoint:read",
@@ -229,7 +232,7 @@
   },
   "client_id": "spec135-test",
   "compatibility_lock": {
-    "a2ui_catalog": "0.0.0",
+    "a2ui_catalog": "0.9.1",
     "a2ui_protocol": "0.9.1",
     "ag_ui_adapter": "0.0.0",
     "docling": "external",
@@ -239,6 +242,8 @@
     "focusa_api": "1.0.0",
     "focusa_runtime": "0.9.120-dev",
     "minimum_reader_versions": {
+      "a2ui_catalog": "0.9.1",
+      "a2ui_protocol": "0.9.1",
       "event_stream": "1.0.0",
       "focusa_api": "1.0.0",
       "json_schema": "2020-12",
@@ -247,6 +252,8 @@
       "tool_result": "1.0.0"
     },
     "minimum_writer_versions": {
+      "a2ui_catalog": "0.9.1",
+      "a2ui_protocol": "0.9.1",
       "event_stream": "1.0.0",
       "focusa_api": "1.0.0",
       "operation_registry": "1.0.0",
@@ -263,11 +270,14 @@
   "continuity_id": "example",
   "project_root": "/example",
   "requested_capabilities": [
-    "project"
+    "project",
+    "a2ui"
   ],
   "safe_state_retained": true,
   "schema": "focusa.protocol_handshake.response.v1",
   "server_versions": {
+    "a2ui_catalog": "0.9.1",
+    "a2ui_protocol": "0.9.1",
     "event_stream": "1.0.0",
     "focusa_api": "1.0.0",
     "json_schema": "2020-12",

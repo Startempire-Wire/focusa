@@ -1,0 +1,28 @@
+{
+  "name": "@focusa/a2ui-renderer",
+  "version": "0.9.120-dev",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "catalog": "npm run build && node scripts/export-catalog.mjs",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@a2ui/lit": "0.9.1",
+    "@a2ui/web_core": "0.9.1",
+    "lit": "3.3.1"
+  },
+  "devDependencies": {
+    "@types/jsdom": "21.1.7",
+    "jsdom": "26.1.0",
+    "typescript": "5.9.3"
+  }
+}
