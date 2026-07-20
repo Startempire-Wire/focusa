@@ -1,0 +1,4239 @@
+{
+  "components": {
+    "schemas": {
+      "ErrorEnvelope": {
+        "additionalProperties": true,
+        "properties": {
+          "failure_class": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "next_tools": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "recovery_hint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "failure_class",
+          "message"
+        ],
+        "type": "object",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "focusa_awareness_packet_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.awareness_packet.request.v1",
+        "properties": {},
+        "title": "focusa.awareness_packet.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.awareness_packet.request.v1"
+      },
+      "focusa_awareness_packet_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.awareness_packet.response.v1",
+        "properties": {},
+        "title": "focusa.awareness_packet.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.awareness_packet.response.v1"
+      },
+      "focusa_bloatgaurd_report_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.bloatgaurd_report.request.v1",
+        "properties": {},
+        "title": "focusa.bloatgaurd_report.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.bloatgaurd_report.request.v1"
+      },
+      "focusa_bloatgaurd_report_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.bloatgaurd_report.response.v1",
+        "properties": {},
+        "title": "focusa.bloatgaurd_report.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.bloatgaurd_report.response.v1"
+      },
+      "focusa_call_stack_design_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.call_stack_design.request.v1",
+        "properties": {},
+        "title": "focusa.call_stack_design.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.call_stack_design.request.v1"
+      },
+      "focusa_call_stack_design_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.call_stack_design.response.v1",
+        "properties": {},
+        "title": "focusa.call_stack_design.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.call_stack_design.response.v1"
+      },
+      "focusa_call_stack_verify_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.call_stack_verify.request.v1",
+        "properties": {},
+        "title": "focusa.call_stack_verify.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.call_stack_verify.request.v1"
+      },
+      "focusa_call_stack_verify_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.call_stack_verify.response.v1",
+        "properties": {},
+        "title": "focusa.call_stack_verify.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.call_stack_verify.response.v1"
+      },
+      "focusa_context_cognition_curate_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.context_cognition_curate.request.v1",
+        "properties": {},
+        "title": "focusa.context_cognition_curate.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.context_cognition_curate.request.v1"
+      },
+      "focusa_context_cognition_curate_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.context_cognition_curate.response.v1",
+        "properties": {},
+        "title": "focusa.context_cognition_curate.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.context_cognition_curate.response.v1"
+      },
+      "focusa_context_cognition_packet_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.context_cognition_packet.request.v1",
+        "properties": {},
+        "title": "focusa.context_cognition_packet.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.context_cognition_packet.request.v1"
+      },
+      "focusa_context_cognition_packet_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.context_cognition_packet.response.v1",
+        "properties": {},
+        "title": "focusa.context_cognition_packet.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.context_cognition_packet.response.v1"
+      },
+      "focusa_device_pair_start_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.device_pair_start.request.v1",
+        "properties": {},
+        "title": "focusa.device_pair_start.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.device_pair_start.request.v1"
+      },
+      "focusa_device_pair_start_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.device_pair_start.response.v1",
+        "properties": {},
+        "title": "focusa.device_pair_start.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.device_pair_start.response.v1"
+      },
+      "focusa_device_pair_status_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.device_pair_status.request.v1",
+        "properties": {},
+        "title": "focusa.device_pair_status.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.device_pair_status.request.v1"
+      },
+      "focusa_device_pair_status_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.device_pair_status.response.v1",
+        "properties": {},
+        "title": "focusa.device_pair_status.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.device_pair_status.response.v1"
+      },
+      "focusa_dxux_report_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.dxux_report.request.v1",
+        "properties": {},
+        "title": "focusa.dxux_report.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.dxux_report.request.v1"
+      },
+      "focusa_dxux_report_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.dxux_report.response.v1",
+        "properties": {},
+        "title": "focusa.dxux_report.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.dxux_report.response.v1"
+      },
+      "focusa_evidence_capture_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.evidence_capture.request.v1",
+        "properties": {},
+        "title": "focusa.evidence_capture.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.evidence_capture.request.v1"
+      },
+      "focusa_evidence_capture_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.evidence_capture.response.v1",
+        "properties": {},
+        "title": "focusa.evidence_capture.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.evidence_capture.response.v1"
+      },
+      "focusa_health_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.health.request.v1",
+        "properties": {},
+        "title": "focusa.health.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.health.request.v1"
+      },
+      "focusa_health_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.health.response.v1",
+        "properties": {},
+        "title": "focusa.health.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.health.response.v1"
+      },
+      "focusa_license_validate_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.license_validate.request.v1",
+        "properties": {},
+        "title": "focusa.license_validate.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.license_validate.request.v1"
+      },
+      "focusa_license_validate_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.license_validate.response.v1",
+        "properties": {},
+        "title": "focusa.license_validate.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.license_validate.response.v1"
+      },
+      "focusa_lineage_head_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.lineage_head.request.v1",
+        "properties": {},
+        "title": "focusa.lineage_head.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.lineage_head.request.v1"
+      },
+      "focusa_lineage_head_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.lineage_head.response.v1",
+        "properties": {},
+        "title": "focusa.lineage_head.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.lineage_head.response.v1"
+      },
+      "focusa_lineage_tree_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.lineage_tree.request.v1",
+        "properties": {},
+        "title": "focusa.lineage_tree.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.lineage_tree.request.v1"
+      },
+      "focusa_lineage_tree_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.lineage_tree.response.v1",
+        "properties": {},
+        "title": "focusa.lineage_tree.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.lineage_tree.response.v1"
+      },
+      "focusa_memory_procedural_read_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.memory_procedural_read.request.v1",
+        "properties": {},
+        "title": "focusa.memory_procedural_read.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.memory_procedural_read.request.v1"
+      },
+      "focusa_memory_procedural_read_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.memory_procedural_read.response.v1",
+        "properties": {},
+        "title": "focusa.memory_procedural_read.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.memory_procedural_read.response.v1"
+      },
+      "focusa_memory_procedural_reinforce_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.memory_procedural_reinforce.request.v1",
+        "properties": {},
+        "title": "focusa.memory_procedural_reinforce.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.memory_procedural_reinforce.request.v1"
+      },
+      "focusa_memory_procedural_reinforce_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.memory_procedural_reinforce.response.v1",
+        "properties": {},
+        "title": "focusa.memory_procedural_reinforce.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.memory_procedural_reinforce.response.v1"
+      },
+      "focusa_memory_semantic_read_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.memory_semantic_read.request.v1",
+        "properties": {},
+        "title": "focusa.memory_semantic_read.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.memory_semantic_read.request.v1"
+      },
+      "focusa_memory_semantic_read_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.memory_semantic_read.response.v1",
+        "properties": {},
+        "title": "focusa.memory_semantic_read.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.memory_semantic_read.response.v1"
+      },
+      "focusa_memory_semantic_upsert_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.memory_semantic_upsert.request.v1",
+        "properties": {},
+        "title": "focusa.memory_semantic_upsert.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.memory_semantic_upsert.request.v1"
+      },
+      "focusa_memory_semantic_upsert_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.memory_semantic_upsert.response.v1",
+        "properties": {},
+        "title": "focusa.memory_semantic_upsert.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.memory_semantic_upsert.response.v1"
+      },
+      "focusa_metacog_capture_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.metacog_capture.request.v1",
+        "properties": {},
+        "title": "focusa.metacog_capture.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.metacog_capture.request.v1"
+      },
+      "focusa_metacog_capture_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.metacog_capture.response.v1",
+        "properties": {},
+        "title": "focusa.metacog_capture.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.metacog_capture.response.v1"
+      },
+      "focusa_metacog_doctor_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.metacog_doctor.request.v1",
+        "properties": {},
+        "title": "focusa.metacog_doctor.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.metacog_doctor.request.v1"
+      },
+      "focusa_metacog_doctor_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.metacog_doctor.response.v1",
+        "properties": {},
+        "title": "focusa.metacog_doctor.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.metacog_doctor.response.v1"
+      },
+      "focusa_metacog_reflect_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.metacog_reflect.request.v1",
+        "properties": {},
+        "title": "focusa.metacog_reflect.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.metacog_reflect.request.v1"
+      },
+      "focusa_metacog_reflect_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.metacog_reflect.response.v1",
+        "properties": {},
+        "title": "focusa.metacog_reflect.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.metacog_reflect.response.v1"
+      },
+      "focusa_metacog_retrieve_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.metacog_retrieve.request.v1",
+        "properties": {},
+        "title": "focusa.metacog_retrieve.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.metacog_retrieve.request.v1"
+      },
+      "focusa_metacog_retrieve_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.metacog_retrieve.response.v1",
+        "properties": {},
+        "title": "focusa.metacog_retrieve.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.metacog_retrieve.response.v1"
+      },
+      "focusa_prediction_evaluate_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.prediction_evaluate.request.v1",
+        "properties": {},
+        "title": "focusa.prediction_evaluate.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.prediction_evaluate.request.v1"
+      },
+      "focusa_prediction_evaluate_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.prediction_evaluate.response.v1",
+        "properties": {},
+        "title": "focusa.prediction_evaluate.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.prediction_evaluate.response.v1"
+      },
+      "focusa_prediction_recent_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.prediction_recent.request.v1",
+        "properties": {},
+        "title": "focusa.prediction_recent.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.prediction_recent.request.v1"
+      },
+      "focusa_prediction_recent_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.prediction_recent.response.v1",
+        "properties": {},
+        "title": "focusa.prediction_recent.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.prediction_recent.response.v1"
+      },
+      "focusa_prediction_record_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.prediction_record.request.v1",
+        "properties": {},
+        "title": "focusa.prediction_record.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.prediction_record.request.v1"
+      },
+      "focusa_prediction_record_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.prediction_record.response.v1",
+        "properties": {},
+        "title": "focusa.prediction_record.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.prediction_record.response.v1"
+      },
+      "focusa_project_identity_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.project_identity.request.v1",
+        "properties": {},
+        "title": "focusa.project_identity.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.project_identity.request.v1"
+      },
+      "focusa_project_identity_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.project_identity.response.v1",
+        "properties": {},
+        "title": "focusa.project_identity.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.project_identity.response.v1"
+      },
+      "focusa_project_verify_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.project_verify.request.v1",
+        "properties": {},
+        "title": "focusa.project_verify.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.project_verify.request.v1"
+      },
+      "focusa_project_verify_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.project_verify.response.v1",
+        "properties": {},
+        "title": "focusa.project_verify.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.project_verify.response.v1"
+      },
+      "focusa_resource_mode_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.resource_mode.request.v1",
+        "properties": {},
+        "title": "focusa.resource_mode.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.resource_mode.request.v1"
+      },
+      "focusa_resource_mode_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.resource_mode.response.v1",
+        "properties": {},
+        "title": "focusa.resource_mode.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.resource_mode.response.v1"
+      },
+      "focusa_state_current_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.state_current.request.v1",
+        "properties": {},
+        "title": "focusa.state_current.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.state_current.request.v1"
+      },
+      "focusa_state_current_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.state_current.response.v1",
+        "properties": {},
+        "title": "focusa.state_current.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.state_current.response.v1"
+      },
+      "focusa_tool_doctor_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.tool_doctor.request.v1",
+        "properties": {},
+        "title": "focusa.tool_doctor.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.tool_doctor.request.v1"
+      },
+      "focusa_tool_doctor_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.tool_doctor.response.v1",
+        "properties": {},
+        "title": "focusa.tool_doctor.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.tool_doctor.response.v1"
+      },
+      "focusa_trajectory_assess_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.trajectory_assess.request.v1",
+        "properties": {},
+        "title": "focusa.trajectory_assess.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.trajectory_assess.request.v1"
+      },
+      "focusa_trajectory_assess_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.trajectory_assess.response.v1",
+        "properties": {},
+        "title": "focusa.trajectory_assess.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.trajectory_assess.response.v1"
+      },
+      "focusa_trajectory_checkpoint_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.trajectory_checkpoint.request.v1",
+        "properties": {},
+        "title": "focusa.trajectory_checkpoint.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.trajectory_checkpoint.request.v1"
+      },
+      "focusa_trajectory_checkpoint_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.trajectory_checkpoint.response.v1",
+        "properties": {},
+        "title": "focusa.trajectory_checkpoint.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.trajectory_checkpoint.response.v1"
+      },
+      "focusa_trajectory_define_goal_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.trajectory_define_goal.request.v1",
+        "properties": {},
+        "title": "focusa.trajectory_define_goal.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.trajectory_define_goal.request.v1"
+      },
+      "focusa_trajectory_define_goal_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.trajectory_define_goal.response.v1",
+        "properties": {},
+        "title": "focusa.trajectory_define_goal.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.trajectory_define_goal.response.v1"
+      },
+      "focusa_trajectory_propose_workpoint_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.trajectory_propose_workpoint.request.v1",
+        "properties": {},
+        "title": "focusa.trajectory_propose_workpoint.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.trajectory_propose_workpoint.request.v1"
+      },
+      "focusa_trajectory_propose_workpoint_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.trajectory_propose_workpoint.response.v1",
+        "properties": {},
+        "title": "focusa.trajectory_propose_workpoint.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.trajectory_propose_workpoint.response.v1"
+      },
+      "focusa_trajectory_resume_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.trajectory_resume.request.v1",
+        "properties": {},
+        "title": "focusa.trajectory_resume.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.trajectory_resume.request.v1"
+      },
+      "focusa_trajectory_resume_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.trajectory_resume.response.v1",
+        "properties": {},
+        "title": "focusa.trajectory_resume.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.trajectory_resume.response.v1"
+      },
+      "focusa_trajectory_view_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.trajectory_view.request.v1",
+        "properties": {},
+        "title": "focusa.trajectory_view.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.trajectory_view.request.v1"
+      },
+      "focusa_trajectory_view_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.trajectory_view.response.v1",
+        "properties": {},
+        "title": "focusa.trajectory_view.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.trajectory_view.response.v1"
+      },
+      "focusa_traverse_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.traverse.request.v1",
+        "properties": {},
+        "title": "focusa.traverse.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.traverse.request.v1"
+      },
+      "focusa_traverse_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.traverse.response.v1",
+        "properties": {},
+        "title": "focusa.traverse.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.traverse.response.v1"
+      },
+      "focusa_turn_append_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.turn_append.request.v1",
+        "properties": {},
+        "title": "focusa.turn_append.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.turn_append.request.v1"
+      },
+      "focusa_turn_append_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.turn_append.response.v1",
+        "properties": {},
+        "title": "focusa.turn_append.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.turn_append.response.v1"
+      },
+      "focusa_turn_complete_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.turn_complete.request.v1",
+        "properties": {},
+        "title": "focusa.turn_complete.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.turn_complete.request.v1"
+      },
+      "focusa_turn_complete_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.turn_complete.response.v1",
+        "properties": {},
+        "title": "focusa.turn_complete.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.turn_complete.response.v1"
+      },
+      "focusa_turn_start_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.turn_start.request.v1",
+        "properties": {},
+        "title": "focusa.turn_start.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.turn_start.request.v1"
+      },
+      "focusa_turn_start_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.turn_start.response.v1",
+        "properties": {},
+        "title": "focusa.turn_start.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.turn_start.response.v1"
+      },
+      "focusa_work_loop_control_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.work_loop_control.request.v1",
+        "properties": {},
+        "title": "focusa.work_loop_control.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.work_loop_control.request.v1"
+      },
+      "focusa_work_loop_control_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.work_loop_control.response.v1",
+        "properties": {},
+        "title": "focusa.work_loop_control.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.work_loop_control.response.v1"
+      },
+      "focusa_work_loop_status_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.work_loop_status.request.v1",
+        "properties": {},
+        "title": "focusa.work_loop_status.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.work_loop_status.request.v1"
+      },
+      "focusa_work_loop_status_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.work_loop_status.response.v1",
+        "properties": {},
+        "title": "focusa.work_loop_status.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.work_loop_status.response.v1"
+      },
+      "focusa_workpoint_checkpoint_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.workpoint_checkpoint.request.v1",
+        "properties": {},
+        "title": "focusa.workpoint_checkpoint.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.workpoint_checkpoint.request.v1"
+      },
+      "focusa_workpoint_checkpoint_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.workpoint_checkpoint.response.v1",
+        "properties": {},
+        "title": "focusa.workpoint_checkpoint.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.workpoint_checkpoint.response.v1"
+      },
+      "focusa_workpoint_link_evidence_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.workpoint_link_evidence.request.v1",
+        "properties": {},
+        "title": "focusa.workpoint_link_evidence.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.workpoint_link_evidence.request.v1"
+      },
+      "focusa_workpoint_link_evidence_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.workpoint_link_evidence.response.v1",
+        "properties": {},
+        "title": "focusa.workpoint_link_evidence.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.workpoint_link_evidence.response.v1"
+      },
+      "focusa_workpoint_resume_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.workpoint_resume.request.v1",
+        "properties": {},
+        "title": "focusa.workpoint_resume.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.workpoint_resume.request.v1"
+      },
+      "focusa_workpoint_resume_response_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.workpoint_resume.response.v1",
+        "properties": {},
+        "title": "focusa.workpoint_resume.response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.workpoint_resume.response.v1"
+      }
+    }
+  },
+  "info": {
+    "description": "Agent-first REST API for Focusa \u2014 mission state, Workpoints, trajectory, evidence, metacognition, predictions, and governance.",
+    "title": "Focusa Agent Runtime API",
+    "version": "v1"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/v1/awareness/packet": {
+      "post": {
+        "description": "Awareness Packet \u2014 family=awareness budget=standard_read materialization=advisory_read",
+        "operationId": "focusa.awareness.packet",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_awareness_packet_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_awareness_packet_response_v1"
+                }
+              }
+            },
+            "description": "Awareness Packet response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Awareness Packet",
+        "tags": [
+          "awareness"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "awareness",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "awareness:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_awareness",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/bloatgaurd/report": {
+      "get": {
+        "description": "Bloatgaurd Report \u2014 family=bloatgaurd budget=standard_read materialization=advisory_read",
+        "operationId": "focusa.bloatgaurd.report",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_bloatgaurd_report_response_v1"
+                }
+              }
+            },
+            "description": "Bloatgaurd Report response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Bloatgaurd Report",
+        "tags": [
+          "bloatgaurd"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "bloatgaurd",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "bloatgaurd:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_bloatgaurd",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/call-stack/design": {
+      "post": {
+        "description": "Call Stack Design \u2014 family=call_stack budget=standard_mutation materialization=daemon_dispatch",
+        "operationId": "focusa.call_stack.design",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_call_stack_design_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_call_stack_design_response_v1"
+                }
+              }
+            },
+            "description": "Call Stack Design response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Call Stack Design",
+        "tags": [
+          "call_stack"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "call_stack",
+          "materialization_mode": "daemon_dispatch",
+          "permissions_required": [
+            "call_stack:write"
+          ],
+          "requires_idempotency_key": true,
+          "requires_if_match_version": false,
+          "side_effect_profile": "write_call_stack",
+          "supports_side_effect_policy": [
+            "dry_run",
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/call-stack/verify": {
+      "post": {
+        "description": "Call Stack Verify \u2014 family=call_stack budget=standard_read materialization=advisory_read",
+        "operationId": "focusa.call_stack.verify",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_call_stack_verify_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_call_stack_verify_response_v1"
+                }
+              }
+            },
+            "description": "Call Stack Verify response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Call Stack Verify",
+        "tags": [
+          "call_stack"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "call_stack",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "call_stack:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_call_stack_verify",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/context-cognition/curate": {
+      "post": {
+        "description": "Context Cognition Curate \u2014 family=context_cognition budget=standard_read materialization=advisory_read",
+        "operationId": "focusa.context_cognition.curate",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_context_cognition_curate_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_context_cognition_curate_response_v1"
+                }
+              }
+            },
+            "description": "Context Cognition Curate response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Context Cognition Curate",
+        "tags": [
+          "context_cognition"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "context_cognition",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "context:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_context_curate",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/context-cognition/packet": {
+      "get": {
+        "description": "Context Cognition Packet \u2014 family=context_cognition budget=heavy_read materialization=advisory_read",
+        "operationId": "focusa.context_cognition.packet",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_context_cognition_packet_response_v1"
+                }
+              }
+            },
+            "description": "Context Cognition Packet response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Context Cognition Packet",
+        "tags": [
+          "context_cognition"
+        ],
+        "x-focusa": {
+          "budget_profile": "heavy_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "context_cognition",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "context:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_context",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/device/pair/start": {
+      "post": {
+        "description": "Device Pair Start \u2014 family=device budget=standard_mutation materialization=daemon_dispatch",
+        "operationId": "focusa.device_pair.start",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_device_pair_start_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_device_pair_start_response_v1"
+                }
+              }
+            },
+            "description": "Device Pair Start response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Device Pair Start",
+        "tags": [
+          "device"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "device",
+          "materialization_mode": "daemon_dispatch",
+          "permissions_required": [
+            "device:write"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "write_pairing",
+          "supports_side_effect_policy": [
+            "dry_run",
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/device/pair/status": {
+      "get": {
+        "description": "Device Pair Status \u2014 family=device budget=light_read materialization=advisory_read",
+        "operationId": "focusa.device_pair.status",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_device_pair_status_response_v1"
+                }
+              }
+            },
+            "description": "Device Pair Status response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Device Pair Status",
+        "tags": [
+          "device"
+        ],
+        "x-focusa": {
+          "budget_profile": "light_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "device",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "device:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_pairing",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/dxux/report": {
+      "get": {
+        "description": "DXUX Report \u2014 family=dxux budget=standard_read materialization=advisory_read",
+        "operationId": "focusa.dxux.report",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_dxux_report_response_v1"
+                }
+              }
+            },
+            "description": "DXUX Report response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "DXUX Report",
+        "tags": [
+          "dxux"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "dxux",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "dxux:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_dxux",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/evidence/capture": {
+      "post": {
+        "description": "Evidence Capture \u2014 family=evidence budget=standard_mutation materialization=daemon_dispatch",
+        "operationId": "focusa.evidence.capture",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_evidence_capture_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_evidence_capture_response_v1"
+                }
+              }
+            },
+            "description": "Evidence Capture response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Evidence Capture",
+        "tags": [
+          "evidence"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "evidence",
+          "materialization_mode": "daemon_dispatch",
+          "permissions_required": [
+            "evidence:write"
+          ],
+          "requires_idempotency_key": true,
+          "requires_if_match_version": false,
+          "side_effect_profile": "write_evidence",
+          "supports_side_effect_policy": [
+            "dry_run",
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/health": {
+      "get": {
+        "description": "Health Check \u2014 family=health budget=light_read materialization=advisory_read",
+        "operationId": "focusa.health.check",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_health_response_v1"
+                }
+              }
+            },
+            "description": "Health Check response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Health Check",
+        "tags": [
+          "health"
+        ],
+        "x-focusa": {
+          "budget_profile": "light_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "health",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "health:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_health",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/license/validate": {
+      "post": {
+        "description": "License Validate \u2014 family=license budget=standard_mutation materialization=daemon_dispatch",
+        "operationId": "focusa.license.validate",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_license_validate_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_license_validate_response_v1"
+                }
+              }
+            },
+            "description": "License Validate response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "License Validate",
+        "tags": [
+          "license"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "license",
+          "materialization_mode": "daemon_dispatch",
+          "permissions_required": [
+            "license:write"
+          ],
+          "requires_idempotency_key": true,
+          "requires_if_match_version": false,
+          "side_effect_profile": "write_license",
+          "supports_side_effect_policy": [
+            "dry_run",
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/lineage/head": {
+      "get": {
+        "description": "Lineage Head \u2014 family=lineage budget=light_read materialization=advisory_read",
+        "operationId": "focusa.lineage.head",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_lineage_head_response_v1"
+                }
+              }
+            },
+            "description": "Lineage Head response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Lineage Head",
+        "tags": [
+          "lineage"
+        ],
+        "x-focusa": {
+          "budget_profile": "light_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "lineage",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "lineage:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_lineage",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/lineage/tree": {
+      "get": {
+        "description": "Lineage Tree \u2014 family=lineage budget=heavy_read materialization=advisory_read",
+        "operationId": "focusa.lineage.tree",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_lineage_tree_response_v1"
+                }
+              }
+            },
+            "description": "Lineage Tree response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Lineage Tree",
+        "tags": [
+          "lineage"
+        ],
+        "x-focusa": {
+          "budget_profile": "heavy_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "lineage",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "lineage:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_lineage_tree",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/memory/procedural": {
+      "get": {
+        "description": "Read Procedural Memory \u2014 family=memory budget=standard_read materialization=advisory_read",
+        "operationId": "focusa.memory.procedural.read",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_memory_procedural_read_response_v1"
+                }
+              }
+            },
+            "description": "Read Procedural Memory response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Read Procedural Memory",
+        "tags": [
+          "memory"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "memory",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "memory:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_memory",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/memory/procedural/reinforce": {
+      "post": {
+        "description": "Reinforce Procedural Rule \u2014 family=memory budget=standard_mutation materialization=daemon_dispatch",
+        "operationId": "focusa.memory.procedural.reinforce",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_memory_procedural_reinforce_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_memory_procedural_reinforce_response_v1"
+                }
+              }
+            },
+            "description": "Reinforce Procedural Rule response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Reinforce Procedural Rule",
+        "tags": [
+          "memory"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "memory",
+          "materialization_mode": "daemon_dispatch",
+          "permissions_required": [
+            "memory:write"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "write_memory",
+          "supports_side_effect_policy": [
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/memory/semantic": {
+      "get": {
+        "description": "Read Semantic Memory \u2014 family=memory budget=standard_read materialization=advisory_read",
+        "operationId": "focusa.memory.semantic.read",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_memory_semantic_read_response_v1"
+                }
+              }
+            },
+            "description": "Read Semantic Memory response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Read Semantic Memory",
+        "tags": [
+          "memory"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "memory",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "memory:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_memory",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/memory/semantic/upsert": {
+      "post": {
+        "description": "Upsert Semantic Memory \u2014 family=memory budget=standard_mutation materialization=daemon_dispatch",
+        "operationId": "focusa.memory.semantic.upsert",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_memory_semantic_upsert_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_memory_semantic_upsert_response_v1"
+                }
+              }
+            },
+            "description": "Upsert Semantic Memory response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Upsert Semantic Memory",
+        "tags": [
+          "memory"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "memory",
+          "materialization_mode": "daemon_dispatch",
+          "permissions_required": [
+            "memory:write"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "write_memory",
+          "supports_side_effect_policy": [
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/metacognition/capture": {
+      "post": {
+        "description": "Metacog Capture \u2014 family=metacognition budget=standard_mutation materialization=daemon_dispatch",
+        "operationId": "focusa.metacog.capture",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_metacog_capture_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_metacog_capture_response_v1"
+                }
+              }
+            },
+            "description": "Metacog Capture response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Metacog Capture",
+        "tags": [
+          "metacognition"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "metacognition",
+          "materialization_mode": "daemon_dispatch",
+          "permissions_required": [
+            "metacog:write"
+          ],
+          "requires_idempotency_key": true,
+          "requires_if_match_version": false,
+          "side_effect_profile": "write_metacog_signal",
+          "supports_side_effect_policy": [
+            "dry_run",
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/metacognition/doctor": {
+      "post": {
+        "description": "Metacog Doctor \u2014 family=metacognition budget=standard_read materialization=advisory_read",
+        "operationId": "focusa.metacog.doctor",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_metacog_doctor_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_metacog_doctor_response_v1"
+                }
+              }
+            },
+            "description": "Metacog Doctor response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Metacog Doctor",
+        "tags": [
+          "metacognition"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "metacognition",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "metacog:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_metacog_doctor",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/metacognition/reflect": {
+      "post": {
+        "description": "Metacog Reflect \u2014 family=metacognition budget=standard_read materialization=advisory_read",
+        "operationId": "focusa.metacog.reflect",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_metacog_reflect_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_metacog_reflect_response_v1"
+                }
+              }
+            },
+            "description": "Metacog Reflect response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Metacog Reflect",
+        "tags": [
+          "metacognition"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "metacognition",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "metacog:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_metacog_reflect",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/metacognition/retrieve": {
+      "post": {
+        "description": "Metacog Retrieve \u2014 family=metacognition budget=standard_read materialization=advisory_read",
+        "operationId": "focusa.metacog.retrieve",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_metacog_retrieve_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_metacog_retrieve_response_v1"
+                }
+              }
+            },
+            "description": "Metacog Retrieve response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Metacog Retrieve",
+        "tags": [
+          "metacognition"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "metacognition",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "metacog:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_metacog",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/predictions/evaluate": {
+      "post": {
+        "description": "Prediction Evaluate \u2014 family=prediction budget=standard_mutation materialization=daemon_dispatch",
+        "operationId": "focusa.prediction.evaluate",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_prediction_evaluate_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_prediction_evaluate_response_v1"
+                }
+              }
+            },
+            "description": "Prediction Evaluate response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Prediction Evaluate",
+        "tags": [
+          "prediction"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "prediction",
+          "materialization_mode": "daemon_dispatch",
+          "permissions_required": [
+            "prediction:write"
+          ],
+          "requires_idempotency_key": true,
+          "requires_if_match_version": false,
+          "side_effect_profile": "write_prediction_eval",
+          "supports_side_effect_policy": [
+            "dry_run",
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/predictions/recent": {
+      "get": {
+        "description": "Prediction Recent \u2014 family=prediction budget=light_read materialization=advisory_read",
+        "operationId": "focusa.prediction.recent",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_prediction_recent_response_v1"
+                }
+              }
+            },
+            "description": "Prediction Recent response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Prediction Recent",
+        "tags": [
+          "prediction"
+        ],
+        "x-focusa": {
+          "budget_profile": "light_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "prediction",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "prediction:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_prediction",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/predictions/record": {
+      "post": {
+        "description": "Prediction Record \u2014 family=prediction budget=standard_mutation materialization=daemon_dispatch",
+        "operationId": "focusa.prediction.record",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_prediction_record_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_prediction_record_response_v1"
+                }
+              }
+            },
+            "description": "Prediction Record response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Prediction Record",
+        "tags": [
+          "prediction"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "prediction",
+          "materialization_mode": "daemon_dispatch",
+          "permissions_required": [
+            "prediction:write"
+          ],
+          "requires_idempotency_key": true,
+          "requires_if_match_version": false,
+          "side_effect_profile": "write_prediction",
+          "supports_side_effect_policy": [
+            "dry_run",
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/project/identity": {
+      "get": {
+        "description": "Project Identity \u2014 family=project budget=light_read materialization=advisory_read",
+        "operationId": "focusa.project.identity",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_project_identity_response_v1"
+                }
+              }
+            },
+            "description": "Project Identity response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Project Identity",
+        "tags": [
+          "project"
+        ],
+        "x-focusa": {
+          "budget_profile": "light_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "project",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "project:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_identity",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/project/verify": {
+      "get": {
+        "description": "Project Verify \u2014 family=project budget=light_read materialization=advisory_read",
+        "operationId": "focusa.project.verify",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_project_verify_response_v1"
+                }
+              }
+            },
+            "description": "Project Verify response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Project Verify",
+        "tags": [
+          "project"
+        ],
+        "x-focusa": {
+          "budget_profile": "light_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "project",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "project:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_verify",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/resource/mode": {
+      "get": {
+        "description": "Resource Mode \u2014 family=resource budget=light_read materialization=advisory_read",
+        "operationId": "focusa.resource_mode",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_resource_mode_response_v1"
+                }
+              }
+            },
+            "description": "Resource Mode response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Resource Mode",
+        "tags": [
+          "resource"
+        ],
+        "x-focusa": {
+          "budget_profile": "light_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "resource",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "resource:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_resource",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/state/current": {
+      "get": {
+        "description": "State Current \u2014 family=state budget=standard_read materialization=advisory_read",
+        "operationId": "focusa.state.current",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_state_current_response_v1"
+                }
+              }
+            },
+            "description": "State Current response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "State Current",
+        "tags": [
+          "state"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "state",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "state:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_state",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/tool-doctor": {
+      "get": {
+        "description": "Tool Doctor \u2014 family=diagnostics budget=light_read materialization=advisory_read",
+        "operationId": "focusa.tool_doctor",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_doctor_response_v1"
+                }
+              }
+            },
+            "description": "Tool Doctor response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Tool Doctor",
+        "tags": [
+          "diagnostics"
+        ],
+        "x-focusa": {
+          "budget_profile": "light_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "diagnostics",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "diagnostics:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_diagnostics",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/trajectory/assess": {
+      "post": {
+        "description": "Trajectory Assess \u2014 family=trajectory budget=standard_read materialization=advisory_read",
+        "operationId": "focusa.trajectory.assess",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_trajectory_assess_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_trajectory_assess_response_v1"
+                }
+              }
+            },
+            "description": "Trajectory Assess response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Trajectory Assess",
+        "tags": [
+          "trajectory"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "trajectory",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "trajectory:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_trajectory_assess",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/trajectory/checkpoint": {
+      "post": {
+        "description": "Trajectory Checkpoint \u2014 family=trajectory budget=standard_mutation materialization=daemon_dispatch",
+        "operationId": "focusa.trajectory.checkpoint",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_trajectory_checkpoint_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_trajectory_checkpoint_response_v1"
+                }
+              }
+            },
+            "description": "Trajectory Checkpoint response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Trajectory Checkpoint",
+        "tags": [
+          "trajectory"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "trajectory",
+          "materialization_mode": "daemon_dispatch",
+          "permissions_required": [
+            "trajectory:write"
+          ],
+          "requires_idempotency_key": true,
+          "requires_if_match_version": false,
+          "side_effect_profile": "write_trajectory_checkpoint",
+          "supports_side_effect_policy": [
+            "dry_run",
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/trajectory/define-goal": {
+      "post": {
+        "description": "Trajectory Define Goal \u2014 family=trajectory budget=standard_mutation materialization=daemon_dispatch",
+        "operationId": "focusa.trajectory.define_goal",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_trajectory_define_goal_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_trajectory_define_goal_response_v1"
+                }
+              }
+            },
+            "description": "Trajectory Define Goal response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Trajectory Define Goal",
+        "tags": [
+          "trajectory"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "trajectory",
+          "materialization_mode": "daemon_dispatch",
+          "permissions_required": [
+            "trajectory:write"
+          ],
+          "requires_idempotency_key": true,
+          "requires_if_match_version": false,
+          "side_effect_profile": "write_trajectory_goal",
+          "supports_side_effect_policy": [
+            "dry_run",
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/trajectory/propose-workpoint": {
+      "post": {
+        "description": "Trajectory Propose Workpoint \u2014 family=trajectory budget=standard_read materialization=advisory_read",
+        "operationId": "focusa.trajectory.propose_workpoint",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_trajectory_propose_workpoint_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_trajectory_propose_workpoint_response_v1"
+                }
+              }
+            },
+            "description": "Trajectory Propose Workpoint response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Trajectory Propose Workpoint",
+        "tags": [
+          "trajectory"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "trajectory",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "trajectory:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_trajectory_propose",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/trajectory/resume": {
+      "post": {
+        "description": "Trajectory Resume \u2014 family=trajectory budget=standard_read materialization=advisory_read",
+        "operationId": "focusa.trajectory.resume",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_trajectory_resume_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_trajectory_resume_response_v1"
+                }
+              }
+            },
+            "description": "Trajectory Resume response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Trajectory Resume",
+        "tags": [
+          "trajectory"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "trajectory",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "trajectory:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_trajectory_resume",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/trajectory/view": {
+      "get": {
+        "description": "Trajectory View \u2014 family=trajectory budget=light_read materialization=advisory_read",
+        "operationId": "focusa.trajectory.view",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_trajectory_view_response_v1"
+                }
+              }
+            },
+            "description": "Trajectory View response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Trajectory View",
+        "tags": [
+          "trajectory"
+        ],
+        "x-focusa": {
+          "budget_profile": "light_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "trajectory",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "trajectory:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_trajectory",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/traverse": {
+      "post": {
+        "description": "Traverse \u2014 family=traverse budget=heavy_read materialization=advisory_read",
+        "operationId": "focusa.traverse",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_traverse_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_traverse_response_v1"
+                }
+              }
+            },
+            "description": "Traverse response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Traverse",
+        "tags": [
+          "traverse"
+        ],
+        "x-focusa": {
+          "budget_profile": "heavy_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "traverse",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "traverse:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_traverse",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/turn/append": {
+      "post": {
+        "description": "Append Turn Chunk \u2014 family=turn budget=standard_mutation materialization=daemon_dispatch",
+        "operationId": "focusa.turn.append",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_turn_append_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_turn_append_response_v1"
+                }
+              }
+            },
+            "description": "Append Turn Chunk response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Append Turn Chunk",
+        "tags": [
+          "turn"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "turn",
+          "materialization_mode": "daemon_dispatch",
+          "permissions_required": [
+            "turn:write"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "write_turn_chunk",
+          "supports_side_effect_policy": [
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/turn/complete": {
+      "post": {
+        "description": "Complete Turn \u2014 family=turn budget=standard_mutation materialization=daemon_dispatch",
+        "operationId": "focusa.turn.complete",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_turn_complete_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_turn_complete_response_v1"
+                }
+              }
+            },
+            "description": "Complete Turn response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Complete Turn",
+        "tags": [
+          "turn"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "turn",
+          "materialization_mode": "daemon_dispatch",
+          "permissions_required": [
+            "turn:write"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "write_turn_completion",
+          "supports_side_effect_policy": [
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/turn/start": {
+      "post": {
+        "description": "Start Turn \u2014 family=turn budget=standard_mutation materialization=daemon_dispatch",
+        "operationId": "focusa.turn.start",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_turn_start_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_turn_start_response_v1"
+                }
+              }
+            },
+            "description": "Start Turn response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Start Turn",
+        "tags": [
+          "turn"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "turn",
+          "materialization_mode": "daemon_dispatch",
+          "permissions_required": [
+            "turn:write"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "write_turn",
+          "supports_side_effect_policy": [
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/work-loop/control": {
+      "post": {
+        "description": "Work Loop Control \u2014 family=work_loop budget=standard_mutation materialization=daemon_dispatch",
+        "operationId": "focusa.work_loop.control",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_work_loop_control_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_work_loop_control_response_v1"
+                }
+              }
+            },
+            "description": "Work Loop Control response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Work Loop Control",
+        "tags": [
+          "work_loop"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "work_loop",
+          "materialization_mode": "daemon_dispatch",
+          "permissions_required": [
+            "work_loop:write"
+          ],
+          "requires_idempotency_key": true,
+          "requires_if_match_version": false,
+          "side_effect_profile": "write_work_loop",
+          "supports_side_effect_policy": [
+            "dry_run",
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/work-loop/status": {
+      "get": {
+        "description": "Work Loop Status \u2014 family=work_loop budget=light_read materialization=advisory_read",
+        "operationId": "focusa.work_loop.status",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_work_loop_status_response_v1"
+                }
+              }
+            },
+            "description": "Work Loop Status response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Work Loop Status",
+        "tags": [
+          "work_loop"
+        ],
+        "x-focusa": {
+          "budget_profile": "light_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "work_loop",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "work_loop:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_work_loop",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/workpoint/checkpoint": {
+      "post": {
+        "description": "Workpoint Checkpoint \u2014 family=workpoint budget=standard_mutation materialization=daemon_dispatch",
+        "operationId": "focusa.workpoint.checkpoint",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_workpoint_checkpoint_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_workpoint_checkpoint_response_v1"
+                }
+              }
+            },
+            "description": "Workpoint Checkpoint response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Workpoint Checkpoint",
+        "tags": [
+          "workpoint"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "workpoint",
+          "materialization_mode": "daemon_dispatch",
+          "permissions_required": [
+            "workpoint:write"
+          ],
+          "requires_idempotency_key": true,
+          "requires_if_match_version": true,
+          "side_effect_profile": "write_workpoint_checkpoint",
+          "supports_side_effect_policy": [
+            "dry_run",
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/workpoint/link-evidence": {
+      "post": {
+        "description": "Workpoint Link Evidence \u2014 family=workpoint budget=standard_mutation materialization=daemon_dispatch",
+        "operationId": "focusa.workpoint.link_evidence",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_workpoint_link_evidence_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_workpoint_link_evidence_response_v1"
+                }
+              }
+            },
+            "description": "Workpoint Link Evidence response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Workpoint Link Evidence",
+        "tags": [
+          "workpoint"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "workpoint",
+          "materialization_mode": "daemon_dispatch",
+          "permissions_required": [
+            "workpoint:write"
+          ],
+          "requires_idempotency_key": true,
+          "requires_if_match_version": true,
+          "side_effect_profile": "write_workpoint_evidence",
+          "supports_side_effect_policy": [
+            "dry_run",
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    },
+    "/v1/workpoint/resume": {
+      "get": {
+        "description": "Workpoint Resume \u2014 family=workpoint budget=standard_read materialization=advisory_read",
+        "operationId": "focusa.workpoint.resume",
+        "parameters": [
+          {
+            "description": "Project root for scoping",
+            "in": "query",
+            "name": "project_root",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Session continuity ID",
+            "in": "query",
+            "name": "continuity_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_workpoint_resume_response_v1"
+                }
+              }
+            },
+            "description": "Workpoint Resume response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Workpoint Resume",
+        "tags": [
+          "workpoint"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "workpoint",
+          "materialization_mode": "advisory_read",
+          "permissions_required": [
+            "workpoint:read"
+          ],
+          "requires_idempotency_key": false,
+          "requires_if_match_version": false,
+          "side_effect_profile": "read_workpoint_resume",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "description": "Focusa daemon",
+      "url": "/"
+    }
+  ],
+  "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema"
+}
