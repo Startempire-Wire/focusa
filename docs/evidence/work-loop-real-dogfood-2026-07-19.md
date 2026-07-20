@@ -121,4 +121,6 @@ Doctor landed in `6ff9c570` with 3/3 E2E tests and claim `claim_bd_019f7e2b20ef7
 
 Protected runner `.4.1` landed across `e4674ff0` through `4e9b6d10`: authenticated peer-UID-bound protocol, owner identity, private transport, owned POSIX trees, signed live heartbeat/adoption, embedded execution, and safe owner mutations. 24 unit tests, one real process E2E, and strict clippy passed; claim `claim_bd_019f7ead95f77881` reconciled closure.
 
+Typed LaunchManifest `.4.2` landed in `8a93f769`: shell-free argv/cwd/env/secret boundaries, secure mission delivery, exact Pi trust preflight, typed ResourceMode, and redacted reproducibility. Four adversarial tests and strict core lint passed; claim `claim_bd_019f7f4c6fee7480` reconciled closure.
+
 Transactional config CLI controls and profile/preset catalogs landed in `f794cd01`. Three E2E tests prove resolve/diff/apply/rollback route mapping, exact revision/hash CAS conflict reporting, field provenance, recursive secret redaction, and human/JSON parity; `focusa-a6yq6.3.5.4` closed with stable proof at `crates/focusa-cli/tests/silent_config_parity_e2e.rs`.
