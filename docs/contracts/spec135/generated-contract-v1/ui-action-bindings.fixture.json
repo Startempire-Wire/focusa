@@ -1,6 +1,6 @@
 {
   "attachment_id": null,
-  "binding_count": 48,
+  "binding_count": 49,
   "bindings": [
     {
       "action_id": "focusa.health.check",
@@ -2128,6 +2128,48 @@
         "required_keys": [
           "project_root"
         ]
+      }
+    },
+    {
+      "action_id": "focusa.events.stream",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "events"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.events_stream.request.v1",
+        "output_schema_ref": "focusa.stream_event.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.events.stream",
+      "permission_scopes": [
+        "events:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Replay and Stream Durable Events",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Replay and Stream Durable Events",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "attachment_id": null,
+        "continuity_id": "example",
+        "project_root": "/example",
+        "required_keys": []
       }
     }
   ],

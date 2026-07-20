@@ -1,0 +1,82 @@
+{
+  "$id": "/v1/agent/schemas/focusa.stream_event.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Stable SQLite replay and live-tail event envelope",
+  "properties": {
+    "causation_id": {},
+    "correlation_id": {},
+    "cursor": {
+      "pattern": "^[1-9][0-9]*$",
+      "type": "string"
+    },
+    "event_id": {
+      "type": "string"
+    },
+    "event_type": {
+      "type": "string"
+    },
+    "invalidate": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "payload": {},
+    "payload_ref": {},
+    "schema": {
+      "enum": [
+        "focusa.stream_event.v1"
+      ],
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "scope": {
+      "additionalProperties": false,
+      "properties": {
+        "attachment_id": {},
+        "continuity_id": {},
+        "project_root": {},
+        "work_surface_id": {}
+      },
+      "required": [
+        "project_root",
+        "continuity_id",
+        "attachment_id",
+        "work_surface_id"
+      ],
+      "type": "object"
+    },
+    "sequence": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "source_state_revision": {},
+    "timestamp": {
+      "format": "date-time",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "event_id",
+    "sequence",
+    "cursor",
+    "timestamp",
+    "event_type",
+    "schema_version",
+    "scope",
+    "source_state_revision",
+    "payload_ref",
+    "invalidate",
+    "correlation_id",
+    "causation_id",
+    "payload"
+  ],
+  "title": "Focusa Stream Event v1",
+  "type": "object",
+  "x-focusa-generated-from": "event_hash_chain.chain_index",
+  "x-focusa-schema-id": "focusa.stream_event.v1"
+}

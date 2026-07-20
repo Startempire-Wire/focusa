@@ -186,7 +186,7 @@ fn op(
     docs: &'static str,
     deprecation: Option<DeprecationEntry>,
 ) -> OperationEntry {
-    let project_scoped = !matches!(family, "health" | "device" | "license");
+    let project_scoped = !matches!(family, "health" | "device" | "license" | "events");
     let workstream_scoped = matches!(
         family,
         "trajectory"
@@ -1417,6 +1417,29 @@ fn build_operations() -> Vec<OperationEntry> {
             "docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md",
             None,
         ),
+        op(
+            "focusa.events.stream",
+            "Replay and Stream Durable Events",
+            "events",
+            "GET",
+            "/v1/events/stream",
+            true,
+            None,
+            "read_state",
+            "durable_replay_live_tail",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec!["events:read"],
+            false,
+            "streaming_read",
+            vec!["stream"],
+            "focusa.events_stream.request.v1",
+            "focusa.stream_event.v1",
+            "docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md",
+            None,
+        ),
     ]
 }
 
@@ -1424,6 +1447,7 @@ fn build_families() -> Vec<&'static str> {
     vec![
         "health",
         "agent",
+        "events",
         "project",
         "trajectory",
         "workpoint",
@@ -1599,6 +1623,45 @@ fn registered_schema_ids() -> std::collections::BTreeSet<&'static str> {
 }
 
 fn json_schema_document(schema_id: &str) -> Value {
+    if schema_id == "focusa.stream_event.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"),
+            "title": "Focusa Stream Event v1",
+            "description": "Stable SQLite replay and live-tail event envelope",
+            "type": "object",
+            "required": ["schema", "event_id", "sequence", "cursor", "timestamp", "event_type", "schema_version", "scope", "source_state_revision", "payload_ref", "invalidate", "correlation_id", "causation_id", "payload"],
+            "properties": {
+                "schema": {"type": "string", "enum": ["focusa.stream_event.v1"]},
+                "event_id": {"type": "string"},
+                "sequence": {"type": "integer", "minimum": 1},
+                "cursor": {"type": "string", "pattern": "^[1-9][0-9]*$"},
+                "timestamp": {"type": "string", "format": "date-time"},
+                "event_type": {"type": "string"},
+                "schema_version": {"type": "string"},
+                "scope": {
+                    "type": "object",
+                    "required": ["project_root", "continuity_id", "attachment_id", "work_surface_id"],
+                    "properties": {
+                        "project_root": {},
+                        "continuity_id": {},
+                        "attachment_id": {},
+                        "work_surface_id": {}
+                    },
+                    "additionalProperties": false
+                },
+                "source_state_revision": {},
+                "payload_ref": {},
+                "invalidate": {"type": "array", "items": {"type": "string"}},
+                "correlation_id": {},
+                "causation_id": {},
+                "payload": {}
+            },
+            "additionalProperties": false,
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "event_hash_chain.chain_index"
+        });
+    }
     if schema_id == TOOL_RESULT_SCHEMA {
         return json!({
             "$schema": JSON_SCHEMA_DIALECT_2020_12,
@@ -1728,7 +1791,7 @@ fn openapi_document() -> Value {
         let method_key = op.method.to_lowercase();
         let entry = paths.entry(path_key).or_insert_with(|| json!({}));
         if let Some(obj) = entry.as_object_mut() {
-            let parameters: Vec<Value> = op
+            let mut parameters: Vec<Value> = op
                 .scope
                 .required_keys
                 .iter()
@@ -1742,16 +1805,46 @@ fn openapi_document() -> Value {
                     })
                 })
                 .collect();
-            let response_schema = json!({
-                "description": format!("{} response", op.label),
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "$ref": format!("#/components/schemas/{}", op.response_schema_ref.replace('.', "_")),
+            if op.operation_id == "focusa.events.stream" {
+                parameters.extend([
+                    json!({
+                        "name": "cursor",
+                        "in": "query",
+                        "required": false,
+                        "schema": {"type": "string"},
+                        "description": "Stable 1-based durable event sequence cursor",
+                    }),
+                    json!({
+                        "name": "Last-Event-ID",
+                        "in": "header",
+                        "required": false,
+                        "schema": {"type": "string"},
+                        "description": "Prior SSE sequence cursor or durable event UUID",
+                    }),
+                ]);
+            }
+            let response_schema = if op.operation_id == "focusa.events.stream" {
+                json!({
+                    "description": "Durable replay followed by gap-free live event tail",
+                    "content": {
+                        "text/event-stream": {
+                            "schema": {"type": "string"},
+                            "x-focusa-event-schema": op.response_schema_ref,
                         }
                     }
-                }
-            });
+                })
+            } else {
+                json!({
+                    "description": format!("{} response", op.label),
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": format!("#/components/schemas/{}", op.response_schema_ref.replace('.', "_")),
+                            }
+                        }
+                    }
+                })
+            };
             let mut operation = json!({
                 "operationId": op.operation_id,
                 "summary": op.label,

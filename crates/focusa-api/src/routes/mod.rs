@@ -28,7 +28,6 @@ pub mod turn_recent;
 // pub mod events; // deprecated JSONL event tailing
 pub mod agent_reminder;
 pub mod events_sqlite;
-pub mod events_stream;
 pub mod focus;
 pub mod gate;
 pub mod health;

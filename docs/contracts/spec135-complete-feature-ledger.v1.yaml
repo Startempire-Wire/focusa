@@ -430,9 +430,9 @@
         "typescript",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "foundation",
       "dependencies": [
         "SPEC135-F5"

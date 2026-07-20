@@ -244,6 +244,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/events/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Replay and Stream Durable Events
+         * @description Replay and Stream Durable Events — family=events budget=streaming_read materialization=durable_replay_live_tail
+         */
+        get: operations["focusa.events.stream"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/evidence/capture": {
         parameters: {
             query?: never;
@@ -1095,6 +1115,13 @@ export interface components {
             [key: string]: unknown;
         };
         /**
+         * focusa.events_stream.request.v1
+         * @description Generated contract for Focusa schema focusa.events_stream.request.v1
+         */
+        focusa_events_stream_request_v1: {
+            [key: string]: unknown;
+        };
+        /**
          * focusa.evidence_capture.request.v1
          * @description Generated contract for Focusa schema focusa.evidence_capture.request.v1
          */
@@ -1387,6 +1414,33 @@ export interface components {
          */
         focusa_state_current_response_v1: {
             [key: string]: unknown;
+        };
+        /**
+         * Focusa Stream Event v1
+         * @description Stable SQLite replay and live-tail event envelope
+         */
+        focusa_stream_event_v1: {
+            causation_id: unknown;
+            correlation_id: unknown;
+            cursor: string;
+            event_id: string;
+            event_type: string;
+            invalidate: string[];
+            payload: unknown;
+            payload_ref: unknown;
+            /** @enum {string} */
+            schema: "focusa.stream_event.v1";
+            schema_version: string;
+            scope: {
+                attachment_id: unknown;
+                continuity_id: unknown;
+                project_root: unknown;
+                work_surface_id: unknown;
+            };
+            sequence: number;
+            source_state_revision: unknown;
+            /** Format: date-time */
+            timestamp: string;
         };
         /**
          * focusa.tool_doctor.request.v1
@@ -2075,6 +2129,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_dxux_report_response_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.events.stream": {
+        parameters: {
+            query?: {
+                /** @description Stable 1-based durable event sequence cursor */
+                cursor?: string;
+            };
+            header?: {
+                /** @description Prior SSE sequence cursor or durable event UUID */
+                "Last-Event-ID"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Durable replay followed by gap-free live event tail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
                 };
             };
             /** @description Standard error envelope */

@@ -495,6 +495,15 @@ type FocusaDxuxReportParams struct {
 	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
+// FocusaEventsStreamParams defines parameters for FocusaEventsStream.
+type FocusaEventsStreamParams struct {
+	// Cursor Stable 1-based durable event sequence cursor
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// LastEventID Prior SSE sequence cursor or durable event UUID
+	LastEventID *string `json:"Last-Event-ID,omitempty"`
+}
+
 // FocusaEvidenceCaptureParams defines parameters for FocusaEvidenceCapture.
 type FocusaEvidenceCaptureParams struct {
 	// ProjectRoot Required Focusa scope key: project_root
@@ -971,6 +980,9 @@ type ClientInterface interface {
 	// FocusaDxuxReport request
 	FocusaDxuxReport(ctx context.Context, params *FocusaDxuxReportParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// FocusaEventsStream request
+	FocusaEventsStream(ctx context.Context, params *FocusaEventsStreamParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// FocusaEvidenceCaptureWithBody request with any body
 	FocusaEvidenceCaptureWithBody(ctx context.Context, params *FocusaEvidenceCaptureParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1318,6 +1330,18 @@ func (c *Client) FocusaDevicePairStatus(ctx context.Context, reqEditors ...Reque
 
 func (c *Client) FocusaDxuxReport(ctx context.Context, params *FocusaDxuxReportParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewFocusaDxuxReportRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaEventsStream(ctx context.Context, params *FocusaEventsStreamParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaEventsStreamRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -2654,6 +2678,75 @@ func NewFocusaDxuxReportRequest(server string, params *FocusaDxuxReportParams) (
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewFocusaEventsStreamRequest generates requests for FocusaEventsStream
+func NewFocusaEventsStreamRequest(server string, params *FocusaEventsStreamParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/events/stream")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "cursor", *params.Cursor, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+
+		if params.LastEventID != nil {
+			var headerParam0 string
+
+			headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Last-Event-ID", *params.LastEventID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+			if err != nil {
+				return nil, err
+			}
+
+			req.Header.Set("Last-Event-ID", headerParam0)
+		}
+
 	}
 
 	return req, nil
@@ -4980,6 +5073,9 @@ type ClientWithResponsesInterface interface {
 	// FocusaDxuxReportWithResponse request
 	FocusaDxuxReportWithResponse(ctx context.Context, params *FocusaDxuxReportParams, reqEditors ...RequestEditorFn) (*FocusaDxuxReportResponse, error)
 
+	// FocusaEventsStreamWithResponse request
+	FocusaEventsStreamWithResponse(ctx context.Context, params *FocusaEventsStreamParams, reqEditors ...RequestEditorFn) (*FocusaEventsStreamResponse, error)
+
 	// FocusaEvidenceCaptureWithBodyWithResponse request with any body
 	FocusaEvidenceCaptureWithBodyWithResponse(ctx context.Context, params *FocusaEvidenceCaptureParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaEvidenceCaptureResponse, error)
 
@@ -5499,6 +5595,36 @@ func (r FocusaDxuxReportResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r FocusaDxuxReportResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaEventsStreamResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaEventsStreamResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaEventsStreamResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaEventsStreamResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -6769,6 +6895,15 @@ func (c *ClientWithResponses) FocusaDxuxReportWithResponse(ctx context.Context, 
 	return ParseFocusaDxuxReportResponse(rsp)
 }
 
+// FocusaEventsStreamWithResponse request returning *FocusaEventsStreamResponse
+func (c *ClientWithResponses) FocusaEventsStreamWithResponse(ctx context.Context, params *FocusaEventsStreamParams, reqEditors ...RequestEditorFn) (*FocusaEventsStreamResponse, error) {
+	rsp, err := c.FocusaEventsStream(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaEventsStreamResponse(rsp)
+}
+
 // FocusaEvidenceCaptureWithBodyWithResponse request with arbitrary body returning *FocusaEvidenceCaptureResponse
 func (c *ClientWithResponses) FocusaEvidenceCaptureWithBodyWithResponse(ctx context.Context, params *FocusaEvidenceCaptureParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaEvidenceCaptureResponse, error) {
 	rsp, err := c.FocusaEvidenceCaptureWithBody(ctx, params, contentType, body, reqEditors...)
@@ -7653,6 +7788,32 @@ func ParseFocusaDxuxReportResponse(rsp *http.Response) (*FocusaDxuxReportRespons
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaEventsStreamResponse parses an HTTP response from a FocusaEventsStreamWithResponse call
+func ParseFocusaEventsStreamResponse(rsp *http.Response) (*FocusaEventsStreamResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaEventsStreamResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest FocusaToolResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {

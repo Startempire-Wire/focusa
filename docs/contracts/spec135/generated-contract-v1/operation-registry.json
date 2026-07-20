@@ -1,5 +1,5 @@
 {
-  "operation_count": 48,
+  "operation_count": 49,
   "operations": [
     {
       "alias_of": null,
@@ -3675,6 +3675,79 @@
         "default_label": "Read Generated UI Capability Snapshot",
         "input_presentation_ref": "focusa.generated_form.v1",
         "plain_language_description": "Read Generated UI Capability Snapshot",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "streaming_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.events_stream.request.v1",
+        "output_schema_ref": "focusa.stream_event.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "events"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "events:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "events",
+      "label": "Replay and Stream Durable Events",
+      "materialization_mode": "durable_replay_live_tail",
+      "method": "GET",
+      "operation_id": "focusa.events.stream",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.events.stream",
+        "subsystem": "events"
+      },
+      "path": "/v1/events/stream",
+      "permissions_required": [
+        "events:read"
+      ],
+      "request_schema_ref": "focusa.events_stream.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "stream"
+      ],
+      "response_schema_ref": "focusa.stream_event.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.events_stream.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": false,
+        "required_keys": [],
+        "workstream_scoped": false
+      },
+      "side_effect_profile": "read_state",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Replay and Stream Durable Events",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Replay and Stream Durable Events",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
       }

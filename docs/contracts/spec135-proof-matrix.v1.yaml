@@ -169,7 +169,7 @@
         "Live tail continues from durable replay without gaps or duplicates"
       ],
       "bead_id": "focusa-mc-f6",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "restart replay test",
         "stream sequence test"

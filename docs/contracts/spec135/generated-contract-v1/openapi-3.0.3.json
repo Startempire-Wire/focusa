@@ -181,6 +181,16 @@
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.dxux_report.response.v1"
       },
+      "focusa_events_stream_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.events_stream.request.v1",
+        "properties": {},
+        "title": "focusa.events_stream.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.events_stream.request.v1"
+      },
       "focusa_evidence_capture_request_v1": {
         "additionalProperties": true,
         "description": "Generated contract for Focusa schema focusa.evidence_capture.request.v1",
@@ -600,6 +610,87 @@
         "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.state_current.response.v1"
+      },
+      "focusa_stream_event_v1": {
+        "additionalProperties": false,
+        "description": "Stable SQLite replay and live-tail event envelope",
+        "properties": {
+          "causation_id": {},
+          "correlation_id": {},
+          "cursor": {
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          },
+          "event_id": {
+            "type": "string"
+          },
+          "event_type": {
+            "type": "string"
+          },
+          "invalidate": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "payload": {},
+          "payload_ref": {},
+          "schema": {
+            "enum": [
+              "focusa.stream_event.v1"
+            ],
+            "type": "string"
+          },
+          "schema_version": {
+            "type": "string"
+          },
+          "scope": {
+            "additionalProperties": false,
+            "properties": {
+              "attachment_id": {},
+              "continuity_id": {},
+              "project_root": {},
+              "work_surface_id": {}
+            },
+            "required": [
+              "project_root",
+              "continuity_id",
+              "attachment_id",
+              "work_surface_id"
+            ],
+            "type": "object"
+          },
+          "sequence": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "source_state_revision": {},
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema",
+          "event_id",
+          "sequence",
+          "cursor",
+          "timestamp",
+          "event_type",
+          "schema_version",
+          "scope",
+          "source_state_revision",
+          "payload_ref",
+          "invalidate",
+          "correlation_id",
+          "causation_id",
+          "payload"
+        ],
+        "title": "Focusa Stream Event v1",
+        "type": "object",
+        "x-focusa-generated-from": "event_hash_chain.chain_index",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.stream_event.v1"
       },
       "focusa_tool_doctor_request_v1": {
         "additionalProperties": true,
@@ -2108,6 +2199,92 @@
         ],
         "x-focusa-sensitive": "routine",
         "x-focusa-subsystem": "dxux"
+      }
+    },
+    "/v1/events/stream": {
+      "get": {
+        "description": "Replay and Stream Durable Events \u2014 family=events budget=streaming_read materialization=durable_replay_live_tail",
+        "operationId": "focusa.events.stream",
+        "parameters": [
+          {
+            "description": "Stable 1-based durable event sequence cursor",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Prior SSE sequence cursor or durable event UUID",
+            "in": "header",
+            "name": "Last-Event-ID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                },
+                "x-focusa-event-schema": "focusa.stream_event.v1"
+              }
+            },
+            "description": "Durable replay followed by gap-free live event tail"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Replay and Stream Durable Events",
+        "tags": [
+          "events"
+        ],
+        "x-focusa": {
+          "budget_profile": "streaming_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "events",
+          "materialization_mode": "durable_replay_live_tail",
+          "requires_preview_token": false,
+          "side_effect_profile": "read_state",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "events"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.events.stream",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "events:read"
+        ],
+        "x-focusa-plain-label": "Replay and Stream Durable Events",
+        "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "events"
       }
     },
     "/v1/evidence/capture": {
