@@ -1386,19 +1386,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "focusa-session-runner"
-version = "0.9.120-dev"
+name = "focusa-harness-adapters"
+version = "0.9.121-dev"
 dependencies = [
- "anyhow",
- "chrono",
- "clap",
  "focusa-core",
- "hex",
+ "serde",
  "serde_json",
- "sha2",
- "tokio",
- "tracing",
- "tracing-subscriber",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -1415,18 +1409,23 @@ dependencies = [
 
 [[package]]
 name = "focusa-session-runner"
-version = "0.9.120-dev"
+version = "0.9.121-dev"
 dependencies = [
+ "anyhow",
  "base64",
  "chrono",
+ "clap",
  "ed25519-dalek",
  "focusa-core",
+ "hex",
  "nix",
  "serde",
  "serde_json",
  "sha2",
  "thiserror 2.0.18",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
  "uuid",
 ]
 

@@ -3,10 +3,11 @@
 use chrono::{Duration, Utc};
 use ed25519_dalek::SigningKey;
 use focusa_core::silent_session::{SilentSessionId, SilentSessionRunId};
+use focusa_session_runner::backend::{DirectProcessBackend, ProcessBackend};
 use focusa_session_runner::identity::{
     ExecutionIdentityRequest, ExecutionMode, OsIdentity, VerifiedExecutionContext,
 };
-use focusa_session_runner::process_posix::{PosixProcessSupervisor, PosixSpawnRequest};
+use focusa_session_runner::process_posix::PosixSpawnRequest;
 use focusa_session_runner::protocol::{
     ActiveRunRecord, AdoptionExpectation, DaemonHandshakePolicy, ProtocolActor, ProtocolActorKind,
     ProtocolSigner, ProtocolVerifier, RUNNER_PROTOCOL_VERSION, RunnerCapability, RunnerHello,
@@ -151,11 +152,15 @@ async fn protected_protocol_executes_and_adopts_same_user_owner_process() {
     let context = fixture.context(&current);
     assert_eq!(context.mode(), ExecutionMode::EmbeddedSameUser);
 
-    let mut supervisor = PosixProcessSupervisor::for_current_user("runner:e2e")
-        .expect("same-user runner should initialize");
+    let mut backend = DirectProcessBackend::for_current_user("runner:e2e")
+        .expect("same-user direct backend should initialize");
+    assert_eq!(
+        backend.descriptor().backend_id,
+        focusa_session_runner::backend::POSIX_DIRECT_BACKEND_ID
+    );
     let request = spawn_request();
     let run_id = request.run_id;
-    let record = supervisor
+    let record = backend
         .spawn(&context, request, Utc::now())
         .expect("verified project owner should spawn");
     assert_eq!(
@@ -309,7 +314,7 @@ async fn protected_protocol_executes_and_adopts_same_user_owner_process() {
     assert_eq!(welcome.runner_challenge_nonce, "challenge:runner:e2e");
     assert_eq!(welcome.daemon_challenge_nonce, "challenge:daemon:e2e");
 
-    let snapshot = supervisor
+    let snapshot = backend
         .heartbeat(Utc::now())
         .expect("owned process should produce heartbeat");
     assert_eq!(snapshot.heartbeat.active_runs.len(), 1);
@@ -335,7 +340,7 @@ async fn protected_protocol_executes_and_adopts_same_user_owner_process() {
     let RunnerProtocolMessage::AdoptionQuery(query) = query else {
         panic!("daemon must send adoption query");
     };
-    let decision = supervisor
+    let decision = backend
         .evaluate_adoption(&query, Utc::now())
         .expect("live process adoption should evaluate");
     assert!(decision.accepted);
@@ -358,9 +363,9 @@ async fn protected_protocol_executes_and_adopts_same_user_owner_process() {
     assert_eq!(daemon_decision, decision);
     assert!(daemon_decision.signed_runner_record_ref.is_some());
 
-    supervisor
+    backend
         .force_terminate(run_id, Utc::now())
         .await
         .expect("owned process tree should terminate");
-    assert_eq!(supervisor.active_run_count(), 0);
+    assert_eq!(backend.active_run_count(), 0);
 }
