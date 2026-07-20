@@ -231,13 +231,14 @@ impl PosixProcessSupervisor {
                         active_runs.push(owned.record.clone());
                     }
                     Err(SupervisorError::ProcessNoLongerExists) => {
-                        let status = owned
-                            .child
-                            .try_wait()
-                            .map_err(io_error)?
-                            .ok_or(SupervisorError::ProcessIdentityChanged)?;
-                        exited_runs.push(exit_record(&owned.record, status, observed_at));
-                        finished_ids.push(*run_id);
+                        // The OS may report ESRCH in the narrow interval before
+                        // Tokio can reap the child. Never claim it active; keep
+                        // the handle for the next heartbeat if no status is
+                        // available yet.
+                        if let Some(status) = owned.child.try_wait().map_err(io_error)? {
+                            exited_runs.push(exit_record(&owned.record, status, observed_at));
+                            finished_ids.push(*run_id);
+                        }
                     }
                     Err(error) => return Err(error),
                 },
