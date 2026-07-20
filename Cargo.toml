@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/focusa-core",
+    "crates/focusa-session-runner",
     "crates/focusa-cli",
     "crates/focusa-api",
     "crates/focusa-license",
