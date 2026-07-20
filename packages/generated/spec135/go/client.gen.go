@@ -16,69 +16,129 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for FocusaCompatibilityLockV1Schema.
+const (
+	FocusaCompatibilityLockV1SchemaFocusaCompatibilityLockV1 FocusaCompatibilityLockV1Schema = "focusa.compatibility_lock.v1"
+)
+
+// Valid indicates whether the value is a known member of the FocusaCompatibilityLockV1Schema enum.
+func (e FocusaCompatibilityLockV1Schema) Valid() bool {
+	switch e {
+	case FocusaCompatibilityLockV1SchemaFocusaCompatibilityLockV1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FocusaProtocolHandshakeResponseV1Compatible.
+const (
+	True FocusaProtocolHandshakeResponseV1Compatible = true
+)
+
+// Valid indicates whether the value is a known member of the FocusaProtocolHandshakeResponseV1Compatible enum.
+func (e FocusaProtocolHandshakeResponseV1Compatible) Valid() bool {
+	switch e {
+	case True:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FocusaProtocolHandshakeResponseV1Schema.
+const (
+	FocusaProtocolHandshakeResponseV1SchemaFocusaProtocolHandshakeResponseV1 FocusaProtocolHandshakeResponseV1Schema = "focusa.protocol_handshake.response.v1"
+)
+
+// Valid indicates whether the value is a known member of the FocusaProtocolHandshakeResponseV1Schema enum.
+func (e FocusaProtocolHandshakeResponseV1Schema) Valid() bool {
+	switch e {
+	case FocusaProtocolHandshakeResponseV1SchemaFocusaProtocolHandshakeResponseV1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FocusaProtocolHandshakeResponseV1Status.
+const (
+	FocusaProtocolHandshakeResponseV1StatusAccepted FocusaProtocolHandshakeResponseV1Status = "accepted"
+)
+
+// Valid indicates whether the value is a known member of the FocusaProtocolHandshakeResponseV1Status enum.
+func (e FocusaProtocolHandshakeResponseV1Status) Valid() bool {
+	switch e {
+	case FocusaProtocolHandshakeResponseV1StatusAccepted:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for FocusaToolResultV1FailureClass.
 const (
-	FocusaToolResultV1FailureClassApprovalRequired           FocusaToolResultV1FailureClass = "approval_required"
-	FocusaToolResultV1FailureClassColdPathTimeout            FocusaToolResultV1FailureClass = "cold_path_timeout"
-	FocusaToolResultV1FailureClassDaemonUnavailable          FocusaToolResultV1FailureClass = "daemon_unavailable"
-	FocusaToolResultV1FailureClassFrameUnavailable           FocusaToolResultV1FailureClass = "frame_unavailable"
-	FocusaToolResultV1FailureClassHotPathTimeout             FocusaToolResultV1FailureClass = "hot_path_timeout"
-	FocusaToolResultV1FailureClassNoncanonicalFallback       FocusaToolResultV1FailureClass = "noncanonical_fallback"
-	FocusaToolResultV1FailureClassNotFound                   FocusaToolResultV1FailureClass = "not_found"
-	FocusaToolResultV1FailureClassNullResponse               FocusaToolResultV1FailureClass = "null_response"
-	FocusaToolResultV1FailureClassPermissionDenied           FocusaToolResultV1FailureClass = "permission_denied"
-	FocusaToolResultV1FailureClassProcessControlFailed       FocusaToolResultV1FailureClass = "process_control_failed"
-	FocusaToolResultV1FailureClassReadModelLag               FocusaToolResultV1FailureClass = "read_model_lag"
-	FocusaToolResultV1FailureClassResourceExhausted          FocusaToolResultV1FailureClass = "resource_exhausted"
-	FocusaToolResultV1FailureClassSchemaInvalid              FocusaToolResultV1FailureClass = "schema_invalid"
-	FocusaToolResultV1FailureClassScopeConflict              FocusaToolResultV1FailureClass = "scope_conflict"
-	FocusaToolResultV1FailureClassScopeMismatch              FocusaToolResultV1FailureClass = "scope_mismatch"
-	FocusaToolResultV1FailureClassStaleRuntimeRegistry       FocusaToolResultV1FailureClass = "stale_runtime_registry"
-	FocusaToolResultV1FailureClassUnknownAmbiguousCompletion FocusaToolResultV1FailureClass = "unknown_ambiguous_completion"
-	FocusaToolResultV1FailureClassValidationRejected         FocusaToolResultV1FailureClass = "validation_rejected"
-	FocusaToolResultV1FailureClassWriterConflict             FocusaToolResultV1FailureClass = "writer_conflict"
+	ApprovalRequired           FocusaToolResultV1FailureClass = "approval_required"
+	ColdPathTimeout            FocusaToolResultV1FailureClass = "cold_path_timeout"
+	DaemonUnavailable          FocusaToolResultV1FailureClass = "daemon_unavailable"
+	FrameUnavailable           FocusaToolResultV1FailureClass = "frame_unavailable"
+	HotPathTimeout             FocusaToolResultV1FailureClass = "hot_path_timeout"
+	NoncanonicalFallback       FocusaToolResultV1FailureClass = "noncanonical_fallback"
+	NotFound                   FocusaToolResultV1FailureClass = "not_found"
+	NullResponse               FocusaToolResultV1FailureClass = "null_response"
+	PermissionDenied           FocusaToolResultV1FailureClass = "permission_denied"
+	ProcessControlFailed       FocusaToolResultV1FailureClass = "process_control_failed"
+	ReadModelLag               FocusaToolResultV1FailureClass = "read_model_lag"
+	ResourceExhausted          FocusaToolResultV1FailureClass = "resource_exhausted"
+	SchemaInvalid              FocusaToolResultV1FailureClass = "schema_invalid"
+	ScopeConflict              FocusaToolResultV1FailureClass = "scope_conflict"
+	ScopeMismatch              FocusaToolResultV1FailureClass = "scope_mismatch"
+	StaleRuntimeRegistry       FocusaToolResultV1FailureClass = "stale_runtime_registry"
+	UnknownAmbiguousCompletion FocusaToolResultV1FailureClass = "unknown_ambiguous_completion"
+	ValidationRejected         FocusaToolResultV1FailureClass = "validation_rejected"
+	WriterConflict             FocusaToolResultV1FailureClass = "writer_conflict"
 )
 
 // Valid indicates whether the value is a known member of the FocusaToolResultV1FailureClass enum.
 func (e FocusaToolResultV1FailureClass) Valid() bool {
 	switch e {
-	case FocusaToolResultV1FailureClassApprovalRequired:
+	case ApprovalRequired:
 		return true
-	case FocusaToolResultV1FailureClassColdPathTimeout:
+	case ColdPathTimeout:
 		return true
-	case FocusaToolResultV1FailureClassDaemonUnavailable:
+	case DaemonUnavailable:
 		return true
-	case FocusaToolResultV1FailureClassFrameUnavailable:
+	case FrameUnavailable:
 		return true
-	case FocusaToolResultV1FailureClassHotPathTimeout:
+	case HotPathTimeout:
 		return true
-	case FocusaToolResultV1FailureClassNoncanonicalFallback:
+	case NoncanonicalFallback:
 		return true
-	case FocusaToolResultV1FailureClassNotFound:
+	case NotFound:
 		return true
-	case FocusaToolResultV1FailureClassNullResponse:
+	case NullResponse:
 		return true
-	case FocusaToolResultV1FailureClassPermissionDenied:
+	case PermissionDenied:
 		return true
-	case FocusaToolResultV1FailureClassProcessControlFailed:
+	case ProcessControlFailed:
 		return true
-	case FocusaToolResultV1FailureClassReadModelLag:
+	case ReadModelLag:
 		return true
-	case FocusaToolResultV1FailureClassResourceExhausted:
+	case ResourceExhausted:
 		return true
-	case FocusaToolResultV1FailureClassSchemaInvalid:
+	case SchemaInvalid:
 		return true
-	case FocusaToolResultV1FailureClassScopeConflict:
+	case ScopeConflict:
 		return true
-	case FocusaToolResultV1FailureClassScopeMismatch:
+	case ScopeMismatch:
 		return true
-	case FocusaToolResultV1FailureClassStaleRuntimeRegistry:
+	case StaleRuntimeRegistry:
 		return true
-	case FocusaToolResultV1FailureClassUnknownAmbiguousCompletion:
+	case UnknownAmbiguousCompletion:
 		return true
-	case FocusaToolResultV1FailureClassValidationRejected:
+	case ValidationRejected:
 		return true
-	case FocusaToolResultV1FailureClassWriterConflict:
+	case WriterConflict:
 		return true
 	default:
 		return false
@@ -183,6 +243,30 @@ type FocusaCallStackVerifyRequestV1 map[string]interface{}
 
 // FocusaCallStackVerifyResponseV1 Generated contract for Focusa schema focusa.call_stack_verify.response.v1
 type FocusaCallStackVerifyResponseV1 map[string]interface{}
+
+// FocusaCompatibilityLockV1 defines model for focusa_compatibility_lock_v1.
+type FocusaCompatibilityLockV1 struct {
+	A2uiCatalog           *string                         `json:"a2ui_catalog,omitempty"`
+	A2uiProtocol          string                          `json:"a2ui_protocol"`
+	AgUiAdapter           *string                         `json:"ag_ui_adapter,omitempty"`
+	Docling               *string                         `json:"docling,omitempty"`
+	DomainPackVersions    *[]string                       `json:"domain_pack_versions,omitempty"`
+	EmbeddingProfile      *string                         `json:"embedding_profile,omitempty"`
+	EventStream           string                          `json:"event_stream"`
+	FocusaApi             string                          `json:"focusa_api"`
+	FocusaRuntime         string                          `json:"focusa_runtime"`
+	MinimumReaderVersions map[string]string               `json:"minimum_reader_versions"`
+	MinimumWriterVersions map[string]string               `json:"minimum_writer_versions"`
+	OperationRegistry     string                          `json:"operation_registry"`
+	PiRuntime             *string                         `json:"pi_runtime,omitempty"`
+	Schema                FocusaCompatibilityLockV1Schema `json:"schema"`
+	ToolResult            string                          `json:"tool_result"`
+	UiaiEngine            *string                         `json:"uiai_engine,omitempty"`
+	UiaiFocusaClient      *string                         `json:"uiai_focusa_client,omitempty"`
+}
+
+// FocusaCompatibilityLockV1Schema defines model for FocusaCompatibilityLockV1.Schema.
+type FocusaCompatibilityLockV1Schema string
 
 // FocusaContextCognitionCurateRequestV1 Generated contract for Focusa schema focusa.context_cognition_curate.request.v1
 type FocusaContextCognitionCurateRequestV1 map[string]interface{}
@@ -291,6 +375,37 @@ type FocusaProjectIdentityResponseV1 map[string]interface{}
 
 // FocusaProjectVerifyResponseV1 Generated contract for Focusa schema focusa.project_verify.response.v1
 type FocusaProjectVerifyResponseV1 map[string]interface{}
+
+// FocusaProtocolHandshakeRequestV1 defines model for focusa_protocol_handshake_request_v1.
+type FocusaProtocolHandshakeRequestV1 struct {
+	ClientId              string            `json:"client_id"`
+	ClientVersions        map[string]string `json:"client_versions"`
+	RequestedCapabilities *[]string         `json:"requested_capabilities,omitempty"`
+}
+
+// FocusaProtocolHandshakeResponseV1 defines model for focusa_protocol_handshake_response_v1.
+type FocusaProtocolHandshakeResponseV1 struct {
+	CapabilitySnapshot    map[string]interface{}                      `json:"capability_snapshot"`
+	ClientId              string                                      `json:"client_id"`
+	CompatibilityLock     map[string]interface{}                      `json:"compatibility_lock"`
+	Compatible            FocusaProtocolHandshakeResponseV1Compatible `json:"compatible"`
+	ContinuityId          string                                      `json:"continuity_id"`
+	ProjectRoot           string                                      `json:"project_root"`
+	RequestedCapabilities *[]string                                   `json:"requested_capabilities,omitempty"`
+	SafeStateRetained     bool                                        `json:"safe_state_retained"`
+	Schema                FocusaProtocolHandshakeResponseV1Schema     `json:"schema"`
+	ServerVersions        map[string]string                           `json:"server_versions"`
+	Status                FocusaProtocolHandshakeResponseV1Status     `json:"status"`
+}
+
+// FocusaProtocolHandshakeResponseV1Compatible defines model for FocusaProtocolHandshakeResponseV1.Compatible.
+type FocusaProtocolHandshakeResponseV1Compatible bool
+
+// FocusaProtocolHandshakeResponseV1Schema defines model for FocusaProtocolHandshakeResponseV1.Schema.
+type FocusaProtocolHandshakeResponseV1Schema string
+
+// FocusaProtocolHandshakeResponseV1Status defines model for FocusaProtocolHandshakeResponseV1.Status.
+type FocusaProtocolHandshakeResponseV1Status string
 
 // FocusaResourceModeResponseV1 Generated contract for Focusa schema focusa.resource_mode.response.v1
 type FocusaResourceModeResponseV1 map[string]interface{}
@@ -429,6 +544,15 @@ type FocusaWorkpointLinkEvidenceResponseV1 map[string]interface{}
 // FocusaWorkpointResumeResponseV1 Generated contract for Focusa schema focusa.workpoint_resume.response.v1
 type FocusaWorkpointResumeResponseV1 map[string]interface{}
 
+// FocusaProtocolHandshakeParams defines parameters for FocusaProtocolHandshake.
+type FocusaProtocolHandshakeParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+}
+
 // FocusaOperationRegistryReadParams defines parameters for FocusaOperationRegistryRead.
 type FocusaOperationRegistryReadParams struct {
 	// ProjectRoot Required Focusa scope key: project_root
@@ -439,12 +563,18 @@ type FocusaOperationRegistryReadParams struct {
 type FocusaUiActionBindingsReadParams struct {
 	// ProjectRoot Required Focusa scope key: project_root
 	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaUiCapabilitySnapshotReadParams defines parameters for FocusaUiCapabilitySnapshotRead.
 type FocusaUiCapabilitySnapshotReadParams struct {
 	// ProjectRoot Required Focusa scope key: project_root
 	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
 // FocusaAwarenessPacketParams defines parameters for FocusaAwarenessPacket.
@@ -780,6 +910,9 @@ type FocusaWorkpointResumeParams struct {
 	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
+// FocusaProtocolHandshakeJSONRequestBody defines body for FocusaProtocolHandshake for application/json ContentType.
+type FocusaProtocolHandshakeJSONRequestBody = FocusaProtocolHandshakeRequestV1
+
 // FocusaAwarenessPacketJSONRequestBody defines body for FocusaAwarenessPacket for application/json ContentType.
 type FocusaAwarenessPacketJSONRequestBody = FocusaAwarenessPacketRequestV1
 
@@ -934,6 +1067,14 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// FocusaCompatibilityLockRead request
+	FocusaCompatibilityLockRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaProtocolHandshakeWithBody request with any body
+	FocusaProtocolHandshakeWithBody(ctx context.Context, params *FocusaProtocolHandshakeParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	FocusaProtocolHandshake(ctx context.Context, params *FocusaProtocolHandshakeParams, body FocusaProtocolHandshakeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// FocusaOperationRegistryRead request
 	FocusaOperationRegistryRead(ctx context.Context, params *FocusaOperationRegistryReadParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1134,6 +1275,42 @@ type ClientInterface interface {
 
 	// FocusaWorkpointResume request
 	FocusaWorkpointResume(ctx context.Context, params *FocusaWorkpointResumeParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+func (c *Client) FocusaCompatibilityLockRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaCompatibilityLockReadRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaProtocolHandshakeWithBody(ctx context.Context, params *FocusaProtocolHandshakeParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaProtocolHandshakeRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaProtocolHandshake(ctx context.Context, params *FocusaProtocolHandshakeParams, body FocusaProtocolHandshakeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaProtocolHandshakeRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 func (c *Client) FocusaOperationRegistryRead(ctx context.Context, params *FocusaOperationRegistryReadParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -2048,6 +2225,104 @@ func (c *Client) FocusaWorkpointResume(ctx context.Context, params *FocusaWorkpo
 	return c.Client.Do(req)
 }
 
+// NewFocusaCompatibilityLockReadRequest generates requests for FocusaCompatibilityLockRead
+func NewFocusaCompatibilityLockReadRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/agent/compatibility-lock")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewFocusaProtocolHandshakeRequest calls the generic FocusaProtocolHandshake builder with application/json body
+func NewFocusaProtocolHandshakeRequest(server string, params *FocusaProtocolHandshakeParams, body FocusaProtocolHandshakeJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewFocusaProtocolHandshakeRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewFocusaProtocolHandshakeRequestWithBody generates requests for FocusaProtocolHandshake with any type of body
+func NewFocusaProtocolHandshakeRequestWithBody(server string, params *FocusaProtocolHandshakeParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/agent/handshake")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewFocusaOperationRegistryReadRequest generates requests for FocusaOperationRegistryRead
 func NewFocusaOperationRegistryReadRequest(server string, params *FocusaOperationRegistryReadParams) (*http.Request, error) {
 	var err error
@@ -2134,6 +2409,14 @@ func NewFocusaUiActionBindingsReadRequest(server string, params *FocusaUiActionB
 			}
 		}
 
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
 		if encoded := queryValues.Encode(); encoded != "" {
 			rawQueryFragments = append(rawQueryFragments, encoded)
 		}
@@ -2177,6 +2460,14 @@ func NewFocusaUiCapabilitySnapshotReadRequest(server string, params *FocusaUiCap
 		var rawQueryFragments []string
 
 		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 			return nil, err
 		} else {
 			for _, qp := range strings.Split(queryFrag, "&") {
@@ -5027,6 +5318,14 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// FocusaCompatibilityLockReadWithResponse request
+	FocusaCompatibilityLockReadWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*FocusaCompatibilityLockReadResponse, error)
+
+	// FocusaProtocolHandshakeWithBodyWithResponse request with any body
+	FocusaProtocolHandshakeWithBodyWithResponse(ctx context.Context, params *FocusaProtocolHandshakeParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaProtocolHandshakeResponse, error)
+
+	FocusaProtocolHandshakeWithResponse(ctx context.Context, params *FocusaProtocolHandshakeParams, body FocusaProtocolHandshakeJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaProtocolHandshakeResponse, error)
+
 	// FocusaOperationRegistryReadWithResponse request
 	FocusaOperationRegistryReadWithResponse(ctx context.Context, params *FocusaOperationRegistryReadParams, reqEditors ...RequestEditorFn) (*FocusaOperationRegistryReadResponse, error)
 
@@ -5227,6 +5526,68 @@ type ClientWithResponsesInterface interface {
 
 	// FocusaWorkpointResumeWithResponse request
 	FocusaWorkpointResumeWithResponse(ctx context.Context, params *FocusaWorkpointResumeParams, reqEditors ...RequestEditorFn) (*FocusaWorkpointResumeResponse, error)
+}
+
+type FocusaCompatibilityLockReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaCompatibilityLockV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaCompatibilityLockReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaCompatibilityLockReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaCompatibilityLockReadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaProtocolHandshakeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaProtocolHandshakeResponseV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaProtocolHandshakeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaProtocolHandshakeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaProtocolHandshakeResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
 }
 
 type FocusaOperationRegistryReadResponse struct {
@@ -6747,6 +7108,32 @@ func (r FocusaWorkpointResumeResponse) ContentType() string {
 	return ""
 }
 
+// FocusaCompatibilityLockReadWithResponse request returning *FocusaCompatibilityLockReadResponse
+func (c *ClientWithResponses) FocusaCompatibilityLockReadWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*FocusaCompatibilityLockReadResponse, error) {
+	rsp, err := c.FocusaCompatibilityLockRead(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaCompatibilityLockReadResponse(rsp)
+}
+
+// FocusaProtocolHandshakeWithBodyWithResponse request with arbitrary body returning *FocusaProtocolHandshakeResponse
+func (c *ClientWithResponses) FocusaProtocolHandshakeWithBodyWithResponse(ctx context.Context, params *FocusaProtocolHandshakeParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaProtocolHandshakeResponse, error) {
+	rsp, err := c.FocusaProtocolHandshakeWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaProtocolHandshakeResponse(rsp)
+}
+
+func (c *ClientWithResponses) FocusaProtocolHandshakeWithResponse(ctx context.Context, params *FocusaProtocolHandshakeParams, body FocusaProtocolHandshakeJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaProtocolHandshakeResponse, error) {
+	rsp, err := c.FocusaProtocolHandshake(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaProtocolHandshakeResponse(rsp)
+}
+
 // FocusaOperationRegistryReadWithResponse request returning *FocusaOperationRegistryReadResponse
 func (c *ClientWithResponses) FocusaOperationRegistryReadWithResponse(ctx context.Context, params *FocusaOperationRegistryReadParams, reqEditors ...RequestEditorFn) (*FocusaOperationRegistryReadResponse, error) {
 	rsp, err := c.FocusaOperationRegistryRead(ctx, params, reqEditors...)
@@ -7402,6 +7789,72 @@ func (c *ClientWithResponses) FocusaWorkpointResumeWithResponse(ctx context.Cont
 		return nil, err
 	}
 	return ParseFocusaWorkpointResumeResponse(rsp)
+}
+
+// ParseFocusaCompatibilityLockReadResponse parses an HTTP response from a FocusaCompatibilityLockReadWithResponse call
+func ParseFocusaCompatibilityLockReadResponse(rsp *http.Response) (*FocusaCompatibilityLockReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaCompatibilityLockReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaCompatibilityLockV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaProtocolHandshakeResponse parses an HTTP response from a FocusaProtocolHandshakeWithResponse call
+func ParseFocusaProtocolHandshakeResponse(rsp *http.Response) (*FocusaProtocolHandshakeResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaProtocolHandshakeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaProtocolHandshakeResponseV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseFocusaOperationRegistryReadResponse parses an HTTP response from a FocusaOperationRegistryReadWithResponse call

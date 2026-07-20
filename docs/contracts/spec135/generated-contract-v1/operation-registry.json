@@ -1,5 +1,5 @@
 {
-  "operation_count": 49,
+  "operation_count": 51,
   "operations": [
     {
       "alias_of": null,
@@ -3584,9 +3584,10 @@
         "attachment_scoped": false,
         "project_scoped": true,
         "required_keys": [
-          "project_root"
+          "project_root",
+          "continuity_id"
         ],
-        "workstream_scoped": false
+        "workstream_scoped": true
       },
       "side_effect_profile": "read_state",
       "supports_side_effect_policy": [
@@ -3660,9 +3661,10 @@
         "attachment_scoped": false,
         "project_scoped": true,
         "required_keys": [
-          "project_root"
+          "project_root",
+          "continuity_id"
         ],
-        "workstream_scoped": false
+        "workstream_scoped": true
       },
       "side_effect_profile": "read_state",
       "supports_side_effect_policy": [
@@ -3750,6 +3752,153 @@
         "plain_language_description": "Replay and Stream Durable Events",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "standard_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.compatibility_lock.request.v1",
+        "output_schema_ref": "focusa.compatibility_lock.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "agent"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/135e-cross-spec-amendments-migration-and-closure-matrix.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "agent",
+      "label": "Read Protocol Compatibility Lock",
+      "materialization_mode": "compatibility_read",
+      "method": "GET",
+      "operation_id": "focusa.compatibility_lock.read",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.compatibility_lock.read",
+        "subsystem": "agent"
+      },
+      "path": "/v1/agent/compatibility-lock",
+      "permissions_required": [],
+      "request_schema_ref": "focusa.compatibility_lock.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.compatibility_lock.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.compatibility_lock.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": false,
+        "required_keys": [],
+        "workstream_scoped": false
+      },
+      "side_effect_profile": "read_state",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Read Protocol Compatibility Lock",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Read Protocol Compatibility Lock",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "standard_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.protocol_handshake.request.v1",
+        "output_schema_ref": "focusa.protocol_handshake.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "agent"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "project:read"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/135e-cross-spec-amendments-migration-and-closure-matrix.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "agent",
+      "label": "Negotiate Focusa Protocol Compatibility",
+      "materialization_mode": "fail_closed_negotiation",
+      "method": "POST",
+      "operation_id": "focusa.protocol.handshake",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.protocol.handshake",
+        "subsystem": "agent"
+      },
+      "path": "/v1/agent/handshake",
+      "permissions_required": [
+        "project:read"
+      ],
+      "request_schema_ref": "focusa.protocol_handshake.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.protocol_handshake.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.protocol_handshake.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_state",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Negotiate Focusa Protocol Compatibility",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Negotiate Focusa Protocol Compatibility",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
       }
     }
   ],

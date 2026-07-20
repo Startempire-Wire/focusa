@@ -1,0 +1,98 @@
+{
+  "canonical": false,
+  "degraded": false,
+  "evidence_refs": [],
+  "failure_class": "stale_runtime_registry",
+  "misuse_hint": "Silent compatibility guessing and partial startup are forbidden",
+  "next_tools": [
+    "focusa_tool_doctor",
+    "focusa_project_identity"
+  ],
+  "ok": false,
+  "ontology_candidate_delta_refs": [],
+  "raw": {
+    "client_id": "spec135-test",
+    "compatibility_lock": {
+      "a2ui_catalog": "0.0.0",
+      "a2ui_protocol": "0.9.1",
+      "ag_ui_adapter": "0.0.0",
+      "docling": "external",
+      "domain_pack_versions": [],
+      "embedding_profile": "project-configured",
+      "event_stream": "1.0.0",
+      "focusa_api": "1.0.0",
+      "focusa_runtime": "0.9.120-dev",
+      "minimum_reader_versions": {
+        "event_stream": "1.0.0",
+        "focusa_api": "1.0.0",
+        "json_schema": "2020-12",
+        "openapi": "3.0.3",
+        "operation_registry": "1.0.0",
+        "tool_result": "1.0.0"
+      },
+      "minimum_writer_versions": {
+        "event_stream": "1.0.0",
+        "focusa_api": "1.0.0",
+        "operation_registry": "1.0.0",
+        "tool_result": "1.0.0"
+      },
+      "operation_registry": "1.0.0",
+      "pi_runtime": "0.9.120-dev",
+      "schema": "focusa.compatibility_lock.v1",
+      "tool_result": "1.0.0",
+      "uiai_engine": "external",
+      "uiai_focusa_client": "0.0.0"
+    },
+    "compatible": false,
+    "mismatches": [
+      {
+        "actual": "0.1.0",
+        "component": "focusa_api",
+        "required": "1.0.0",
+        "upgrade_action": "upgrade focusa_api support to 1.0.0"
+      },
+      {
+        "actual": null,
+        "component": "operation_registry",
+        "required": "1.0.0",
+        "upgrade_action": "upgrade operation_registry support to 1.0.0"
+      },
+      {
+        "actual": null,
+        "component": "tool_result",
+        "required": "1.0.0",
+        "upgrade_action": "upgrade tool_result support to 1.0.0"
+      },
+      {
+        "actual": null,
+        "component": "event_stream",
+        "required": "1.0.0",
+        "upgrade_action": "upgrade event_stream support to 1.0.0"
+      },
+      {
+        "actual": null,
+        "component": "openapi",
+        "required": "3.0.3",
+        "upgrade_action": "upgrade openapi support to 3.0.3"
+      },
+      {
+        "actual": null,
+        "component": "json_schema",
+        "required": "2020-12",
+        "upgrade_action": "upgrade json_schema support to 2020-12"
+      }
+    ],
+    "safe_state_retained": true
+  },
+  "recovery_hint": "Upgrade every listed component, then repeat the startup handshake",
+  "reflex_suggestions": [],
+  "retry": {
+    "posture": "do_not_retry_unchanged",
+    "reason": "stale_runtime_registry",
+    "safe": false
+  },
+  "schema": "focusa.tool_result.v1",
+  "side_effects": [],
+  "status": "blocked",
+  "summary": "Protocol handshake blocked by incompatible or missing component versions"
+}

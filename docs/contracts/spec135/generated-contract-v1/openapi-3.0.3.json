@@ -81,6 +81,100 @@
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.call_stack_verify.response.v1"
       },
+      "focusa_compatibility_lock_request_v1": {
+        "additionalProperties": true,
+        "description": "Generated contract for Focusa schema focusa.compatibility_lock.request.v1",
+        "properties": {},
+        "title": "focusa.compatibility_lock.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.compatibility_lock.request.v1"
+      },
+      "focusa_compatibility_lock_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "a2ui_catalog": {
+            "type": "string"
+          },
+          "a2ui_protocol": {
+            "type": "string"
+          },
+          "ag_ui_adapter": {
+            "type": "string"
+          },
+          "docling": {
+            "type": "string"
+          },
+          "domain_pack_versions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "embedding_profile": {
+            "type": "string"
+          },
+          "event_stream": {
+            "type": "string"
+          },
+          "focusa_api": {
+            "type": "string"
+          },
+          "focusa_runtime": {
+            "type": "string"
+          },
+          "minimum_reader_versions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "minimum_writer_versions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "operation_registry": {
+            "type": "string"
+          },
+          "pi_runtime": {
+            "type": "string"
+          },
+          "schema": {
+            "enum": [
+              "focusa.compatibility_lock.v1"
+            ],
+            "type": "string"
+          },
+          "tool_result": {
+            "type": "string"
+          },
+          "uiai_engine": {
+            "type": "string"
+          },
+          "uiai_focusa_client": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema",
+          "focusa_runtime",
+          "focusa_api",
+          "operation_registry",
+          "tool_result",
+          "event_stream",
+          "a2ui_protocol",
+          "minimum_reader_versions",
+          "minimum_writer_versions"
+        ],
+        "title": "Focusa Compatibility Lock v1",
+        "type": "object",
+        "x-focusa-generated-from": "compatibility_lock_document",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.compatibility_lock.v1"
+      },
       "focusa_context_cognition_curate_request_v1": {
         "additionalProperties": true,
         "description": "Generated contract for Focusa schema focusa.context_cognition_curate.request.v1",
@@ -570,6 +664,106 @@
         "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.project_verify.response.v1"
+      },
+      "focusa_protocol_handshake_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "client_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "client_versions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "requested_capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "client_id",
+          "client_versions"
+        ],
+        "title": "Focusa Protocol Handshake Request v1",
+        "type": "object",
+        "x-focusa-generated-from": "ProtocolHandshakeRequest",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.protocol_handshake.request.v1"
+      },
+      "focusa_protocol_handshake_response_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "capability_snapshot": {
+            "type": "object"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "compatibility_lock": {
+            "type": "object"
+          },
+          "compatible": {
+            "enum": [
+              true
+            ],
+            "type": "boolean"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "requested_capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "safe_state_retained": {
+            "type": "boolean"
+          },
+          "schema": {
+            "enum": [
+              "focusa.protocol_handshake.response.v1"
+            ],
+            "type": "string"
+          },
+          "server_versions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "status": {
+            "enum": [
+              "accepted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema",
+          "status",
+          "compatible",
+          "client_id",
+          "project_root",
+          "continuity_id",
+          "server_versions",
+          "capability_snapshot",
+          "compatibility_lock",
+          "safe_state_retained"
+        ],
+        "title": "Focusa Protocol Handshake Response v1",
+        "type": "object",
+        "x-focusa-generated-from": "protocol_handshake_handler",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.protocol_handshake.response.v1"
       },
       "focusa_resource_mode_request_v1": {
         "additionalProperties": true,
@@ -1219,6 +1413,168 @@
   },
   "openapi": "3.0.3",
   "paths": {
+    "/v1/agent/compatibility-lock": {
+      "get": {
+        "description": "Read Protocol Compatibility Lock \u2014 family=agent budget=standard_read materialization=compatibility_read",
+        "operationId": "focusa.compatibility_lock.read",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_compatibility_lock_v1"
+                }
+              }
+            },
+            "description": "Read Protocol Compatibility Lock response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Read Protocol Compatibility Lock",
+        "tags": [
+          "agent"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "agent",
+          "materialization_mode": "compatibility_read",
+          "requires_preview_token": false,
+          "side_effect_profile": "read_state",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "agent"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.compatibility_lock.read",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [],
+        "x-focusa-plain-label": "Read Protocol Compatibility Lock",
+        "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "agent"
+      }
+    },
+    "/v1/agent/handshake": {
+      "post": {
+        "description": "Negotiate Focusa Protocol Compatibility \u2014 family=agent budget=standard_read materialization=fail_closed_negotiation",
+        "operationId": "focusa.protocol.handshake",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_protocol_handshake_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_protocol_handshake_response_v1"
+                }
+              }
+            },
+            "description": "Negotiate Focusa Protocol Compatibility response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Negotiate Focusa Protocol Compatibility",
+        "tags": [
+          "agent"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "agent",
+          "materialization_mode": "fail_closed_negotiation",
+          "requires_preview_token": false,
+          "side_effect_profile": "read_state",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "agent"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.protocol.handshake",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "project:read"
+        ],
+        "x-focusa-plain-label": "Negotiate Focusa Protocol Compatibility",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "agent"
+      }
+    },
     "/v1/agent/operations": {
       "get": {
         "description": "Read Operation Registry \u2014 family=agent budget=standard_read materialization=registry_read",
@@ -1308,6 +1664,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1367,7 +1732,8 @@
         "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
-          "project_root"
+          "project_root",
+          "continuity_id"
         ],
         "x-focusa-sensitive": "routine",
         "x-focusa-subsystem": "agent"
@@ -1382,6 +1748,15 @@
             "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
             "required": true,
             "schema": {
               "type": "string"
@@ -1445,7 +1820,8 @@
         "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
-          "project_root"
+          "project_root",
+          "continuity_id"
         ],
         "x-focusa-sensitive": "routine",
         "x-focusa-subsystem": "agent"

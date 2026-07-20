@@ -4,6 +4,46 @@
  */
 
 export interface paths {
+    "/v1/agent/compatibility-lock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Protocol Compatibility Lock
+         * @description Read Protocol Compatibility Lock — family=agent budget=standard_read materialization=compatibility_read
+         */
+        get: operations["focusa.compatibility_lock.read"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agent/handshake": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Negotiate Focusa Protocol Compatibility
+         * @description Negotiate Focusa Protocol Compatibility — family=agent budget=standard_read materialization=fail_closed_negotiation
+         */
+        post: operations["focusa.protocol.handshake"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/agent/operations": {
         parameters: {
             query?: never;
@@ -1045,6 +1085,38 @@ export interface components {
             [key: string]: unknown;
         };
         /**
+         * focusa.compatibility_lock.request.v1
+         * @description Generated contract for Focusa schema focusa.compatibility_lock.request.v1
+         */
+        focusa_compatibility_lock_request_v1: {
+            [key: string]: unknown;
+        };
+        /** Focusa Compatibility Lock v1 */
+        focusa_compatibility_lock_v1: {
+            a2ui_catalog?: string;
+            a2ui_protocol: string;
+            ag_ui_adapter?: string;
+            docling?: string;
+            domain_pack_versions?: string[];
+            embedding_profile?: string;
+            event_stream: string;
+            focusa_api: string;
+            focusa_runtime: string;
+            minimum_reader_versions: {
+                [key: string]: string;
+            };
+            minimum_writer_versions: {
+                [key: string]: string;
+            };
+            operation_registry: string;
+            pi_runtime?: string;
+            /** @enum {string} */
+            schema: "focusa.compatibility_lock.v1";
+            tool_result: string;
+            uiai_engine?: string;
+            uiai_focusa_client?: string;
+        };
+        /**
          * focusa.context_cognition_curate.request.v1
          * @description Generated contract for Focusa schema focusa.context_cognition_curate.request.v1
          */
@@ -1386,6 +1458,33 @@ export interface components {
          */
         focusa_project_verify_response_v1: {
             [key: string]: unknown;
+        };
+        /** Focusa Protocol Handshake Request v1 */
+        focusa_protocol_handshake_request_v1: {
+            client_id: string;
+            client_versions: {
+                [key: string]: string;
+            };
+            requested_capabilities?: string[];
+        };
+        /** Focusa Protocol Handshake Response v1 */
+        focusa_protocol_handshake_response_v1: {
+            capability_snapshot: Record<string, never>;
+            client_id: string;
+            compatibility_lock: Record<string, never>;
+            /** @enum {boolean} */
+            compatible: true;
+            continuity_id: string;
+            project_root: string;
+            requested_capabilities?: string[];
+            safe_state_retained: boolean;
+            /** @enum {string} */
+            schema: "focusa.protocol_handshake.response.v1";
+            server_versions: {
+                [key: string]: string;
+            };
+            /** @enum {string} */
+            status: "accepted";
         };
         /**
          * focusa.resource_mode.request.v1
@@ -1740,6 +1839,73 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    "focusa.compatibility_lock.read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Read Protocol Compatibility Lock response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_compatibility_lock_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.protocol.handshake": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_protocol_handshake_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Negotiate Focusa Protocol Compatibility response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_protocol_handshake_response_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
     "focusa.operation_registry.read": {
         parameters: {
             query: {
@@ -1777,6 +1943,8 @@ export interface operations {
             query: {
                 /** @description Required Focusa scope key: project_root */
                 project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;
@@ -1809,6 +1977,8 @@ export interface operations {
             query: {
                 /** @description Required Focusa scope key: project_root */
                 project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
             };
             header?: never;
             path?: never;

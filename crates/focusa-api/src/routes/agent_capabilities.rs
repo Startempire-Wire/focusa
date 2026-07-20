@@ -8,12 +8,16 @@
 //! `GET /v1/agent/adapter-capabilities` publishes the separate Spec130 measured
 //! native-adapter capability registry.
 
+use crate::routes::permissions::{PermissionContext, permission_context};
 use crate::server::AppState;
 use axum::extract::{Path, Query, State};
-use axum::http::StatusCode;
-use axum::{Json, Router, routing::get};
+use axum::http::{HeaderMap, StatusCode};
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
 use chrono::Utc;
-use focusa_core::tool_result::TOOL_RESULT_SCHEMA;
+use focusa_core::tool_result::{FailureClass, TOOL_RESULT_SCHEMA, ToolResultV1, ToolStatus};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::sync::{Arc, LazyLock};
@@ -186,7 +190,8 @@ fn op(
     docs: &'static str,
     deprecation: Option<DeprecationEntry>,
 ) -> OperationEntry {
-    let project_scoped = !matches!(family, "health" | "device" | "license" | "events");
+    let project_scoped = !matches!(family, "health" | "device" | "license" | "events")
+        && id != "focusa.compatibility_lock.read";
     let workstream_scoped = matches!(
         family,
         "trajectory"
@@ -197,6 +202,11 @@ fn op(
             | "context_cognition"
             | "turn"
             | "memory"
+    ) || matches!(
+        id,
+        "focusa.ui_action_bindings.read"
+            | "focusa.ui_capability_snapshot.read"
+            | "focusa.protocol.handshake"
     );
     let attachment_scoped = id.contains("attachment");
     let mut required_keys = Vec::new();
@@ -1440,6 +1450,52 @@ fn build_operations() -> Vec<OperationEntry> {
             "docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md",
             None,
         ),
+        op(
+            "focusa.compatibility_lock.read",
+            "Read Protocol Compatibility Lock",
+            "agent",
+            "GET",
+            "/v1/agent/compatibility-lock",
+            true,
+            None,
+            "read_state",
+            "compatibility_read",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec![],
+            false,
+            "standard_read",
+            vec!["compact", "standard"],
+            "focusa.compatibility_lock.request.v1",
+            "focusa.compatibility_lock.v1",
+            "docs/135e-cross-spec-amendments-migration-and-closure-matrix.md",
+            None,
+        ),
+        op(
+            "focusa.protocol.handshake",
+            "Negotiate Focusa Protocol Compatibility",
+            "agent",
+            "POST",
+            "/v1/agent/handshake",
+            true,
+            None,
+            "read_state",
+            "fail_closed_negotiation",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec!["project:read"],
+            false,
+            "standard_read",
+            vec!["compact", "standard"],
+            "focusa.protocol_handshake.request.v1",
+            "focusa.protocol_handshake.response.v1",
+            "docs/135e-cross-spec-amendments-migration-and-closure-matrix.md",
+            None,
+        ),
     ]
 }
 
@@ -1515,6 +1571,58 @@ struct UiProjectionQuery {
     agent_id: Option<String>,
 }
 
+fn projection_scope_error(scope: &UiProjectionQuery) -> Option<ToolResultV1> {
+    let project_root = scope
+        .project_root
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or_default();
+    let continuity_id = scope
+        .continuity_id
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or_default();
+    if project_root.is_empty() || !std::path::Path::new(project_root).is_absolute() {
+        return Some(
+            ToolResultV1::failure(
+                ToolStatus::ValidationRejected,
+                FailureClass::ScopeMismatch,
+                "project_root must be a non-empty absolute path",
+            )
+            .with_recovery(
+                "Resolve project identity and retry with its exact project_root",
+                "Do not infer project scope from a folder name",
+                ["focusa_project_identity", "focusa_project_verify"],
+            ),
+        );
+    }
+    if continuity_id.is_empty() {
+        return Some(
+            ToolResultV1::failure(
+                ToolStatus::ValidationRejected,
+                FailureClass::ScopeMismatch,
+                "continuity_id is required for workstream-exact projection",
+            )
+            .with_recovery(
+                "Resume the canonical Workpoint and use its continuity_id",
+                "Do not merge permission state across workstreams",
+                ["focusa_workpoint_resume", "focusa_project_identity"],
+            ),
+        );
+    }
+    None
+}
+
+fn projection_scope_rejection(result: ToolResultV1) -> (StatusCode, Json<Value>) {
+    (
+        StatusCode::BAD_REQUEST,
+        Json(
+            serde_json::to_value(result)
+                .unwrap_or_else(|_| json!({"schema": TOOL_RESULT_SCHEMA, "ok": false})),
+        ),
+    )
+}
+
 fn ui_action_bindings_document(scope: &UiProjectionQuery) -> Value {
     let bindings: Vec<Value> = build_operations()
         .into_iter()
@@ -1559,11 +1667,19 @@ fn ui_action_bindings_document(scope: &UiProjectionQuery) -> Value {
     })
 }
 
-async fn ui_action_bindings_handler(Query(scope): Query<UiProjectionQuery>) -> Json<Value> {
-    Json(ui_action_bindings_document(&scope))
+async fn ui_action_bindings_handler(
+    Query(scope): Query<UiProjectionQuery>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if let Some(error) = projection_scope_error(&scope) {
+        return Err(projection_scope_rejection(error));
+    }
+    Ok(Json(ui_action_bindings_document(&scope)))
 }
 
-fn ui_capability_snapshot_document(scope: &UiProjectionQuery) -> Value {
+fn ui_capability_snapshot_document(
+    scope: &UiProjectionQuery,
+    permissions: &PermissionContext,
+) -> Value {
     let operations = build_operations();
     let capability_ids: std::collections::BTreeSet<_> = operations
         .iter()
@@ -1573,14 +1689,39 @@ fn ui_capability_snapshot_document(scope: &UiProjectionQuery) -> Value {
         .iter()
         .flat_map(|operation| operation.control.permission_scopes.iter().copied())
         .collect();
+    let granted_scopes: Vec<_> = permission_scopes
+        .iter()
+        .copied()
+        .filter(|scope| permissions.allows(scope))
+        .collect();
+    let missing_scopes: Vec<_> = permission_scopes
+        .iter()
+        .copied()
+        .filter(|scope| !permissions.allows(scope))
+        .collect();
     let capabilities: Vec<Value> = capability_ids
         .into_iter()
         .map(|capability_id| {
+            let required: std::collections::BTreeSet<_> = operations
+                .iter()
+                .filter(|operation| operation.control.capability_refs.contains(&capability_id))
+                .flat_map(|operation| operation.control.permission_scopes.iter().copied())
+                .collect();
+            let missing: Vec<_> = required
+                .into_iter()
+                .filter(|required_scope| !permissions.allows(required_scope))
+                .collect();
+            let available = missing.is_empty();
             json!({
                 "capability_id": capability_id,
-                "status": "available",
-                "reason": "Published by the canonical Focusa Operation Registry",
-                "recovery_action_ref": Value::Null,
+                "status": if available { "available" } else { "approval_required" },
+                "reason": if available {
+                    "Required permission scopes are granted"
+                } else {
+                    "One or more required permission scopes are missing"
+                },
+                "missing_permission_scopes": missing,
+                "recovery_action_ref": if available { Value::Null } else { json!("focusa_tool_doctor") },
             })
         })
         .collect();
@@ -1590,20 +1731,172 @@ fn ui_capability_snapshot_document(scope: &UiProjectionQuery) -> Value {
         "continuity_id": scope.continuity_id.as_deref(),
         "attachment_id": scope.attachment_id.as_deref(),
         "agent_id": scope.agent_id.as_deref(),
+        "scope_validated": true,
         "capabilities": capabilities,
         "permissions": {
-            "granted_scopes": [],
-            "missing_scopes": permission_scopes,
+            "granted_scopes": granted_scopes,
+            "missing_scopes": missing_scopes,
+            "effective_token_scopes": permissions.list(),
         },
         "providers": [],
         "connectors": [],
-        "client_capabilities": ["openapi-3.0.3", "json-schema-2020-12", "a2ui-action-bindings"],
+        "client_capabilities": ["openapi-3.0.3", "json-schema-2020-12", "a2ui-action-bindings", "protocol-handshake-v1"],
         "source_state_revision": "operation-registry-1.0.0",
     })
 }
 
-async fn ui_capability_snapshot_handler(Query(scope): Query<UiProjectionQuery>) -> Json<Value> {
-    Json(ui_capability_snapshot_document(&scope))
+async fn ui_capability_snapshot_handler(
+    State(state): State<Arc<AppState>>,
+    Query(scope): Query<UiProjectionQuery>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if let Some(error) = projection_scope_error(&scope) {
+        return Err(projection_scope_rejection(error));
+    }
+    let permissions = permission_context(&headers, state.config.auth_token.is_some());
+    Ok(Json(ui_capability_snapshot_document(&scope, &permissions)))
+}
+
+const REQUIRED_PROTOCOL_VERSIONS: [(&str, &str); 6] = [
+    ("focusa_api", "1.0.0"),
+    ("operation_registry", "1.0.0"),
+    ("tool_result", "1.0.0"),
+    ("event_stream", "1.0.0"),
+    ("openapi", "3.0.3"),
+    ("json_schema", "2020-12"),
+];
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ProtocolHandshakeRequest {
+    client_id: String,
+    #[serde(default)]
+    client_versions: std::collections::BTreeMap<String, String>,
+    #[serde(default)]
+    requested_capabilities: Vec<String>,
+}
+
+fn compatibility_lock_document() -> Value {
+    let minimum_reader_versions: std::collections::BTreeMap<_, _> =
+        REQUIRED_PROTOCOL_VERSIONS.into_iter().collect();
+    json!({
+        "schema": "focusa.compatibility_lock.v1",
+        "focusa_runtime": env!("CARGO_PKG_VERSION"),
+        "focusa_api": "1.0.0",
+        "operation_registry": "1.0.0",
+        "tool_result": "1.0.0",
+        "event_stream": "1.0.0",
+        "a2ui_protocol": "0.9.1",
+        "a2ui_catalog": "0.0.0",
+        "ag_ui_adapter": "0.0.0",
+        "pi_runtime": env!("CARGO_PKG_VERSION"),
+        "uiai_engine": "external",
+        "uiai_focusa_client": "0.0.0",
+        "docling": "external",
+        "embedding_profile": "project-configured",
+        "domain_pack_versions": [],
+        "minimum_reader_versions": minimum_reader_versions,
+        "minimum_writer_versions": {
+            "focusa_api": "1.0.0",
+            "operation_registry": "1.0.0",
+            "tool_result": "1.0.0",
+            "event_stream": "1.0.0"
+        }
+    })
+}
+
+fn handshake_mismatches(request: &ProtocolHandshakeRequest) -> Vec<Value> {
+    REQUIRED_PROTOCOL_VERSIONS
+        .iter()
+        .filter_map(|(component, required)| {
+            let actual = request.client_versions.get(*component).map(String::as_str);
+            (actual != Some(*required)).then(|| {
+                json!({
+                    "component": component,
+                    "required": required,
+                    "actual": actual,
+                    "upgrade_action": format!("upgrade {component} support to {required}"),
+                })
+            })
+        })
+        .collect()
+}
+
+async fn compatibility_lock_handler() -> Json<Value> {
+    Json(compatibility_lock_document())
+}
+
+async fn protocol_handshake_handler(
+    State(state): State<Arc<AppState>>,
+    Query(scope): Query<UiProjectionQuery>,
+    headers: HeaderMap,
+    Json(request): Json<ProtocolHandshakeRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if let Some(error) = projection_scope_error(&scope) {
+        return Err(projection_scope_rejection(error));
+    }
+    let permissions = permission_context(&headers, state.config.auth_token.is_some());
+    if !permissions.allows("project:read") {
+        let mut result = ToolResultV1::failure(
+            ToolStatus::Blocked,
+            FailureClass::PermissionDenied,
+            "Protocol handshake requires project:read",
+        )
+        .with_recovery(
+            "Request project:read for this exact project and workstream",
+            "Do not reuse permission state from another scope",
+            ["focusa_tool_doctor", "focusa_project_verify"],
+        );
+        result.raw = Some(json!({
+            "project_root": scope.project_root,
+            "continuity_id": scope.continuity_id,
+            "required_permission": "project:read",
+        }));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::to_value(result).unwrap_or_default()),
+        ));
+    }
+
+    let mismatches = handshake_mismatches(&request);
+    if !mismatches.is_empty() {
+        let mut result = ToolResultV1::failure(
+            ToolStatus::Blocked,
+            FailureClass::StaleRuntimeRegistry,
+            "Protocol handshake blocked by incompatible or missing component versions",
+        )
+        .with_recovery(
+            "Upgrade every listed component, then repeat the startup handshake",
+            "Silent compatibility guessing and partial startup are forbidden",
+            ["focusa_tool_doctor", "focusa_project_identity"],
+        );
+        result.raw = Some(json!({
+            "client_id": request.client_id,
+            "compatible": false,
+            "mismatches": mismatches,
+            "safe_state_retained": true,
+            "compatibility_lock": compatibility_lock_document(),
+        }));
+        return Err((
+            StatusCode::CONFLICT,
+            Json(serde_json::to_value(result).unwrap_or_default()),
+        ));
+    }
+
+    let capability_snapshot = ui_capability_snapshot_document(&scope, &permissions);
+    Ok(Json(json!({
+        "schema": "focusa.protocol_handshake.response.v1",
+        "status": "accepted",
+        "compatible": true,
+        "client_id": request.client_id,
+        "project_root": scope.project_root,
+        "continuity_id": scope.continuity_id,
+        "requested_capabilities": request.requested_capabilities,
+        "server_versions": REQUIRED_PROTOCOL_VERSIONS.into_iter().collect::<std::collections::BTreeMap<_, _>>(),
+        "capability_snapshot": capability_snapshot,
+        "compatibility_lock": compatibility_lock_document(),
+        "safe_state_retained": true,
+    })))
 }
 
 const JSON_SCHEMA_DIALECT_2020_12: &str = "https://json-schema.org/draft/2020-12/schema";
@@ -1623,6 +1916,79 @@ fn registered_schema_ids() -> std::collections::BTreeSet<&'static str> {
 }
 
 fn json_schema_document(schema_id: &str) -> Value {
+    if schema_id == "focusa.protocol_handshake.request.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"),
+            "title": "Focusa Protocol Handshake Request v1",
+            "type": "object",
+            "required": ["client_id", "client_versions"],
+            "properties": {
+                "client_id": {"type": "string", "minLength": 1},
+                "client_versions": {"type": "object", "additionalProperties": {"type": "string"}},
+                "requested_capabilities": {"type": "array", "items": {"type": "string"}}
+            },
+            "additionalProperties": false,
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "ProtocolHandshakeRequest"
+        });
+    }
+    if schema_id == "focusa.protocol_handshake.response.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"),
+            "title": "Focusa Protocol Handshake Response v1",
+            "type": "object",
+            "required": ["schema", "status", "compatible", "client_id", "project_root", "continuity_id", "server_versions", "capability_snapshot", "compatibility_lock", "safe_state_retained"],
+            "properties": {
+                "schema": {"type": "string", "enum": ["focusa.protocol_handshake.response.v1"]},
+                "status": {"type": "string", "enum": ["accepted"]},
+                "compatible": {"type": "boolean", "enum": [true]},
+                "client_id": {"type": "string"},
+                "project_root": {"type": "string"},
+                "continuity_id": {"type": "string"},
+                "requested_capabilities": {"type": "array", "items": {"type": "string"}},
+                "server_versions": {"type": "object", "additionalProperties": {"type": "string"}},
+                "capability_snapshot": {"type": "object"},
+                "compatibility_lock": {"type": "object"},
+                "safe_state_retained": {"type": "boolean"}
+            },
+            "additionalProperties": false,
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "protocol_handshake_handler"
+        });
+    }
+    if schema_id == "focusa.compatibility_lock.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"),
+            "title": "Focusa Compatibility Lock v1",
+            "type": "object",
+            "required": ["schema", "focusa_runtime", "focusa_api", "operation_registry", "tool_result", "event_stream", "a2ui_protocol", "minimum_reader_versions", "minimum_writer_versions"],
+            "properties": {
+                "schema": {"type": "string", "enum": ["focusa.compatibility_lock.v1"]},
+                "focusa_runtime": {"type": "string"},
+                "focusa_api": {"type": "string"},
+                "operation_registry": {"type": "string"},
+                "tool_result": {"type": "string"},
+                "event_stream": {"type": "string"},
+                "a2ui_protocol": {"type": "string"},
+                "a2ui_catalog": {"type": "string"},
+                "ag_ui_adapter": {"type": "string"},
+                "pi_runtime": {"type": "string"},
+                "uiai_engine": {"type": "string"},
+                "uiai_focusa_client": {"type": "string"},
+                "docling": {"type": "string"},
+                "embedding_profile": {"type": "string"},
+                "domain_pack_versions": {"type": "array", "items": {"type": "string"}},
+                "minimum_reader_versions": {"type": "object", "additionalProperties": {"type": "string"}},
+                "minimum_writer_versions": {"type": "object", "additionalProperties": {"type": "string"}}
+            },
+            "additionalProperties": false,
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "compatibility_lock_document"
+        });
+    }
     if schema_id == "focusa.stream_event.v1" {
         return json!({
             "$schema": JSON_SCHEMA_DIALECT_2020_12,
@@ -1934,6 +2300,11 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/v1/agent/tools", get(capabilities_index_handler))
         .route("/v1/agent/operations", get(operation_registry_handler))
         .route(
+            "/v1/agent/compatibility-lock",
+            get(compatibility_lock_handler),
+        )
+        .route("/v1/agent/handshake", post(protocol_handshake_handler))
+        .route(
             "/v1/agent/ui-action-bindings",
             get(ui_action_bindings_handler),
         )
@@ -2166,7 +2537,8 @@ mod tests {
             ));
         }
 
-        let snapshot = ui_capability_snapshot_document(&scope);
+        let permissions = permission_context(&HeaderMap::new(), false);
+        let snapshot = ui_capability_snapshot_document(&scope, &permissions);
         assert_eq!(snapshot["schema"], "focusa.ui_capability_snapshot.v1");
         assert_eq!(snapshot["project_root"], "/tmp/project");
         assert!(
@@ -2174,6 +2546,55 @@ mod tests {
                 .as_array()
                 .is_some_and(|items| !items.is_empty())
         );
+
+        let restricted = permission_context(&HeaderMap::new(), true);
+        let restricted_snapshot = ui_capability_snapshot_document(&scope, &restricted);
+        assert!(
+            restricted_snapshot["permissions"]["missing_scopes"]
+                .as_array()
+                .is_some_and(|scopes| scopes.iter().any(|scope| scope == "project:read"))
+        );
+        assert!(
+            restricted_snapshot["capabilities"]
+                .as_array()
+                .is_some_and(|items| items.iter().any(|item| {
+                    item["capability_id"] == "project" && item["status"] == "approval_required"
+                }))
+        );
+    }
+
+    #[test]
+    fn protocol_handshake_is_fail_closed_and_compatibility_lock_is_complete() {
+        let mut request = ProtocolHandshakeRequest {
+            client_id: "test-client".to_string(),
+            client_versions: REQUIRED_PROTOCOL_VERSIONS
+                .into_iter()
+                .map(|(key, value)| (key.to_string(), value.to_string()))
+                .collect(),
+            requested_capabilities: vec!["project".to_string()],
+        };
+        assert!(handshake_mismatches(&request).is_empty());
+        request.client_versions.remove("event_stream");
+        let mismatches = handshake_mismatches(&request);
+        assert_eq!(mismatches.len(), 1);
+        assert_eq!(mismatches[0]["component"], "event_stream");
+        assert_eq!(mismatches[0]["required"], "1.0.0");
+
+        let lock = compatibility_lock_document();
+        assert_eq!(lock["schema"], "focusa.compatibility_lock.v1");
+        for component in [
+            "focusa_runtime",
+            "focusa_api",
+            "operation_registry",
+            "tool_result",
+            "event_stream",
+            "a2ui_protocol",
+            "minimum_reader_versions",
+            "minimum_writer_versions",
+        ] {
+            assert!(lock.get(component).is_some(), "missing {component}");
+        }
+        assert!(projection_scope_error(&UiProjectionQuery::default()).is_some());
     }
 
     fn ids_contains(id: &str) -> bool {

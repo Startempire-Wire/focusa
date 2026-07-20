@@ -1,0 +1,85 @@
+{
+  "$id": "/v1/agent/schemas/focusa.compatibility_lock.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "a2ui_catalog": {
+      "type": "string"
+    },
+    "a2ui_protocol": {
+      "type": "string"
+    },
+    "ag_ui_adapter": {
+      "type": "string"
+    },
+    "docling": {
+      "type": "string"
+    },
+    "domain_pack_versions": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "embedding_profile": {
+      "type": "string"
+    },
+    "event_stream": {
+      "type": "string"
+    },
+    "focusa_api": {
+      "type": "string"
+    },
+    "focusa_runtime": {
+      "type": "string"
+    },
+    "minimum_reader_versions": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "minimum_writer_versions": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "operation_registry": {
+      "type": "string"
+    },
+    "pi_runtime": {
+      "type": "string"
+    },
+    "schema": {
+      "enum": [
+        "focusa.compatibility_lock.v1"
+      ],
+      "type": "string"
+    },
+    "tool_result": {
+      "type": "string"
+    },
+    "uiai_engine": {
+      "type": "string"
+    },
+    "uiai_focusa_client": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "focusa_runtime",
+    "focusa_api",
+    "operation_registry",
+    "tool_result",
+    "event_stream",
+    "a2ui_protocol",
+    "minimum_reader_versions",
+    "minimum_writer_versions"
+  ],
+  "title": "Focusa Compatibility Lock v1",
+  "type": "object",
+  "x-focusa-generated-from": "compatibility_lock_document",
+  "x-focusa-schema-id": "focusa.compatibility_lock.v1"
+}

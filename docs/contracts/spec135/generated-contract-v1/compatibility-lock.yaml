@@ -1,0 +1,31 @@
+{
+  "a2ui_catalog": "0.0.0",
+  "a2ui_protocol": "0.9.1",
+  "ag_ui_adapter": "0.0.0",
+  "docling": "external",
+  "domain_pack_versions": [],
+  "embedding_profile": "project-configured",
+  "event_stream": "1.0.0",
+  "focusa_api": "1.0.0",
+  "focusa_runtime": "0.9.120-dev",
+  "minimum_reader_versions": {
+    "event_stream": "1.0.0",
+    "focusa_api": "1.0.0",
+    "json_schema": "2020-12",
+    "openapi": "3.0.3",
+    "operation_registry": "1.0.0",
+    "tool_result": "1.0.0"
+  },
+  "minimum_writer_versions": {
+    "event_stream": "1.0.0",
+    "focusa_api": "1.0.0",
+    "operation_registry": "1.0.0",
+    "tool_result": "1.0.0"
+  },
+  "operation_registry": "1.0.0",
+  "pi_runtime": "0.9.120-dev",
+  "schema": "focusa.compatibility_lock.v1",
+  "tool_result": "1.0.0",
+  "uiai_engine": "external",
+  "uiai_focusa_client": "0.0.0"
+}

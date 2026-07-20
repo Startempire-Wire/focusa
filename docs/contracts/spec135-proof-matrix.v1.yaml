@@ -195,7 +195,7 @@
         "Permission projection is scope exact"
       ],
       "bead_id": "focusa-mc-f7",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "capability matrix test",
         "handshake compatibility test"
