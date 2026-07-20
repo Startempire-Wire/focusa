@@ -9,6 +9,8 @@ Use the existing canonical UXP/UFI system. Do not create a simple mode, expert m
 
 ## 2. Safe baseline
 
+Apply this safe baseline before calibration exists:
+
 Before calibration exists, render:
 
 ```text

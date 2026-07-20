@@ -145,6 +145,7 @@ Compliance
 
 Forbidden:
 
+- Do not add Playwright to Focusa; UIAI Engine Eval owns all browser proof.
 - Playwright in Focusa;
 - a complete custom Svelte A2UI renderer;
 - AG-UI as canonical state or an Alpha blocker;

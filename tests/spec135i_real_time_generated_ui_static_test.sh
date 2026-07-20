@@ -94,6 +94,7 @@ if ((${#MANIFEST_FILES[@]})) && rg -n "(@playwright/test|playwright-core|(^|[\"'
 fi
 
 if rg -n --glob '!*.md' --glob '!spec135i_real_time_generated_ui_static_test.sh' \
+  --glob '!spec135_delivery_contract_regression_static_test.sh' \
   "(from[[:space:]]+[\"'][^\"']*playwright|require\\([\"']playwright|@playwright/test)" \
   "$ROOT_DIR/apps" "$ROOT_DIR/packages" "$ROOT_DIR/crates" "$ROOT_DIR/scripts" "$ROOT_DIR/tests" 2>/dev/null; then
   fail "Playwright import or executable test usage exists in Focusa source"

@@ -32,6 +32,8 @@ Do not claim completion from stubs, schemas, mocks, static cards, or backend-onl
 
 Execution ordering does not divide requirements into “real now” and “maybe later.”
 
+Surface ownership remains explicit: **Focusa Mission Canvas** is the canonical Focusa work surface, while **UIAI Engine Cockpit** remains the rich browser execution, diagnostics, artifact, and Eval shell. Neither surface creates competing canonical state or assumes the other product’s ownership.
+
 ---
 
 ## 2. Sequencing and blocking
