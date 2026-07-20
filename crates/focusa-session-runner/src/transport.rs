@@ -165,6 +165,12 @@ impl AuthenticatedLocalStream {
         now: DateTime<Utc>,
     ) -> Result<RunnerProtocolMessage, TransportError> {
         let frame = self.receive_frame().await?;
+        if frame.sender.uid != self.peer.uid {
+            return Err(TransportError::PeerActorUidMismatch {
+                peer_uid: self.peer.uid,
+                actor_uid: frame.sender.uid,
+            });
+        }
         verifier
             .verify(&frame, now)
             .map_err(TransportError::ProtocolAuthentication)
@@ -265,6 +271,8 @@ pub enum TransportError {
     SocketSymlinkRejected(PathBuf),
     #[error("runner socket peer UID is not authorized: {0}")]
     PeerUidDenied(u32),
+    #[error("authenticated runner actor UID {actor_uid} does not match kernel peer UID {peer_uid}")]
+    PeerActorUidMismatch { peer_uid: u32, actor_uid: u32 },
     #[error("runner protocol frame is too large: {0} bytes")]
     FrameTooLarge(usize),
     #[error("runner protocol frame is not valid JSON")]
@@ -476,6 +484,60 @@ mod tests {
             Err(TransportError::ProtocolAuthentication(
                 ProtocolError::PayloadDigestMismatch
             ))
+        );
+    }
+
+    #[tokio::test]
+    async fn signed_actor_uid_must_match_kernel_peer_uid() {
+        let fixture = SocketFixture::new();
+        let current = OsIdentity::current().expect("current user should resolve");
+        let listener =
+            LocalSocketListener::bind(&fixture.path, current.uid, BTreeSet::from([current.uid]))
+                .await
+                .expect("private socket should bind");
+        let socket_path = listener.socket_path().to_path_buf();
+        let mut forged_actor = runner_actor(&current);
+        forged_actor.uid = current.uid.wrapping_add(1);
+        let signer = ProtocolSigner::new(forged_actor.clone(), SigningKey::from_bytes(&[33; 32]));
+        let frame = signer
+            .sign(
+                "daemon:test",
+                "nonce:wrong-peer-uid",
+                Utc::now(),
+                Utc::now() + Duration::seconds(30),
+                RunnerProtocolMessage::Heartbeat(RunnerHeartbeat {
+                    runner_id: forged_actor.actor_id.clone(),
+                    os_user: forged_actor.os_user.clone(),
+                    uid: forged_actor.uid,
+                    sequence: 1,
+                    observed_at: Utc::now(),
+                    active_runs: vec![],
+                }),
+            )
+            .expect("internally consistent forged actor should sign");
+        let verifying_key = signer.verifying_key();
+        let server = tokio::spawn(async move {
+            let mut connection = listener.accept().await.expect("peer UID should pass");
+            let mut verifier = ProtocolVerifier::new(forged_actor, "daemon:test", verifying_key);
+            connection
+                .receive_authenticated(&mut verifier, Utc::now())
+                .await
+        });
+
+        let mut client =
+            AuthenticatedLocalStream::connect(socket_path, BTreeSet::from([current.uid]))
+                .await
+                .expect("server UID should pass");
+        client
+            .send_frame(&frame)
+            .await
+            .expect("forged frame should reach transport binding check");
+        assert_eq!(
+            server.await.expect("server task should finish"),
+            Err(TransportError::PeerActorUidMismatch {
+                peer_uid: current.uid,
+                actor_uid: current.uid.wrapping_add(1),
+            })
         );
     }
 
