@@ -117,4 +117,6 @@ Bounded evidence/receipt/export CLI landed in `5ff94dad`. Three E2E tests cover 
 
 Retention safety landed in `0adca1c4`; 5/5 E2E tests prove hold/delete/purge approvals, previews, confirmations, forensics scope and lifecycle separation. Claim `claim_bd_019f7e01e3497d42` reconciled `.3.5.6`.
 
+Doctor landed in `6ff9c570` with 3/3 E2E tests and claim `claim_bd_019f7e2b20ef7922`. Aggregate CLI claim `claim_bd_019f7e320d9975c1`, Phase 2 gate claim `claim_bd_019f7e4a485a73a3`, and parent claim `claim_bd_019f7e4ba4e970a1` close Spec133 Phase 2. Final proof: 376 core tests, 14 API tests, full CLI test suite, and strict core clippy.
+
 Transactional config CLI controls and profile/preset catalogs landed in `f794cd01`. Three E2E tests prove resolve/diff/apply/rollback route mapping, exact revision/hash CAS conflict reporting, field provenance, recursive secret redaction, and human/JSON parity; `focusa-a6yq6.3.5.4` closed with stable proof at `crates/focusa-cli/tests/silent_config_parity_e2e.rs`.
