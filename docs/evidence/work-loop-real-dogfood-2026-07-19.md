@@ -113,4 +113,6 @@ Interactive CLI controls landed in `f98f7651`. Four E2E tests prove exact reques
 
 Transactional CLI config controls landed in `f794cd01` with proof `0bc8690f`. Three E2E tests cover CAS, provenance, redaction and human/JSON parity; claim `claim_bd_019f7d5caa3f7010` reconciled `.3.5.4`.
 
+Bounded evidence/receipt/export CLI landed in `5ff94dad`. Three E2E tests cover exact-run refs, bounds, redaction, cross-run denial and parity; claim `claim_bd_019f7da778e17580` reconciled `.3.5.5`.
+
 Transactional config CLI controls and profile/preset catalogs landed in `f794cd01`. Three E2E tests prove resolve/diff/apply/rollback route mapping, exact revision/hash CAS conflict reporting, field provenance, recursive secret redaction, and human/JSON parity; `focusa-a6yq6.3.5.4` closed with stable proof at `crates/focusa-cli/tests/silent_config_parity_e2e.rs`.
