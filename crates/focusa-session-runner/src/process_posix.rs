@@ -555,12 +555,12 @@ mod tests {
 
     async fn wait_for_file(path: &Path) {
         for _ in 0..100 {
-            if path.exists() {
+            if fs::read_to_string(path).is_ok_and(|contents| contents.lines().count() >= 2) {
                 return;
             }
             sleep(TokioDuration::from_millis(10)).await;
         }
-        panic!("runner child did not create {}", path.display());
+        panic!("runner child did not finish writing {}", path.display());
     }
 
     #[tokio::test]

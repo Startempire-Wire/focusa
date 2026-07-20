@@ -5,6 +5,8 @@
 
 pub mod identity;
 #[cfg(unix)]
+pub mod mutation_posix;
+#[cfg(unix)]
 pub mod process_posix;
 pub mod protocol;
 #[cfg(unix)]
