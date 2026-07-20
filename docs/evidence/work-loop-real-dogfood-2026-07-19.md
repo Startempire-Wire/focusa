@@ -119,4 +119,6 @@ Retention safety landed in `0adca1c4`; 5/5 E2E tests prove hold/delete/purge app
 
 Doctor landed in `6ff9c570` with 3/3 E2E tests and claim `claim_bd_019f7e2b20ef7922`. Aggregate CLI claim `claim_bd_019f7e320d9975c1`, Phase 2 gate claim `claim_bd_019f7e4a485a73a3`, and parent claim `claim_bd_019f7e4ba4e970a1` close Spec133 Phase 2. Final proof: 376 core tests, 14 API tests, full CLI test suite, and strict core clippy.
 
+Protected runner `.4.1` landed across `e4674ff0` through `4e9b6d10`: authenticated peer-UID-bound protocol, owner identity, private transport, owned POSIX trees, signed live heartbeat/adoption, embedded execution, and safe owner mutations. 24 unit tests, one real process E2E, and strict clippy passed; claim `claim_bd_019f7ead95f77881` reconciled closure.
+
 Transactional config CLI controls and profile/preset catalogs landed in `f794cd01`. Three E2E tests prove resolve/diff/apply/rollback route mapping, exact revision/hash CAS conflict reporting, field provenance, recursive secret redaction, and human/JSON parity; `focusa-a6yq6.3.5.4` closed with stable proof at `crates/focusa-cli/tests/silent_config_parity_e2e.rs`.
