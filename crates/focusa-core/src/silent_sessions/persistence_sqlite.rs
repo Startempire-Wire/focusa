@@ -8,7 +8,7 @@ use sha2::{Digest, Sha256};
 
 use crate::runtime::persistence_sqlite::SqlitePersistence;
 
-use super::{SilentSession, SilentSessionConfigRevision, SilentSessionEvent};
+use super::{SilentSession, SilentSessionConfigRevision, SilentSessionEvent, SilentSessionRun};
 
 pub const SILENT_SESSION_DB_SCHEMA_VERSION: i64 = 3;
 
@@ -309,7 +309,7 @@ pub fn append_reducer_event_and_project(
     event: &mut SilentSessionEvent,
     projection: &SilentSession,
 ) -> anyhow::Result<AppendOutcome> {
-    append_event_projection_and_revision(persistence, event, projection, None)
+    append_event_projection_and_revision(persistence, event, projection, None, None)
 }
 
 pub fn append_create_event_and_project(
@@ -317,13 +317,21 @@ pub fn append_create_event_and_project(
     event: &mut SilentSessionEvent,
     projection: &SilentSession,
     revision: &SilentSessionConfigRevision,
+    run: &SilentSessionRun,
 ) -> anyhow::Result<AppendOutcome> {
     if revision.silent_session_id != projection.id
         || projection.active_config_revision_id != revision.id
     {
         anyhow::bail!("config revision does not match the created session projection");
     }
-    append_event_projection_and_revision(persistence, event, projection, Some(revision))
+    if run.silent_session_id != projection.id
+        || run.config_revision_id != revision.id
+        || run.generation != projection.current_run_generation
+        || event.run_id != Some(run.id)
+    {
+        anyhow::bail!("initial run does not match the created session projection");
+    }
+    append_event_projection_and_revision(persistence, event, projection, Some(revision), Some(run))
 }
 
 fn append_event_projection_and_revision(
@@ -331,6 +339,7 @@ fn append_event_projection_and_revision(
     event: &mut SilentSessionEvent,
     projection: &SilentSession,
     revision: Option<&SilentSessionConfigRevision>,
+    run: Option<&SilentSessionRun>,
 ) -> anyhow::Result<AppendOutcome> {
     if event.silent_session_id != projection.id {
         anyhow::bail!("event and projection silent_session_id mismatch");
@@ -396,6 +405,25 @@ fn append_event_projection_and_revision(
                     revision.redacted_config_hash,
                     revision.created_by.to_string(),
                     revision.created_at.to_rfc3339(),
+                ],
+            )?;
+        }
+        if let Some(run) = run {
+            transaction.execute(
+                r#"INSERT INTO silent_session_runs(
+                   run_id,silent_session_id,run_generation,actor_instance_id,config_revision_id,
+                   protocol_versions_json,run_json,started_at,ended_at
+                   ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)"#,
+                params![
+                    run.id.to_string(),
+                    run.silent_session_id.to_string(),
+                    run.generation.get(),
+                    run.actor_instance_id.to_string(),
+                    run.config_revision_id.to_string(),
+                    serde_json::to_string(&run.protocol_versions)?,
+                    serde_json::to_string(run)?,
+                    run.started_at.to_rfc3339(),
+                    run.ended_at.map(|value| value.to_rfc3339()),
                 ],
             )?;
         }

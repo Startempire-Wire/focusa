@@ -4,11 +4,12 @@ use axum::{Json, extract::State, http::HeaderMap, http::StatusCode};
 use chrono::Utc;
 use focusa_core::silent_sessions::{
     ActorInstanceId, AppendOutcome, AuthorizationTarget, ConfigLayer, ConfigRevisionId,
-    ContextAuthorityVerdict, EVENT_SCHEMA_VERSION, SilentSession, SilentSessionAction,
-    SilentSessionAuthority, SilentSessionAuthorizationRequest, SilentSessionConfig,
-    SilentSessionConfigRevision, SilentSessionEvent, SilentSessionEventId, VerifiedAuthorityFacts,
-    append_create_event_and_project, authorize_silent_session_action,
-    load_session_by_idempotency_key, resolve_silent_session_config,
+    ContextAuthorityVerdict, EVENT_SCHEMA_VERSION, ProtocolVersions, SilentSession,
+    SilentSessionAction, SilentSessionAuthority, SilentSessionAuthorizationRequest,
+    SilentSessionConfig, SilentSessionConfigRevision, SilentSessionEvent, SilentSessionEventId,
+    SilentSessionRun, SilentSessionRunId, VerifiedAuthorityFacts, append_create_event_and_project,
+    authorize_silent_session_action, load_session_by_idempotency_key,
+    resolve_silent_session_config,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -105,7 +106,12 @@ pub(super) async fn create(
             }
             let mut envelope = SilentSessionApiEnvelope::canonical(
                 "replayed",
-                json!({"session": session, "idempotent_replay": true}),
+                json!({
+                    "session": session,
+                    "run_id": payload.get("run_id"),
+                    "run_generation": payload.get("run_generation"),
+                    "idempotent_replay": true
+                }),
             );
             principal_side_effect(&mut envelope, &principal);
             envelope.side_effects.push(ApiSideEffect {
@@ -172,16 +178,29 @@ pub(super) async fn create(
         created_by: actor,
         created_at: now,
     };
+    let run = SilentSessionRun {
+        silent_session_schema_version: 1,
+        id: SilentSessionRunId::new(),
+        silent_session_id: session.id,
+        generation: session.current_run_generation,
+        actor_instance_id: actor,
+        config_revision_id: revision.id,
+        protocol_versions: ProtocolVersions::default(),
+        started_at: now,
+        ended_at: None,
+    };
     let mut event = SilentSessionEvent {
         event_schema_version: EVENT_SCHEMA_VERSION,
         id: SilentSessionEventId::new(),
         silent_session_id: session.id,
-        run_id: None,
+        run_id: Some(run.id),
         sequence: 1,
         kind: "session_drafted".into(),
         payload: json!({
             "request_hash": request_hash,
             "config_revision_id": revision.id,
+            "run_id": run.id,
+            "run_generation": run.generation,
             "creator_principal_id": session.creator_principal_id,
         }),
         idempotency_key: idempotency_key.into(),
@@ -194,6 +213,7 @@ pub(super) async fn create(
         &mut event,
         &session,
         &revision,
+        &run,
     ) {
         Ok(outcome) => outcome,
         Err(error) => {
@@ -205,6 +225,7 @@ pub(super) async fn create(
         json!({
             "session": session,
             "config_revision_id": revision.id,
+            "run": run,
             "redacted_config_hash": revision.redacted_config_hash,
             "event_id": event.id,
             "idempotent_replay": outcome == AppendOutcome::Replayed,
@@ -216,6 +237,11 @@ pub(super) async fn create(
             effect: "silent_session_projection".into(),
             status: "created".into(),
             target_ref: Some(session.id.to_string()),
+        },
+        ApiSideEffect {
+            effect: "initial_run".into(),
+            status: "created".into(),
+            target_ref: Some(run.id.to_string()),
         },
         ApiSideEffect {
             effect: "config_revision".into(),

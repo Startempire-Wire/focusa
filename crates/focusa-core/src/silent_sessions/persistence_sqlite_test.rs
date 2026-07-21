@@ -265,9 +265,22 @@ fn create_projection_revision_and_event_commit_atomically() {
         created_by: ActorInstanceId::new(),
         created_at: projection.created_at,
     };
+    let run = SilentSessionRun {
+        silent_session_schema_version: 1,
+        id: SilentSessionRunId::new(),
+        silent_session_id: projection.id,
+        generation: projection.current_run_generation,
+        actor_instance_id: revision.created_by,
+        config_revision_id: revision.id,
+        protocol_versions: ProtocolVersions::default(),
+        started_at: projection.created_at,
+        ended_at: None,
+    };
     let mut first = event(&projection, 1, None);
+    first.run_id = Some(run.id);
     assert_eq!(
-        append_create_event_and_project(&persistence, &mut first, &projection, &revision).unwrap(),
+        append_create_event_and_project(&persistence, &mut first, &projection, &revision, &run,)
+            .unwrap(),
         AppendOutcome::Appended
     );
     assert_eq!(
@@ -278,6 +291,7 @@ fn create_projection_revision_and_event_commit_atomically() {
         load_config_revision(&persistence, revision.id).unwrap(),
         Some(revision)
     );
+    assert_eq!(load_run(&persistence, run.id).unwrap(), Some(run));
     assert_eq!(
         load_session_by_idempotency_key(&persistence, &first.idempotency_key)
             .unwrap()
@@ -296,14 +310,27 @@ fn create_projection_revision_and_event_commit_atomically() {
         created_by: ActorInstanceId::new(),
         created_at: rejected.created_at,
     };
+    let rejected_run = SilentSessionRun {
+        silent_session_schema_version: 1,
+        id: SilentSessionRunId::new(),
+        silent_session_id: rejected.id,
+        generation: rejected.current_run_generation,
+        actor_instance_id: rejected_revision.created_by,
+        config_revision_id: rejected_revision.id,
+        protocol_versions: ProtocolVersions::default(),
+        started_at: rejected.created_at,
+        ended_at: None,
+    };
     let mut invalid_event = event(&rejected, 1, None);
     invalid_event.id = first.id;
+    invalid_event.run_id = Some(rejected_run.id);
     assert!(
         append_create_event_and_project(
             &persistence,
             &mut invalid_event,
             &rejected,
             &rejected_revision,
+            &rejected_run,
         )
         .is_err()
     );
@@ -312,6 +339,7 @@ fn create_projection_revision_and_event_commit_atomically() {
         load_config_revision(&persistence, rejected_revision.id).unwrap(),
         None
     );
+    assert_eq!(load_run(&persistence, rejected_run.id).unwrap(), None);
 }
 
 #[test]
