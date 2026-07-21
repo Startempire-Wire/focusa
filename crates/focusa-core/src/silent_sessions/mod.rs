@@ -5,6 +5,7 @@
 
 pub mod completion_artifacts;
 pub mod config;
+pub mod config_resolution;
 pub mod event_protocol;
 pub mod identity;
 pub mod legacy_import;
@@ -20,6 +21,7 @@ pub mod types;
 
 pub use completion_artifacts::*;
 pub use config::*;
+pub use config_resolution::*;
 pub use event_protocol::*;
 pub use identity::*;
 pub use legacy_import::*;
@@ -32,6 +34,8 @@ pub use stream_rotation::*;
 pub use stream_storage::*;
 pub use types::*;
 
+#[cfg(test)]
+mod config_resolution_test;
 #[cfg(test)]
 mod legacy_import_test;
 #[cfg(test)]
