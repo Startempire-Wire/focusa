@@ -47,3 +47,8 @@ invalidation over durable reconnectable SSE: exact five-dimensional scope
 filtering, source-revision-aware refetch, missed-event replay, duplicate
 tolerance, polling-only fallback, unrelated Work Surface suppression, generated
 UI, and desktop/mobile UIAI Eval evidence.
+
+`spec135-alpha1-context-ingestion-proof.json` closes the first cross-functional
+merge gate by composing the C1→C3 and U1→U2 feeder evidence: real Markdown,
+code, and PDF ingestion; cited retrieval; governed claims; rich rendering;
+restart safety; and targeted live refresh.
