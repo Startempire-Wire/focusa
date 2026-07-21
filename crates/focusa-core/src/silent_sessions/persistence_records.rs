@@ -26,6 +26,27 @@ pub fn load_session(
     })
 }
 
+pub fn list_sessions(persistence: &SqlitePersistence) -> anyhow::Result<Vec<SilentSession>> {
+    persistence.with_connection_mut(|connection| {
+        let mut statement = connection.prepare(
+            "SELECT snapshot_json FROM silent_sessions ORDER BY updated_at DESC, silent_session_id",
+        )?;
+        let rows = statement.query_map([], |row| row.get::<_, String>(0))?;
+        rows.map(|row| {
+            let json = row?;
+            serde_json::from_str(&json).map_err(|error| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    0,
+                    rusqlite::types::Type::Text,
+                    Box::new(error),
+                )
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(Into::into)
+    })
+}
+
 pub fn load_session_events(
     persistence: &SqlitePersistence,
     id: SilentSessionId,
