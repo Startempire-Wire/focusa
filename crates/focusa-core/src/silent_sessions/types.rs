@@ -70,6 +70,14 @@ pub struct SilentSession {
     pub silent_session_schema_version: u32,
     pub id: SilentSessionId,
     pub authority: SilentSessionAuthority,
+    /// Immutable authenticated principal that created the session.
+    /// Empty only for legacy projections; authorization treats empty as unknown/fail-closed.
+    #[serde(default)]
+    pub creator_principal_id: String,
+    /// Immutable operating-system account that owns the local runtime process.
+    /// Empty only for legacy projections; authorization treats empty as unknown/fail-closed.
+    #[serde(default)]
+    pub owner_os_user: String,
     pub display_name: String,
     pub work_item_ref: Option<String>,
     pub mission: String,
@@ -98,6 +106,8 @@ impl SilentSession {
             silent_session_schema_version: SILENT_SESSION_SCHEMA_VERSION,
             id: SilentSessionId::new(),
             authority,
+            creator_principal_id: String::new(),
+            owner_os_user: String::new(),
             display_name,
             work_item_ref: None,
             mission,
@@ -109,6 +119,32 @@ impl SilentSession {
             created_at: now,
             updated_at: now,
         })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn draft_owned(
+        authority: SilentSessionAuthority,
+        creator_principal_id: impl Into<String>,
+        owner_os_user: impl Into<String>,
+        display_name: impl Into<String>,
+        mission: impl Into<String>,
+        active_config_revision_id: ConfigRevisionId,
+        now: DateTime<Utc>,
+    ) -> Result<Self, SilentSessionTypeError> {
+        let creator_principal_id = creator_principal_id.into();
+        let owner_os_user = owner_os_user.into();
+        require_nonempty("creator_principal_id", &creator_principal_id)?;
+        require_nonempty("owner_os_user", &owner_os_user)?;
+        let mut session = Self::draft(
+            authority,
+            display_name,
+            mission,
+            active_config_revision_id,
+            now,
+        )?;
+        session.creator_principal_id = creator_principal_id;
+        session.owner_os_user = owner_os_user;
+        Ok(session)
     }
 }
 
@@ -330,6 +366,56 @@ mod tests {
         assert_eq!(session.authority, authority);
         assert_eq!(session.lifecycle, SilentSessionLifecycle::Draft);
         assert_eq!(session.silent_session_schema_version, 1);
+    }
+
+    #[test]
+    fn owned_draft_captures_immutable_authorization_facts() {
+        let session = SilentSession::draft_owned(
+            SilentSessionAuthority::new("/repo/focusa", "cont-1").unwrap(),
+            "principal:device:mac",
+            "wirebot",
+            "proof",
+            "mission",
+            ConfigRevisionId::new(),
+            now(),
+        )
+        .unwrap();
+        assert_eq!(session.creator_principal_id, "principal:device:mac");
+        assert_eq!(session.owner_os_user, "wirebot");
+        assert!(
+            SilentSession::draft_owned(
+                SilentSessionAuthority::new("/repo/focusa", "cont-1").unwrap(),
+                "",
+                "wirebot",
+                "proof",
+                "mission",
+                ConfigRevisionId::new(),
+                now(),
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn legacy_projection_without_ownership_deserializes_fail_closed() {
+        let authority = SilentSessionAuthority::new("/repo/focusa", "cont-1").unwrap();
+        let session = SilentSession::draft(
+            authority,
+            "proof",
+            "mission",
+            ConfigRevisionId::new(),
+            now(),
+        )
+        .unwrap();
+        let mut value = serde_json::to_value(session).unwrap();
+        value
+            .as_object_mut()
+            .unwrap()
+            .remove("creator_principal_id");
+        value.as_object_mut().unwrap().remove("owner_os_user");
+        let restored: SilentSession = serde_json::from_value(value).unwrap();
+        assert!(restored.creator_principal_id.is_empty());
+        assert!(restored.owner_os_user.is_empty());
     }
 
     #[test]

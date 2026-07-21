@@ -54,6 +54,7 @@ pub mod release;
 pub mod resource;
 pub mod rfm;
 pub mod session;
+pub mod silent_sessions;
 pub mod silent_sessions_contract;
 pub mod skills;
 pub mod snapshots;

@@ -14,7 +14,7 @@ use crate::{
         SilentSessionConfig, SilentSessionConfigRevision, SilentSessionEvent, SilentSessionEventId,
         SilentSessionLease, SilentSessionLeaseId, SilentSessionRun, SilentSessionRunId,
         SilentSessionWorkpointCheckpoint, WorkpointCheckpointId, append_reducer_event_and_project,
-        load_completion_evaluation, load_config_revision, load_lease, load_run,
+        list_sessions, load_completion_evaluation, load_config_revision, load_lease, load_run,
         load_runtime_checkpoint, load_session, load_session_events, load_workpoint_checkpoint,
         migrate_silent_session_schema, save_completion_evaluation, save_config_revision,
         save_lease, save_run, save_runtime_checkpoint, save_workpoint_checkpoint,
@@ -355,6 +355,10 @@ fn all_canonical_records_save_and_reload() {
     assert_eq!(
         load_session(&persistence, projection.id).unwrap(),
         Some(projection.clone())
+    );
+    assert_eq!(
+        list_sessions(&persistence).unwrap(),
+        vec![projection.clone()]
     );
     assert_eq!(
         load_session_events(&persistence, projection.id).unwrap(),
