@@ -176,6 +176,35 @@ mod tests {
     }
 
     #[test]
+    fn bounded_generated_codec_and_cursor_properties_hold() {
+        let run_id = SilentSessionRunId::new();
+        for length in 0..=1024 {
+            let input = (0..length)
+                .map(|index| ((index * 31 + length * 17) % 251) as u8)
+                .collect::<Vec<_>>();
+            assert_eq!(decompress_chunk(&compress_chunk(&input)).unwrap(), input);
+        }
+        for sequence in [
+            0,
+            1,
+            2,
+            127,
+            128,
+            255,
+            256,
+            65_535,
+            u32::MAX as u64,
+            u64::MAX,
+        ] {
+            let cursor = StreamCursor::new(run_id, sequence);
+            assert_eq!(
+                StreamCursor::decode(&cursor.encode().unwrap()).unwrap(),
+                cursor
+            );
+        }
+    }
+
+    #[test]
     fn cursor_roundtrip_and_tamper_detection() {
         let cursor = StreamCursor::new(SilentSessionRunId::new(), 42);
         let encoded = cursor.encode().unwrap();
