@@ -29,9 +29,39 @@ vm.runInNewContext(compiled, {
   String,
   JSON,
 });
-const { attachFocusSliceToNewestUser, buildCachePrefixSnapshot, CacheSafetyMonitor } = module.exports;
+const { attachFocusSliceToNewestUser, buildCachePrefixSnapshot, CacheSafetyMonitor, normalizeCacheUsage } =
+  module.exports;
 
 const marker = "[Focusa Focus Slice — minimal applicable context]";
+
+{
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(normalizeCacheUsage({ input: 2_955, cacheRead: 2_560, cacheWrite: 0 }))),
+    {
+      inputTokens: 5_515,
+      uncachedInputTokens: 2_955,
+      cacheReadTokens: 2_560,
+      cacheWriteTokens: 0,
+    }
+  );
+  assert.deepEqual(
+    JSON.parse(
+      JSON.stringify(
+        normalizeCacheUsage({
+          inputTokens: 4_000,
+          cacheReadInputTokens: 1_000,
+          cacheCreationInputTokens: 500,
+        })
+      )
+    ),
+    {
+      inputTokens: 5_500,
+      uncachedInputTokens: 4_000,
+      cacheReadTokens: 1_000,
+      cacheWriteTokens: 500,
+    }
+  );
+}
 
 {
   const historicalUser = { role: "user", content: "old ask" };
@@ -170,6 +200,7 @@ assert.match(turnsSource, /cache_write_tokens/);
 assert.match(turnsSource, /estimated_rebilled_tokens/);
 assert.match(turnsSource, /idle_duration_ms/);
 assert.match(turnsSource, /layout_mode/);
+assert.match(turnsSource, /normalizeCacheUsage\(ev\.usage \|\| ev\.message\?\.usage\)/);
 assert.match(turnsSource, /CACHE_SAFE_DEGRADED_RETAINED_SECTIONS/);
 const retainedSectionSet = turnsSource.match(
   /const CACHE_SAFE_DEGRADED_RETAINED_SECTIONS = new Set\(\[([\s\S]*?)\]\);/

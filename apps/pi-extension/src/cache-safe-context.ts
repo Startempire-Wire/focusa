@@ -31,6 +31,28 @@ export type CacheUsageObservation = {
   observedAt?: number;
 };
 
+export type NormalizedCacheUsage = {
+  inputTokens: number;
+  uncachedInputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+};
+
+export function normalizeCacheUsage(rawUsage: any): NormalizedCacheUsage {
+  const usage = rawUsage || {};
+  const uncachedInputTokens = Number(usage.inputTokens || usage.input || usage.input_tokens || 0);
+  const cacheReadTokens = Number(usage.cacheReadInputTokens || usage.cacheRead || usage.cache_read || 0);
+  const cacheWriteTokens = Number(
+    usage.cacheCreationInputTokens || usage.cacheWrite || usage.cache_write || 0
+  );
+  return {
+    inputTokens: uncachedInputTokens + cacheReadTokens + cacheWriteTokens,
+    uncachedInputTokens,
+    cacheReadTokens,
+    cacheWriteTokens,
+  };
+}
+
 export type CacheSafetyObservation = {
   miss: boolean;
   reason: CacheMissReason;

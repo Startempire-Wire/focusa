@@ -101,6 +101,7 @@ import { buildFocusaUtilityCard } from "./awareness.js";
 import {
   attachFocusSliceToNewestUser,
   CacheSafetyMonitor,
+  normalizeCacheUsage,
   type CacheSafetyObservation,
 } from "./cache-safe-context.js";
 import { selectFocusSliceToolAffordances } from "./tool-contracts.js";
@@ -2321,13 +2322,11 @@ export function registerTurns(pi: ExtensionAPI) {
       });
     }
 
-    const usageInputTokens = Number(ev.usage?.inputTokens || ev.usage?.input || 0);
-    const usageCacheReadTokens = Number(
-      ev.usage?.cacheReadInputTokens || ev.usage?.cacheRead || ev.usage?.cache_read || 0
-    );
-    const usageCacheWriteTokens = Number(
-      ev.usage?.cacheCreationInputTokens || ev.usage?.cacheWrite || ev.usage?.cache_write || 0
-    );
+    const {
+      inputTokens: usageInputTokens,
+      cacheReadTokens: usageCacheReadTokens,
+      cacheWriteTokens: usageCacheWriteTokens,
+    } = normalizeCacheUsage(ev.usage || ev.message?.usage);
     const selectedModel = ev.model?.id || ev.message?.model?.id || ev.message?.model || ev.model || "unknown";
     const selectedProvider =
       ev.provider?.id || ev.message?.provider?.id || ev.message?.provider || ev.provider || "unknown";

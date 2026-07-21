@@ -43,7 +43,7 @@ When disabled, the extension retains the prior dynamic-system/history-prepend la
 - dynamic-slice hash and estimated tokens;
 - selected injection position;
 - provider/model, hashed session/cache key, layout mode, and idle duration;
-- input, cache-read, cache-write, and estimated re-billed tokens plus cache-read ratio;
+- normalized total input, cache-read, cache-write, and estimated re-billed tokens plus cache-read ratio; Pi `turn_end.message.usage` is normalized with top-level `turn_end.usage` compatibility;
 - typed miss reason: model change, TTL expiry, stable-system change, historical-prefix shift, compaction/branch reset, provider cache unavailable, or unknown provider miss.
 
 After two consecutive large, same-provider/same-model, sub-five-minute qualifying misses with a stable cache-read plateau or structural prefix change, `cache_safe_degraded` retains only the current ask, verified scope/conflict posture, HLT/Trajectory posture, canonical Workpoint next action and blockers, critical constraints, evidence handles, and exact tool affordances. It suppresses optional Utility Card, recent-turn/WBM prose, ontology detail, historical/decayed context, general decision/result/failure prose, and noncritical receipts. Model selection resets comparison and degraded state.
@@ -71,6 +71,8 @@ git diff --check -- apps/pi-extension
 ```
 
 The current-main integration was validated in the isolated no-space worktree `/private/tmp/focusa-spec137-publish` using the existing dependency tree; no dependency installation occurred.
+
+A bounded 2026-07-21 provider run produced seven persisted adjacent `openai-codex/gpt-5.6-sol` turns before an unrelated Pi lifecycle-settlement stall. The immutable system hash remained `126cda…b177` across all seven while every dynamic-slice hash changed. After the cold turn, provider usage reported five cache hits at 2,560 tokens and one intermittent miss (5/6, 83.3%). The run also exposed that Pi reports usage at `turn_end.message.usage`; the prior top-level-only reader emitted zero-valued cache observations. The normalization fix and regression coverage are source-verified, but require a fresh provider sequence before this evidence can be promoted to closure proof. Raw artifacts remain under `/private/tmp/spec130a-cache-proof-valid/`.
 
 ## Remaining live proof
 
