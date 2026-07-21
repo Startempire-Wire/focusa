@@ -3,12 +3,13 @@ use std::sync::Arc;
 use axum::{Json, extract::State, http::HeaderMap, http::StatusCode};
 use chrono::Utc;
 use focusa_core::silent_sessions::{
-    AuthorizationTarget, ContextAuthorityVerdict, EVENT_SCHEMA_VERSION, RunGeneration,
-    SilentSession, SilentSessionAction, SilentSessionAuthorizationRequest, SilentSessionEvent,
-    SilentSessionEventId, SilentSessionId, SilentSessionLifecycle, SilentSessionRole,
-    SilentSessionRun, SilentSessionRunId, TransitionEvidence, VerifiedAuthorityFacts,
-    append_reducer_event_and_project, authorize_silent_session_action, load_config_revision,
-    load_run, load_session, load_session_events, reduce_lifecycle,
+    ApprovalId, AuthorizationTarget, ContextAuthorityVerdict, DurableApprovalRecord,
+    EVENT_SCHEMA_VERSION, RunGeneration, SilentSession, SilentSessionAction,
+    SilentSessionAuthorizationRequest, SilentSessionEvent, SilentSessionEventId, SilentSessionId,
+    SilentSessionLifecycle, SilentSessionRole, SilentSessionRun, SilentSessionRunId,
+    TransitionEvidence, VerifiedAuthorityFacts, append_reducer_event_and_project,
+    authorize_silent_session_action, load_config_revision, load_durable_approval, load_run,
+    load_session, load_session_events, reduce_lifecycle,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -30,6 +31,8 @@ use super::{
 pub(super) struct ControlBody {
     pub run_id: SilentSessionRunId,
     pub generation: RunGeneration,
+    #[serde(default)]
+    pub approval_id: Option<ApprovalId>,
     pub idempotency_key: String,
 }
 
@@ -37,6 +40,8 @@ pub(super) struct ControlBody {
 enum ControlKind {
     Pause,
     Resume,
+    Interrupt,
+    Cancel,
 }
 
 impl ControlKind {
@@ -44,6 +49,8 @@ impl ControlKind {
         match self {
             Self::Pause => SilentSessionAction::Pause,
             Self::Resume => SilentSessionAction::Resume,
+            Self::Interrupt => SilentSessionAction::Interrupt,
+            Self::Cancel => SilentSessionAction::Cancel,
         }
     }
 
@@ -51,6 +58,8 @@ impl ControlKind {
         match self {
             Self::Pause => "pause_requested",
             Self::Resume => "resume_requested",
+            Self::Interrupt => "interrupt_requested",
+            Self::Cancel => "cancel_requested",
         }
     }
 
@@ -58,7 +67,13 @@ impl ControlKind {
         match self {
             Self::Pause => "runner_pause_request",
             Self::Resume => "runner_resume_request",
+            Self::Interrupt => "runner_interrupt_request",
+            Self::Cancel => "runner_cancel_request",
         }
+    }
+
+    fn requires_approval(self) -> bool {
+        matches!(self, Self::Interrupt | Self::Cancel)
     }
 
     fn target(self, current: SilentSessionLifecycle) -> Option<SilentSessionLifecycle> {
@@ -71,6 +86,13 @@ impl ControlKind {
             (Self::Resume, SilentSessionLifecycle::Paused) => {
                 Some(SilentSessionLifecycle::Resuming)
             }
+            (
+                Self::Interrupt | Self::Cancel,
+                SilentSessionLifecycle::Running
+                | SilentSessionLifecycle::WaitingInput
+                | SilentSessionLifecycle::Blocked
+                | SilentSessionLifecycle::Paused,
+            ) => Some(SilentSessionLifecycle::Cancelling),
             _ => None,
         }
     }
@@ -92,6 +114,24 @@ pub(super) async fn resume(
     Json(body): Json<ControlBody>,
 ) -> ApiResponse {
     control(state, headers, session_id, body, ControlKind::Resume).await
+}
+
+pub(super) async fn interrupt(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    axum::extract::Path(session_id): axum::extract::Path<SilentSessionId>,
+    Json(body): Json<ControlBody>,
+) -> ApiResponse {
+    control(state, headers, session_id, body, ControlKind::Interrupt).await
+}
+
+pub(super) async fn cancel(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    axum::extract::Path(session_id): axum::extract::Path<SilentSessionId>,
+    Json(body): Json<ControlBody>,
+) -> ApiResponse {
+    control(state, headers, session_id, body, ControlKind::Cancel).await
 }
 
 async fn control(
@@ -176,6 +216,7 @@ async fn control(
             true,
             &principal,
             kind,
+            body.approval_id,
         );
     }
     let config = match load_config_revision(&state.persistence, run.config_revision_id) {
@@ -183,7 +224,37 @@ async fn control(
         Ok(None) => return after_principal(not_found("config_revision_id"), &principal),
         Err(error) => return after_principal(persistence_failure(error), &principal),
     };
-    if let Err(response) = authorize_control(&principal, &session, &run, &config, kind) {
+    let approval = if kind.requires_approval() {
+        let Some(approval_id) = body.approval_id else {
+            return after_principal(
+                failure(
+                    StatusCode::FORBIDDEN,
+                    "approval_required",
+                    "approval_not_supplied",
+                    "Supply a durable approval bound to this exact control request.",
+                ),
+                &principal,
+            );
+        };
+        match load_durable_approval(&state.persistence, approval_id) {
+            Ok(Some(approval)) => Some(approval),
+            Ok(None) => {
+                return after_principal(
+                    failure(
+                        StatusCode::FORBIDDEN,
+                        "approval_required",
+                        "approval_not_found",
+                        "Create a durable approval matching this exact control request.",
+                    ),
+                    &principal,
+                );
+            }
+            Err(error) => return after_principal(persistence_failure(error), &principal),
+        }
+    } else {
+        None
+    };
+    if let Err(response) = authorize_control(&principal, &session, &run, &config, kind, approval) {
         return after_principal(*response, &principal);
     }
     let Some(target) = kind.target(session.lifecycle) else {
@@ -216,6 +287,7 @@ async fn control(
             "from": transition.from,
             "to": transition.to,
             "side_effect": kind.side_effect(),
+            "approval_id": body.approval_id,
         }),
         idempotency_key: body.idempotency_key,
         previous_event_hash: previous.map(|event| event.event_hash.clone()),
@@ -233,6 +305,7 @@ async fn control(
         false,
         &principal,
         kind,
+        body.approval_id,
     )
 }
 
@@ -242,6 +315,7 @@ fn authorize_control(
     run: &SilentSessionRun,
     config: &focusa_core::silent_sessions::SilentSessionConfigRevision,
     kind: ControlKind,
+    approval: Option<DurableApprovalRecord>,
 ) -> Result<(), Box<ApiResponse>> {
     let principal = &request_principal.principal;
     let administrator = principal.role == SilentSessionRole::Administrator;
@@ -284,8 +358,8 @@ fn authorize_control(
         action: kind.action(),
         target,
         authority,
-        approval: None,
-        approval_durably_verified: false,
+        approval_durably_verified: approval.is_some(),
+        approval,
         legacy_approved: false,
         requested_side_effects: vec![kind.side_effect().into()],
         now: Utc::now(),
@@ -302,6 +376,7 @@ fn authorize_control(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn success(
     code: StatusCode,
     status: &str,
@@ -310,6 +385,7 @@ fn success(
     replayed: bool,
     principal: &ApiRequestPrincipal,
     kind: ControlKind,
+    approval_id: Option<ApprovalId>,
 ) -> ApiResponse {
     let projection = authorized_projection(principal, session, SilentSessionAction::Show)
         .unwrap_or_else(|| json!({"id": session.id, "projection": "redacted_summary"}));
@@ -317,6 +393,9 @@ fn success(
         status,
         json!({"session": projection, "event_id": event_id, "idempotent_replay": replayed}),
     );
+    if let Some(approval_id) = approval_id {
+        envelope.receipt_refs.push(approval_id.to_string());
+    }
     envelope.side_effects.extend([
         ApiSideEffect {
             effect: "authorization_principal_upsert".into(),
@@ -396,5 +475,15 @@ mod tests {
             ControlKind::Resume.target(SilentSessionLifecycle::Running),
             None
         );
+        assert_eq!(
+            ControlKind::Interrupt.target(SilentSessionLifecycle::Running),
+            Some(SilentSessionLifecycle::Cancelling)
+        );
+        assert_eq!(
+            ControlKind::Cancel.target(SilentSessionLifecycle::Paused),
+            Some(SilentSessionLifecycle::Cancelling)
+        );
+        assert!(ControlKind::Interrupt.requires_approval());
+        assert!(ControlKind::Cancel.requires_approval());
     }
 }
