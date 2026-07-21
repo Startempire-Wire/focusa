@@ -70,8 +70,8 @@ pub enum StreamStorageError {
 
 #[derive(Clone)]
 pub struct SecureStreamStore {
-    root: PathBuf,
-    persistence: SqlitePersistence,
+    pub(super) root: PathBuf,
+    pub(super) persistence: SqlitePersistence,
 }
 
 impl SecureStreamStore {
@@ -246,7 +246,7 @@ impl SecureStreamStore {
         Ok(path)
     }
 
-    fn resolve_chunk_ref(&self, chunk_ref: &str) -> Result<PathBuf, StreamStorageError> {
+    pub(super) fn resolve_chunk_ref(&self, chunk_ref: &str) -> Result<PathBuf, StreamStorageError> {
         let path = self.root.join(chunk_ref);
         if !path.starts_with(&self.root) || chunk_ref.contains("..") {
             return Err(StreamStorageError::PathOutsideRoot);
@@ -284,7 +284,10 @@ impl SecureStreamStore {
         Ok(())
     }
 
-    fn insert_index(&self, manifest: &StreamChunkManifest) -> Result<(), StreamStorageError> {
+    pub(super) fn insert_index(
+        &self,
+        manifest: &StreamChunkManifest,
+    ) -> Result<(), StreamStorageError> {
         self.persistence.with_connection_mut(|connection| {
             let transaction = connection.transaction()?;
             transaction.execute(
@@ -316,7 +319,7 @@ impl SecureStreamStore {
         Ok(())
     }
 
-    fn load_index(
+    pub(super) fn load_index(
         &self,
         session_id: SilentSessionId,
         run_id: SilentSessionRunId,
