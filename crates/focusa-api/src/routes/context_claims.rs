@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{sync::Arc, time::Duration};
 
-type ApiError = (StatusCode, Json<ToolResultV1>);
+type ApiError = (StatusCode, Json<Box<ToolResultV1>>);
 const OPERATION_ID: &str = "focusa.context.graph.mutate";
 
 #[derive(Debug, Clone, Deserialize)]
@@ -103,7 +103,7 @@ fn failure(
         "focusa_context_graph_read".to_string(),
         "focusa_context_retrieve".to_string(),
     ];
-    (status, Json(result))
+    (status, Json(Box::new(result)))
 }
 
 fn required(value: Option<&str>, field: &str, max: usize) -> Result<String, ApiError> {

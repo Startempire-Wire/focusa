@@ -30,7 +30,7 @@ const MAX_CONTEXT_BYTES: usize = 64 * 1024;
 const MAX_TEXT_INGEST_BYTES: usize = 2 * 1024 * 1024;
 const MAX_PDF_INGEST_BYTES: usize = 20 * 1024 * 1024;
 
-type ApiError = (StatusCode, Json<ToolResultV1>);
+type ApiError = (StatusCode, Json<Box<ToolResultV1>>);
 
 #[derive(Debug, Deserialize)]
 pub struct ContextSourceCommitRequest {
@@ -110,7 +110,7 @@ fn failure(
         "focusa_context_sources_list".to_string(),
         "focusa_active_object_resolve".to_string(),
     ];
-    (status, Json(result))
+    (status, Json(Box::new(result)))
 }
 
 fn validate_nonempty(value: &str, field: &str, max: usize) -> Result<String, ApiError> {
@@ -431,7 +431,7 @@ fn ingest_failure(
         "focusa_context_adapter_docling_health".to_string(),
         "focusa_context_sources_list".to_string(),
     ];
-    (status, Json(result))
+    (status, Json(Box::new(result)))
 }
 
 fn ingest_success_response(
@@ -860,7 +860,7 @@ fn retrieval_failure(
         "focusa_context_sources_list".to_string(),
         "focusa_context_adapter_docling_health".to_string(),
     ];
-    (status, Json(result))
+    (status, Json(Box::new(result)))
 }
 
 async fn retrieve(
