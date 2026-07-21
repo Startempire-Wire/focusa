@@ -8,8 +8,8 @@ use crate::{
     silent_sessions::{
         CanonicalStreamEvent, ConfigRevisionId, EVENT_SCHEMA_VERSION, ObservationProvenance,
         OutputChannel, RedactionReport, SecureStreamStore, SilentSession, SilentSessionAuthority,
-        SilentSessionEvent, SilentSessionEventId, SilentSessionRunId, StreamStorageError,
-        append_reducer_event_and_project,
+        SilentSessionEvent, SilentSessionEventId, SilentSessionRunId, StreamRecoveryAction,
+        StreamStorageError, append_reducer_event_and_project,
     },
     types::FocusaConfig,
 };
@@ -280,6 +280,74 @@ fn rotator_flushes_durably_and_disconnects_slow_subscriber() {
     rotator.complete().unwrap();
     assert_eq!(rotator.fanout.drain("fast").len(), 2);
     assert!(rotator.fanout.state("slow").unwrap().disconnected);
+}
+
+#[test]
+fn recovery_rebuilds_a_missing_index_from_a_verified_sidecar() {
+    let (dir, persistence, session, run_id) = fixture();
+    let root = dir.join("streams");
+    let store = SecureStreamStore::new(&root, persistence.clone()).unwrap();
+    let published = store
+        .publish_chunk(
+            session.id,
+            run_id,
+            OutputChannel::Stdout,
+            0,
+            &[stream_event(&session, run_id, 1, OutputChannel::Stdout)],
+        )
+        .unwrap();
+    persistence
+        .with_connection_mut(|connection| {
+            connection.execute(
+                "DELETE FROM silent_session_stream_indexes WHERE silent_session_id=?1 AND run_id=?2",
+                rusqlite::params![session.id.to_string(), run_id.to_string()],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+    let report = store.recover_registered_run(session.id, run_id).unwrap();
+    assert!(!report.degraded, "{report:?}");
+    assert_eq!(report.events[0].action, StreamRecoveryAction::IndexRebuilt);
+    let (events, _) = store
+        .read_after(session.id, run_id, OutputChannel::Stdout, None, 10)
+        .unwrap();
+    assert_eq!(events.len(), 1);
+    assert_eq!(
+        report.events[0].artifact_ref,
+        format!(
+            "{}.manifest.json",
+            published.manifest.chunk_ref.trim_end_matches(".fss")
+        )
+    );
+}
+
+#[test]
+fn recovery_quarantines_corrupt_registered_artifacts_and_marks_degraded() {
+    let (dir, persistence, session, run_id) = fixture();
+    let root = dir.join("streams");
+    let store = SecureStreamStore::new(&root, persistence).unwrap();
+    let published = store
+        .publish_chunk(
+            session.id,
+            run_id,
+            OutputChannel::Stdout,
+            0,
+            &[stream_event(&session, run_id, 1, OutputChannel::Stdout)],
+        )
+        .unwrap();
+    let chunk = root.join(&published.manifest.chunk_ref);
+    let sidecar = chunk.with_extension("manifest.json");
+    fs::write(&sidecar, b"not-json").unwrap();
+    let report = store.recover_registered_run(session.id, run_id).unwrap();
+    assert!(report.degraded);
+    assert_eq!(report.events[0].action, StreamRecoveryAction::Quarantined);
+    assert!(!chunk.exists());
+    assert!(!sidecar.exists());
+    let quarantine = root
+        .join(session.id.to_string())
+        .join(run_id.to_string())
+        .join("recovery/quarantine");
+    assert_eq!(fs::read_dir(quarantine).unwrap().count(), 2);
 }
 
 #[cfg(unix)]
