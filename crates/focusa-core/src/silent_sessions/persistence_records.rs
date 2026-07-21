@@ -47,6 +47,36 @@ pub fn list_sessions(persistence: &SqlitePersistence) -> anyhow::Result<Vec<Sile
     })
 }
 
+pub fn load_session_by_idempotency_key(
+    persistence: &SqlitePersistence,
+    idempotency_key: &str,
+) -> anyhow::Result<Option<(SilentSession, serde_json::Value)>> {
+    persistence.with_connection_mut(|connection| {
+        let mut statement = connection.prepare(
+            r#"SELECT s.snapshot_json,e.payload_json
+               FROM silent_session_events e
+               JOIN silent_sessions s ON s.silent_session_id=e.silent_session_id
+               WHERE e.idempotency_key=?1 ORDER BY e.occurred_at,e.event_id"#,
+        )?;
+        let rows = statement.query_map([idempotency_key], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
+        let mut matches = rows.collect::<Result<Vec<_>, _>>()?;
+        if matches.len() > 1 {
+            anyhow::bail!("idempotency key is not unique across Silent Sessions");
+        }
+        matches
+            .pop()
+            .map(|(session, payload)| {
+                Ok((
+                    serde_json::from_str(&session)?,
+                    serde_json::from_str(&payload)?,
+                ))
+            })
+            .transpose()
+    })
+}
+
 pub fn load_session_events(
     persistence: &SqlitePersistence,
     id: SilentSessionId,
