@@ -5,6 +5,7 @@
 //! crate.
 
 use crate::contract::*;
+use crate::model_safety::entitlement_capability_is_sufficient;
 use focusa_core::silent_session::{HarnessKind, ModelBinding, ObservationProvenance};
 use focusa_core::silent_session_launch::{LaunchManifest, MissionDelivery};
 use focusa_core::silent_session_protocol::{
@@ -87,8 +88,30 @@ impl<T: PiRpcTransport> HarnessAdapter for PiRpcAdapter<T> {
     }
 
     fn preflight(&self, config: &EffectiveConfig) -> PreflightResult {
-        match build_pi_manifest(&self.descriptor(), config) {
-            Ok(_) => match self.descriptor().negotiate(&config.negotiation) {
+        let descriptor = self.descriptor();
+        let model = &config.session.effective_config.model;
+        if !entitlement_capability_is_sufficient(
+            model,
+            descriptor.capabilities.subscription_entitlement_probe,
+        ) {
+            return PreflightResult::blocked(
+                "entitlement_unknown",
+                "strict model policy requires deterministic entitlement evidence, but Pi RPC cannot probe subscription entitlement",
+            );
+        }
+        if model.require_runtime_model_confirmation
+            && !descriptor
+                .capabilities
+                .model_observation
+                .satisfies(CapabilityRequirement::Deterministic)
+        {
+            return PreflightResult::blocked(
+                "model_observation_unavailable",
+                "runtime model confirmation requires deterministic model observation",
+            );
+        }
+        match build_pi_manifest(&descriptor, config) {
+            Ok(_) => match descriptor.negotiate(&config.negotiation) {
                 Ok(contract) => PreflightResult::passed(contract),
                 Err(error) => PreflightResult::blocked("protocol_incompatible", error.to_string()),
             },

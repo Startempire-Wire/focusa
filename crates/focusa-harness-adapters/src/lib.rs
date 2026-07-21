@@ -7,9 +7,11 @@
 pub mod contract;
 pub mod fake;
 pub mod generic;
+pub mod model_safety;
 pub mod pi_rpc;
 
 pub use contract::*;
 pub use fake::*;
 pub use generic::*;
+pub use model_safety::*;
 pub use pi_rpc::*;

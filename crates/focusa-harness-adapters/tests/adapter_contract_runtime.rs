@@ -298,6 +298,25 @@ fn pi_rpc_negotiates_truthful_capabilities_and_builds_exact_launch() {
 }
 
 #[test]
+fn pi_rpc_strict_entitlement_policy_blocks_when_probe_is_unsupported() {
+    let adapter = PiRpcAdapter::new(ScriptedTransport::default());
+    let mut config = effective_config(HarnessKind::Pi, PI_RPC_ADAPTER_VERSION);
+    config
+        .session
+        .effective_config
+        .model
+        .require_entitlement_preflight = true;
+
+    let blocked = adapter.preflight(&config);
+    assert_eq!(blocked.status, PreflightStatus::Blocked);
+    assert_eq!(
+        blocked.failure_class.as_deref(),
+        Some("entitlement_unknown")
+    );
+    assert!(blocked.negotiated_contract.is_none());
+}
+
+#[test]
 fn pi_rpc_control_query_and_event_translation_follow_published_jsonl_contract() {
     let state_response = json!({
         "type":"response",

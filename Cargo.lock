@@ -1389,6 +1389,7 @@ dependencies = [
 name = "focusa-harness-adapters"
 version = "0.9.121-dev"
 dependencies = [
+ "chrono",
  "focusa-core",
  "serde",
  "serde_json",
