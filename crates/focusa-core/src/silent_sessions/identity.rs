@@ -79,6 +79,8 @@ uuid_v7_id!(WorkpointCheckpointId, "workpoint_checkpoint_id");
 uuid_v7_id!(SilentSessionLeaseId, "silent_session_lease_id");
 uuid_v7_id!(CompletionEvaluationId, "completion_evaluation_id");
 uuid_v7_id!(ApprovalId, "approval_id");
+uuid_v7_id!(RunnerCommandId, "runner_command_id");
+uuid_v7_id!(ControlAuditId, "control_audit_id");
 uuid_v7_id!(ActorInstanceId, "actor_instance_id");
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]

@@ -10,7 +10,7 @@ use crate::runtime::persistence_sqlite::SqlitePersistence;
 
 use super::{SilentSession, SilentSessionEvent};
 
-pub const SILENT_SESSION_DB_SCHEMA_VERSION: i64 = 2;
+pub const SILENT_SESSION_DB_SCHEMA_VERSION: i64 = 3;
 
 const SCHEMA_SQL: &str = r#"
 CREATE TABLE IF NOT EXISTS silent_session_schema_meta (
@@ -156,6 +156,47 @@ CREATE TABLE IF NOT EXISTS silent_session_backend_bindings (
   bound_at TEXT NOT NULL,
   released_at TEXT,
   UNIQUE(silent_session_id, run_id, backend_kind)
+);
+CREATE TABLE IF NOT EXISTS silent_session_principals (
+  principal_id TEXT PRIMARY KEY,
+  actor TEXT NOT NULL,
+  os_user TEXT NOT NULL,
+  role TEXT NOT NULL,
+  principal_json TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS silent_session_approvals (
+  approval_id TEXT PRIMARY KEY,
+  operator_actor TEXT NOT NULL,
+  action TEXT NOT NULL,
+  project_root TEXT NOT NULL,
+  continuity_id TEXT NOT NULL,
+  session_id TEXT,
+  run_id TEXT,
+  action_digest TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  approval_json TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_silent_session_approvals_scope
+  ON silent_session_approvals(project_root,continuity_id,expires_at);
+CREATE TABLE IF NOT EXISTS silent_session_control_audits (
+  audit_id TEXT PRIMARY KEY,
+  actor TEXT NOT NULL,
+  action TEXT NOT NULL,
+  project_root TEXT NOT NULL,
+  continuity_id TEXT NOT NULL,
+  session_id TEXT,
+  run_id TEXT,
+  audit_json TEXT NOT NULL,
+  occurred_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS silent_session_runner_nonces (
+  runner_principal_id TEXT NOT NULL,
+  nonce TEXT NOT NULL,
+  command_id TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  consumed_at TEXT NOT NULL,
+  PRIMARY KEY(runner_principal_id,nonce)
 );
 "#;
 
@@ -403,7 +444,7 @@ fn enum_json<T: Serialize>(value: T) -> anyhow::Result<String> {
 }
 
 fn verify_schema(connection: &rusqlite::Connection) -> anyhow::Result<()> {
-    const REQUIRED_TABLES: [&str; 10] = [
+    const REQUIRED_TABLES: [&str; 14] = [
         "silent_sessions",
         "silent_session_runs",
         "silent_session_config_revisions",
@@ -414,6 +455,10 @@ fn verify_schema(connection: &rusqlite::Connection) -> anyhow::Result<()> {
         "silent_session_notifications",
         "silent_session_completion_evaluations",
         "silent_session_backend_bindings",
+        "silent_session_principals",
+        "silent_session_approvals",
+        "silent_session_control_audits",
+        "silent_session_runner_nonces",
     ];
     for table in REQUIRED_TABLES {
         let exists: i64 = connection.query_row(

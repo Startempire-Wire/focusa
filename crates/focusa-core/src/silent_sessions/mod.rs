@@ -4,6 +4,7 @@
 //! persistence, process supervision, adapters, and I/O live in later layers.
 
 pub mod authorization;
+pub mod authorization_persistence;
 pub mod completion_artifacts;
 pub mod config;
 pub mod config_resolution;
@@ -13,6 +14,7 @@ pub mod identity;
 pub mod legacy_import;
 pub mod persistence_records;
 pub mod persistence_sqlite;
+pub mod runner_security;
 mod secure_fs;
 pub mod state_machine;
 pub mod stream_codec;
@@ -22,6 +24,7 @@ pub mod stream_storage;
 pub mod types;
 
 pub use authorization::*;
+pub use authorization_persistence::*;
 pub use completion_artifacts::*;
 pub use config::*;
 pub use config_resolution::*;
@@ -31,6 +34,7 @@ pub use identity::*;
 pub use legacy_import::*;
 pub use persistence_records::*;
 pub use persistence_sqlite::*;
+pub use runner_security::*;
 pub use state_machine::*;
 pub use stream_codec::*;
 pub use stream_recovery::*;
@@ -48,5 +52,7 @@ mod config_revision_test;
 mod legacy_import_test;
 #[cfg(test)]
 mod persistence_sqlite_test;
+#[cfg(test)]
+mod runner_security_test;
 #[cfg(test)]
 mod stream_storage_test;
