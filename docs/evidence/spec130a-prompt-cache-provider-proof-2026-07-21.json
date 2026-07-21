@@ -1,0 +1,33 @@
+{
+  "schema": "focusa.spec130a.provider_cache_proof.v1",
+  "commit": "492f753da19203891279a903ef11976b078fd81a",
+  "turn_count": 10,
+  "provider": ["openai-codex"],
+  "model": ["gpt-5.6-sol"],
+  "exact_response_count": 10,
+  "post_cold_hit_count": 9,
+  "post_cold_turn_count": 9,
+  "post_cold_hit_rate": 1.0,
+  "cache_read_tokens": [
+    0, 2560, 2560, 2560, 2560, 2560, 2560, 2560, 2560, 2560
+  ],
+  "input_tokens": [4876, 2383, 2443, 2503, 2563, 2605, 2647, 2689, 2731, 2773],
+  "total_cost_usd": 0.155585,
+  "prefix_snapshot_count": 10,
+  "cache_observation_count": 10,
+  "stable_system_prefix_hashes": [
+    "126cda8575d8f16bb7e0e9a6bf7500a4353ad2d32fc1d06df7ac7ce7a142b177"
+  ],
+  "dynamic_slice_hash_count": 10,
+  "normalized_observation_input_tokens": [
+    4876, 4943, 5003, 5063, 5123, 5165, 5207, 5249, 5291, 5333
+  ],
+  "normalized_observation_cache_read_tokens": [
+    0, 2560, 2560, 2560, 2560, 2560, 2560, 2560, 2560, 2560
+  ],
+  "layout_modes": ["cache_safe_tail"],
+  "notes": [
+    "Turn 10 provider response persisted, but unrelated lifecycle settlement stall prevented turn_end observation emission.",
+    "All non-telemetry Focusa API calls used an immediate 503 stub; health and telemetry capture remained active."
+  ]
+}
