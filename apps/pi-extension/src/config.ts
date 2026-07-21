@@ -59,6 +59,7 @@ export interface FocusaConfig {
   daemonRestartMaxPerHour: number;
   daemonRecoveryProbeMs: number;
   fallbackMode: "passthrough" | "local-compact" | "disabled";
+  cacheSafePromptLayoutEnabled: boolean;
   emitMetrics: boolean;
   autoSuggestForkPct: number;
   autoSuggestHandoffAfterNCompactions: number;
@@ -156,6 +157,7 @@ const DEFAULTS: FocusaConfig = {
   daemonRestartMaxPerHour: 20,
   daemonRecoveryProbeMs: 750,
   fallbackMode: "passthrough",
+  cacheSafePromptLayoutEnabled: true,
   emitMetrics: true,
   autoSuggestForkPct: 90,
   autoSuggestHandoffAfterNCompactions: 3,
@@ -213,6 +215,7 @@ const ENV_MAP: Record<string, keyof FocusaConfig> = {
   FOCUSA_PI_API_BASE_URL: "focusaApiBaseUrl",
   FOCUSA_PI_API_TIMEOUT_MS: "focusaApiTimeoutMs",
   FOCUSA_PI_FALLBACK_MODE: "fallbackMode",
+  FOCUSA_PI_CACHE_SAFE_PROMPT_LAYOUT: "cacheSafePromptLayoutEnabled",
   FOCUSA_PI_EMIT_METRICS: "emitMetrics",
   FOCUSA_PI_AUTO_SUGGEST_FORK_PCT: "autoSuggestForkPct",
   FOCUSA_PI_AUTO_SUGGEST_HANDOFF_AFTER: "autoSuggestHandoffAfterNCompactions",

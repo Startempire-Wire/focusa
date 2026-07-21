@@ -98,7 +98,26 @@ import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./comp
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
 import { buildFocusaUtilityCard } from "./awareness.js";
+import {
+  attachFocusSliceToNewestUser,
+  CacheSafetyMonitor,
+  type CacheSafetyObservation,
+} from "./cache-safe-context.js";
 import { selectFocusSliceToolAffordances } from "./tool-contracts.js";
+
+const cacheSafetyMonitor = new CacheSafetyMonitor();
+const CACHE_SAFE_DEGRADED_RETAINED_SECTIONS = new Set([
+  "current_ask",
+  "current_ask_scope_verdict",
+  "project_switch_ledger",
+  "trajectory",
+  "workpoint",
+  "constraints",
+  "ontology_next_actions",
+  "ontology_blocked_affordances",
+  "ontology_evidence_handles",
+  "tool_affordances",
+]);
 
 // ─── §5.12 Recent-turns adapter (Pi implementation) ──────────────────────
 // Spec: docs/101-focusa-bloatgaurd-spec.md §5.12 + §5.12.11 (adapter contract)
@@ -180,18 +199,15 @@ async function fetchRecentTurnsFromDaemon(n: number): Promise<RecentTurnSlice[]>
   }
 }
 
-async function injectRecentTurnsSlice(event: any, n: number = 4): Promise<void> {
+async function buildRecentTurnsSlice(n: number = 4): Promise<string> {
   const currentTurn = getTurnCount();
-  if (!shouldEmitRecentTurnsSlice(currentTurn)) return;
+  if (!shouldEmitRecentTurnsSlice(currentTurn)) return "";
   const daemonTurns = await fetchRecentTurnsFromDaemon(n);
   if (daemonTurns.length === 0) {
     // Fallback to local ring if daemon is unreachable or empty.
     const localSection = formatRecentTurnsSection(n);
-    if (localSection) {
-      event.systemPrompt = (event.systemPrompt || "") + "\n\n" + localSection;
-    }
     markRecentTurnsSliceEmitted(currentTurn);
-    return;
+    return localSection || "";
   }
   // Use daemon data, format inline.
   const lines = [`Recent turns (last ${daemonTurns.length}, daemon source):`];
@@ -203,8 +219,8 @@ async function injectRecentTurnsSlice(event: any, n: number = 4): Promise<void> 
       `- T[${t.turn_id}] mission="${mission}" outcome=${t.outcome} tools=${t.tool_call_count}${refs}`
     );
   }
-  event.systemPrompt = (event.systemPrompt || "") + "\n\n" + lines.join("\n");
   markRecentTurnsSliceEmitted(currentTurn);
+  return lines.join("\n");
 }
 
 // Recall-intent detection (mirrors §5.12.10 word set).
@@ -860,6 +876,68 @@ export function elideOldRehydratableToolHistory(
   });
 }
 
+function cacheSessionKey(): string {
+  return getAttachmentRuntime().sessionFrameKey || getContinuityId() || "no-session";
+}
+
+function attachCacheSafeFocusSlice(_event: any, messages: any[], text: string): any[] {
+  const cacheSafeLayoutEnabled = getAttachmentRuntime().cfg?.cacheSafePromptLayoutEnabled !== false;
+  const snapshot = cacheSafetyMonitor.captureRequest(cacheSessionKey(), messages, text);
+  queueTraceTelemetry({
+    event_type: "prompt_cache_prefix_snapshot",
+    turn_id: `pi-turn-${getTurnCount()}`,
+    surface: "pi",
+    session_cache_key_hash: snapshot.sessionCacheKeyHash,
+    stable_system_prefix_hash: snapshot.stableSystemPrefixHash,
+    history_prefix_hash: snapshot.historyPrefixHash,
+    dynamic_slice_hash: snapshot.dynamicSliceHash,
+    dynamic_slice_estimated_tokens: snapshot.dynamicSliceEstimatedTokens,
+    cache_safe_degraded: cacheSafeLayoutEnabled && cacheSafetyMonitor.isDegraded(cacheSessionKey()),
+    cache_safe_prompt_layout_enabled: cacheSafeLayoutEnabled,
+    injection_position: cacheSafeLayoutEnabled ? "newest_user_turn_tail" : "legacy_history_prepend",
+    historical_message_count: snapshot.historyMessageHashes.length,
+  });
+  return cacheSafeLayoutEnabled
+    ? attachFocusSliceToNewestUser(messages, text)
+    : [{ role: "user" as const, content: [{ type: "text" as const, text }] }, ...messages];
+}
+
+function emitCacheSafetyObservation(observation: CacheSafetyObservation, ctx: any): void {
+  queueTraceTelemetry({
+    event_type: "prompt_cache_observation",
+    turn_id: `pi-turn-${getTurnCount()}`,
+    surface: "pi",
+    miss: observation.miss,
+    miss_reason: observation.reason,
+    provider: observation.provider,
+    model: observation.model,
+    session_cache_key_hash: observation.sessionCacheKeyHash,
+    stable_system_prefix_hash: observation.stableSystemPrefixHash,
+    history_prefix_hash: observation.historyPrefixHash,
+    dynamic_slice_hash: observation.dynamicSliceHash,
+    dynamic_slice_tokens: observation.dynamicSliceEstimatedTokens,
+    input_tokens: observation.inputTokens,
+    cache_read_tokens: observation.cacheReadTokens,
+    cache_write_tokens: observation.cacheWriteTokens,
+    estimated_rebilled_tokens: observation.estimatedRebilledTokens,
+    cache_read_ratio: observation.cacheReadRatio,
+    idle_duration_ms: observation.idleDurationMs,
+    layout_mode: observation.layoutMode,
+    consecutive_prefix_misses: observation.consecutivePrefixMisses,
+    cache_safe_degraded: observation.cacheSafeDegraded,
+    transitioned_to_degraded: observation.transitionedToDegraded,
+  });
+  if (
+    observation.transitionedToDegraded &&
+    getAttachmentRuntime().cfg?.cacheSafePromptLayoutEnabled !== false
+  ) {
+    ctx.ui?.notify?.(
+      "Focusa cache-safe degraded mode: repeated same-model prefix misses; optional context is temporarily suppressed.",
+      "warning"
+    );
+  }
+}
+
 export function registerTurns(pi: ExtensionAPI) {
   // ── before_agent_start (§35.2 behavioral + §29 WBM injection) ────────────
   pi.on("before_agent_start", async (event, ctx) => {
@@ -874,10 +952,9 @@ export function registerTurns(pi: ExtensionAPI) {
 
     const confirmedProjectRoot = await hardGateVitalProjectRoot(ctx);
 
-    // §5.12.11: Inject recent-turns slice (daemon-sourced, fallback local).
-    await injectRecentTurnsSlice(event, 4);
-
-    // §35.2: Behavioral instructions (ONE TIME per prompt — §36.6 layering)
+    // Cache boundary: system instructions must remain byte-stable across adjacent turns.
+    // Project identity, Workpoint state, recaps, recent turns, and WBM context are volatile
+    // and are attached by the context hook to the newest user turn instead.
     const behavioral = [
       "\n## Focusa Cognitive Guidance",
       "You are operating within Focusa, a cognitive runtime that preserves focus and decisions.\n",
@@ -887,41 +964,40 @@ export function registerTurns(pi: ExtensionAPI) {
       "- Use the focusa_failure tool when something fails",
       "- Do NOT record internal monologue, reasoning, or self-referential notes as constraints",
       "  (e.g. 'cannot advance without operator direction' is NOT a constraint — it's context)",
-      "- Check the CONSTRAINTS in Focus State before acting — do not violate them",
-      "- The DECISIONS listed below were made earlier — do not contradict without explanation",
-      "- If context was compacted, Focus State below is your source of truth",
-      confirmedProjectRoot
-        ? `- Focusa project_root is confirmed for this turn: ${confirmedProjectRoot}`
-        : [
-            "- VITAL AUTO-PROMPT: project_root is unconfirmed or unsafe/broad.",
-            "  Agent responsibility FIRST: infer the correct project folder from cwd, git root, .beads, project marker files, and operator text.",
-            "  Then call focusa_project_identity with the best explicit project_root and use its project_summary/summary_lines to orient.",
-            "  If multiple plausible roots remain after tool/repo inference, ask the operator directly in chat which project folder to bind.",
-            "  Do not use modal/select/input UI for this; do not proceed with project-aware durable writes while root remains unsafe.",
-          ].join("\n"),
+      "- Check the dynamic Focusa Focus Slice before acting and do not violate its constraints",
+      "- Do not contradict decisions in the dynamic Focusa Focus Slice without explanation",
+      "- If context was compacted, a scoped canonical Workpoint packet outranks transcript tail",
+      "- Project-aware writes fail closed unless the dynamic Focusa Focus Slice verifies project_root + continuity_id authority",
+      "- If project identity is ambiguous, infer from bounded repository evidence and ask the operator only when multiple plausible roots remain",
     ].join("\n");
-    const scopedWorkpointForPrompt = getScopedWorkpointPacket();
-    const workpointLaw = scopedWorkpointForPrompt
-      ? [
-          "\n## Focusa Workpoint Continuity Law",
-          "If a Focusa WorkpointResumePacket is present, treat it as the authoritative continuation anchor unless the operator explicitly steers elsewhere.",
-          "Do not use raw transcript tail to override the active workpoint.",
-          ...formatWorkpointContextSections(),
-        ].join("\n")
-      : "";
-    const utilityCard = "\n" + buildFocusaUtilityCard("system");
-    const visibleRecapReason = toolOutputVisibleRecapReason();
-    const visibleRecapLaw = visibleRecapReason
-      ? [
-          "\n## Focusa Visible Recap Enforcement",
-          `Tool-output flood detected: ${visibleRecapReason}`,
-          "Before any tool/file/API action, first produce a one- or two-line `Recap:` from MEMORY_ANCHOR/latest_report_summary_ref.",
-          "Do not ask the operator to scroll; replay the report handle or memory anchor visibly, then continue.",
-        ].join("\n")
-      : "";
+    const workpointLaw = [
+      "\n## Focusa Workpoint Continuity Law",
+      "If a scoped Focusa WorkpointResumePacket is present in the newest-turn Focus Slice, treat it as the continuation anchor unless the operator explicitly steers elsewhere.",
+      "Do not use raw transcript tail to override the active scoped Workpoint.",
+    ].join("\n");
 
-    (event as any).systemPrompt =
-      ((event as any).systemPrompt || "") + "\n" + behavioral + workpointLaw + visibleRecapLaw + utilityCard;
+    (event as any).systemPrompt = ((event as any).systemPrompt || "") + "\n" + behavioral + workpointLaw;
+    if (getAttachmentRuntime().cfg?.cacheSafePromptLayoutEnabled === false) {
+      const [legacyRecentTurns, legacyWbm] = await Promise.all([
+        buildRecentTurnsSlice(4),
+        getAttachmentRuntime().wbmEnabled ? fetchWbmContext() : Promise.resolve(""),
+      ]);
+      const visibleRecapReason = toolOutputVisibleRecapReason();
+      const legacyDynamic = [
+        confirmedProjectRoot
+          ? `Focusa project_root confirmed for this turn: ${confirmedProjectRoot}`
+          : "Focusa project_root is unconfirmed; project-aware writes remain blocked pending bounded identity verification.",
+        ...formatWorkpointContextSections(),
+        visibleRecapReason
+          ? `FOCUSA VISIBLE RECAP REQUIRED: ${visibleRecapReason}; recap MEMORY_ANCHOR/latest_report_summary_ref before action.`
+          : "",
+        buildFocusaUtilityCard("system"),
+        legacyRecentTurns,
+        legacyWbm,
+      ].filter(Boolean);
+      (event as any).systemPrompt += `\n\n${legacyDynamic.join("\n")}`;
+    }
+    cacheSafetyMonitor.captureSystemPrompt(cacheSessionKey(), (event as any).systemPrompt);
 
     if (!getAttachmentRuntime().seenFirstBeforeAgentStart) {
       getAttachmentRuntime().seenFirstBeforeAgentStart = true;
@@ -936,7 +1012,10 @@ export function registerTurns(pi: ExtensionAPI) {
         const wasExpanded = ctxUi?.getToolsExpanded?.() ?? true;
         ctxUi?.setToolsExpanded?.(false);
         try {
-          pi.sendMessage({ customType: "focusa-utility-card", content: visibleCard, display: true });
+          pi.sendMessage(
+            { customType: "focusa-utility-card", content: visibleCard, display: true },
+            { triggerTurn: false }
+          );
         } finally {
           ctxUi?.setToolsExpanded?.(wasExpanded);
         }
@@ -955,12 +1034,6 @@ export function registerTurns(pi: ExtensionAPI) {
         });
       }
     }
-
-    // §29: WBM inbound context injection
-    if (getAttachmentRuntime().wbmEnabled) {
-      const wbmCtx = await fetchWbmContext();
-      (event as any).systemPrompt += "\n\n" + wbmCtx;
-    }
   });
 
   // ── context — DECISIONS ONLY (§36.6, §33.5)
@@ -975,6 +1048,18 @@ export function registerTurns(pi: ExtensionAPI) {
   // Per spec doc 44 §33.2: compute a bounded Focusa slice for each LLM call.
   pi.on("context", async (event: any, ctx: any) => {
     const contextMessages = elideOldRehydratableToolHistory(event.messages || []);
+    const cacheSafeLayoutEnabled = getAttachmentRuntime().cfg?.cacheSafePromptLayoutEnabled !== false;
+    const cacheSafeDegraded = cacheSafeLayoutEnabled && cacheSafetyMonitor.isDegraded(cacheSessionKey());
+    const cacheInjectionPosition = cacheSafeLayoutEnabled
+      ? "newest_user_turn_tail"
+      : "legacy_history_prepend";
+    const [recentTurnsContext, wbmContext] =
+      !cacheSafeLayoutEnabled || cacheSafeDegraded
+        ? ["", ""]
+        : await Promise.all([
+            buildRecentTurnsSlice(4),
+            getAttachmentRuntime().wbmEnabled ? fetchWbmContext() : Promise.resolve(""),
+          ]);
     if (!getAttachmentRuntime().focusaAvailable || !getAttachmentRuntime().activeFrameId) {
       const trajectoryLines = await getTrajectoryFocusSliceLines();
       const toolAffordanceLines = getToolAffordanceFocusSliceLines({
@@ -1016,12 +1101,12 @@ export function registerTurns(pi: ExtensionAPI) {
         `PROJECT_TRAJECTORY:\n${trajectoryLines.map((value) => `  - ${value}`).join("\n")}`,
         ...formatWorkpointContextSections(),
         ...toolAffordanceLines,
+        `CACHE_SAFETY: mode=${cacheSafeDegraded ? "cache_safe_degraded" : "normal"} injection=${cacheInjectionPosition}`,
+        recentTurnsContext,
+        wbmContext,
       ].filter(Boolean);
       return {
-        messages: [
-          { role: "user" as const, content: [{ type: "text" as const, text: lines.join("\n") }] },
-          ...contextMessages,
-        ],
+        messages: attachCacheSafeFocusSlice(event, contextMessages, lines.join("\n")),
       };
     }
 
@@ -1064,12 +1149,12 @@ export function registerTurns(pi: ExtensionAPI) {
         `PROJECT_TRAJECTORY:\n${trajectoryLines.map((value) => `  - ${value}`).join("\n")}`,
         ...formatWorkpointContextSections(),
         ...toolAffordanceLines,
-      ];
+        `CACHE_SAFETY: mode=${cacheSafeDegraded ? "cache_safe_degraded" : "normal"} injection=${cacheInjectionPosition}`,
+        recentTurnsContext,
+        wbmContext,
+      ].filter(Boolean);
       return {
-        messages: [
-          { role: "user" as const, content: [{ type: "text" as const, text: lines.join("\n") }] },
-          ...contextMessages,
-        ],
+        messages: attachCacheSafeFocusSlice(event, contextMessages, lines.join("\n")),
       };
     }
     const { fs, frame } = data;
@@ -1601,8 +1686,18 @@ export function registerTurns(pi: ExtensionAPI) {
       ),
     ];
 
-    const scopedEntries = orderSliceSections(sectionEntries).filter((entry) => entry.include);
-    const scopeExcludedLabels = sectionEntries.filter((entry) => !entry.include).map((entry) => entry.key);
+    const cacheSafeExcludedLabels = cacheSafeDegraded
+      ? sectionEntries
+          .filter((entry) => entry.include && !CACHE_SAFE_DEGRADED_RETAINED_SECTIONS.has(entry.key))
+          .map((entry) => entry.key)
+      : [];
+    const scopedEntries = orderSliceSections(sectionEntries).filter(
+      (entry) => entry.include && !cacheSafeExcludedLabels.includes(entry.key)
+    );
+    const scopeExcludedLabels = [
+      ...sectionEntries.filter((entry) => !entry.include).map((entry) => entry.key),
+      ...cacheSafeExcludedLabels,
+    ];
     const retainedDecisionHistoryCount =
       decisionRetention.decayed.length + decisionRetention.historical.length;
     const retainedConstraintHistoryCount =
@@ -1643,7 +1738,10 @@ export function registerTurns(pi: ExtensionAPI) {
       ...formatToolOutputVisibleRecapLines(visibleRecapReason),
       ...contextReceiptLines,
       ...scopedEntries.map((entry) => entry.text),
-    ];
+      `CACHE_SAFETY: mode=${cacheSafeDegraded ? "cache_safe_degraded" : "normal"} injection=${cacheInjectionPosition}`,
+      recentTurnsContext,
+      wbmContext,
+    ].filter(Boolean);
 
     // §36.7: Budget cap — truncate if over token budget
     let text = lines.join("\n");
@@ -1711,7 +1809,12 @@ export function registerTurns(pi: ExtensionAPI) {
       scopeKind === "fresh_question" ? "fresh_scope" : scopeKind === "correction" ? "correction_reset" : null;
     const exclusionReason = truncated
       ? "budget_truncation"
-      : resetReason || (irrelevantExcludedLabels.length ? "irrelevance" : "none");
+      : resetReason ||
+        (cacheSafeExcludedLabels.length
+          ? "cache_safe_degraded"
+          : irrelevantExcludedLabels.length
+            ? "irrelevance"
+            : "none");
     getAttachmentRuntime().excludedContext = {
       labels: excludedContext,
       reason: exclusionReason,
@@ -1855,9 +1958,10 @@ export function registerTurns(pi: ExtensionAPI) {
       }
     }
 
-    // §33.2: Prepend Focus State as first message before every LLM call
+    // Cache-safe layout: preserve historical ordering and append volatile Focusa state
+    // only to the newest user turn so the system/history prefix remains reusable.
     return {
-      messages: [{ role: "user" as const, content: [{ type: "text" as const, text }] }, ...contextMessages],
+      messages: attachCacheSafeFocusSlice(event, contextMessages, text),
     };
   });
 
@@ -2217,6 +2321,30 @@ export function registerTurns(pi: ExtensionAPI) {
       });
     }
 
+    const usageInputTokens = Number(ev.usage?.inputTokens || ev.usage?.input || 0);
+    const usageCacheReadTokens = Number(
+      ev.usage?.cacheReadInputTokens || ev.usage?.cacheRead || ev.usage?.cache_read || 0
+    );
+    const usageCacheWriteTokens = Number(
+      ev.usage?.cacheCreationInputTokens || ev.usage?.cacheWrite || ev.usage?.cache_write || 0
+    );
+    const selectedModel = ev.model?.id || ev.message?.model?.id || ev.message?.model || ev.model || "unknown";
+    const selectedProvider =
+      ev.provider?.id || ev.message?.provider?.id || ev.message?.provider || ev.provider || "unknown";
+    const cacheObservation = cacheSafetyMonitor.observeUsage({
+      sessionKey: cacheSessionKey(),
+      provider: String(selectedProvider),
+      model: String(selectedModel),
+      inputTokens: usageInputTokens,
+      cacheReadTokens: usageCacheReadTokens,
+      cacheWriteTokens: usageCacheWriteTokens,
+      layoutMode:
+        getAttachmentRuntime().cfg?.cacheSafePromptLayoutEnabled === false
+          ? "legacy_prepend"
+          : "cache_safe_tail",
+    });
+    if (cacheObservation) emitCacheSafetyObservation(cacheObservation, ctx);
+
     // §33.4: Flush batched tool usage
     if (getAttachmentRuntime().focusaAvailable && getToolUsageBatch().length) {
       getAttachmentRuntime().currentTaskToolCalls += getToolUsageBatch().length;
@@ -2310,11 +2438,10 @@ export function registerTurns(pi: ExtensionAPI) {
         context_window: model?.contextWindow || getAttachmentRuntime().activeContextWindow,
       },
     });
-    // §5.12: force re-emit on model switch
+    // §5.12: force dynamic newest-turn context re-emit and reset cache comparison
+    // because model/provider discontinuities are not prefix regressions.
     getAttachmentRuntime().lastRecentTurnsSliceTurn = -1;
-    if ((event as any).systemPrompt != null) {
-      await injectRecentTurnsSlice(event, 4);
-    }
+    cacheSafetyMonitor.resetForDiscontinuity(cacheSessionKey());
   });
 
   // Provider overflow boundary: Pi auto-compacts, but Focusa checkpoints first when HTTP status exposes overflow-like failure.
