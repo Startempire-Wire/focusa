@@ -61,6 +61,7 @@ import {
 } from "./state.js";
 import { loadPersistedRecoveryState } from "./persistence.js";
 import { measureNativeSessionPressure, type NativeSessionPressureV1 } from "./session-pressure.js";
+import { queueLifecycleAdvisory } from "./lifecycle-advisory.js";
 import { pushDelta } from "./tools.js";
 import { LifecycleGenerationGuard } from "./lifecycle-guard.js";
 
@@ -152,8 +153,6 @@ function queueUnboundProjectNag(pi: ExtensionAPI, ctx: any, reason: string): voi
   if (markerExistsAtCwd(cwd)) return;
   const key = `pi_unbound_project_nag:${getAttachmentRuntime().sessionFrameKey || "no-session"}:${cwd}`;
   if (getAttachmentRuntime().vitalInfoPrompted[key]) return;
-  getAttachmentRuntime().vitalInfoPrompted[key] = Date.now();
-  persistState();
   const prompt = [
     "Focusa project not bound: no .focusa-project.json marker found at this Pi session cwd.",
     `cwd: ${cwd}`,
@@ -167,13 +166,27 @@ function queueUnboundProjectNag(pi: ExtensionAPI, ctx: any, reason: string): voi
     event_type: "pi_unbound_project_nag",
     payload: { reason, cwd, session_id: getAttachmentRuntime().sessionFrameKey, suppressed: false },
   });
-  if (!ctx?.hasUI) {
-    focusaPost("/telemetry/trace", {
-      event_type: "pi_unbound_project_nag_deferred_headless",
-      payload: { reason, cwd, session_id: getAttachmentRuntime().sessionFrameKey },
-    });
-  }
-  deferLifecycleAdvisory(ctx, key, prompt, reason);
+  const outcome = queueLifecycleAdvisory(pi, ctx, {
+    advisoryKey: key,
+    advisoryKind: "unbound_project",
+    title: "Focusa project is not bound at this Pi session cwd.",
+    content: prompt,
+    reason,
+    projectRoot: cwd,
+    sessionId: getAttachmentRuntime().sessionFrameKey,
+  });
+  getAttachmentRuntime().vitalInfoPrompted[key] = Date.now();
+  persistState();
+  focusaPost("/telemetry/trace", {
+    event_type: "pi_unbound_project_advisory_outcome",
+    payload: {
+      reason,
+      cwd,
+      session_id: getAttachmentRuntime().sessionFrameKey,
+      outcome,
+      trigger_turn: false,
+    },
+  });>>>>>>> 49043546 (fix(pi): avoid lifecycle prompt reentrancy)
 }
 
 function vitalPromptSurfaceEnabled(surface: string): boolean {
@@ -313,8 +326,6 @@ function queueProjectIdentityBootstrapTurn(
   if (reason !== "session_project_mismatch" && !projectRootConfirmationRequired(proposedRoot)) return;
   const key = `project_identity_bootstrap:${getAttachmentRuntime().sessionFrameKey || "no-session"}:${normalizeProjectRoot(ctx?.cwd || proposedRoot || process.cwd())}`;
   if (getAttachmentRuntime().vitalInfoPrompted[key]) return;
-  getAttachmentRuntime().vitalInfoPrompted[key] = Date.now();
-  persistState();
   const summary = projectRootConfirmationSummary(proposedRoot);
   const prompt = [
     "Focusa auto-bootstrap: infer the correct project_root for this Pi session now.",
@@ -324,11 +335,28 @@ function queueProjectIdentityBootstrapTurn(
     "If multiple plausible project folders remain after inference, ask the operator directly in chat which project folder to bind.",
     "Do not show modal/select/input UI. Do not perform durable project-aware writes until identity is verified.",
   ].join("\n");
-  focusaPost("/telemetry/trace", {
-    event_type: "pi_vital_project_root_advisory_deferred",
-    payload: { reason, project_root: proposedRoot, session_id: getAttachmentRuntime().sessionFrameKey },
+  const outcome = queueLifecycleAdvisory(pi, ctx, {
+    advisoryKey: key,
+    advisoryKind: "project_identity_bootstrap",
+    title: "Focusa needs a verified project root before project-aware writes.",
+    content: prompt,
+    reason,
+    projectRoot: proposedRoot,
+    sessionId: getAttachmentRuntime().sessionFrameKey,
   });
-  deferLifecycleAdvisory(ctx, key, prompt, reason);
+  getAttachmentRuntime().vitalInfoPrompted[key] = Date.now();
+  persistState();
+  focusaPost("/telemetry/trace", {
+    event_type: "pi_vital_project_root_advisory_outcome",
+    payload: {
+      reason,
+      project_root: proposedRoot,
+      session_id: getAttachmentRuntime().sessionFrameKey,
+      outcome,
+      trigger_turn: false,
+    },>>>>>>> 49043546 (fix(pi): avoid lifecycle prompt reentrancy)
+  });
+>>>>>>> 49043546 (fix(pi): avoid lifecycle prompt reentrancy)
 }
 
 type TrajectoryGoalDraft = {
