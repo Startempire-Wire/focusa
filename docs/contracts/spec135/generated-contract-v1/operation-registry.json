@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-07-21T15:03:33.694449+00:00",
-  "operation_count": 68,
+  "generated_at": "2026-07-21T20:10:36.039095+00:00",
+  "operation_count": 70,
   "operations": [
     {
       "alias_of": null,
@@ -2095,6 +2095,165 @@
         "plain_language_description": "Approve, Reject, or Defer Project Role Profile",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "consequential"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "standard_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.project_interview_session_list.request.v1",
+        "output_schema_ref": "focusa.project_interview_session_list.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "project_interview"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "interview:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "project_interview",
+      "label": "List Durable Interview Session Revisions",
+      "materialization_mode": "canonical_read",
+      "method": "GET",
+      "operation_id": "focusa.interview.session.list",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.interview.session.list",
+        "subsystem": "project_interview"
+      },
+      "path": "/v1/interviews/sessions",
+      "permissions_required": [
+        "interview:read"
+      ],
+      "request_schema_ref": "focusa.project_interview_session_list.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard",
+        "debug"
+      ],
+      "response_schema_ref": "focusa.project_interview_session_list.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.project_interview_session_list.request.v1",
+      "scope": {
+        "attachment_scoped": true,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_interview_session",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "List Durable Interview Session Revisions",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "List Durable Interview Session Revisions",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "standard_mutation",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.project_interview_session_mutation.request.v1",
+        "output_schema_ref": "focusa.project_interview_session_mutation_result.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "project_interview"
+        ],
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": true,
+        "permission_scopes": [
+          "interview:write"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "project_interview",
+      "label": "Mutate Durable Interview Session",
+      "materialization_mode": "canonical_event",
+      "method": "POST",
+      "operation_id": "focusa.interview.session.mutate",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.interview.session.mutate",
+        "subsystem": "project_interview"
+      },
+      "path": "/v1/interviews/sessions/mutate",
+      "permissions_required": [
+        "interview:write"
+      ],
+      "request_schema_ref": "focusa.project_interview_session_mutation.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": true,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard",
+        "debug"
+      ],
+      "response_schema_ref": "focusa.project_interview_session_mutation_result.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.project_interview_session_mutation.request.v1",
+      "scope": {
+        "attachment_scoped": true,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "append_interview_session_revision",
+      "supports_side_effect_policy": [
+        "dry_run",
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Mutate Durable Interview Session",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Mutate Durable Interview Session",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
       }
     },
     {

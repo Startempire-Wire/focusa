@@ -1,0 +1,229 @@
+{
+  "$id": "/v1/agent/schemas/focusa.project_interview_session_mutation.request.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "enum": [
+        "open",
+        "upsert_branch",
+        "queue_question",
+        "record_answer",
+        "pause",
+        "close",
+        "reopen",
+        "defer_branch",
+        "resolve_branch"
+      ]
+    },
+    "answer": {
+      "additionalProperties": false,
+      "properties": {
+        "answer": {},
+        "answer_id": {
+          "type": "string"
+        },
+        "attachment_refs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "operator_id": {
+          "type": "string"
+        },
+        "question_id": {
+          "type": "string"
+        },
+        "supersedes": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "question_id",
+        "answer",
+        "operator_id"
+      ],
+      "type": "object"
+    },
+    "approved_role_profile_ref": {
+      "type": "string"
+    },
+    "attachment_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "branch": {
+      "additionalProperties": false,
+      "properties": {
+        "decision_branch_id": {
+          "type": "string"
+        },
+        "deferred_reason": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "parent_branch_id": {
+          "type": "string"
+        },
+        "tranche": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "decision_branch_id",
+        "tranche",
+        "label"
+      ],
+      "type": "object"
+    },
+    "continuity_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "decision_branch_id": {
+      "type": "string"
+    },
+    "deferred_reason": {
+      "type": "string"
+    },
+    "expected_session_revision": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "expected_state_version": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "interview_session_id": {
+      "type": "string"
+    },
+    "project_root": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    },
+    "question": {
+      "additionalProperties": false,
+      "properties": {
+        "answer_type": {
+          "type": "string"
+        },
+        "contradiction_refs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "decision_branch_id": {
+          "type": "string"
+        },
+        "decision_required": {
+          "type": "boolean"
+        },
+        "environment_facts_checked": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "linked_context_refs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "linked_spec_sections": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "parent_question_id": {
+          "type": "string"
+        },
+        "priority": {
+          "type": "string"
+        },
+        "question": {
+          "type": "string"
+        },
+        "question_id": {
+          "type": "string"
+        },
+        "readiness_effect": {
+          "type": "string"
+        },
+        "reason_for_asking": {
+          "type": "string"
+        },
+        "recommendation": {
+          "type": "string"
+        },
+        "recommendation_basis_refs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "stop_condition": {
+          "type": "string"
+        },
+        "triggering_gap": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "decision_branch_id",
+        "question",
+        "reason_for_asking",
+        "triggering_gap",
+        "recommendation",
+        "recommendation_basis_refs",
+        "environment_facts_checked",
+        "contradiction_refs",
+        "linked_context_refs",
+        "linked_spec_sections",
+        "decision_required",
+        "priority",
+        "answer_type",
+        "readiness_effect",
+        "stop_condition"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "project_root",
+    "continuity_id",
+    "attachment_id",
+    "idempotency_key",
+    "expected_state_version",
+    "expected_session_revision",
+    "action"
+  ],
+  "title": "focusa.project_interview_session_mutation.request.v1",
+  "type": "object",
+  "x-focusa-generated-from": "InterviewSessionMutationRequest",
+  "x-focusa-schema-id": "focusa.project_interview_session_mutation.request.v1"
+}

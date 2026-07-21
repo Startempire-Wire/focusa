@@ -557,6 +557,126 @@ pub fn reduce_with_meta(
                     .then(left.revision.cmp(&right.revision))
             });
         }
+        FocusaEvent::ProjectInterviewSessionRevised { session } => {
+            if session.interview_session_id.trim().is_empty()
+                || session.project_root.trim().is_empty()
+                || session.continuity_id.trim().is_empty()
+                || session.attachment_id.trim().is_empty()
+                || session.idempotency_key.trim().is_empty()
+                || session.state_revision == 0
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "project Interview session requires identity, exact scope, idempotency key, and positive revision".to_string(),
+                ));
+            }
+            let role_is_approved = state.project_role_profiles.iter().any(|profile| {
+                profile.role_profile_id == session.approved_role_profile_ref
+                    && profile.project_root == session.project_root
+                    && profile.continuity_id == session.continuity_id
+                    && profile.attachment_id == session.attachment_id
+                    && matches!(profile.status, RoleProfileStatus::Approved)
+            });
+            if !role_is_approved {
+                return Err(ReducerError::InvalidEvent(
+                    "project Interview session requires an approved Role Profile in exact scope"
+                        .to_string(),
+                ));
+            }
+            let revisions: Vec<&ProjectInterviewSessionRecord> = state
+                .project_interview_sessions
+                .iter()
+                .filter(|existing| existing.interview_session_id == session.interview_session_id)
+                .collect();
+            let expected_revision = revisions
+                .iter()
+                .map(|existing| existing.state_revision)
+                .max()
+                .unwrap_or(0)
+                + 1;
+            if session.state_revision != expected_revision {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "project Interview revision must be {expected_revision}"
+                )));
+            }
+            let branch_ids: std::collections::BTreeSet<_> = session
+                .branches
+                .iter()
+                .map(|branch| branch.decision_branch_id.as_str())
+                .collect();
+            if branch_ids.len() != session.branches.len()
+                || session.branches.iter().any(|branch| {
+                    branch.decision_branch_id.trim().is_empty()
+                        || branch.tranche.trim().is_empty()
+                        || branch.label.trim().is_empty()
+                        || branch
+                            .parent_branch_id
+                            .as_deref()
+                            .is_some_and(|parent| !branch_ids.contains(parent))
+                })
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "project Interview branches require unique IDs, tranche, label, and valid parents".to_string(),
+                ));
+            }
+            let question_ids: std::collections::BTreeSet<_> = session
+                .questions
+                .iter()
+                .map(|question| question.question_id.as_str())
+                .collect();
+            if question_ids.len() != session.questions.len()
+                || session.questions.iter().any(|question| {
+                    question.session_id != session.interview_session_id
+                        || !branch_ids.contains(question.decision_branch_id.as_str())
+                        || question.question.trim().is_empty()
+                        || question.stop_condition.trim().is_empty()
+                        || question.environment_facts_checked.is_empty()
+                        || question.linked_context_refs.is_empty()
+                        || (question.decision_required
+                            && (question.recommendation.trim().is_empty()
+                                || question.recommendation_basis_refs.is_empty()))
+                })
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "project Interview questions require unique IDs, valid branch, fact refs, stop condition, and cited recommendation".to_string(),
+                ));
+            }
+            if session.answers.iter().any(|answer| {
+                !question_ids.contains(answer.question_id.as_str())
+                    || answer.operator_id.trim().is_empty()
+            }) {
+                return Err(ReducerError::InvalidEvent(
+                    "project Interview answers require a valid question and operator".to_string(),
+                ));
+            }
+            if session
+                .active_branch_id
+                .as_deref()
+                .is_some_and(|branch| !branch_ids.contains(branch))
+                || session
+                    .current_question_id
+                    .as_deref()
+                    .is_some_and(|question| !question_ids.contains(question))
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "project Interview resume pointers must reference retained branch and question state".to_string(),
+                ));
+            }
+            let closed_at_matches = match session.status {
+                ProjectInterviewSessionStatus::Closed => session.closed_at.is_some(),
+                _ => session.closed_at.is_none(),
+            };
+            if !closed_at_matches {
+                return Err(ReducerError::InvalidEvent(
+                    "project Interview closed_at must match closed status".to_string(),
+                ));
+            }
+            state.project_interview_sessions.push(session);
+            state.project_interview_sessions.sort_by(|left, right| {
+                left.interview_session_id
+                    .cmp(&right.interview_session_id)
+                    .then(left.state_revision.cmp(&right.state_revision))
+            });
+        }
         FocusaEvent::ContextClaimProposed { claim } => {
             if state.context_claims.iter().any(|existing| {
                 existing.claim_id == claim.claim_id

@@ -9,6 +9,7 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use uuid::Uuid;
 
 // ─── Identifiers ────────────────────────────────────────────────────────────
@@ -1983,6 +1984,137 @@ pub struct ProjectAgentRoleProfile {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProjectInterviewSessionStatus {
+    Active,
+    Paused,
+    Closed,
+    ReadyForSpec,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProjectInterviewBranchStatus {
+    Active,
+    Deferred,
+    Resolved,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProjectInterviewQuestionStatus {
+    Queued,
+    Asked,
+    Answered,
+    Deferred,
+    Skipped,
+    Superseded,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProjectInterviewAnswerStatus {
+    Active,
+    Amended,
+    Superseded,
+    Withdrawn,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectInterviewBranchRecord {
+    pub decision_branch_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_branch_id: Option<String>,
+    pub tranche: String,
+    pub label: String,
+    pub status: ProjectInterviewBranchStatus,
+    #[serde(default)]
+    pub question_ids: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deferred_reason: Option<String>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProjectInterviewQuestionRecord {
+    pub question_id: String,
+    pub session_id: String,
+    pub decision_branch_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_question_id: Option<String>,
+    pub question: String,
+    pub reason_for_asking: String,
+    pub triggering_gap: String,
+    pub recommendation: String,
+    #[serde(default)]
+    pub recommendation_basis_refs: Vec<String>,
+    #[serde(default)]
+    pub environment_facts_checked: Vec<String>,
+    #[serde(default)]
+    pub contradiction_refs: Vec<String>,
+    #[serde(default)]
+    pub linked_context_refs: Vec<String>,
+    #[serde(default)]
+    pub linked_spec_sections: Vec<String>,
+    pub decision_required: bool,
+    pub priority: String,
+    pub answer_type: String,
+    pub sensitivity: String,
+    pub readiness_effect: String,
+    pub stop_condition: String,
+    pub status: ProjectInterviewQuestionStatus,
+    pub created_at: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub answered_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProjectInterviewAnswerRecord {
+    pub answer_id: String,
+    pub question_id: String,
+    pub answer: Value,
+    #[serde(default)]
+    pub attachment_refs: Vec<String>,
+    pub operator_id: String,
+    pub status: ProjectInterviewAnswerStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<f64>,
+    pub notes: String,
+    pub created_at: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supersedes: Option<String>,
+}
+
+/// Canonical restart-safe Interview asset. RI2 proposes questions; this record owns state.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProjectInterviewSessionRecord {
+    pub interview_session_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub strategy_id: String,
+    pub strategy_version: u64,
+    pub approved_role_profile_ref: String,
+    pub state_revision: u64,
+    pub status: ProjectInterviewSessionStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active_branch_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_question_id: Option<String>,
+    #[serde(default)]
+    pub branches: Vec<ProjectInterviewBranchRecord>,
+    #[serde(default)]
+    pub questions: Vec<ProjectInterviewQuestionRecord>,
+    #[serde(default)]
+    pub answers: Vec<ProjectInterviewAnswerRecord>,
+    pub idempotency_key: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub closed_at: Option<DateTime<Utc>>,
+}
+
 /// Canonical candidate/accepted claim extracted from source-preserving Context.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ContextClaimRecord {
@@ -2122,6 +2254,9 @@ pub struct FocusaState {
     /// Append-only revisions of the Context-grounded project role; never permission authority.
     #[serde(default)]
     pub project_role_profiles: Vec<ProjectAgentRoleProfile>,
+    /// Append-only restart-safe Interview session revisions.
+    #[serde(default)]
+    pub project_interview_sessions: Vec<ProjectInterviewSessionRecord>,
     /// Canonical contradiction edges requiring explicit resolution.
     #[serde(default)]
     pub context_contradictions: Vec<ContextContradictionRecord>,
@@ -2193,6 +2328,7 @@ impl FocusaState {
             workspace_artifacts: vec![],
             context_claims: vec![],
             project_role_profiles: vec![],
+            project_interview_sessions: vec![],
             context_contradictions: vec![],
             context_decisions: vec![],
             reactive_context: vec![],
@@ -2806,6 +2942,9 @@ pub enum FocusaEvent {
     },
     ProjectRoleProfileRevised {
         profile: ProjectAgentRoleProfile,
+    },
+    ProjectInterviewSessionRevised {
+        session: ProjectInterviewSessionRecord,
     },
     ContextClaimReviewed {
         claim: ContextClaimRecord,

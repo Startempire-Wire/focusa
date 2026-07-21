@@ -207,6 +207,7 @@ fn op(
             | "workspace_artifact"
             | "project_role_profile"
             | "interview_strategy"
+            | "project_interview"
     ) || matches!(
         id,
         "focusa.ui_action_bindings.read"
@@ -216,7 +217,11 @@ fn op(
     let attachment_scoped = id.contains("attachment")
         || matches!(
             family,
-            "context" | "workspace_artifact" | "project_role_profile" | "interview_strategy"
+            "context"
+                | "workspace_artifact"
+                | "project_role_profile"
+                | "interview_strategy"
+                | "project_interview"
         );
     let mut required_keys = Vec::new();
     if project_scoped {
@@ -938,6 +943,52 @@ fn build_operations() -> Vec<OperationEntry> {
             vec!["compact", "standard", "debug"],
             "focusa.project_agent_role_profile_review.request.v1",
             "focusa.project_agent_role_profile_mutation_result.v1",
+            "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+            None,
+        ),
+        op(
+            "focusa.interview.session.list",
+            "List Durable Interview Session Revisions",
+            "project_interview",
+            "GET",
+            "/v1/interviews/sessions",
+            true,
+            None,
+            "read_interview_session",
+            "canonical_read",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec!["interview:read"],
+            false,
+            "standard_read",
+            vec!["compact", "standard", "debug"],
+            "focusa.project_interview_session_list.request.v1",
+            "focusa.project_interview_session_list.v1",
+            "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+            None,
+        ),
+        op(
+            "focusa.interview.session.mutate",
+            "Mutate Durable Interview Session",
+            "project_interview",
+            "POST",
+            "/v1/interviews/sessions/mutate",
+            true,
+            None,
+            "append_interview_session_revision",
+            "canonical_event",
+            vec!["dry_run", "preview", "commit"],
+            true,
+            true,
+            false,
+            vec!["interview:write"],
+            false,
+            "standard_mutation",
+            vec!["compact", "standard", "debug"],
+            "focusa.project_interview_session_mutation.request.v1",
+            "focusa.project_interview_session_mutation_result.v1",
             "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
             None,
         ),
@@ -2437,6 +2488,66 @@ fn workspace_artifact_schema() -> Value {
     })
 }
 
+fn project_interview_session_schema() -> Value {
+    let strings = || json!({"type": "array", "items": {"type": "string"}});
+    let branch = json!({
+        "type": "object", "additionalProperties": false,
+        "required": ["decision_branch_id", "tranche", "label", "status", "question_ids", "updated_at"],
+        "properties": {
+            "decision_branch_id": {"type": "string"}, "parent_branch_id": {"type": "string"}, "tranche": {"type": "string"}, "label": {"type": "string"},
+            "status": {"enum": ["active", "deferred", "resolved"]}, "question_ids": strings(), "deferred_reason": {"type": "string"}, "updated_at": {"type": "string", "format": "date-time"}
+        }
+    });
+    let question = json!({
+        "type": "object", "additionalProperties": false,
+        "required": ["question_id", "session_id", "decision_branch_id", "question", "reason_for_asking", "triggering_gap", "recommendation", "recommendation_basis_refs", "environment_facts_checked", "contradiction_refs", "linked_context_refs", "linked_spec_sections", "decision_required", "priority", "answer_type", "sensitivity", "readiness_effect", "stop_condition", "status", "created_at"],
+        "properties": {
+            "question_id": {"type": "string"}, "session_id": {"type": "string"}, "decision_branch_id": {"type": "string"}, "parent_question_id": {"type": "string"}, "question": {"type": "string"},
+            "reason_for_asking": {"type": "string"}, "triggering_gap": {"type": "string"}, "recommendation": {"type": "string"}, "recommendation_basis_refs": strings(), "environment_facts_checked": strings(),
+            "contradiction_refs": strings(), "linked_context_refs": strings(), "linked_spec_sections": strings(), "decision_required": {"type": "boolean"}, "priority": {"type": "string"}, "answer_type": {"type": "string"},
+            "sensitivity": {"type": "string"}, "readiness_effect": {"type": "string"}, "stop_condition": {"type": "string"}, "status": {"enum": ["queued", "asked", "answered", "deferred", "skipped", "superseded"]},
+            "created_at": {"type": "string", "format": "date-time"}, "answered_at": {"type": "string", "format": "date-time"}
+        }
+    });
+    let answer = json!({
+        "type": "object", "additionalProperties": false,
+        "required": ["answer_id", "question_id", "answer", "attachment_refs", "operator_id", "status", "notes", "created_at"],
+        "properties": {
+            "answer_id": {"type": "string"}, "question_id": {"type": "string"}, "answer": {}, "attachment_refs": strings(), "operator_id": {"type": "string"},
+            "status": {"enum": ["active", "amended", "superseded", "withdrawn"]}, "confidence": {"type": "number", "minimum": 0, "maximum": 1}, "notes": {"type": "string"},
+            "created_at": {"type": "string", "format": "date-time"}, "supersedes": {"type": "string"}
+        }
+    });
+    json!({
+        "type": "object", "additionalProperties": false,
+        "required": ["interview_session_id", "project_root", "continuity_id", "attachment_id", "strategy_id", "strategy_version", "approved_role_profile_ref", "state_revision", "status", "branches", "questions", "answers", "idempotency_key", "created_at", "updated_at"],
+        "properties": {
+            "interview_session_id": {"type": "string"}, "project_root": {"type": "string"}, "continuity_id": {"type": "string"}, "attachment_id": {"type": "string"},
+            "strategy_id": {"const": "focusa.interview.strategy.grill-with-docs.v1"}, "strategy_version": {"const": 1}, "approved_role_profile_ref": {"type": "string"}, "state_revision": {"type": "integer", "minimum": 1},
+            "status": {"enum": ["active", "paused", "closed", "ready_for_spec"]}, "active_branch_id": {"type": "string"}, "current_question_id": {"type": "string"},
+            "branches": {"type": "array", "items": branch}, "questions": {"type": "array", "items": question}, "answers": {"type": "array", "items": answer},
+            "idempotency_key": {"type": "string"}, "created_at": {"type": "string", "format": "date-time"}, "updated_at": {"type": "string", "format": "date-time"}, "closed_at": {"type": "string", "format": "date-time"}
+        }
+    })
+}
+
+fn project_interview_mutation_request_schema() -> Value {
+    let strings = || json!({"type": "array", "items": {"type": "string"}});
+    json!({
+        "type": "object", "additionalProperties": false,
+        "required": ["project_root", "continuity_id", "attachment_id", "idempotency_key", "expected_state_version", "expected_session_revision", "action"],
+        "properties": {
+            "project_root": {"type": "string", "minLength": 1, "maxLength": 4096}, "continuity_id": {"type": "string", "minLength": 1, "maxLength": 256}, "attachment_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "idempotency_key": {"type": "string", "minLength": 1, "maxLength": 256}, "expected_state_version": {"type": "integer", "minimum": 0}, "expected_session_revision": {"type": "integer", "minimum": 0},
+            "action": {"enum": ["open", "upsert_branch", "queue_question", "record_answer", "pause", "close", "reopen", "defer_branch", "resolve_branch"]}, "interview_session_id": {"type": "string"}, "approved_role_profile_ref": {"type": "string"},
+            "decision_branch_id": {"type": "string"}, "deferred_reason": {"type": "string"},
+            "branch": {"type": "object", "additionalProperties": false, "required": ["decision_branch_id", "tranche", "label"], "properties": {"decision_branch_id": {"type": "string"}, "parent_branch_id": {"type": "string"}, "tranche": {"type": "string"}, "label": {"type": "string"}, "deferred_reason": {"type": "string"}}},
+            "question": {"type": "object", "additionalProperties": false, "required": ["decision_branch_id", "question", "reason_for_asking", "triggering_gap", "recommendation", "recommendation_basis_refs", "environment_facts_checked", "contradiction_refs", "linked_context_refs", "linked_spec_sections", "decision_required", "priority", "answer_type", "readiness_effect", "stop_condition"], "properties": {"question_id": {"type": "string"}, "decision_branch_id": {"type": "string"}, "parent_question_id": {"type": "string"}, "question": {"type": "string"}, "reason_for_asking": {"type": "string"}, "triggering_gap": {"type": "string"}, "recommendation": {"type": "string"}, "recommendation_basis_refs": strings(), "environment_facts_checked": strings(), "contradiction_refs": strings(), "linked_context_refs": strings(), "linked_spec_sections": strings(), "decision_required": {"type": "boolean"}, "priority": {"type": "string"}, "answer_type": {"type": "string"}, "sensitivity": {"type": "string"}, "readiness_effect": {"type": "string"}, "stop_condition": {"type": "string"}}},
+            "answer": {"type": "object", "additionalProperties": false, "required": ["question_id", "answer", "operator_id"], "properties": {"answer_id": {"type": "string"}, "question_id": {"type": "string"}, "answer": {}, "attachment_refs": strings(), "operator_id": {"type": "string"}, "confidence": {"type": "number", "minimum": 0, "maximum": 1}, "notes": {"type": "string"}, "supersedes": {"type": "string"}}}
+        }
+    })
+}
+
 fn interview_gap_schema() -> Value {
     let strings = || json!({"type": "array", "maxItems": 64, "items": {"type": "string"}});
     json!({
@@ -2831,6 +2942,33 @@ fn json_schema_document(schema_id: &str) -> Value {
             "x-focusa-schema-id": schema_id,
             "x-focusa-generated-from": "ContextRetrieveResponse"
         });
+    }
+    if schema_id == "focusa.project_interview_session_list.request.v1" {
+        return json!({"$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id, "type": "object", "additionalProperties": false, "required": ["project_root", "continuity_id", "attachment_id"], "properties": {"project_root": {"type": "string", "minLength": 1, "maxLength": 4096}, "continuity_id": {"type": "string", "minLength": 1, "maxLength": 256}, "attachment_id": {"type": "string", "minLength": 1, "maxLength": 256}, "interview_session_id": {"type": "string"}}, "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "InterviewSessionQuery"});
+    }
+    if schema_id == "focusa.project_interview_session_list.v1" {
+        return json!({"$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id, "type": "object", "additionalProperties": false, "required": ["schema", "state_version", "sessions"], "properties": {"schema": {"const": "focusa.project_interview_session_list.v1"}, "state_version": {"type": "integer", "minimum": 0}, "sessions": {"type": "array", "items": project_interview_session_schema()}}, "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "InterviewSessionListResponse"});
+    }
+    if schema_id == "focusa.project_interview_session_mutation.request.v1" {
+        let mut schema = project_interview_mutation_request_schema();
+        let object = schema
+            .as_object_mut()
+            .expect("Interview mutation schema object");
+        object.insert("$schema".into(), json!(JSON_SCHEMA_DIALECT_2020_12));
+        object.insert(
+            "$id".into(),
+            json!(format!("/v1/agent/schemas/{schema_id}")),
+        );
+        object.insert("title".into(), json!(schema_id));
+        object.insert("x-focusa-schema-id".into(), json!(schema_id));
+        object.insert(
+            "x-focusa-generated-from".into(),
+            json!("InterviewSessionMutationRequest"),
+        );
+        return schema;
+    }
+    if schema_id == "focusa.project_interview_session_mutation_result.v1" {
+        return json!({"$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id, "type": "object", "additionalProperties": false, "required": ["schema", "state_version", "replayed", "exact_resume", "session", "evidence_ref", "receipt_ref", "tool_result"], "properties": {"schema": {"const": "focusa.project_interview_session_mutation_result.v1"}, "state_version": {"type": "integer", "minimum": 0}, "replayed": {"type": "boolean"}, "exact_resume": {"const": true}, "session": project_interview_session_schema(), "evidence_ref": {"type": "string"}, "receipt_ref": {"type": "string"}, "tool_result": {"type": "object"}}, "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "InterviewSessionMutationResponse"});
     }
     if schema_id == "focusa.grill_interview_context.v1" {
         return json!({

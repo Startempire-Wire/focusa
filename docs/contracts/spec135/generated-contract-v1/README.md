@@ -64,3 +64,8 @@ Grill-with-Docs strategy: canonical Context and approved Role verification,
 fact-before-question, all six core tranches, one-question presentation,
 dependency-branch traversal, cited recommendations, explicit stop conditions,
 restart determinism, generated clients/UI, and desktop/mobile UIAI Eval.
+
+`spec135-ri3-interview-resume-proof.json` proves canonical durable Interview
+state: append-only session revisions, governed branches, source-linked questions,
+operator answers, idempotent writes, exact close/reopen/restart continuation,
+visible deferred branches, generated clients/UI, and desktop/mobile UIAI Eval.

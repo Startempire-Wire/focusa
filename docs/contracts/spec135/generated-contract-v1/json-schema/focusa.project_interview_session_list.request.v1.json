@@ -1,0 +1,34 @@
+{
+  "$id": "/v1/agent/schemas/focusa.project_interview_session_list.request.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attachment_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "continuity_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "interview_session_id": {
+      "type": "string"
+    },
+    "project_root": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "project_root",
+    "continuity_id",
+    "attachment_id"
+  ],
+  "title": "focusa.project_interview_session_list.request.v1",
+  "type": "object",
+  "x-focusa-generated-from": "InterviewSessionQuery",
+  "x-focusa-schema-id": "focusa.project_interview_session_list.request.v1"
+}

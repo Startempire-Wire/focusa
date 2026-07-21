@@ -504,6 +504,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/interviews/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Durable Interview Session Revisions
+         * @description List Durable Interview Session Revisions — family=project_interview budget=standard_read materialization=canonical_read
+         */
+        get: operations["focusa.interview.session.list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/interviews/sessions/mutate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mutate Durable Interview Session
+         * @description Mutate Durable Interview Session — family=project_interview budget=standard_mutation materialization=canonical_event
+         */
+        post: operations["focusa.interview.session.mutate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/license/validate": {
         parameters: {
             query?: never;
@@ -2752,6 +2792,235 @@ export interface components {
         focusa_project_identity_response_v1: {
             [key: string]: unknown;
         };
+        /** focusa.project_interview_session_list.request.v1 */
+        focusa_project_interview_session_list_request_v1: {
+            attachment_id: string;
+            continuity_id: string;
+            interview_session_id?: string;
+            project_root: string;
+        };
+        /** focusa.project_interview_session_list.v1 */
+        focusa_project_interview_session_list_v1: {
+            /** @constant */
+            schema: "focusa.project_interview_session_list.v1";
+            sessions: {
+                active_branch_id?: string;
+                answers: {
+                    answer: unknown;
+                    answer_id: string;
+                    attachment_refs: string[];
+                    confidence?: number;
+                    /** Format: date-time */
+                    created_at: string;
+                    notes: string;
+                    operator_id: string;
+                    question_id: string;
+                    /** @enum {unknown} */
+                    status: "active" | "amended" | "superseded" | "withdrawn";
+                    supersedes?: string;
+                }[];
+                approved_role_profile_ref: string;
+                attachment_id: string;
+                branches: {
+                    decision_branch_id: string;
+                    deferred_reason?: string;
+                    label: string;
+                    parent_branch_id?: string;
+                    question_ids: string[];
+                    /** @enum {unknown} */
+                    status: "active" | "deferred" | "resolved";
+                    tranche: string;
+                    /** Format: date-time */
+                    updated_at: string;
+                }[];
+                /** Format: date-time */
+                closed_at?: string;
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                current_question_id?: string;
+                idempotency_key: string;
+                interview_session_id: string;
+                project_root: string;
+                questions: {
+                    answer_type: string;
+                    /** Format: date-time */
+                    answered_at?: string;
+                    contradiction_refs: string[];
+                    /** Format: date-time */
+                    created_at: string;
+                    decision_branch_id: string;
+                    decision_required: boolean;
+                    environment_facts_checked: string[];
+                    linked_context_refs: string[];
+                    linked_spec_sections: string[];
+                    parent_question_id?: string;
+                    priority: string;
+                    question: string;
+                    question_id: string;
+                    readiness_effect: string;
+                    reason_for_asking: string;
+                    recommendation: string;
+                    recommendation_basis_refs: string[];
+                    sensitivity: string;
+                    session_id: string;
+                    /** @enum {unknown} */
+                    status: "queued" | "asked" | "answered" | "deferred" | "skipped" | "superseded";
+                    stop_condition: string;
+                    triggering_gap: string;
+                }[];
+                state_revision: number;
+                /** @enum {unknown} */
+                status: "active" | "paused" | "closed" | "ready_for_spec";
+                /** @constant */
+                strategy_id: "focusa.interview.strategy.grill-with-docs.v1";
+                /** @constant */
+                strategy_version: 1;
+                /** Format: date-time */
+                updated_at: string;
+            }[];
+            state_version: number;
+        };
+        /** focusa.project_interview_session_mutation.request.v1 */
+        focusa_project_interview_session_mutation_request_v1: {
+            /** @enum {unknown} */
+            action: "open" | "upsert_branch" | "queue_question" | "record_answer" | "pause" | "close" | "reopen" | "defer_branch" | "resolve_branch";
+            answer?: {
+                answer: unknown;
+                answer_id?: string;
+                attachment_refs?: string[];
+                confidence?: number;
+                notes?: string;
+                operator_id: string;
+                question_id: string;
+                supersedes?: string;
+            };
+            approved_role_profile_ref?: string;
+            attachment_id: string;
+            branch?: {
+                decision_branch_id: string;
+                deferred_reason?: string;
+                label: string;
+                parent_branch_id?: string;
+                tranche: string;
+            };
+            continuity_id: string;
+            decision_branch_id?: string;
+            deferred_reason?: string;
+            expected_session_revision: number;
+            expected_state_version: number;
+            idempotency_key: string;
+            interview_session_id?: string;
+            project_root: string;
+            question?: {
+                answer_type: string;
+                contradiction_refs: string[];
+                decision_branch_id: string;
+                decision_required: boolean;
+                environment_facts_checked: string[];
+                linked_context_refs: string[];
+                linked_spec_sections: string[];
+                parent_question_id?: string;
+                priority: string;
+                question: string;
+                question_id?: string;
+                readiness_effect: string;
+                reason_for_asking: string;
+                recommendation: string;
+                recommendation_basis_refs: string[];
+                sensitivity?: string;
+                stop_condition: string;
+                triggering_gap: string;
+            };
+        };
+        /** focusa.project_interview_session_mutation_result.v1 */
+        focusa_project_interview_session_mutation_result_v1: {
+            evidence_ref: string;
+            /** @constant */
+            exact_resume: true;
+            receipt_ref: string;
+            replayed: boolean;
+            /** @constant */
+            schema: "focusa.project_interview_session_mutation_result.v1";
+            session: {
+                active_branch_id?: string;
+                answers: {
+                    answer: unknown;
+                    answer_id: string;
+                    attachment_refs: string[];
+                    confidence?: number;
+                    /** Format: date-time */
+                    created_at: string;
+                    notes: string;
+                    operator_id: string;
+                    question_id: string;
+                    /** @enum {unknown} */
+                    status: "active" | "amended" | "superseded" | "withdrawn";
+                    supersedes?: string;
+                }[];
+                approved_role_profile_ref: string;
+                attachment_id: string;
+                branches: {
+                    decision_branch_id: string;
+                    deferred_reason?: string;
+                    label: string;
+                    parent_branch_id?: string;
+                    question_ids: string[];
+                    /** @enum {unknown} */
+                    status: "active" | "deferred" | "resolved";
+                    tranche: string;
+                    /** Format: date-time */
+                    updated_at: string;
+                }[];
+                /** Format: date-time */
+                closed_at?: string;
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                current_question_id?: string;
+                idempotency_key: string;
+                interview_session_id: string;
+                project_root: string;
+                questions: {
+                    answer_type: string;
+                    /** Format: date-time */
+                    answered_at?: string;
+                    contradiction_refs: string[];
+                    /** Format: date-time */
+                    created_at: string;
+                    decision_branch_id: string;
+                    decision_required: boolean;
+                    environment_facts_checked: string[];
+                    linked_context_refs: string[];
+                    linked_spec_sections: string[];
+                    parent_question_id?: string;
+                    priority: string;
+                    question: string;
+                    question_id: string;
+                    readiness_effect: string;
+                    reason_for_asking: string;
+                    recommendation: string;
+                    recommendation_basis_refs: string[];
+                    sensitivity: string;
+                    session_id: string;
+                    /** @enum {unknown} */
+                    status: "queued" | "asked" | "answered" | "deferred" | "skipped" | "superseded";
+                    stop_condition: string;
+                    triggering_gap: string;
+                }[];
+                state_revision: number;
+                /** @enum {unknown} */
+                status: "active" | "paused" | "closed" | "ready_for_spec";
+                /** @constant */
+                strategy_id: "focusa.interview.strategy.grill-with-docs.v1";
+                /** @constant */
+                strategy_version: 1;
+                /** Format: date-time */
+                updated_at: string;
+            };
+            state_version: number;
+            tool_result: Record<string, never>;
+        };
         /**
          * focusa.project_verify.request.v1
          * @description Generated contract for Focusa schema focusa.project_verify.request.v1
@@ -4300,6 +4569,82 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_grill_interview_strategy_response_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.interview.session.list": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List Durable Interview Session Revisions response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_project_interview_session_list_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.interview.session.mutate": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_project_interview_session_mutation_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Mutate Durable Interview Session response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_project_interview_session_mutation_result_v1"];
                 };
             };
             /** @description Standard error envelope */
