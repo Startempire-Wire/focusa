@@ -888,6 +888,312 @@ type FocusaPredictionRecordRequestV1 map[string]interface{}
 // FocusaPredictionRecordResponseV1 Generated contract for Focusa schema focusa.prediction_record.response.v1
 type FocusaPredictionRecordResponseV1 map[string]interface{}
 
+// FocusaProjectAgentRoleProfileDraftRequestV1 defines model for focusa_project_agent_role_profile_draft_request_v1.
+type FocusaProjectAgentRoleProfileDraftRequestV1 struct {
+	Assumptions []struct {
+		SourceRefs []string    `json:"source_refs"`
+		Statement  string      `json:"statement"`
+		Status     interface{} `json:"status"`
+	} `json:"assumptions"`
+	AttachmentId            string   `json:"attachment_id"`
+	CommunicationPosture    string   `json:"communication_posture"`
+	ContextArtifactRefs     []string `json:"context_artifact_refs"`
+	ContextClaimRefs        []string `json:"context_claim_refs"`
+	ContinuityId            string   `json:"continuity_id"`
+	DecisionPrinciples      []string `json:"decision_principles"`
+	EscalationTriggers      []string `json:"escalation_triggers"`
+	EvidenceBehavior        string   `json:"evidence_behavior"`
+	EvidenceExpectations    []string `json:"evidence_expectations"`
+	ExpectedDeliverables    []string `json:"expected_deliverables"`
+	ExpectedStateVersion    int      `json:"expected_state_version"`
+	Expertise               []string `json:"expertise"`
+	ForbiddenAssumptions    []string `json:"forbidden_assumptions"`
+	HandoffBoundaries       []string `json:"handoff_boundaries"`
+	IdempotencyKey          string   `json:"idempotency_key"`
+	InterviewAnswerRefs     []string `json:"interview_answer_refs"`
+	NonResponsibilities     []string `json:"non_responsibilities"`
+	OriginalSeed            string   `json:"original_seed"`
+	PermissionAssertions    []string `json:"permission_assertions"`
+	PermissionProfileRefs   []string `json:"permission_profile_refs"`
+	PrimaryResponsibilities []string `json:"primary_responsibilities"`
+	ProjectRoot             string   `json:"project_root"`
+	Purpose                 string   `json:"purpose"`
+	QualityStandards        []string `json:"quality_standards"`
+	Redlines                []struct {
+		After     string `json:"after"`
+		Before    string `json:"before"`
+		Field     string `json:"field"`
+		Rationale string `json:"rationale"`
+	} `json:"redlines"`
+	ReviewerLenses            []string `json:"reviewer_lenses"`
+	SecondaryResponsibilities []string `json:"secondary_responsibilities"`
+	StakeholderPosture        string   `json:"stakeholder_posture"`
+	Title                     string   `json:"title"`
+	ToolPreferences           []string `json:"tool_preferences"`
+	UnresolvedQuestions       []string `json:"unresolved_questions"`
+}
+
+// FocusaProjectAgentRoleProfileListV1 defines model for focusa_project_agent_role_profile_list_v1.
+type FocusaProjectAgentRoleProfileListV1 struct {
+	Approved *struct {
+		Assumptions []struct {
+			AssumptionId string      `json:"assumption_id"`
+			SourceRefs   []string    `json:"source_refs"`
+			Statement    string      `json:"statement"`
+			Status       interface{} `json:"status"`
+		} `json:"assumptions"`
+		AttachmentId         string      `json:"attachment_id"`
+		CommunicationPosture string      `json:"communication_posture"`
+		ContinuityId         string      `json:"continuity_id"`
+		CreatedAt            time.Time   `json:"created_at"`
+		DecisionPrinciples   []string    `json:"decision_principles"`
+		EscalationTriggers   []string    `json:"escalation_triggers"`
+		EvidenceBehavior     string      `json:"evidence_behavior"`
+		EvidenceExpectations []string    `json:"evidence_expectations"`
+		ExpectedDeliverables []string    `json:"expected_deliverables"`
+		Expertise            []string    `json:"expertise"`
+		ForbiddenAssumptions []string    `json:"forbidden_assumptions"`
+		GrantsPermissions    interface{} `json:"grants_permissions"`
+		Grounding            struct {
+			ContextArtifactRefs []string `json:"context_artifact_refs"`
+			ContextClaimRefs    []string `json:"context_claim_refs"`
+			InterviewAnswerRefs []string `json:"interview_answer_refs"`
+			OperatorSeedRef     string   `json:"operator_seed_ref"`
+		} `json:"grounding"`
+		HandoffBoundaries       []string `json:"handoff_boundaries"`
+		IdempotencyKey          string   `json:"idempotency_key"`
+		NonResponsibilities     []string `json:"non_responsibilities"`
+		OriginalSeed            string   `json:"original_seed"`
+		PermissionProfileRefs   []string `json:"permission_profile_refs"`
+		PrimaryResponsibilities []string `json:"primary_responsibilities"`
+		ProjectRoot             string   `json:"project_root"`
+		Purpose                 string   `json:"purpose"`
+		QualityStandards        []string `json:"quality_standards"`
+		Redlines                []struct {
+			After     string `json:"after"`
+			Before    string `json:"before"`
+			Field     string `json:"field"`
+			Rationale string `json:"rationale"`
+		} `json:"redlines"`
+		Review *struct {
+			Decision   interface{} `json:"decision"`
+			Rationale  string      `json:"rationale"`
+			ReviewedAt time.Time   `json:"reviewed_at"`
+			ReviewedBy string      `json:"reviewed_by"`
+		} `json:"review,omitempty"`
+		ReviewerLenses            []string    `json:"reviewer_lenses"`
+		Revision                  int         `json:"revision"`
+		RoleProfileId             string      `json:"role_profile_id"`
+		SecondaryResponsibilities []string    `json:"secondary_responsibilities"`
+		StakeholderPosture        string      `json:"stakeholder_posture"`
+		Status                    interface{} `json:"status"`
+		Title                     string      `json:"title"`
+		ToolPreferences           []string    `json:"tool_preferences"`
+		UnresolvedQuestions       []string    `json:"unresolved_questions"`
+		UpdatedAt                 time.Time   `json:"updated_at"`
+	} `json:"approved,omitempty"`
+	Latest *struct {
+		Assumptions []struct {
+			AssumptionId string      `json:"assumption_id"`
+			SourceRefs   []string    `json:"source_refs"`
+			Statement    string      `json:"statement"`
+			Status       interface{} `json:"status"`
+		} `json:"assumptions"`
+		AttachmentId         string      `json:"attachment_id"`
+		CommunicationPosture string      `json:"communication_posture"`
+		ContinuityId         string      `json:"continuity_id"`
+		CreatedAt            time.Time   `json:"created_at"`
+		DecisionPrinciples   []string    `json:"decision_principles"`
+		EscalationTriggers   []string    `json:"escalation_triggers"`
+		EvidenceBehavior     string      `json:"evidence_behavior"`
+		EvidenceExpectations []string    `json:"evidence_expectations"`
+		ExpectedDeliverables []string    `json:"expected_deliverables"`
+		Expertise            []string    `json:"expertise"`
+		ForbiddenAssumptions []string    `json:"forbidden_assumptions"`
+		GrantsPermissions    interface{} `json:"grants_permissions"`
+		Grounding            struct {
+			ContextArtifactRefs []string `json:"context_artifact_refs"`
+			ContextClaimRefs    []string `json:"context_claim_refs"`
+			InterviewAnswerRefs []string `json:"interview_answer_refs"`
+			OperatorSeedRef     string   `json:"operator_seed_ref"`
+		} `json:"grounding"`
+		HandoffBoundaries       []string `json:"handoff_boundaries"`
+		IdempotencyKey          string   `json:"idempotency_key"`
+		NonResponsibilities     []string `json:"non_responsibilities"`
+		OriginalSeed            string   `json:"original_seed"`
+		PermissionProfileRefs   []string `json:"permission_profile_refs"`
+		PrimaryResponsibilities []string `json:"primary_responsibilities"`
+		ProjectRoot             string   `json:"project_root"`
+		Purpose                 string   `json:"purpose"`
+		QualityStandards        []string `json:"quality_standards"`
+		Redlines                []struct {
+			After     string `json:"after"`
+			Before    string `json:"before"`
+			Field     string `json:"field"`
+			Rationale string `json:"rationale"`
+		} `json:"redlines"`
+		Review *struct {
+			Decision   interface{} `json:"decision"`
+			Rationale  string      `json:"rationale"`
+			ReviewedAt time.Time   `json:"reviewed_at"`
+			ReviewedBy string      `json:"reviewed_by"`
+		} `json:"review,omitempty"`
+		ReviewerLenses            []string    `json:"reviewer_lenses"`
+		Revision                  int         `json:"revision"`
+		RoleProfileId             string      `json:"role_profile_id"`
+		SecondaryResponsibilities []string    `json:"secondary_responsibilities"`
+		StakeholderPosture        string      `json:"stakeholder_posture"`
+		Status                    interface{} `json:"status"`
+		Title                     string      `json:"title"`
+		ToolPreferences           []string    `json:"tool_preferences"`
+		UnresolvedQuestions       []string    `json:"unresolved_questions"`
+		UpdatedAt                 time.Time   `json:"updated_at"`
+	} `json:"latest,omitempty"`
+	Profiles []struct {
+		Assumptions []struct {
+			AssumptionId string      `json:"assumption_id"`
+			SourceRefs   []string    `json:"source_refs"`
+			Statement    string      `json:"statement"`
+			Status       interface{} `json:"status"`
+		} `json:"assumptions"`
+		AttachmentId         string      `json:"attachment_id"`
+		CommunicationPosture string      `json:"communication_posture"`
+		ContinuityId         string      `json:"continuity_id"`
+		CreatedAt            time.Time   `json:"created_at"`
+		DecisionPrinciples   []string    `json:"decision_principles"`
+		EscalationTriggers   []string    `json:"escalation_triggers"`
+		EvidenceBehavior     string      `json:"evidence_behavior"`
+		EvidenceExpectations []string    `json:"evidence_expectations"`
+		ExpectedDeliverables []string    `json:"expected_deliverables"`
+		Expertise            []string    `json:"expertise"`
+		ForbiddenAssumptions []string    `json:"forbidden_assumptions"`
+		GrantsPermissions    interface{} `json:"grants_permissions"`
+		Grounding            struct {
+			ContextArtifactRefs []string `json:"context_artifact_refs"`
+			ContextClaimRefs    []string `json:"context_claim_refs"`
+			InterviewAnswerRefs []string `json:"interview_answer_refs"`
+			OperatorSeedRef     string   `json:"operator_seed_ref"`
+		} `json:"grounding"`
+		HandoffBoundaries       []string `json:"handoff_boundaries"`
+		IdempotencyKey          string   `json:"idempotency_key"`
+		NonResponsibilities     []string `json:"non_responsibilities"`
+		OriginalSeed            string   `json:"original_seed"`
+		PermissionProfileRefs   []string `json:"permission_profile_refs"`
+		PrimaryResponsibilities []string `json:"primary_responsibilities"`
+		ProjectRoot             string   `json:"project_root"`
+		Purpose                 string   `json:"purpose"`
+		QualityStandards        []string `json:"quality_standards"`
+		Redlines                []struct {
+			After     string `json:"after"`
+			Before    string `json:"before"`
+			Field     string `json:"field"`
+			Rationale string `json:"rationale"`
+		} `json:"redlines"`
+		Review *struct {
+			Decision   interface{} `json:"decision"`
+			Rationale  string      `json:"rationale"`
+			ReviewedAt time.Time   `json:"reviewed_at"`
+			ReviewedBy string      `json:"reviewed_by"`
+		} `json:"review,omitempty"`
+		ReviewerLenses            []string    `json:"reviewer_lenses"`
+		Revision                  int         `json:"revision"`
+		RoleProfileId             string      `json:"role_profile_id"`
+		SecondaryResponsibilities []string    `json:"secondary_responsibilities"`
+		StakeholderPosture        string      `json:"stakeholder_posture"`
+		Status                    interface{} `json:"status"`
+		Title                     string      `json:"title"`
+		ToolPreferences           []string    `json:"tool_preferences"`
+		UnresolvedQuestions       []string    `json:"unresolved_questions"`
+		UpdatedAt                 time.Time   `json:"updated_at"`
+	} `json:"profiles"`
+	ResponsibilityIsNotPermission interface{} `json:"responsibility_is_not_permission"`
+	Schema                        interface{} `json:"schema"`
+	StateVersion                  int         `json:"state_version"`
+}
+
+// FocusaProjectAgentRoleProfileMutationResultV1 defines model for focusa_project_agent_role_profile_mutation_result_v1.
+type FocusaProjectAgentRoleProfileMutationResultV1 struct {
+	Canonical   interface{} `json:"canonical"`
+	EvidenceRef string      `json:"evidence_ref"`
+	Profile     struct {
+		Assumptions []struct {
+			AssumptionId string      `json:"assumption_id"`
+			SourceRefs   []string    `json:"source_refs"`
+			Statement    string      `json:"statement"`
+			Status       interface{} `json:"status"`
+		} `json:"assumptions"`
+		AttachmentId         string      `json:"attachment_id"`
+		CommunicationPosture string      `json:"communication_posture"`
+		ContinuityId         string      `json:"continuity_id"`
+		CreatedAt            time.Time   `json:"created_at"`
+		DecisionPrinciples   []string    `json:"decision_principles"`
+		EscalationTriggers   []string    `json:"escalation_triggers"`
+		EvidenceBehavior     string      `json:"evidence_behavior"`
+		EvidenceExpectations []string    `json:"evidence_expectations"`
+		ExpectedDeliverables []string    `json:"expected_deliverables"`
+		Expertise            []string    `json:"expertise"`
+		ForbiddenAssumptions []string    `json:"forbidden_assumptions"`
+		GrantsPermissions    interface{} `json:"grants_permissions"`
+		Grounding            struct {
+			ContextArtifactRefs []string `json:"context_artifact_refs"`
+			ContextClaimRefs    []string `json:"context_claim_refs"`
+			InterviewAnswerRefs []string `json:"interview_answer_refs"`
+			OperatorSeedRef     string   `json:"operator_seed_ref"`
+		} `json:"grounding"`
+		HandoffBoundaries       []string `json:"handoff_boundaries"`
+		IdempotencyKey          string   `json:"idempotency_key"`
+		NonResponsibilities     []string `json:"non_responsibilities"`
+		OriginalSeed            string   `json:"original_seed"`
+		PermissionProfileRefs   []string `json:"permission_profile_refs"`
+		PrimaryResponsibilities []string `json:"primary_responsibilities"`
+		ProjectRoot             string   `json:"project_root"`
+		Purpose                 string   `json:"purpose"`
+		QualityStandards        []string `json:"quality_standards"`
+		Redlines                []struct {
+			After     string `json:"after"`
+			Before    string `json:"before"`
+			Field     string `json:"field"`
+			Rationale string `json:"rationale"`
+		} `json:"redlines"`
+		Review *struct {
+			Decision   interface{} `json:"decision"`
+			Rationale  string      `json:"rationale"`
+			ReviewedAt time.Time   `json:"reviewed_at"`
+			ReviewedBy string      `json:"reviewed_by"`
+		} `json:"review,omitempty"`
+		ReviewerLenses            []string    `json:"reviewer_lenses"`
+		Revision                  int         `json:"revision"`
+		RoleProfileId             string      `json:"role_profile_id"`
+		SecondaryResponsibilities []string    `json:"secondary_responsibilities"`
+		StakeholderPosture        string      `json:"stakeholder_posture"`
+		Status                    interface{} `json:"status"`
+		Title                     string      `json:"title"`
+		ToolPreferences           []string    `json:"tool_preferences"`
+		UnresolvedQuestions       []string    `json:"unresolved_questions"`
+		UpdatedAt                 time.Time   `json:"updated_at"`
+	} `json:"profile"`
+	ReceiptRef                    string                 `json:"receipt_ref"`
+	Replayed                      bool                   `json:"replayed"`
+	ResponsibilityIsNotPermission interface{}            `json:"responsibility_is_not_permission"`
+	Schema                        interface{}            `json:"schema"`
+	StateVersion                  int                    `json:"state_version"`
+	ToolResult                    map[string]interface{} `json:"tool_result"`
+}
+
+// FocusaProjectAgentRoleProfileReviewRequestV1 defines model for focusa_project_agent_role_profile_review_request_v1.
+type FocusaProjectAgentRoleProfileReviewRequestV1 struct {
+	AttachmentId         string      `json:"attachment_id"`
+	ContinuityId         string      `json:"continuity_id"`
+	Decision             interface{} `json:"decision"`
+	ExpectedStateVersion int         `json:"expected_state_version"`
+	IdempotencyKey       string      `json:"idempotency_key"`
+	ProfileRevision      int         `json:"profile_revision"`
+	ProjectRoot          string      `json:"project_root"`
+	Rationale            string      `json:"rationale"`
+	ReviewedBy           string      `json:"reviewed_by"`
+	RoleProfileId        string      `json:"role_profile_id"`
+}
+
 // FocusaProjectIdentityResponseV1 Generated contract for Focusa schema focusa.project_identity.response.v1
 type FocusaProjectIdentityResponseV1 map[string]interface{}
 
@@ -1608,6 +1914,42 @@ type FocusaResourceModeParams struct {
 	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
+// FocusaRoleProfileListParams defines parameters for FocusaRoleProfileList.
+type FocusaRoleProfileListParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+}
+
+// FocusaRoleProfileDraftParams defines parameters for FocusaRoleProfileDraft.
+type FocusaRoleProfileDraftParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+}
+
+// FocusaRoleProfileReviewParams defines parameters for FocusaRoleProfileReview.
+type FocusaRoleProfileReviewParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+}
+
 // FocusaStateCurrentParams defines parameters for FocusaStateCurrent.
 type FocusaStateCurrentParams struct {
 	// ProjectRoot Required Focusa scope key: project_root
@@ -1871,6 +2213,12 @@ type FocusaPredictionEvaluateJSONRequestBody = FocusaPredictionEvaluateRequestV1
 
 // FocusaPredictionRecordJSONRequestBody defines body for FocusaPredictionRecord for application/json ContentType.
 type FocusaPredictionRecordJSONRequestBody = FocusaPredictionRecordRequestV1
+
+// FocusaRoleProfileDraftJSONRequestBody defines body for FocusaRoleProfileDraft for application/json ContentType.
+type FocusaRoleProfileDraftJSONRequestBody = FocusaProjectAgentRoleProfileDraftRequestV1
+
+// FocusaRoleProfileReviewJSONRequestBody defines body for FocusaRoleProfileReview for application/json ContentType.
+type FocusaRoleProfileReviewJSONRequestBody = FocusaProjectAgentRoleProfileReviewRequestV1
 
 // FocusaTrajectoryAssessJSONRequestBody defines body for FocusaTrajectoryAssess for application/json ContentType.
 type FocusaTrajectoryAssessJSONRequestBody = FocusaTrajectoryAssessRequestV1
@@ -2375,6 +2723,19 @@ type ClientInterface interface {
 
 	// FocusaResourceMode request
 	FocusaResourceMode(ctx context.Context, params *FocusaResourceModeParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaRoleProfileList request
+	FocusaRoleProfileList(ctx context.Context, params *FocusaRoleProfileListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaRoleProfileDraftWithBody request with any body
+	FocusaRoleProfileDraftWithBody(ctx context.Context, params *FocusaRoleProfileDraftParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	FocusaRoleProfileDraft(ctx context.Context, params *FocusaRoleProfileDraftParams, body FocusaRoleProfileDraftJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaRoleProfileReviewWithBody request with any body
+	FocusaRoleProfileReviewWithBody(ctx context.Context, params *FocusaRoleProfileReviewParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	FocusaRoleProfileReview(ctx context.Context, params *FocusaRoleProfileReviewParams, body FocusaRoleProfileReviewJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// FocusaStateCurrent request
 	FocusaStateCurrent(ctx context.Context, params *FocusaStateCurrentParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3202,6 +3563,66 @@ func (c *Client) FocusaProjectVerify(ctx context.Context, params *FocusaProjectV
 
 func (c *Client) FocusaResourceMode(ctx context.Context, params *FocusaResourceModeParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewFocusaResourceModeRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaRoleProfileList(ctx context.Context, params *FocusaRoleProfileListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaRoleProfileListRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaRoleProfileDraftWithBody(ctx context.Context, params *FocusaRoleProfileDraftParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaRoleProfileDraftRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaRoleProfileDraft(ctx context.Context, params *FocusaRoleProfileDraftParams, body FocusaRoleProfileDraftJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaRoleProfileDraftRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaRoleProfileReviewWithBody(ctx context.Context, params *FocusaRoleProfileReviewParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaRoleProfileReviewRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaRoleProfileReview(ctx context.Context, params *FocusaRoleProfileReviewParams, body FocusaRoleProfileReviewJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaRoleProfileReviewRequest(c.Server, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -6214,6 +6635,230 @@ func NewFocusaResourceModeRequest(server string, params *FocusaResourceModeParam
 	return req, nil
 }
 
+// NewFocusaRoleProfileListRequest generates requests for FocusaRoleProfileList
+func NewFocusaRoleProfileListRequest(server string, params *FocusaRoleProfileListParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/roles/profiles")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewFocusaRoleProfileDraftRequest calls the generic FocusaRoleProfileDraft builder with application/json body
+func NewFocusaRoleProfileDraftRequest(server string, params *FocusaRoleProfileDraftParams, body FocusaRoleProfileDraftJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewFocusaRoleProfileDraftRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewFocusaRoleProfileDraftRequestWithBody generates requests for FocusaRoleProfileDraft with any type of body
+func NewFocusaRoleProfileDraftRequestWithBody(server string, params *FocusaRoleProfileDraftParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/roles/profiles/draft")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewFocusaRoleProfileReviewRequest calls the generic FocusaRoleProfileReview builder with application/json body
+func NewFocusaRoleProfileReviewRequest(server string, params *FocusaRoleProfileReviewParams, body FocusaRoleProfileReviewJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewFocusaRoleProfileReviewRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewFocusaRoleProfileReviewRequestWithBody generates requests for FocusaRoleProfileReview with any type of body
+func NewFocusaRoleProfileReviewRequestWithBody(server string, params *FocusaRoleProfileReviewParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/roles/profiles/review")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewFocusaStateCurrentRequest generates requests for FocusaStateCurrent
 func NewFocusaStateCurrentRequest(server string, params *FocusaStateCurrentParams) (*http.Request, error) {
 	var err error
@@ -7967,6 +8612,19 @@ type ClientWithResponsesInterface interface {
 	// FocusaResourceModeWithResponse request
 	FocusaResourceModeWithResponse(ctx context.Context, params *FocusaResourceModeParams, reqEditors ...RequestEditorFn) (*FocusaResourceModeResponse, error)
 
+	// FocusaRoleProfileListWithResponse request
+	FocusaRoleProfileListWithResponse(ctx context.Context, params *FocusaRoleProfileListParams, reqEditors ...RequestEditorFn) (*FocusaRoleProfileListResponse, error)
+
+	// FocusaRoleProfileDraftWithBodyWithResponse request with any body
+	FocusaRoleProfileDraftWithBodyWithResponse(ctx context.Context, params *FocusaRoleProfileDraftParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaRoleProfileDraftResponse, error)
+
+	FocusaRoleProfileDraftWithResponse(ctx context.Context, params *FocusaRoleProfileDraftParams, body FocusaRoleProfileDraftJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaRoleProfileDraftResponse, error)
+
+	// FocusaRoleProfileReviewWithBodyWithResponse request with any body
+	FocusaRoleProfileReviewWithBodyWithResponse(ctx context.Context, params *FocusaRoleProfileReviewParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaRoleProfileReviewResponse, error)
+
+	FocusaRoleProfileReviewWithResponse(ctx context.Context, params *FocusaRoleProfileReviewParams, body FocusaRoleProfileReviewJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaRoleProfileReviewResponse, error)
+
 	// FocusaStateCurrentWithResponse request
 	FocusaStateCurrentWithResponse(ctx context.Context, params *FocusaStateCurrentParams, reqEditors ...RequestEditorFn) (*FocusaStateCurrentResponse, error)
 
@@ -9341,6 +9999,99 @@ func (r FocusaResourceModeResponse) ContentType() string {
 	return ""
 }
 
+type FocusaRoleProfileListResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaProjectAgentRoleProfileListV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaRoleProfileListResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaRoleProfileListResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaRoleProfileListResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaRoleProfileDraftResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaProjectAgentRoleProfileMutationResultV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaRoleProfileDraftResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaRoleProfileDraftResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaRoleProfileDraftResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaRoleProfileReviewResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaProjectAgentRoleProfileMutationResultV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaRoleProfileReviewResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaRoleProfileReviewResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaRoleProfileReviewResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type FocusaStateCurrentResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -10581,6 +11332,49 @@ func (c *ClientWithResponses) FocusaResourceModeWithResponse(ctx context.Context
 		return nil, err
 	}
 	return ParseFocusaResourceModeResponse(rsp)
+}
+
+// FocusaRoleProfileListWithResponse request returning *FocusaRoleProfileListResponse
+func (c *ClientWithResponses) FocusaRoleProfileListWithResponse(ctx context.Context, params *FocusaRoleProfileListParams, reqEditors ...RequestEditorFn) (*FocusaRoleProfileListResponse, error) {
+	rsp, err := c.FocusaRoleProfileList(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaRoleProfileListResponse(rsp)
+}
+
+// FocusaRoleProfileDraftWithBodyWithResponse request with arbitrary body returning *FocusaRoleProfileDraftResponse
+func (c *ClientWithResponses) FocusaRoleProfileDraftWithBodyWithResponse(ctx context.Context, params *FocusaRoleProfileDraftParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaRoleProfileDraftResponse, error) {
+	rsp, err := c.FocusaRoleProfileDraftWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaRoleProfileDraftResponse(rsp)
+}
+
+func (c *ClientWithResponses) FocusaRoleProfileDraftWithResponse(ctx context.Context, params *FocusaRoleProfileDraftParams, body FocusaRoleProfileDraftJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaRoleProfileDraftResponse, error) {
+	rsp, err := c.FocusaRoleProfileDraft(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaRoleProfileDraftResponse(rsp)
+}
+
+// FocusaRoleProfileReviewWithBodyWithResponse request with arbitrary body returning *FocusaRoleProfileReviewResponse
+func (c *ClientWithResponses) FocusaRoleProfileReviewWithBodyWithResponse(ctx context.Context, params *FocusaRoleProfileReviewParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaRoleProfileReviewResponse, error) {
+	rsp, err := c.FocusaRoleProfileReviewWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaRoleProfileReviewResponse(rsp)
+}
+
+func (c *ClientWithResponses) FocusaRoleProfileReviewWithResponse(ctx context.Context, params *FocusaRoleProfileReviewParams, body FocusaRoleProfileReviewJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaRoleProfileReviewResponse, error) {
+	rsp, err := c.FocusaRoleProfileReview(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaRoleProfileReviewResponse(rsp)
 }
 
 // FocusaStateCurrentWithResponse request returning *FocusaStateCurrentResponse
@@ -12255,6 +13049,105 @@ func ParseFocusaResourceModeResponse(rsp *http.Response) (*FocusaResourceModeRes
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest FocusaResourceModeResponseV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaRoleProfileListResponse parses an HTTP response from a FocusaRoleProfileListWithResponse call
+func ParseFocusaRoleProfileListResponse(rsp *http.Response) (*FocusaRoleProfileListResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaRoleProfileListResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaProjectAgentRoleProfileListV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaRoleProfileDraftResponse parses an HTTP response from a FocusaRoleProfileDraftWithResponse call
+func ParseFocusaRoleProfileDraftResponse(rsp *http.Response) (*FocusaRoleProfileDraftResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaRoleProfileDraftResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaProjectAgentRoleProfileMutationResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaRoleProfileReviewResponse parses an HTTP response from a FocusaRoleProfileReviewWithResponse call
+func ParseFocusaRoleProfileReviewResponse(rsp *http.Response) (*FocusaRoleProfileReviewResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaRoleProfileReviewResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaProjectAgentRoleProfileMutationResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

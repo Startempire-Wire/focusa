@@ -205,14 +205,18 @@ fn op(
             | "memory"
             | "work_loop"
             | "workspace_artifact"
+            | "project_role_profile"
     ) || matches!(
         id,
         "focusa.ui_action_bindings.read"
             | "focusa.ui_capability_snapshot.read"
             | "focusa.protocol.handshake"
     );
-    let attachment_scoped =
-        id.contains("attachment") || matches!(family, "context" | "workspace_artifact");
+    let attachment_scoped = id.contains("attachment")
+        || matches!(
+            family,
+            "context" | "workspace_artifact" | "project_role_profile"
+        );
     let mut required_keys = Vec::new();
     if project_scoped {
         required_keys.push("project_root");
@@ -864,6 +868,76 @@ fn build_operations() -> Vec<OperationEntry> {
             "focusa.workspace_artifact_intake.request.v1",
             "focusa.workspace_artifact_intake_result.v1",
             "docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md",
+            None,
+        ),
+        // ── Context-grounded project Role Profile ─────────────────────────────
+        op(
+            "focusa.role_profile.list",
+            "List Project Role Profile Revisions",
+            "project_role_profile",
+            "GET",
+            "/v1/roles/profiles",
+            true,
+            None,
+            "read_role_profiles",
+            "canonical_read",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec!["role:read"],
+            false,
+            "standard_read",
+            vec!["compact", "standard", "debug"],
+            "focusa.project_agent_role_profile_list.request.v1",
+            "focusa.project_agent_role_profile_list.v1",
+            "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+            None,
+        ),
+        op(
+            "focusa.role_profile.draft",
+            "Draft Grounded Project Role Profile",
+            "project_role_profile",
+            "POST",
+            "/v1/roles/profiles/draft",
+            true,
+            None,
+            "draft_role_profile_revision",
+            "canonical_event",
+            vec!["commit"],
+            true,
+            true,
+            false,
+            vec!["role:write"],
+            false,
+            "standard_write",
+            vec!["compact", "standard", "debug"],
+            "focusa.project_agent_role_profile_draft.request.v1",
+            "focusa.project_agent_role_profile_mutation_result.v1",
+            "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+            None,
+        ),
+        op(
+            "focusa.role_profile.review",
+            "Approve, Reject, or Defer Project Role Profile",
+            "project_role_profile",
+            "POST",
+            "/v1/roles/profiles/review",
+            true,
+            None,
+            "review_role_profile_revision",
+            "canonical_event",
+            vec!["commit"],
+            true,
+            true,
+            false,
+            vec!["role:approve"],
+            true,
+            "standard_write",
+            vec!["compact", "standard", "debug"],
+            "focusa.project_agent_role_profile_review.request.v1",
+            "focusa.project_agent_role_profile_mutation_result.v1",
+            "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
             None,
         ),
         // ── canonical Context corpus ─────────────────────────────────────────
@@ -2339,6 +2413,47 @@ fn workspace_artifact_schema() -> Value {
     })
 }
 
+fn project_role_profile_schema() -> Value {
+    let string_array = || json!({"type": "array", "maxItems": 64, "items": {"type": "string"}});
+    json!({
+        "type": "object", "additionalProperties": false,
+        "required": ["role_profile_id", "project_root", "continuity_id", "attachment_id", "revision", "original_seed", "title", "purpose", "expertise", "primary_responsibilities", "secondary_responsibilities", "expected_deliverables", "quality_standards", "decision_principles", "evidence_expectations", "evidence_behavior", "communication_posture", "stakeholder_posture", "non_responsibilities", "forbidden_assumptions", "escalation_triggers", "handoff_boundaries", "tool_preferences", "reviewer_lenses", "grounding", "assumptions", "unresolved_questions", "redlines", "grants_permissions", "permission_profile_refs", "status", "idempotency_key", "created_at", "updated_at"],
+        "properties": {
+            "role_profile_id": {"type": "string"}, "project_root": {"type": "string"}, "continuity_id": {"type": "string"}, "attachment_id": {"type": "string"},
+            "revision": {"type": "integer", "minimum": 1}, "original_seed": {"type": "string"}, "title": {"type": "string"}, "purpose": {"type": "string"},
+            "expertise": string_array(), "primary_responsibilities": string_array(), "secondary_responsibilities": string_array(), "expected_deliverables": string_array(),
+            "quality_standards": string_array(), "decision_principles": string_array(), "evidence_expectations": string_array(),
+            "evidence_behavior": {"type": "string"}, "communication_posture": {"type": "string"}, "stakeholder_posture": {"type": "string"},
+            "non_responsibilities": string_array(), "forbidden_assumptions": string_array(), "escalation_triggers": string_array(), "handoff_boundaries": string_array(), "tool_preferences": string_array(), "reviewer_lenses": string_array(),
+            "grounding": {
+                "type": "object", "additionalProperties": false,
+                "required": ["context_artifact_refs", "context_claim_refs", "interview_answer_refs", "operator_seed_ref"],
+                "properties": {"context_artifact_refs": string_array(), "context_claim_refs": string_array(), "interview_answer_refs": string_array(), "operator_seed_ref": {"type": "string"}}
+            },
+            "assumptions": {
+                "type": "array", "maxItems": 64, "items": {
+                    "type": "object", "additionalProperties": false, "required": ["assumption_id", "statement", "source_refs", "status"],
+                    "properties": {"assumption_id": {"type": "string"}, "statement": {"type": "string"}, "source_refs": string_array(), "status": {"enum": ["unverified", "grounded", "rejected"]}}
+                }
+            },
+            "unresolved_questions": string_array(),
+            "redlines": {
+                "type": "array", "maxItems": 64, "items": {
+                    "type": "object", "additionalProperties": false, "required": ["field", "before", "after", "rationale"],
+                    "properties": {"field": {"type": "string"}, "before": {"type": "string"}, "after": {"type": "string"}, "rationale": {"type": "string"}}
+                }
+            },
+            "grants_permissions": {"const": false}, "permission_profile_refs": string_array(),
+            "status": {"enum": ["draft", "pending_operator", "approved", "superseded"]},
+            "review": {
+                "type": "object", "additionalProperties": false, "required": ["decision", "reviewed_by", "reviewed_at", "rationale"],
+                "properties": {"decision": {"enum": ["approve", "reject", "defer"]}, "reviewed_by": {"type": "string"}, "reviewed_at": {"type": "string", "format": "date-time"}, "rationale": {"type": "string"}}
+            },
+            "idempotency_key": {"type": "string"}, "created_at": {"type": "string", "format": "date-time"}, "updated_at": {"type": "string", "format": "date-time"}
+        }
+    })
+}
+
 fn context_claim_schema() -> Value {
     json!({
         "type": "object", "additionalProperties": false,
@@ -2625,6 +2740,74 @@ fn json_schema_document(schema_id: &str) -> Value {
             },
             "x-focusa-schema-id": schema_id,
             "x-focusa-generated-from": "ContextRetrieveResponse"
+        });
+    }
+    if schema_id == "focusa.project_agent_role_profile_list.request.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false, "required": ["project_root", "continuity_id", "attachment_id"],
+            "properties": {"project_root": {"type": "string", "minLength": 1, "maxLength": 4096}, "continuity_id": {"type": "string", "minLength": 1, "maxLength": 256}, "attachment_id": {"type": "string", "minLength": 1, "maxLength": 256}},
+            "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "RoleProfileQuery"
+        });
+    }
+    if schema_id == "focusa.project_agent_role_profile_list.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false, "required": ["schema", "responsibility_is_not_permission", "state_version", "profiles"],
+            "properties": {
+                "schema": {"const": "focusa.project_agent_role_profile_list.v1"}, "responsibility_is_not_permission": {"const": true}, "state_version": {"type": "integer", "minimum": 0},
+                "profiles": {"type": "array", "items": project_role_profile_schema()},
+                "latest": project_role_profile_schema(), "approved": project_role_profile_schema()
+            },
+            "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "RoleProfileListResponse"
+        });
+    }
+    if schema_id == "focusa.project_agent_role_profile_draft.request.v1" {
+        let strings = || json!({"type": "array", "maxItems": 64, "items": {"type": "string", "minLength": 1}});
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false,
+            "required": ["project_root", "continuity_id", "attachment_id", "idempotency_key", "expected_state_version", "original_seed", "title", "purpose", "expertise", "primary_responsibilities", "secondary_responsibilities", "expected_deliverables", "quality_standards", "decision_principles", "evidence_expectations", "evidence_behavior", "communication_posture", "stakeholder_posture", "non_responsibilities", "forbidden_assumptions", "escalation_triggers", "handoff_boundaries", "tool_preferences", "reviewer_lenses", "context_artifact_refs", "context_claim_refs", "interview_answer_refs", "assumptions", "unresolved_questions", "redlines", "permission_profile_refs", "permission_assertions"],
+            "properties": {
+                "project_root": {"type": "string", "minLength": 1, "maxLength": 4096}, "continuity_id": {"type": "string", "minLength": 1, "maxLength": 256}, "attachment_id": {"type": "string", "minLength": 1, "maxLength": 256},
+                "idempotency_key": {"type": "string", "minLength": 1, "maxLength": 256}, "expected_state_version": {"type": "integer", "minimum": 0},
+                "original_seed": {"type": "string", "minLength": 1, "maxLength": 2000}, "title": {"type": "string", "minLength": 1, "maxLength": 200}, "purpose": {"type": "string", "minLength": 1, "maxLength": 2000},
+                "expertise": strings(), "primary_responsibilities": strings(), "secondary_responsibilities": strings(), "expected_deliverables": strings(), "quality_standards": strings(), "decision_principles": strings(), "evidence_expectations": strings(),
+                "evidence_behavior": {"type": "string"}, "communication_posture": {"type": "string"}, "stakeholder_posture": {"type": "string"},
+                "non_responsibilities": strings(), "forbidden_assumptions": strings(), "escalation_triggers": strings(), "handoff_boundaries": strings(), "tool_preferences": strings(), "reviewer_lenses": strings(),
+                "context_artifact_refs": strings(), "context_claim_refs": strings(), "interview_answer_refs": strings(),
+                "assumptions": {"type": "array", "maxItems": 64, "items": {"type": "object", "additionalProperties": false, "required": ["statement", "source_refs", "status"], "properties": {"statement": {"type": "string"}, "source_refs": strings(), "status": {"enum": ["unverified", "grounded", "rejected"]}}}},
+                "unresolved_questions": strings(),
+                "redlines": {"type": "array", "maxItems": 64, "items": {"type": "object", "additionalProperties": false, "required": ["field", "before", "after", "rationale"], "properties": {"field": {"type": "string"}, "before": {"type": "string"}, "after": {"type": "string"}, "rationale": {"type": "string"}}}},
+                "permission_profile_refs": strings(), "permission_assertions": {"type": "array", "maxItems": 0, "items": {"type": "string"}}
+            },
+            "x-focusa-at-least-one-canonical-grounding-ref": ["context_artifact_refs", "context_claim_refs"],
+            "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "RoleProfileDraftRequest"
+        });
+    }
+    if schema_id == "focusa.project_agent_role_profile_review.request.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false,
+            "required": ["project_root", "continuity_id", "attachment_id", "role_profile_id", "profile_revision", "idempotency_key", "expected_state_version", "decision", "reviewed_by", "rationale"],
+            "properties": {
+                "project_root": {"type": "string", "minLength": 1, "maxLength": 4096}, "continuity_id": {"type": "string", "minLength": 1, "maxLength": 256}, "attachment_id": {"type": "string", "minLength": 1, "maxLength": 256},
+                "role_profile_id": {"type": "string", "minLength": 1, "maxLength": 256}, "profile_revision": {"type": "integer", "minimum": 1}, "idempotency_key": {"type": "string", "minLength": 1, "maxLength": 256}, "expected_state_version": {"type": "integer", "minimum": 0},
+                "decision": {"enum": ["approve", "reject", "defer"]}, "reviewed_by": {"type": "string", "minLength": 1, "maxLength": 256}, "rationale": {"type": "string", "minLength": 1, "maxLength": 2000}
+            },
+            "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "RoleProfileReviewRequest"
+        });
+    }
+    if schema_id == "focusa.project_agent_role_profile_mutation_result.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false,
+            "required": ["schema", "canonical", "responsibility_is_not_permission", "replayed", "state_version", "profile", "evidence_ref", "receipt_ref", "tool_result"],
+            "properties": {
+                "schema": {"const": "focusa.project_agent_role_profile_mutation_result.v1"}, "canonical": {"const": true}, "responsibility_is_not_permission": {"const": true}, "replayed": {"type": "boolean"}, "state_version": {"type": "integer", "minimum": 0},
+                "profile": project_role_profile_schema(), "evidence_ref": {"type": "string"}, "receipt_ref": {"type": "string"}, "tool_result": {"type": "object"}
+            },
+            "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "RoleProfileMutationResponse"
         });
     }
     if schema_id == "focusa.events_stream.request.v1" {

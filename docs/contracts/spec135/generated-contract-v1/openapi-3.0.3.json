@@ -2737,6 +2737,1819 @@
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.prediction_record.response.v1"
       },
+      "focusa_project_agent_role_profile_draft_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "assumptions": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "source_refs": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "statement": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "unverified",
+                    "grounded",
+                    "rejected"
+                  ]
+                }
+              },
+              "required": [
+                "statement",
+                "source_refs",
+                "status"
+              ],
+              "type": "object"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "attachment_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "communication_posture": {
+            "type": "string"
+          },
+          "context_artifact_refs": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "context_claim_refs": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "continuity_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "decision_principles": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "escalation_triggers": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "evidence_behavior": {
+            "type": "string"
+          },
+          "evidence_expectations": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "expected_deliverables": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "expected_state_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "expertise": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "forbidden_assumptions": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "handoff_boundaries": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "idempotency_key": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "interview_answer_refs": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "non_responsibilities": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "original_seed": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "permission_assertions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 0,
+            "type": "array"
+          },
+          "permission_profile_refs": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "primary_responsibilities": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "project_root": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          },
+          "purpose": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "quality_standards": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "redlines": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "after": {
+                  "type": "string"
+                },
+                "before": {
+                  "type": "string"
+                },
+                "field": {
+                  "type": "string"
+                },
+                "rationale": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "field",
+                "before",
+                "after",
+                "rationale"
+              ],
+              "type": "object"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "reviewer_lenses": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "secondary_responsibilities": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "stakeholder_posture": {
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "tool_preferences": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "unresolved_questions": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "attachment_id",
+          "idempotency_key",
+          "expected_state_version",
+          "original_seed",
+          "title",
+          "purpose",
+          "expertise",
+          "primary_responsibilities",
+          "secondary_responsibilities",
+          "expected_deliverables",
+          "quality_standards",
+          "decision_principles",
+          "evidence_expectations",
+          "evidence_behavior",
+          "communication_posture",
+          "stakeholder_posture",
+          "non_responsibilities",
+          "forbidden_assumptions",
+          "escalation_triggers",
+          "handoff_boundaries",
+          "tool_preferences",
+          "reviewer_lenses",
+          "context_artifact_refs",
+          "context_claim_refs",
+          "interview_answer_refs",
+          "assumptions",
+          "unresolved_questions",
+          "redlines",
+          "permission_profile_refs",
+          "permission_assertions"
+        ],
+        "title": "focusa.project_agent_role_profile_draft.request.v1",
+        "type": "object",
+        "x-focusa-at-least-one-canonical-grounding-ref": [
+          "context_artifact_refs",
+          "context_claim_refs"
+        ],
+        "x-focusa-generated-from": "RoleProfileDraftRequest",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.project_agent_role_profile_draft.request.v1"
+      },
+      "focusa_project_agent_role_profile_list_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "attachment_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "continuity_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "project_root": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "title": "focusa.project_agent_role_profile_list.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "RoleProfileQuery",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.project_agent_role_profile_list.request.v1"
+      },
+      "focusa_project_agent_role_profile_list_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "approved": {
+            "additionalProperties": false,
+            "properties": {
+              "assumptions": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "assumption_id": {
+                      "type": "string"
+                    },
+                    "source_refs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 64,
+                      "type": "array"
+                    },
+                    "statement": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "unverified",
+                        "grounded",
+                        "rejected"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "assumption_id",
+                    "statement",
+                    "source_refs",
+                    "status"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "attachment_id": {
+                "type": "string"
+              },
+              "communication_posture": {
+                "type": "string"
+              },
+              "continuity_id": {
+                "type": "string"
+              },
+              "created_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "decision_principles": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "escalation_triggers": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "evidence_behavior": {
+                "type": "string"
+              },
+              "evidence_expectations": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "expected_deliverables": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "expertise": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "forbidden_assumptions": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "grants_permissions": {
+                "const": false
+              },
+              "grounding": {
+                "additionalProperties": false,
+                "properties": {
+                  "context_artifact_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "type": "array"
+                  },
+                  "context_claim_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "type": "array"
+                  },
+                  "interview_answer_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "type": "array"
+                  },
+                  "operator_seed_ref": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "context_artifact_refs",
+                  "context_claim_refs",
+                  "interview_answer_refs",
+                  "operator_seed_ref"
+                ],
+                "type": "object"
+              },
+              "handoff_boundaries": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "idempotency_key": {
+                "type": "string"
+              },
+              "non_responsibilities": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "original_seed": {
+                "type": "string"
+              },
+              "permission_profile_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "primary_responsibilities": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "project_root": {
+                "type": "string"
+              },
+              "purpose": {
+                "type": "string"
+              },
+              "quality_standards": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "redlines": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "after": {
+                      "type": "string"
+                    },
+                    "before": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": "string"
+                    },
+                    "rationale": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "field",
+                    "before",
+                    "after",
+                    "rationale"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "review": {
+                "additionalProperties": false,
+                "properties": {
+                  "decision": {
+                    "enum": [
+                      "approve",
+                      "reject",
+                      "defer"
+                    ]
+                  },
+                  "rationale": {
+                    "type": "string"
+                  },
+                  "reviewed_at": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "reviewed_by": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "decision",
+                  "reviewed_by",
+                  "reviewed_at",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "reviewer_lenses": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "revision": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "role_profile_id": {
+                "type": "string"
+              },
+              "secondary_responsibilities": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "stakeholder_posture": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "draft",
+                  "pending_operator",
+                  "approved",
+                  "superseded"
+                ]
+              },
+              "title": {
+                "type": "string"
+              },
+              "tool_preferences": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "unresolved_questions": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "updated_at": {
+                "format": "date-time",
+                "type": "string"
+              }
+            },
+            "required": [
+              "role_profile_id",
+              "project_root",
+              "continuity_id",
+              "attachment_id",
+              "revision",
+              "original_seed",
+              "title",
+              "purpose",
+              "expertise",
+              "primary_responsibilities",
+              "secondary_responsibilities",
+              "expected_deliverables",
+              "quality_standards",
+              "decision_principles",
+              "evidence_expectations",
+              "evidence_behavior",
+              "communication_posture",
+              "stakeholder_posture",
+              "non_responsibilities",
+              "forbidden_assumptions",
+              "escalation_triggers",
+              "handoff_boundaries",
+              "tool_preferences",
+              "reviewer_lenses",
+              "grounding",
+              "assumptions",
+              "unresolved_questions",
+              "redlines",
+              "grants_permissions",
+              "permission_profile_refs",
+              "status",
+              "idempotency_key",
+              "created_at",
+              "updated_at"
+            ],
+            "type": "object"
+          },
+          "latest": {
+            "additionalProperties": false,
+            "properties": {
+              "assumptions": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "assumption_id": {
+                      "type": "string"
+                    },
+                    "source_refs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 64,
+                      "type": "array"
+                    },
+                    "statement": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "unverified",
+                        "grounded",
+                        "rejected"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "assumption_id",
+                    "statement",
+                    "source_refs",
+                    "status"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "attachment_id": {
+                "type": "string"
+              },
+              "communication_posture": {
+                "type": "string"
+              },
+              "continuity_id": {
+                "type": "string"
+              },
+              "created_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "decision_principles": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "escalation_triggers": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "evidence_behavior": {
+                "type": "string"
+              },
+              "evidence_expectations": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "expected_deliverables": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "expertise": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "forbidden_assumptions": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "grants_permissions": {
+                "const": false
+              },
+              "grounding": {
+                "additionalProperties": false,
+                "properties": {
+                  "context_artifact_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "type": "array"
+                  },
+                  "context_claim_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "type": "array"
+                  },
+                  "interview_answer_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "type": "array"
+                  },
+                  "operator_seed_ref": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "context_artifact_refs",
+                  "context_claim_refs",
+                  "interview_answer_refs",
+                  "operator_seed_ref"
+                ],
+                "type": "object"
+              },
+              "handoff_boundaries": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "idempotency_key": {
+                "type": "string"
+              },
+              "non_responsibilities": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "original_seed": {
+                "type": "string"
+              },
+              "permission_profile_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "primary_responsibilities": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "project_root": {
+                "type": "string"
+              },
+              "purpose": {
+                "type": "string"
+              },
+              "quality_standards": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "redlines": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "after": {
+                      "type": "string"
+                    },
+                    "before": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": "string"
+                    },
+                    "rationale": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "field",
+                    "before",
+                    "after",
+                    "rationale"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "review": {
+                "additionalProperties": false,
+                "properties": {
+                  "decision": {
+                    "enum": [
+                      "approve",
+                      "reject",
+                      "defer"
+                    ]
+                  },
+                  "rationale": {
+                    "type": "string"
+                  },
+                  "reviewed_at": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "reviewed_by": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "decision",
+                  "reviewed_by",
+                  "reviewed_at",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "reviewer_lenses": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "revision": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "role_profile_id": {
+                "type": "string"
+              },
+              "secondary_responsibilities": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "stakeholder_posture": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "draft",
+                  "pending_operator",
+                  "approved",
+                  "superseded"
+                ]
+              },
+              "title": {
+                "type": "string"
+              },
+              "tool_preferences": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "unresolved_questions": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "updated_at": {
+                "format": "date-time",
+                "type": "string"
+              }
+            },
+            "required": [
+              "role_profile_id",
+              "project_root",
+              "continuity_id",
+              "attachment_id",
+              "revision",
+              "original_seed",
+              "title",
+              "purpose",
+              "expertise",
+              "primary_responsibilities",
+              "secondary_responsibilities",
+              "expected_deliverables",
+              "quality_standards",
+              "decision_principles",
+              "evidence_expectations",
+              "evidence_behavior",
+              "communication_posture",
+              "stakeholder_posture",
+              "non_responsibilities",
+              "forbidden_assumptions",
+              "escalation_triggers",
+              "handoff_boundaries",
+              "tool_preferences",
+              "reviewer_lenses",
+              "grounding",
+              "assumptions",
+              "unresolved_questions",
+              "redlines",
+              "grants_permissions",
+              "permission_profile_refs",
+              "status",
+              "idempotency_key",
+              "created_at",
+              "updated_at"
+            ],
+            "type": "object"
+          },
+          "profiles": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "assumptions": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "assumption_id": {
+                        "type": "string"
+                      },
+                      "source_refs": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "maxItems": 64,
+                        "type": "array"
+                      },
+                      "statement": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "enum": [
+                          "unverified",
+                          "grounded",
+                          "rejected"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "assumption_id",
+                      "statement",
+                      "source_refs",
+                      "status"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "attachment_id": {
+                  "type": "string"
+                },
+                "communication_posture": {
+                  "type": "string"
+                },
+                "continuity_id": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "decision_principles": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "escalation_triggers": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "evidence_behavior": {
+                  "type": "string"
+                },
+                "evidence_expectations": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "expected_deliverables": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "expertise": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "forbidden_assumptions": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "grants_permissions": {
+                  "const": false
+                },
+                "grounding": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "context_artifact_refs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 64,
+                      "type": "array"
+                    },
+                    "context_claim_refs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 64,
+                      "type": "array"
+                    },
+                    "interview_answer_refs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 64,
+                      "type": "array"
+                    },
+                    "operator_seed_ref": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "context_artifact_refs",
+                    "context_claim_refs",
+                    "interview_answer_refs",
+                    "operator_seed_ref"
+                  ],
+                  "type": "object"
+                },
+                "handoff_boundaries": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "idempotency_key": {
+                  "type": "string"
+                },
+                "non_responsibilities": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "original_seed": {
+                  "type": "string"
+                },
+                "permission_profile_refs": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "primary_responsibilities": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "project_root": {
+                  "type": "string"
+                },
+                "purpose": {
+                  "type": "string"
+                },
+                "quality_standards": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "redlines": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "after": {
+                        "type": "string"
+                      },
+                      "before": {
+                        "type": "string"
+                      },
+                      "field": {
+                        "type": "string"
+                      },
+                      "rationale": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "field",
+                      "before",
+                      "after",
+                      "rationale"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "review": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "decision": {
+                      "enum": [
+                        "approve",
+                        "reject",
+                        "defer"
+                      ]
+                    },
+                    "rationale": {
+                      "type": "string"
+                    },
+                    "reviewed_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "reviewed_by": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "decision",
+                    "reviewed_by",
+                    "reviewed_at",
+                    "rationale"
+                  ],
+                  "type": "object"
+                },
+                "reviewer_lenses": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "revision": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "role_profile_id": {
+                  "type": "string"
+                },
+                "secondary_responsibilities": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "stakeholder_posture": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "draft",
+                    "pending_operator",
+                    "approved",
+                    "superseded"
+                  ]
+                },
+                "title": {
+                  "type": "string"
+                },
+                "tool_preferences": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "unresolved_questions": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "updated_at": {
+                  "format": "date-time",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "role_profile_id",
+                "project_root",
+                "continuity_id",
+                "attachment_id",
+                "revision",
+                "original_seed",
+                "title",
+                "purpose",
+                "expertise",
+                "primary_responsibilities",
+                "secondary_responsibilities",
+                "expected_deliverables",
+                "quality_standards",
+                "decision_principles",
+                "evidence_expectations",
+                "evidence_behavior",
+                "communication_posture",
+                "stakeholder_posture",
+                "non_responsibilities",
+                "forbidden_assumptions",
+                "escalation_triggers",
+                "handoff_boundaries",
+                "tool_preferences",
+                "reviewer_lenses",
+                "grounding",
+                "assumptions",
+                "unresolved_questions",
+                "redlines",
+                "grants_permissions",
+                "permission_profile_refs",
+                "status",
+                "idempotency_key",
+                "created_at",
+                "updated_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "responsibility_is_not_permission": {
+            "const": true
+          },
+          "schema": {
+            "const": "focusa.project_agent_role_profile_list.v1"
+          },
+          "state_version": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schema",
+          "responsibility_is_not_permission",
+          "state_version",
+          "profiles"
+        ],
+        "title": "focusa.project_agent_role_profile_list.v1",
+        "type": "object",
+        "x-focusa-generated-from": "RoleProfileListResponse",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.project_agent_role_profile_list.v1"
+      },
+      "focusa_project_agent_role_profile_mutation_result_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "canonical": {
+            "const": true
+          },
+          "evidence_ref": {
+            "type": "string"
+          },
+          "profile": {
+            "additionalProperties": false,
+            "properties": {
+              "assumptions": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "assumption_id": {
+                      "type": "string"
+                    },
+                    "source_refs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 64,
+                      "type": "array"
+                    },
+                    "statement": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "unverified",
+                        "grounded",
+                        "rejected"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "assumption_id",
+                    "statement",
+                    "source_refs",
+                    "status"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "attachment_id": {
+                "type": "string"
+              },
+              "communication_posture": {
+                "type": "string"
+              },
+              "continuity_id": {
+                "type": "string"
+              },
+              "created_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "decision_principles": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "escalation_triggers": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "evidence_behavior": {
+                "type": "string"
+              },
+              "evidence_expectations": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "expected_deliverables": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "expertise": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "forbidden_assumptions": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "grants_permissions": {
+                "const": false
+              },
+              "grounding": {
+                "additionalProperties": false,
+                "properties": {
+                  "context_artifact_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "type": "array"
+                  },
+                  "context_claim_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "type": "array"
+                  },
+                  "interview_answer_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "type": "array"
+                  },
+                  "operator_seed_ref": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "context_artifact_refs",
+                  "context_claim_refs",
+                  "interview_answer_refs",
+                  "operator_seed_ref"
+                ],
+                "type": "object"
+              },
+              "handoff_boundaries": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "idempotency_key": {
+                "type": "string"
+              },
+              "non_responsibilities": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "original_seed": {
+                "type": "string"
+              },
+              "permission_profile_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "primary_responsibilities": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "project_root": {
+                "type": "string"
+              },
+              "purpose": {
+                "type": "string"
+              },
+              "quality_standards": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "redlines": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "after": {
+                      "type": "string"
+                    },
+                    "before": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": "string"
+                    },
+                    "rationale": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "field",
+                    "before",
+                    "after",
+                    "rationale"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "review": {
+                "additionalProperties": false,
+                "properties": {
+                  "decision": {
+                    "enum": [
+                      "approve",
+                      "reject",
+                      "defer"
+                    ]
+                  },
+                  "rationale": {
+                    "type": "string"
+                  },
+                  "reviewed_at": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "reviewed_by": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "decision",
+                  "reviewed_by",
+                  "reviewed_at",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "reviewer_lenses": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "revision": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "role_profile_id": {
+                "type": "string"
+              },
+              "secondary_responsibilities": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "stakeholder_posture": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "draft",
+                  "pending_operator",
+                  "approved",
+                  "superseded"
+                ]
+              },
+              "title": {
+                "type": "string"
+              },
+              "tool_preferences": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "unresolved_questions": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              "updated_at": {
+                "format": "date-time",
+                "type": "string"
+              }
+            },
+            "required": [
+              "role_profile_id",
+              "project_root",
+              "continuity_id",
+              "attachment_id",
+              "revision",
+              "original_seed",
+              "title",
+              "purpose",
+              "expertise",
+              "primary_responsibilities",
+              "secondary_responsibilities",
+              "expected_deliverables",
+              "quality_standards",
+              "decision_principles",
+              "evidence_expectations",
+              "evidence_behavior",
+              "communication_posture",
+              "stakeholder_posture",
+              "non_responsibilities",
+              "forbidden_assumptions",
+              "escalation_triggers",
+              "handoff_boundaries",
+              "tool_preferences",
+              "reviewer_lenses",
+              "grounding",
+              "assumptions",
+              "unresolved_questions",
+              "redlines",
+              "grants_permissions",
+              "permission_profile_refs",
+              "status",
+              "idempotency_key",
+              "created_at",
+              "updated_at"
+            ],
+            "type": "object"
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "responsibility_is_not_permission": {
+            "const": true
+          },
+          "schema": {
+            "const": "focusa.project_agent_role_profile_mutation_result.v1"
+          },
+          "state_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "tool_result": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "schema",
+          "canonical",
+          "responsibility_is_not_permission",
+          "replayed",
+          "state_version",
+          "profile",
+          "evidence_ref",
+          "receipt_ref",
+          "tool_result"
+        ],
+        "title": "focusa.project_agent_role_profile_mutation_result.v1",
+        "type": "object",
+        "x-focusa-generated-from": "RoleProfileMutationResponse",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.project_agent_role_profile_mutation_result.v1"
+      },
+      "focusa_project_agent_role_profile_review_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "attachment_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "continuity_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "approve",
+              "reject",
+              "defer"
+            ]
+          },
+          "expected_state_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "idempotency_key": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "profile_revision": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "project_root": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          },
+          "rationale": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "reviewed_by": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "role_profile_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "attachment_id",
+          "role_profile_id",
+          "profile_revision",
+          "idempotency_key",
+          "expected_state_version",
+          "decision",
+          "reviewed_by",
+          "rationale"
+        ],
+        "title": "focusa.project_agent_role_profile_review.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "RoleProfileReviewRequest",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.project_agent_role_profile_review.request.v1"
+      },
       "focusa_project_identity_request_v1": {
         "additionalProperties": true,
         "description": "Generated contract for Focusa schema focusa.project_identity.request.v1",
@@ -8417,6 +10230,318 @@
         ],
         "x-focusa-sensitive": "routine",
         "x-focusa-subsystem": "resource"
+      }
+    },
+    "/v1/roles/profiles": {
+      "get": {
+        "description": "List Project Role Profile Revisions \u2014 family=project_role_profile budget=standard_read materialization=canonical_read",
+        "operationId": "focusa.role_profile.list",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_project_agent_role_profile_list_v1"
+                }
+              }
+            },
+            "description": "List Project Role Profile Revisions response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "List Project Role Profile Revisions",
+        "tags": [
+          "project_role_profile"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "project_role_profile",
+          "materialization_mode": "canonical_read",
+          "requires_preview_token": false,
+          "side_effect_profile": "read_role_profiles",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "project_role_profile"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.role_profile.list",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "role:read"
+        ],
+        "x-focusa-plain-label": "List Project Role Profile Revisions",
+        "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "project_role_profile"
+      }
+    },
+    "/v1/roles/profiles/draft": {
+      "post": {
+        "description": "Draft Grounded Project Role Profile \u2014 family=project_role_profile budget=standard_write materialization=canonical_event",
+        "operationId": "focusa.role_profile.draft",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_project_agent_role_profile_draft_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_project_agent_role_profile_mutation_result_v1"
+                }
+              }
+            },
+            "description": "Draft Grounded Project Role Profile response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Draft Grounded Project Role Profile",
+        "tags": [
+          "project_role_profile"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_write",
+          "canonical": true,
+          "deprecation": null,
+          "family": "project_role_profile",
+          "materialization_mode": "canonical_event",
+          "requires_preview_token": false,
+          "side_effect_profile": "draft_role_profile_revision",
+          "supports_side_effect_policy": [
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "project_role_profile"
+        ],
+        "x-focusa-concurrency": true,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.role_profile.draft",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "role:write"
+        ],
+        "x-focusa-plain-label": "Draft Grounded Project Role Profile",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "project_role_profile"
+      }
+    },
+    "/v1/roles/profiles/review": {
+      "post": {
+        "description": "Approve, Reject, or Defer Project Role Profile \u2014 family=project_role_profile budget=standard_write materialization=canonical_event",
+        "operationId": "focusa.role_profile.review",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_project_agent_role_profile_review_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_project_agent_role_profile_mutation_result_v1"
+                }
+              }
+            },
+            "description": "Approve, Reject, or Defer Project Role Profile response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Approve, Reject, or Defer Project Role Profile",
+        "tags": [
+          "project_role_profile"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_write",
+          "canonical": true,
+          "deprecation": null,
+          "family": "project_role_profile",
+          "materialization_mode": "canonical_event",
+          "requires_preview_token": false,
+          "side_effect_profile": "review_role_profile_revision",
+          "supports_side_effect_policy": [
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "project_role_profile"
+        ],
+        "x-focusa-concurrency": true,
+        "x-focusa-confirmation": "consequential",
+        "x-focusa-core-action": "focusa.role_profile.review",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "role:approve"
+        ],
+        "x-focusa-plain-label": "Approve, Reject, or Defer Project Role Profile",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-subsystem": "project_role_profile"
       }
     },
     "/v1/state/current": {

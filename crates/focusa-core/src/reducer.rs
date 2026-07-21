@@ -482,6 +482,81 @@ pub fn reduce_with_meta(
                     .sort_by(|left, right| left.artifact_id.cmp(&right.artifact_id));
             }
         }
+        FocusaEvent::ProjectRoleProfileRevised { profile } => {
+            if profile.grants_permissions {
+                return Err(ReducerError::InvalidEvent(
+                    "project role profiles cannot grant permission".to_string(),
+                ));
+            }
+            if profile.grounding.operator_seed_ref.trim().is_empty()
+                || (profile.grounding.context_artifact_refs.is_empty()
+                    && profile.grounding.context_claim_refs.is_empty()
+                    && profile.grounding.interview_answer_refs.is_empty())
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "project role profile requires an operator seed and Context grounding"
+                        .to_string(),
+                ));
+            }
+            if state.project_role_profiles.iter().any(|existing| {
+                existing.project_root == profile.project_root
+                    && existing.continuity_id == profile.continuity_id
+                    && existing.attachment_id == profile.attachment_id
+                    && existing.idempotency_key == profile.idempotency_key
+            }) {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "duplicate project role profile idempotency key: {}",
+                    profile.idempotency_key
+                )));
+            }
+            let revisions: Vec<&ProjectAgentRoleProfile> = state
+                .project_role_profiles
+                .iter()
+                .filter(|existing| existing.role_profile_id == profile.role_profile_id)
+                .collect();
+            if let Some(latest) = revisions.iter().max_by_key(|existing| existing.revision) {
+                if profile.revision != latest.revision + 1
+                    || profile.created_at != latest.created_at
+                    || profile.project_root != latest.project_root
+                    || profile.continuity_id != latest.continuity_id
+                    || profile.attachment_id != latest.attachment_id
+                {
+                    return Err(ReducerError::InvalidEvent(format!(
+                        "invalid project role profile revision: {}",
+                        profile.role_profile_id
+                    )));
+                }
+            } else if profile.revision != 1 {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "new project role profile must start at revision 1: {}",
+                    profile.role_profile_id
+                )));
+            }
+            let review_matches_status = match (&profile.status, profile.review.as_ref()) {
+                (RoleProfileStatus::Approved, Some(review)) => {
+                    matches!(review.decision, RoleReviewDecision::Approve)
+                }
+                (RoleProfileStatus::Superseded, Some(review)) => {
+                    matches!(review.decision, RoleReviewDecision::Reject)
+                }
+                (RoleProfileStatus::PendingOperator, Some(review)) => {
+                    matches!(review.decision, RoleReviewDecision::Defer)
+                }
+                (RoleProfileStatus::Draft | RoleProfileStatus::PendingOperator, None) => true,
+                _ => false,
+            };
+            if !review_matches_status {
+                return Err(ReducerError::InvalidEvent(
+                    "project role profile status does not match its explicit review".to_string(),
+                ));
+            }
+            state.project_role_profiles.push(profile);
+            state.project_role_profiles.sort_by(|left, right| {
+                left.role_profile_id
+                    .cmp(&right.role_profile_id)
+                    .then(left.revision.cmp(&right.revision))
+            });
+        }
         FocusaEvent::ContextClaimProposed { claim } => {
             if state.context_claims.iter().any(|existing| {
                 existing.claim_id == claim.claim_id

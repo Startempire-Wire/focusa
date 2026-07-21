@@ -1,0 +1,93 @@
+{
+  "schema": "uiai.focusa_ui_eval_result.v1",
+  "scenario_id": "spec135-ri1-grounded-role-profile",
+  "status": "passed",
+  "browser_session_refs": ["uiai-browser:session=iiJMlG5B"],
+  "browser_context_refs": [
+    "focusa-cont-mission-canvas-57e8c074-539f-44a2-86f6-527b478f9d80",
+    "attachment:ri1-role-profile"
+  ],
+  "step_results": [
+    {
+      "step_id": "open",
+      "status": "passed",
+      "result": "UIAI opened the generated Role Profile surface at 1440x1000.",
+      "evidence_refs": ["uiai-browser:session=iiJMlG5B"]
+    },
+    {
+      "step_id": "compose",
+      "status": "passed",
+      "result": "The generated draft action preserved the operator seed, grounded revision 1 in a canonical Context source, exposed one grounded assumption, and kept grants_permissions=false.",
+      "evidence_refs": [
+        "project-role-profile:554dfa8199a50a32226e972d",
+        "context-source:dad350a32644e02b4322f289",
+        "019f83e7-1161-77b0-87ba-0bf28e8f60b6"
+      ]
+    },
+    {
+      "step_id": "approve",
+      "status": "passed",
+      "result": "A separate operator action approved revision 2, recorded reviewer operator:vsmith, emitted a governed Receipt, and still granted no permission.",
+      "evidence_refs": [
+        "019f83e9-ff98-7e32-9fba-684989beea96",
+        "receipt:project-role-profile:a8c8e1df5b49e296da116222"
+      ]
+    },
+    {
+      "step_id": "mobile",
+      "status": "passed",
+      "result": "At 390x844, scrollWidth remained 390 and all four Role actions remained 324 pixels wide.",
+      "evidence_refs": ["uiai-screenshot:iiJMlG5B-1784624659861406000.png"]
+    },
+    {
+      "step_id": "diagnostics",
+      "status": "passed",
+      "result": "Final diagnostics reported zero console errors, exceptions, failed requests, HTTP 4xx, and HTTP 5xx.",
+      "evidence_refs": ["uiai-diagnostics:session=iiJMlG5B:seq=10"]
+    },
+    {
+      "step_id": "close",
+      "status": "passed",
+      "result": "The temporary UIAI and proof transports are disposable while canonical Role revisions remain restart-safe.",
+      "evidence_refs": ["tests/spec135_role_profile_e2e_test.py"]
+    }
+  ],
+  "screenshots": [
+    "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/iiJMlG5B-1784624624514904000.png",
+    "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/iiJMlG5B-1784624659861406000.png"
+  ],
+  "diagnostics": [
+    {
+      "level": "info",
+      "category": "runtime",
+      "summary": "Generated UI committed pending revision 1 and separately approved revision 2 at state version 17; grants_permissions stayed false.",
+      "diagnostics_ref": "uiai-diagnostics:session=iiJMlG5B:seq=10"
+    },
+    {
+      "level": "info",
+      "category": "network",
+      "summary": "Ten requests completed with zero failed requests, HTTP 4xx, or HTTP 5xx.",
+      "diagnostics_ref": "uiai-diagnostics:session=iiJMlG5B:seq=10"
+    },
+    {
+      "level": "info",
+      "category": "console",
+      "summary": "No console errors, warnings, or uncaught exceptions occurred.",
+      "diagnostics_ref": "uiai-diagnostics:session=iiJMlG5B:seq=10"
+    }
+  ],
+  "visual_comparison_refs": [
+    "uiai-screenshot:iiJMlG5B-1784624624514904000.png",
+    "uiai-screenshot:iiJMlG5B-1784624659861406000.png"
+  ],
+  "focusa_evidence_refs": [
+    "context-source:dad350a32644e02b4322f289",
+    "uiai-diagnostics:session=iiJMlG5B:seq=10"
+  ],
+  "receipt_refs": [
+    "receipt:project-role-profile:6e537df8f921f0b199991831",
+    "receipt:project-role-profile:a8c8e1df5b49e296da116222"
+  ],
+  "accessibility_report_ref": "UIAI verified aria-live completion, 390px no-overflow layout, and 324px Compose/Approve/Defer/Reject actions",
+  "evaluated_at": "2026-07-21T09:03:44Z"
+}

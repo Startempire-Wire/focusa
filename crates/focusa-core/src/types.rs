@@ -1872,6 +1872,117 @@ pub struct WorkspaceArtifactRecord {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RoleProfileGrounding {
+    #[serde(default)]
+    pub context_artifact_refs: Vec<String>,
+    #[serde(default)]
+    pub context_claim_refs: Vec<String>,
+    #[serde(default)]
+    pub interview_answer_refs: Vec<String>,
+    pub operator_seed_ref: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RoleAssumptionRecord {
+    pub assumption_id: String,
+    pub statement: String,
+    #[serde(default)]
+    pub source_refs: Vec<String>,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RoleRedlineRecord {
+    pub field: String,
+    pub before: String,
+    pub after: String,
+    pub rationale: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RoleProfileStatus {
+    Draft,
+    PendingOperator,
+    Approved,
+    Superseded,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RoleReviewDecision {
+    Approve,
+    Reject,
+    Defer,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RoleReviewRecord {
+    pub decision: RoleReviewDecision,
+    pub reviewed_by: String,
+    pub reviewed_at: DateTime<Utc>,
+    pub rationale: String,
+}
+
+/// Versioned, Context-grounded project role. It describes responsibility, never permission.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectAgentRoleProfile {
+    pub role_profile_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub revision: u64,
+    pub original_seed: String,
+    pub title: String,
+    pub purpose: String,
+    #[serde(default)]
+    pub expertise: Vec<String>,
+    #[serde(default)]
+    pub primary_responsibilities: Vec<String>,
+    #[serde(default)]
+    pub secondary_responsibilities: Vec<String>,
+    #[serde(default)]
+    pub expected_deliverables: Vec<String>,
+    #[serde(default)]
+    pub quality_standards: Vec<String>,
+    #[serde(default)]
+    pub decision_principles: Vec<String>,
+    #[serde(default)]
+    pub evidence_expectations: Vec<String>,
+    pub evidence_behavior: String,
+    pub communication_posture: String,
+    pub stakeholder_posture: String,
+    #[serde(default)]
+    pub non_responsibilities: Vec<String>,
+    #[serde(default)]
+    pub forbidden_assumptions: Vec<String>,
+    #[serde(default)]
+    pub escalation_triggers: Vec<String>,
+    #[serde(default)]
+    pub handoff_boundaries: Vec<String>,
+    #[serde(default)]
+    pub tool_preferences: Vec<String>,
+    #[serde(default)]
+    pub reviewer_lenses: Vec<String>,
+    pub grounding: RoleProfileGrounding,
+    #[serde(default)]
+    pub assumptions: Vec<RoleAssumptionRecord>,
+    #[serde(default)]
+    pub unresolved_questions: Vec<String>,
+    #[serde(default)]
+    pub redlines: Vec<RoleRedlineRecord>,
+    pub grants_permissions: bool,
+    #[serde(default)]
+    pub permission_profile_refs: Vec<String>,
+    pub status: RoleProfileStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub review: Option<RoleReviewRecord>,
+    pub idempotency_key: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 /// Canonical candidate/accepted claim extracted from source-preserving Context.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ContextClaimRecord {
@@ -2008,6 +2119,9 @@ pub struct FocusaState {
     /// Canonical Context claims derived from source-preserving citations.
     #[serde(default)]
     pub context_claims: Vec<ContextClaimRecord>,
+    /// Append-only revisions of the Context-grounded project role; never permission authority.
+    #[serde(default)]
+    pub project_role_profiles: Vec<ProjectAgentRoleProfile>,
     /// Canonical contradiction edges requiring explicit resolution.
     #[serde(default)]
     pub context_contradictions: Vec<ContextContradictionRecord>,
@@ -2078,6 +2192,7 @@ impl FocusaState {
             context_sources: vec![],
             workspace_artifacts: vec![],
             context_claims: vec![],
+            project_role_profiles: vec![],
             context_contradictions: vec![],
             context_decisions: vec![],
             reactive_context: vec![],
@@ -2688,6 +2803,9 @@ pub enum FocusaEvent {
     },
     ContextClaimProposed {
         claim: ContextClaimRecord,
+    },
+    ProjectRoleProfileRevised {
+        profile: ProjectAgentRoleProfile,
     },
     ContextClaimReviewed {
         claim: ContextClaimRecord,

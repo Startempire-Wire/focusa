@@ -1,0 +1,86 @@
+{
+  "schema": "uiai.focusa_ui_eval_scenario.v1",
+  "scenario_id": "spec135-ri1-grounded-role-profile",
+  "feature_scope": {
+    "project_root": "/example/focusa",
+    "continuity_id": "focusa-cont-ri1-generated-ui",
+    "attachment_id": "attachment:ri1-role-profile"
+  },
+  "route_or_target": "packages/a2ui-renderer/proof/role-profile.html",
+  "preconditions": [
+    "Generated Context commit, Role draft, and consequential Role review bindings are available",
+    "A real Focusa daemon persists canonical reducer events and revision history",
+    "The proof server proxies typed generated-client requests to that daemon"
+  ],
+  "steps": [
+    {
+      "step_id": "open",
+      "action": "open",
+      "target": "Grounded Role Profile proof",
+      "expected": "Generated Role composition and approval surface renders",
+      "evidence_kind": "dom"
+    },
+    {
+      "step_id": "compose",
+      "action": "click",
+      "target": "Compose Role Draft",
+      "expected": "Original seed, Context-grounded draft, assumptions, responsibilities, non-responsibilities, redline, and permission boundary become visible",
+      "evidence_kind": "action"
+    },
+    {
+      "step_id": "approve",
+      "action": "click",
+      "target": "Approve Role Profile",
+      "expected": "Explicit consequential operator review commits an approved revision and Receipt without granting permission",
+      "evidence_kind": "action"
+    },
+    {
+      "step_id": "mobile",
+      "action": "resize",
+      "target": "390x844 viewport",
+      "expected": "No horizontal overflow and Compose, Approve, Defer, and Reject actions remain 324 pixels wide",
+      "evidence_kind": "screenshot"
+    },
+    {
+      "step_id": "diagnostics",
+      "action": "diagnostics",
+      "target": "final UIAI evaluation window",
+      "expected": "No console error, exception, failed request, HTTP 4xx, or HTTP 5xx",
+      "evidence_kind": "diagnostics"
+    },
+    {
+      "step_id": "close",
+      "action": "close",
+      "target": "UIAI session and proof services",
+      "expected": "Browser resources release independently while Role revisions remain durable",
+      "evidence_kind": "diagnostics"
+    }
+  ],
+  "required_capabilities": [
+    "canonical-project-role-profile",
+    "context-grounding",
+    "responsibility-permission-separation",
+    "explicit-operator-approval",
+    "append-only-redline-history",
+    "a2ui-web_core-0.9.1",
+    "a2ui-lit-0.9.1",
+    "focusa-svelte-elements-0.9.120-dev"
+  ],
+  "required_scopes": ["project_root", "continuity_id", "attachment_id"],
+  "expected_visible_states": ["ready", "pending_operator", "verified", "approved", "retry"],
+  "expected_actions": [
+    "focusa.role_profile.draft exact-scoped",
+    "focusa.role_profile.review consequential and Receipt-required"
+  ],
+  "expected_evidence": [
+    "original seed",
+    "canonical Context source ref",
+    "grounded assumption",
+    "responsibility and non-responsibility",
+    "permission separation",
+    "operator approval",
+    "desktop/mobile screenshots",
+    "diagnostics"
+  ],
+  "expected_receipts": ["canonical Role draft Receipt", "consequential Role approval Receipt"]
+}

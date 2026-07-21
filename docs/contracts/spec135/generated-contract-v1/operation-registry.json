@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-07-21T04:30:34.598455+00:00",
-  "operation_count": 64,
+  "generated_at": "2026-07-21T08:42:52.198622+00:00",
+  "operation_count": 67,
   "operations": [
     {
       "alias_of": null,
@@ -1860,6 +1860,241 @@
         "plain_language_description": "Link Workspace Artifact",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "standard_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.project_agent_role_profile_list.request.v1",
+        "output_schema_ref": "focusa.project_agent_role_profile_list.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "project_role_profile"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "role:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "project_role_profile",
+      "label": "List Project Role Profile Revisions",
+      "materialization_mode": "canonical_read",
+      "method": "GET",
+      "operation_id": "focusa.role_profile.list",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.role_profile.list",
+        "subsystem": "project_role_profile"
+      },
+      "path": "/v1/roles/profiles",
+      "permissions_required": [
+        "role:read"
+      ],
+      "request_schema_ref": "focusa.project_agent_role_profile_list.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard",
+        "debug"
+      ],
+      "response_schema_ref": "focusa.project_agent_role_profile_list.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.project_agent_role_profile_list.request.v1",
+      "scope": {
+        "attachment_scoped": true,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_role_profiles",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "List Project Role Profile Revisions",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "List Project Role Profile Revisions",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "standard_write",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.project_agent_role_profile_draft.request.v1",
+        "output_schema_ref": "focusa.project_agent_role_profile_mutation_result.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "project_role_profile"
+        ],
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": true,
+        "permission_scopes": [
+          "role:write"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "project_role_profile",
+      "label": "Draft Grounded Project Role Profile",
+      "materialization_mode": "canonical_event",
+      "method": "POST",
+      "operation_id": "focusa.role_profile.draft",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.role_profile.draft",
+        "subsystem": "project_role_profile"
+      },
+      "path": "/v1/roles/profiles/draft",
+      "permissions_required": [
+        "role:write"
+      ],
+      "request_schema_ref": "focusa.project_agent_role_profile_draft.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": true,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard",
+        "debug"
+      ],
+      "response_schema_ref": "focusa.project_agent_role_profile_mutation_result.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.project_agent_role_profile_draft.request.v1",
+      "scope": {
+        "attachment_scoped": true,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "draft_role_profile_revision",
+      "supports_side_effect_policy": [
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Draft Grounded Project Role Profile",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Draft Grounded Project Role Profile",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "standard_write",
+      "canonical": true,
+      "confirmation_required": true,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.project_agent_role_profile_review.request.v1",
+        "output_schema_ref": "focusa.project_agent_role_profile_mutation_result.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "project_role_profile"
+        ],
+        "confirmation": "consequential",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": true,
+        "permission_scopes": [
+          "role:approve"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "project_role_profile",
+      "label": "Approve, Reject, or Defer Project Role Profile",
+      "materialization_mode": "canonical_event",
+      "method": "POST",
+      "operation_id": "focusa.role_profile.review",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.role_profile.review",
+        "subsystem": "project_role_profile"
+      },
+      "path": "/v1/roles/profiles/review",
+      "permissions_required": [
+        "role:approve"
+      ],
+      "request_schema_ref": "focusa.project_agent_role_profile_review.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": true,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard",
+        "debug"
+      ],
+      "response_schema_ref": "focusa.project_agent_role_profile_mutation_result.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.project_agent_role_profile_review.request.v1",
+      "scope": {
+        "attachment_scoped": true,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "review_role_profile_revision",
+      "supports_side_effect_policy": [
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Approve, Reject, or Defer Project Role Profile",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Approve, Reject, or Defer Project Role Profile",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
       }
     },
     {

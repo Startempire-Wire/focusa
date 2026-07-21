@@ -16,6 +16,7 @@ export default defineConfig({
         contextClaims: resolve(import.meta.dirname, "proof/context-claims.html"),
         workspaceArtifact: resolve(import.meta.dirname, "proof/workspace-artifact.html"),
         workspaceLiveRefresh: resolve(import.meta.dirname, "proof/workspace-live-refresh.html"),
+        roleProfile: resolve(import.meta.dirname, "proof/role-profile.html"),
       },
     },
   },

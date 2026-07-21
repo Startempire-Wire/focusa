@@ -52,3 +52,9 @@ UI, and desktop/mobile UIAI Eval evidence.
 merge gate by composing the C1→C3 and U1→U2 feeder evidence: real Markdown,
 code, and PDF ingestion; cited retrieval; governed claims; rich rendering;
 restart safety; and targeted live refresh.
+
+`spec135-ri1-role-profile-proof.json` proves the canonical Role Composer slice:
+original seed preservation, exact Context grounding, exposed assumptions,
+responsibility/non-responsibility and permission separation, append-only
+redlines, explicit approve/reject/defer review, restart-safe revision history,
+generated clients/UI, and desktop/mobile UIAI Eval evidence.

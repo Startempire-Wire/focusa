@@ -23,6 +23,7 @@ pub mod ecs;
 pub mod env;
 pub mod license;
 pub mod pairing_store;
+pub mod role_profiles;
 pub mod sync;
 pub mod sync_receive;
 pub mod sync_transfer;

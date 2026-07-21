@@ -824,6 +824,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/roles/profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Project Role Profile Revisions
+         * @description List Project Role Profile Revisions — family=project_role_profile budget=standard_read materialization=canonical_read
+         */
+        get: operations["focusa.role_profile.list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/roles/profiles/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Draft Grounded Project Role Profile
+         * @description Draft Grounded Project Role Profile — family=project_role_profile budget=standard_write materialization=canonical_event
+         */
+        post: operations["focusa.role_profile.draft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/roles/profiles/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve, Reject, or Defer Project Role Profile
+         * @description Approve, Reject, or Defer Project Role Profile — family=project_role_profile budget=standard_write materialization=canonical_event
+         */
+        post: operations["focusa.role_profile.review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/state/current": {
         parameters: {
             query?: never;
@@ -2218,6 +2278,349 @@ export interface components {
          */
         focusa_prediction_record_response_v1: {
             [key: string]: unknown;
+        };
+        /** focusa.project_agent_role_profile_draft.request.v1 */
+        focusa_project_agent_role_profile_draft_request_v1: {
+            assumptions: {
+                source_refs: string[];
+                statement: string;
+                /** @enum {unknown} */
+                status: "unverified" | "grounded" | "rejected";
+            }[];
+            attachment_id: string;
+            communication_posture: string;
+            context_artifact_refs: string[];
+            context_claim_refs: string[];
+            continuity_id: string;
+            decision_principles: string[];
+            escalation_triggers: string[];
+            evidence_behavior: string;
+            evidence_expectations: string[];
+            expected_deliverables: string[];
+            expected_state_version: number;
+            expertise: string[];
+            forbidden_assumptions: string[];
+            handoff_boundaries: string[];
+            idempotency_key: string;
+            interview_answer_refs: string[];
+            non_responsibilities: string[];
+            original_seed: string;
+            permission_assertions: string[];
+            permission_profile_refs: string[];
+            primary_responsibilities: string[];
+            project_root: string;
+            purpose: string;
+            quality_standards: string[];
+            redlines: {
+                after: string;
+                before: string;
+                field: string;
+                rationale: string;
+            }[];
+            reviewer_lenses: string[];
+            secondary_responsibilities: string[];
+            stakeholder_posture: string;
+            title: string;
+            tool_preferences: string[];
+            unresolved_questions: string[];
+        };
+        /** focusa.project_agent_role_profile_list.request.v1 */
+        focusa_project_agent_role_profile_list_request_v1: {
+            attachment_id: string;
+            continuity_id: string;
+            project_root: string;
+        };
+        /** focusa.project_agent_role_profile_list.v1 */
+        focusa_project_agent_role_profile_list_v1: {
+            approved?: {
+                assumptions: {
+                    assumption_id: string;
+                    source_refs: string[];
+                    statement: string;
+                    /** @enum {unknown} */
+                    status: "unverified" | "grounded" | "rejected";
+                }[];
+                attachment_id: string;
+                communication_posture: string;
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                decision_principles: string[];
+                escalation_triggers: string[];
+                evidence_behavior: string;
+                evidence_expectations: string[];
+                expected_deliverables: string[];
+                expertise: string[];
+                forbidden_assumptions: string[];
+                /** @constant */
+                grants_permissions: false;
+                grounding: {
+                    context_artifact_refs: string[];
+                    context_claim_refs: string[];
+                    interview_answer_refs: string[];
+                    operator_seed_ref: string;
+                };
+                handoff_boundaries: string[];
+                idempotency_key: string;
+                non_responsibilities: string[];
+                original_seed: string;
+                permission_profile_refs: string[];
+                primary_responsibilities: string[];
+                project_root: string;
+                purpose: string;
+                quality_standards: string[];
+                redlines: {
+                    after: string;
+                    before: string;
+                    field: string;
+                    rationale: string;
+                }[];
+                review?: {
+                    /** @enum {unknown} */
+                    decision: "approve" | "reject" | "defer";
+                    rationale: string;
+                    /** Format: date-time */
+                    reviewed_at: string;
+                    reviewed_by: string;
+                };
+                reviewer_lenses: string[];
+                revision: number;
+                role_profile_id: string;
+                secondary_responsibilities: string[];
+                stakeholder_posture: string;
+                /** @enum {unknown} */
+                status: "draft" | "pending_operator" | "approved" | "superseded";
+                title: string;
+                tool_preferences: string[];
+                unresolved_questions: string[];
+                /** Format: date-time */
+                updated_at: string;
+            };
+            latest?: {
+                assumptions: {
+                    assumption_id: string;
+                    source_refs: string[];
+                    statement: string;
+                    /** @enum {unknown} */
+                    status: "unverified" | "grounded" | "rejected";
+                }[];
+                attachment_id: string;
+                communication_posture: string;
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                decision_principles: string[];
+                escalation_triggers: string[];
+                evidence_behavior: string;
+                evidence_expectations: string[];
+                expected_deliverables: string[];
+                expertise: string[];
+                forbidden_assumptions: string[];
+                /** @constant */
+                grants_permissions: false;
+                grounding: {
+                    context_artifact_refs: string[];
+                    context_claim_refs: string[];
+                    interview_answer_refs: string[];
+                    operator_seed_ref: string;
+                };
+                handoff_boundaries: string[];
+                idempotency_key: string;
+                non_responsibilities: string[];
+                original_seed: string;
+                permission_profile_refs: string[];
+                primary_responsibilities: string[];
+                project_root: string;
+                purpose: string;
+                quality_standards: string[];
+                redlines: {
+                    after: string;
+                    before: string;
+                    field: string;
+                    rationale: string;
+                }[];
+                review?: {
+                    /** @enum {unknown} */
+                    decision: "approve" | "reject" | "defer";
+                    rationale: string;
+                    /** Format: date-time */
+                    reviewed_at: string;
+                    reviewed_by: string;
+                };
+                reviewer_lenses: string[];
+                revision: number;
+                role_profile_id: string;
+                secondary_responsibilities: string[];
+                stakeholder_posture: string;
+                /** @enum {unknown} */
+                status: "draft" | "pending_operator" | "approved" | "superseded";
+                title: string;
+                tool_preferences: string[];
+                unresolved_questions: string[];
+                /** Format: date-time */
+                updated_at: string;
+            };
+            profiles: {
+                assumptions: {
+                    assumption_id: string;
+                    source_refs: string[];
+                    statement: string;
+                    /** @enum {unknown} */
+                    status: "unverified" | "grounded" | "rejected";
+                }[];
+                attachment_id: string;
+                communication_posture: string;
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                decision_principles: string[];
+                escalation_triggers: string[];
+                evidence_behavior: string;
+                evidence_expectations: string[];
+                expected_deliverables: string[];
+                expertise: string[];
+                forbidden_assumptions: string[];
+                /** @constant */
+                grants_permissions: false;
+                grounding: {
+                    context_artifact_refs: string[];
+                    context_claim_refs: string[];
+                    interview_answer_refs: string[];
+                    operator_seed_ref: string;
+                };
+                handoff_boundaries: string[];
+                idempotency_key: string;
+                non_responsibilities: string[];
+                original_seed: string;
+                permission_profile_refs: string[];
+                primary_responsibilities: string[];
+                project_root: string;
+                purpose: string;
+                quality_standards: string[];
+                redlines: {
+                    after: string;
+                    before: string;
+                    field: string;
+                    rationale: string;
+                }[];
+                review?: {
+                    /** @enum {unknown} */
+                    decision: "approve" | "reject" | "defer";
+                    rationale: string;
+                    /** Format: date-time */
+                    reviewed_at: string;
+                    reviewed_by: string;
+                };
+                reviewer_lenses: string[];
+                revision: number;
+                role_profile_id: string;
+                secondary_responsibilities: string[];
+                stakeholder_posture: string;
+                /** @enum {unknown} */
+                status: "draft" | "pending_operator" | "approved" | "superseded";
+                title: string;
+                tool_preferences: string[];
+                unresolved_questions: string[];
+                /** Format: date-time */
+                updated_at: string;
+            }[];
+            /** @constant */
+            responsibility_is_not_permission: true;
+            /** @constant */
+            schema: "focusa.project_agent_role_profile_list.v1";
+            state_version: number;
+        };
+        /** focusa.project_agent_role_profile_mutation_result.v1 */
+        focusa_project_agent_role_profile_mutation_result_v1: {
+            /** @constant */
+            canonical: true;
+            evidence_ref: string;
+            profile: {
+                assumptions: {
+                    assumption_id: string;
+                    source_refs: string[];
+                    statement: string;
+                    /** @enum {unknown} */
+                    status: "unverified" | "grounded" | "rejected";
+                }[];
+                attachment_id: string;
+                communication_posture: string;
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                decision_principles: string[];
+                escalation_triggers: string[];
+                evidence_behavior: string;
+                evidence_expectations: string[];
+                expected_deliverables: string[];
+                expertise: string[];
+                forbidden_assumptions: string[];
+                /** @constant */
+                grants_permissions: false;
+                grounding: {
+                    context_artifact_refs: string[];
+                    context_claim_refs: string[];
+                    interview_answer_refs: string[];
+                    operator_seed_ref: string;
+                };
+                handoff_boundaries: string[];
+                idempotency_key: string;
+                non_responsibilities: string[];
+                original_seed: string;
+                permission_profile_refs: string[];
+                primary_responsibilities: string[];
+                project_root: string;
+                purpose: string;
+                quality_standards: string[];
+                redlines: {
+                    after: string;
+                    before: string;
+                    field: string;
+                    rationale: string;
+                }[];
+                review?: {
+                    /** @enum {unknown} */
+                    decision: "approve" | "reject" | "defer";
+                    rationale: string;
+                    /** Format: date-time */
+                    reviewed_at: string;
+                    reviewed_by: string;
+                };
+                reviewer_lenses: string[];
+                revision: number;
+                role_profile_id: string;
+                secondary_responsibilities: string[];
+                stakeholder_posture: string;
+                /** @enum {unknown} */
+                status: "draft" | "pending_operator" | "approved" | "superseded";
+                title: string;
+                tool_preferences: string[];
+                unresolved_questions: string[];
+                /** Format: date-time */
+                updated_at: string;
+            };
+            receipt_ref: string;
+            replayed: boolean;
+            /** @constant */
+            responsibility_is_not_permission: true;
+            /** @constant */
+            schema: "focusa.project_agent_role_profile_mutation_result.v1";
+            state_version: number;
+            tool_result: Record<string, never>;
+        };
+        /** focusa.project_agent_role_profile_review.request.v1 */
+        focusa_project_agent_role_profile_review_request_v1: {
+            attachment_id: string;
+            continuity_id: string;
+            /** @enum {unknown} */
+            decision: "approve" | "reject" | "defer";
+            expected_state_version: number;
+            idempotency_key: string;
+            profile_revision: number;
+            project_root: string;
+            rationale: string;
+            reviewed_by: string;
+            role_profile_id: string;
         };
         /**
          * focusa.project_identity.request.v1
@@ -4340,6 +4743,122 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_resource_mode_response_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.role_profile.list": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List Project Role Profile Revisions response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_project_agent_role_profile_list_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.role_profile.draft": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_project_agent_role_profile_draft_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Draft Grounded Project Role Profile response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_project_agent_role_profile_mutation_result_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.role_profile.review": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_project_agent_role_profile_review_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Approve, Reject, or Defer Project Role Profile response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_project_agent_role_profile_mutation_result_v1"];
                 };
             };
             /** @description Standard error envelope */
