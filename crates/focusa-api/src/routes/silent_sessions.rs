@@ -4,7 +4,7 @@ use axum::{
     Json, Router,
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
-    routing::get,
+    routing::{get, post},
 };
 use chrono::Utc;
 use focusa_core::silent_sessions::{
@@ -22,11 +22,18 @@ use crate::{
 
 use super::silent_sessions_contract::{ApiSideEffect, RetryDirective, SilentSessionApiEnvelope};
 
-type ApiResponse = (StatusCode, Json<SilentSessionApiEnvelope<Value>>);
+pub(super) type ApiResponse = (StatusCode, Json<SilentSessionApiEnvelope<Value>>);
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/v1/silent-sessions", get(list))
+        .route(
+            "/v1/silent-sessions/preflight",
+            post(super::silent_sessions_create::preflight),
+        )
+        .route(
+            "/v1/silent-sessions",
+            get(list).post(super::silent_sessions_create::create),
+        )
         .route("/v1/silent-sessions/{session_id}", get(show))
 }
 
@@ -40,16 +47,21 @@ async fn list(State(state): State<Arc<AppState>>, headers: HeaderMap) -> ApiResp
         .scopes
         .contains(&SilentSessionRouteScope::Read)
     {
-        return failure(
-            StatusCode::FORBIDDEN,
-            "forbidden",
-            "authorization_denied",
-            "The authenticated principal lacks silent_sessions:read.",
+        return disclose_principal_side_effect(
+            failure(
+                StatusCode::FORBIDDEN,
+                "forbidden",
+                "authorization_denied",
+                "The authenticated principal lacks silent_sessions:read.",
+            ),
+            &principal,
         );
     }
     let sessions = match list_sessions(&state.persistence) {
         Ok(sessions) => sessions,
-        Err(error) => return persistence_failure(error),
+        Err(error) => {
+            return disclose_principal_side_effect(persistence_failure(error), &principal);
+        }
     };
     let data = sessions
         .iter()
@@ -70,27 +82,35 @@ async fn show(
     let session = match load_session(&state.persistence, session_id) {
         Ok(Some(session)) => session,
         Ok(None) => {
-            return failure(
-                StatusCode::NOT_FOUND,
-                "not_found",
-                "not_found",
-                "No Silent Session exists for the requested session_id.",
+            return disclose_principal_side_effect(
+                failure(
+                    StatusCode::NOT_FOUND,
+                    "not_found",
+                    "not_found",
+                    "No Silent Session exists for the requested session_id.",
+                ),
+                &principal,
             );
         }
-        Err(error) => return persistence_failure(error),
+        Err(error) => {
+            return disclose_principal_side_effect(persistence_failure(error), &principal);
+        }
     };
     match authorized_projection(&principal, &session, SilentSessionAction::Show) {
         Some(data) => success_with_principal("found", data, &principal),
-        None => failure(
-            StatusCode::FORBIDDEN,
-            "forbidden",
-            "authorization_denied",
-            "The authenticated principal is not authorized for this Silent Session.",
+        None => disclose_principal_side_effect(
+            failure(
+                StatusCode::FORBIDDEN,
+                "forbidden",
+                "authorization_denied",
+                "The authenticated principal is not authorized for this Silent Session.",
+            ),
+            &principal,
         ),
     }
 }
 
-async fn durable_request_principal(
+pub(super) async fn durable_request_principal(
     state: &Arc<AppState>,
     headers: &HeaderMap,
 ) -> Result<ApiRequestPrincipal, Box<ApiResponse>> {
@@ -174,16 +194,28 @@ fn success_with_principal(
     data: Value,
     principal: &ApiRequestPrincipal,
 ) -> ApiResponse {
-    let mut envelope = SilentSessionApiEnvelope::canonical(status, data);
-    envelope.side_effects.push(ApiSideEffect {
+    disclose_principal_side_effect(
+        (
+            StatusCode::OK,
+            Json(SilentSessionApiEnvelope::canonical(status, data)),
+        ),
+        principal,
+    )
+}
+
+pub(super) fn disclose_principal_side_effect(
+    mut response: ApiResponse,
+    principal: &ApiRequestPrincipal,
+) -> ApiResponse {
+    response.1.0.side_effects.push(ApiSideEffect {
         effect: "authorization_principal_upsert".into(),
         status: "completed".into(),
         target_ref: Some(principal.principal.principal_id.clone()),
     });
-    (StatusCode::OK, Json(envelope))
+    response
 }
 
-fn persistence_failure(error: impl std::fmt::Display) -> ApiResponse {
+pub(super) fn persistence_failure(error: impl std::fmt::Display) -> ApiResponse {
     tracing::error!(error = %error, "Silent Session persistence operation failed");
     failure(
         StatusCode::INTERNAL_SERVER_ERROR,
@@ -193,7 +225,7 @@ fn persistence_failure(error: impl std::fmt::Display) -> ApiResponse {
     )
 }
 
-fn failure(
+pub(super) fn failure(
     status_code: StatusCode,
     status: &str,
     failure_class: &str,

@@ -13,9 +13,10 @@ use crate::{
         RuntimeCheckpoint, RuntimeCheckpointId, SilentSession, SilentSessionAuthority,
         SilentSessionConfig, SilentSessionConfigRevision, SilentSessionEvent, SilentSessionEventId,
         SilentSessionLease, SilentSessionLeaseId, SilentSessionRun, SilentSessionRunId,
-        SilentSessionWorkpointCheckpoint, WorkpointCheckpointId, append_reducer_event_and_project,
-        list_sessions, load_completion_evaluation, load_config_revision, load_lease, load_run,
-        load_runtime_checkpoint, load_session, load_session_events, load_workpoint_checkpoint,
+        SilentSessionWorkpointCheckpoint, WorkpointCheckpointId, append_create_event_and_project,
+        append_reducer_event_and_project, list_sessions, load_completion_evaluation,
+        load_config_revision, load_lease, load_run, load_runtime_checkpoint, load_session,
+        load_session_by_idempotency_key, load_session_events, load_workpoint_checkpoint,
         migrate_silent_session_schema, save_completion_evaluation, save_config_revision,
         save_lease, save_run, save_runtime_checkpoint, save_workpoint_checkpoint,
     },
@@ -248,6 +249,69 @@ fn reducer_event_and_projection_are_atomic_and_idempotent() {
             Ok(())
         })
         .unwrap();
+}
+
+#[test]
+fn create_projection_revision_and_event_commit_atomically() {
+    let (_dir, persistence) = persistence();
+    let projection = session();
+    let revision = SilentSessionConfigRevision {
+        config_schema_version: 1,
+        id: projection.active_config_revision_id,
+        silent_session_id: projection.id,
+        revision: 1,
+        config: config(),
+        redacted_config_hash: "hash".into(),
+        created_by: ActorInstanceId::new(),
+        created_at: projection.created_at,
+    };
+    let mut first = event(&projection, 1, None);
+    assert_eq!(
+        append_create_event_and_project(&persistence, &mut first, &projection, &revision).unwrap(),
+        AppendOutcome::Appended
+    );
+    assert_eq!(
+        load_session(&persistence, projection.id).unwrap(),
+        Some(projection.clone())
+    );
+    assert_eq!(
+        load_config_revision(&persistence, revision.id).unwrap(),
+        Some(revision)
+    );
+    assert_eq!(
+        load_session_by_idempotency_key(&persistence, &first.idempotency_key)
+            .unwrap()
+            .unwrap(),
+        (projection, first.payload.clone())
+    );
+
+    let rejected = session();
+    let rejected_revision = SilentSessionConfigRevision {
+        config_schema_version: 1,
+        id: rejected.active_config_revision_id,
+        silent_session_id: rejected.id,
+        revision: 1,
+        config: config(),
+        redacted_config_hash: "other-hash".into(),
+        created_by: ActorInstanceId::new(),
+        created_at: rejected.created_at,
+    };
+    let mut invalid_event = event(&rejected, 1, None);
+    invalid_event.id = first.id;
+    assert!(
+        append_create_event_and_project(
+            &persistence,
+            &mut invalid_event,
+            &rejected,
+            &rejected_revision,
+        )
+        .is_err()
+    );
+    assert_eq!(load_session(&persistence, rejected.id).unwrap(), None);
+    assert_eq!(
+        load_config_revision(&persistence, rejected_revision.id).unwrap(),
+        None
+    );
 }
 
 #[test]
