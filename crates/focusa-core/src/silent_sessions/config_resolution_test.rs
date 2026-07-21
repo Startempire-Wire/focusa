@@ -2,7 +2,7 @@ use serde_json::json;
 
 use crate::silent_sessions::*;
 
-fn requested() -> SilentSessionConfig {
+pub(super) fn requested() -> SilentSessionConfig {
     SilentSessionConfig::new(
         IdentityConfig {
             display_name: "proof".into(),
