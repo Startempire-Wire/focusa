@@ -1605,6 +1605,7 @@ pub const FOCUSA_STATE_PLANE_CONTRACT: &[(&str, AuthorityPlane)] = &[
     ("active_turn", AuthorityPlane::RuntimeCorrelation),
     ("anticipated_context", AuthorityPlane::AdvisoryProjection),
     ("context_sources", AuthorityPlane::CanonicalCognition),
+    ("workspace_artifacts", AuthorityPlane::CanonicalCognition),
     ("context_claims", AuthorityPlane::CanonicalCognition),
     ("context_contradictions", AuthorityPlane::CanonicalCognition),
     ("context_decisions", AuthorityPlane::CanonicalCognition),
@@ -1676,6 +1677,147 @@ pub struct ContextSourceRecord {
     pub extraction_diagnostics: Vec<String>,
     #[serde(default)]
     pub health: ContextSourceHealth,
+}
+
+/// Stable bounded content handle for a rich Workspace Artifact; never stores a large browser blob.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceArtifactContent {
+    pub handle_ref: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artifact_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artifact_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inline_preview: Option<String>,
+    pub sha256: String,
+    pub size_bytes: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceArtifactSource {
+    pub system: String,
+    pub source_ref: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_url: Option<String>,
+    pub captured_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceArtifactScope {
+    pub project_root: String,
+    pub continuity_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project_identity_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workpoint_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub work_item_ref: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceArtifactOrigin {
+    pub instance_id: String,
+    pub attachment_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub focusa_session_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub work_surface_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub harness_session_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub silent_session_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub silent_run_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uiai_session_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub browser_context_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub browser_target_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkspaceArtifactEvidenceStatus {
+    #[default]
+    ProposalOnly,
+    CapturePending,
+    Captured,
+    Linked,
+    Verified,
+    Stale,
+    Blocked,
+    ScopeMismatch,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceArtifactTrust {
+    pub evidence_status: WorkspaceArtifactEvidenceStatus,
+    pub redaction_status: String,
+    pub freshness_status: String,
+    pub provenance_status: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceArtifactSemantic {
+    #[serde(default)]
+    pub domain_pack_refs: Vec<String>,
+    #[serde(default)]
+    pub candidate_object_refs: Vec<String>,
+    #[serde(default)]
+    pub candidate_link_refs: Vec<String>,
+    #[serde(default)]
+    pub candidate_claim_refs: Vec<String>,
+    #[serde(default)]
+    pub verification_policy_refs: Vec<String>,
+    #[serde(default)]
+    pub semantic_delta_refs: Vec<String>,
+    /// Source-preserving citation handles for research and document artifacts.
+    #[serde(default)]
+    pub citation_refs: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceArtifactRetention {
+    pub policy: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<DateTime<Utc>>,
+    pub cleanup_action: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceArtifactRender {
+    pub preferred_renderer: String,
+    pub fallback_renderer: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub width: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub height: Option<u32>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceArtifactRecord {
+    pub artifact_id: String,
+    pub artifact_kind: String,
+    pub mime_type: String,
+    pub title: String,
+    pub summary: String,
+    pub content: WorkspaceArtifactContent,
+    pub source: WorkspaceArtifactSource,
+    pub scope: WorkspaceArtifactScope,
+    pub origin: WorkspaceArtifactOrigin,
+    pub trust: WorkspaceArtifactTrust,
+    pub semantic: WorkspaceArtifactSemantic,
+    #[serde(default)]
+    pub diagnostics_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    pub retention: WorkspaceArtifactRetention,
+    pub render: WorkspaceArtifactRender,
+    pub idempotency_key: String,
+    pub revision: u64,
+    pub linked_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 /// Canonical candidate/accepted claim extracted from source-preserving Context.
@@ -1808,6 +1950,9 @@ pub struct FocusaState {
     /// Canonical Context corpus seed, scoped by project/workstream/attachment.
     #[serde(default)]
     pub context_sources: Vec<ContextSourceRecord>,
+    /// Canonical links to bounded rich-artifact descriptors; UIAI runtime state and blobs stay external.
+    #[serde(default)]
+    pub workspace_artifacts: Vec<WorkspaceArtifactRecord>,
     /// Canonical Context claims derived from source-preserving citations.
     #[serde(default)]
     pub context_claims: Vec<ContextClaimRecord>,
@@ -1879,6 +2024,7 @@ impl FocusaState {
             active_turn: None,
             anticipated_context: vec![],
             context_sources: vec![],
+            workspace_artifacts: vec![],
             context_claims: vec![],
             context_contradictions: vec![],
             context_decisions: vec![],
@@ -2482,6 +2628,9 @@ pub enum FocusaEvent {
     },
     ContextSourceIngested {
         source: ContextSourceRecord,
+    },
+    WorkspaceArtifactLinked {
+        artifact: WorkspaceArtifactRecord,
     },
     ContextClaimProposed {
         claim: ContextClaimRecord,

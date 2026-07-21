@@ -204,13 +204,15 @@ fn op(
             | "turn"
             | "memory"
             | "work_loop"
+            | "workspace_artifact"
     ) || matches!(
         id,
         "focusa.ui_action_bindings.read"
             | "focusa.ui_capability_snapshot.read"
             | "focusa.protocol.handshake"
     );
-    let attachment_scoped = id.contains("attachment") || family == "context";
+    let attachment_scoped =
+        id.contains("attachment") || matches!(family, "context" | "workspace_artifact");
     let mut required_keys = Vec::new();
     if project_scoped {
         required_keys.push("project_root");
@@ -815,6 +817,53 @@ fn build_operations() -> Vec<OperationEntry> {
             "focusa.context_cognition_curate.request.v1",
             "focusa.context_cognition_curate.response.v1",
             "docs/focusa-api/routes/context_cognition.md",
+            None,
+        ),
+        // ── bounded rich Workspace Artifact bridge ───────────────────────────
+        op(
+            "focusa.workspace.artifact.list",
+            "List Linked Workspace Artifacts",
+            "workspace_artifact",
+            "GET",
+            "/v1/workspace/artifacts",
+            true,
+            None,
+            "read_artifact_links",
+            "canonical_read",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec!["artifact:read"],
+            false,
+            "standard_read",
+            vec!["compact", "standard", "debug"],
+            "focusa.workspace_artifact_list.request.v1",
+            "focusa.workspace_artifact_list.v1",
+            "docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md",
+            None,
+        ),
+        op(
+            "focusa.workspace.artifact.intake",
+            "Link Workspace Artifact",
+            "workspace_artifact",
+            "POST",
+            "/v1/workspace/artifacts/intake",
+            true,
+            None,
+            "link_artifact_descriptor",
+            "canonical_event",
+            vec!["commit"],
+            true,
+            true,
+            false,
+            vec!["artifact:write"],
+            false,
+            "standard_write",
+            vec!["compact", "standard", "debug"],
+            "focusa.workspace_artifact_intake.request.v1",
+            "focusa.workspace_artifact_intake_result.v1",
+            "docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md",
             None,
         ),
         // ── canonical Context corpus ─────────────────────────────────────────
@@ -2233,6 +2282,62 @@ fn context_source_record_schema() -> Value {
     })
 }
 
+fn workspace_artifact_schema() -> Value {
+    json!({
+        "type": "object", "additionalProperties": false,
+        "required": ["artifact_id", "artifact_kind", "mime_type", "title", "summary", "content", "source", "scope", "origin", "trust", "semantic", "diagnostics_refs", "evidence_refs", "retention", "render", "idempotency_key", "revision", "linked_at", "updated_at"],
+        "properties": {
+            "artifact_id": {"type": "string"},
+            "artifact_kind": {"enum": ["image", "markdown", "dataset", "diff", "browser_snapshot", "diagnostics", "chart", "document", "media", "fpv_session"]},
+            "mime_type": {"type": "string"}, "title": {"type": "string"}, "summary": {"type": "string", "maxLength": 2000},
+            "content": {"type": "object", "additionalProperties": false, "required": ["handle_ref", "sha256", "size_bytes"], "properties": {
+                "handle_ref": {"type": "string"}, "artifact_url": {"type": "string"}, "artifact_path": {"type": "string"},
+                "inline_preview": {"type": "string", "maxLength": 2000}, "sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}, "size_bytes": {"type": "integer", "minimum": 0}
+            }},
+            "source": {"type": "object", "additionalProperties": false, "required": ["system", "source_ref", "captured_at"], "properties": {
+                "system": {"enum": ["uiai", "focusa", "local_file", "connector", "provider", "operator"]}, "source_ref": {"type": "string"},
+                "source_url": {"type": "string"}, "captured_at": {"type": "string", "format": "date-time"}
+            }},
+            "scope": {"type": "object", "additionalProperties": false, "required": ["project_root", "continuity_id"], "properties": {
+                "project_root": {"type": "string"}, "continuity_id": {"type": "string"}, "project_identity_ref": {"type": "string"},
+                "workpoint_id": {"type": "string"}, "work_item_ref": {"type": "string"}
+            }},
+            "origin": {"type": "object", "additionalProperties": false, "required": ["instance_id", "attachment_id"], "properties": {
+                "instance_id": {"type": "string"}, "attachment_id": {"type": "string"}, "focusa_session_id": {"type": "string"}, "work_surface_id": {"type": "string"},
+                "harness_session_ref": {"type": "string"}, "silent_session_id": {"type": "string"}, "silent_run_id": {"type": "string"},
+                "uiai_session_id": {"type": "string"}, "browser_context_id": {"type": "string"}, "browser_target_id": {"type": "string"}
+            }},
+            "trust": {"type": "object", "additionalProperties": false, "required": ["evidence_status", "redaction_status", "freshness_status", "provenance_status"], "properties": {
+                "evidence_status": {"enum": ["proposal_only", "capture_pending", "captured", "linked", "verified", "stale", "blocked", "scope_mismatch"]},
+                "redaction_status": {"type": "string"}, "freshness_status": {"type": "string"}, "provenance_status": {"type": "string"}
+            }},
+            "semantic": {"type": "object", "additionalProperties": false,
+                "required": ["domain_pack_refs", "candidate_object_refs", "candidate_link_refs", "candidate_claim_refs", "verification_policy_refs", "semantic_delta_refs", "citation_refs"],
+                "properties": {
+                    "domain_pack_refs": {"type": "array", "maxItems": 32, "items": {"type": "string"}},
+                    "candidate_object_refs": {"type": "array", "maxItems": 32, "items": {"type": "string"}},
+                    "candidate_link_refs": {"type": "array", "maxItems": 32, "items": {"type": "string"}},
+                    "candidate_claim_refs": {"type": "array", "maxItems": 32, "items": {"type": "string"}},
+                    "verification_policy_refs": {"type": "array", "maxItems": 32, "items": {"type": "string"}},
+                    "semantic_delta_refs": {"type": "array", "maxItems": 32, "items": {"type": "string"}},
+                    "citation_refs": {"type": "array", "maxItems": 64, "items": {"type": "string"}}
+                }
+            },
+            "diagnostics_refs": {"type": "array", "maxItems": 32, "items": {"type": "string"}},
+            "evidence_refs": {"type": "array", "minItems": 1, "maxItems": 32, "items": {"type": "string"}},
+            "retention": {"type": "object", "additionalProperties": false, "required": ["policy", "cleanup_action"], "properties": {
+                "policy": {"type": "string"}, "expires_at": {"type": "string", "format": "date-time"}, "cleanup_action": {"type": "string"}
+            }},
+            "render": {"type": "object", "additionalProperties": false, "required": ["preferred_renderer", "fallback_renderer"], "properties": {
+                "preferred_renderer": {"type": "string"}, "fallback_renderer": {"type": "string"},
+                "width": {"type": "integer", "minimum": 1, "maximum": 16384}, "height": {"type": "integer", "minimum": 1, "maximum": 16384}
+            }},
+            "idempotency_key": {"type": "string"}, "revision": {"type": "integer", "minimum": 1},
+            "linked_at": {"type": "string", "format": "date-time"}, "updated_at": {"type": "string", "format": "date-time"}
+        }
+    })
+}
+
 fn context_claim_schema() -> Value {
     json!({
         "type": "object", "additionalProperties": false,
@@ -2519,6 +2624,59 @@ fn json_schema_document(schema_id: &str) -> Value {
             },
             "x-focusa-schema-id": schema_id,
             "x-focusa-generated-from": "ContextRetrieveResponse"
+        });
+    }
+    if schema_id == "focusa.workspace_artifact_list.request.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false, "required": ["project_root", "continuity_id", "attachment_id"],
+            "properties": {"project_root": {"type": "string", "minLength": 1, "maxLength": 4096}, "continuity_id": {"type": "string", "minLength": 1, "maxLength": 256}, "attachment_id": {"type": "string", "minLength": 1, "maxLength": 256}},
+            "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "WorkspaceArtifactQuery"
+        });
+    }
+    if schema_id == "focusa.workspace_artifact_list.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false, "required": ["schema", "canonical_links", "external_artifact_authority", "state_version", "artifacts"],
+            "properties": {"schema": {"const": "focusa.workspace_artifact_list.v1"}, "canonical_links": {"const": true}, "external_artifact_authority": {"const": true}, "state_version": {"type": "integer", "minimum": 0}, "artifacts": {"type": "array", "items": workspace_artifact_schema()}},
+            "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "WorkspaceArtifactListResponse"
+        });
+    }
+    if schema_id == "focusa.workspace_artifact_intake.request.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false,
+            "required": ["project_root", "continuity_id", "attachment_id", "idempotency_key", "expected_state_version", "artifact_kind", "mime_type", "title", "summary", "handle_ref", "sha256", "size_bytes", "source_system", "source_ref", "instance_id", "evidence_refs", "evidence_status", "redaction_status", "freshness_status", "provenance_status", "retention_policy", "cleanup_action", "preferred_renderer", "fallback_renderer"],
+            "properties": {
+                "project_root": {"type": "string", "minLength": 1, "maxLength": 4096}, "continuity_id": {"type": "string", "minLength": 1, "maxLength": 256}, "attachment_id": {"type": "string", "minLength": 1, "maxLength": 256},
+                "idempotency_key": {"type": "string", "minLength": 1, "maxLength": 256}, "expected_state_version": {"type": "integer", "minimum": 0},
+                "artifact_kind": {"enum": ["image", "markdown", "dataset", "diff", "browser_snapshot", "diagnostics", "chart", "document", "media", "fpv_session"]},
+                "mime_type": {"type": "string"}, "title": {"type": "string"}, "summary": {"type": "string", "maxLength": 2000},
+                "handle_ref": {"type": "string"}, "artifact_url": {"type": "string"}, "artifact_path": {"type": "string"}, "inline_preview": {"type": "string", "maxLength": 2000},
+                "sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}, "size_bytes": {"type": "integer", "minimum": 0},
+                "source_system": {"enum": ["uiai", "focusa", "local_file", "connector", "provider", "operator"]}, "source_ref": {"type": "string"}, "source_url": {"type": "string"}, "captured_at": {"type": "string", "format": "date-time"},
+                "project_identity_ref": {"type": "string"}, "workpoint_id": {"type": "string"}, "work_item_ref": {"type": "string"},
+                "instance_id": {"type": "string"}, "focusa_session_id": {"type": "string"}, "work_surface_id": {"type": "string"}, "harness_session_ref": {"type": "string"},
+                "silent_session_id": {"type": "string"}, "silent_run_id": {"type": "string"}, "uiai_session_id": {"type": "string"}, "browser_context_id": {"type": "string"}, "browser_target_id": {"type": "string"},
+                "diagnostics_refs": {"type": "array", "maxItems": 32, "items": {"type": "string"}}, "evidence_refs": {"type": "array", "minItems": 1, "maxItems": 32, "items": {"type": "string"}},
+                "domain_pack_refs": {"type": "array", "maxItems": 32, "items": {"type": "string"}}, "candidate_object_refs": {"type": "array", "maxItems": 32, "items": {"type": "string"}},
+                "candidate_link_refs": {"type": "array", "maxItems": 32, "items": {"type": "string"}}, "candidate_claim_refs": {"type": "array", "maxItems": 32, "items": {"type": "string"}},
+                "verification_policy_refs": {"type": "array", "maxItems": 32, "items": {"type": "string"}}, "semantic_delta_refs": {"type": "array", "maxItems": 32, "items": {"type": "string"}},
+                "citation_refs": {"type": "array", "maxItems": 64, "items": {"type": "string"}},
+                "evidence_status": {"enum": ["proposal_only", "capture_pending", "captured", "linked", "verified", "stale", "blocked", "scope_mismatch"]},
+                "redaction_status": {"type": "string"}, "freshness_status": {"type": "string"}, "provenance_status": {"type": "string"}, "retention_policy": {"type": "string"}, "expires_at": {"type": "string", "format": "date-time"}, "cleanup_action": {"type": "string"},
+                "preferred_renderer": {"type": "string"}, "fallback_renderer": {"type": "string"},
+                "render_width": {"type": "integer", "minimum": 1, "maximum": 16384}, "render_height": {"type": "integer", "minimum": 1, "maximum": 16384}
+            },
+            "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "WorkspaceArtifactIntakeRequest"
+        });
+    }
+    if schema_id == "focusa.workspace_artifact_intake_result.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false, "required": ["schema", "canonical_link", "external_artifact_authority", "replayed", "state_version", "artifact", "evidence_ref", "receipt_ref", "tool_result"],
+            "properties": {"schema": {"const": "focusa.workspace_artifact_intake_result.v1"}, "canonical_link": {"const": true}, "external_artifact_authority": {"const": true}, "replayed": {"type": "boolean"}, "state_version": {"type": "integer", "minimum": 1}, "artifact": workspace_artifact_schema(), "evidence_ref": {"type": "string"}, "receipt_ref": {"type": "string"}, "tool_result": {"type": "object"}},
+            "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "WorkspaceArtifactIntakeResponse"
         });
     }
     if schema_id == "focusa.context_graph_read.request.v1" {

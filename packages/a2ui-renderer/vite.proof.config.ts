@@ -14,6 +14,7 @@ export default defineConfig({
         contextIngest: resolve(import.meta.dirname, "proof/context-ingest.html"),
         contextRetrieve: resolve(import.meta.dirname, "proof/context-retrieve.html"),
         contextClaims: resolve(import.meta.dirname, "proof/context-claims.html"),
+        workspaceArtifact: resolve(import.meta.dirname, "proof/workspace-artifact.html"),
       },
     },
   },

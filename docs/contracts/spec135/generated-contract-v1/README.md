@@ -34,3 +34,10 @@ fallback, restart order, generated clients/UI, Evidence, and Receipt output.
 claims, explicit contradiction edges and decisions, approval state, reactive
 projection blocking/unblocking, idempotent replay, restart, generated claim
 review UI, Evidence, and Receipts.
+
+`spec135-u1-workspace-artifact-proof.json` proves the provider-neutral UIAI
+Workspace Artifact bridge: bounded exact-scope descriptors retain source,
+origin, diagnostics, provenance, Evidence, rendering fallback, retention, and
+cleanup across restart while UIAI browser state and large blobs remain
+noncanonical and externally authoritative. The companion research diagnostics
+packet and desktop/mobile UIAI Eval result preserve the external proof boundary.

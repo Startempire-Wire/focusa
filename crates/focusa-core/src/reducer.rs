@@ -438,6 +438,50 @@ pub fn reduce_with_meta(
                 state.context_sources.push(source);
             }
         }
+        FocusaEvent::WorkspaceArtifactLinked { artifact } => {
+            if state.workspace_artifacts.iter().any(|existing| {
+                existing.scope.project_root == artifact.scope.project_root
+                    && existing.scope.continuity_id == artifact.scope.continuity_id
+                    && existing.origin.attachment_id == artifact.origin.attachment_id
+                    && existing.idempotency_key == artifact.idempotency_key
+            }) {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "duplicate Workspace Artifact link idempotency key: {}",
+                    artifact.idempotency_key
+                )));
+            }
+            if let Some(index) = state
+                .workspace_artifacts
+                .iter()
+                .position(|existing| existing.artifact_id == artifact.artifact_id)
+            {
+                let existing = &state.workspace_artifacts[index];
+                if artifact.revision != existing.revision + 1
+                    || artifact.linked_at != existing.linked_at
+                    || artifact.scope != existing.scope
+                    || artifact.source.system != existing.source.system
+                    || artifact.source.source_ref != existing.source.source_ref
+                    || artifact.content.sha256 != existing.content.sha256
+                {
+                    return Err(ReducerError::InvalidEvent(format!(
+                        "invalid Workspace Artifact projection revision: {}",
+                        artifact.artifact_id
+                    )));
+                }
+                state.workspace_artifacts[index] = artifact;
+            } else {
+                if artifact.revision != 1 {
+                    return Err(ReducerError::InvalidEvent(format!(
+                        "new Workspace Artifact must start at revision 1: {}",
+                        artifact.artifact_id
+                    )));
+                }
+                state.workspace_artifacts.push(artifact);
+                state
+                    .workspace_artifacts
+                    .sort_by(|left, right| left.artifact_id.cmp(&right.artifact_id));
+            }
+        }
         FocusaEvent::ContextClaimProposed { claim } => {
             if state.context_claims.iter().any(|existing| {
                 existing.claim_id == claim.claim_id

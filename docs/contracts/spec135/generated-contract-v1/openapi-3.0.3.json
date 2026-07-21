@@ -3497,6 +3497,1097 @@
         "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.workpoint_resume.response.v1"
+      },
+      "focusa_workspace_artifact_intake_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_kind": {
+            "enum": [
+              "image",
+              "markdown",
+              "dataset",
+              "diff",
+              "browser_snapshot",
+              "diagnostics",
+              "chart",
+              "document",
+              "media",
+              "fpv_session"
+            ]
+          },
+          "artifact_path": {
+            "type": "string"
+          },
+          "artifact_url": {
+            "type": "string"
+          },
+          "attachment_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "browser_context_id": {
+            "type": "string"
+          },
+          "browser_target_id": {
+            "type": "string"
+          },
+          "candidate_claim_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "type": "array"
+          },
+          "candidate_link_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "type": "array"
+          },
+          "candidate_object_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "type": "array"
+          },
+          "captured_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "citation_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "cleanup_action": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "diagnostics_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "type": "array"
+          },
+          "domain_pack_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "type": "array"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "minItems": 1,
+            "type": "array"
+          },
+          "evidence_status": {
+            "enum": [
+              "proposal_only",
+              "capture_pending",
+              "captured",
+              "linked",
+              "verified",
+              "stale",
+              "blocked",
+              "scope_mismatch"
+            ]
+          },
+          "expected_state_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "fallback_renderer": {
+            "type": "string"
+          },
+          "focusa_session_id": {
+            "type": "string"
+          },
+          "freshness_status": {
+            "type": "string"
+          },
+          "handle_ref": {
+            "type": "string"
+          },
+          "harness_session_ref": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "inline_preview": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "instance_id": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "preferred_renderer": {
+            "type": "string"
+          },
+          "project_identity_ref": {
+            "type": "string"
+          },
+          "project_root": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          },
+          "provenance_status": {
+            "type": "string"
+          },
+          "redaction_status": {
+            "type": "string"
+          },
+          "render_height": {
+            "maximum": 16384,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "render_width": {
+            "maximum": 16384,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "retention_policy": {
+            "type": "string"
+          },
+          "semantic_delta_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "type": "array"
+          },
+          "sha256": {
+            "pattern": "^[A-Fa-f0-9]{64}$",
+            "type": "string"
+          },
+          "silent_run_id": {
+            "type": "string"
+          },
+          "silent_session_id": {
+            "type": "string"
+          },
+          "size_bytes": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "source_ref": {
+            "type": "string"
+          },
+          "source_system": {
+            "enum": [
+              "uiai",
+              "focusa",
+              "local_file",
+              "connector",
+              "provider",
+              "operator"
+            ]
+          },
+          "source_url": {
+            "type": "string"
+          },
+          "summary": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "uiai_session_id": {
+            "type": "string"
+          },
+          "verification_policy_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "type": "array"
+          },
+          "work_item_ref": {
+            "type": "string"
+          },
+          "work_surface_id": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "attachment_id",
+          "idempotency_key",
+          "expected_state_version",
+          "artifact_kind",
+          "mime_type",
+          "title",
+          "summary",
+          "handle_ref",
+          "sha256",
+          "size_bytes",
+          "source_system",
+          "source_ref",
+          "instance_id",
+          "evidence_refs",
+          "evidence_status",
+          "redaction_status",
+          "freshness_status",
+          "provenance_status",
+          "retention_policy",
+          "cleanup_action",
+          "preferred_renderer",
+          "fallback_renderer"
+        ],
+        "title": "focusa.workspace_artifact_intake.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "WorkspaceArtifactIntakeRequest",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.workspace_artifact_intake.request.v1"
+      },
+      "focusa_workspace_artifact_intake_result_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact": {
+            "additionalProperties": false,
+            "properties": {
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_kind": {
+                "enum": [
+                  "image",
+                  "markdown",
+                  "dataset",
+                  "diff",
+                  "browser_snapshot",
+                  "diagnostics",
+                  "chart",
+                  "document",
+                  "media",
+                  "fpv_session"
+                ]
+              },
+              "content": {
+                "additionalProperties": false,
+                "properties": {
+                  "artifact_path": {
+                    "type": "string"
+                  },
+                  "artifact_url": {
+                    "type": "string"
+                  },
+                  "handle_ref": {
+                    "type": "string"
+                  },
+                  "inline_preview": {
+                    "maxLength": 2000,
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "pattern": "^[A-Fa-f0-9]{64}$",
+                    "type": "string"
+                  },
+                  "size_bytes": {
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "handle_ref",
+                  "sha256",
+                  "size_bytes"
+                ],
+                "type": "object"
+              },
+              "diagnostics_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 32,
+                "type": "array"
+              },
+              "evidence_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 32,
+                "minItems": 1,
+                "type": "array"
+              },
+              "idempotency_key": {
+                "type": "string"
+              },
+              "linked_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "mime_type": {
+                "type": "string"
+              },
+              "origin": {
+                "additionalProperties": false,
+                "properties": {
+                  "attachment_id": {
+                    "type": "string"
+                  },
+                  "browser_context_id": {
+                    "type": "string"
+                  },
+                  "browser_target_id": {
+                    "type": "string"
+                  },
+                  "focusa_session_id": {
+                    "type": "string"
+                  },
+                  "harness_session_ref": {
+                    "type": "string"
+                  },
+                  "instance_id": {
+                    "type": "string"
+                  },
+                  "silent_run_id": {
+                    "type": "string"
+                  },
+                  "silent_session_id": {
+                    "type": "string"
+                  },
+                  "uiai_session_id": {
+                    "type": "string"
+                  },
+                  "work_surface_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "instance_id",
+                  "attachment_id"
+                ],
+                "type": "object"
+              },
+              "render": {
+                "additionalProperties": false,
+                "properties": {
+                  "fallback_renderer": {
+                    "type": "string"
+                  },
+                  "height": {
+                    "maximum": 16384,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "preferred_renderer": {
+                    "type": "string"
+                  },
+                  "width": {
+                    "maximum": 16384,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "preferred_renderer",
+                  "fallback_renderer"
+                ],
+                "type": "object"
+              },
+              "retention": {
+                "additionalProperties": false,
+                "properties": {
+                  "cleanup_action": {
+                    "type": "string"
+                  },
+                  "expires_at": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "policy": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "policy",
+                  "cleanup_action"
+                ],
+                "type": "object"
+              },
+              "revision": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "scope": {
+                "additionalProperties": false,
+                "properties": {
+                  "continuity_id": {
+                    "type": "string"
+                  },
+                  "project_identity_ref": {
+                    "type": "string"
+                  },
+                  "project_root": {
+                    "type": "string"
+                  },
+                  "work_item_ref": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "project_root",
+                  "continuity_id"
+                ],
+                "type": "object"
+              },
+              "semantic": {
+                "additionalProperties": false,
+                "properties": {
+                  "candidate_claim_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 32,
+                    "type": "array"
+                  },
+                  "candidate_link_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 32,
+                    "type": "array"
+                  },
+                  "candidate_object_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 32,
+                    "type": "array"
+                  },
+                  "citation_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "type": "array"
+                  },
+                  "domain_pack_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 32,
+                    "type": "array"
+                  },
+                  "semantic_delta_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 32,
+                    "type": "array"
+                  },
+                  "verification_policy_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 32,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "domain_pack_refs",
+                  "candidate_object_refs",
+                  "candidate_link_refs",
+                  "candidate_claim_refs",
+                  "verification_policy_refs",
+                  "semantic_delta_refs",
+                  "citation_refs"
+                ],
+                "type": "object"
+              },
+              "source": {
+                "additionalProperties": false,
+                "properties": {
+                  "captured_at": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "source_ref": {
+                    "type": "string"
+                  },
+                  "source_url": {
+                    "type": "string"
+                  },
+                  "system": {
+                    "enum": [
+                      "uiai",
+                      "focusa",
+                      "local_file",
+                      "connector",
+                      "provider",
+                      "operator"
+                    ]
+                  }
+                },
+                "required": [
+                  "system",
+                  "source_ref",
+                  "captured_at"
+                ],
+                "type": "object"
+              },
+              "summary": {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "trust": {
+                "additionalProperties": false,
+                "properties": {
+                  "evidence_status": {
+                    "enum": [
+                      "proposal_only",
+                      "capture_pending",
+                      "captured",
+                      "linked",
+                      "verified",
+                      "stale",
+                      "blocked",
+                      "scope_mismatch"
+                    ]
+                  },
+                  "freshness_status": {
+                    "type": "string"
+                  },
+                  "provenance_status": {
+                    "type": "string"
+                  },
+                  "redaction_status": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "evidence_status",
+                  "redaction_status",
+                  "freshness_status",
+                  "provenance_status"
+                ],
+                "type": "object"
+              },
+              "updated_at": {
+                "format": "date-time",
+                "type": "string"
+              }
+            },
+            "required": [
+              "artifact_id",
+              "artifact_kind",
+              "mime_type",
+              "title",
+              "summary",
+              "content",
+              "source",
+              "scope",
+              "origin",
+              "trust",
+              "semantic",
+              "diagnostics_refs",
+              "evidence_refs",
+              "retention",
+              "render",
+              "idempotency_key",
+              "revision",
+              "linked_at",
+              "updated_at"
+            ],
+            "type": "object"
+          },
+          "canonical_link": {
+            "const": true
+          },
+          "evidence_ref": {
+            "type": "string"
+          },
+          "external_artifact_authority": {
+            "const": true
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "schema": {
+            "const": "focusa.workspace_artifact_intake_result.v1"
+          },
+          "state_version": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "tool_result": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "schema",
+          "canonical_link",
+          "external_artifact_authority",
+          "replayed",
+          "state_version",
+          "artifact",
+          "evidence_ref",
+          "receipt_ref",
+          "tool_result"
+        ],
+        "title": "focusa.workspace_artifact_intake_result.v1",
+        "type": "object",
+        "x-focusa-generated-from": "WorkspaceArtifactIntakeResponse",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.workspace_artifact_intake_result.v1"
+      },
+      "focusa_workspace_artifact_list_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "attachment_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "continuity_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "project_root": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "title": "focusa.workspace_artifact_list.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "WorkspaceArtifactQuery",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.workspace_artifact_list.request.v1"
+      },
+      "focusa_workspace_artifact_list_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "artifacts": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "artifact_id": {
+                  "type": "string"
+                },
+                "artifact_kind": {
+                  "enum": [
+                    "image",
+                    "markdown",
+                    "dataset",
+                    "diff",
+                    "browser_snapshot",
+                    "diagnostics",
+                    "chart",
+                    "document",
+                    "media",
+                    "fpv_session"
+                  ]
+                },
+                "content": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "artifact_path": {
+                      "type": "string"
+                    },
+                    "artifact_url": {
+                      "type": "string"
+                    },
+                    "handle_ref": {
+                      "type": "string"
+                    },
+                    "inline_preview": {
+                      "maxLength": 2000,
+                      "type": "string"
+                    },
+                    "sha256": {
+                      "pattern": "^[A-Fa-f0-9]{64}$",
+                      "type": "string"
+                    },
+                    "size_bytes": {
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "handle_ref",
+                    "sha256",
+                    "size_bytes"
+                  ],
+                  "type": "object"
+                },
+                "diagnostics_refs": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 32,
+                  "type": "array"
+                },
+                "evidence_refs": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 32,
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "idempotency_key": {
+                  "type": "string"
+                },
+                "linked_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "mime_type": {
+                  "type": "string"
+                },
+                "origin": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "attachment_id": {
+                      "type": "string"
+                    },
+                    "browser_context_id": {
+                      "type": "string"
+                    },
+                    "browser_target_id": {
+                      "type": "string"
+                    },
+                    "focusa_session_id": {
+                      "type": "string"
+                    },
+                    "harness_session_ref": {
+                      "type": "string"
+                    },
+                    "instance_id": {
+                      "type": "string"
+                    },
+                    "silent_run_id": {
+                      "type": "string"
+                    },
+                    "silent_session_id": {
+                      "type": "string"
+                    },
+                    "uiai_session_id": {
+                      "type": "string"
+                    },
+                    "work_surface_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "instance_id",
+                    "attachment_id"
+                  ],
+                  "type": "object"
+                },
+                "render": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "fallback_renderer": {
+                      "type": "string"
+                    },
+                    "height": {
+                      "maximum": 16384,
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "preferred_renderer": {
+                      "type": "string"
+                    },
+                    "width": {
+                      "maximum": 16384,
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "preferred_renderer",
+                    "fallback_renderer"
+                  ],
+                  "type": "object"
+                },
+                "retention": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "cleanup_action": {
+                      "type": "string"
+                    },
+                    "expires_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "policy",
+                    "cleanup_action"
+                  ],
+                  "type": "object"
+                },
+                "revision": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "scope": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "continuity_id": {
+                      "type": "string"
+                    },
+                    "project_identity_ref": {
+                      "type": "string"
+                    },
+                    "project_root": {
+                      "type": "string"
+                    },
+                    "work_item_ref": {
+                      "type": "string"
+                    },
+                    "workpoint_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "project_root",
+                    "continuity_id"
+                  ],
+                  "type": "object"
+                },
+                "semantic": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "candidate_claim_refs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 32,
+                      "type": "array"
+                    },
+                    "candidate_link_refs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 32,
+                      "type": "array"
+                    },
+                    "candidate_object_refs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 32,
+                      "type": "array"
+                    },
+                    "citation_refs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 64,
+                      "type": "array"
+                    },
+                    "domain_pack_refs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 32,
+                      "type": "array"
+                    },
+                    "semantic_delta_refs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 32,
+                      "type": "array"
+                    },
+                    "verification_policy_refs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 32,
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "domain_pack_refs",
+                    "candidate_object_refs",
+                    "candidate_link_refs",
+                    "candidate_claim_refs",
+                    "verification_policy_refs",
+                    "semantic_delta_refs",
+                    "citation_refs"
+                  ],
+                  "type": "object"
+                },
+                "source": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "captured_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "source_ref": {
+                      "type": "string"
+                    },
+                    "source_url": {
+                      "type": "string"
+                    },
+                    "system": {
+                      "enum": [
+                        "uiai",
+                        "focusa",
+                        "local_file",
+                        "connector",
+                        "provider",
+                        "operator"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "system",
+                    "source_ref",
+                    "captured_at"
+                  ],
+                  "type": "object"
+                },
+                "summary": {
+                  "maxLength": 2000,
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "trust": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "evidence_status": {
+                      "enum": [
+                        "proposal_only",
+                        "capture_pending",
+                        "captured",
+                        "linked",
+                        "verified",
+                        "stale",
+                        "blocked",
+                        "scope_mismatch"
+                      ]
+                    },
+                    "freshness_status": {
+                      "type": "string"
+                    },
+                    "provenance_status": {
+                      "type": "string"
+                    },
+                    "redaction_status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "evidence_status",
+                    "redaction_status",
+                    "freshness_status",
+                    "provenance_status"
+                  ],
+                  "type": "object"
+                },
+                "updated_at": {
+                  "format": "date-time",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "artifact_id",
+                "artifact_kind",
+                "mime_type",
+                "title",
+                "summary",
+                "content",
+                "source",
+                "scope",
+                "origin",
+                "trust",
+                "semantic",
+                "diagnostics_refs",
+                "evidence_refs",
+                "retention",
+                "render",
+                "idempotency_key",
+                "revision",
+                "linked_at",
+                "updated_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "canonical_links": {
+            "const": true
+          },
+          "external_artifact_authority": {
+            "const": true
+          },
+          "schema": {
+            "const": "focusa.workspace_artifact_list.v1"
+          },
+          "state_version": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schema",
+          "canonical_links",
+          "external_artifact_authority",
+          "state_version",
+          "artifacts"
+        ],
+        "title": "focusa.workspace_artifact_list.v1",
+        "type": "object",
+        "x-focusa-generated-from": "WorkspaceArtifactListResponse",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.workspace_artifact_list.v1"
       }
     }
   },
@@ -9135,6 +10226,211 @@
         ],
         "x-focusa-sensitive": "routine",
         "x-focusa-subsystem": "workpoint"
+      }
+    },
+    "/v1/workspace/artifacts": {
+      "get": {
+        "description": "List Linked Workspace Artifacts \u2014 family=workspace_artifact budget=standard_read materialization=canonical_read",
+        "operationId": "focusa.workspace.artifact.list",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_workspace_artifact_list_v1"
+                }
+              }
+            },
+            "description": "List Linked Workspace Artifacts response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "List Linked Workspace Artifacts",
+        "tags": [
+          "workspace_artifact"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "workspace_artifact",
+          "materialization_mode": "canonical_read",
+          "requires_preview_token": false,
+          "side_effect_profile": "read_artifact_links",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "workspace_artifact"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.workspace.artifact.list",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "artifact:read"
+        ],
+        "x-focusa-plain-label": "List Linked Workspace Artifacts",
+        "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "workspace_artifact"
+      }
+    },
+    "/v1/workspace/artifacts/intake": {
+      "post": {
+        "description": "Link Workspace Artifact \u2014 family=workspace_artifact budget=standard_write materialization=canonical_event",
+        "operationId": "focusa.workspace.artifact.intake",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_workspace_artifact_intake_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_workspace_artifact_intake_result_v1"
+                }
+              }
+            },
+            "description": "Link Workspace Artifact response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Link Workspace Artifact",
+        "tags": [
+          "workspace_artifact"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_write",
+          "canonical": true,
+          "deprecation": null,
+          "family": "workspace_artifact",
+          "materialization_mode": "canonical_event",
+          "requires_preview_token": false,
+          "side_effect_profile": "link_artifact_descriptor",
+          "supports_side_effect_policy": [
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "workspace_artifact"
+        ],
+        "x-focusa-concurrency": true,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.workspace.artifact.intake",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "artifact:write"
+        ],
+        "x-focusa-plain-label": "Link Workspace Artifact",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "workspace_artifact"
       }
     }
   },

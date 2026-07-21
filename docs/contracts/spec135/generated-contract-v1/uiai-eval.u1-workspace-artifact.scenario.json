@@ -1,0 +1,36 @@
+{
+  "schema": "uiai.focusa_ui_eval_scenario.v1",
+  "scenario_id": "spec135-u1-workspace-artifact-bridge",
+  "feature_scope": {
+    "project_root": "/example/focusa",
+    "continuity_id": "focusa-cont-u1-generated-ui",
+    "attachment_id": "attachment:u1-workspace-artifact"
+  },
+  "route_or_target": "packages/a2ui-renderer/proof/workspace-artifact.html",
+  "preconditions": [
+    "focusa.workspace.artifact.intake is a generated attachment-scoped binding",
+    "A real UIAI screenshot and diagnostics Evidence ref are available",
+    "The proof server proxies a real Focusa daemon"
+  ],
+  "steps": [
+    {"step_id": "open", "action": "open", "target": "Workspace Artifact proof", "expected": "Generated artifact bridge renders", "evidence_kind": "dom"},
+    {"step_id": "link", "action": "click", "target": "Link Workspace Artifact", "expected": "Bounded external artifact descriptor enters canonical reducer state", "evidence_kind": "action"},
+    {"step_id": "trust", "action": "read", "target": "Evidence, Receipt, and ownership cards", "expected": "Origin, diagnostics, Evidence, Receipt, renderer fallback, and cleanup are visible", "evidence_kind": "dom"},
+    {"step_id": "mobile", "action": "resize", "target": "390x844 viewport", "expected": "No horizontal overflow and primary action remains deeply focusable", "evidence_kind": "screenshot"},
+    {"step_id": "diagnostics", "action": "diagnostics", "target": "Final UIAI evaluation window", "expected": "No console exception or failed request", "evidence_kind": "diagnostics"},
+    {"step_id": "close", "action": "close", "target": "UIAI session", "expected": "Session and temporary tunnel resources released independently", "evidence_kind": "diagnostics"}
+  ],
+  "required_capabilities": [
+    "workspace-artifact",
+    "canonical-reducer",
+    "external-uiai-authority",
+    "a2ui-web_core-0.9.1",
+    "a2ui-lit-0.9.1",
+    "focusa-svelte-elements-0.9.120-dev"
+  ],
+  "required_scopes": ["project_root", "continuity_id", "attachment_id"],
+  "expected_visible_states": ["ready", "processing", "completed", "saved", "verified", "retry"],
+  "expected_actions": ["focusa.workspace.artifact.intake allowed and exact-scoped"],
+  "expected_evidence": ["UIAI origin", "bounded descriptor", "diagnostics", "Evidence", "desktop/mobile screenshots", "external runtime boundary"],
+  "expected_receipts": ["canonical Workspace Artifact link Receipt"]
+}

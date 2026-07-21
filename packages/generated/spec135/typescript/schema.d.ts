@@ -1244,6 +1244,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspace/artifacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Linked Workspace Artifacts
+         * @description List Linked Workspace Artifacts — family=workspace_artifact budget=standard_read materialization=canonical_read
+         */
+        get: operations["focusa.workspace.artifact.list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/artifacts/intake": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link Workspace Artifact
+         * @description Link Workspace Artifact — family=workspace_artifact budget=standard_write materialization=canonical_event
+         */
+        post: operations["focusa.workspace.artifact.intake"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2575,6 +2615,253 @@ export interface components {
          */
         focusa_workpoint_resume_response_v1: {
             [key: string]: unknown;
+        };
+        /** focusa.workspace_artifact_intake.request.v1 */
+        focusa_workspace_artifact_intake_request_v1: {
+            /** @enum {unknown} */
+            artifact_kind: "image" | "markdown" | "dataset" | "diff" | "browser_snapshot" | "diagnostics" | "chart" | "document" | "media" | "fpv_session";
+            artifact_path?: string;
+            artifact_url?: string;
+            attachment_id: string;
+            browser_context_id?: string;
+            browser_target_id?: string;
+            candidate_claim_refs?: string[];
+            candidate_link_refs?: string[];
+            candidate_object_refs?: string[];
+            /** Format: date-time */
+            captured_at?: string;
+            citation_refs?: string[];
+            cleanup_action: string;
+            continuity_id: string;
+            diagnostics_refs?: string[];
+            domain_pack_refs?: string[];
+            evidence_refs: string[];
+            /** @enum {unknown} */
+            evidence_status: "proposal_only" | "capture_pending" | "captured" | "linked" | "verified" | "stale" | "blocked" | "scope_mismatch";
+            expected_state_version: number;
+            /** Format: date-time */
+            expires_at?: string;
+            fallback_renderer: string;
+            focusa_session_id?: string;
+            freshness_status: string;
+            handle_ref: string;
+            harness_session_ref?: string;
+            idempotency_key: string;
+            inline_preview?: string;
+            instance_id: string;
+            mime_type: string;
+            preferred_renderer: string;
+            project_identity_ref?: string;
+            project_root: string;
+            provenance_status: string;
+            redaction_status: string;
+            render_height?: number;
+            render_width?: number;
+            retention_policy: string;
+            semantic_delta_refs?: string[];
+            sha256: string;
+            silent_run_id?: string;
+            silent_session_id?: string;
+            size_bytes: number;
+            source_ref: string;
+            /** @enum {unknown} */
+            source_system: "uiai" | "focusa" | "local_file" | "connector" | "provider" | "operator";
+            source_url?: string;
+            summary: string;
+            title: string;
+            uiai_session_id?: string;
+            verification_policy_refs?: string[];
+            work_item_ref?: string;
+            work_surface_id?: string;
+            workpoint_id?: string;
+        };
+        /** focusa.workspace_artifact_intake_result.v1 */
+        focusa_workspace_artifact_intake_result_v1: {
+            artifact: {
+                artifact_id: string;
+                /** @enum {unknown} */
+                artifact_kind: "image" | "markdown" | "dataset" | "diff" | "browser_snapshot" | "diagnostics" | "chart" | "document" | "media" | "fpv_session";
+                content: {
+                    artifact_path?: string;
+                    artifact_url?: string;
+                    handle_ref: string;
+                    inline_preview?: string;
+                    sha256: string;
+                    size_bytes: number;
+                };
+                diagnostics_refs: string[];
+                evidence_refs: string[];
+                idempotency_key: string;
+                /** Format: date-time */
+                linked_at: string;
+                mime_type: string;
+                origin: {
+                    attachment_id: string;
+                    browser_context_id?: string;
+                    browser_target_id?: string;
+                    focusa_session_id?: string;
+                    harness_session_ref?: string;
+                    instance_id: string;
+                    silent_run_id?: string;
+                    silent_session_id?: string;
+                    uiai_session_id?: string;
+                    work_surface_id?: string;
+                };
+                render: {
+                    fallback_renderer: string;
+                    height?: number;
+                    preferred_renderer: string;
+                    width?: number;
+                };
+                retention: {
+                    cleanup_action: string;
+                    /** Format: date-time */
+                    expires_at?: string;
+                    policy: string;
+                };
+                revision: number;
+                scope: {
+                    continuity_id: string;
+                    project_identity_ref?: string;
+                    project_root: string;
+                    work_item_ref?: string;
+                    workpoint_id?: string;
+                };
+                semantic: {
+                    candidate_claim_refs: string[];
+                    candidate_link_refs: string[];
+                    candidate_object_refs: string[];
+                    citation_refs: string[];
+                    domain_pack_refs: string[];
+                    semantic_delta_refs: string[];
+                    verification_policy_refs: string[];
+                };
+                source: {
+                    /** Format: date-time */
+                    captured_at: string;
+                    source_ref: string;
+                    source_url?: string;
+                    /** @enum {unknown} */
+                    system: "uiai" | "focusa" | "local_file" | "connector" | "provider" | "operator";
+                };
+                summary: string;
+                title: string;
+                trust: {
+                    /** @enum {unknown} */
+                    evidence_status: "proposal_only" | "capture_pending" | "captured" | "linked" | "verified" | "stale" | "blocked" | "scope_mismatch";
+                    freshness_status: string;
+                    provenance_status: string;
+                    redaction_status: string;
+                };
+                /** Format: date-time */
+                updated_at: string;
+            };
+            /** @constant */
+            canonical_link: true;
+            evidence_ref: string;
+            /** @constant */
+            external_artifact_authority: true;
+            receipt_ref: string;
+            replayed: boolean;
+            /** @constant */
+            schema: "focusa.workspace_artifact_intake_result.v1";
+            state_version: number;
+            tool_result: Record<string, never>;
+        };
+        /** focusa.workspace_artifact_list.request.v1 */
+        focusa_workspace_artifact_list_request_v1: {
+            attachment_id: string;
+            continuity_id: string;
+            project_root: string;
+        };
+        /** focusa.workspace_artifact_list.v1 */
+        focusa_workspace_artifact_list_v1: {
+            artifacts: {
+                artifact_id: string;
+                /** @enum {unknown} */
+                artifact_kind: "image" | "markdown" | "dataset" | "diff" | "browser_snapshot" | "diagnostics" | "chart" | "document" | "media" | "fpv_session";
+                content: {
+                    artifact_path?: string;
+                    artifact_url?: string;
+                    handle_ref: string;
+                    inline_preview?: string;
+                    sha256: string;
+                    size_bytes: number;
+                };
+                diagnostics_refs: string[];
+                evidence_refs: string[];
+                idempotency_key: string;
+                /** Format: date-time */
+                linked_at: string;
+                mime_type: string;
+                origin: {
+                    attachment_id: string;
+                    browser_context_id?: string;
+                    browser_target_id?: string;
+                    focusa_session_id?: string;
+                    harness_session_ref?: string;
+                    instance_id: string;
+                    silent_run_id?: string;
+                    silent_session_id?: string;
+                    uiai_session_id?: string;
+                    work_surface_id?: string;
+                };
+                render: {
+                    fallback_renderer: string;
+                    height?: number;
+                    preferred_renderer: string;
+                    width?: number;
+                };
+                retention: {
+                    cleanup_action: string;
+                    /** Format: date-time */
+                    expires_at?: string;
+                    policy: string;
+                };
+                revision: number;
+                scope: {
+                    continuity_id: string;
+                    project_identity_ref?: string;
+                    project_root: string;
+                    work_item_ref?: string;
+                    workpoint_id?: string;
+                };
+                semantic: {
+                    candidate_claim_refs: string[];
+                    candidate_link_refs: string[];
+                    candidate_object_refs: string[];
+                    citation_refs: string[];
+                    domain_pack_refs: string[];
+                    semantic_delta_refs: string[];
+                    verification_policy_refs: string[];
+                };
+                source: {
+                    /** Format: date-time */
+                    captured_at: string;
+                    source_ref: string;
+                    source_url?: string;
+                    /** @enum {unknown} */
+                    system: "uiai" | "focusa" | "local_file" | "connector" | "provider" | "operator";
+                };
+                summary: string;
+                title: string;
+                trust: {
+                    /** @enum {unknown} */
+                    evidence_status: "proposal_only" | "capture_pending" | "captured" | "linked" | "verified" | "stale" | "blocked" | "scope_mismatch";
+                    freshness_status: string;
+                    provenance_status: string;
+                    redaction_status: string;
+                };
+                /** Format: date-time */
+                updated_at: string;
+            }[];
+            /** @constant */
+            canonical_links: true;
+            /** @constant */
+            external_artifact_authority: true;
+            /** @constant */
+            schema: "focusa.workspace_artifact_list.v1";
+            state_version: number;
         };
     };
     responses: never;
@@ -4786,6 +5073,82 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_workpoint_resume_response_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.workspace.artifact.list": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List Linked Workspace Artifacts response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_workspace_artifact_list_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.workspace.artifact.intake": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_workspace_artifact_intake_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Link Workspace Artifact response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_workspace_artifact_intake_result_v1"];
                 };
             };
             /** @description Standard error envelope */

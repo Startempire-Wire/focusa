@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-07-21T00:15:21.648536+00:00",
-  "operation_count": 62,
+  "generated_at": "2026-07-21T04:30:34.598455+00:00",
+  "operation_count": 64,
   "operations": [
     {
       "alias_of": null,
@@ -1701,6 +1701,163 @@
         "default_label": "Context Cognition Curate",
         "input_presentation_ref": "focusa.generated_form.v1",
         "plain_language_description": "Context Cognition Curate",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "standard_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.workspace_artifact_list.request.v1",
+        "output_schema_ref": "focusa.workspace_artifact_list.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "workspace_artifact"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "artifact:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "workspace_artifact",
+      "label": "List Linked Workspace Artifacts",
+      "materialization_mode": "canonical_read",
+      "method": "GET",
+      "operation_id": "focusa.workspace.artifact.list",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.workspace.artifact.list",
+        "subsystem": "workspace_artifact"
+      },
+      "path": "/v1/workspace/artifacts",
+      "permissions_required": [
+        "artifact:read"
+      ],
+      "request_schema_ref": "focusa.workspace_artifact_list.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard",
+        "debug"
+      ],
+      "response_schema_ref": "focusa.workspace_artifact_list.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.workspace_artifact_list.request.v1",
+      "scope": {
+        "attachment_scoped": true,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_artifact_links",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "List Linked Workspace Artifacts",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "List Linked Workspace Artifacts",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "standard_write",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.workspace_artifact_intake.request.v1",
+        "output_schema_ref": "focusa.workspace_artifact_intake_result.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "workspace_artifact"
+        ],
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": true,
+        "permission_scopes": [
+          "artifact:write"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "workspace_artifact",
+      "label": "Link Workspace Artifact",
+      "materialization_mode": "canonical_event",
+      "method": "POST",
+      "operation_id": "focusa.workspace.artifact.intake",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.workspace.artifact.intake",
+        "subsystem": "workspace_artifact"
+      },
+      "path": "/v1/workspace/artifacts/intake",
+      "permissions_required": [
+        "artifact:write"
+      ],
+      "request_schema_ref": "focusa.workspace_artifact_intake.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": true,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard",
+        "debug"
+      ],
+      "response_schema_ref": "focusa.workspace_artifact_intake_result.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.workspace_artifact_intake.request.v1",
+      "scope": {
+        "attachment_scoped": true,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "link_artifact_descriptor",
+      "supports_side_effect_policy": [
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Link Workspace Artifact",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Link Workspace Artifact",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
       }

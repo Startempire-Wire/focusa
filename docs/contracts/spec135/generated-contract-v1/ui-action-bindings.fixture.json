@@ -1,6 +1,6 @@
 {
   "attachment_id": "example",
-  "binding_count": 62,
+  "binding_count": 64,
   "bindings": [
     {
       "action_id": "focusa.health.check",
@@ -984,6 +984,98 @@
         "required_keys": [
           "project_root",
           "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.workspace.artifact.list",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "workspace_artifact"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.workspace_artifact_list.request.v1",
+        "output_schema_ref": "focusa.workspace_artifact_list.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.workspace.artifact.list",
+      "permission_scopes": [
+        "artifact:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "List Linked Workspace Artifacts",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "List Linked Workspace Artifacts",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "attachment_id": "example",
+        "continuity_id": "example",
+        "project_root": "/example",
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.workspace.artifact.intake",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "workspace_artifact"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.workspace_artifact_intake.request.v1",
+        "output_schema_ref": "focusa.workspace_artifact_intake_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": true,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.workspace.artifact.intake",
+      "permission_scopes": [
+        "artifact:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Link Workspace Artifact",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Link Workspace Artifact",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "attachment_id": "example",
+        "continuity_id": "example",
+        "project_root": "/example",
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
         ]
       }
     },

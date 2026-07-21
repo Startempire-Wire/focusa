@@ -542,6 +542,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::context_cognition::router())
         .merge(routes::context_sources::router())
         .merge(routes::context_claims::router())
+        .merge(routes::workspace_artifacts::router())
         .merge(routes::device_pairing::router())
         .merge(routes::deck::router())
         .merge(routes::preload::router())

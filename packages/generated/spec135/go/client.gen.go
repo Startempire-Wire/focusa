@@ -1062,6 +1062,225 @@ type FocusaWorkpointLinkEvidenceResponseV1 map[string]interface{}
 // FocusaWorkpointResumeResponseV1 Generated contract for Focusa schema focusa.workpoint_resume.response.v1
 type FocusaWorkpointResumeResponseV1 map[string]interface{}
 
+// FocusaWorkspaceArtifactIntakeRequestV1 defines model for focusa_workspace_artifact_intake_request_v1.
+type FocusaWorkspaceArtifactIntakeRequestV1 struct {
+	ArtifactKind           interface{} `json:"artifact_kind"`
+	ArtifactPath           *string     `json:"artifact_path,omitempty"`
+	ArtifactUrl            *string     `json:"artifact_url,omitempty"`
+	AttachmentId           string      `json:"attachment_id"`
+	BrowserContextId       *string     `json:"browser_context_id,omitempty"`
+	BrowserTargetId        *string     `json:"browser_target_id,omitempty"`
+	CandidateClaimRefs     *[]string   `json:"candidate_claim_refs,omitempty"`
+	CandidateLinkRefs      *[]string   `json:"candidate_link_refs,omitempty"`
+	CandidateObjectRefs    *[]string   `json:"candidate_object_refs,omitempty"`
+	CapturedAt             *time.Time  `json:"captured_at,omitempty"`
+	CitationRefs           *[]string   `json:"citation_refs,omitempty"`
+	CleanupAction          string      `json:"cleanup_action"`
+	ContinuityId           string      `json:"continuity_id"`
+	DiagnosticsRefs        *[]string   `json:"diagnostics_refs,omitempty"`
+	DomainPackRefs         *[]string   `json:"domain_pack_refs,omitempty"`
+	EvidenceRefs           []string    `json:"evidence_refs"`
+	EvidenceStatus         interface{} `json:"evidence_status"`
+	ExpectedStateVersion   int         `json:"expected_state_version"`
+	ExpiresAt              *time.Time  `json:"expires_at,omitempty"`
+	FallbackRenderer       string      `json:"fallback_renderer"`
+	FocusaSessionId        *string     `json:"focusa_session_id,omitempty"`
+	FreshnessStatus        string      `json:"freshness_status"`
+	HandleRef              string      `json:"handle_ref"`
+	HarnessSessionRef      *string     `json:"harness_session_ref,omitempty"`
+	IdempotencyKey         string      `json:"idempotency_key"`
+	InlinePreview          *string     `json:"inline_preview,omitempty"`
+	InstanceId             string      `json:"instance_id"`
+	MimeType               string      `json:"mime_type"`
+	PreferredRenderer      string      `json:"preferred_renderer"`
+	ProjectIdentityRef     *string     `json:"project_identity_ref,omitempty"`
+	ProjectRoot            string      `json:"project_root"`
+	ProvenanceStatus       string      `json:"provenance_status"`
+	RedactionStatus        string      `json:"redaction_status"`
+	RenderHeight           *int        `json:"render_height,omitempty"`
+	RenderWidth            *int        `json:"render_width,omitempty"`
+	RetentionPolicy        string      `json:"retention_policy"`
+	SemanticDeltaRefs      *[]string   `json:"semantic_delta_refs,omitempty"`
+	Sha256                 string      `json:"sha256"`
+	SilentRunId            *string     `json:"silent_run_id,omitempty"`
+	SilentSessionId        *string     `json:"silent_session_id,omitempty"`
+	SizeBytes              int         `json:"size_bytes"`
+	SourceRef              string      `json:"source_ref"`
+	SourceSystem           interface{} `json:"source_system"`
+	SourceUrl              *string     `json:"source_url,omitempty"`
+	Summary                string      `json:"summary"`
+	Title                  string      `json:"title"`
+	UiaiSessionId          *string     `json:"uiai_session_id,omitempty"`
+	VerificationPolicyRefs *[]string   `json:"verification_policy_refs,omitempty"`
+	WorkItemRef            *string     `json:"work_item_ref,omitempty"`
+	WorkSurfaceId          *string     `json:"work_surface_id,omitempty"`
+	WorkpointId            *string     `json:"workpoint_id,omitempty"`
+}
+
+// FocusaWorkspaceArtifactIntakeResultV1 defines model for focusa_workspace_artifact_intake_result_v1.
+type FocusaWorkspaceArtifactIntakeResultV1 struct {
+	Artifact struct {
+		ArtifactId   string      `json:"artifact_id"`
+		ArtifactKind interface{} `json:"artifact_kind"`
+		Content      struct {
+			ArtifactPath  *string `json:"artifact_path,omitempty"`
+			ArtifactUrl   *string `json:"artifact_url,omitempty"`
+			HandleRef     string  `json:"handle_ref"`
+			InlinePreview *string `json:"inline_preview,omitempty"`
+			Sha256        string  `json:"sha256"`
+			SizeBytes     int     `json:"size_bytes"`
+		} `json:"content"`
+		DiagnosticsRefs []string  `json:"diagnostics_refs"`
+		EvidenceRefs    []string  `json:"evidence_refs"`
+		IdempotencyKey  string    `json:"idempotency_key"`
+		LinkedAt        time.Time `json:"linked_at"`
+		MimeType        string    `json:"mime_type"`
+		Origin          struct {
+			AttachmentId      string  `json:"attachment_id"`
+			BrowserContextId  *string `json:"browser_context_id,omitempty"`
+			BrowserTargetId   *string `json:"browser_target_id,omitempty"`
+			FocusaSessionId   *string `json:"focusa_session_id,omitempty"`
+			HarnessSessionRef *string `json:"harness_session_ref,omitempty"`
+			InstanceId        string  `json:"instance_id"`
+			SilentRunId       *string `json:"silent_run_id,omitempty"`
+			SilentSessionId   *string `json:"silent_session_id,omitempty"`
+			UiaiSessionId     *string `json:"uiai_session_id,omitempty"`
+			WorkSurfaceId     *string `json:"work_surface_id,omitempty"`
+		} `json:"origin"`
+		Render struct {
+			FallbackRenderer  string `json:"fallback_renderer"`
+			Height            *int   `json:"height,omitempty"`
+			PreferredRenderer string `json:"preferred_renderer"`
+			Width             *int   `json:"width,omitempty"`
+		} `json:"render"`
+		Retention struct {
+			CleanupAction string     `json:"cleanup_action"`
+			ExpiresAt     *time.Time `json:"expires_at,omitempty"`
+			Policy        string     `json:"policy"`
+		} `json:"retention"`
+		Revision int `json:"revision"`
+		Scope    struct {
+			ContinuityId       string  `json:"continuity_id"`
+			ProjectIdentityRef *string `json:"project_identity_ref,omitempty"`
+			ProjectRoot        string  `json:"project_root"`
+			WorkItemRef        *string `json:"work_item_ref,omitempty"`
+			WorkpointId        *string `json:"workpoint_id,omitempty"`
+		} `json:"scope"`
+		Semantic struct {
+			CandidateClaimRefs     []string `json:"candidate_claim_refs"`
+			CandidateLinkRefs      []string `json:"candidate_link_refs"`
+			CandidateObjectRefs    []string `json:"candidate_object_refs"`
+			CitationRefs           []string `json:"citation_refs"`
+			DomainPackRefs         []string `json:"domain_pack_refs"`
+			SemanticDeltaRefs      []string `json:"semantic_delta_refs"`
+			VerificationPolicyRefs []string `json:"verification_policy_refs"`
+		} `json:"semantic"`
+		Source struct {
+			CapturedAt time.Time   `json:"captured_at"`
+			SourceRef  string      `json:"source_ref"`
+			SourceUrl  *string     `json:"source_url,omitempty"`
+			System     interface{} `json:"system"`
+		} `json:"source"`
+		Summary string `json:"summary"`
+		Title   string `json:"title"`
+		Trust   struct {
+			EvidenceStatus   interface{} `json:"evidence_status"`
+			FreshnessStatus  string      `json:"freshness_status"`
+			ProvenanceStatus string      `json:"provenance_status"`
+			RedactionStatus  string      `json:"redaction_status"`
+		} `json:"trust"`
+		UpdatedAt time.Time `json:"updated_at"`
+	} `json:"artifact"`
+	CanonicalLink             interface{}            `json:"canonical_link"`
+	EvidenceRef               string                 `json:"evidence_ref"`
+	ExternalArtifactAuthority interface{}            `json:"external_artifact_authority"`
+	ReceiptRef                string                 `json:"receipt_ref"`
+	Replayed                  bool                   `json:"replayed"`
+	Schema                    interface{}            `json:"schema"`
+	StateVersion              int                    `json:"state_version"`
+	ToolResult                map[string]interface{} `json:"tool_result"`
+}
+
+// FocusaWorkspaceArtifactListV1 defines model for focusa_workspace_artifact_list_v1.
+type FocusaWorkspaceArtifactListV1 struct {
+	Artifacts []struct {
+		ArtifactId   string      `json:"artifact_id"`
+		ArtifactKind interface{} `json:"artifact_kind"`
+		Content      struct {
+			ArtifactPath  *string `json:"artifact_path,omitempty"`
+			ArtifactUrl   *string `json:"artifact_url,omitempty"`
+			HandleRef     string  `json:"handle_ref"`
+			InlinePreview *string `json:"inline_preview,omitempty"`
+			Sha256        string  `json:"sha256"`
+			SizeBytes     int     `json:"size_bytes"`
+		} `json:"content"`
+		DiagnosticsRefs []string  `json:"diagnostics_refs"`
+		EvidenceRefs    []string  `json:"evidence_refs"`
+		IdempotencyKey  string    `json:"idempotency_key"`
+		LinkedAt        time.Time `json:"linked_at"`
+		MimeType        string    `json:"mime_type"`
+		Origin          struct {
+			AttachmentId      string  `json:"attachment_id"`
+			BrowserContextId  *string `json:"browser_context_id,omitempty"`
+			BrowserTargetId   *string `json:"browser_target_id,omitempty"`
+			FocusaSessionId   *string `json:"focusa_session_id,omitempty"`
+			HarnessSessionRef *string `json:"harness_session_ref,omitempty"`
+			InstanceId        string  `json:"instance_id"`
+			SilentRunId       *string `json:"silent_run_id,omitempty"`
+			SilentSessionId   *string `json:"silent_session_id,omitempty"`
+			UiaiSessionId     *string `json:"uiai_session_id,omitempty"`
+			WorkSurfaceId     *string `json:"work_surface_id,omitempty"`
+		} `json:"origin"`
+		Render struct {
+			FallbackRenderer  string `json:"fallback_renderer"`
+			Height            *int   `json:"height,omitempty"`
+			PreferredRenderer string `json:"preferred_renderer"`
+			Width             *int   `json:"width,omitempty"`
+		} `json:"render"`
+		Retention struct {
+			CleanupAction string     `json:"cleanup_action"`
+			ExpiresAt     *time.Time `json:"expires_at,omitempty"`
+			Policy        string     `json:"policy"`
+		} `json:"retention"`
+		Revision int `json:"revision"`
+		Scope    struct {
+			ContinuityId       string  `json:"continuity_id"`
+			ProjectIdentityRef *string `json:"project_identity_ref,omitempty"`
+			ProjectRoot        string  `json:"project_root"`
+			WorkItemRef        *string `json:"work_item_ref,omitempty"`
+			WorkpointId        *string `json:"workpoint_id,omitempty"`
+		} `json:"scope"`
+		Semantic struct {
+			CandidateClaimRefs     []string `json:"candidate_claim_refs"`
+			CandidateLinkRefs      []string `json:"candidate_link_refs"`
+			CandidateObjectRefs    []string `json:"candidate_object_refs"`
+			CitationRefs           []string `json:"citation_refs"`
+			DomainPackRefs         []string `json:"domain_pack_refs"`
+			SemanticDeltaRefs      []string `json:"semantic_delta_refs"`
+			VerificationPolicyRefs []string `json:"verification_policy_refs"`
+		} `json:"semantic"`
+		Source struct {
+			CapturedAt time.Time   `json:"captured_at"`
+			SourceRef  string      `json:"source_ref"`
+			SourceUrl  *string     `json:"source_url,omitempty"`
+			System     interface{} `json:"system"`
+		} `json:"source"`
+		Summary string `json:"summary"`
+		Title   string `json:"title"`
+		Trust   struct {
+			EvidenceStatus   interface{} `json:"evidence_status"`
+			FreshnessStatus  string      `json:"freshness_status"`
+			ProvenanceStatus string      `json:"provenance_status"`
+			RedactionStatus  string      `json:"redaction_status"`
+		} `json:"trust"`
+		UpdatedAt time.Time `json:"updated_at"`
+	} `json:"artifacts"`
+	CanonicalLinks            interface{} `json:"canonical_links"`
+	ExternalArtifactAuthority interface{} `json:"external_artifact_authority"`
+	Schema                    interface{} `json:"schema"`
+	StateVersion              int         `json:"state_version"`
+}
+
 // FocusaProtocolHandshakeParams defines parameters for FocusaProtocolHandshake.
 type FocusaProtocolHandshakeParams struct {
 	// ProjectRoot Required Focusa scope key: project_root
@@ -1554,6 +1773,30 @@ type FocusaWorkpointResumeParams struct {
 	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
+// FocusaWorkspaceArtifactListParams defines parameters for FocusaWorkspaceArtifactList.
+type FocusaWorkspaceArtifactListParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+}
+
+// FocusaWorkspaceArtifactIntakeParams defines parameters for FocusaWorkspaceArtifactIntake.
+type FocusaWorkspaceArtifactIntakeParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+}
+
 // FocusaProtocolHandshakeJSONRequestBody defines body for FocusaProtocolHandshake for application/json ContentType.
 type FocusaProtocolHandshakeJSONRequestBody = FocusaProtocolHandshakeRequestV1
 
@@ -1661,6 +1904,9 @@ type FocusaWorkpointCheckpointJSONRequestBody = FocusaWorkpointCheckpointRequest
 
 // FocusaWorkpointLinkEvidenceJSONRequestBody defines body for FocusaWorkpointLinkEvidence for application/json ContentType.
 type FocusaWorkpointLinkEvidenceJSONRequestBody = FocusaWorkpointLinkEvidenceRequestV1
+
+// FocusaWorkspaceArtifactIntakeJSONRequestBody defines body for FocusaWorkspaceArtifactIntake for application/json ContentType.
+type FocusaWorkspaceArtifactIntakeJSONRequestBody = FocusaWorkspaceArtifactIntakeRequestV1
 
 // Getter for additional properties for FocusaAgentExecutionAdapterResultV1. Returns the specified
 // element and whether it was found
@@ -2209,6 +2455,14 @@ type ClientInterface interface {
 
 	// FocusaWorkpointResume request
 	FocusaWorkpointResume(ctx context.Context, params *FocusaWorkpointResumeParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaWorkspaceArtifactList request
+	FocusaWorkspaceArtifactList(ctx context.Context, params *FocusaWorkspaceArtifactListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaWorkspaceArtifactIntakeWithBody request with any body
+	FocusaWorkspaceArtifactIntakeWithBody(ctx context.Context, params *FocusaWorkspaceArtifactIntakeParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	FocusaWorkspaceArtifactIntake(ctx context.Context, params *FocusaWorkspaceArtifactIntakeParams, body FocusaWorkspaceArtifactIntakeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) FocusaCompatibilityLockRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -3377,6 +3631,42 @@ func (c *Client) FocusaWorkpointLinkEvidence(ctx context.Context, params *Focusa
 
 func (c *Client) FocusaWorkpointResume(ctx context.Context, params *FocusaWorkpointResumeParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewFocusaWorkpointResumeRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaWorkspaceArtifactList(ctx context.Context, params *FocusaWorkspaceArtifactListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaWorkspaceArtifactListRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaWorkspaceArtifactIntakeWithBody(ctx context.Context, params *FocusaWorkspaceArtifactIntakeParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaWorkspaceArtifactIntakeRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaWorkspaceArtifactIntake(ctx context.Context, params *FocusaWorkspaceArtifactIntakeParams, body FocusaWorkspaceArtifactIntakeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaWorkspaceArtifactIntakeRequest(c.Server, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -7251,6 +7541,151 @@ func NewFocusaWorkpointResumeRequest(server string, params *FocusaWorkpointResum
 	return req, nil
 }
 
+// NewFocusaWorkspaceArtifactListRequest generates requests for FocusaWorkspaceArtifactList
+func NewFocusaWorkspaceArtifactListRequest(server string, params *FocusaWorkspaceArtifactListParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/workspace/artifacts")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewFocusaWorkspaceArtifactIntakeRequest calls the generic FocusaWorkspaceArtifactIntake builder with application/json body
+func NewFocusaWorkspaceArtifactIntakeRequest(server string, params *FocusaWorkspaceArtifactIntakeParams, body FocusaWorkspaceArtifactIntakeJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewFocusaWorkspaceArtifactIntakeRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewFocusaWorkspaceArtifactIntakeRequestWithBody generates requests for FocusaWorkspaceArtifactIntake with any type of body
+func NewFocusaWorkspaceArtifactIntakeRequestWithBody(server string, params *FocusaWorkspaceArtifactIntakeParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/workspace/artifacts/intake")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -7551,6 +7986,14 @@ type ClientWithResponsesInterface interface {
 
 	// FocusaWorkpointResumeWithResponse request
 	FocusaWorkpointResumeWithResponse(ctx context.Context, params *FocusaWorkpointResumeParams, reqEditors ...RequestEditorFn) (*FocusaWorkpointResumeResponse, error)
+
+	// FocusaWorkspaceArtifactListWithResponse request
+	FocusaWorkspaceArtifactListWithResponse(ctx context.Context, params *FocusaWorkspaceArtifactListParams, reqEditors ...RequestEditorFn) (*FocusaWorkspaceArtifactListResponse, error)
+
+	// FocusaWorkspaceArtifactIntakeWithBodyWithResponse request with any body
+	FocusaWorkspaceArtifactIntakeWithBodyWithResponse(ctx context.Context, params *FocusaWorkspaceArtifactIntakeParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaWorkspaceArtifactIntakeResponse, error)
+
+	FocusaWorkspaceArtifactIntakeWithResponse(ctx context.Context, params *FocusaWorkspaceArtifactIntakeParams, body FocusaWorkspaceArtifactIntakeJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaWorkspaceArtifactIntakeResponse, error)
 }
 
 type FocusaCompatibilityLockReadResponse struct {
@@ -9474,6 +9917,68 @@ func (r FocusaWorkpointResumeResponse) ContentType() string {
 	return ""
 }
 
+type FocusaWorkspaceArtifactListResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaWorkspaceArtifactListV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaWorkspaceArtifactListResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaWorkspaceArtifactListResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaWorkspaceArtifactListResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaWorkspaceArtifactIntakeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaWorkspaceArtifactIntakeResultV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaWorkspaceArtifactIntakeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaWorkspaceArtifactIntakeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaWorkspaceArtifactIntakeResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // FocusaCompatibilityLockReadWithResponse request returning *FocusaCompatibilityLockReadResponse
 func (c *ClientWithResponses) FocusaCompatibilityLockReadWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*FocusaCompatibilityLockReadResponse, error) {
 	rsp, err := c.FocusaCompatibilityLockRead(ctx, reqEditors...)
@@ -10318,6 +10823,32 @@ func (c *ClientWithResponses) FocusaWorkpointResumeWithResponse(ctx context.Cont
 		return nil, err
 	}
 	return ParseFocusaWorkpointResumeResponse(rsp)
+}
+
+// FocusaWorkspaceArtifactListWithResponse request returning *FocusaWorkspaceArtifactListResponse
+func (c *ClientWithResponses) FocusaWorkspaceArtifactListWithResponse(ctx context.Context, params *FocusaWorkspaceArtifactListParams, reqEditors ...RequestEditorFn) (*FocusaWorkspaceArtifactListResponse, error) {
+	rsp, err := c.FocusaWorkspaceArtifactList(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaWorkspaceArtifactListResponse(rsp)
+}
+
+// FocusaWorkspaceArtifactIntakeWithBodyWithResponse request with arbitrary body returning *FocusaWorkspaceArtifactIntakeResponse
+func (c *ClientWithResponses) FocusaWorkspaceArtifactIntakeWithBodyWithResponse(ctx context.Context, params *FocusaWorkspaceArtifactIntakeParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaWorkspaceArtifactIntakeResponse, error) {
+	rsp, err := c.FocusaWorkspaceArtifactIntakeWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaWorkspaceArtifactIntakeResponse(rsp)
+}
+
+func (c *ClientWithResponses) FocusaWorkspaceArtifactIntakeWithResponse(ctx context.Context, params *FocusaWorkspaceArtifactIntakeParams, body FocusaWorkspaceArtifactIntakeJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaWorkspaceArtifactIntakeResponse, error) {
+	rsp, err := c.FocusaWorkspaceArtifactIntake(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaWorkspaceArtifactIntakeResponse(rsp)
 }
 
 // ParseFocusaCompatibilityLockReadResponse parses an HTTP response from a FocusaCompatibilityLockReadWithResponse call
@@ -12342,6 +12873,72 @@ func ParseFocusaWorkpointResumeResponse(rsp *http.Response) (*FocusaWorkpointRes
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest FocusaWorkpointResumeResponseV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaWorkspaceArtifactListResponse parses an HTTP response from a FocusaWorkspaceArtifactListWithResponse call
+func ParseFocusaWorkspaceArtifactListResponse(rsp *http.Response) (*FocusaWorkspaceArtifactListResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaWorkspaceArtifactListResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaWorkspaceArtifactListV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaWorkspaceArtifactIntakeResponse parses an HTTP response from a FocusaWorkspaceArtifactIntakeWithResponse call
+func ParseFocusaWorkspaceArtifactIntakeResponse(rsp *http.Response) (*FocusaWorkspaceArtifactIntakeResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaWorkspaceArtifactIntakeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaWorkspaceArtifactIntakeResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
