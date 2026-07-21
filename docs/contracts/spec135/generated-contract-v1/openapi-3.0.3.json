@@ -2417,6 +2417,422 @@
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.evidence_capture.response.v1"
       },
+      "focusa_grill_interview_context_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "active_branch_id": {
+            "type": "string"
+          },
+          "approved_role_profile_ref": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "attachment_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "completed_tranches": {
+            "items": {
+              "enum": [
+                "discovery",
+                "boundary",
+                "failure",
+                "evidence",
+                "architecture",
+                "spec_readiness"
+              ]
+            },
+            "type": "array",
+            "uniqueItems": true
+          },
+          "continuity_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "gaps": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "answer_type": {
+                  "type": "string"
+                },
+                "architecture_decision_candidates": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "contradiction_refs": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "decision_branch_id": {
+                  "type": "string"
+                },
+                "decision_required": {
+                  "type": "boolean"
+                },
+                "domain_term_candidates": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "downstream_dependency_count": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "environment_facts_checked": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "gap_id": {
+                  "type": "string"
+                },
+                "linked_context_refs": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "linked_spec_sections": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "parent_question_id": {
+                  "type": "string"
+                },
+                "priority": {
+                  "enum": [
+                    "blocker",
+                    "high",
+                    "normal",
+                    "optional"
+                  ]
+                },
+                "question": {
+                  "type": "string"
+                },
+                "readiness_effect": {
+                  "type": "string"
+                },
+                "reason_for_asking": {
+                  "type": "string"
+                },
+                "recommendation": {
+                  "type": "string"
+                },
+                "recommendation_basis_refs": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                "resolved": {
+                  "type": "boolean"
+                },
+                "stop_condition": {
+                  "type": "string"
+                },
+                "tranche": {
+                  "enum": [
+                    "discovery",
+                    "boundary",
+                    "failure",
+                    "evidence",
+                    "architecture",
+                    "spec_readiness"
+                  ]
+                },
+                "triggering_gap": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "gap_id",
+                "tranche",
+                "decision_branch_id",
+                "question",
+                "reason_for_asking",
+                "triggering_gap",
+                "recommendation",
+                "recommendation_basis_refs",
+                "environment_facts_checked",
+                "contradiction_refs",
+                "linked_context_refs",
+                "linked_spec_sections",
+                "domain_term_candidates",
+                "architecture_decision_candidates",
+                "decision_required",
+                "priority",
+                "answer_type",
+                "readiness_effect",
+                "stop_condition",
+                "downstream_dependency_count",
+                "resolved"
+              ],
+              "type": "object"
+            },
+            "maxItems": 256,
+            "type": "array"
+          },
+          "project_root": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          },
+          "session_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "attachment_id",
+          "session_id",
+          "approved_role_profile_ref",
+          "completed_tranches",
+          "gaps"
+        ],
+        "title": "focusa.grill_interview_context.v1",
+        "type": "object",
+        "x-focusa-generated-from": "GrillInterviewContext",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.grill_interview_context.v1"
+      },
+      "focusa_grill_interview_strategy_response_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "advisory_strategy": {
+            "const": true
+          },
+          "canonical_inputs_verified": {
+            "const": true
+          },
+          "interview_state_authority": {
+            "const": "Focusa Interview Engine"
+          },
+          "result": {
+            "additionalProperties": false,
+            "properties": {
+              "all_core_tranches_accounted_for": {
+                "const": true
+              },
+              "one_question_only": {
+                "const": true
+              },
+              "proposal": {
+                "additionalProperties": false,
+                "properties": {
+                  "answer_type": {
+                    "type": "string"
+                  },
+                  "architecture_decision_candidates": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "type": "array"
+                  },
+                  "branch_progress": {
+                    "type": "string"
+                  },
+                  "contradiction_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "type": "array"
+                  },
+                  "decision_branch_id": {
+                    "type": "string"
+                  },
+                  "decision_required": {
+                    "type": "boolean"
+                  },
+                  "domain_term_candidates": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "type": "array"
+                  },
+                  "environment_facts_checked": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "type": "array"
+                  },
+                  "linked_context_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "type": "array"
+                  },
+                  "linked_spec_sections": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "type": "array"
+                  },
+                  "operator_answer_is_authoritative": {
+                    "const": true
+                  },
+                  "parent_question_id": {
+                    "type": "string"
+                  },
+                  "priority": {
+                    "enum": [
+                      "blocker",
+                      "high",
+                      "normal",
+                      "optional"
+                    ]
+                  },
+                  "question": {
+                    "type": "string"
+                  },
+                  "readiness_effect": {
+                    "type": "string"
+                  },
+                  "reason_for_asking": {
+                    "type": "string"
+                  },
+                  "recommendation": {
+                    "type": "string"
+                  },
+                  "recommendation_basis_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "type": "array"
+                  },
+                  "schema": {
+                    "const": "focusa.interview_next_question_proposal.v1"
+                  },
+                  "session_id": {
+                    "type": "string"
+                  },
+                  "stop_condition": {
+                    "type": "string"
+                  },
+                  "strategy_id": {
+                    "const": "focusa.interview.strategy.grill-with-docs.v1"
+                  },
+                  "strategy_version": {
+                    "const": 1
+                  },
+                  "tranche": {
+                    "enum": [
+                      "discovery",
+                      "boundary",
+                      "failure",
+                      "evidence",
+                      "architecture",
+                      "spec_readiness"
+                    ]
+                  },
+                  "triggering_gap": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "schema",
+                  "strategy_id",
+                  "strategy_version",
+                  "session_id",
+                  "tranche",
+                  "decision_branch_id",
+                  "question",
+                  "reason_for_asking",
+                  "triggering_gap",
+                  "recommendation",
+                  "recommendation_basis_refs",
+                  "environment_facts_checked",
+                  "contradiction_refs",
+                  "linked_context_refs",
+                  "linked_spec_sections",
+                  "domain_term_candidates",
+                  "architecture_decision_candidates",
+                  "decision_required",
+                  "priority",
+                  "answer_type",
+                  "readiness_effect",
+                  "stop_condition",
+                  "branch_progress",
+                  "operator_answer_is_authoritative"
+                ],
+                "type": "object"
+              },
+              "ready_for_spec": {
+                "type": "boolean"
+              },
+              "retrieval_performed_before_question": {
+                "const": true
+              },
+              "schema": {
+                "const": "focusa.grill_interview_strategy_result.v1"
+              },
+              "strategy_id": {
+                "const": "focusa.interview.strategy.grill-with-docs.v1"
+              },
+              "strategy_version": {
+                "const": 1
+              }
+            },
+            "required": [
+              "schema",
+              "strategy_id",
+              "strategy_version",
+              "retrieval_performed_before_question",
+              "one_question_only",
+              "all_core_tranches_accounted_for",
+              "ready_for_spec"
+            ],
+            "type": "object"
+          },
+          "schema": {
+            "const": "focusa.grill_interview_strategy_response.v1"
+          },
+          "tool_result": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "schema",
+          "advisory_strategy",
+          "canonical_inputs_verified",
+          "interview_state_authority",
+          "result",
+          "tool_result"
+        ],
+        "title": "focusa.grill_interview_strategy_response.v1",
+        "type": "object",
+        "x-focusa-generated-from": "GrillInterviewStrategyResponse",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.grill_interview_strategy_response.v1"
+      },
       "focusa_health_request_v1": {
         "additionalProperties": true,
         "description": "Generated contract for Focusa schema focusa.health.request.v1",
@@ -8714,6 +9130,113 @@
         "x-focusa-scope-keys": [],
         "x-focusa-sensitive": "routine",
         "x-focusa-subsystem": "health"
+      }
+    },
+    "/v1/interview/strategy/grill-with-docs/next-question": {
+      "post": {
+        "description": "Propose Next Retrieval-Grounded Grill Question \u2014 family=interview_strategy budget=standard_read materialization=advisory_projection",
+        "operationId": "focusa.interview.strategy.grill_with_docs.next_question",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_grill_interview_context_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_grill_interview_strategy_response_v1"
+                }
+              }
+            },
+            "description": "Propose Next Retrieval-Grounded Grill Question response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Propose Next Retrieval-Grounded Grill Question",
+        "tags": [
+          "interview_strategy"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "interview_strategy",
+          "materialization_mode": "advisory_projection",
+          "requires_preview_token": false,
+          "side_effect_profile": "propose_one_interview_question",
+          "supports_side_effect_policy": [
+            "preview"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "interview_strategy"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.interview.strategy.grill_with_docs.next_question",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "interview:read"
+        ],
+        "x-focusa-plain-label": "Propose Next Retrieval-Grounded Grill Question",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "interview_strategy"
       }
     },
     "/v1/license/validate": {

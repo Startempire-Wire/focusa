@@ -484,6 +484,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/interview/strategy/grill-with-docs/next-question": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Propose Next Retrieval-Grounded Grill Question
+         * @description Propose Next Retrieval-Grounded Grill Question — family=interview_strategy budget=standard_read materialization=advisory_projection
+         */
+        post: operations["focusa.interview.strategy.grill_with_docs.next_question"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/license/validate": {
         parameters: {
             query?: never;
@@ -2054,6 +2074,102 @@ export interface components {
          */
         focusa_evidence_capture_response_v1: {
             [key: string]: unknown;
+        };
+        /** focusa.grill_interview_context.v1 */
+        focusa_grill_interview_context_v1: {
+            active_branch_id?: string;
+            approved_role_profile_ref: string;
+            attachment_id: string;
+            completed_tranches: ("discovery" | "boundary" | "failure" | "evidence" | "architecture" | "spec_readiness")[];
+            continuity_id: string;
+            gaps: {
+                answer_type: string;
+                architecture_decision_candidates: string[];
+                contradiction_refs: string[];
+                decision_branch_id: string;
+                decision_required: boolean;
+                domain_term_candidates: string[];
+                downstream_dependency_count: number;
+                environment_facts_checked: string[];
+                gap_id: string;
+                linked_context_refs: string[];
+                linked_spec_sections: string[];
+                parent_question_id?: string;
+                /** @enum {unknown} */
+                priority: "blocker" | "high" | "normal" | "optional";
+                question: string;
+                readiness_effect: string;
+                reason_for_asking: string;
+                recommendation: string;
+                recommendation_basis_refs: string[];
+                resolved: boolean;
+                stop_condition: string;
+                /** @enum {unknown} */
+                tranche: "discovery" | "boundary" | "failure" | "evidence" | "architecture" | "spec_readiness";
+                triggering_gap: string;
+            }[];
+            project_root: string;
+            session_id: string;
+        };
+        /** focusa.grill_interview_strategy_response.v1 */
+        focusa_grill_interview_strategy_response_v1: {
+            /** @constant */
+            advisory_strategy: true;
+            /** @constant */
+            canonical_inputs_verified: true;
+            /** @constant */
+            interview_state_authority: "Focusa Interview Engine";
+            result: {
+                /** @constant */
+                all_core_tranches_accounted_for: true;
+                /** @constant */
+                one_question_only: true;
+                proposal?: {
+                    answer_type: string;
+                    architecture_decision_candidates: string[];
+                    branch_progress: string;
+                    contradiction_refs: string[];
+                    decision_branch_id: string;
+                    decision_required: boolean;
+                    domain_term_candidates: string[];
+                    environment_facts_checked: string[];
+                    linked_context_refs: string[];
+                    linked_spec_sections: string[];
+                    /** @constant */
+                    operator_answer_is_authoritative: true;
+                    parent_question_id?: string;
+                    /** @enum {unknown} */
+                    priority: "blocker" | "high" | "normal" | "optional";
+                    question: string;
+                    readiness_effect: string;
+                    reason_for_asking: string;
+                    recommendation: string;
+                    recommendation_basis_refs: string[];
+                    /** @constant */
+                    schema: "focusa.interview_next_question_proposal.v1";
+                    session_id: string;
+                    stop_condition: string;
+                    /** @constant */
+                    strategy_id: "focusa.interview.strategy.grill-with-docs.v1";
+                    /** @constant */
+                    strategy_version: 1;
+                    /** @enum {unknown} */
+                    tranche: "discovery" | "boundary" | "failure" | "evidence" | "architecture" | "spec_readiness";
+                    triggering_gap: string;
+                };
+                ready_for_spec: boolean;
+                /** @constant */
+                retrieval_performed_before_question: true;
+                /** @constant */
+                schema: "focusa.grill_interview_strategy_result.v1";
+                /** @constant */
+                strategy_id: "focusa.interview.strategy.grill-with-docs.v1";
+                /** @constant */
+                strategy_version: 1;
+            };
+            /** @constant */
+            schema: "focusa.grill_interview_strategy_response.v1";
+            tool_result: Record<string, never>;
         };
         /**
          * focusa.health.request.v1
@@ -4144,6 +4260,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_health_response_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.interview.strategy.grill_with_docs.next_question": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_grill_interview_context_v1"];
+            };
+        };
+        responses: {
+            /** @description Propose Next Retrieval-Grounded Grill Question response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_grill_interview_strategy_response_v1"];
                 };
             };
             /** @description Standard error envelope */

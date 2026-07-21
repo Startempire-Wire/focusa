@@ -813,6 +813,86 @@ type FocusaEvidenceCaptureRequestV1 map[string]interface{}
 // FocusaEvidenceCaptureResponseV1 Generated contract for Focusa schema focusa.evidence_capture.response.v1
 type FocusaEvidenceCaptureResponseV1 map[string]interface{}
 
+// FocusaGrillInterviewContextV1 defines model for focusa_grill_interview_context_v1.
+type FocusaGrillInterviewContextV1 struct {
+	ActiveBranchId         *string       `json:"active_branch_id,omitempty"`
+	ApprovedRoleProfileRef string        `json:"approved_role_profile_ref"`
+	AttachmentId           string        `json:"attachment_id"`
+	CompletedTranches      []interface{} `json:"completed_tranches"`
+	ContinuityId           string        `json:"continuity_id"`
+	Gaps                   []struct {
+		AnswerType                     string      `json:"answer_type"`
+		ArchitectureDecisionCandidates []string    `json:"architecture_decision_candidates"`
+		ContradictionRefs              []string    `json:"contradiction_refs"`
+		DecisionBranchId               string      `json:"decision_branch_id"`
+		DecisionRequired               bool        `json:"decision_required"`
+		DomainTermCandidates           []string    `json:"domain_term_candidates"`
+		DownstreamDependencyCount      int         `json:"downstream_dependency_count"`
+		EnvironmentFactsChecked        []string    `json:"environment_facts_checked"`
+		GapId                          string      `json:"gap_id"`
+		LinkedContextRefs              []string    `json:"linked_context_refs"`
+		LinkedSpecSections             []string    `json:"linked_spec_sections"`
+		ParentQuestionId               *string     `json:"parent_question_id,omitempty"`
+		Priority                       interface{} `json:"priority"`
+		Question                       string      `json:"question"`
+		ReadinessEffect                string      `json:"readiness_effect"`
+		ReasonForAsking                string      `json:"reason_for_asking"`
+		Recommendation                 string      `json:"recommendation"`
+		RecommendationBasisRefs        []string    `json:"recommendation_basis_refs"`
+		Resolved                       bool        `json:"resolved"`
+		StopCondition                  string      `json:"stop_condition"`
+		Tranche                        interface{} `json:"tranche"`
+		TriggeringGap                  string      `json:"triggering_gap"`
+	} `json:"gaps"`
+	ProjectRoot string `json:"project_root"`
+	SessionId   string `json:"session_id"`
+}
+
+// FocusaGrillInterviewStrategyResponseV1 defines model for focusa_grill_interview_strategy_response_v1.
+type FocusaGrillInterviewStrategyResponseV1 struct {
+	AdvisoryStrategy        interface{} `json:"advisory_strategy"`
+	CanonicalInputsVerified interface{} `json:"canonical_inputs_verified"`
+	InterviewStateAuthority interface{} `json:"interview_state_authority"`
+	Result                  struct {
+		AllCoreTranchesAccountedFor interface{} `json:"all_core_tranches_accounted_for"`
+		OneQuestionOnly             interface{} `json:"one_question_only"`
+		Proposal                    *struct {
+			AnswerType                     string      `json:"answer_type"`
+			ArchitectureDecisionCandidates []string    `json:"architecture_decision_candidates"`
+			BranchProgress                 string      `json:"branch_progress"`
+			ContradictionRefs              []string    `json:"contradiction_refs"`
+			DecisionBranchId               string      `json:"decision_branch_id"`
+			DecisionRequired               bool        `json:"decision_required"`
+			DomainTermCandidates           []string    `json:"domain_term_candidates"`
+			EnvironmentFactsChecked        []string    `json:"environment_facts_checked"`
+			LinkedContextRefs              []string    `json:"linked_context_refs"`
+			LinkedSpecSections             []string    `json:"linked_spec_sections"`
+			OperatorAnswerIsAuthoritative  interface{} `json:"operator_answer_is_authoritative"`
+			ParentQuestionId               *string     `json:"parent_question_id,omitempty"`
+			Priority                       interface{} `json:"priority"`
+			Question                       string      `json:"question"`
+			ReadinessEffect                string      `json:"readiness_effect"`
+			ReasonForAsking                string      `json:"reason_for_asking"`
+			Recommendation                 string      `json:"recommendation"`
+			RecommendationBasisRefs        []string    `json:"recommendation_basis_refs"`
+			Schema                         interface{} `json:"schema"`
+			SessionId                      string      `json:"session_id"`
+			StopCondition                  string      `json:"stop_condition"`
+			StrategyId                     interface{} `json:"strategy_id"`
+			StrategyVersion                interface{} `json:"strategy_version"`
+			Tranche                        interface{} `json:"tranche"`
+			TriggeringGap                  string      `json:"triggering_gap"`
+		} `json:"proposal,omitempty"`
+		ReadyForSpec                     bool        `json:"ready_for_spec"`
+		RetrievalPerformedBeforeQuestion interface{} `json:"retrieval_performed_before_question"`
+		Schema                           interface{} `json:"schema"`
+		StrategyId                       interface{} `json:"strategy_id"`
+		StrategyVersion                  interface{} `json:"strategy_version"`
+	} `json:"result"`
+	Schema     interface{}            `json:"schema"`
+	ToolResult map[string]interface{} `json:"tool_result"`
+}
+
 // FocusaHealthResponseV1 Generated contract for Focusa schema focusa.health.response.v1
 type FocusaHealthResponseV1 map[string]interface{}
 
@@ -1785,6 +1865,18 @@ type FocusaEvidenceCaptureParams struct {
 	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
+// FocusaInterviewStrategyGrillWithDocsNextQuestionParams defines parameters for FocusaInterviewStrategyGrillWithDocsNextQuestion.
+type FocusaInterviewStrategyGrillWithDocsNextQuestionParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+}
+
 // FocusaLineageHeadParams defines parameters for FocusaLineageHead.
 type FocusaLineageHeadParams struct {
 	// ProjectRoot Required Focusa scope key: project_root
@@ -2186,6 +2278,9 @@ type FocusaDevicePairStartJSONRequestBody = FocusaDevicePairStartRequestV1
 
 // FocusaEvidenceCaptureJSONRequestBody defines body for FocusaEvidenceCapture for application/json ContentType.
 type FocusaEvidenceCaptureJSONRequestBody = FocusaEvidenceCaptureRequestV1
+
+// FocusaInterviewStrategyGrillWithDocsNextQuestionJSONRequestBody defines body for FocusaInterviewStrategyGrillWithDocsNextQuestion for application/json ContentType.
+type FocusaInterviewStrategyGrillWithDocsNextQuestionJSONRequestBody = FocusaGrillInterviewContextV1
 
 // FocusaLicenseValidateJSONRequestBody defines body for FocusaLicenseValidate for application/json ContentType.
 type FocusaLicenseValidateJSONRequestBody = FocusaLicenseValidateRequestV1
@@ -2654,6 +2749,11 @@ type ClientInterface interface {
 
 	// FocusaHealthCheck request
 	FocusaHealthCheck(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaInterviewStrategyGrillWithDocsNextQuestionWithBody request with any body
+	FocusaInterviewStrategyGrillWithDocsNextQuestionWithBody(ctx context.Context, params *FocusaInterviewStrategyGrillWithDocsNextQuestionParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	FocusaInterviewStrategyGrillWithDocsNextQuestion(ctx context.Context, params *FocusaInterviewStrategyGrillWithDocsNextQuestionParams, body FocusaInterviewStrategyGrillWithDocsNextQuestionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// FocusaLicenseValidateWithBody request with any body
 	FocusaLicenseValidateWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3251,6 +3351,30 @@ func (c *Client) FocusaEvidenceCapture(ctx context.Context, params *FocusaEviden
 
 func (c *Client) FocusaHealthCheck(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewFocusaHealthCheckRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaInterviewStrategyGrillWithDocsNextQuestionWithBody(ctx context.Context, params *FocusaInterviewStrategyGrillWithDocsNextQuestionParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaInterviewStrategyGrillWithDocsNextQuestionRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaInterviewStrategyGrillWithDocsNextQuestion(ctx context.Context, params *FocusaInterviewStrategyGrillWithDocsNextQuestionParams, body FocusaInterviewStrategyGrillWithDocsNextQuestionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaInterviewStrategyGrillWithDocsNextQuestionRequest(c.Server, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -5599,6 +5723,85 @@ func NewFocusaHealthCheckRequest(server string) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewFocusaInterviewStrategyGrillWithDocsNextQuestionRequest calls the generic FocusaInterviewStrategyGrillWithDocsNextQuestion builder with application/json body
+func NewFocusaInterviewStrategyGrillWithDocsNextQuestionRequest(server string, params *FocusaInterviewStrategyGrillWithDocsNextQuestionParams, body FocusaInterviewStrategyGrillWithDocsNextQuestionJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewFocusaInterviewStrategyGrillWithDocsNextQuestionRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewFocusaInterviewStrategyGrillWithDocsNextQuestionRequestWithBody generates requests for FocusaInterviewStrategyGrillWithDocsNextQuestion with any type of body
+func NewFocusaInterviewStrategyGrillWithDocsNextQuestionRequestWithBody(server string, params *FocusaInterviewStrategyGrillWithDocsNextQuestionParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/interview/strategy/grill-with-docs/next-question")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -8543,6 +8746,11 @@ type ClientWithResponsesInterface interface {
 	// FocusaHealthCheckWithResponse request
 	FocusaHealthCheckWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*FocusaHealthCheckResponse, error)
 
+	// FocusaInterviewStrategyGrillWithDocsNextQuestionWithBodyWithResponse request with any body
+	FocusaInterviewStrategyGrillWithDocsNextQuestionWithBodyWithResponse(ctx context.Context, params *FocusaInterviewStrategyGrillWithDocsNextQuestionParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaInterviewStrategyGrillWithDocsNextQuestionResponse, error)
+
+	FocusaInterviewStrategyGrillWithDocsNextQuestionWithResponse(ctx context.Context, params *FocusaInterviewStrategyGrillWithDocsNextQuestionParams, body FocusaInterviewStrategyGrillWithDocsNextQuestionJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaInterviewStrategyGrillWithDocsNextQuestionResponse, error)
+
 	// FocusaLicenseValidateWithBodyWithResponse request with any body
 	FocusaLicenseValidateWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaLicenseValidateResponse, error)
 
@@ -9466,6 +9674,37 @@ func (r FocusaHealthCheckResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r FocusaHealthCheckResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaInterviewStrategyGrillWithDocsNextQuestionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaGrillInterviewStrategyResponseV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaInterviewStrategyGrillWithDocsNextQuestionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaInterviewStrategyGrillWithDocsNextQuestionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaInterviewStrategyGrillWithDocsNextQuestionResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -11109,6 +11348,23 @@ func (c *ClientWithResponses) FocusaHealthCheckWithResponse(ctx context.Context,
 	return ParseFocusaHealthCheckResponse(rsp)
 }
 
+// FocusaInterviewStrategyGrillWithDocsNextQuestionWithBodyWithResponse request with arbitrary body returning *FocusaInterviewStrategyGrillWithDocsNextQuestionResponse
+func (c *ClientWithResponses) FocusaInterviewStrategyGrillWithDocsNextQuestionWithBodyWithResponse(ctx context.Context, params *FocusaInterviewStrategyGrillWithDocsNextQuestionParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaInterviewStrategyGrillWithDocsNextQuestionResponse, error) {
+	rsp, err := c.FocusaInterviewStrategyGrillWithDocsNextQuestionWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaInterviewStrategyGrillWithDocsNextQuestionResponse(rsp)
+}
+
+func (c *ClientWithResponses) FocusaInterviewStrategyGrillWithDocsNextQuestionWithResponse(ctx context.Context, params *FocusaInterviewStrategyGrillWithDocsNextQuestionParams, body FocusaInterviewStrategyGrillWithDocsNextQuestionJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaInterviewStrategyGrillWithDocsNextQuestionResponse, error) {
+	rsp, err := c.FocusaInterviewStrategyGrillWithDocsNextQuestion(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaInterviewStrategyGrillWithDocsNextQuestionResponse(rsp)
+}
+
 // FocusaLicenseValidateWithBodyWithResponse request with arbitrary body returning *FocusaLicenseValidateResponse
 func (c *ClientWithResponses) FocusaLicenseValidateWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaLicenseValidateResponse, error) {
 	rsp, err := c.FocusaLicenseValidateWithBody(ctx, contentType, body, reqEditors...)
@@ -12488,6 +12744,39 @@ func ParseFocusaHealthCheckResponse(rsp *http.Response) (*FocusaHealthCheckRespo
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest FocusaHealthResponseV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaInterviewStrategyGrillWithDocsNextQuestionResponse parses an HTTP response from a FocusaInterviewStrategyGrillWithDocsNextQuestionWithResponse call
+func ParseFocusaInterviewStrategyGrillWithDocsNextQuestionResponse(rsp *http.Response) (*FocusaInterviewStrategyGrillWithDocsNextQuestionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaInterviewStrategyGrillWithDocsNextQuestionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaGrillInterviewStrategyResponseV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

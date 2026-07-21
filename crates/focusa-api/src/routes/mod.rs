@@ -36,6 +36,7 @@ pub mod gate;
 pub mod health;
 pub mod info;
 pub mod instances;
+pub mod interview_strategy;
 pub mod llms_txt;
 pub mod mcp;
 pub mod memory;

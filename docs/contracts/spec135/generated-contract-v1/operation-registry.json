@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-07-21T08:42:52.198622+00:00",
-  "operation_count": 67,
+  "generated_at": "2026-07-21T15:03:33.694449+00:00",
+  "operation_count": 68,
   "operations": [
     {
       "alias_of": null,
@@ -2095,6 +2095,84 @@
         "plain_language_description": "Approve, Reject, or Defer Project Role Profile",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "consequential"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "standard_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.grill_interview_context.v1",
+        "output_schema_ref": "focusa.grill_interview_strategy_response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "interview_strategy"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "interview:read"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/135h-cross-functional-alpha-grill-interview-and-implementation-acceleration-spec.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "interview_strategy",
+      "label": "Propose Next Retrieval-Grounded Grill Question",
+      "materialization_mode": "advisory_projection",
+      "method": "POST",
+      "operation_id": "focusa.interview.strategy.grill_with_docs.next_question",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.interview.strategy.grill_with_docs.next_question",
+        "subsystem": "interview_strategy"
+      },
+      "path": "/v1/interview/strategy/grill-with-docs/next-question",
+      "permissions_required": [
+        "interview:read"
+      ],
+      "request_schema_ref": "focusa.grill_interview_context.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard",
+        "debug"
+      ],
+      "response_schema_ref": "focusa.grill_interview_strategy_response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.grill_interview_context.v1",
+      "scope": {
+        "attachment_scoped": true,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "propose_one_interview_question",
+      "supports_side_effect_policy": [
+        "preview"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Propose Next Retrieval-Grounded Grill Question",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Propose Next Retrieval-Grounded Grill Question",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
       }
     },
     {

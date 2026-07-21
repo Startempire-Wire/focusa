@@ -58,3 +58,9 @@ original seed preservation, exact Context grounding, exposed assumptions,
 responsibility/non-responsibility and permission separation, append-only
 redlines, explicit approve/reject/defer review, restart-safe revision history,
 generated clients/UI, and desktop/mobile UIAI Eval evidence.
+
+`spec135-ri2-interview-strategy-proof.json` proves the reusable advisory
+Grill-with-Docs strategy: canonical Context and approved Role verification,
+fact-before-question, all six core tranches, one-question presentation,
+dependency-branch traversal, cited recommendations, explicit stop conditions,
+restart determinism, generated clients/UI, and desktop/mobile UIAI Eval.

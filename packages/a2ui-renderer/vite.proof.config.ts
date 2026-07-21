@@ -17,6 +17,7 @@ export default defineConfig({
         workspaceArtifact: resolve(import.meta.dirname, "proof/workspace-artifact.html"),
         workspaceLiveRefresh: resolve(import.meta.dirname, "proof/workspace-live-refresh.html"),
         roleProfile: resolve(import.meta.dirname, "proof/role-profile.html"),
+        interviewStrategy: resolve(import.meta.dirname, "proof/interview-strategy.html"),
       },
     },
   },

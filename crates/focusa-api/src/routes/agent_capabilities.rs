@@ -206,6 +206,7 @@ fn op(
             | "work_loop"
             | "workspace_artifact"
             | "project_role_profile"
+            | "interview_strategy"
     ) || matches!(
         id,
         "focusa.ui_action_bindings.read"
@@ -215,7 +216,7 @@ fn op(
     let attachment_scoped = id.contains("attachment")
         || matches!(
             family,
-            "context" | "workspace_artifact" | "project_role_profile"
+            "context" | "workspace_artifact" | "project_role_profile" | "interview_strategy"
         );
     let mut required_keys = Vec::new();
     if project_scoped {
@@ -938,6 +939,29 @@ fn build_operations() -> Vec<OperationEntry> {
             "focusa.project_agent_role_profile_review.request.v1",
             "focusa.project_agent_role_profile_mutation_result.v1",
             "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+            None,
+        ),
+        op(
+            "focusa.interview.strategy.grill_with_docs.next_question",
+            "Propose Next Retrieval-Grounded Grill Question",
+            "interview_strategy",
+            "POST",
+            "/v1/interview/strategy/grill-with-docs/next-question",
+            true,
+            None,
+            "propose_one_interview_question",
+            "advisory_projection",
+            vec!["preview"],
+            false,
+            false,
+            false,
+            vec!["interview:read"],
+            false,
+            "standard_read",
+            vec!["compact", "standard", "debug"],
+            "focusa.grill_interview_context.v1",
+            "focusa.grill_interview_strategy_response.v1",
+            "docs/135h-cross-functional-alpha-grill-interview-and-implementation-acceleration-spec.md",
             None,
         ),
         // ── canonical Context corpus ─────────────────────────────────────────
@@ -2413,6 +2437,72 @@ fn workspace_artifact_schema() -> Value {
     })
 }
 
+fn interview_gap_schema() -> Value {
+    let strings = || json!({"type": "array", "maxItems": 64, "items": {"type": "string"}});
+    json!({
+        "type": "object", "additionalProperties": false,
+        "required": ["gap_id", "tranche", "decision_branch_id", "question", "reason_for_asking", "triggering_gap", "recommendation", "recommendation_basis_refs", "environment_facts_checked", "contradiction_refs", "linked_context_refs", "linked_spec_sections", "domain_term_candidates", "architecture_decision_candidates", "decision_required", "priority", "answer_type", "readiness_effect", "stop_condition", "downstream_dependency_count", "resolved"],
+        "properties": {
+            "gap_id": {"type": "string"}, "tranche": {"enum": ["discovery", "boundary", "failure", "evidence", "architecture", "spec_readiness"]}, "decision_branch_id": {"type": "string"}, "parent_question_id": {"type": "string"},
+            "question": {"type": "string"}, "reason_for_asking": {"type": "string"}, "triggering_gap": {"type": "string"}, "recommendation": {"type": "string"},
+            "recommendation_basis_refs": strings(), "environment_facts_checked": strings(), "contradiction_refs": strings(), "linked_context_refs": strings(), "linked_spec_sections": strings(), "domain_term_candidates": strings(), "architecture_decision_candidates": strings(),
+            "decision_required": {"type": "boolean"}, "priority": {"enum": ["blocker", "high", "normal", "optional"]}, "answer_type": {"type": "string"}, "readiness_effect": {"type": "string"}, "stop_condition": {"type": "string"}, "downstream_dependency_count": {"type": "integer", "minimum": 0}, "resolved": {"type": "boolean"}
+        }
+    })
+}
+
+fn interview_proposal_schema() -> Value {
+    let mut schema = interview_gap_schema();
+    let properties = schema["properties"]
+        .as_object_mut()
+        .expect("gap properties");
+    properties.remove("gap_id");
+    properties.remove("downstream_dependency_count");
+    properties.remove("resolved");
+    properties.insert(
+        "schema".into(),
+        json!({"const": "focusa.interview_next_question_proposal.v1"}),
+    );
+    properties.insert(
+        "strategy_id".into(),
+        json!({"const": "focusa.interview.strategy.grill-with-docs.v1"}),
+    );
+    properties.insert("strategy_version".into(), json!({"const": 1}));
+    properties.insert("session_id".into(), json!({"type": "string"}));
+    properties.insert("branch_progress".into(), json!({"type": "string"}));
+    properties.insert(
+        "operator_answer_is_authoritative".into(),
+        json!({"const": true}),
+    );
+    schema["required"] = json!([
+        "schema",
+        "strategy_id",
+        "strategy_version",
+        "session_id",
+        "tranche",
+        "decision_branch_id",
+        "question",
+        "reason_for_asking",
+        "triggering_gap",
+        "recommendation",
+        "recommendation_basis_refs",
+        "environment_facts_checked",
+        "contradiction_refs",
+        "linked_context_refs",
+        "linked_spec_sections",
+        "domain_term_candidates",
+        "architecture_decision_candidates",
+        "decision_required",
+        "priority",
+        "answer_type",
+        "readiness_effect",
+        "stop_condition",
+        "branch_progress",
+        "operator_answer_is_authoritative"
+    ]);
+    schema
+}
+
 fn project_role_profile_schema() -> Value {
     let string_array = || json!({"type": "array", "maxItems": 64, "items": {"type": "string"}});
     json!({
@@ -2740,6 +2830,37 @@ fn json_schema_document(schema_id: &str) -> Value {
             },
             "x-focusa-schema-id": schema_id,
             "x-focusa-generated-from": "ContextRetrieveResponse"
+        });
+    }
+    if schema_id == "focusa.grill_interview_context.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false,
+            "required": ["project_root", "continuity_id", "attachment_id", "session_id", "approved_role_profile_ref", "completed_tranches", "gaps"],
+            "properties": {
+                "project_root": {"type": "string", "minLength": 1, "maxLength": 4096}, "continuity_id": {"type": "string", "minLength": 1, "maxLength": 256}, "attachment_id": {"type": "string", "minLength": 1, "maxLength": 256}, "session_id": {"type": "string", "minLength": 1, "maxLength": 256},
+                "approved_role_profile_ref": {"type": "string", "minLength": 1}, "active_branch_id": {"type": "string"},
+                "completed_tranches": {"type": "array", "uniqueItems": true, "items": {"enum": ["discovery", "boundary", "failure", "evidence", "architecture", "spec_readiness"]}},
+                "gaps": {"type": "array", "maxItems": 256, "items": interview_gap_schema()}
+            },
+            "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "GrillInterviewContext"
+        });
+    }
+    if schema_id == "focusa.grill_interview_strategy_response.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false,
+            "required": ["schema", "advisory_strategy", "canonical_inputs_verified", "interview_state_authority", "result", "tool_result"],
+            "properties": {
+                "schema": {"const": "focusa.grill_interview_strategy_response.v1"}, "advisory_strategy": {"const": true}, "canonical_inputs_verified": {"const": true}, "interview_state_authority": {"const": "Focusa Interview Engine"},
+                "result": {
+                    "type": "object", "additionalProperties": false,
+                    "required": ["schema", "strategy_id", "strategy_version", "retrieval_performed_before_question", "one_question_only", "all_core_tranches_accounted_for", "ready_for_spec"],
+                    "properties": {"schema": {"const": "focusa.grill_interview_strategy_result.v1"}, "strategy_id": {"const": "focusa.interview.strategy.grill-with-docs.v1"}, "strategy_version": {"const": 1}, "retrieval_performed_before_question": {"const": true}, "one_question_only": {"const": true}, "all_core_tranches_accounted_for": {"const": true}, "ready_for_spec": {"type": "boolean"}, "proposal": interview_proposal_schema()}
+                },
+                "tool_result": {"type": "object"}
+            },
+            "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "GrillInterviewStrategyResponse"
         });
     }
     if schema_id == "focusa.project_agent_role_profile_list.request.v1" {
