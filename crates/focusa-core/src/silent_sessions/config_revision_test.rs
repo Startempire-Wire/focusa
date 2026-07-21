@@ -108,4 +108,13 @@ fn immutable_changes_and_ungated_revisions_never_persist() {
         Err(ConfigRevisionError::GateRequired)
     ));
     assert!(backend.calls.is_empty());
+
+    let mut bounded = requested();
+    bounded.resources.max_memory_bytes = Some(1024);
+    let mut loosened = bounded.clone();
+    loosened.resources.max_memory_bytes = Some(2048);
+    assert!(matches!(
+        preview_config_revision(bounded, loosened, Vec::new()),
+        Err(ConfigRevisionError::ResourceLimitLoosened(_))
+    ));
 }

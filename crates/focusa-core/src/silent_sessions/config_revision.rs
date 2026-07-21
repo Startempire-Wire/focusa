@@ -58,6 +58,8 @@ pub enum ConfigRevisionError {
     ImmutableMutation(String),
     #[error("context authority or operator approval is required")]
     GateRequired,
+    #[error("resource limits may only be tightened while running: {0}")]
+    ResourceLimitLoosened(String),
     #[error("revision persistence failed before apply: {0}")]
     Persistence(String),
     #[error("revision rollback failed after {failure}: {rollback}")]
@@ -95,14 +97,21 @@ pub fn preview_config_revision(
     let mut immutable_fields = Vec::new();
     for path in paths {
         let class = mutation_class(&path);
+        let before_value = value_at(&before, &path).cloned().unwrap_or(Value::Null);
+        let after_value = value_at(&after, &path).cloned().unwrap_or(Value::Null);
+        if path.starts_with("resources.max_")
+            && !resource_limit_is_tightened(&before_value, &after_value)
+        {
+            return Err(ConfigRevisionError::ResourceLimitLoosened(path));
+        }
         match class {
             ConfigMutationClass::HotMutable => hot_fields.push(path.clone()),
             ConfigMutationClass::RestartRequired => restart_required_fields.push(path.clone()),
             ConfigMutationClass::Immutable => immutable_fields.push(path.clone()),
         }
         effective_diff.push(ConfigFieldDiff {
-            before: value_at(&before, &path).cloned().unwrap_or(Value::Null),
-            after: value_at(&after, &path).cloned().unwrap_or(Value::Null),
+            before: before_value,
+            after: after_value,
             field_path: path,
             mutation_class: class,
         });
@@ -212,6 +221,17 @@ fn changed_paths(prefix: &str, before: &Value, after: &Value, out: &mut Vec<Stri
         }
         _ if before != after => out.push(prefix.into()),
         _ => {}
+    }
+}
+
+fn resource_limit_is_tightened(before: &Value, after: &Value) -> bool {
+    match (before, after) {
+        (Value::Null, Value::Number(_)) => true,
+        (Value::Number(old), Value::Number(new)) => old
+            .as_f64()
+            .zip(new.as_f64())
+            .is_some_and(|(old, new)| new <= old),
+        _ => before == after,
     }
 }
 

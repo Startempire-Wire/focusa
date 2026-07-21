@@ -76,6 +76,12 @@ fn precedence_provenance_hash_and_mutation_classes_are_deterministic() {
     assert_eq!(first.requested_config.model.model, "model-b");
     assert!(
         first
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("max_memory_bytes"))
+    );
+    assert!(
+        first
             .restart_required_fields
             .contains(&"model.provider".into())
     );
