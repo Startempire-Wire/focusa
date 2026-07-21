@@ -45,6 +45,14 @@ pub fn router() -> Router<Arc<AppState>> {
             "/v1/silent-sessions/{session_id}/start",
             post(super::silent_sessions_lifecycle::start),
         )
+        .route(
+            "/v1/silent-sessions/{session_id}/pause",
+            post(super::silent_sessions_control::pause),
+        )
+        .route(
+            "/v1/silent-sessions/{session_id}/resume",
+            post(super::silent_sessions_control::resume),
+        )
 }
 
 async fn list(State(state): State<Arc<AppState>>, headers: HeaderMap) -> ApiResponse {
