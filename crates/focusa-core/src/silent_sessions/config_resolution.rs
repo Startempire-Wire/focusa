@@ -28,6 +28,62 @@ pub struct ConfigLayer {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct NamedExecutionProfile {
+    pub name: String,
+    pub values: Value,
+}
+
+impl NamedExecutionProfile {
+    pub fn into_layer(self) -> Result<ConfigLayer, ConfigResolutionError> {
+        validate_layer_fields(
+            &self.values,
+            &[
+                "harness",
+                "model",
+                "workspace",
+                "identity.agent_identity_ref",
+                "identity.role_profile_ref",
+            ],
+            "execution profile",
+        )?;
+        Ok(ConfigLayer {
+            kind: ConfigLayerKind::ExecutionProfile,
+            source_ref: format!("profile:{}", self.name),
+            values: self.values,
+            locks: Vec::new(),
+        })
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct NamedBehavioralPreset {
+    pub name: String,
+    pub values: Value,
+}
+
+impl NamedBehavioralPreset {
+    pub fn into_layer(self) -> Result<ConfigLayer, ConfigResolutionError> {
+        validate_layer_fields(
+            &self.values,
+            &[
+                "supervision",
+                "resources",
+                "output",
+                "governance",
+                "notifications",
+            ],
+            "behavioral preset",
+        )?;
+        Ok(ConfigLayer {
+            kind: ConfigLayerKind::BehavioralPreset,
+            source_ref: format!("preset:{}", self.name),
+            values: self.values,
+            locks: Vec::new(),
+        })
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ConfigPolicyLock {
     pub field_path: String,
     pub expected_value: Value,
@@ -70,18 +126,33 @@ pub enum ConfigResolutionError {
     InvalidLockPath(String),
     #[error("invalid effective config: {0}")]
     InvalidEffectiveConfig(String),
+    #[error("{layer} cannot set field {field_path}")]
+    LayerFieldNotAllowed { layer: String, field_path: String },
 }
 
 pub fn resolve_silent_session_config(
     requested: SilentSessionConfig,
-    mut layers: Vec<ConfigLayer>,
+    layers: Vec<ConfigLayer>,
 ) -> Result<EffectiveSilentSessionConfig, ConfigResolutionError> {
     if !layers.windows(2).all(|pair| pair[0].kind <= pair[1].kind) {
         return Err(ConfigResolutionError::PrecedenceOrder);
     }
     let mut resolved = serde_json::to_value(&requested)
         .map_err(|error| ConfigResolutionError::InvalidEffectiveConfig(error.to_string()))?;
+    let base_value = resolved.clone();
+    let mut requested_value = resolved.clone();
     let mut provenance = BTreeMap::new();
+    let mut base_leaves = Vec::new();
+    collect_leaves("", &resolved, &mut base_leaves);
+    for (path, _) in base_leaves {
+        provenance.insert(
+            path,
+            FieldProvenance {
+                layer: ConfigLayerKind::CompiledDefaults,
+                source_ref: "compiled:safe-defaults".into(),
+            },
+        );
+    }
     let mut active_locks: BTreeMap<String, ConfigPolicyLock> = BTreeMap::new();
     for layer in &layers {
         if !layer.values.is_object() {
@@ -101,6 +172,9 @@ pub fn resolve_silent_session_config(
                 }
             }
             set_path(&mut resolved, &path, value.clone())?;
+            if layer.kind <= ConfigLayerKind::SessionRequest {
+                set_path(&mut requested_value, &path, value.clone())?;
+            }
             provenance.insert(
                 path,
                 FieldProvenance {
@@ -129,19 +203,18 @@ pub fn resolve_silent_session_config(
     }
     let effective: SilentSessionConfig = serde_json::from_value(resolved.clone())
         .map_err(|error| ConfigResolutionError::InvalidEffectiveConfig(error.to_string()))?;
-    let requested_value = serde_json::to_value(&requested)
+    let requested_config: SilentSessionConfig = serde_json::from_value(requested_value.clone())
         .map_err(|error| ConfigResolutionError::InvalidEffectiveConfig(error.to_string()))?;
     let mut changed = Vec::new();
-    collect_changed_paths("", &requested_value, &resolved, &mut changed);
+    collect_changed_paths("", &base_value, &resolved, &mut changed);
     let restart_required_fields = changed
         .into_iter()
         .filter(|path| mutation_class(path) == ConfigMutationClass::RestartRequired)
         .collect::<Vec<_>>();
     let canonical = serde_json::to_vec(&resolved)
         .map_err(|error| ConfigResolutionError::InvalidEffectiveConfig(error.to_string()))?;
-    layers.shrink_to_fit();
     Ok(EffectiveSilentSessionConfig {
-        requested_config: requested,
+        requested_config,
         resolved_effective_config: effective,
         field_provenance: provenance,
         policy_locks: active_locks.into_values().collect(),
@@ -190,6 +263,30 @@ pub fn mutation_class(path: &str) -> ConfigMutationClass {
     } else {
         ConfigMutationClass::HotMutable
     }
+}
+
+fn validate_layer_fields(
+    values: &Value,
+    allowed_prefixes: &[&str],
+    layer: &str,
+) -> Result<(), ConfigResolutionError> {
+    if !values.is_object() {
+        return Err(ConfigResolutionError::LayerNotObject(layer.into()));
+    }
+    let mut leaves = Vec::new();
+    collect_leaves("", values, &mut leaves);
+    for (path, _) in leaves {
+        if !allowed_prefixes
+            .iter()
+            .any(|prefix| path == *prefix || path.starts_with(&format!("{prefix}.")))
+        {
+            return Err(ConfigResolutionError::LayerFieldNotAllowed {
+                layer: layer.into(),
+                field_path: path,
+            });
+        }
+    }
+    Ok(())
 }
 
 fn validate_effective_value(value: &Value) -> ConfigValidation {

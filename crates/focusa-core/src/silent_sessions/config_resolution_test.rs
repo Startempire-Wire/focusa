@@ -69,6 +69,11 @@ fn precedence_provenance_hash_and_mutation_classes_are_deterministic() {
         first.field_provenance["model.model"].layer,
         ConfigLayerKind::SessionRequest
     );
+    assert_eq!(
+        first.field_provenance["identity.mission"].layer,
+        ConfigLayerKind::CompiledDefaults
+    );
+    assert_eq!(first.requested_config.model.model, "model-b");
     assert!(
         first
             .restart_required_fields
@@ -86,6 +91,34 @@ fn precedence_provenance_hash_and_mutation_classes_are_deterministic() {
         mutation_class("identity.continuity_id"),
         ConfigMutationClass::Immutable
     );
+}
+
+#[test]
+fn named_profiles_and_presets_are_field_scoped() {
+    let profile = NamedExecutionProfile {
+        name: "pi-local".into(),
+        values: json!({"harness":{"kind":"pi"},"model":{"provider":"provider-a"}}),
+    };
+    assert_eq!(
+        profile.into_layer().unwrap().kind,
+        ConfigLayerKind::ExecutionProfile
+    );
+    let preset = NamedBehavioralPreset {
+        name: "audit".into(),
+        values: json!({"notifications":{"completed":true},"governance":{"destructive_actions_allowed":false}}),
+    };
+    assert_eq!(
+        preset.into_layer().unwrap().kind,
+        ConfigLayerKind::BehavioralPreset
+    );
+    let invalid = NamedBehavioralPreset {
+        name: "unsafe-profile".into(),
+        values: json!({"model":{"model":"forbidden-in-preset"}}),
+    };
+    assert!(matches!(
+        invalid.into_layer(),
+        Err(ConfigResolutionError::LayerFieldNotAllowed { .. })
+    ));
 }
 
 #[test]
