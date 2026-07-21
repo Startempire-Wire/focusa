@@ -244,6 +244,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/context/graph": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Context Claim Graph
+         * @description Read Context Claim Graph — family=context budget=standard_read materialization=canonical_read
+         */
+        get: operations["focusa.context.graph.read"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/context/graph/mutate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Review Context Claims and Contradictions
+         * @description Review Context Claims and Contradictions — family=context budget=standard_write materialization=canonical_event
+         */
+        post: operations["focusa.context.graph.mutate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/context/retrieve": {
         parameters: {
             query?: never;
@@ -1379,6 +1419,191 @@ export interface components {
          */
         focusa_context_cognition_packet_response_v1: {
             [key: string]: unknown;
+        };
+        /** focusa.context_graph_mutation.request.v1 */
+        focusa_context_graph_mutation_request_v1: {
+            /** @enum {unknown} */
+            action: "propose_claim" | "review_claim" | "open_contradiction" | "resolve_contradiction";
+            actor?: string;
+            attachment_id: string;
+            claim?: string;
+            claim_id?: string;
+            confidence?: number;
+            continuity_id: string;
+            contradiction_id?: string;
+            expected_state_version: number;
+            idempotency_key: string;
+            left_claim_id?: string;
+            project_root: string;
+            rationale?: string;
+            /** @enum {unknown} */
+            resolution?: "accept_left" | "accept_right" | "reject_both";
+            /** @enum {unknown} */
+            review_outcome?: "accept" | "reject";
+            right_claim_id?: string;
+            selected_claim_id?: string;
+            source_citation_refs?: string[];
+            supersedes_claim_id?: string;
+        };
+        /** focusa.context_graph_mutation_result.v1 */
+        focusa_context_graph_mutation_result_v1: {
+            /** @constant */
+            canonical: true;
+            claims: {
+                attachment_id: string;
+                claim: string;
+                claim_id: string;
+                /** Format: date-time */
+                committed_at: string;
+                confidence: number;
+                continuity_id: string;
+                contradiction_refs: string[];
+                idempotency_key: string;
+                project_root: string;
+                /** Format: date-time */
+                reviewed_at?: string;
+                reviewed_by?: string;
+                revision: number;
+                source_citation_refs: string[];
+                /** @enum {unknown} */
+                status: "candidate" | "accepted" | "contradicted" | "rejected" | "superseded";
+                supersedes_claim_id?: string;
+            }[];
+            contradictions: {
+                attachment_id: string;
+                /** Format: date-time */
+                committed_at: string;
+                continuity_id: string;
+                contradiction_id: string;
+                idempotency_key: string;
+                left_claim_id: string;
+                project_root: string;
+                resolution?: string;
+                /** Format: date-time */
+                resolved_at?: string;
+                resolved_by?: string;
+                revision: number;
+                right_claim_id: string;
+                selected_claim_id?: string;
+                /** @enum {unknown} */
+                status: "open" | "resolved";
+            }[];
+            decisions: {
+                attachment_id: string;
+                continuity_id: string;
+                /** Format: date-time */
+                decided_at: string;
+                decided_by: string;
+                decision_id: string;
+                /** @enum {unknown} */
+                decision_kind: "claim_review" | "contradiction_resolution";
+                evidence_refs: string[];
+                outcome: string;
+                project_root: string;
+                rationale: string;
+                receipt_ref: string;
+                target_ref: string;
+            }[];
+            evidence_ref: string;
+            projection: {
+                accepted_claim_refs: string[];
+                attachment_id: string;
+                blocked_claim_refs: string[];
+                candidate_claim_refs: string[];
+                continuity_id: string;
+                project_root: string;
+                revision: number;
+                unresolved_contradiction_refs: string[];
+                /** Format: date-time */
+                updated_at?: string;
+            };
+            receipt_ref: string;
+            replayed: boolean;
+            /** @constant */
+            schema: "focusa.context_graph_mutation_result.v1";
+            state_version: number;
+            tool_result: Record<string, never>;
+        };
+        /** focusa.context_graph_read.request.v1 */
+        focusa_context_graph_read_request_v1: {
+            attachment_id: string;
+            continuity_id: string;
+            project_root: string;
+        };
+        /** focusa.context_graph.v1 */
+        focusa_context_graph_v1: {
+            /** @constant */
+            canonical: true;
+            claims: {
+                attachment_id: string;
+                claim: string;
+                claim_id: string;
+                /** Format: date-time */
+                committed_at: string;
+                confidence: number;
+                continuity_id: string;
+                contradiction_refs: string[];
+                idempotency_key: string;
+                project_root: string;
+                /** Format: date-time */
+                reviewed_at?: string;
+                reviewed_by?: string;
+                revision: number;
+                source_citation_refs: string[];
+                /** @enum {unknown} */
+                status: "candidate" | "accepted" | "contradicted" | "rejected" | "superseded";
+                supersedes_claim_id?: string;
+            }[];
+            contradictions: {
+                attachment_id: string;
+                /** Format: date-time */
+                committed_at: string;
+                continuity_id: string;
+                contradiction_id: string;
+                idempotency_key: string;
+                left_claim_id: string;
+                project_root: string;
+                resolution?: string;
+                /** Format: date-time */
+                resolved_at?: string;
+                resolved_by?: string;
+                revision: number;
+                right_claim_id: string;
+                selected_claim_id?: string;
+                /** @enum {unknown} */
+                status: "open" | "resolved";
+            }[];
+            decisions: {
+                attachment_id: string;
+                continuity_id: string;
+                /** Format: date-time */
+                decided_at: string;
+                decided_by: string;
+                decision_id: string;
+                /** @enum {unknown} */
+                decision_kind: "claim_review" | "contradiction_resolution";
+                evidence_refs: string[];
+                outcome: string;
+                project_root: string;
+                rationale: string;
+                receipt_ref: string;
+                target_ref: string;
+            }[];
+            projection: {
+                accepted_claim_refs: string[];
+                attachment_id: string;
+                blocked_claim_refs: string[];
+                candidate_claim_refs: string[];
+                continuity_id: string;
+                project_root: string;
+                revision: number;
+                unresolved_contradiction_refs: string[];
+                /** Format: date-time */
+                updated_at?: string;
+            };
+            /** @constant */
+            schema: "focusa.context_graph.v1";
+            state_version: number;
         };
         /** focusa.context_retrieve.request.v1 */
         focusa_context_retrieve_request_v1: {
@@ -2762,6 +2987,82 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_context_adapter_health_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.context.graph.read": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Read Context Claim Graph response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_context_graph_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.context.graph.mutate": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_context_graph_mutation_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Review Context Claims and Contradictions response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_context_graph_mutation_result_v1"];
                 };
             };
             /** @description Standard error envelope */

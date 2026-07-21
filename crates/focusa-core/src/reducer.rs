@@ -25,6 +25,102 @@ use crate::focus::stack::rebuild_stack_path;
 use crate::focus::state::apply_delta;
 use crate::types::*;
 
+fn upsert_context_claim(
+    state: &mut FocusaState,
+    claim: ContextClaimRecord,
+    require_existing: bool,
+) -> Result<(), ReducerError> {
+    if let Some(index) = state
+        .context_claims
+        .iter()
+        .position(|existing| existing.claim_id == claim.claim_id)
+    {
+        let expected_revision = state.context_claims[index].revision + 1;
+        if claim.revision != expected_revision {
+            return Err(ReducerError::InvalidEvent(format!(
+                "Context claim revision mismatch: claim={} expected={} actual={}",
+                claim.claim_id, expected_revision, claim.revision
+            )));
+        }
+        state.context_claims[index] = claim;
+    } else {
+        if require_existing || claim.revision != 1 {
+            return Err(ReducerError::InvalidEvent(format!(
+                "Context claim must exist or start at revision 1: {}",
+                claim.claim_id
+            )));
+        }
+        state.context_claims.push(claim);
+    }
+    Ok(())
+}
+
+fn refresh_reactive_context(
+    state: &mut FocusaState,
+    project_root: &str,
+    continuity_id: &str,
+    attachment_id: &str,
+    updated_at: chrono::DateTime<chrono::Utc>,
+) {
+    let mut unresolved_contradiction_refs: Vec<String> = state
+        .context_contradictions
+        .iter()
+        .filter(|edge| {
+            edge.project_root == project_root
+                && edge.continuity_id == continuity_id
+                && edge.attachment_id == attachment_id
+                && edge.status == "open"
+        })
+        .map(|edge| edge.contradiction_id.clone())
+        .collect();
+    unresolved_contradiction_refs.sort();
+    unresolved_contradiction_refs.dedup();
+
+    let blocked: std::collections::BTreeSet<String> = state
+        .context_contradictions
+        .iter()
+        .filter(|edge| unresolved_contradiction_refs.contains(&edge.contradiction_id))
+        .flat_map(|edge| [edge.left_claim_id.clone(), edge.right_claim_id.clone()])
+        .collect();
+    let scoped_claims = state.context_claims.iter().filter(|claim| {
+        claim.project_root == project_root
+            && claim.continuity_id == continuity_id
+            && claim.attachment_id == attachment_id
+    });
+    let mut accepted_claim_refs = Vec::new();
+    let mut candidate_claim_refs = Vec::new();
+    for claim in scoped_claims {
+        if claim.status == "accepted" && !blocked.contains(&claim.claim_id) {
+            accepted_claim_refs.push(claim.claim_id.clone());
+        } else if !matches!(claim.status.as_str(), "rejected" | "superseded") {
+            candidate_claim_refs.push(claim.claim_id.clone());
+        }
+    }
+    accepted_claim_refs.sort();
+    candidate_claim_refs.sort();
+    let blocked_claim_refs = blocked.into_iter().collect();
+    let projection = ReactiveContextProjection {
+        project_root: project_root.to_string(),
+        continuity_id: continuity_id.to_string(),
+        attachment_id: attachment_id.to_string(),
+        accepted_claim_refs,
+        candidate_claim_refs,
+        blocked_claim_refs,
+        unresolved_contradiction_refs,
+        revision: state.version + 1,
+        updated_at: Some(updated_at),
+    };
+    if let Some(index) = state.reactive_context.iter().position(|existing| {
+        existing.project_root == project_root
+            && existing.continuity_id == continuity_id
+            && existing.attachment_id == attachment_id
+    }) {
+        state.reactive_context[index] = projection;
+    } else {
+        state.reactive_context.push(projection);
+    }
+}
+
 fn outcome_is_positive(outcome: &str) -> bool {
     let lowered = outcome.to_ascii_lowercase();
     lowered.contains("pass")
@@ -341,6 +437,126 @@ pub fn reduce_with_meta(
                 }
                 state.context_sources.push(source);
             }
+        }
+        FocusaEvent::ContextClaimProposed { claim } => {
+            if state.context_claims.iter().any(|existing| {
+                existing.claim_id == claim.claim_id
+                    || (existing.project_root == claim.project_root
+                        && existing.continuity_id == claim.continuity_id
+                        && existing.attachment_id == claim.attachment_id
+                        && existing.idempotency_key == claim.idempotency_key)
+            }) {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "duplicate Context claim proposal: {}",
+                    claim.claim_id
+                )));
+            }
+            let scope = (
+                claim.project_root.clone(),
+                claim.continuity_id.clone(),
+                claim.attachment_id.clone(),
+                claim.committed_at,
+            );
+            upsert_context_claim(&mut state, claim, false)?;
+            refresh_reactive_context(&mut state, &scope.0, &scope.1, &scope.2, scope.3);
+        }
+        FocusaEvent::ContextClaimReviewed { claim, decision } => {
+            let scope = (
+                claim.project_root.clone(),
+                claim.continuity_id.clone(),
+                claim.attachment_id.clone(),
+                decision.decided_at,
+            );
+            upsert_context_claim(&mut state, claim, true)?;
+            if state
+                .context_decisions
+                .iter()
+                .any(|existing| existing.decision_id == decision.decision_id)
+            {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "duplicate Context decision: {}",
+                    decision.decision_id
+                )));
+            }
+            state.context_decisions.push(decision);
+            refresh_reactive_context(&mut state, &scope.0, &scope.1, &scope.2, scope.3);
+        }
+        FocusaEvent::ContextContradictionOpened {
+            contradiction,
+            claims,
+        } => {
+            if contradiction.revision != 1
+                || state.context_contradictions.iter().any(|existing| {
+                    existing.contradiction_id == contradiction.contradiction_id
+                        || existing.idempotency_key == contradiction.idempotency_key
+                })
+            {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "duplicate or invalid Context contradiction: {}",
+                    contradiction.contradiction_id
+                )));
+            }
+            if claims.len() != 2 {
+                return Err(ReducerError::InvalidEvent(
+                    "Context contradiction must update exactly two claims".to_string(),
+                ));
+            }
+            for claim in claims {
+                upsert_context_claim(&mut state, claim, true)?;
+            }
+            let scope = (
+                contradiction.project_root.clone(),
+                contradiction.continuity_id.clone(),
+                contradiction.attachment_id.clone(),
+                contradiction.committed_at,
+            );
+            state.context_contradictions.push(contradiction);
+            refresh_reactive_context(&mut state, &scope.0, &scope.1, &scope.2, scope.3);
+        }
+        FocusaEvent::ContextContradictionResolved {
+            contradiction,
+            claims,
+            decision,
+        } => {
+            let Some(index) = state
+                .context_contradictions
+                .iter()
+                .position(|existing| existing.contradiction_id == contradiction.contradiction_id)
+            else {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Context contradiction not found: {}",
+                    contradiction.contradiction_id
+                )));
+            };
+            let expected_revision = state.context_contradictions[index].revision + 1;
+            if contradiction.revision != expected_revision || contradiction.status != "resolved" {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Context contradiction resolution revision/status mismatch: {}",
+                    contradiction.contradiction_id
+                )));
+            }
+            for claim in claims {
+                upsert_context_claim(&mut state, claim, true)?;
+            }
+            let scope = (
+                contradiction.project_root.clone(),
+                contradiction.continuity_id.clone(),
+                contradiction.attachment_id.clone(),
+                decision.decided_at,
+            );
+            state.context_contradictions[index] = contradiction;
+            if state
+                .context_decisions
+                .iter()
+                .any(|existing| existing.decision_id == decision.decision_id)
+            {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "duplicate Context decision: {}",
+                    decision.decision_id
+                )));
+            }
+            state.context_decisions.push(decision);
+            refresh_reactive_context(&mut state, &scope.0, &scope.1, &scope.2, scope.3);
         }
 
         // ─── Instance Lifecycle ─────────────────────────────────────────

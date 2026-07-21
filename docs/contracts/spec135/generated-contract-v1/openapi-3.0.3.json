@@ -403,6 +403,785 @@
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.context_cognition_packet.response.v1"
       },
+      "focusa_context_graph_mutation_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "propose_claim",
+              "review_claim",
+              "open_contradiction",
+              "resolve_contradiction"
+            ]
+          },
+          "actor": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "attachment_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "claim": {
+            "maxLength": 4096,
+            "type": "string"
+          },
+          "claim_id": {
+            "type": "string"
+          },
+          "confidence": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "continuity_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "contradiction_id": {
+            "type": "string"
+          },
+          "expected_state_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "idempotency_key": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "left_claim_id": {
+            "type": "string"
+          },
+          "project_root": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          },
+          "rationale": {
+            "maxLength": 2048,
+            "type": "string"
+          },
+          "resolution": {
+            "enum": [
+              "accept_left",
+              "accept_right",
+              "reject_both"
+            ]
+          },
+          "review_outcome": {
+            "enum": [
+              "accept",
+              "reject"
+            ]
+          },
+          "right_claim_id": {
+            "type": "string"
+          },
+          "selected_claim_id": {
+            "type": "string"
+          },
+          "source_citation_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "type": "array"
+          },
+          "supersedes_claim_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "attachment_id",
+          "idempotency_key",
+          "expected_state_version",
+          "action"
+        ],
+        "title": "focusa.context_graph_mutation.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "ContextGraphMutationRequest",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.context_graph_mutation.request.v1"
+      },
+      "focusa_context_graph_mutation_result_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "canonical": {
+            "const": true
+          },
+          "claims": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "attachment_id": {
+                  "type": "string"
+                },
+                "claim": {
+                  "maxLength": 4096,
+                  "type": "string"
+                },
+                "claim_id": {
+                  "type": "string"
+                },
+                "committed_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "confidence": {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                "continuity_id": {
+                  "type": "string"
+                },
+                "contradiction_refs": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array",
+                  "uniqueItems": true
+                },
+                "idempotency_key": {
+                  "type": "string"
+                },
+                "project_root": {
+                  "type": "string"
+                },
+                "reviewed_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "reviewed_by": {
+                  "type": "string"
+                },
+                "revision": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "source_citation_refs": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 32,
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "status": {
+                  "enum": [
+                    "candidate",
+                    "accepted",
+                    "contradicted",
+                    "rejected",
+                    "superseded"
+                  ]
+                },
+                "supersedes_claim_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "claim_id",
+                "project_root",
+                "continuity_id",
+                "attachment_id",
+                "claim",
+                "source_citation_refs",
+                "confidence",
+                "status",
+                "contradiction_refs",
+                "idempotency_key",
+                "revision",
+                "committed_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "contradictions": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "attachment_id": {
+                  "type": "string"
+                },
+                "committed_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "continuity_id": {
+                  "type": "string"
+                },
+                "contradiction_id": {
+                  "type": "string"
+                },
+                "idempotency_key": {
+                  "type": "string"
+                },
+                "left_claim_id": {
+                  "type": "string"
+                },
+                "project_root": {
+                  "type": "string"
+                },
+                "resolution": {
+                  "type": "string"
+                },
+                "resolved_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "resolved_by": {
+                  "type": "string"
+                },
+                "revision": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "right_claim_id": {
+                  "type": "string"
+                },
+                "selected_claim_id": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "open",
+                    "resolved"
+                  ]
+                }
+              },
+              "required": [
+                "contradiction_id",
+                "project_root",
+                "continuity_id",
+                "attachment_id",
+                "left_claim_id",
+                "right_claim_id",
+                "status",
+                "idempotency_key",
+                "revision",
+                "committed_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "decisions": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "attachment_id": {
+                  "type": "string"
+                },
+                "continuity_id": {
+                  "type": "string"
+                },
+                "decided_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "decided_by": {
+                  "type": "string"
+                },
+                "decision_id": {
+                  "type": "string"
+                },
+                "decision_kind": {
+                  "enum": [
+                    "claim_review",
+                    "contradiction_resolution"
+                  ]
+                },
+                "evidence_refs": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "outcome": {
+                  "type": "string"
+                },
+                "project_root": {
+                  "type": "string"
+                },
+                "rationale": {
+                  "type": "string"
+                },
+                "receipt_ref": {
+                  "type": "string"
+                },
+                "target_ref": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "decision_id",
+                "project_root",
+                "continuity_id",
+                "attachment_id",
+                "decision_kind",
+                "target_ref",
+                "outcome",
+                "rationale",
+                "decided_by",
+                "decided_at",
+                "evidence_refs",
+                "receipt_ref"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "evidence_ref": {
+            "type": "string"
+          },
+          "projection": {
+            "additionalProperties": false,
+            "properties": {
+              "accepted_claim_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "uniqueItems": true
+              },
+              "attachment_id": {
+                "type": "string"
+              },
+              "blocked_claim_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "uniqueItems": true
+              },
+              "candidate_claim_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "uniqueItems": true
+              },
+              "continuity_id": {
+                "type": "string"
+              },
+              "project_root": {
+                "type": "string"
+              },
+              "revision": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "unresolved_contradiction_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "uniqueItems": true
+              },
+              "updated_at": {
+                "format": "date-time",
+                "type": "string"
+              }
+            },
+            "required": [
+              "project_root",
+              "continuity_id",
+              "attachment_id",
+              "accepted_claim_refs",
+              "candidate_claim_refs",
+              "blocked_claim_refs",
+              "unresolved_contradiction_refs",
+              "revision"
+            ],
+            "type": "object"
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "schema": {
+            "const": "focusa.context_graph_mutation_result.v1"
+          },
+          "state_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "tool_result": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "schema",
+          "canonical",
+          "state_version",
+          "claims",
+          "contradictions",
+          "decisions",
+          "projection",
+          "replayed",
+          "evidence_ref",
+          "receipt_ref",
+          "tool_result"
+        ],
+        "title": "focusa.context_graph_mutation_result.v1",
+        "type": "object",
+        "x-focusa-generated-from": "ContextGraphResponse",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.context_graph_mutation_result.v1"
+      },
+      "focusa_context_graph_read_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "attachment_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "continuity_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "project_root": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "title": "focusa.context_graph_read.request.v1",
+        "type": "object",
+        "x-focusa-generated-from": "ContextGraphScope",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.context_graph_read.request.v1"
+      },
+      "focusa_context_graph_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "canonical": {
+            "const": true
+          },
+          "claims": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "attachment_id": {
+                  "type": "string"
+                },
+                "claim": {
+                  "maxLength": 4096,
+                  "type": "string"
+                },
+                "claim_id": {
+                  "type": "string"
+                },
+                "committed_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "confidence": {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                "continuity_id": {
+                  "type": "string"
+                },
+                "contradiction_refs": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array",
+                  "uniqueItems": true
+                },
+                "idempotency_key": {
+                  "type": "string"
+                },
+                "project_root": {
+                  "type": "string"
+                },
+                "reviewed_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "reviewed_by": {
+                  "type": "string"
+                },
+                "revision": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "source_citation_refs": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 32,
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "status": {
+                  "enum": [
+                    "candidate",
+                    "accepted",
+                    "contradicted",
+                    "rejected",
+                    "superseded"
+                  ]
+                },
+                "supersedes_claim_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "claim_id",
+                "project_root",
+                "continuity_id",
+                "attachment_id",
+                "claim",
+                "source_citation_refs",
+                "confidence",
+                "status",
+                "contradiction_refs",
+                "idempotency_key",
+                "revision",
+                "committed_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "contradictions": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "attachment_id": {
+                  "type": "string"
+                },
+                "committed_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "continuity_id": {
+                  "type": "string"
+                },
+                "contradiction_id": {
+                  "type": "string"
+                },
+                "idempotency_key": {
+                  "type": "string"
+                },
+                "left_claim_id": {
+                  "type": "string"
+                },
+                "project_root": {
+                  "type": "string"
+                },
+                "resolution": {
+                  "type": "string"
+                },
+                "resolved_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "resolved_by": {
+                  "type": "string"
+                },
+                "revision": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "right_claim_id": {
+                  "type": "string"
+                },
+                "selected_claim_id": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "open",
+                    "resolved"
+                  ]
+                }
+              },
+              "required": [
+                "contradiction_id",
+                "project_root",
+                "continuity_id",
+                "attachment_id",
+                "left_claim_id",
+                "right_claim_id",
+                "status",
+                "idempotency_key",
+                "revision",
+                "committed_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "decisions": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "attachment_id": {
+                  "type": "string"
+                },
+                "continuity_id": {
+                  "type": "string"
+                },
+                "decided_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "decided_by": {
+                  "type": "string"
+                },
+                "decision_id": {
+                  "type": "string"
+                },
+                "decision_kind": {
+                  "enum": [
+                    "claim_review",
+                    "contradiction_resolution"
+                  ]
+                },
+                "evidence_refs": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "outcome": {
+                  "type": "string"
+                },
+                "project_root": {
+                  "type": "string"
+                },
+                "rationale": {
+                  "type": "string"
+                },
+                "receipt_ref": {
+                  "type": "string"
+                },
+                "target_ref": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "decision_id",
+                "project_root",
+                "continuity_id",
+                "attachment_id",
+                "decision_kind",
+                "target_ref",
+                "outcome",
+                "rationale",
+                "decided_by",
+                "decided_at",
+                "evidence_refs",
+                "receipt_ref"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "projection": {
+            "additionalProperties": false,
+            "properties": {
+              "accepted_claim_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "uniqueItems": true
+              },
+              "attachment_id": {
+                "type": "string"
+              },
+              "blocked_claim_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "uniqueItems": true
+              },
+              "candidate_claim_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "uniqueItems": true
+              },
+              "continuity_id": {
+                "type": "string"
+              },
+              "project_root": {
+                "type": "string"
+              },
+              "revision": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "unresolved_contradiction_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "uniqueItems": true
+              },
+              "updated_at": {
+                "format": "date-time",
+                "type": "string"
+              }
+            },
+            "required": [
+              "project_root",
+              "continuity_id",
+              "attachment_id",
+              "accepted_claim_refs",
+              "candidate_claim_refs",
+              "blocked_claim_refs",
+              "unresolved_contradiction_refs",
+              "revision"
+            ],
+            "type": "object"
+          },
+          "schema": {
+            "const": "focusa.context_graph.v1"
+          },
+          "state_version": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schema",
+          "canonical",
+          "state_version",
+          "claims",
+          "contradictions",
+          "decisions",
+          "projection"
+        ],
+        "title": "focusa.context_graph.v1",
+        "type": "object",
+        "x-focusa-generated-from": "ContextGraphReadResponse",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.context_graph.v1"
+      },
       "focusa_context_retrieve_request_v1": {
         "additionalProperties": false,
         "properties": {
@@ -3766,6 +4545,211 @@
           "attachment_id"
         ],
         "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "context"
+      }
+    },
+    "/v1/context/graph": {
+      "get": {
+        "description": "Read Context Claim Graph \u2014 family=context budget=standard_read materialization=canonical_read",
+        "operationId": "focusa.context.graph.read",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_context_graph_v1"
+                }
+              }
+            },
+            "description": "Read Context Claim Graph response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Read Context Claim Graph",
+        "tags": [
+          "context"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "context",
+          "materialization_mode": "canonical_read",
+          "requires_preview_token": false,
+          "side_effect_profile": "read_context",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "context"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.context.graph.read",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "context:read"
+        ],
+        "x-focusa-plain-label": "Read Context Claim Graph",
+        "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "context"
+      }
+    },
+    "/v1/context/graph/mutate": {
+      "post": {
+        "description": "Review Context Claims and Contradictions \u2014 family=context budget=standard_write materialization=canonical_event",
+        "operationId": "focusa.context.graph.mutate",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_context_graph_mutation_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_context_graph_mutation_result_v1"
+                }
+              }
+            },
+            "description": "Review Context Claims and Contradictions response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Review Context Claims and Contradictions",
+        "tags": [
+          "context"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_write",
+          "canonical": true,
+          "deprecation": null,
+          "family": "context",
+          "materialization_mode": "canonical_event",
+          "requires_preview_token": false,
+          "side_effect_profile": "write_context",
+          "supports_side_effect_policy": [
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "context"
+        ],
+        "x-focusa-concurrency": true,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.context.graph.mutate",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "context:write"
+        ],
+        "x-focusa-plain-label": "Review Context Claims and Contradictions",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
         "x-focusa-subsystem": "context"
       }
     },

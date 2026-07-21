@@ -390,6 +390,163 @@ type FocusaContextCognitionCurateResponseV1 map[string]interface{}
 // FocusaContextCognitionPacketResponseV1 Generated contract for Focusa schema focusa.context_cognition_packet.response.v1
 type FocusaContextCognitionPacketResponseV1 map[string]interface{}
 
+// FocusaContextGraphMutationRequestV1 defines model for focusa_context_graph_mutation_request_v1.
+type FocusaContextGraphMutationRequestV1 struct {
+	Action               interface{} `json:"action"`
+	Actor                *string     `json:"actor,omitempty"`
+	AttachmentId         string      `json:"attachment_id"`
+	Claim                *string     `json:"claim,omitempty"`
+	ClaimId              *string     `json:"claim_id,omitempty"`
+	Confidence           *float32    `json:"confidence,omitempty"`
+	ContinuityId         string      `json:"continuity_id"`
+	ContradictionId      *string     `json:"contradiction_id,omitempty"`
+	ExpectedStateVersion int         `json:"expected_state_version"`
+	IdempotencyKey       string      `json:"idempotency_key"`
+	LeftClaimId          *string     `json:"left_claim_id,omitempty"`
+	ProjectRoot          string      `json:"project_root"`
+	Rationale            *string     `json:"rationale,omitempty"`
+	Resolution           interface{} `json:"resolution,omitempty"`
+	ReviewOutcome        interface{} `json:"review_outcome,omitempty"`
+	RightClaimId         *string     `json:"right_claim_id,omitempty"`
+	SelectedClaimId      *string     `json:"selected_claim_id,omitempty"`
+	SourceCitationRefs   *[]string   `json:"source_citation_refs,omitempty"`
+	SupersedesClaimId    *string     `json:"supersedes_claim_id,omitempty"`
+}
+
+// FocusaContextGraphMutationResultV1 defines model for focusa_context_graph_mutation_result_v1.
+type FocusaContextGraphMutationResultV1 struct {
+	Canonical interface{} `json:"canonical"`
+	Claims    []struct {
+		AttachmentId       string      `json:"attachment_id"`
+		Claim              string      `json:"claim"`
+		ClaimId            string      `json:"claim_id"`
+		CommittedAt        time.Time   `json:"committed_at"`
+		Confidence         float32     `json:"confidence"`
+		ContinuityId       string      `json:"continuity_id"`
+		ContradictionRefs  []string    `json:"contradiction_refs"`
+		IdempotencyKey     string      `json:"idempotency_key"`
+		ProjectRoot        string      `json:"project_root"`
+		ReviewedAt         *time.Time  `json:"reviewed_at,omitempty"`
+		ReviewedBy         *string     `json:"reviewed_by,omitempty"`
+		Revision           int         `json:"revision"`
+		SourceCitationRefs []string    `json:"source_citation_refs"`
+		Status             interface{} `json:"status"`
+		SupersedesClaimId  *string     `json:"supersedes_claim_id,omitempty"`
+	} `json:"claims"`
+	Contradictions []struct {
+		AttachmentId    string      `json:"attachment_id"`
+		CommittedAt     time.Time   `json:"committed_at"`
+		ContinuityId    string      `json:"continuity_id"`
+		ContradictionId string      `json:"contradiction_id"`
+		IdempotencyKey  string      `json:"idempotency_key"`
+		LeftClaimId     string      `json:"left_claim_id"`
+		ProjectRoot     string      `json:"project_root"`
+		Resolution      *string     `json:"resolution,omitempty"`
+		ResolvedAt      *time.Time  `json:"resolved_at,omitempty"`
+		ResolvedBy      *string     `json:"resolved_by,omitempty"`
+		Revision        int         `json:"revision"`
+		RightClaimId    string      `json:"right_claim_id"`
+		SelectedClaimId *string     `json:"selected_claim_id,omitempty"`
+		Status          interface{} `json:"status"`
+	} `json:"contradictions"`
+	Decisions []struct {
+		AttachmentId string      `json:"attachment_id"`
+		ContinuityId string      `json:"continuity_id"`
+		DecidedAt    time.Time   `json:"decided_at"`
+		DecidedBy    string      `json:"decided_by"`
+		DecisionId   string      `json:"decision_id"`
+		DecisionKind interface{} `json:"decision_kind"`
+		EvidenceRefs []string    `json:"evidence_refs"`
+		Outcome      string      `json:"outcome"`
+		ProjectRoot  string      `json:"project_root"`
+		Rationale    string      `json:"rationale"`
+		ReceiptRef   string      `json:"receipt_ref"`
+		TargetRef    string      `json:"target_ref"`
+	} `json:"decisions"`
+	EvidenceRef string `json:"evidence_ref"`
+	Projection  struct {
+		AcceptedClaimRefs           []string   `json:"accepted_claim_refs"`
+		AttachmentId                string     `json:"attachment_id"`
+		BlockedClaimRefs            []string   `json:"blocked_claim_refs"`
+		CandidateClaimRefs          []string   `json:"candidate_claim_refs"`
+		ContinuityId                string     `json:"continuity_id"`
+		ProjectRoot                 string     `json:"project_root"`
+		Revision                    int        `json:"revision"`
+		UnresolvedContradictionRefs []string   `json:"unresolved_contradiction_refs"`
+		UpdatedAt                   *time.Time `json:"updated_at,omitempty"`
+	} `json:"projection"`
+	ReceiptRef   string                 `json:"receipt_ref"`
+	Replayed     bool                   `json:"replayed"`
+	Schema       interface{}            `json:"schema"`
+	StateVersion int                    `json:"state_version"`
+	ToolResult   map[string]interface{} `json:"tool_result"`
+}
+
+// FocusaContextGraphV1 defines model for focusa_context_graph_v1.
+type FocusaContextGraphV1 struct {
+	Canonical interface{} `json:"canonical"`
+	Claims    []struct {
+		AttachmentId       string      `json:"attachment_id"`
+		Claim              string      `json:"claim"`
+		ClaimId            string      `json:"claim_id"`
+		CommittedAt        time.Time   `json:"committed_at"`
+		Confidence         float32     `json:"confidence"`
+		ContinuityId       string      `json:"continuity_id"`
+		ContradictionRefs  []string    `json:"contradiction_refs"`
+		IdempotencyKey     string      `json:"idempotency_key"`
+		ProjectRoot        string      `json:"project_root"`
+		ReviewedAt         *time.Time  `json:"reviewed_at,omitempty"`
+		ReviewedBy         *string     `json:"reviewed_by,omitempty"`
+		Revision           int         `json:"revision"`
+		SourceCitationRefs []string    `json:"source_citation_refs"`
+		Status             interface{} `json:"status"`
+		SupersedesClaimId  *string     `json:"supersedes_claim_id,omitempty"`
+	} `json:"claims"`
+	Contradictions []struct {
+		AttachmentId    string      `json:"attachment_id"`
+		CommittedAt     time.Time   `json:"committed_at"`
+		ContinuityId    string      `json:"continuity_id"`
+		ContradictionId string      `json:"contradiction_id"`
+		IdempotencyKey  string      `json:"idempotency_key"`
+		LeftClaimId     string      `json:"left_claim_id"`
+		ProjectRoot     string      `json:"project_root"`
+		Resolution      *string     `json:"resolution,omitempty"`
+		ResolvedAt      *time.Time  `json:"resolved_at,omitempty"`
+		ResolvedBy      *string     `json:"resolved_by,omitempty"`
+		Revision        int         `json:"revision"`
+		RightClaimId    string      `json:"right_claim_id"`
+		SelectedClaimId *string     `json:"selected_claim_id,omitempty"`
+		Status          interface{} `json:"status"`
+	} `json:"contradictions"`
+	Decisions []struct {
+		AttachmentId string      `json:"attachment_id"`
+		ContinuityId string      `json:"continuity_id"`
+		DecidedAt    time.Time   `json:"decided_at"`
+		DecidedBy    string      `json:"decided_by"`
+		DecisionId   string      `json:"decision_id"`
+		DecisionKind interface{} `json:"decision_kind"`
+		EvidenceRefs []string    `json:"evidence_refs"`
+		Outcome      string      `json:"outcome"`
+		ProjectRoot  string      `json:"project_root"`
+		Rationale    string      `json:"rationale"`
+		ReceiptRef   string      `json:"receipt_ref"`
+		TargetRef    string      `json:"target_ref"`
+	} `json:"decisions"`
+	Projection struct {
+		AcceptedClaimRefs           []string   `json:"accepted_claim_refs"`
+		AttachmentId                string     `json:"attachment_id"`
+		BlockedClaimRefs            []string   `json:"blocked_claim_refs"`
+		CandidateClaimRefs          []string   `json:"candidate_claim_refs"`
+		ContinuityId                string     `json:"continuity_id"`
+		ProjectRoot                 string     `json:"project_root"`
+		Revision                    int        `json:"revision"`
+		UnresolvedContradictionRefs []string   `json:"unresolved_contradiction_refs"`
+		UpdatedAt                   *time.Time `json:"updated_at,omitempty"`
+	} `json:"projection"`
+	Schema       interface{} `json:"schema"`
+	StateVersion int         `json:"state_version"`
+}
+
 // FocusaContextRetrieveRequestV1 defines model for focusa_context_retrieve_request_v1.
 type FocusaContextRetrieveRequestV1 struct {
 	AttachmentId          *string     `json:"attachment_id,omitempty"`
@@ -992,6 +1149,30 @@ type FocusaContextAdapterDoclingHealthParams struct {
 	AttachmentId string `form:"attachment_id" json:"attachment_id"`
 }
 
+// FocusaContextGraphReadParams defines parameters for FocusaContextGraphRead.
+type FocusaContextGraphReadParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+}
+
+// FocusaContextGraphMutateParams defines parameters for FocusaContextGraphMutate.
+type FocusaContextGraphMutateParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+}
+
 // FocusaContextRetrieveParams defines parameters for FocusaContextRetrieve.
 type FocusaContextRetrieveParams struct {
 	// ProjectRoot Required Focusa scope key: project_root
@@ -1387,6 +1568,9 @@ type FocusaCallStackVerifyJSONRequestBody = FocusaCallStackVerifyRequestV1
 
 // FocusaContextCognitionCurateJSONRequestBody defines body for FocusaContextCognitionCurate for application/json ContentType.
 type FocusaContextCognitionCurateJSONRequestBody = FocusaContextCognitionCurateRequestV1
+
+// FocusaContextGraphMutateJSONRequestBody defines body for FocusaContextGraphMutate for application/json ContentType.
+type FocusaContextGraphMutateJSONRequestBody = FocusaContextGraphMutationRequestV1
 
 // FocusaContextRetrieveJSONRequestBody defines body for FocusaContextRetrieve for application/json ContentType.
 type FocusaContextRetrieveJSONRequestBody = FocusaContextRetrieveRequestV1
@@ -1814,6 +1998,14 @@ type ClientInterface interface {
 	// FocusaContextAdapterDoclingHealth request
 	FocusaContextAdapterDoclingHealth(ctx context.Context, params *FocusaContextAdapterDoclingHealthParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// FocusaContextGraphRead request
+	FocusaContextGraphRead(ctx context.Context, params *FocusaContextGraphReadParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaContextGraphMutateWithBody request with any body
+	FocusaContextGraphMutateWithBody(ctx context.Context, params *FocusaContextGraphMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	FocusaContextGraphMutate(ctx context.Context, params *FocusaContextGraphMutateParams, body FocusaContextGraphMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// FocusaContextRetrieveWithBody request with any body
 	FocusaContextRetrieveWithBody(ctx context.Context, params *FocusaContextRetrieveParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -2213,6 +2405,42 @@ func (c *Client) FocusaContextCognitionPacket(ctx context.Context, params *Focus
 
 func (c *Client) FocusaContextAdapterDoclingHealth(ctx context.Context, params *FocusaContextAdapterDoclingHealthParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewFocusaContextAdapterDoclingHealthRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaContextGraphRead(ctx context.Context, params *FocusaContextGraphReadParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaContextGraphReadRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaContextGraphMutateWithBody(ctx context.Context, params *FocusaContextGraphMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaContextGraphMutateRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaContextGraphMutate(ctx context.Context, params *FocusaContextGraphMutateParams, body FocusaContextGraphMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaContextGraphMutateRequest(c.Server, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -3853,6 +4081,151 @@ func NewFocusaContextAdapterDoclingHealthRequest(server string, params *FocusaCo
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewFocusaContextGraphReadRequest generates requests for FocusaContextGraphRead
+func NewFocusaContextGraphReadRequest(server string, params *FocusaContextGraphReadParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/context/graph")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewFocusaContextGraphMutateRequest calls the generic FocusaContextGraphMutate builder with application/json body
+func NewFocusaContextGraphMutateRequest(server string, params *FocusaContextGraphMutateParams, body FocusaContextGraphMutateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewFocusaContextGraphMutateRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewFocusaContextGraphMutateRequestWithBody generates requests for FocusaContextGraphMutate with any type of body
+func NewFocusaContextGraphMutateRequestWithBody(server string, params *FocusaContextGraphMutateParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/context/graph/mutate")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -6967,6 +7340,14 @@ type ClientWithResponsesInterface interface {
 	// FocusaContextAdapterDoclingHealthWithResponse request
 	FocusaContextAdapterDoclingHealthWithResponse(ctx context.Context, params *FocusaContextAdapterDoclingHealthParams, reqEditors ...RequestEditorFn) (*FocusaContextAdapterDoclingHealthResponse, error)
 
+	// FocusaContextGraphReadWithResponse request
+	FocusaContextGraphReadWithResponse(ctx context.Context, params *FocusaContextGraphReadParams, reqEditors ...RequestEditorFn) (*FocusaContextGraphReadResponse, error)
+
+	// FocusaContextGraphMutateWithBodyWithResponse request with any body
+	FocusaContextGraphMutateWithBodyWithResponse(ctx context.Context, params *FocusaContextGraphMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaContextGraphMutateResponse, error)
+
+	FocusaContextGraphMutateWithResponse(ctx context.Context, params *FocusaContextGraphMutateParams, body FocusaContextGraphMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaContextGraphMutateResponse, error)
+
 	// FocusaContextRetrieveWithBodyWithResponse request with any body
 	FocusaContextRetrieveWithBodyWithResponse(ctx context.Context, params *FocusaContextRetrieveParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaContextRetrieveResponse, error)
 
@@ -7538,6 +7919,68 @@ func (r FocusaContextAdapterDoclingHealthResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r FocusaContextAdapterDoclingHealthResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaContextGraphReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaContextGraphV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaContextGraphReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaContextGraphReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaContextGraphReadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaContextGraphMutateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaContextGraphMutationResultV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaContextGraphMutateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaContextGraphMutateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaContextGraphMutateResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -9179,6 +9622,32 @@ func (c *ClientWithResponses) FocusaContextAdapterDoclingHealthWithResponse(ctx 
 	return ParseFocusaContextAdapterDoclingHealthResponse(rsp)
 }
 
+// FocusaContextGraphReadWithResponse request returning *FocusaContextGraphReadResponse
+func (c *ClientWithResponses) FocusaContextGraphReadWithResponse(ctx context.Context, params *FocusaContextGraphReadParams, reqEditors ...RequestEditorFn) (*FocusaContextGraphReadResponse, error) {
+	rsp, err := c.FocusaContextGraphRead(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaContextGraphReadResponse(rsp)
+}
+
+// FocusaContextGraphMutateWithBodyWithResponse request with arbitrary body returning *FocusaContextGraphMutateResponse
+func (c *ClientWithResponses) FocusaContextGraphMutateWithBodyWithResponse(ctx context.Context, params *FocusaContextGraphMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaContextGraphMutateResponse, error) {
+	rsp, err := c.FocusaContextGraphMutateWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaContextGraphMutateResponse(rsp)
+}
+
+func (c *ClientWithResponses) FocusaContextGraphMutateWithResponse(ctx context.Context, params *FocusaContextGraphMutateParams, body FocusaContextGraphMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaContextGraphMutateResponse, error) {
+	rsp, err := c.FocusaContextGraphMutate(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaContextGraphMutateResponse(rsp)
+}
+
 // FocusaContextRetrieveWithBodyWithResponse request with arbitrary body returning *FocusaContextRetrieveResponse
 func (c *ClientWithResponses) FocusaContextRetrieveWithBodyWithResponse(ctx context.Context, params *FocusaContextRetrieveParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaContextRetrieveResponse, error) {
 	rsp, err := c.FocusaContextRetrieveWithBody(ctx, params, contentType, body, reqEditors...)
@@ -10230,6 +10699,72 @@ func ParseFocusaContextAdapterDoclingHealthResponse(rsp *http.Response) (*Focusa
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest FocusaContextAdapterHealthV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaContextGraphReadResponse parses an HTTP response from a FocusaContextGraphReadWithResponse call
+func ParseFocusaContextGraphReadResponse(rsp *http.Response) (*FocusaContextGraphReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaContextGraphReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaContextGraphV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaContextGraphMutateResponse parses an HTTP response from a FocusaContextGraphMutateWithResponse call
+func ParseFocusaContextGraphMutateResponse(rsp *http.Response) (*FocusaContextGraphMutateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaContextGraphMutateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaContextGraphMutationResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

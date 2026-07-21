@@ -1605,6 +1605,10 @@ pub const FOCUSA_STATE_PLANE_CONTRACT: &[(&str, AuthorityPlane)] = &[
     ("active_turn", AuthorityPlane::RuntimeCorrelation),
     ("anticipated_context", AuthorityPlane::AdvisoryProjection),
     ("context_sources", AuthorityPlane::CanonicalCognition),
+    ("context_claims", AuthorityPlane::CanonicalCognition),
+    ("context_contradictions", AuthorityPlane::CanonicalCognition),
+    ("context_decisions", AuthorityPlane::CanonicalCognition),
+    ("reactive_context", AuthorityPlane::CanonicalCognition),
     ("version", AuthorityPlane::CanonicalCognition),
 ];
 
@@ -1674,6 +1678,85 @@ pub struct ContextSourceRecord {
     pub health: ContextSourceHealth,
 }
 
+/// Canonical candidate/accepted claim extracted from source-preserving Context.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ContextClaimRecord {
+    pub claim_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub claim: String,
+    pub source_citation_refs: Vec<String>,
+    pub confidence: f64,
+    pub status: String,
+    #[serde(default)]
+    pub contradiction_refs: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reviewed_by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reviewed_at: Option<DateTime<Utc>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supersedes_claim_id: Option<String>,
+    pub idempotency_key: String,
+    pub revision: u64,
+    pub committed_at: DateTime<Utc>,
+}
+
+/// Explicit canonical contradiction edge between two Context claims.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContextContradictionRecord {
+    pub contradiction_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub left_claim_id: String,
+    pub right_claim_id: String,
+    pub status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selected_claim_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolution: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved_by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved_at: Option<DateTime<Utc>>,
+    pub idempotency_key: String,
+    pub revision: u64,
+    pub committed_at: DateTime<Utc>,
+}
+
+/// Append-only decision record for claim review and contradiction resolution.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContextDecisionRecord {
+    pub decision_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub decision_kind: String,
+    pub target_ref: String,
+    pub outcome: String,
+    pub rationale: String,
+    pub decided_by: String,
+    pub decided_at: DateTime<Utc>,
+    pub evidence_refs: Vec<String>,
+    pub receipt_ref: String,
+}
+
+/// Canonical reactive read model derived from claims and contradiction edges.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReactiveContextProjection {
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub accepted_claim_refs: Vec<String>,
+    pub candidate_claim_refs: Vec<String>,
+    pub blocked_claim_refs: Vec<String>,
+    pub unresolved_contradiction_refs: Vec<String>,
+    pub revision: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
 /// The complete cognitive state of a Focusa instance.
 ///
 /// INVARIANT: Conversation history is NEVER part of FocusaState.
@@ -1725,6 +1808,18 @@ pub struct FocusaState {
     /// Canonical Context corpus seed, scoped by project/workstream/attachment.
     #[serde(default)]
     pub context_sources: Vec<ContextSourceRecord>,
+    /// Canonical Context claims derived from source-preserving citations.
+    #[serde(default)]
+    pub context_claims: Vec<ContextClaimRecord>,
+    /// Canonical contradiction edges requiring explicit resolution.
+    #[serde(default)]
+    pub context_contradictions: Vec<ContextContradictionRecord>,
+    /// Append-only approvals and contradiction-resolution decisions.
+    #[serde(default)]
+    pub context_decisions: Vec<ContextDecisionRecord>,
+    /// Reactive per-attachment projection refreshed by the reducer.
+    #[serde(default)]
+    pub reactive_context: Vec<ReactiveContextProjection>,
     /// Monotonic version — incremented on every successful reduction.
     pub version: u64,
 }
@@ -1784,6 +1879,10 @@ impl FocusaState {
             active_turn: None,
             anticipated_context: vec![],
             context_sources: vec![],
+            context_claims: vec![],
+            context_contradictions: vec![],
+            context_decisions: vec![],
+            reactive_context: vec![],
             version: 0,
         }
     }
@@ -2383,6 +2482,22 @@ pub enum FocusaEvent {
     },
     ContextSourceIngested {
         source: ContextSourceRecord,
+    },
+    ContextClaimProposed {
+        claim: ContextClaimRecord,
+    },
+    ContextClaimReviewed {
+        claim: ContextClaimRecord,
+        decision: ContextDecisionRecord,
+    },
+    ContextContradictionOpened {
+        contradiction: ContextContradictionRecord,
+        claims: Vec<ContextClaimRecord>,
+    },
+    ContextContradictionResolved {
+        contradiction: ContextContradictionRecord,
+        claims: Vec<ContextClaimRecord>,
+        decision: ContextDecisionRecord,
     },
 
     // Instance lifecycle (multi-device / multi-surface observability)

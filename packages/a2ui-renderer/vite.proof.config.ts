@@ -13,6 +13,7 @@ export default defineConfig({
         contextCommit: resolve(import.meta.dirname, "proof/context-commit.html"),
         contextIngest: resolve(import.meta.dirname, "proof/context-ingest.html"),
         contextRetrieve: resolve(import.meta.dirname, "proof/context-retrieve.html"),
+        contextClaims: resolve(import.meta.dirname, "proof/context-claims.html"),
       },
     },
   },

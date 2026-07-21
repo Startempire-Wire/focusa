@@ -1,6 +1,6 @@
 {
   "attachment_id": "example",
-  "binding_count": 60,
+  "binding_count": 62,
   "bindings": [
     {
       "action_id": "focusa.health.check",
@@ -1154,6 +1154,98 @@
         "default_label": "Retrieve Cited Context",
         "input_presentation_ref": "focusa.generated_form.v1",
         "plain_language_description": "Retrieve Cited Context",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "attachment_id": "example",
+        "continuity_id": "example",
+        "project_root": "/example",
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.context.graph.read",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "context"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.context_graph_read.request.v1",
+        "output_schema_ref": "focusa.context_graph.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.context.graph.read",
+      "permission_scopes": [
+        "context:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Read Context Claim Graph",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Read Context Claim Graph",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "attachment_id": "example",
+        "continuity_id": "example",
+        "project_root": "/example",
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.context.graph.mutate",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "context"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.context_graph_mutation.request.v1",
+        "output_schema_ref": "focusa.context_graph_mutation_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": true,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.context.graph.mutate",
+      "permission_scopes": [
+        "context:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Review Context Claims and Contradictions",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Review Context Claims and Contradictions",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
       },

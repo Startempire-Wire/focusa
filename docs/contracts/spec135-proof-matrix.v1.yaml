@@ -399,7 +399,7 @@
         "Contradictions require explicit resolution and update reactive views"
       ],
       "bead_id": "focusa-mc-c3",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "claim reducer tests",
         "contradiction UI eval"

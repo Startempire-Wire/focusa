@@ -29,3 +29,8 @@ health and recovery, UIAI desktop/mobile proof, Evidence, and Receipts.
 SQLite FTS5 + sqlite-vec retrieval, optional fastembed-rs hybrid vectors,
 source/revision/line citations, candidate contradiction surfacing, lexical
 fallback, restart order, generated clients/UI, Evidence, and Receipt output.
+
+`spec135-c3-context-claim-graph-proof.json` proves canonical source-linked
+claims, explicit contradiction edges and decisions, approval state, reactive
+projection blocking/unblocking, idempotent replay, restart, generated claim
+review UI, Evidence, and Receipts.

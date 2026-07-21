@@ -911,6 +911,52 @@ fn build_operations() -> Vec<OperationEntry> {
             None,
         ),
         op(
+            "focusa.context.graph.read",
+            "Read Context Claim Graph",
+            "context",
+            "GET",
+            "/v1/context/graph",
+            true,
+            None,
+            "read_context",
+            "canonical_read",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec!["context:read"],
+            false,
+            "standard_read",
+            vec!["compact", "standard", "debug"],
+            "focusa.context_graph_read.request.v1",
+            "focusa.context_graph.v1",
+            "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+            None,
+        ),
+        op(
+            "focusa.context.graph.mutate",
+            "Review Context Claims and Contradictions",
+            "context",
+            "POST",
+            "/v1/context/graph/mutate",
+            true,
+            None,
+            "write_context",
+            "canonical_event",
+            vec!["commit"],
+            true,
+            true,
+            false,
+            vec!["context:write"],
+            false,
+            "standard_write",
+            vec!["compact", "standard", "debug"],
+            "focusa.context_graph_mutation.request.v1",
+            "focusa.context_graph_mutation_result.v1",
+            "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+            None,
+        ),
+        op(
             "focusa.context.adapter.docling.health",
             "Read Docling Context Adapter Health",
             "context",
@@ -2187,6 +2233,117 @@ fn context_source_record_schema() -> Value {
     })
 }
 
+fn context_claim_schema() -> Value {
+    json!({
+        "type": "object", "additionalProperties": false,
+        "required": ["claim_id", "project_root", "continuity_id", "attachment_id", "claim", "source_citation_refs", "confidence", "status", "contradiction_refs", "idempotency_key", "revision", "committed_at"],
+        "properties": {
+            "claim_id": {"type": "string"}, "project_root": {"type": "string"},
+            "continuity_id": {"type": "string"}, "attachment_id": {"type": "string"},
+            "claim": {"type": "string", "maxLength": 4096},
+            "source_citation_refs": {"type": "array", "minItems": 1, "maxItems": 32, "items": {"type": "string"}},
+            "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+            "status": {"enum": ["candidate", "accepted", "contradicted", "rejected", "superseded"]},
+            "contradiction_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+            "reviewed_by": {"type": "string"}, "reviewed_at": {"type": "string", "format": "date-time"},
+            "supersedes_claim_id": {"type": "string"}, "idempotency_key": {"type": "string"},
+            "revision": {"type": "integer", "minimum": 1}, "committed_at": {"type": "string", "format": "date-time"}
+        }
+    })
+}
+
+fn context_contradiction_schema() -> Value {
+    json!({
+        "type": "object", "additionalProperties": false,
+        "required": ["contradiction_id", "project_root", "continuity_id", "attachment_id", "left_claim_id", "right_claim_id", "status", "idempotency_key", "revision", "committed_at"],
+        "properties": {
+            "contradiction_id": {"type": "string"}, "project_root": {"type": "string"},
+            "continuity_id": {"type": "string"}, "attachment_id": {"type": "string"},
+            "left_claim_id": {"type": "string"}, "right_claim_id": {"type": "string"},
+            "status": {"enum": ["open", "resolved"]}, "selected_claim_id": {"type": "string"},
+            "resolution": {"type": "string"}, "resolved_by": {"type": "string"},
+            "resolved_at": {"type": "string", "format": "date-time"}, "idempotency_key": {"type": "string"},
+            "revision": {"type": "integer", "minimum": 1}, "committed_at": {"type": "string", "format": "date-time"}
+        }
+    })
+}
+
+fn context_decision_schema() -> Value {
+    json!({
+        "type": "object", "additionalProperties": false,
+        "required": ["decision_id", "project_root", "continuity_id", "attachment_id", "decision_kind", "target_ref", "outcome", "rationale", "decided_by", "decided_at", "evidence_refs", "receipt_ref"],
+        "properties": {
+            "decision_id": {"type": "string"}, "project_root": {"type": "string"},
+            "continuity_id": {"type": "string"}, "attachment_id": {"type": "string"},
+            "decision_kind": {"enum": ["claim_review", "contradiction_resolution"]},
+            "target_ref": {"type": "string"}, "outcome": {"type": "string"},
+            "rationale": {"type": "string"}, "decided_by": {"type": "string"},
+            "decided_at": {"type": "string", "format": "date-time"},
+            "evidence_refs": {"type": "array", "items": {"type": "string"}}, "receipt_ref": {"type": "string"}
+        }
+    })
+}
+
+fn reactive_context_projection_schema() -> Value {
+    json!({
+        "type": "object", "additionalProperties": false,
+        "required": ["project_root", "continuity_id", "attachment_id", "accepted_claim_refs", "candidate_claim_refs", "blocked_claim_refs", "unresolved_contradiction_refs", "revision"],
+        "properties": {
+            "project_root": {"type": "string"}, "continuity_id": {"type": "string"}, "attachment_id": {"type": "string"},
+            "accepted_claim_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+            "candidate_claim_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+            "blocked_claim_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+            "unresolved_contradiction_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+            "revision": {"type": "integer", "minimum": 0}, "updated_at": {"type": "string", "format": "date-time"}
+        }
+    })
+}
+
+fn context_graph_properties() -> Value {
+    json!({
+        "canonical": {"const": true}, "state_version": {"type": "integer", "minimum": 0},
+        "claims": {"type": "array", "items": context_claim_schema()},
+        "contradictions": {"type": "array", "items": context_contradiction_schema()},
+        "decisions": {"type": "array", "items": context_decision_schema()},
+        "projection": reactive_context_projection_schema()
+    })
+}
+
+fn context_graph_response_schema(schema_id: &str, mutation: bool) -> Value {
+    let mut properties = context_graph_properties()
+        .as_object()
+        .cloned()
+        .expect("Context graph properties are an object");
+    properties.insert(
+        "schema".to_string(),
+        json!({"const": if mutation { "focusa.context_graph_mutation_result.v1" } else { "focusa.context_graph.v1" }}),
+    );
+    let mut required = vec![
+        "schema",
+        "canonical",
+        "state_version",
+        "claims",
+        "contradictions",
+        "decisions",
+        "projection",
+    ];
+    if mutation {
+        properties.insert("replayed".to_string(), json!({"type": "boolean"}));
+        properties.insert("evidence_ref".to_string(), json!({"type": "string"}));
+        properties.insert("receipt_ref".to_string(), json!({"type": "string"}));
+        properties.insert("tool_result".to_string(), json!({"type": "object"}));
+        required.extend(["replayed", "evidence_ref", "receipt_ref", "tool_result"]);
+    }
+    json!({
+        "$schema": JSON_SCHEMA_DIALECT_2020_12,
+        "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+        "type": "object", "additionalProperties": false,
+        "required": required, "properties": properties,
+        "x-focusa-schema-id": schema_id,
+        "x-focusa-generated-from": if mutation { "ContextGraphResponse" } else { "ContextGraphReadResponse" }
+    })
+}
+
 fn json_schema_document(schema_id: &str) -> Value {
     if schema_id == "focusa.context_source_commit.request.v1" {
         return json!({
@@ -2363,6 +2520,53 @@ fn json_schema_document(schema_id: &str) -> Value {
             "x-focusa-schema-id": schema_id,
             "x-focusa-generated-from": "ContextRetrieveResponse"
         });
+    }
+    if schema_id == "focusa.context_graph_read.request.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false,
+            "required": ["project_root", "continuity_id", "attachment_id"],
+            "properties": {
+                "project_root": {"type": "string", "minLength": 1, "maxLength": 4096},
+                "continuity_id": {"type": "string", "minLength": 1, "maxLength": 256},
+                "attachment_id": {"type": "string", "minLength": 1, "maxLength": 256}
+            },
+            "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "ContextGraphScope"
+        });
+    }
+    if schema_id == "focusa.context_graph.v1" {
+        return context_graph_response_schema(schema_id, false);
+    }
+    if schema_id == "focusa.context_graph_mutation.request.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false,
+            "required": ["project_root", "continuity_id", "attachment_id", "idempotency_key", "expected_state_version", "action"],
+            "properties": {
+                "project_root": {"type": "string", "minLength": 1, "maxLength": 4096},
+                "continuity_id": {"type": "string", "minLength": 1, "maxLength": 256},
+                "attachment_id": {"type": "string", "minLength": 1, "maxLength": 256},
+                "idempotency_key": {"type": "string", "minLength": 1, "maxLength": 256},
+                "expected_state_version": {"type": "integer", "minimum": 0},
+                "action": {"enum": ["propose_claim", "review_claim", "open_contradiction", "resolve_contradiction"]},
+                "claim_id": {"type": "string"}, "claim": {"type": "string", "maxLength": 4096},
+                "source_citation_refs": {"type": "array", "maxItems": 32, "items": {"type": "string"}},
+                "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                "supersedes_claim_id": {"type": "string"},
+                "review_outcome": {"enum": ["accept", "reject"]},
+                "contradiction_id": {"type": "string"}, "left_claim_id": {"type": "string"},
+                "right_claim_id": {"type": "string"},
+                "resolution": {"enum": ["accept_left", "accept_right", "reject_both"]},
+                "selected_claim_id": {"type": "string"}, "actor": {"type": "string", "maxLength": 256},
+                "rationale": {"type": "string", "maxLength": 2048}
+            },
+            "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "ContextGraphMutationRequest"
+        });
+    }
+    if schema_id == "focusa.context_graph_mutation_result.v1" {
+        return context_graph_response_schema(schema_id, true);
     }
     if schema_id == "focusa.context_adapter_health.request.v1" {
         return json!({

@@ -1,0 +1,106 @@
+{
+  "$id": "/v1/agent/schemas/focusa.context_graph_mutation.request.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "enum": [
+        "propose_claim",
+        "review_claim",
+        "open_contradiction",
+        "resolve_contradiction"
+      ]
+    },
+    "actor": {
+      "maxLength": 256,
+      "type": "string"
+    },
+    "attachment_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "claim": {
+      "maxLength": 4096,
+      "type": "string"
+    },
+    "claim_id": {
+      "type": "string"
+    },
+    "confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "type": "number"
+    },
+    "continuity_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "contradiction_id": {
+      "type": "string"
+    },
+    "expected_state_version": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "left_claim_id": {
+      "type": "string"
+    },
+    "project_root": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    },
+    "rationale": {
+      "maxLength": 2048,
+      "type": "string"
+    },
+    "resolution": {
+      "enum": [
+        "accept_left",
+        "accept_right",
+        "reject_both"
+      ]
+    },
+    "review_outcome": {
+      "enum": [
+        "accept",
+        "reject"
+      ]
+    },
+    "right_claim_id": {
+      "type": "string"
+    },
+    "selected_claim_id": {
+      "type": "string"
+    },
+    "source_citation_refs": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 32,
+      "type": "array"
+    },
+    "supersedes_claim_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "project_root",
+    "continuity_id",
+    "attachment_id",
+    "idempotency_key",
+    "expected_state_version",
+    "action"
+  ],
+  "title": "focusa.context_graph_mutation.request.v1",
+  "type": "object",
+  "x-focusa-generated-from": "ContextGraphMutationRequest",
+  "x-focusa-schema-id": "focusa.context_graph_mutation.request.v1"
+}
