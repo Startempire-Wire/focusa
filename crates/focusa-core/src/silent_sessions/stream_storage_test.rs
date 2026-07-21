@@ -105,7 +105,13 @@ fn chunks_are_secure_durable_resumable_and_idempotent() {
         .unwrap();
     assert!(!published.replayed);
     assert!(published.manifest.compressed_bytes > 0);
-    assert!(root.join(&published.manifest.chunk_ref).is_file());
+    let chunk_path = root.join(&published.manifest.chunk_ref);
+    let sidecar_path = chunk_path.with_extension("manifest.json");
+    assert!(chunk_path.is_file());
+    assert!(sidecar_path.is_file());
+    let sidecar: crate::silent_sessions::StreamChunkManifest =
+        serde_json::from_slice(&fs::read(&sidecar_path).unwrap()).unwrap();
+    assert_eq!(sidecar, published.manifest);
 
     let replayed = store
         .publish_chunk(session.id, run_id, OutputChannel::Stdout, 0, &events)

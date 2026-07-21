@@ -144,6 +144,9 @@ impl SecureStreamStore {
         self.validate_index_position(&manifest)?;
 
         atomic_publish(&directory, &final_path, &compressed)?;
+        let manifest_path = final_path.with_extension("manifest.json");
+        let manifest_bytes = serde_json::to_vec_pretty(&manifest).map_err(anyhow::Error::from)?;
+        atomic_publish(&directory, &manifest_path, &manifest_bytes)?;
         self.insert_index(&manifest)?;
         Ok(PublishedChunk {
             cursor: StreamCursor::new(run_id, last_sequence)
