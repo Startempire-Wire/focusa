@@ -219,7 +219,10 @@ fn redaction_class(key: &str) -> Option<&'static str> {
     let normalized = key.to_ascii_lowercase().replace('-', "_");
     if normalized == "authorization" || normalized == "auth_header" {
         Some("auth_header")
-    } else if normalized.contains("bearer") || normalized.ends_with("_token") {
+    } else if normalized.contains("bearer")
+        || normalized == "token"
+        || normalized.ends_with("_token")
+    {
         Some("bearer_token")
     } else if normalized.contains("provider_credential") || normalized.contains("api_key") {
         Some("provider_credential")

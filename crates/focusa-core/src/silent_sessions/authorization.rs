@@ -298,6 +298,9 @@ fn verify_approval(
     if approval.expires_at < request.now {
         return Err("approval record is expired");
     }
+    if approval.operator_actor.trim().is_empty() || approval.risk_class.trim().is_empty() {
+        return Err("approval actor and risk class are required");
+    }
     if approval.action != request.action
         || approval.project_root != request.target.project_root
         || approval.continuity_id != request.target.continuity_id
