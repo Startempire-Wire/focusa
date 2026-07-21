@@ -41,3 +41,9 @@ origin, diagnostics, provenance, Evidence, rendering fallback, retention, and
 cleanup across restart while UIAI browser state and large blobs remain
 noncanonical and externally authoritative. The companion research diagnostics
 packet and desktop/mobile UIAI Eval result preserve the external proof boundary.
+
+`spec135-u2-workspace-live-refresh-proof.json` proves bounded ref-only Workspace
+invalidation over durable reconnectable SSE: exact five-dimensional scope
+filtering, source-revision-aware refetch, missed-event replay, duplicate
+tolerance, polling-only fallback, unrelated Work Surface suppression, generated
+UI, and desktop/mobile UIAI Eval evidence.

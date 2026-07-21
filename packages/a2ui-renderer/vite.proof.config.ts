@@ -15,6 +15,7 @@ export default defineConfig({
         contextRetrieve: resolve(import.meta.dirname, "proof/context-retrieve.html"),
         contextClaims: resolve(import.meta.dirname, "proof/context-claims.html"),
         workspaceArtifact: resolve(import.meta.dirname, "proof/workspace-artifact.html"),
+        workspaceLiveRefresh: resolve(import.meta.dirname, "proof/workspace-live-refresh.html"),
       },
     },
   },

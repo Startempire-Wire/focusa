@@ -2370,12 +2370,30 @@
         "x-focusa-schema-id": "focusa.dxux_report.response.v1"
       },
       "focusa_events_stream_request_v1": {
-        "additionalProperties": true,
-        "description": "Generated contract for Focusa schema focusa.events_stream.request.v1",
-        "properties": {},
+        "additionalProperties": false,
+        "properties": {
+          "attachment_id": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "work_surface_id": {
+            "type": "string"
+          }
+        },
         "title": "focusa.events_stream.request.v1",
         "type": "object",
-        "x-focusa-generated-from": "focusa.agent_operation_registry.v1",
+        "x-focusa-generated-from": "StreamQuery",
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.events_stream.request.v1"
       },
@@ -4588,6 +4606,110 @@
         "x-focusa-generated-from": "WorkspaceArtifactListResponse",
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.workspace_artifact_list.v1"
+      },
+      "focusa_workspace_event_v1": {
+        "additionalProperties": false,
+        "description": "Bounded ref-only Mission Canvas projection invalidation; never semantic authority",
+        "properties": {
+          "artifact_id": {
+            "type": "string"
+          },
+          "artifact_kind": {
+            "type": "string"
+          },
+          "attachment_id": {
+            "type": "string"
+          },
+          "browser_context_id": {
+            "type": "string"
+          },
+          "browser_target_id": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "event": {
+            "enum": [
+              "uiai_session_opened",
+              "uiai_session_status_changed",
+              "uiai_fpv_share_created",
+              "browser_context_created",
+              "browser_context_status_changed",
+              "browser_context_closed",
+              "browser_target_opened",
+              "browser_target_navigated",
+              "browser_target_moved",
+              "browser_target_closed",
+              "workspace_artifact_capture_pending",
+              "workspace_artifact_linked",
+              "workspace_artifact_verified",
+              "workspace_artifact_stale",
+              "workspace_artifact_redacted",
+              "workspace_artifact_removed",
+              "workspace_artifact_render_failed"
+            ]
+          },
+          "instance_id": {
+            "type": "string"
+          },
+          "invalidate": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "payload_ref": {
+            "type": "string"
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "schema": {
+            "const": "focusa.workspace_event.v1"
+          },
+          "semantic_authority": {
+            "const": false
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "source_state_revision": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "uiai_session_id": {
+            "type": "string"
+          },
+          "work_surface_id": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema",
+          "event",
+          "project_root",
+          "continuity_id",
+          "instance_id",
+          "attachment_id",
+          "artifact_id",
+          "artifact_kind",
+          "source_state_revision",
+          "payload_ref",
+          "invalidate",
+          "semantic_authority"
+        ],
+        "title": "Focusa Workspace Invalidation Event v1",
+        "type": "object",
+        "x-focusa-generated-from": "WorkspaceEventRecord",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.workspace_event.v1"
       }
     }
   },
@@ -6503,6 +6625,51 @@
             "description": "Prior SSE sequence cursor or durable event UUID",
             "in": "header",
             "name": "Last-Event-ID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional exact project filter",
+            "in": "query",
+            "name": "project_root",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional exact workstream filter",
+            "in": "query",
+            "name": "continuity_id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional exact Attachment filter",
+            "in": "query",
+            "name": "attachment_id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional exact producing-session filter",
+            "in": "query",
+            "name": "session_id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional exact Work Surface filter",
+            "in": "query",
+            "name": "work_surface_id",
             "required": false,
             "schema": {
               "type": "string"

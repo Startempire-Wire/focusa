@@ -1,0 +1,94 @@
+{
+  "schema": "uiai.focusa_ui_eval_scenario.v1",
+  "scenario_id": "spec135-u2-workspace-live-refresh",
+  "feature_scope": {
+    "project_root": "/example/focusa",
+    "continuity_id": "focusa-cont-u2-generated-ui",
+    "attachment_id": "attachment:u2-surface-a"
+  },
+  "route_or_target": "packages/a2ui-renderer/proof/workspace-live-refresh.html",
+  "preconditions": [
+    "focusa.workspace.artifact.intake is a generated exact-scope action binding",
+    "The durable SSE route supports cursor replay and project, continuity, Attachment, session, and Work Surface filters",
+    "The proof server proxies a real Focusa daemon while public evaluation transport preserves SSE chunks"
+  ],
+  "steps": [
+    {
+      "step_id": "open",
+      "action": "open",
+      "target": "Workspace live-refresh proof",
+      "expected": "Generated exact-scope Workspace surface renders with SSE primary",
+      "evidence_kind": "dom"
+    },
+    {
+      "step_id": "link",
+      "action": "click",
+      "target": "Run Live Refresh Proof",
+      "expected": "A bounded Workspace invalidation refreshes only Work Surface A",
+      "evidence_kind": "action"
+    },
+    {
+      "step_id": "reconnect",
+      "action": "read",
+      "target": "durable SSE reconnect cursor",
+      "expected": "A missed revision is replayed exactly once and refetched after its source state revision becomes visible",
+      "evidence_kind": "diagnostics"
+    },
+    {
+      "step_id": "suppress",
+      "action": "read",
+      "target": "Work Surface B",
+      "expected": "An unrelated Attachment event does not rerender the subscribed surface",
+      "evidence_kind": "dom"
+    },
+    {
+      "step_id": "mobile",
+      "action": "resize",
+      "target": "390x844 viewport",
+      "expected": "No horizontal overflow and the primary action remains 324 pixels wide",
+      "evidence_kind": "screenshot"
+    },
+    {
+      "step_id": "diagnostics",
+      "action": "diagnostics",
+      "target": "final UIAI evaluation window",
+      "expected": "No console errors, exceptions, HTTP 4xx, HTTP 5xx, or unexpected network failures",
+      "evidence_kind": "diagnostics"
+    },
+    {
+      "step_id": "close",
+      "action": "close",
+      "target": "UIAI and temporary proof transports",
+      "expected": "Browser and tunnel resources release independently of canonical Focusa state",
+      "evidence_kind": "diagnostics"
+    }
+  ],
+  "required_capabilities": [
+    "workspace-artifact-live-refresh",
+    "durable-sse-cursor-replay",
+    "exact-scope-invalidation",
+    "duplicate-tolerance",
+    "bounded-polling-fallback",
+    "a2ui-web_core-0.9.1",
+    "a2ui-lit-0.9.1",
+    "focusa-svelte-elements-0.9.120-dev"
+  ],
+  "required_scopes": [
+    "project_root",
+    "continuity_id",
+    "attachment_id",
+    "session_id",
+    "work_surface_id"
+  ],
+  "expected_visible_states": ["ready", "stale", "completed", "saved", "verified", "retry"],
+  "expected_actions": ["focusa.workspace.artifact.intake allowed and exact-scoped"],
+  "expected_evidence": [
+    "two revisioned events on Work Surface A",
+    "durable reconnect cursor",
+    "zero Work Surface B rerenders",
+    "desktop/mobile screenshots",
+    "bounded ref-only SSE payload",
+    "diagnostics"
+  ],
+  "expected_receipts": ["canonical Workspace Artifact update Receipt"]
+}

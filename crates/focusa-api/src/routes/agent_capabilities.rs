@@ -2222,6 +2222,7 @@ fn registered_schema_ids() -> std::collections::BTreeSet<&'static str> {
         .flat_map(|op| [op.request_schema_ref, op.response_schema_ref])
         .collect();
     schema_ids.insert(TOOL_RESULT_SCHEMA);
+    schema_ids.insert("focusa.workspace_event.v1");
     schema_ids
 }
 
@@ -2626,6 +2627,17 @@ fn json_schema_document(schema_id: &str) -> Value {
             "x-focusa-generated-from": "ContextRetrieveResponse"
         });
     }
+    if schema_id == "focusa.events_stream.request.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
+            "type": "object", "additionalProperties": false,
+            "properties": {
+                "cursor": {"type": "string"}, "project_root": {"type": "string"}, "continuity_id": {"type": "string"},
+                "attachment_id": {"type": "string"}, "session_id": {"type": "string"}, "work_surface_id": {"type": "string"}
+            },
+            "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "StreamQuery"
+        });
+    }
     if schema_id == "focusa.workspace_artifact_list.request.v1" {
         return json!({
             "$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
@@ -2937,6 +2949,30 @@ fn json_schema_document(schema_id: &str) -> Value {
             "x-focusa-generated-from": "compatibility_lock_document"
         });
     }
+    if schema_id == "focusa.workspace_event.v1" {
+        return json!({
+            "$schema": JSON_SCHEMA_DIALECT_2020_12,
+            "$id": format!("/v1/agent/schemas/{schema_id}"),
+            "title": "Focusa Workspace Invalidation Event v1",
+            "description": "Bounded ref-only Mission Canvas projection invalidation; never semantic authority",
+            "type": "object",
+            "required": ["schema", "event", "project_root", "continuity_id", "instance_id", "attachment_id", "artifact_id", "artifact_kind", "source_state_revision", "payload_ref", "invalidate", "semantic_authority"],
+            "properties": {
+                "schema": {"const": "focusa.workspace_event.v1"},
+                "event": {"enum": ["uiai_session_opened", "uiai_session_status_changed", "uiai_fpv_share_created", "browser_context_created", "browser_context_status_changed", "browser_context_closed", "browser_target_opened", "browser_target_navigated", "browser_target_moved", "browser_target_closed", "workspace_artifact_capture_pending", "workspace_artifact_linked", "workspace_artifact_verified", "workspace_artifact_stale", "workspace_artifact_redacted", "workspace_artifact_removed", "workspace_artifact_render_failed"]},
+                "project_root": {"type": "string"}, "continuity_id": {"type": "string"}, "workpoint_id": {"type": "string"},
+                "instance_id": {"type": "string"}, "session_id": {"type": "string"}, "attachment_id": {"type": "string"},
+                "work_surface_id": {"type": "string"}, "uiai_session_id": {"type": "string"}, "browser_context_id": {"type": "string"}, "browser_target_id": {"type": "string"},
+                "artifact_id": {"type": "string"}, "artifact_kind": {"type": "string"},
+                "source_state_revision": {"type": "integer", "minimum": 1}, "payload_ref": {"type": "string"},
+                "invalidate": {"type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": {"type": "string"}},
+                "semantic_authority": {"const": false}
+            },
+            "additionalProperties": false,
+            "x-focusa-schema-id": schema_id,
+            "x-focusa-generated-from": "WorkspaceEventRecord"
+        });
+    }
     if schema_id == "focusa.stream_event.v1" {
         return json!({
             "$schema": JSON_SCHEMA_DIALECT_2020_12,
@@ -3135,6 +3171,11 @@ fn openapi_document() -> Value {
                         "schema": {"type": "string"},
                         "description": "Prior SSE sequence cursor or durable event UUID",
                     }),
+                    json!({"name": "project_root", "in": "query", "required": false, "schema": {"type": "string"}, "description": "Optional exact project filter"}),
+                    json!({"name": "continuity_id", "in": "query", "required": false, "schema": {"type": "string"}, "description": "Optional exact workstream filter"}),
+                    json!({"name": "attachment_id", "in": "query", "required": false, "schema": {"type": "string"}, "description": "Optional exact Attachment filter"}),
+                    json!({"name": "session_id", "in": "query", "required": false, "schema": {"type": "string"}, "description": "Optional exact producing-session filter"}),
+                    json!({"name": "work_surface_id", "in": "query", "required": false, "schema": {"type": "string"}, "description": "Optional exact Work Surface filter"}),
                 ]);
             }
             let response_schema = if op.operation_id == "focusa.events.stream" {

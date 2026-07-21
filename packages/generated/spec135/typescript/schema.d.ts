@@ -1972,12 +1972,14 @@ export interface components {
         focusa_dxux_report_response_v1: {
             [key: string]: unknown;
         };
-        /**
-         * focusa.events_stream.request.v1
-         * @description Generated contract for Focusa schema focusa.events_stream.request.v1
-         */
+        /** focusa.events_stream.request.v1 */
         focusa_events_stream_request_v1: {
-            [key: string]: unknown;
+            attachment_id?: string;
+            continuity_id?: string;
+            cursor?: string;
+            project_root?: string;
+            session_id?: string;
+            work_surface_id?: string;
         };
         /**
          * focusa.evidence_capture.request.v1
@@ -2863,6 +2865,33 @@ export interface components {
             schema: "focusa.workspace_artifact_list.v1";
             state_version: number;
         };
+        /**
+         * Focusa Workspace Invalidation Event v1
+         * @description Bounded ref-only Mission Canvas projection invalidation; never semantic authority
+         */
+        focusa_workspace_event_v1: {
+            artifact_id: string;
+            artifact_kind: string;
+            attachment_id: string;
+            browser_context_id?: string;
+            browser_target_id?: string;
+            continuity_id: string;
+            /** @enum {unknown} */
+            event: "uiai_session_opened" | "uiai_session_status_changed" | "uiai_fpv_share_created" | "browser_context_created" | "browser_context_status_changed" | "browser_context_closed" | "browser_target_opened" | "browser_target_navigated" | "browser_target_moved" | "browser_target_closed" | "workspace_artifact_capture_pending" | "workspace_artifact_linked" | "workspace_artifact_verified" | "workspace_artifact_stale" | "workspace_artifact_redacted" | "workspace_artifact_removed" | "workspace_artifact_render_failed";
+            instance_id: string;
+            invalidate: string[];
+            payload_ref: string;
+            project_root: string;
+            /** @constant */
+            schema: "focusa.workspace_event.v1";
+            /** @constant */
+            semantic_authority: false;
+            session_id?: string;
+            source_state_revision: number;
+            uiai_session_id?: string;
+            work_surface_id?: string;
+            workpoint_id?: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -3618,6 +3647,16 @@ export interface operations {
             query?: {
                 /** @description Stable 1-based durable event sequence cursor */
                 cursor?: string;
+                /** @description Optional exact project filter */
+                project_root?: string;
+                /** @description Optional exact workstream filter */
+                continuity_id?: string;
+                /** @description Optional exact Attachment filter */
+                attachment_id?: string;
+                /** @description Optional exact producing-session filter */
+                session_id?: string;
+                /** @description Optional exact Work Surface filter */
+                work_surface_id?: string;
             };
             header?: {
                 /** @description Prior SSE sequence cursor or durable event UUID */

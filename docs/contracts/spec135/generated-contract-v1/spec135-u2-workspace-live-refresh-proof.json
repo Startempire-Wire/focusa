@@ -1,0 +1,76 @@
+{
+  "schema": "focusa.spec135_u2_workspace_live_refresh_proof.v1",
+  "requirement_id": "SPEC135-U2",
+  "status": "passed",
+  "critical_path": [
+    "SPEC135-F12",
+    "SPEC135-U1",
+    "SPEC135-U2",
+    "SPEC135-ALPHA1"
+  ],
+  "operations": [
+    "focusa.events.stream",
+    "focusa.workspace.artifact.list",
+    "focusa.workspace.artifact.intake"
+  ],
+  "invariants": [
+    "Workspace invalidations contain bounded references and never full artifact or browser payloads",
+    "semantic_authority is always false",
+    "Project, continuity, Attachment, session, and Work Surface filtering is exact",
+    "Durable cursor replay precedes gap-free live tailing",
+    "Duplicate event IDs are ignored",
+    "The client waits for source_state_revision visibility before exact-scope refetch",
+    "An unrelated Attachment event does not rerender the subscribed Work Surface",
+    "SSE is primary; bounded exact-scope polling activates only while the stream is stale"
+  ],
+  "runtime_proof": {
+    "test": "tests/spec135_workspace_live_refresh_e2e_test.py",
+    "artifact_id": "workspace-artifact:92d9bfda7fb1e346886b6bfa",
+    "workspace_event_schema": "focusa.workspace_event.v1",
+    "stream_event_schema": "focusa.stream_event.v1",
+    "result": "Passed bounded payload, exact filtering, disconnect replay, restart replay, live tail, stable artifact update, and unrelated suppression."
+  },
+  "generated_ui_proof": {
+    "surface": "packages/a2ui-renderer/proof/workspace-live-refresh.html",
+    "scenario_ref": "uiai-eval.u2-workspace-live-refresh.scenario.json",
+    "result_ref": "uiai-eval.u2-workspace-live-refresh.result.json",
+    "browser_session_ref": "uiai-browser:session=HhzgDPCj",
+    "cursor": "10",
+    "surface_a_renders": 2,
+    "surface_b_renders": 0,
+    "reconnects": 2,
+    "duplicates_applied": 0,
+    "desktop_screenshot": "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/HhzgDPCj-1784617348806319000.png",
+    "mobile_screenshot": "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/HhzgDPCj-1784617382787832000.png",
+    "mobile_scroll_width": 390,
+    "mobile_primary_action_width": 324,
+    "diagnostics_ref": "uiai-diagnostics:session=HhzgDPCj:seq=20",
+    "unexpected_failures": 0
+  },
+  "canonical_records": {
+    "revision_1_event_id": "019f837b-5e71-7981-b316-2469df2b0e2a",
+    "revision_2_event_id": "019f837b-620e-7ac3-a6cf-9dcb12c0026b",
+    "unrelated_attachment_event_id": "019f837b-653d-7510-b75a-820ef36b63e9",
+    "revision_2_state_version": 10,
+    "unrelated_sequence": 11
+  },
+  "evidence_refs": [
+    "evidence:workspace-live-refresh:u2-generated-ui",
+    "uiai-diagnostics:session=HhzgDPCj:seq=20",
+    "tests/spec135_workspace_live_refresh_e2e_test.py",
+    "tests/spec135_workspace_live_refresh_test.py"
+  ],
+  "receipt_refs": ["receipt:workspace-artifact:f0bf652937f4609bd4fef64f"],
+  "research_packet_ref": "uiai-eval.u2-workspace-live-refresh.result.json",
+  "ui_eval_result_ref": "uiai-eval.u2-workspace-live-refresh.result.json",
+  "proof_commands": [
+    "python3 tests/spec135_workspace_live_refresh_test.py",
+    "python3 tests/spec135_workspace_live_refresh_e2e_test.py",
+    "cargo test -p focusa-api routes::sse::tests",
+    "CARGO_INCREMENTAL=0 cargo clippy -p focusa-api --all-targets -- -D warnings -A clippy::needless-return",
+    "npm --prefix packages/a2ui-renderer run check",
+    "npm --prefix packages/a2ui-renderer test",
+    "npm --prefix packages/a2ui-renderer run proof:build",
+    "go test ./packages/generated/spec135/go/..."
+  ]
+}

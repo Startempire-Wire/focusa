@@ -438,7 +438,7 @@ pub fn reduce_with_meta(
                 state.context_sources.push(source);
             }
         }
-        FocusaEvent::WorkspaceArtifactLinked { artifact } => {
+        FocusaEvent::WorkspaceArtifactLinked { artifact, .. } => {
             if state.workspace_artifacts.iter().any(|existing| {
                 existing.scope.project_root == artifact.scope.project_root
                     && existing.scope.continuity_id == artifact.scope.continuity_id

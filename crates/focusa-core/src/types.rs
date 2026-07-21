@@ -1795,6 +1795,58 @@ pub struct WorkspaceArtifactRender {
     pub height: Option<u32>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkspaceEventType {
+    UiaiSessionOpened,
+    UiaiSessionStatusChanged,
+    UiaiFpvShareCreated,
+    BrowserContextCreated,
+    BrowserContextStatusChanged,
+    BrowserContextClosed,
+    BrowserTargetOpened,
+    BrowserTargetNavigated,
+    BrowserTargetMoved,
+    BrowserTargetClosed,
+    WorkspaceArtifactCapturePending,
+    WorkspaceArtifactLinked,
+    WorkspaceArtifactVerified,
+    WorkspaceArtifactStale,
+    WorkspaceArtifactRedacted,
+    WorkspaceArtifactRemoved,
+    WorkspaceArtifactRenderFailed,
+}
+
+/// Bounded projection-invalidation metadata; never semantic-promotion authority.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceEventRecord {
+    pub schema: String,
+    pub event: WorkspaceEventType,
+    pub project_root: String,
+    pub continuity_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workpoint_id: Option<String>,
+    pub instance_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    pub attachment_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub work_surface_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uiai_session_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub browser_context_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub browser_target_id: Option<String>,
+    pub artifact_id: String,
+    pub artifact_kind: String,
+    pub source_state_revision: u64,
+    pub payload_ref: String,
+    #[serde(default)]
+    pub invalidate: Vec<String>,
+    pub semantic_authority: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WorkspaceArtifactRecord {
     pub artifact_id: String,
@@ -2631,6 +2683,8 @@ pub enum FocusaEvent {
     },
     WorkspaceArtifactLinked {
         artifact: WorkspaceArtifactRecord,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        workspace_event: Option<WorkspaceEventRecord>,
     },
     ContextClaimProposed {
         claim: ContextClaimRecord,

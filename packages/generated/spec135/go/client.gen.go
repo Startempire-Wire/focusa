@@ -1451,6 +1451,21 @@ type FocusaEventsStreamParams struct {
 	// Cursor Stable 1-based durable event sequence cursor
 	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
 
+	// ProjectRoot Optional exact project filter
+	ProjectRoot *string `form:"project_root,omitempty" json:"project_root,omitempty"`
+
+	// ContinuityId Optional exact workstream filter
+	ContinuityId *string `form:"continuity_id,omitempty" json:"continuity_id,omitempty"`
+
+	// AttachmentId Optional exact Attachment filter
+	AttachmentId *string `form:"attachment_id,omitempty" json:"attachment_id,omitempty"`
+
+	// SessionId Optional exact producing-session filter
+	SessionId *string `form:"session_id,omitempty" json:"session_id,omitempty"`
+
+	// WorkSurfaceId Optional exact Work Surface filter
+	WorkSurfaceId *string `form:"work_surface_id,omitempty" json:"work_surface_id,omitempty"`
+
 	// LastEventID Prior SSE sequence cursor or durable event UUID
 	LastEventID *string `json:"Last-Event-ID,omitempty"`
 }
@@ -4971,6 +4986,66 @@ func NewFocusaEventsStreamRequest(server string, params *FocusaEventsStreamParam
 		if params.Cursor != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "cursor", *params.Cursor, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.ProjectRoot != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", *params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.ContinuityId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", *params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.AttachmentId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", *params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.SessionId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "session_id", *params.SessionId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.WorkSurfaceId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "work_surface_id", *params.WorkSurfaceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {

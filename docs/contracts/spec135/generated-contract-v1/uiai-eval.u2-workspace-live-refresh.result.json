@@ -1,0 +1,94 @@
+{
+  "schema": "uiai.focusa_ui_eval_result.v1",
+  "scenario_id": "spec135-u2-workspace-live-refresh",
+  "status": "passed",
+  "browser_session_refs": ["uiai-browser:session=HhzgDPCj"],
+  "browser_context_refs": [
+    "focusa-cont-mission-canvas-57e8c074-539f-44a2-86f6-527b478f9d80",
+    "attachment:u2-surface-a",
+    "surface:u2-a"
+  ],
+  "step_results": [
+    {
+      "step_id": "open",
+      "status": "passed",
+      "result": "UIAI opened the generated Workspace live-refresh surface at 1440x1000 with an exact-scope SSE connection.",
+      "evidence_refs": ["uiai-browser:session=HhzgDPCj"]
+    },
+    {
+      "step_id": "link",
+      "status": "passed",
+      "result": "The generated action linked one stable artifact through revision 2; the subscribed surface rendered revision 2.",
+      "evidence_refs": [
+        "workspace-artifact:92d9bfda7fb1e346886b6bfa",
+        "019f837b-5e71-7981-b316-2469df2b0e2a",
+        "019f837b-620e-7ac3-a6cf-9dcb12c0026b"
+      ]
+    },
+    {
+      "step_id": "reconnect",
+      "status": "passed",
+      "result": "The client disconnected after cursor 9, replayed the missed revision at cursor 10, tolerated duplicates, and waited for state_version 10 before refetching.",
+      "evidence_refs": ["uiai-browser:session=HhzgDPCj", "cursor:10"]
+    },
+    {
+      "step_id": "suppress",
+      "status": "passed",
+      "result": "The Attachment B event at durable sequence 11 was excluded by the Attachment A stream and surfaceBRenders remained zero.",
+      "evidence_refs": ["019f837b-653d-7510-b75a-820ef36b63e9", "attachment:u2-surface-b"]
+    },
+    {
+      "step_id": "mobile",
+      "status": "passed",
+      "result": "At 390x844, scrollWidth remained 390 and the primary action remained 324 pixels wide.",
+      "evidence_refs": ["uiai-screenshot:HhzgDPCj-1784617382787832000.png"]
+    },
+    {
+      "step_id": "diagnostics",
+      "status": "passed",
+      "result": "Final diagnostics had zero console errors, zero exceptions, zero HTTP 4xx, and zero HTTP 5xx; three status-200 ERR_ABORTED records were expected client-owned SSE closes during reconnect and completion.",
+      "evidence_refs": ["uiai-diagnostics:session=HhzgDPCj:seq=20"]
+    },
+    {
+      "step_id": "close",
+      "status": "passed",
+      "result": "The client closed its final stream; the UIAI page and temporary proof processes are independently disposable.",
+      "evidence_refs": ["uiai-browser:session=HhzgDPCj"]
+    }
+  ],
+  "screenshots": [
+    "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/HhzgDPCj-1784617348806319000.png",
+    "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/HhzgDPCj-1784617382787832000.png"
+  ],
+  "diagnostics": [
+    {
+      "level": "info",
+      "category": "runtime",
+      "summary": "Generated UI completed at cursor 10 with two Attachment A renders, zero Attachment B renders, two reconnects, and zero duplicate applications.",
+      "diagnostics_ref": "uiai-diagnostics:session=HhzgDPCj:seq=20"
+    },
+    {
+      "level": "info",
+      "category": "network",
+      "summary": "Zero HTTP 4xx/5xx and zero unexpected failures; three status-200 ERR_ABORTED records were intentional SSE closes during reconnect and completion.",
+      "diagnostics_ref": "uiai-diagnostics:session=HhzgDPCj:seq=20"
+    },
+    {
+      "level": "info",
+      "category": "console",
+      "summary": "No console errors, warnings, or uncaught exceptions occurred in the final evaluation window.",
+      "diagnostics_ref": "uiai-diagnostics:session=HhzgDPCj:seq=20"
+    }
+  ],
+  "visual_comparison_refs": [
+    "uiai-screenshot:HhzgDPCj-1784617348806319000.png",
+    "uiai-screenshot:HhzgDPCj-1784617382787832000.png"
+  ],
+  "focusa_evidence_refs": [
+    "evidence:workspace-live-refresh:u2-generated-ui",
+    "uiai-diagnostics:session=HhzgDPCj:seq=20"
+  ],
+  "receipt_refs": ["receipt:workspace-artifact:f0bf652937f4609bd4fef64f"],
+  "accessibility_report_ref": "UIAI deep shadow traversal confirmed a 324px mobile primary action and aria-live completion status",
+  "evaluated_at": "2026-07-21T07:02:28Z"
+}

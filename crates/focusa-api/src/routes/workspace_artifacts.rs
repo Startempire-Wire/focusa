@@ -12,7 +12,7 @@ use focusa_core::{
         Action, FocusaEvent, WorkspaceArtifactContent, WorkspaceArtifactEvidenceStatus,
         WorkspaceArtifactOrigin, WorkspaceArtifactRecord, WorkspaceArtifactRender,
         WorkspaceArtifactRetention, WorkspaceArtifactScope, WorkspaceArtifactSemantic,
-        WorkspaceArtifactSource, WorkspaceArtifactTrust,
+        WorkspaceArtifactSource, WorkspaceArtifactTrust, WorkspaceEventRecord, WorkspaceEventType,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -525,12 +525,50 @@ async fn intake(
         artifact.revision = existing.revision + 1;
         artifact.linked_at = existing.linked_at;
     }
+    let mut invalidate = vec![
+        format!("workspace.artifacts:{}", artifact.origin.attachment_id),
+        format!("workspace.history:{}", artifact.origin.attachment_id),
+    ];
+    if let Some(surface_id) = artifact.origin.work_surface_id.as_deref() {
+        invalidate.push(format!("mission_canvas.surface_detail:{surface_id}"));
+    }
+    if matches!(artifact.artifact_kind.as_str(), "markdown" | "document") {
+        invalidate.push("workspace.sidebar.research".into());
+    } else {
+        invalidate.push("workspace.sidebar.proof".into());
+    }
+    if artifact.scope.workpoint_id.is_some() {
+        invalidate.push("workpoint.current".into());
+    }
+    invalidate.sort();
+    invalidate.dedup();
+    let workspace_event = WorkspaceEventRecord {
+        schema: "focusa.workspace_event.v1".into(),
+        event: WorkspaceEventType::WorkspaceArtifactLinked,
+        project_root: artifact.scope.project_root.clone(),
+        continuity_id: artifact.scope.continuity_id.clone(),
+        workpoint_id: artifact.scope.workpoint_id.clone(),
+        instance_id: artifact.origin.instance_id.clone(),
+        session_id: artifact.origin.focusa_session_id.clone(),
+        attachment_id: artifact.origin.attachment_id.clone(),
+        work_surface_id: artifact.origin.work_surface_id.clone(),
+        uiai_session_id: artifact.origin.uiai_session_id.clone(),
+        browser_context_id: artifact.origin.browser_context_id.clone(),
+        browser_target_id: artifact.origin.browser_target_id.clone(),
+        artifact_id: artifact.artifact_id.clone(),
+        artifact_kind: artifact.artifact_kind.clone(),
+        source_state_revision: snapshot.version + 1,
+        payload_ref: artifact.artifact_id.clone(),
+        invalidate,
+        semantic_authority: false,
+    };
     drop(_writer);
     state
         .command_tx
         .send(Action::EmitEvent {
             event: FocusaEvent::WorkspaceArtifactLinked {
                 artifact: artifact.clone(),
+                workspace_event: Some(workspace_event),
             },
         })
         .await

@@ -11,11 +11,30 @@ const mime = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; cha
 createServer((incoming, outgoing) => {
   const url = new URL(incoming.url ?? "/", `http://${incoming.headers.host ?? "localhost"}`);
   if (url.pathname.startsWith("/v1/")) {
+    if (incoming.method === "OPTIONS" && url.pathname === "/v1/events/stream") {
+      outgoing.writeHead(204, {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET, OPTIONS",
+        "access-control-allow-headers": "bypass-tunnel-reminder",
+        "access-control-max-age": "86400",
+      });
+      outgoing.end();
+      return;
+    }
     const upstream = request(new URL(url.pathname + url.search, api), {
       method: incoming.method,
       headers: { ...incoming.headers, host: api.host },
     }, (response) => {
-      outgoing.writeHead(response.statusCode ?? 502, response.headers);
+      const headers = { ...response.headers };
+      if (String(headers["content-type"] ?? "").startsWith("text/event-stream")) {
+        headers["cache-control"] = "no-cache, no-transform";
+        headers["x-accel-buffering"] = "no";
+        headers["content-encoding"] = "identity";
+        headers["access-control-allow-origin"] = "*";
+        delete headers["content-length"];
+      }
+      outgoing.writeHead(response.statusCode ?? 502, headers);
+      outgoing.flushHeaders();
       response.pipe(outgoing);
     });
     upstream.on("error", (error) => {
