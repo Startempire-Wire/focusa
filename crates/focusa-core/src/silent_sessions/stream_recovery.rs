@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use super::{
-    OutputChannel, SecureStreamStore, SilentSessionId, SilentSessionRunId, StreamChunkManifest,
-    StreamStorageError,
+    MigrationMode, OutputChannel, SecureStreamStore, SilentSessionId, SilentSessionRunId,
+    StreamChunkManifest, StreamStorageError, migrate_silent_session_schema,
     secure_fs::{create_secure_descendants, secure_read},
 };
 
@@ -44,6 +44,13 @@ impl SecureStreamStore {
         session_id: SilentSessionId,
         run_id: SilentSessionRunId,
     ) -> Result<StreamRecoveryReport, StreamStorageError> {
+        let migration = migrate_silent_session_schema(&self.persistence, MigrationMode::DryRun)?;
+        if migration.previous_version != migration.target_version {
+            return Err(anyhow::anyhow!(
+                "silent session schema migration required before recovery audit"
+            )
+            .into());
+        }
         let run_root = self
             .root
             .join(session_id.to_string())

@@ -7,6 +7,7 @@ pub mod completion_artifacts;
 pub mod config;
 pub mod event_protocol;
 pub mod identity;
+pub mod legacy_import;
 pub mod persistence_records;
 pub mod persistence_sqlite;
 mod secure_fs;
@@ -21,6 +22,7 @@ pub use completion_artifacts::*;
 pub use config::*;
 pub use event_protocol::*;
 pub use identity::*;
+pub use legacy_import::*;
 pub use persistence_records::*;
 pub use persistence_sqlite::*;
 pub use state_machine::*;
@@ -30,6 +32,8 @@ pub use stream_rotation::*;
 pub use stream_storage::*;
 pub use types::*;
 
+#[cfg(test)]
+mod legacy_import_test;
 #[cfg(test)]
 mod persistence_sqlite_test;
 #[cfg(test)]
