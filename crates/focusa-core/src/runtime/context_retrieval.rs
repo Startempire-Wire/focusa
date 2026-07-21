@@ -30,17 +30,12 @@ static SQLITE_VEC_REGISTER: Once = Once::new();
 #[cfg(feature = "context-vector-fastembed")]
 static FASTEMBED_MODEL: OnceLock<Result<Mutex<TextEmbedding>, String>> = OnceLock::new();
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ContextRetrievalMode {
     Lexical,
+    #[default]
     Hybrid,
-}
-
-impl Default for ContextRetrievalMode {
-    fn default() -> Self {
-        Self::Hybrid
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -516,8 +511,15 @@ struct ChunkDraft {
 
 fn register_sqlite_vec() {
     SQLITE_VEC_REGISTER.call_once(|| unsafe {
-        rusqlite::ffi::sqlite3_auto_extension(Some(std::mem::transmute(
-            sqlite_vec::sqlite3_vec_init as *const (),
+        rusqlite::ffi::sqlite3_auto_extension(Some(std::mem::transmute::<
+            *const (),
+            unsafe extern "C" fn(
+                *mut rusqlite::ffi::sqlite3,
+                *mut *mut std::ffi::c_char,
+                *const rusqlite::ffi::sqlite3_api_routines,
+            ) -> std::ffi::c_int,
+        >(
+            sqlite_vec::sqlite3_vec_init as *const ()
         )));
     });
 }

@@ -1,0 +1,34 @@
+//! Canonical Spec 133 Silent Session domain contracts.
+//!
+//! This module contains typed, versioned facts only. Reducer transitions,
+//! persistence, process supervision, adapters, and I/O live in later layers.
+
+pub mod completion_artifacts;
+pub mod config;
+pub mod event_protocol;
+pub mod identity;
+pub mod persistence_records;
+pub mod persistence_sqlite;
+mod secure_fs;
+pub mod state_machine;
+pub mod stream_codec;
+pub mod stream_rotation;
+pub mod stream_storage;
+pub mod types;
+
+pub use completion_artifacts::*;
+pub use config::*;
+pub use event_protocol::*;
+pub use identity::*;
+pub use persistence_records::*;
+pub use persistence_sqlite::*;
+pub use state_machine::*;
+pub use stream_codec::*;
+pub use stream_rotation::*;
+pub use stream_storage::*;
+pub use types::*;
+
+#[cfg(test)]
+mod persistence_sqlite_test;
+#[cfg(test)]
+mod stream_storage_test;
