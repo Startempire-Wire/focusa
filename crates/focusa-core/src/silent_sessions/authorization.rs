@@ -65,6 +65,7 @@ pub enum SilentSessionAction {
     Resume,
     Interrupt,
     Cancel,
+    Restart,
     ReviseConfig,
     RollbackConfig,
     Adopt,
@@ -78,9 +79,12 @@ impl SilentSessionAction {
             Self::List | Self::Show => SilentSessionRouteScope::Read,
             Self::FollowStream => SilentSessionRouteScope::Stream,
             Self::Create | Self::Preflight | Self::Start => SilentSessionRouteScope::Create,
-            Self::SendInput | Self::Pause | Self::Resume | Self::Interrupt | Self::Cancel => {
-                SilentSessionRouteScope::Control
-            }
+            Self::SendInput
+            | Self::Pause
+            | Self::Resume
+            | Self::Interrupt
+            | Self::Cancel
+            | Self::Restart => SilentSessionRouteScope::Control,
             Self::ReviseConfig | Self::RollbackConfig => SilentSessionRouteScope::Config,
             Self::Adopt | Self::ForceKill => SilentSessionRouteScope::Admin,
             Self::ReadRawForensics => SilentSessionRouteScope::Forensics,
@@ -94,6 +98,7 @@ impl SilentSessionAction {
                 | Self::SendInput
                 | Self::Interrupt
                 | Self::Cancel
+                | Self::Restart
                 | Self::ReviseConfig
                 | Self::RollbackConfig
                 | Self::Adopt
@@ -332,6 +337,7 @@ fn requires_writer(action: SilentSessionAction) -> bool {
         action,
         SilentSessionAction::Start
             | SilentSessionAction::SendInput
+            | SilentSessionAction::Restart
             | SilentSessionAction::ReviseConfig
             | SilentSessionAction::RollbackConfig
     )

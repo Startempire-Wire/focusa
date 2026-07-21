@@ -309,7 +309,7 @@ pub fn append_reducer_event_and_project(
     event: &mut SilentSessionEvent,
     projection: &SilentSession,
 ) -> anyhow::Result<AppendOutcome> {
-    append_event_projection_and_revision(persistence, event, projection, None, None)
+    append_event_projection_and_revision(persistence, event, projection, None, None, None)
 }
 
 pub fn append_create_event_and_project(
@@ -331,7 +331,41 @@ pub fn append_create_event_and_project(
     {
         anyhow::bail!("initial run does not match the created session projection");
     }
-    append_event_projection_and_revision(persistence, event, projection, Some(revision), Some(run))
+    append_event_projection_and_revision(
+        persistence,
+        event,
+        projection,
+        Some(revision),
+        Some(run),
+        None,
+    )
+}
+
+pub fn append_restart_event_and_project(
+    persistence: &SqlitePersistence,
+    event: &mut SilentSessionEvent,
+    projection: &SilentSession,
+    previous_run: &SilentSessionRun,
+    next_run: &SilentSessionRun,
+) -> anyhow::Result<AppendOutcome> {
+    if previous_run.silent_session_id != projection.id
+        || next_run.silent_session_id != projection.id
+        || previous_run.ended_at.is_none()
+        || previous_run.generation.next()? != next_run.generation
+        || next_run.generation != projection.current_run_generation
+        || next_run.config_revision_id != projection.active_config_revision_id
+        || event.run_id != Some(next_run.id)
+    {
+        anyhow::bail!("restart runs do not match the rolled-over session projection");
+    }
+    append_event_projection_and_revision(
+        persistence,
+        event,
+        projection,
+        None,
+        Some(next_run),
+        Some(previous_run),
+    )
 }
 
 fn append_event_projection_and_revision(
@@ -339,7 +373,8 @@ fn append_event_projection_and_revision(
     event: &mut SilentSessionEvent,
     projection: &SilentSession,
     revision: Option<&SilentSessionConfigRevision>,
-    run: Option<&SilentSessionRun>,
+    run_to_insert: Option<&SilentSessionRun>,
+    run_to_update: Option<&SilentSessionRun>,
 ) -> anyhow::Result<AppendOutcome> {
     if event.silent_session_id != projection.id {
         anyhow::bail!("event and projection silent_session_id mismatch");
@@ -408,7 +443,20 @@ fn append_event_projection_and_revision(
                 ],
             )?;
         }
-        if let Some(run) = run {
+        if let Some(run) = run_to_update {
+            let changed = transaction.execute(
+                "UPDATE silent_session_runs SET run_json=?1,ended_at=?2 WHERE run_id=?3",
+                params![
+                    serde_json::to_string(run)?,
+                    run.ended_at.map(|value| value.to_rfc3339()),
+                    run.id.to_string(),
+                ],
+            )?;
+            if changed != 1 {
+                anyhow::bail!("previous restart run does not exist");
+            }
+        }
+        if let Some(run) = run_to_insert {
             transaction.execute(
                 r#"INSERT INTO silent_session_runs(
                    run_id,silent_session_id,run_generation,actor_instance_id,config_revision_id,

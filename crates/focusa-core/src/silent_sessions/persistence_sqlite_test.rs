@@ -12,9 +12,10 @@ use crate::{
         ModelSelectionPolicy, NativeResumePolicy, ProtocolVersions, RunGeneration,
         RuntimeCheckpoint, RuntimeCheckpointId, SilentSession, SilentSessionAuthority,
         SilentSessionConfig, SilentSessionConfigRevision, SilentSessionEvent, SilentSessionEventId,
-        SilentSessionLease, SilentSessionLeaseId, SilentSessionRun, SilentSessionRunId,
-        SilentSessionWorkpointCheckpoint, WorkpointCheckpointId, append_create_event_and_project,
-        append_reducer_event_and_project, list_sessions, load_completion_evaluation,
+        SilentSessionLease, SilentSessionLeaseId, SilentSessionLifecycle, SilentSessionRun,
+        SilentSessionRunId, SilentSessionWorkpointCheckpoint, WorkpointCheckpointId,
+        append_create_event_and_project, append_reducer_event_and_project,
+        append_restart_event_and_project, list_sessions, load_completion_evaluation,
         load_config_revision, load_lease, load_run, load_runtime_checkpoint, load_session,
         load_session_by_idempotency_key, load_session_events, load_workpoint_checkpoint,
         migrate_silent_session_schema, save_completion_evaluation, save_config_revision,
@@ -254,7 +255,7 @@ fn reducer_event_and_projection_are_atomic_and_idempotent() {
 #[test]
 fn create_projection_revision_and_event_commit_atomically() {
     let (_dir, persistence) = persistence();
-    let projection = session();
+    let mut projection = session();
     let revision = SilentSessionConfigRevision {
         config_schema_version: 1,
         id: projection.active_config_revision_id,
@@ -291,12 +292,51 @@ fn create_projection_revision_and_event_commit_atomically() {
         load_config_revision(&persistence, revision.id).unwrap(),
         Some(revision)
     );
-    assert_eq!(load_run(&persistence, run.id).unwrap(), Some(run));
+    assert_eq!(load_run(&persistence, run.id).unwrap(), Some(run.clone()));
     assert_eq!(
         load_session_by_idempotency_key(&persistence, &first.idempotency_key)
             .unwrap()
             .unwrap(),
-        (projection, first.payload.clone())
+        (projection.clone(), first.payload.clone())
+    );
+
+    let now = projection.updated_at + chrono::Duration::seconds(1);
+    let mut previous_run = run.clone();
+    previous_run.ended_at = Some(now);
+    let next_run = SilentSessionRun {
+        silent_session_schema_version: 1,
+        id: SilentSessionRunId::new(),
+        silent_session_id: projection.id,
+        generation: run.generation.next().unwrap(),
+        actor_instance_id: ActorInstanceId::new(),
+        config_revision_id: run.config_revision_id,
+        protocol_versions: run.protocol_versions.clone(),
+        started_at: now,
+        ended_at: None,
+    };
+    projection.lifecycle = SilentSessionLifecycle::Draft;
+    projection.current_run_generation = next_run.generation;
+    projection.updated_at = now;
+    let mut restart_event = event(&projection, 2, Some(first.event_hash.clone()));
+    restart_event.idempotency_key = "restart-1".into();
+    restart_event.kind = "restart_requested".into();
+    restart_event.run_id = Some(next_run.id);
+    assert_eq!(
+        append_restart_event_and_project(
+            &persistence,
+            &mut restart_event,
+            &projection,
+            &previous_run,
+            &next_run,
+        )
+        .unwrap(),
+        AppendOutcome::Appended
+    );
+    assert_eq!(load_run(&persistence, run.id).unwrap(), Some(previous_run));
+    assert_eq!(load_run(&persistence, next_run.id).unwrap(), Some(next_run));
+    assert_eq!(
+        load_session(&persistence, projection.id).unwrap(),
+        Some(projection)
     );
 
     let rejected = session();
