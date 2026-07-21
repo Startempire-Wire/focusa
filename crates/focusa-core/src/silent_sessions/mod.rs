@@ -4,6 +4,7 @@
 //! persistence, process supervision, adapters, and I/O live in later layers.
 
 pub mod authorization;
+pub mod authorization_persistence;
 pub mod completion_artifacts;
 pub mod config;
 pub mod config_resolution;
@@ -23,6 +24,7 @@ pub mod stream_storage;
 pub mod types;
 
 pub use authorization::*;
+pub use authorization_persistence::*;
 pub use completion_artifacts::*;
 pub use config::*;
 pub use config_resolution::*;

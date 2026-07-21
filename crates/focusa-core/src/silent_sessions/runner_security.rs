@@ -6,8 +6,8 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 use super::{
-    ApprovalId, AuthorizationDecision, RunnerCommandId, SilentSessionAction, SilentSessionId,
-    SilentSessionRunId,
+    ApprovalId, AuthorizationDecision, ControlAuditId, RunnerCommandId, SilentSessionAction,
+    SilentSessionId, SilentSessionRunId,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -135,6 +135,8 @@ impl AuthenticatedRunnerCommand {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ControlAuditInput {
+    pub audit_id: ControlAuditId,
+    pub occurred_at: DateTime<Utc>,
     pub actor: String,
     pub action: SilentSessionAction,
     pub project_root: String,
@@ -148,6 +150,8 @@ pub struct ControlAuditInput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct RedactedControlAuditRecord {
+    pub audit_id: ControlAuditId,
+    pub occurred_at: DateTime<Utc>,
     pub actor: String,
     pub action: SilentSessionAction,
     pub project_root: String,
@@ -164,6 +168,8 @@ pub fn redact_control_audit(input: ControlAuditInput) -> RedactedControlAuditRec
     let mut classes = BTreeSet::new();
     let redacted_details = redact_value(None, input.details, &mut classes);
     RedactedControlAuditRecord {
+        audit_id: input.audit_id,
+        occurred_at: input.occurred_at,
         actor: input.actor,
         action: input.action,
         project_root: input.project_root,

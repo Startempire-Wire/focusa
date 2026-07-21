@@ -88,6 +88,8 @@ fn runner_command_tampering_fails_authentication() {
 #[test]
 fn control_audit_preserves_facts_and_redacts_all_secret_classes() {
     let input = ControlAuditInput {
+        audit_id: ControlAuditId::new(),
+        occurred_at: Utc::now(),
         actor: "actor:proof".into(),
         action: SilentSessionAction::ReviseConfig,
         project_root: "/srv/focusa".into(),

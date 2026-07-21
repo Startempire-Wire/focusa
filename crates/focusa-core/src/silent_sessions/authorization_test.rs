@@ -2,7 +2,19 @@ use std::collections::BTreeSet;
 
 use chrono::{Duration, Utc};
 
-use crate::silent_sessions::*;
+use crate::{
+    runtime::persistence_sqlite::SqlitePersistence, silent_sessions::*, types::FocusaConfig,
+};
+
+fn persistence() -> SqlitePersistence {
+    let dir = std::env::temp_dir().join(format!("focusa-auth-{}", uuid::Uuid::now_v7()));
+    std::fs::create_dir_all(&dir).unwrap();
+    SqlitePersistence::new(&FocusaConfig {
+        data_dir: dir.to_string_lossy().into_owned(),
+        ..FocusaConfig::default()
+    })
+    .unwrap()
+}
 
 fn request(action: SilentSessionAction) -> SilentSessionAuthorizationRequest {
     SilentSessionAuthorizationRequest {
@@ -161,6 +173,71 @@ fn cross_user_streams_are_denied_and_admin_views_are_redacted() {
 
     show.action = SilentSessionAction::FollowStream;
     assert!(!authorize_silent_session_action(&show).allowed);
+}
+
+#[test]
+fn principals_approvals_audits_and_runner_nonces_are_durable() {
+    let persistence = persistence();
+    let now = Utc::now();
+    let mut input = request(SilentSessionAction::SendInput);
+    approve(&mut input);
+    save_authorization_principal(&persistence, &input.principal, now).unwrap();
+    let approval = input.approval.clone().unwrap();
+    save_durable_approval(&persistence, &approval).unwrap();
+    assert_eq!(
+        load_authorization_principal(&persistence, &input.principal.principal_id).unwrap(),
+        Some(input.principal.clone())
+    );
+    assert_eq!(
+        load_durable_approval(&persistence, approval.approval_id).unwrap(),
+        Some(approval)
+    );
+
+    let audit = redact_control_audit(ControlAuditInput {
+        audit_id: ControlAuditId::new(),
+        occurred_at: now,
+        actor: input.principal.actor.clone(),
+        action: input.action,
+        project_root: input.target.project_root.clone(),
+        continuity_id: input.target.continuity_id.clone(),
+        session_id: input.target.session_id,
+        run_id: input.target.run_id,
+        approval_id: input.approval.as_ref().map(|record| record.approval_id),
+        decision: authorize_silent_session_action(&input),
+        details: serde_json::json!({"authorization":"Bearer must-not-persist"}),
+    });
+    append_redacted_control_audit(&persistence, &audit).unwrap();
+    let loaded = load_redacted_control_audit(&persistence, audit.audit_id)
+        .unwrap()
+        .unwrap();
+    assert_eq!(loaded, audit);
+    assert!(
+        !serde_json::to_string(&loaded)
+            .unwrap()
+            .contains("must-not-persist")
+    );
+
+    let runner = RunnerIdentity {
+        principal_id: "runner:proof".into(),
+        os_user: "wirebot".into(),
+        socket_scope: "uid:proof".into(),
+    };
+    let command = AuthenticatedRunnerCommand::issue(
+        RunnerCommandClaims {
+            session_id: input.target.session_id.unwrap(),
+            run_id: input.target.run_id.unwrap(),
+            runner,
+            action_digest: action_digest(&input),
+            nonce: "nonce:durable".into(),
+            issued_at: now,
+            expires_at: now + Duration::minutes(1),
+        },
+        b"payload",
+        b"key",
+    )
+    .unwrap();
+    assert!(consume_runner_nonce(&persistence, &command, now).unwrap());
+    assert!(!consume_runner_nonce(&persistence, &command, now).unwrap());
 }
 
 #[test]
