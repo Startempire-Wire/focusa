@@ -78,6 +78,28 @@ fn route_scope(method: &Method, path: &str) -> &'static str {
     if is_preauth_pairing_route(method, path) {
         return "public:pairing";
     }
+    if path.starts_with("/v1/silent-sessions") {
+        if path.contains("/config/") || path.ends_with("/config/resolve") {
+            return "silent_sessions:config";
+        }
+        if method == Method::GET {
+            return if path.ends_with("/events") || path.ends_with("/output") {
+                "silent_sessions:stream"
+            } else {
+                "silent_sessions:read"
+            };
+        }
+        if path.ends_with("/adopt") {
+            return "silent_sessions:admin";
+        }
+        if path == "/v1/silent-sessions"
+            || path == "/v1/silent-sessions/preflight"
+            || path.ends_with("/start")
+        {
+            return "silent_sessions:create";
+        }
+        return "silent_sessions:control";
+    }
     if path.starts_with("/v1/workpoint/") {
         return if method == Method::GET || path.ends_with("/resume") || path.ends_with("/status") {
             "workpoint:read"
@@ -208,6 +230,34 @@ mod tests {
         assert_eq!(
             route_scope(&Method::POST, "/v1/telemetry/trace"),
             "telemetry:write"
+        );
+    }
+
+    #[test]
+    fn silent_session_routes_use_exact_spec133_scopes() {
+        assert_eq!(
+            route_scope(&Method::GET, "/v1/silent-sessions"),
+            "silent_sessions:read"
+        );
+        assert_eq!(
+            route_scope(&Method::GET, "/v1/silent-sessions/id/events"),
+            "silent_sessions:stream"
+        );
+        assert_eq!(
+            route_scope(&Method::POST, "/v1/silent-sessions/preflight"),
+            "silent_sessions:create"
+        );
+        assert_eq!(
+            route_scope(&Method::POST, "/v1/silent-sessions/id/input"),
+            "silent_sessions:control"
+        );
+        assert_eq!(
+            route_scope(&Method::POST, "/v1/silent-sessions/id/config/revisions"),
+            "silent_sessions:config"
+        );
+        assert_eq!(
+            route_scope(&Method::POST, "/v1/silent-sessions/id/adopt"),
+            "silent_sessions:admin"
         );
     }
 
