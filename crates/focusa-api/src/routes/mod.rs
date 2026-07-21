@@ -54,6 +54,7 @@ pub mod session;
 pub mod silent_sessions;
 pub mod silent_sessions_contract;
 pub mod silent_sessions_create;
+pub mod silent_sessions_lifecycle;
 pub mod skills;
 pub mod snapshots;
 pub mod sse;
