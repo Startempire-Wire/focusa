@@ -65,6 +65,10 @@ pub fn router() -> Router<Arc<AppState>> {
             "/v1/silent-sessions/{session_id}/restart",
             post(super::silent_sessions_restart::restart),
         )
+        .route(
+            "/v1/silent-sessions/{session_id}/adopt",
+            post(super::silent_sessions_adopt::adopt),
+        )
 }
 
 async fn list(State(state): State<Arc<AppState>>, headers: HeaderMap) -> ApiResponse {
@@ -283,7 +287,9 @@ pub(super) fn authorized_projection(
     let administrator = principal.role == SilentSessionRole::Administrator;
     let creator = !session.creator_principal_id.is_empty()
         && session.creator_principal_id == principal.principal_id;
-    let permission = creator || administrator;
+    let controller = !session.controller_principal_id.is_empty()
+        && session.controller_principal_id == principal.principal_id;
+    let permission = creator || controller || administrator;
     let target = AuthorizationTarget {
         project_root: session.authority.project_root.clone(),
         continuity_id: session.authority.continuity_id.clone(),
@@ -459,6 +465,7 @@ mod tests {
     fn legacy_unknown_owner_never_receives_full_projection() {
         let mut session = owned_session("wirebot");
         session.creator_principal_id.clear();
+        session.controller_principal_id.clear();
         session.owner_os_user.clear();
         let value = authorized_projection(
             &request_principal(SilentSessionRole::Administrator, "root"),

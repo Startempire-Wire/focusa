@@ -52,6 +52,7 @@ pub mod resource;
 pub mod rfm;
 pub mod session;
 pub mod silent_sessions;
+pub mod silent_sessions_adopt;
 pub mod silent_sessions_contract;
 pub mod silent_sessions_control;
 pub mod silent_sessions_create;
