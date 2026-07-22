@@ -1,0 +1,33 @@
+{
+  "schema": "focusa.spec135_alpha3_spec_task_proof.v1",
+  "requirement_id": "SPEC135-ALPHA3",
+  "status": "passed",
+  "acceptance": "An operator-approved Spec 120 asset produces an approved provider-neutral DAG and materializes stable dependency-linked tasks into canonical parent Beads JSONL.",
+  "composition": [
+    {"requirement": "SPEC135-ST1", "proof": "spec135-st1-spec-workbench-proof.json", "result": "final-approved grounded Spec with adversarial and operator gates"},
+    {"requirement": "SPEC135-P1", "proof": "spec135-p1-provider-conformance-proof.json", "result": "provider governance cannot bypass scope, permission, idempotency, registry, or Receipt"},
+    {"requirement": "SPEC135-ST2", "proof": "spec135-st2-task-plan-proof.json", "result": "approved acyclic DAG preserves requirement, section, acceptance, dependency, and proof links"},
+    {"requirement": "SPEC135-ST3", "proof": "spec135-st3-task-materialization-proof.json", "result": "canonical parent JSONL receives deterministic prefixed IDs and exact provider dependency/external refs"}
+  ],
+  "shared_beads_authority": {
+    "ledger": "/Volumes/Macintosh HD/Users/vsmith/focusa/.beads/issues.jsonl",
+    "feeder_chain": ["focusa-mc-st1", "focusa-mc-p1", "focusa-mc-st2", "focusa-mc-st3", "focusa-mc-alpha3"],
+    "verified_links": ["focusa-mc-st2 blocks on focusa-mc-st1 and focusa-mc-p1", "focusa-mc-st3 blocks on focusa-mc-st2", "focusa-mc-alpha3 blocks on focusa-mc-alpha2 and focusa-mc-st3"],
+    "worktree_local_database_created": false
+  },
+  "remote_validation": {
+    "github_run": "29954553869",
+    "rust_job": "passed",
+    "st3_e2e_job": "89040206095",
+    "st3_e2e_result": "Spec 135 ST3 canonical parent Beads materialization E2E: PASS",
+    "collision_and_replay": ["foreign stable-ID collision rejected", "same idempotency key replayed without duplicate JSONL rows", "restart retained canonical materialization record"]
+  },
+  "uiai_eval": {
+    "spec_workbench": "uiai-eval.st1-spec-workbench.result.json",
+    "task_preview_and_approval": "uiai-eval.st2-task-plan.result.json",
+    "diagnostics": "zero console errors, exceptions, failed requests, 4xx, or 5xx on both browser-facing feeder surfaces",
+    "materialization_posture": "provider mutation is API-owned; generated materialization projection is static-linted and the mutation itself is remote-E2E validated"
+  },
+  "receipts": ["Spec Workbench revision Receipts", "task-plan preview/approval Receipts", "task_materialization Receipt"],
+  "closure_receipt": "receipt:spec135-alpha3:st1-p1-st2-st3"
+}

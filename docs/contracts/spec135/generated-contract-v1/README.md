@@ -89,3 +89,8 @@ restart exactness, and a strict no-materialization-before-approval boundary.
 materialization: stable worktree-prefixed IDs, exact dependency/external refs,
 JSONL-only enforcement, collision rejection, idempotent replay, Evidence, and
 Receipts. Runtime/release proof is delegated to the remote validation server.
+
+`spec135-alpha3-spec-task-proof.json` composes the real Spec 120 cycle through
+provider-neutral plan approval and canonical parent-Beads materialization,
+including shared-ledger dependency parity, remote Rust/E2E proof, UIAI feeder
+Eval, Evidence, and the Alpha 3 closure Receipt.
