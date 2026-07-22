@@ -95,6 +95,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
         with:
           toolchain: nightly-2026-01-08
+      - name: Install Pi extension runtime dependencies
+        working-directory: apps/pi-extension
+        run: npm ci --ignore-scripts
       - name: Install CI deps
         run: |
           sudo apt-get update
