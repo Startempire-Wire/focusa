@@ -9,6 +9,8 @@ API="$ROOT/crates/focusa-api/src/routes/update.rs"
 API_MOD="$ROOT/crates/focusa-api/src/routes/mod.rs"
 API_SERVER="$ROOT/crates/focusa-api/src/server.rs"
 SPEC="$ROOT/docs/128-focusa-over-the-air-auto-update-and-dev-mode-license-spec.md"
+INSTALLER="$ROOT/scripts/install-focusa.sh"
+RELEASE_WORKFLOW="$ROOT/.github/workflows/release.yml"
 
 if ! command -v rg >/dev/null 2>&1; then
   rg() { grep -E "$@"; }
@@ -63,5 +65,8 @@ rg -q 'refresh_auto_apply_authority|dev_mode|UpdatePolicyParts' "$API" || fail "
 rg -q 'cli|daemon|tui' "$API" || fail "API inventory must include CLI/daemon/TUI"
 rg -q 'focusa update status --json|focusa update check --channel dev --json|focusa update plan --tag latest --json|focusa update status' "$SPEC" || fail "Spec128 update CLI/plan surface missing"
 rg -q 'dev_mode.*automatic|evaluation notify-only|update policy' "$SPEC" || fail "Spec128 policy/dev_mode requirements missing"
+rg -q 'FOCUSA_INSTALLER_VERSION|--version' "$INSTALLER" || fail "installer lacks safe version surface"
+rg -q 'focusa-installer-.*\.sh' "$RELEASE_WORKFLOW" || fail "release workflow lacks signed installer asset"
+rg -q 'part: "installer"|release_asset_unavailable' "$SRC" || fail "updater lacks installer asset inventory/gate"
 
 pass "Spec128 update inventory, guarded apply, mutable policy, and automatic authority surfaces present"

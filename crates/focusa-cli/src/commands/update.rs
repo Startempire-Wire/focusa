@@ -2201,10 +2201,13 @@ fn path_is_git_managed(path: &str) -> bool {
 }
 
 fn part_plan(part: &InstalledPart, latest: &LatestVersion, order: &mut u8) -> PartPlan {
+    let release_asset_available = latest.assets.iter().any(|asset| asset.part == part.part);
     let externally_managed = part.part == "menubar"
         || (part.part == "pi_extension"
             && path_is_git_managed(part.resolved_path.as_deref().unwrap_or(&part.expected_path)));
-    let action = if externally_managed {
+    let action = if part.part == "installer" && !release_asset_available {
+        "release_asset_unavailable"
+    } else if externally_managed {
         if !part.exists {
             "not_installed"
         } else {
@@ -2422,6 +2425,15 @@ fn build_latest_from_release(
         download_url: pi_extension.browser_download_url.clone(),
         sha256: None,
     });
+    let installer_name = format!("focusa-installer-{tag}.sh");
+    if let Some(installer) = release.assets.iter().find(|asset| asset.name == installer_name) {
+        assets.push(ReleaseAssetRef {
+            part: "installer",
+            name: installer_name,
+            download_url: installer.browser_download_url.clone(),
+            sha256: None,
+        });
+    }
     let sha256sums_present = release
         .assets
         .iter()
@@ -2948,21 +2960,30 @@ fn inspect_pi_extension(latest: &str) -> InstalledPart {
     )
 }
 
-fn inspect_installer(_latest: &str) -> InstalledPart {
+fn inspect_installer(latest: &str) -> InstalledPart {
     let expected = std::env::var_os("FOCUSA_INSTALLER_PATH")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("/usr/local/lib/focusa/install-focusa.sh"));
     let exists = expected.is_file();
+    let version = exists
+        .then(|| std::process::Command::new(&expected).arg("--version").output().ok())
+        .flatten()
+        .filter(|output| output.status.success())
+        .map(|output| normalize_version(&String::from_utf8_lossy(&output.stdout)))
+        .filter(|version| !version.is_empty());
+    let stale = version
+        .as_deref()
+        .map(|current| normalize_version(current) != normalize_version(latest));
     InstalledPart {
         part: "installer",
         expected_path: expected.display().to_string(),
         resolved_path: exists.then(|| expected.display().to_string()),
         exists,
-        version: None,
-        version_source: "release_channel_metadata",
+        version,
+        version_source: "safe_--version",
         version_probe_safe: true,
-        sha256: None,
-        stale: None,
+        sha256: exists.then(|| sha256_file(&expected).ok()).flatten(),
+        stale,
         stale_reason: "public installer follows separately signed installer release proof".into(),
         notes: vec![
             "installer metadata is updated across surfaces; local replacement requires installer release approval".into(),
