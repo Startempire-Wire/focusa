@@ -1,0 +1,26 @@
+{
+  "$id": "/v1/agent/schemas/focusa.task_plan_beads_materialization_result.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "evidence_ref": {"type": "string"},
+    "materialization": {
+      "properties": {
+        "attachment_id": {"type": "string"}, "continuity_id": {"type": "string"}, "created_at": {"format": "date-time", "type": "string"},
+        "evidence_ref": {"type": "string"}, "idempotency_key": {"type": "string"}, "materialization_id": {"type": "string"},
+        "permission_grant_ref": {"type": "string"}, "project_root": {"type": "string"}, "provider": {"const": "work_item.bd"},
+        "receipt_ref": {"type": "string"}, "target_ledger_ref": {"type": "string"}, "task_plan_id": {"type": "string"},
+        "task_plan_revision": {"minimum": 1, "type": "integer"},
+        "tasks": {"items": {"properties": {"external_ref": {"type": "string"}, "provider_dependency_ids": {"items": {"type": "string"}, "type": "array"}, "provider_id": {"type": "string"}, "provider_neutral_id": {"type": "string"}}, "required": ["provider_neutral_id", "provider_id", "provider_dependency_ids", "external_ref"], "type": "object"}, "type": "array"},
+        "worktree_prefix": {"type": "string"}
+      },
+      "required": ["materialization_id", "task_plan_id", "task_plan_revision", "project_root", "continuity_id", "attachment_id", "provider", "worktree_prefix", "target_ledger_ref", "tasks", "permission_grant_ref", "idempotency_key", "evidence_ref", "receipt_ref", "created_at"],
+      "type": "object"
+    },
+    "receipt_ref": {"type": "string"}, "replayed": {"type": "boolean"}, "schema": {"const": "focusa.task_plan_beads_materialization_result.v1"},
+    "state_version": {"type": "integer"}, "tool_result": {"type": "object"}
+  },
+  "required": ["schema", "state_version", "replayed", "materialization", "evidence_ref", "receipt_ref", "tool_result"],
+  "title": "focusa.task_plan_beads_materialization_result.v1",
+  "type": "object",
+  "x-focusa-schema-id": "focusa.task_plan_beads_materialization_result.v1"
+}

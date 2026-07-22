@@ -7706,6 +7706,186 @@
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.stream_event.v1"
       },
+      "focusa_task_plan_beads_materialization_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "attachment_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "continuity_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "expected_plan_revision": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "expected_state_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "idempotency_key": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "permission_grant_ref": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "project_root": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "task_plan_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "worktree_prefix": {
+            "pattern": "^[a-z0-9][a-z0-9-]*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "attachment_id",
+          "task_plan_id",
+          "expected_state_version",
+          "expected_plan_revision",
+          "worktree_prefix",
+          "permission_grant_ref",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "focusa_task_plan_beads_materialization_result_v1": {
+        "properties": {
+          "evidence_ref": {
+            "type": "string"
+          },
+          "materialization": {
+            "properties": {
+              "attachment_id": {
+                "type": "string"
+              },
+              "continuity_id": {
+                "type": "string"
+              },
+              "created_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "evidence_ref": {
+                "type": "string"
+              },
+              "idempotency_key": {
+                "type": "string"
+              },
+              "materialization_id": {
+                "type": "string"
+              },
+              "permission_grant_ref": {
+                "type": "string"
+              },
+              "project_root": {
+                "type": "string"
+              },
+              "provider": {
+                "const": "work_item.bd"
+              },
+              "receipt_ref": {
+                "type": "string"
+              },
+              "target_ledger_ref": {
+                "type": "string"
+              },
+              "task_plan_id": {
+                "type": "string"
+              },
+              "task_plan_revision": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "tasks": {
+                "items": {
+                  "properties": {
+                    "external_ref": {
+                      "type": "string"
+                    },
+                    "provider_dependency_ids": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "provider_id": {
+                      "type": "string"
+                    },
+                    "provider_neutral_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "provider_neutral_id",
+                    "provider_id",
+                    "provider_dependency_ids",
+                    "external_ref"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "worktree_prefix": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "materialization_id",
+              "task_plan_id",
+              "task_plan_revision",
+              "project_root",
+              "continuity_id",
+              "attachment_id",
+              "provider",
+              "worktree_prefix",
+              "target_ledger_ref",
+              "tasks",
+              "permission_grant_ref",
+              "idempotency_key",
+              "evidence_ref",
+              "receipt_ref",
+              "created_at"
+            ],
+            "type": "object"
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "schema": {
+            "const": "focusa.task_plan_beads_materialization_result.v1"
+          },
+          "state_version": {
+            "type": "integer"
+          },
+          "tool_result": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "schema",
+          "state_version",
+          "replayed",
+          "materialization",
+          "evidence_ref",
+          "receipt_ref",
+          "tool_result"
+        ],
+        "type": "object"
+      },
       "focusa_tool_doctor_request_v1": {
         "additionalProperties": true,
         "description": "Generated contract for Focusa schema focusa.tool_doctor.request.v1",
@@ -14340,6 +14520,115 @@
           "attachment_id"
         ],
         "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "task_plan"
+      }
+    },
+    "/v1/task-plans/materialize/beads": {
+      "post": {
+        "description": "Materialize Approved Task Plan into Canonical Beads \u2014 family=task_plan budget=standard_mutation materialization=external_governed_mutation",
+        "operationId": "focusa.task_plan.materialize.beads",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_task_plan_beads_materialization_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_task_plan_beads_materialization_result_v1"
+                }
+              }
+            },
+            "description": "Materialize Approved Task Plan into Canonical Beads response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Materialize Approved Task Plan into Canonical Beads",
+        "tags": [
+          "task_plan"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "task_plan",
+          "materialization_mode": "external_governed_mutation",
+          "requires_preview_token": true,
+          "side_effect_profile": "materialize_task_plan_beads",
+          "supports_side_effect_policy": [
+            "dry_run",
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "task_plan"
+        ],
+        "x-focusa-concurrency": true,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.task_plan.materialize.beads",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "preview",
+        "x-focusa-permissions": [
+          "task:materialize"
+        ],
+        "x-focusa-plain-label": "Materialize Approved Task Plan into Canonical Beads",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
         "x-focusa-subsystem": "task_plan"
       }
     },

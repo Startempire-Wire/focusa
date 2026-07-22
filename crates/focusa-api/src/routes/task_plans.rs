@@ -9,13 +9,18 @@ use chrono::Utc;
 use focusa_core::{
     tool_result::{FailureClass, ToolResultV1, ToolStatus},
     types::{
-        Action, FocusaEvent, ProviderNeutralTaskPlanRecord, ProviderNeutralTaskRecord,
-        SpecWorkbenchStatus, TaskPlanStatus,
+        Action, FocusaEvent, MaterializedTaskRef, ProviderNeutralTaskPlanRecord,
+        ProviderNeutralTaskRecord, SpecWorkbenchStatus, TaskMaterializationRecord, TaskPlanStatus,
     },
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeSet, sync::Arc, time::Duration};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::Duration,
+};
 
 type ApiError = (StatusCode, Json<Box<ToolResultV1>>);
 const ENDPOINT: &str = "/v1/task-plans/mutate";
@@ -491,8 +496,437 @@ pub async fn mutate(
         "task plan revision not visible",
     ))
 }
+#[derive(Debug, Deserialize)]
+pub struct MaterializeRequest {
+    project_root: String,
+    continuity_id: String,
+    attachment_id: String,
+    task_plan_id: String,
+    expected_state_version: u64,
+    expected_plan_revision: u64,
+    worktree_prefix: String,
+    permission_grant_ref: String,
+    idempotency_key: String,
+}
+#[derive(Debug, Serialize)]
+pub struct MaterializeResponse {
+    schema: &'static str,
+    state_version: u64,
+    replayed: bool,
+    materialization: TaskMaterializationRecord,
+    evidence_ref: String,
+    receipt_ref: String,
+    tool_result: ToolResultV1,
+}
+fn materialize_response(
+    record: TaskMaterializationRecord,
+    version: u64,
+    replayed: bool,
+) -> MaterializeResponse {
+    let mut result = ToolResultV1::success(
+        ToolStatus::Completed,
+        if replayed {
+            "Beads task materialization replayed idempotently"
+        } else {
+            "Approved task DAG materialized into canonical parent Beads"
+        },
+    );
+    result.tool = Some("focusa_task_plan_materialize_beads".into());
+    result.family = Some("provider_neutral_task_plan".into());
+    result.endpoint = Some("/v1/task-plans/materialize/beads".into());
+    result.evidence_refs = vec![record.evidence_ref.clone(), record.receipt_ref.clone()];
+    MaterializeResponse {
+        schema: "focusa.task_plan_beads_materialization_result.v1",
+        state_version: version,
+        replayed,
+        evidence_ref: record.evidence_ref.clone(),
+        receipt_ref: record.receipt_ref.clone(),
+        materialization: record,
+        tool_result: result,
+    }
+}
+fn materialize_fail(
+    code: StatusCode,
+    status: ToolStatus,
+    class: FailureClass,
+    message: impl Into<String>,
+) -> ApiError {
+    let mut result = ToolResultV1::failure(status, class, message.into());
+    result.tool = Some("focusa_task_plan_materialize_beads".into());
+    result.family = Some("provider_neutral_task_plan".into());
+    result.endpoint = Some("/v1/task-plans/materialize/beads".into());
+    (code, Json(Box::new(result)))
+}
+fn read_ledger(path: &Path) -> Result<BTreeMap<String, serde_json::Value>, String> {
+    let body = std::fs::read_to_string(path)
+        .map_err(|error| format!("cannot read canonical Beads ledger: {error}"))?;
+    let mut entries = BTreeMap::new();
+    for (index, line) in body.lines().enumerate() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let value: serde_json::Value = serde_json::from_str(line)
+            .map_err(|error| format!("invalid Beads JSONL line {}: {error}", index + 1))?;
+        let id = value
+            .get("id")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| format!("Beads JSONL line {} has no id", index + 1))?;
+        entries.insert(id.to_string(), value);
+    }
+    Ok(entries)
+}
+fn has_local_database(beads: &Path) -> bool {
+    std::fs::read_dir(beads)
+        .ok()
+        .into_iter()
+        .flatten()
+        .flatten()
+        .any(|entry| {
+            entry
+                .path()
+                .extension()
+                .is_some_and(|extension| extension == "db")
+        })
+}
+fn provider_id(prefix: &str, plan_id: &str, task_id: &str) -> String {
+    let digest = hash("", &[plan_id, task_id]);
+    format!("{prefix}-{}", digest.trim_start_matches(':'))
+}
+pub async fn materialize_beads(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<MaterializeRequest>,
+) -> Result<Json<MaterializeResponse>, ApiError> {
+    if request.project_root.trim().is_empty()
+        || request.continuity_id.trim().is_empty()
+        || request.attachment_id.trim().is_empty()
+        || request.task_plan_id.trim().is_empty()
+        || request.permission_grant_ref.trim().is_empty()
+        || request.idempotency_key.trim().is_empty()
+        || request.worktree_prefix.trim().is_empty()
+        || !request.worktree_prefix.chars().all(|character| {
+            character.is_ascii_lowercase() || character.is_ascii_digit() || character == '-'
+        })
+    {
+        return Err(materialize_fail(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            ToolStatus::ValidationRejected,
+            FailureClass::ValidationRejected,
+            "exact scope, approved plan, lowercase worktree prefix, permission, and idempotency are required",
+        ));
+    }
+    let root = PathBuf::from(&request.project_root);
+    let beads = root.join(".beads");
+    let ledger = beads.join("issues.jsonl");
+    if !root.join(".git").is_dir() || !ledger.is_file() {
+        return Err(materialize_fail(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            ToolStatus::ValidationRejected,
+            FailureClass::ScopeMismatch,
+            "materialization target must be the canonical parent Git root with .beads/issues.jsonl; worktree-local targets are prohibited",
+        ));
+    }
+    if has_local_database(&beads) {
+        return Err(materialize_fail(
+            StatusCode::CONFLICT,
+            ToolStatus::Blocked,
+            FailureClass::ValidationRejected,
+            "canonical Beads target must remain JSONL-only; local database files are prohibited",
+        ));
+    }
+    let snapshot = state.focusa.read().await;
+    if let Some(existing) = snapshot.task_materializations.iter().find(|existing| {
+        existing.project_root == request.project_root
+            && existing.continuity_id == request.continuity_id
+            && existing.attachment_id == request.attachment_id
+            && existing.idempotency_key == request.idempotency_key
+    }) {
+        return Ok(Json(materialize_response(
+            existing.clone(),
+            snapshot.version,
+            true,
+        )));
+    }
+    if snapshot.version != request.expected_state_version {
+        return Err(materialize_fail(
+            StatusCode::CONFLICT,
+            ToolStatus::Blocked,
+            FailureClass::WriterConflict,
+            "stale canonical state version",
+        ));
+    }
+    let plan = snapshot
+        .provider_neutral_task_plans
+        .iter()
+        .find(|plan| {
+            plan.task_plan_id == request.task_plan_id
+                && plan.state_revision == request.expected_plan_revision
+                && plan.project_root == request.project_root
+                && plan.continuity_id == request.continuity_id
+                && plan.attachment_id == request.attachment_id
+                && matches!(plan.status, TaskPlanStatus::Approved)
+        })
+        .cloned()
+        .ok_or_else(|| {
+            materialize_fail(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                ToolStatus::ValidationRejected,
+                FailureClass::ApprovalRequired,
+                "exact-scoped approved task plan revision required",
+            )
+        })?;
+    if snapshot.task_materializations.iter().any(|existing| {
+        existing.task_plan_id == plan.task_plan_id
+            && existing.task_plan_revision == plan.state_revision
+    }) {
+        return Err(materialize_fail(
+            StatusCode::CONFLICT,
+            ToolStatus::Blocked,
+            FailureClass::WriterConflict,
+            "approved task plan revision is already materialized",
+        ));
+    }
+    let before = read_ledger(&ledger).map_err(|message| {
+        materialize_fail(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            ToolStatus::ValidationRejected,
+            FailureClass::ValidationRejected,
+            message,
+        )
+    })?;
+    let mapping: BTreeMap<_, _> = plan
+        .tasks
+        .iter()
+        .map(|task| {
+            (
+                task.provider_neutral_id.clone(),
+                provider_id(
+                    &request.worktree_prefix,
+                    &plan.task_plan_id,
+                    &task.provider_neutral_id,
+                ),
+            )
+        })
+        .collect();
+    for task in &plan.tasks {
+        let id = &mapping[&task.provider_neutral_id];
+        let external = format!(
+            "focusa-task-plan:{}:{}",
+            plan.task_plan_id, task.provider_neutral_id
+        );
+        if let Some(existing) = before.get(id) {
+            if existing
+                .get("external_ref")
+                .and_then(serde_json::Value::as_str)
+                != Some(external.as_str())
+            {
+                return Err(materialize_fail(
+                    StatusCode::CONFLICT,
+                    ToolStatus::Blocked,
+                    FailureClass::WriterConflict,
+                    format!("stable provider ID collision: {id}"),
+                ));
+            }
+        }
+    }
+    drop(snapshot);
+    for task in &plan.tasks {
+        let id = &mapping[&task.provider_neutral_id];
+        if before.contains_key(id) {
+            continue;
+        }
+        let external = format!(
+            "focusa-task-plan:{}:{}",
+            plan.task_plan_id, task.provider_neutral_id
+        );
+        let dependencies = task
+            .dependencies
+            .iter()
+            .map(|dependency| mapping[dependency].as_str())
+            .collect::<Vec<_>>()
+            .join(",");
+        let description = format!(
+            "{}\n\nTask plan: {}@{}\nProvider-neutral ID: {}\nRequirements: {}\nSpec sections: {}\nEvidence: {}\nVerification policy: {}",
+            task.description,
+            plan.task_plan_id,
+            plan.state_revision,
+            task.provider_neutral_id,
+            task.requirement_refs.join(", "),
+            task.linked_spec_sections.join(", "),
+            task.evidence_requirements.join(", "),
+            task.verification_policy_ref
+        );
+        let mut command = tokio::process::Command::new("bd");
+        command
+            .current_dir(&root)
+            .env("BD_ISSUE_PREFIX", &request.worktree_prefix)
+            .args([
+                "--no-db",
+                "create",
+                "--force",
+                "--id",
+                id,
+                "--title",
+                &task.title,
+                "--description",
+                &description,
+                "--acceptance",
+                &task.acceptance_criteria.join("\n"),
+                "--external-ref",
+                &external,
+                "--labels",
+                "spec135,generated-task",
+                "--json",
+            ]);
+        if !dependencies.is_empty() {
+            command.args(["--deps", &dependencies]);
+        }
+        let output = command.output().await.map_err(|error| {
+            materialize_fail(
+                StatusCode::SERVICE_UNAVAILABLE,
+                ToolStatus::Offline,
+                FailureClass::DaemonUnavailable,
+                format!("Beads adapter unavailable: {error}"),
+            )
+        })?;
+        if !output.status.success() {
+            return Err(materialize_fail(
+                StatusCode::BAD_GATEWAY,
+                ToolStatus::Blocked,
+                FailureClass::ProcessControlFailed,
+                format!(
+                    "Beads adapter rejected task {id}: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                ),
+            ));
+        }
+    }
+    if has_local_database(&beads) {
+        return Err(materialize_fail(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            ToolStatus::Blocked,
+            FailureClass::ValidationRejected,
+            "Beads adapter created a prohibited local database",
+        ));
+    }
+    let after = read_ledger(&ledger).map_err(|message| {
+        materialize_fail(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            ToolStatus::Blocked,
+            FailureClass::ValidationRejected,
+            message,
+        )
+    })?;
+    let tasks: Vec<_> = plan
+        .tasks
+        .iter()
+        .map(|task| {
+            let provider = mapping[&task.provider_neutral_id].clone();
+            let external = format!(
+                "focusa-task-plan:{}:{}",
+                plan.task_plan_id, task.provider_neutral_id
+            );
+            let entry = after.get(&provider).ok_or_else(|| {
+                materialize_fail(
+                    StatusCode::BAD_GATEWAY,
+                    ToolStatus::Blocked,
+                    FailureClass::ProcessControlFailed,
+                    format!("Beads task not visible after create: {provider}"),
+                )
+            })?;
+            if entry
+                .get("external_ref")
+                .and_then(serde_json::Value::as_str)
+                != Some(external.as_str())
+            {
+                return Err(materialize_fail(
+                    StatusCode::CONFLICT,
+                    ToolStatus::Blocked,
+                    FailureClass::WriterConflict,
+                    format!("Beads parity mismatch: {provider}"),
+                ));
+            }
+            Ok(MaterializedTaskRef {
+                provider_neutral_id: task.provider_neutral_id.clone(),
+                provider_id: provider,
+                provider_dependency_ids: task
+                    .dependencies
+                    .iter()
+                    .map(|dependency| mapping[dependency].clone())
+                    .collect(),
+                external_ref: external,
+            })
+        })
+        .collect::<Result<_, ApiError>>()?;
+    let materialization_id = hash(
+        "task-materialization",
+        &[
+            &plan.task_plan_id,
+            &plan.state_revision.to_string(),
+            &request.worktree_prefix,
+        ],
+    );
+    let record = TaskMaterializationRecord {
+        materialization_id: materialization_id.clone(),
+        task_plan_id: plan.task_plan_id.clone(),
+        task_plan_revision: plan.state_revision,
+        project_root: request.project_root.clone(),
+        continuity_id: request.continuity_id.clone(),
+        attachment_id: request.attachment_id.clone(),
+        provider: "work_item.bd".into(),
+        worktree_prefix: request.worktree_prefix,
+        target_ledger_ref: ledger.to_string_lossy().to_string(),
+        tasks,
+        permission_grant_ref: request.permission_grant_ref,
+        idempotency_key: request.idempotency_key.clone(),
+        evidence_ref: format!("evidence:task-materialization:{materialization_id}"),
+        receipt_ref: format!(
+            "receipt:task-materialization:{materialization_id}:{}",
+            request.idempotency_key
+        ),
+        created_at: Utc::now(),
+    };
+    state
+        .command_tx
+        .send(Action::EmitEvent {
+            event: FocusaEvent::TaskPlanMaterialized {
+                materialization: record,
+            },
+        })
+        .await
+        .map_err(|_| {
+            materialize_fail(
+                StatusCode::SERVICE_UNAVAILABLE,
+                ToolStatus::Offline,
+                FailureClass::DaemonUnavailable,
+                "materialization event channel unavailable",
+            )
+        })?;
+    for _ in 0..100 {
+        let current = state.focusa.read().await;
+        if let Some(saved) = current
+            .task_materializations
+            .iter()
+            .find(|saved| saved.materialization_id == materialization_id)
+        {
+            return Ok(Json(materialize_response(
+                saved.clone(),
+                current.version,
+                false,
+            )));
+        }
+        drop(current);
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    Err(materialize_fail(
+        StatusCode::SERVICE_UNAVAILABLE,
+        ToolStatus::Degraded,
+        FailureClass::ReadModelLag,
+        "task materialization not visible",
+    ))
+}
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/task-plans", get(list))
         .route(ENDPOINT, post(mutate))
+        .route("/v1/task-plans/materialize/beads", post(materialize_beads))
 }

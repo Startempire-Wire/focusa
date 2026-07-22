@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-07-22T09:34:35.066345+00:00",
-  "operation_count": 76,
+  "operation_count": 77,
   "operations": [
     {
       "alias_of": null,
@@ -5854,6 +5854,86 @@
         "default_label": "Stop Governed Pi RPC Execution",
         "input_presentation_ref": "focusa.generated_form.v1",
         "plain_language_description": "Stop Governed Pi RPC Execution",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "standard_mutation",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.task_plan_beads_materialization.request.v1",
+        "output_schema_ref": "focusa.task_plan_beads_materialization_result.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "task_plan"
+        ],
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "preview",
+        "optimistic_concurrency_required": true,
+        "permission_scopes": [
+          "task:materialize"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "task_plan",
+      "label": "Materialize Approved Task Plan into Canonical Beads",
+      "materialization_mode": "external_governed_mutation",
+      "method": "POST",
+      "operation_id": "focusa.task_plan.materialize.beads",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.task_plan.materialize.beads",
+        "subsystem": "task_plan"
+      },
+      "path": "/v1/task-plans/materialize/beads",
+      "permissions_required": [
+        "task:materialize"
+      ],
+      "request_schema_ref": "focusa.task_plan_beads_materialization.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": true,
+      "requires_preview_token": true,
+      "response_detail_supported": [
+        "compact",
+        "standard",
+        "debug"
+      ],
+      "response_schema_ref": "focusa.task_plan_beads_materialization_result.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.task_plan_beads_materialization.request.v1",
+      "scope": {
+        "attachment_scoped": true,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "materialize_task_plan_beads",
+      "supports_side_effect_policy": [
+        "dry_run",
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Materialize Approved Task Plan into Canonical Beads",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Materialize Approved Task Plan into Canonical Beads",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
       }

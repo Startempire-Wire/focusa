@@ -2352,6 +2352,36 @@ pub struct ProviderNeutralTaskPlanRecord {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaterializedTaskRef {
+    pub provider_neutral_id: String,
+    pub provider_id: String,
+    #[serde(default)]
+    pub provider_dependency_ids: Vec<String>,
+    pub external_ref: String,
+}
+
+/// Append-only proof that an approved task plan was materialized by a provider adapter.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TaskMaterializationRecord {
+    pub materialization_id: String,
+    pub task_plan_id: String,
+    pub task_plan_revision: u64,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub provider: String,
+    pub worktree_prefix: String,
+    pub target_ledger_ref: String,
+    #[serde(default)]
+    pub tasks: Vec<MaterializedTaskRef>,
+    pub permission_grant_ref: String,
+    pub idempotency_key: String,
+    pub evidence_ref: String,
+    pub receipt_ref: String,
+    pub created_at: DateTime<Utc>,
+}
+
 /// Canonical candidate/accepted claim extracted from source-preserving Context.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ContextClaimRecord {
@@ -2500,6 +2530,9 @@ pub struct FocusaState {
     /// Append-only provider-neutral task plan revisions; never materialized before approval.
     #[serde(default)]
     pub provider_neutral_task_plans: Vec<ProviderNeutralTaskPlanRecord>,
+    /// Provider adapter materialization proofs for approved task plans.
+    #[serde(default)]
+    pub task_materializations: Vec<TaskMaterializationRecord>,
     /// Canonical contradiction edges requiring explicit resolution.
     #[serde(default)]
     pub context_contradictions: Vec<ContextContradictionRecord>,
@@ -2574,6 +2607,7 @@ impl FocusaState {
             project_interview_sessions: vec![],
             spec_workbench_sessions: vec![],
             provider_neutral_task_plans: vec![],
+            task_materializations: vec![],
             context_contradictions: vec![],
             context_decisions: vec![],
             reactive_context: vec![],
@@ -3196,6 +3230,9 @@ pub enum FocusaEvent {
     },
     ProviderNeutralTaskPlanRevised {
         task_plan: ProviderNeutralTaskPlanRecord,
+    },
+    TaskPlanMaterialized {
+        materialization: TaskMaterializationRecord,
     },
     ContextClaimReviewed {
         claim: ContextClaimRecord,

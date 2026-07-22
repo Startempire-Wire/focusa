@@ -84,3 +84,8 @@ ownership, and Receipt gates have parity and cannot be bypassed.
 DAG: final-approved Spec source, linked requirements/acceptance/proof,
 acyclic dependencies, preview/edit/re-preview, explicit operator approval,
 restart exactness, and a strict no-materialization-before-approval boundary.
+
+`spec135-st3-task-materialization-proof.json` defines canonical parent-Beads
+materialization: stable worktree-prefixed IDs, exact dependency/external refs,
+JSONL-only enforcement, collision rejection, idempotent replay, Evidence, and
+Receipts. Runtime/release proof is delegated to the remote validation server.

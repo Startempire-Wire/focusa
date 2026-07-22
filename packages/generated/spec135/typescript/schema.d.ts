@@ -1064,6 +1064,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/task-plans/materialize/beads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Materialize Approved Task Plan into Canonical Beads
+         * @description Materialize Approved Task Plan into Canonical Beads — family=task_plan budget=standard_mutation materialization=external_governed_mutation
+         */
+        post: operations["focusa.task_plan.materialize.beads"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/task-plans/mutate": {
         parameters: {
             query?: never;
@@ -3622,6 +3642,50 @@ export interface components {
             /** Format: date-time */
             timestamp: string;
         };
+        focusa_task_plan_beads_materialization_request_v1: {
+            attachment_id: string;
+            continuity_id: string;
+            expected_plan_revision: number;
+            expected_state_version: number;
+            idempotency_key: string;
+            permission_grant_ref: string;
+            project_root: string;
+            task_plan_id: string;
+            worktree_prefix: string;
+        };
+        focusa_task_plan_beads_materialization_result_v1: {
+            evidence_ref: string;
+            materialization: {
+                attachment_id: string;
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                evidence_ref: string;
+                idempotency_key: string;
+                materialization_id: string;
+                permission_grant_ref: string;
+                project_root: string;
+                /** @constant */
+                provider: "work_item.bd";
+                receipt_ref: string;
+                target_ledger_ref: string;
+                task_plan_id: string;
+                task_plan_revision: number;
+                tasks: {
+                    external_ref: string;
+                    provider_dependency_ids: string[];
+                    provider_id: string;
+                    provider_neutral_id: string;
+                }[];
+                worktree_prefix: string;
+            };
+            receipt_ref: string;
+            replayed: boolean;
+            /** @constant */
+            schema: "focusa.task_plan_beads_materialization_result.v1";
+            state_version: number;
+            tool_result: Record<string, never>;
+        };
         /**
          * focusa.tool_doctor.request.v1
          * @description Generated contract for Focusa schema focusa.tool_doctor.request.v1
@@ -6085,6 +6149,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_provider_neutral_task_plan_list_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.task_plan.materialize.beads": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_task_plan_beads_materialization_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Materialize Approved Task Plan into Canonical Beads response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_task_plan_beads_materialization_result_v1"];
                 };
             };
             /** @description Standard error envelope */

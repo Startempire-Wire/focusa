@@ -968,6 +968,100 @@ pub fn reduce_with_meta(
                     .then(left.state_revision.cmp(&right.state_revision))
             });
         }
+        FocusaEvent::TaskPlanMaterialized { materialization } => {
+            if materialization.materialization_id.trim().is_empty()
+                || materialization.project_root.trim().is_empty()
+                || materialization.continuity_id.trim().is_empty()
+                || materialization.attachment_id.trim().is_empty()
+                || materialization.provider != "work_item.bd"
+                || materialization.worktree_prefix.trim().is_empty()
+                || materialization.permission_grant_ref.trim().is_empty()
+                || materialization.idempotency_key.trim().is_empty()
+                || materialization.evidence_ref.trim().is_empty()
+                || materialization.receipt_ref.trim().is_empty()
+            {
+                return Err(ReducerError::InvalidEvent("task materialization requires identity, exact scope, Beads provider, prefix, permission, idempotency, Evidence, and Receipt".to_string()));
+            }
+            if state.task_materializations.iter().any(|existing| {
+                existing.materialization_id == materialization.materialization_id
+                    || (existing.project_root == materialization.project_root
+                        && existing.continuity_id == materialization.continuity_id
+                        && existing.attachment_id == materialization.attachment_id
+                        && existing.idempotency_key == materialization.idempotency_key)
+            }) {
+                return Err(ReducerError::InvalidEvent(
+                    "duplicate task materialization".to_string(),
+                ));
+            }
+            let plan = state
+                .provider_neutral_task_plans
+                .iter()
+                .find(|plan| {
+                    plan.task_plan_id == materialization.task_plan_id
+                        && plan.state_revision == materialization.task_plan_revision
+                        && plan.project_root == materialization.project_root
+                        && plan.continuity_id == materialization.continuity_id
+                        && plan.attachment_id == materialization.attachment_id
+                        && matches!(plan.status, TaskPlanStatus::Approved)
+                })
+                .ok_or_else(|| {
+                    ReducerError::InvalidEvent(
+                        "task materialization requires exact-scoped approved task plan revision"
+                            .to_string(),
+                    )
+                })?;
+            let expected_ledger = std::path::Path::new(&materialization.project_root)
+                .join(".beads/issues.jsonl")
+                .to_string_lossy()
+                .to_string();
+            if materialization.target_ledger_ref != expected_ledger {
+                return Err(ReducerError::InvalidEvent("task materialization target must be canonical project_root/.beads/issues.jsonl".to_string()));
+            }
+            let refs: std::collections::BTreeMap<_, _> = materialization
+                .tasks
+                .iter()
+                .map(|task| (task.provider_neutral_id.as_str(), task))
+                .collect();
+            if refs.len() != plan.tasks.len() || materialization.tasks.len() != plan.tasks.len() {
+                return Err(ReducerError::InvalidEvent(
+                    "materialization must map every approved task exactly once".to_string(),
+                ));
+            }
+            for task in &plan.tasks {
+                let mapped = refs.get(task.provider_neutral_id.as_str()).ok_or_else(|| {
+                    ReducerError::InvalidEvent("approved task missing provider mapping".to_string())
+                })?;
+                let expected_dependencies: std::collections::BTreeSet<_> = task
+                    .dependencies
+                    .iter()
+                    .filter_map(|dependency| {
+                        refs.get(dependency.as_str())
+                            .map(|item| item.provider_id.as_str())
+                    })
+                    .collect();
+                let actual_dependencies: std::collections::BTreeSet<_> = mapped
+                    .provider_dependency_ids
+                    .iter()
+                    .map(String::as_str)
+                    .collect();
+                if !mapped
+                    .provider_id
+                    .starts_with(&format!("{}-", materialization.worktree_prefix))
+                    || mapped.external_ref
+                        != format!(
+                            "focusa-task-plan:{}:{}",
+                            plan.task_plan_id, task.provider_neutral_id
+                        )
+                    || expected_dependencies != actual_dependencies
+                {
+                    return Err(ReducerError::InvalidEvent("materialized IDs, external refs, and dependency links must remain stable and exact".to_string()));
+                }
+            }
+            state.task_materializations.push(materialization);
+            state
+                .task_materializations
+                .sort_by(|left, right| left.materialization_id.cmp(&right.materialization_id));
+        }
         FocusaEvent::ContextClaimProposed { claim } => {
             if state.context_claims.iter().any(|existing| {
                 existing.claim_id == claim.claim_id

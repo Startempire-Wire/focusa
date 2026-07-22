@@ -1,0 +1,20 @@
+{
+  "$id": "/v1/agent/schemas/focusa.task_plan_beads_materialization.request.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attachment_id": {"minLength": 1, "type": "string"},
+    "continuity_id": {"minLength": 1, "type": "string"},
+    "expected_plan_revision": {"minimum": 1, "type": "integer"},
+    "expected_state_version": {"minimum": 0, "type": "integer"},
+    "idempotency_key": {"minLength": 1, "type": "string"},
+    "permission_grant_ref": {"minLength": 1, "type": "string"},
+    "project_root": {"minLength": 1, "type": "string"},
+    "task_plan_id": {"minLength": 1, "type": "string"},
+    "worktree_prefix": {"pattern": "^[a-z0-9][a-z0-9-]*$", "type": "string"}
+  },
+  "required": ["project_root", "continuity_id", "attachment_id", "task_plan_id", "expected_state_version", "expected_plan_revision", "worktree_prefix", "permission_grant_ref", "idempotency_key"],
+  "title": "focusa.task_plan_beads_materialization.request.v1",
+  "type": "object",
+  "x-focusa-schema-id": "focusa.task_plan_beads_materialization.request.v1"
+}

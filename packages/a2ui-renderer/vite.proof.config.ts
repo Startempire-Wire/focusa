@@ -22,6 +22,7 @@ export default defineConfig({
         specWorkbench: resolve(import.meta.dirname, "proof/spec-workbench.html"),
         providerConformance: resolve(import.meta.dirname, "proof/provider-conformance.html"),
         taskPlan: resolve(import.meta.dirname, "proof/task-plan.html"),
+        taskMaterialization: resolve(import.meta.dirname, "proof/task-materialization.html"),
       },
     },
   },

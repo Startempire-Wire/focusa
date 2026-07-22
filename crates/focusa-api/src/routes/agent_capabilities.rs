@@ -953,6 +953,29 @@ fn build_operations() -> Vec<OperationEntry> {
             None,
         ),
         op(
+            "focusa.task_plan.materialize.beads",
+            "Materialize Approved Task Plan into Canonical Beads",
+            "task_plan",
+            "POST",
+            "/v1/task-plans/materialize/beads",
+            true,
+            None,
+            "materialize_task_plan_beads",
+            "external_governed_mutation",
+            vec!["dry_run", "preview", "commit"],
+            true,
+            true,
+            true,
+            vec!["task:materialize"],
+            false,
+            "standard_mutation",
+            vec!["compact", "standard", "debug"],
+            "focusa.task_plan_beads_materialization.request.v1",
+            "focusa.task_plan_beads_materialization_result.v1",
+            "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+            None,
+        ),
+        op(
             "focusa.task_plan.list",
             "List Provider-Neutral Task Plan Revisions",
             "task_plan",
@@ -2650,6 +2673,10 @@ fn provider_task_plan_mutation_schema() -> Value {
     json!({"type":"object","additionalProperties":false,"required":["project_root","continuity_id","attachment_id","idempotency_key","expected_state_version","expected_plan_revision","action"],"properties":{"project_root":{"type":"string","minLength":1},"continuity_id":{"type":"string","minLength":1},"attachment_id":{"type":"string","minLength":1},"idempotency_key":{"type":"string","minLength":1},"expected_state_version":{"type":"integer","minimum":0},"expected_plan_revision":{"type":"integer","minimum":0},"action":{"enum":["open","upsert_task","remove_task","preview","approve"]},"task_plan_id":{"type":"string"},"workbench_session_id":{"type":"string"},"task":provider_neutral_task_schema(),"task_id":{"type":"string"},"preview_token":{"type":"string"},"approved_by":{"type":"string"}}})
 }
 
+fn task_materialization_schema() -> Value {
+    json!({"type":"object","required":["materialization_id","task_plan_id","task_plan_revision","project_root","continuity_id","attachment_id","provider","worktree_prefix","target_ledger_ref","tasks","permission_grant_ref","idempotency_key","evidence_ref","receipt_ref","created_at"],"properties":{"materialization_id":{"type":"string"},"task_plan_id":{"type":"string"},"task_plan_revision":{"type":"integer","minimum":1},"project_root":{"type":"string"},"continuity_id":{"type":"string"},"attachment_id":{"type":"string"},"provider":{"const":"work_item.bd"},"worktree_prefix":{"type":"string"},"target_ledger_ref":{"type":"string"},"tasks":{"type":"array","items":{"type":"object","required":["provider_neutral_id","provider_id","provider_dependency_ids","external_ref"],"properties":{"provider_neutral_id":{"type":"string"},"provider_id":{"type":"string"},"provider_dependency_ids":{"type":"array","items":{"type":"string"}},"external_ref":{"type":"string"}}}},"permission_grant_ref":{"type":"string"},"idempotency_key":{"type":"string"},"evidence_ref":{"type":"string"},"receipt_ref":{"type":"string"},"created_at":{"type":"string","format":"date-time"}}})
+}
+
 fn provider_contract_schema() -> Value {
     json!({"type":"object","required":["provider_id","provider_class","implementation_owner","execution_owner","operation_prefixes","exact_scope_required","permission_required","idempotency_required","receipt_required","operation_registry_required","canonical_state_owner","direct_canonical_mutation_allowed"],"properties":{"provider_id":{"type":"string"},"provider_class":{"enum":["focusa_operation","work_item","model","browser","agent_transport"]},"implementation_owner":{"type":"string"},"execution_owner":{"type":"string"},"operation_prefixes":{"type":"array","items":{"type":"string"}},"exact_scope_required":{"const":true},"permission_required":{"const":true},"idempotency_required":{"const":true},"receipt_required":{"const":true},"operation_registry_required":{"const":true},"canonical_state_owner":{"const":"focusa_core_reducer"},"direct_canonical_mutation_allowed":{"const":false}}})
 }
@@ -3123,6 +3150,12 @@ fn json_schema_document(schema_id: &str) -> Value {
             "x-focusa-schema-id": schema_id,
             "x-focusa-generated-from": "ContextRetrieveResponse"
         });
+    }
+    if schema_id == "focusa.task_plan_beads_materialization.request.v1" {
+        return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","additionalProperties":false,"required":["project_root","continuity_id","attachment_id","task_plan_id","expected_state_version","expected_plan_revision","worktree_prefix","permission_grant_ref","idempotency_key"],"properties":{"project_root":{"type":"string","minLength":1},"continuity_id":{"type":"string","minLength":1},"attachment_id":{"type":"string","minLength":1},"task_plan_id":{"type":"string","minLength":1},"expected_state_version":{"type":"integer","minimum":0},"expected_plan_revision":{"type":"integer","minimum":1},"worktree_prefix":{"type":"string","pattern":"^[a-z0-9][a-z0-9-]*$"},"permission_grant_ref":{"type":"string","minLength":1},"idempotency_key":{"type":"string","minLength":1}},"x-focusa-schema-id":schema_id});
+    }
+    if schema_id == "focusa.task_plan_beads_materialization_result.v1" {
+        return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","required":["schema","state_version","replayed","materialization","evidence_ref","receipt_ref","tool_result"],"properties":{"schema":{"const":"focusa.task_plan_beads_materialization_result.v1"},"state_version":{"type":"integer"},"replayed":{"type":"boolean"},"materialization":task_materialization_schema(),"evidence_ref":{"type":"string"},"receipt_ref":{"type":"string"},"tool_result":{"type":"object"}},"x-focusa-schema-id":schema_id});
     }
     if schema_id == "focusa.provider_neutral_task_plan_list.request.v1" {
         return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","additionalProperties":false,"required":["project_root","continuity_id","attachment_id"],"properties":{"project_root":{"type":"string"},"continuity_id":{"type":"string"},"attachment_id":{"type":"string"},"task_plan_id":{"type":"string"}},"x-focusa-schema-id":schema_id});
