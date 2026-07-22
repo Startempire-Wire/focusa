@@ -99,3 +99,8 @@ Eval, Evidence, and the Alpha 3 closure Receipt.
 project, working sub-path, continuity, Bead, and Workpoint authority. Verified
 closure requires Workpoint-linked proof, provider reconciliation, no blockers,
 and a canonical Receipt; remote CI owns runtime validation.
+
+`spec135-m1-mission-canvas-shell-proof.json` proves the canonical professional
+workspace shell: Mission Canvas naming/routing, canonical API read-model
+projection, UIAI Cockpit separation, scoped authority, and remote Menubar/static
+integration validation.
