@@ -58,7 +58,7 @@ def main():
         and "playwright" not in u.lower()
     )
     proof = j("spec135-st3-task-materialization-proof.json")
-    assert proof["status"] == "implemented_pending_remote_validation"
+    assert proof["status"] == "passed"
     assert proof["contracts"]["operation_count"] == 77
     print("Spec 135 ST3 canonical Beads materialization static proof: PASS")
 

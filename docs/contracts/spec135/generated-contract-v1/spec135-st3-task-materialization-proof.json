@@ -1,7 +1,7 @@
 {
   "schema": "focusa.spec135_st3_task_materialization_proof.v1",
   "requirement_id": "SPEC135-ST3",
-  "status": "implemented_pending_remote_validation",
+  "status": "passed",
   "operations": ["focusa.task_plan.materialize.beads"],
   "invariants": [
     "Only an exact-scoped approved task-plan revision may materialize",
@@ -17,7 +17,10 @@
   "static_validation": {
     "test": "tests/spec135_task_materialization_test.py",
     "e2e_for_remote": "tests/spec135_task_materialization_e2e_test.py",
-    "local_policy": "lint/static-only per operator directive"
+    "local_policy": "lint/static-only per operator directive",
+    "remote_rust_ci": "passed: GitHub Actions run 29954553869",
+    "remote_st3_e2e": "passed: job 89040206095 (Spec 135 ST3 canonical parent Beads materialization E2E: PASS)",
+    "unrelated_gate_note": "Strict aggregate continued to fail later in pre-existing Spec130 utility-card persistence; ST3 gate had already passed."
   },
   "contracts": {
     "operation_count": 77,
