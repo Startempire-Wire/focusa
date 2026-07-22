@@ -36,5 +36,5 @@ if rg -U -q 'requestCoordinatedCompaction\([^;]+;\s*onDone\(\)' "$COMPACTION"; t
 fi
 
 cd "$ROOT"
-npx --yes tsx tests/spec130_auto_compaction_runtime_test.mts
+node --experimental-strip-types tests/spec130_auto_compaction_runtime_test.mts
 printf 'PASS: Spec 130 automatic compaction static/runtime contract\n'
