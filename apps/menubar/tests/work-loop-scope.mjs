@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import {
+  WORK_LOOP_STATUS_SCHEMA,
+  WORK_LOOP_TYPED_STATES,
+  compatibleWorkLoopStatusState,
   evaluateWorkLoopAuthority,
   workLoopScopedPaths,
 } from '../src/lib/workLoopScope.js';
@@ -15,6 +18,13 @@ for (const path of Object.values(paths)) {
 }
 assert.equal(workLoopScopedPaths(root, ''), null);
 assert.equal(workLoopScopedPaths('', continuity), null);
+
+for (const state of WORK_LOOP_TYPED_STATES) {
+  assert.equal(compatibleWorkLoopStatusState(WORK_LOOP_STATUS_SCHEMA, state), state);
+}
+assert.equal(compatibleWorkLoopStatusState('focusa.work_loop_status.v999', 'healthy'), 'unsupported');
+assert.equal(compatibleWorkLoopStatusState(WORK_LOOP_STATUS_SCHEMA, 'maybe'), 'unsupported');
+assert.equal(compatibleWorkLoopStatusState(WORK_LOOP_STATUS_SCHEMA, ''), 'unsupported');
 
 const current = { project_root: root, continuity_id: continuity };
 assert.deepEqual(

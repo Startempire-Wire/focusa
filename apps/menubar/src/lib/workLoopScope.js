@@ -2,6 +2,31 @@
 // These functions intentionally have no runtime-store dependency so the same
 // fail-closed contract can be tested without rendering Svelte components.
 
+export const WORK_LOOP_STATUS_SCHEMA = 'focusa.work_loop_status.v3';
+export const WORK_LOOP_TYPED_STATES = Object.freeze([
+  'absent',
+  'unavailable',
+  'stale',
+  'unsupported',
+  'blocked',
+  'exhausted',
+  'zero',
+  'healthy',
+]);
+
+/**
+ * Preserve recognized status values and fail closed on incompatible payloads.
+ *
+ * @param {unknown} schema
+ * @param {unknown} state
+ */
+export function compatibleWorkLoopStatusState(schema, state) {
+  const normalized = clean(state);
+  return schema === WORK_LOOP_STATUS_SCHEMA && WORK_LOOP_TYPED_STATES.includes(normalized)
+    ? normalized
+    : 'unsupported';
+}
+
 /**
  * Build the three read-only Work Loop URLs only when both authority keys exist.
  *

@@ -641,6 +641,26 @@ export function resetPiSessionScopedState(reason = "session_boundary"): void {
   });
 }
 
+// ── Typed Work Loop compatibility ───────────────────────────────────────────
+const WORK_LOOP_STATUS_SCHEMA = "focusa.work_loop_status.v3";
+const WORK_LOOP_TYPED_STATES = new Set([
+  "absent",
+  "unavailable",
+  "stale",
+  "unsupported",
+  "blocked",
+  "exhausted",
+  "zero",
+  "healthy",
+]);
+
+export function compatibleWorkLoopStatusState(payload: any): string {
+  const state = String(payload?.state || "").trim();
+  return payload?.schema === WORK_LOOP_STATUS_SCHEMA && WORK_LOOP_TYPED_STATES.has(state)
+    ? state
+    : "unsupported";
+}
+
 // ── HTTP helper ──────────────────────────────────────────────────────────────
 export async function focusaFetch(path: string, opts: RequestInit = {}): Promise<any> {
   const timeout = getAttachmentRuntime().cfg?.focusaApiTimeoutMs || 5000;

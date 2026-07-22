@@ -4765,6 +4765,16 @@ mod tests {
             ),
             "healthy"
         );
+        for state in WORK_LOOP_TYPED_STATES {
+            assert_eq!(
+                compatible_typed_surface_state(
+                    WORK_LOOP_STATUS_SCHEMA,
+                    WORK_LOOP_STATUS_SCHEMA,
+                    state
+                ),
+                state
+            );
+        }
         assert_eq!(
             compatible_typed_surface_state(
                 "focusa.work_loop_status.v999",

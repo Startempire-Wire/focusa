@@ -14,6 +14,7 @@ import {
   nativeSessionAllowsNonessentialPersistence,
   focusaFetch,
   focusaPost,
+  compatibleWorkLoopStatusState,
   extractText,
   getFocusState,
   getEffectiveFocusSnapshot,
@@ -133,8 +134,7 @@ async function turnWorkLoopWriterHeaders(): Promise<Record<string, string>> {
   const token = Number(partition?.fencing_token);
   const expiresAt = Date.parse(String(partition?.lease_expires_at || ""));
   if (
-    status?.schema !== "focusa.work_loop_status.v3" ||
-    status?.state === "unsupported" ||
+    compatibleWorkLoopStatusState(status) === "unsupported" ||
     partition?.writer_key !== writerId ||
     partition?.lease_freshness !== "current" ||
     !Number.isSafeInteger(token) ||

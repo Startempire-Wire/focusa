@@ -11,7 +11,7 @@ assert.match(tools, /Number\.isSafeInteger\(fencingToken\)/);
 assert.match(tools, /x-focusa-fencing-token/);
 assert.match(tools, /"x-scope-project-root": attachmentKey\.workstream\.root_scope\.root_path/);
 assert.match(tools, /"x-scope-continuity-id": attachmentKey\.workstream\.continuity_id/);
-assert.match(tools, /focusa\.work_loop_status\.v3/, "tool lease cache must reject unsupported status schemas");
+assert.match(state, /focusa\.work_loop_status\.v3/, "shared lease helper must reject unsupported status schemas");
 assert.match(tools, /current scoped writer lease is missing, expired, or owned by another writer/);
 assert.doesNotMatch(
   tools.match(/async function preferredWriterId[\s\S]*?\n  }/)?.[0] ?? "",
@@ -19,12 +19,18 @@ assert.doesNotMatch(
   "Pi writer identity must not adopt another partition owner's writer id",
 );
 assert.match(state, /const attachment = currentAttachmentKey\(\)/);
+assert.match(state, /compatibleWorkLoopStatusState/);
+for (const typedState of ["absent", "unavailable", "stale", "unsupported", "blocked", "exhausted", "zero", "healthy"]) {
+  assert.match(state, new RegExp(`"${typedState}"`), `state helper must preserve ${typedState}`);
+}
 assert.match(state, /isProjectRootAuthoritySafe\(root\)/);
 assert.match(state, /"X-Scope-Project-Root": root/);
 assert.match(state, /"X-Scope-Continuity-Id": continuity/);
 assert.match(state, /continuity !== "extension-bootstrap"/);
+assert.match(tools, /compatibleWorkLoopStatusState\(body\)/, "tool lease cache must reject unknown typed states");
 for (const [name, source] of [["commands", commands], ["turns", turns]]) {
-  assert.match(source, /focusa\.work_loop_status\.v3/, `${name} must reject unsupported status schemas`);
+  assert.match(source, /compatibleWorkLoopStatusState\(status\)/, `${name} must reject unknown typed states`);
+  assert.match(state, /focusa\.work_loop_status\.v3/, `${name} must reject unsupported status schemas`);
   assert.match(source, /lease_freshness !== "current"/, `${name} must reject stale leases`);
   assert.match(source, /x-focusa-fencing-token/, `${name} must send fencing authority`);
 }

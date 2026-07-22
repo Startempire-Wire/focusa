@@ -8,6 +8,7 @@ import { Container, Text, type SettingItem, SettingsList } from "@earendil-works
 import {
   getAttachmentRuntime,
   focusaFetch,
+  compatibleWorkLoopStatusState,
   getFocusState,
   getEffectiveFocusSnapshot,
   persistState,
@@ -38,8 +39,7 @@ async function commandWorkLoopWriterHeaders(): Promise<Record<string, string>> {
   const token = Number(partition?.fencing_token);
   const expiresAt = Date.parse(String(partition?.lease_expires_at || ""));
   if (
-    status?.schema !== "focusa.work_loop_status.v3" ||
-    status?.state === "unsupported" ||
+    compatibleWorkLoopStatusState(status) === "unsupported" ||
     partition?.writer_key !== writerId ||
     partition?.lease_freshness !== "current" ||
     !Number.isSafeInteger(token) ||

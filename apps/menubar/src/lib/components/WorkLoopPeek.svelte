@@ -1,7 +1,7 @@
 <script lang="ts">
   import { runtimeStore } from '$lib/stores/runtime.svelte';
   import { formatScopeForDisplay, getProjectContext, type ScopeContext } from '$lib/projectContext.svelte';
-  import { evaluateWorkLoopAuthority } from '$lib/workLoopScope.js';
+  import { compatibleWorkLoopStatusState, evaluateWorkLoopAuthority } from '$lib/workLoopScope.js';
 
   let s = $derived(runtimeStore.snapshot);
   let health = $derived(s.workLoopHealth ?? {});
@@ -33,12 +33,7 @@
   let activeTask = $derived(status.current_task ?? status.work_loop?.current_task ?? {});
   let partition = $derived(status.execution_partition ?? health.execution_partition ?? {});
   let budget = $derived(status.budget_remaining ?? health.budget_remaining ?? {});
-  let typedState = $derived(
-    status.schema === 'focusa.work_loop_status.v3' &&
-    ['absent', 'unavailable', 'stale', 'unsupported', 'blocked', 'zero', 'healthy'].includes(status.state)
-      ? status.state
-      : 'unsupported'
-  );
+  let typedState = $derived(compatibleWorkLoopStatusState(status.schema, status.state));
   let writer = $derived(partition.writer_key ?? health.writer_owner ?? status.writer_owner ?? status.active_writer ?? health.active_writer ?? status.writer?.owner);
   let leaseFreshness = $derived(partition.lease_freshness ?? 'unclaimed');
   let currentScope = $derived(getProjectContext(s));

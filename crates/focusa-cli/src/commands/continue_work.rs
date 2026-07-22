@@ -50,15 +50,36 @@ fn envelope(status: &str, summary: String, next_action: &str, details: Value) ->
     })
 }
 
+const WORK_LOOP_STATUS_SCHEMA: &str = "focusa.work_loop_status.v3";
+const WORK_LOOP_TYPED_STATES: [&str; 8] = [
+    "absent",
+    "unavailable",
+    "stale",
+    "unsupported",
+    "blocked",
+    "exhausted",
+    "zero",
+    "healthy",
+];
+
+fn compatible_work_loop_state(status: &Value) -> &str {
+    let state = status.get("state").and_then(Value::as_str).unwrap_or("");
+    if status.get("schema").and_then(Value::as_str) == Some(WORK_LOOP_STATUS_SCHEMA)
+        && WORK_LOOP_TYPED_STATES.contains(&state)
+    {
+        state
+    } else {
+        "unsupported"
+    }
+}
+
 fn scoped_fencing_token(
     status: &Value,
     writer_id: &str,
     project_root: &str,
     continuity_id: &str,
 ) -> Option<u64> {
-    if status.get("schema").and_then(Value::as_str) != Some("focusa.work_loop_status.v3")
-        || status.get("state").and_then(Value::as_str) == Some("unsupported")
-    {
+    if compatible_work_loop_state(status) == "unsupported" {
         return None;
     }
     let partition = status.get("execution_partition")?;
@@ -84,7 +105,7 @@ fn operator_surface_details(status: &Value, project_root: &str, continuity_id: &
         "lease_expires_at": partition.get("lease_expires_at"),
         "fencing_token": partition.get("fencing_token"),
         "partition_status": partition.get("partition_status"),
-        "typed_state": status.get("state"),
+        "typed_state": compatible_work_loop_state(status),
         "canonical_workpoint": status
             .pointer("/active_workpoint/active/canonical")
             .or_else(|| status.pointer("/active_workpoint/canonical")),
@@ -302,6 +323,13 @@ mod tests {
             scoped_fencing_token(&stale, "cli-writer", "/tmp/focusa", "focusa-continuity"),
             None
         );
+        for state in WORK_LOOP_TYPED_STATES {
+            let payload = json!({"schema": WORK_LOOP_STATUS_SCHEMA, "state": state});
+            assert_eq!(compatible_work_loop_state(&payload), state);
+        }
+        let unknown_state = json!({"schema": WORK_LOOP_STATUS_SCHEMA, "state": "maybe"});
+        assert_eq!(compatible_work_loop_state(&unknown_state), "unsupported");
+
         let unsupported = json!({
             "schema": "focusa.work_loop_status.v999",
             "state": "healthy",
