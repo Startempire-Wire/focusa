@@ -584,6 +584,16 @@
       "status": "infra_allowed",
       "target": "Cfg-test-only environment serialization lock; never available to runtime scope authority",
       "acceptance_test": "five repeated parallel CLI unit suites plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-08",
+      "path": "crates/focusa-core/src/runtime/context_retrieval.rs",
+      "symbol": "FASTEMBED_MODEL",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Process-wide immutable FastEmbed model/runtime cache; contains no project, workstream, attachment, or retained query authority",
+      "acceptance_test": "context retrieval unit tests plus Spec104 singleton inventory gate"
     }
   ]
 }
