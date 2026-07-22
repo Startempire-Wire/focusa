@@ -74,6 +74,9 @@ pub struct SilentSession {
     /// Empty only for legacy projections; authorization treats empty as unknown/fail-closed.
     #[serde(default)]
     pub creator_principal_id: String,
+    /// Mutable control owner; adoption may transfer this without rewriting creator identity.
+    #[serde(default)]
+    pub controller_principal_id: String,
     /// Immutable operating-system account that owns the local runtime process.
     /// Empty only for legacy projections; authorization treats empty as unknown/fail-closed.
     #[serde(default)]
@@ -107,6 +110,7 @@ impl SilentSession {
             id: SilentSessionId::new(),
             authority,
             creator_principal_id: String::new(),
+            controller_principal_id: String::new(),
             owner_os_user: String::new(),
             display_name,
             work_item_ref: None,
@@ -142,7 +146,8 @@ impl SilentSession {
             active_config_revision_id,
             now,
         )?;
-        session.creator_principal_id = creator_principal_id;
+        session.creator_principal_id = creator_principal_id.clone();
+        session.controller_principal_id = creator_principal_id;
         session.owner_os_user = owner_os_user;
         Ok(session)
     }
@@ -381,6 +386,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(session.creator_principal_id, "principal:device:mac");
+        assert_eq!(session.controller_principal_id, "principal:device:mac");
         assert_eq!(session.owner_os_user, "wirebot");
         assert!(
             SilentSession::draft_owned(
@@ -412,9 +418,14 @@ mod tests {
             .as_object_mut()
             .unwrap()
             .remove("creator_principal_id");
+        value
+            .as_object_mut()
+            .unwrap()
+            .remove("controller_principal_id");
         value.as_object_mut().unwrap().remove("owner_os_user");
         let restored: SilentSession = serde_json::from_value(value).unwrap();
         assert!(restored.creator_principal_id.is_empty());
+        assert!(restored.controller_principal_id.is_empty());
         assert!(restored.owner_os_user.is_empty());
     }
 

@@ -207,9 +207,9 @@ fn authorize_start(
 ) -> Result<(), Box<ApiResponse>> {
     let principal = &request_principal.principal;
     let administrator = principal.role == SilentSessionRole::Administrator;
-    let creator = !session.creator_principal_id.is_empty()
-        && session.creator_principal_id == principal.principal_id;
-    let permission = creator || administrator;
+    let controller = !session.controller_principal_id.is_empty()
+        && session.controller_principal_id == principal.principal_id;
+    let permission = controller || administrator;
     let workspace = config
         .config
         .workspace
@@ -223,7 +223,7 @@ fn authorize_start(
         session_id: Some(session.id),
         run_id: Some(run.id),
         owner_os_user: session.owner_os_user.clone(),
-        writer_principal_id: Some(session.creator_principal_id.clone()),
+        writer_principal_id: Some(session.controller_principal_id.clone()),
         config_hash: config.redacted_config_hash.clone(),
         model_binding: format!(
             "{}:{}",
@@ -235,11 +235,11 @@ fn authorize_start(
         project_permission: permission,
         continuity_permission: permission,
         work_item_permission: permission,
-        writer_ownership: creator,
+        writer_ownership: controller,
         authorized_project_root: target.project_root.clone(),
         authorized_continuity_id: target.continuity_id.clone(),
         authorized_work_item_ref: target.work_item_ref.clone(),
-        writer_principal_id: creator.then(|| principal.principal_id.clone()),
+        writer_principal_id: controller.then(|| principal.principal_id.clone()),
         context_authority: ContextAuthorityVerdict::Allowed,
     };
     let decision = authorize_silent_session_action(&SilentSessionAuthorizationRequest {
