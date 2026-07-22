@@ -252,6 +252,50 @@ export function registerCommands(pi: ExtensionAPI) {
       const simpleProfiles = ["starter", "builder", "hands_off", "audit_safe"] as const;
       type SimpleProfileId = (typeof simpleProfiles)[number];
       const advancedMode = /\badvanced\b/i.test(String(args || ""));
+      const otaStatus = await focusaFetch("/update/policy").catch(() => null);
+      const effectiveOta = otaStatus?.policy || {};
+      let otaEnabled = effectiveOta.enabled === true;
+      let otaProfile = effectiveOta.dev_mode_override === true
+        ? "dev_auto_all"
+        : effectiveOta.mode === "automatic" && effectiveOta.channel === "stable"
+          ? "stable_auto_all"
+          : effectiveOta.mode === "prompt"
+            ? "stable_prompt"
+            : "notify";
+      const otaPartsAll = {
+        cli: true,
+        daemon: true,
+        tui: true,
+        pi_extension: true,
+        menubar: true,
+        installer: true,
+      };
+      const persistOtaPolicy = async () => {
+        const profile = otaProfile;
+        const result = await focusaFetch("/update/policy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            enabled: otaEnabled,
+            parts: otaPartsAll,
+            dev_mode: profile === "dev_auto_all",
+            channel: profile === "dev_auto_all" ? "dev" : "stable",
+            mode: profile === "dev_auto_all" || profile === "stable_auto_all"
+              ? "automatic"
+              : profile === "stable_prompt" ? "prompt" : "notify",
+          }),
+        });
+        const allowed = result?.policy?.auto_apply_allowed === true;
+        const blockers = Array.isArray(result?.policy?.auto_apply_blocked_until)
+          ? result.policy.auto_apply_blocked_until.join(", ")
+          : "";
+        ctx.ui.notify(
+          result?.status === "completed"
+            ? `OTA ${otaEnabled ? "enabled" : "disabled"}: ${profile}${otaEnabled && !allowed ? ` (blocked: ${blockers || "policy gate"})` : ""}`
+            : `OTA policy update blocked: ${result?.error || result?.failure_class || "daemon unavailable"}`,
+          result?.status === "completed" ? (otaEnabled && !allowed ? "warning" : "info") : "error"
+        );
+      };
 
       const draft = {
         contextStatusMode: getAttachmentRuntime().cfg?.contextStatusMode || "actionable",
@@ -368,6 +412,18 @@ export function registerCommands(pi: ExtensionAPI) {
 
       const buildSimpleItems = (): SettingItem[] => [
         {
+          id: "otaEnabled",
+          label: "Automatic OTA updates",
+          currentValue: String(otaEnabled),
+          values: BOOLEAN_OPTIONS,
+        },
+        {
+          id: "otaProfile",
+          label: "OTA profile (all surfaces)",
+          currentValue: otaProfile,
+          values: ["dev_auto_all", "stable_auto_all", "stable_prompt", "notify"],
+        },
+        {
           id: "simpleProfile",
           label: "Quick profile",
           currentValue: simpleProfile,
@@ -424,6 +480,18 @@ export function registerCommands(pi: ExtensionAPI) {
       ];
 
       const buildAdvancedItems = (): SettingItem[] => [
+        {
+          id: "otaEnabled",
+          label: "Automatic OTA updates",
+          currentValue: String(otaEnabled),
+          values: BOOLEAN_OPTIONS,
+        },
+        {
+          id: "otaProfile",
+          label: "OTA profile (all surfaces)",
+          currentValue: otaProfile,
+          values: ["dev_auto_all", "stable_auto_all", "stable_prompt", "notify"],
+        },
         {
           id: "contextStatusMode",
           label: "Footer context badge",
@@ -619,6 +687,17 @@ export function registerCommands(pi: ExtensionAPI) {
           advancedMode ? 8 : 10,
           getSettingsListTheme(),
           (id, newValue) => {
+            if (id === "otaEnabled") {
+              otaEnabled = String(newValue) === "true";
+              void persistOtaPolicy();
+              return;
+            }
+            if (id === "otaProfile") {
+              otaProfile = String(newValue);
+              otaEnabled = otaProfile !== "notify";
+              void persistOtaPolicy();
+              return;
+            }
             if (id === "simpleProfile") {
               simpleProfile = String(newValue) as SimpleProfileId;
               applySimpleProfile(simpleProfile);

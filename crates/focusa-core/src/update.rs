@@ -106,6 +106,17 @@ impl UpdatePolicyParts {
             installer: false,
         }
     }
+
+    pub fn all_surfaces(enabled: bool) -> Self {
+        Self {
+            cli: enabled,
+            daemon: enabled,
+            tui: enabled,
+            pi_extension: enabled,
+            menubar: enabled,
+            installer: enabled,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -115,6 +126,8 @@ pub struct UpdatePolicy {
     pub channel: ReleaseChannel,
     pub mode: UpdateMode,
     pub license_level: String,
+    #[serde(default)]
+    pub dev_mode_override: bool,
     pub parts: UpdatePolicyParts,
     pub maintenance_window: String,
     pub require_ci_success: bool,
@@ -147,7 +160,8 @@ impl UpdatePolicy {
                 channel: ReleaseChannel::Dev,
                 mode: UpdateMode::Automatic,
                 license_level: "dev_mode".into(),
-                parts: UpdatePolicyParts::local_server_parts(true),
+                dev_mode_override: dev_override,
+                parts: UpdatePolicyParts::all_surfaces(true),
                 maintenance_window: "always".into(),
                 require_ci_success: true,
                 require_release_success: true,
@@ -156,15 +170,8 @@ impl UpdatePolicy {
                 require_signatures: true,
                 rollback: true,
                 notify_before_restart: false,
-                // Auto-apply is still blocked at this implementation slice;
-                // later locking/apply/rollback gates must promote it.
-                auto_apply_allowed: false,
-                auto_apply_blocked_until: vec![
-                    "update_locking".into(),
-                    "atomic_install".into(),
-                    "rollback_apply".into(),
-                    "health_proof".into(),
-                ],
+                auto_apply_allowed: true,
+                auto_apply_blocked_until: vec![],
             }
         } else if is_evaluation {
             Self {
@@ -173,6 +180,7 @@ impl UpdatePolicy {
                 channel: ReleaseChannel::Stable,
                 mode: UpdateMode::Notify,
                 license_level: "evaluation".into(),
+                dev_mode_override: false,
                 parts: UpdatePolicyParts::local_server_parts(false),
                 maintenance_window: "manual".into(),
                 require_ci_success: true,
@@ -192,6 +200,7 @@ impl UpdatePolicy {
                 channel: ReleaseChannel::Stable,
                 mode: UpdateMode::Prompt,
                 license_level,
+                dev_mode_override: false,
                 parts: UpdatePolicyParts::local_server_parts(true),
                 maintenance_window: "prompt".into(),
                 require_ci_success: true,
@@ -208,6 +217,39 @@ impl UpdatePolicy {
                     "rollback_apply".into(),
                 ],
             }
+        }
+    }
+
+    pub fn refresh_auto_apply_authority(&mut self, features: &[String], dev_override: bool) {
+        let has = |feature: &str| features.iter().any(|value| value == feature);
+        let dev_mode = dev_override
+            || self.dev_mode_override
+            || self.license_level == "dev_mode"
+            || (has("developer_channel") && has("ota_auto_update"));
+        let unattended_entitled = dev_mode || has("ota_auto_update") || has("ota_scheduled");
+        let automatic_mode = matches!(self.mode, UpdateMode::Automatic | UpdateMode::Scheduled);
+        let any_part = self.parts.cli
+            || self.parts.daemon
+            || self.parts.tui
+            || self.parts.pi_extension
+            || self.parts.menubar
+            || self.parts.installer;
+        self.auto_apply_allowed = self.enabled && automatic_mode && unattended_entitled && any_part;
+        self.auto_apply_blocked_until.clear();
+        if !self.enabled {
+            self.auto_apply_blocked_until.push("policy_disabled".into());
+        }
+        if !automatic_mode {
+            self.auto_apply_blocked_until
+                .push("policy_mode_not_automatic_or_scheduled".into());
+        }
+        if !unattended_entitled {
+            self.auto_apply_blocked_until
+                .push("license_disallows_unattended_apply".into());
+        }
+        if !any_part {
+            self.auto_apply_blocked_until
+                .push("no_update_parts_enabled".into());
         }
     }
 }
@@ -936,7 +978,7 @@ mod tests {
     }
 
     #[test]
-    fn dev_mode_policy_defaults_to_automatic_dev_without_apply_permission_yet() {
+    fn dev_mode_policy_defaults_to_automatic_dev_for_all_surfaces() {
         let policy = UpdatePolicy::default_for_license(
             "dev_mode",
             &["developer_channel".into(), "ota_auto_update".into()],
@@ -949,14 +991,10 @@ mod tests {
         assert!(policy.parts.daemon);
         assert!(policy.parts.tui);
         assert!(policy.parts.pi_extension);
-        assert!(!policy.parts.menubar);
-        assert!(!policy.parts.installer);
-        assert!(!policy.auto_apply_allowed);
-        assert!(
-            policy
-                .auto_apply_blocked_until
-                .contains(&"update_locking".to_string())
-        );
+        assert!(policy.parts.menubar);
+        assert!(policy.parts.installer);
+        assert!(policy.auto_apply_allowed);
+        assert!(policy.auto_apply_blocked_until.is_empty());
     }
 
     #[test]

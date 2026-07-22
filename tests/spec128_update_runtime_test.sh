@@ -31,7 +31,7 @@ status="$(FOCUSA_FOCUSA_PATH="$TMP/bin/focusa" "$BIN" --json update status --lat
 jq -e '.schema=="focusa.update_inventory.v1" and .read_only==true and (.parts[] | select(.part=="cli" and .version=="0.9.74-dev" and .stale==true))' <<<"$status" >/dev/null || fail "stale CLI detection failed"
 
 policy_dev="$(FOCUSA_UPDATE_POLICY="$TMP/no-policy.json" FOCUSA_DEV_MODE=1 "$BIN" --json update policy show)"
-jq -e '.schema=="focusa.update_policy_status.v1" and .policy.channel=="dev" and .policy.mode=="automatic" and .auto_apply_allowed==false' <<<"$policy_dev" >/dev/null || fail "dev_mode policy default not automatic/dev with auto apply blocked"
+jq -e '.schema=="focusa.update_policy_status.v1" and .policy.channel=="dev" and .policy.mode=="automatic" and .auto_apply_allowed==true and ([.policy.parts[]] | all)' <<<"$policy_dev" >/dev/null || fail "dev_mode policy did not authorize automatic all-surface updates"
 
 policy_eval="$(FOCUSA_UPDATE_POLICY="$TMP/no-policy.json" FOCUSA_DEV_MODE=0 "$BIN" --json update policy show)"
 jq -e '.schema=="focusa.update_policy_status.v1" and .policy.mode!="automatic" and .auto_apply_allowed==false' <<<"$policy_eval" >/dev/null || fail "eval/unattended auto-apply denial failed"
