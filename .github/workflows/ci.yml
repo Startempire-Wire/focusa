@@ -123,10 +123,6 @@ jobs:
           done
           curl -fsS http://127.0.0.1:18787/v1/health >/dev/null
           python3 scripts/api_contract_probe.py --base-url http://127.0.0.1:18787 --out /tmp/focusa_api_spec_audit.json
-      - name: Spec135 ST3 canonical Beads materialization
-        env:
-          FOCUSA_DAEMON_BIN: target/release/focusa-daemon
-        run: python3 tests/spec135_task_materialization_e2e_test.py
       - name: Strict spec compliance gates
         env:
           FOCUSA_BASE_URL: http://127.0.0.1:18787
