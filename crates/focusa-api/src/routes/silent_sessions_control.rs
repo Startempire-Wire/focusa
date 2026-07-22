@@ -3,13 +3,10 @@ use std::sync::Arc;
 use axum::{Json, extract::State, http::HeaderMap, http::StatusCode};
 use chrono::Utc;
 use focusa_core::silent_sessions::{
-    ApprovalId, AuthorizationTarget, ContextAuthorityVerdict, DurableApprovalRecord,
-    EVENT_SCHEMA_VERSION, RunGeneration, SilentSession, SilentSessionAction,
-    SilentSessionAuthorizationRequest, SilentSessionEvent, SilentSessionEventId, SilentSessionId,
-    SilentSessionLifecycle, SilentSessionRole, SilentSessionRun, SilentSessionRunId,
-    TransitionEvidence, VerifiedAuthorityFacts, append_reducer_event_and_project,
-    authorize_silent_session_action, load_config_revision, load_durable_approval, load_run,
-    load_session, load_session_events, reduce_lifecycle,
+    ApprovalId, EVENT_SCHEMA_VERSION, RunGeneration, SilentSession, SilentSessionAction,
+    SilentSessionEvent, SilentSessionEventId, SilentSessionId, SilentSessionLifecycle,
+    SilentSessionRunId, TransitionEvidence, append_reducer_event_and_project, load_config_revision,
+    load_durable_approval, load_run, load_session, load_session_events, reduce_lifecycle,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -22,6 +19,7 @@ use super::{
         ApiResponse, authorized_projection, disclose_principal_side_effect,
         durable_request_principal, failure, persistence_failure,
     },
+    silent_sessions_authorize::authorize_mutation,
     silent_sessions_contract::{
         ApiSideEffect, ExactSessionRunTarget, SilentSessionApiEnvelope, guard_exact_target,
     },
@@ -254,7 +252,15 @@ async fn control(
     } else {
         None
     };
-    if let Err(response) = authorize_control(&principal, &session, &run, &config, kind, approval) {
+    if let Err(response) = authorize_mutation(
+        &principal,
+        &session,
+        &run,
+        &config,
+        kind.action(),
+        vec![kind.side_effect().into()],
+        approval,
+    ) {
         return after_principal(*response, &principal);
     }
     let Some(target) = kind.target(session.lifecycle) else {
@@ -307,73 +313,6 @@ async fn control(
         kind,
         body.approval_id,
     )
-}
-
-fn authorize_control(
-    request_principal: &ApiRequestPrincipal,
-    session: &SilentSession,
-    run: &SilentSessionRun,
-    config: &focusa_core::silent_sessions::SilentSessionConfigRevision,
-    kind: ControlKind,
-    approval: Option<DurableApprovalRecord>,
-) -> Result<(), Box<ApiResponse>> {
-    let principal = &request_principal.principal;
-    let administrator = principal.role == SilentSessionRole::Administrator;
-    let controller = !session.controller_principal_id.is_empty()
-        && session.controller_principal_id == principal.principal_id;
-    let permission = controller || administrator;
-    let target = AuthorizationTarget {
-        project_root: session.authority.project_root.clone(),
-        continuity_id: session.authority.continuity_id.clone(),
-        work_item_ref: session.work_item_ref.clone(),
-        session_id: Some(session.id),
-        run_id: Some(run.id),
-        owner_os_user: session.owner_os_user.clone(),
-        writer_principal_id: Some(session.controller_principal_id.clone()),
-        config_hash: config.redacted_config_hash.clone(),
-        model_binding: format!(
-            "{}:{}",
-            config.config.model.provider, config.config.model.model
-        ),
-        workspace: config
-            .config
-            .workspace
-            .source_root
-            .clone()
-            .unwrap_or_else(|| session.authority.project_root.clone()),
-    };
-    let authority = VerifiedAuthorityFacts {
-        project_permission: permission,
-        continuity_permission: permission,
-        work_item_permission: permission,
-        writer_ownership: controller,
-        authorized_project_root: target.project_root.clone(),
-        authorized_continuity_id: target.continuity_id.clone(),
-        authorized_work_item_ref: target.work_item_ref.clone(),
-        writer_principal_id: controller.then(|| principal.principal_id.clone()),
-        context_authority: ContextAuthorityVerdict::Allowed,
-    };
-    let decision = authorize_silent_session_action(&SilentSessionAuthorizationRequest {
-        principal: principal.clone(),
-        action: kind.action(),
-        target,
-        authority,
-        approval_durably_verified: approval.is_some(),
-        approval,
-        legacy_approved: false,
-        requested_side_effects: vec![kind.side_effect().into()],
-        now: Utc::now(),
-    });
-    if decision.allowed {
-        Ok(())
-    } else {
-        Err(Box::new(failure(
-            StatusCode::FORBIDDEN,
-            "forbidden",
-            "authorization_denied",
-            &decision.reason,
-        )))
-    }
 }
 
 #[allow(clippy::too_many_arguments)]
