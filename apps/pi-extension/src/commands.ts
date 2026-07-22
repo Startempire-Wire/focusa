@@ -285,13 +285,25 @@ export function registerCommands(pi: ExtensionAPI) {
               : profile === "stable_prompt" ? "prompt" : "notify",
           }),
         });
+        const schedulerEnabled = otaEnabled
+          && (profile === "dev_auto_all" || profile === "stable_auto_all");
+        const scheduler = result?.status === "completed"
+          ? await focusaFetch("/update/scheduler", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                enabled: schedulerEnabled,
+                channel: profile === "dev_auto_all" ? "dev" : "stable",
+              }),
+            })
+          : null;
         const allowed = result?.policy?.auto_apply_allowed === true;
         const blockers = Array.isArray(result?.policy?.auto_apply_blocked_until)
           ? result.policy.auto_apply_blocked_until.join(", ")
           : "";
         ctx.ui.notify(
           result?.status === "completed"
-            ? `OTA ${otaEnabled ? "enabled" : "disabled"}: ${profile}${otaEnabled && !allowed ? ` (blocked: ${blockers || "policy gate"})` : ""}`
+            ? `OTA ${otaEnabled ? "enabled" : "disabled"}: ${profile}; scheduler=${scheduler?.status === "completed" ? (schedulerEnabled ? "on" : "off") : "blocked"}${otaEnabled && !allowed ? ` (blocked: ${blockers || "policy gate"})` : ""}`
             : `OTA policy update blocked: ${result?.error || result?.failure_class || "daemon unavailable"}`,
           result?.status === "completed" ? (otaEnabled && !allowed ? "warning" : "info") : "error"
         );
