@@ -561,10 +561,16 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             selected_by,
             note,
         } => {
-            let resolved_project_root =
-                resolve_input_project_root(None, Some(project_root.as_str()))?;
+            let resolved =
+                scope_resolver::resolve_project_scope(Some(project_root.as_str()), None, None)?;
+            ensure_project_root_scope_safe(
+                Some(resolved.project_root.as_str()),
+                "project resolved project_root",
+            )?;
             let body = json!({
-                "project_root": resolved_project_root,
+                "project_root": resolved.canonical_parent_root,
+                "active_worktree_root": resolved.active_worktree_root,
+                "working_subpath_id": resolved.working_subpath_id,
                 "selected_by": selected_by,
                 "note": note,
             });
@@ -712,12 +718,17 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             next_action,
         } => {
             ensure_project_root_scope_safe(cwd.as_deref(), "project session-transfer: cwd")?;
-            let resolved_project_root =
-                resolve_input_project_root(cwd.as_deref(), project_root.as_deref())?;
+            let resolved = scope_resolver::resolve_project_scope(
+                project_root.as_deref(),
+                None,
+                cwd.as_deref(),
+            )?;
             let body = json!({
                 "action": action,
                 "cwd": cwd,
-                "project_root": resolved_project_root,
+                "project_root": resolved.canonical_parent_root,
+                "source_working_subpath_id": resolved.working_subpath_id.clone(),
+                "target_working_subpath_id": resolved.working_subpath_id,
                 "current_ask": current_ask,
                 "continuity_id": continuity_id,
                 "mission": mission,

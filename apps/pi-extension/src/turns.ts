@@ -581,7 +581,15 @@ function formatTrajectoryFocusSlice(view: any): string[] {
   const projectId = boundedTrajectoryText(project.project_id || projectApi.project_id, 80);
   const workspaceKind = boundedTrajectoryText(project.workspace_kind || projectApi.workspace_kind, 80);
   const repoRemote = boundedTrajectoryText(project.repo_remote || projectApi.repo_remote, 140);
-  const beadsPrefix = boundedTrajectoryText(project.beads_prefix || projectApi.beads_prefix, 40);
+  const workingContext = project.working_context || projectApi.working_context || {};
+  const workingSubpath = workingContext.working_subpath || {};
+  const activeWorktreeRoot = boundedTrajectoryText(workingContext.active_worktree_root, 160);
+  const workingSubpathId = boundedTrajectoryText(workingSubpath.working_subpath_id || "primary", 80);
+  const beadsRoot = boundedTrajectoryText(workingSubpath.beads_root, 160);
+  const beadsPrefix = boundedTrajectoryText(
+    workingSubpath.beads_prefix || project.beads_prefix || projectApi.beads_prefix,
+    40
+  );
   const projectUrls = project.project_urls || projectApi.project_urls || {};
   const deployment = project.deployment || projectApi.deployment || {};
   const rootUrl = boundedTrajectoryText(
@@ -619,7 +627,9 @@ function formatTrajectoryFocusSlice(view: any): string[] {
   );
   const identityParts = [
     `status=${boundedTrajectoryText(project.status || view.status || "unknown", 40)}`,
-    `project_root=${projectRoot}`,
+    `canonical_parent=${projectRoot}`,
+    activeWorktreeRoot ? `working_root=${activeWorktreeRoot}` : `working_root=${projectRoot}`,
+    `working_subpath=${workingSubpathId}`,
     continuityId ? `continuity_id=${continuityId}` : "continuity_id=(unavailable)",
     project.session_id ? `session_id=${boundedTrajectoryText(project.session_id, 120)}` : "",
     project.confidence ? `confidence=${boundedTrajectoryText(project.confidence, 40)}` : "",
@@ -629,6 +639,7 @@ function formatTrajectoryFocusSlice(view: any): string[] {
     projectId ? `project_id=${projectId}` : "",
     workspaceKind ? `workspace_kind=${workspaceKind}` : "",
     repoRemote ? `repo=${repoRemote}` : "",
+    beadsRoot ? `beads_root=${beadsRoot}` : "",
     beadsPrefix ? `beads_prefix=${beadsPrefix}` : "",
     "architecture_boundary=use project docs/ontology/evidence; do not infer from folder name alone",
   ].filter(Boolean);

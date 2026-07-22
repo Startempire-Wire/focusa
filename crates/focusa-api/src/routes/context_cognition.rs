@@ -11,7 +11,7 @@
 //! - `GET /v1/context-cognition/proof?project_root=...` — map surfaces to proof commands
 
 use crate::routes::project::project_identity_payload_for_scope;
-use crate::routes::workpoint::active_workpoint_for_scope;
+use crate::routes::workpoint::active_workpoint_for_context;
 use crate::server::AppState;
 use axum::{Json, extract::State, http::StatusCode};
 use chrono::Utc;
@@ -107,6 +107,8 @@ fn default_recommended_use() -> ContextCognitionRecommendedPacketUse {
 
 fn build_empty_packet(
     project_root: &str,
+    active_worktree_root: Option<String>,
+    working_subpath_id: Option<String>,
     continuity_id: Option<String>,
     scope_status: &str,
 ) -> ContextCognitionPacket {
@@ -123,6 +125,8 @@ fn build_empty_packet(
         },
         scope: ContextCognitionScope {
             project_root: project_root.to_string(),
+            active_worktree_root,
+            working_subpath_id,
             continuity_id,
             session_id: None,
             workpoint_id: None,
@@ -213,7 +217,23 @@ async fn view(
         _ => "missing",
     };
 
-    let mut packet = build_empty_packet(project_root, continuity_id.clone(), scope_status);
+    let active_worktree_root = identity
+        .pointer("/working_context/active_worktree_root")
+        .and_then(Value::as_str)
+        .map(ToOwned::to_owned);
+    let working_subpath_id = query.working_subpath_id.clone().or_else(|| {
+        identity
+            .pointer("/working_context/working_subpath/working_subpath_id")
+            .and_then(Value::as_str)
+            .map(ToOwned::to_owned)
+    });
+    let mut packet = build_empty_packet(
+        project_root,
+        active_worktree_root,
+        working_subpath_id,
+        continuity_id.clone(),
+        scope_status,
+    );
     if !exact_scope_ready {
         packet.status = "degraded".to_string();
         packet.freshness.stale = true;
@@ -229,7 +249,12 @@ async fn view(
 
     // Wire active Workpoint/Trajectory only by exact project_root + continuity_id.
     let scoped_workpoint = if exact_scope_ready {
-        active_workpoint_for_scope(&focusa_state, Some(project_root), continuity_id.as_deref())
+        active_workpoint_for_context(
+            &focusa_state,
+            Some(project_root),
+            continuity_id.as_deref(),
+            query.working_subpath_id.as_deref(),
+        )
     } else {
         None
     };
@@ -307,6 +332,7 @@ async fn view(
 #[allow(dead_code)]
 pub struct ContextCognitionRequest {
     pub project_root: Option<String>,
+    pub working_subpath_id: Option<String>,
     pub continuity_id: Option<String>,
     pub session_id: Option<String>,
     pub include_rehydrate_refs: Option<bool>,
@@ -418,8 +444,13 @@ async fn render(
         .map(str::trim)
         .filter(|value| !value.is_empty());
     let focusa_state = state.focusa.read().await.clone();
-    let workpoint_id = active_workpoint_for_scope(&focusa_state, Some(project_root), continuity_id)
-        .map(|record| record.workpoint_id.to_string());
+    let workpoint_id = active_workpoint_for_context(
+        &focusa_state,
+        Some(project_root),
+        continuity_id,
+        query.working_subpath_id.as_deref(),
+    )
+    .map(|record| record.workpoint_id.to_string());
     let trajectory_id = focusa_state.trajectory.active_trajectory_id.clone();
 
     let mut lines: Vec<String> = Vec::new();
@@ -491,8 +522,13 @@ async fn proof(
         .map(str::trim)
         .filter(|value| !value.is_empty());
     let focusa_state = state.focusa.read().await.clone();
-    let workpoint_id = active_workpoint_for_scope(&focusa_state, Some(project_root), continuity_id)
-        .map(|record| record.workpoint_id.to_string());
+    let workpoint_id = active_workpoint_for_context(
+        &focusa_state,
+        Some(project_root),
+        continuity_id,
+        query.working_subpath_id.as_deref(),
+    )
+    .map(|record| record.workpoint_id.to_string());
 
     // Use the daemon's own bind (default http://127.0.0.1:8787) for proof
     // command URLs. The /v1/health route is also reachable on the same bind.
@@ -553,7 +589,7 @@ mod tests {
 
     #[test]
     fn empty_packet_uses_schema_v1() {
-        let p = build_empty_packet("/tmp/x", None, "matched");
+        let p = build_empty_packet("/tmp/x", None, Some("primary".to_string()), None, "matched");
         assert_eq!(p.schema_version, SCHEMA_VERSION);
         assert!(p.advisory);
         assert!(!p.canonical);

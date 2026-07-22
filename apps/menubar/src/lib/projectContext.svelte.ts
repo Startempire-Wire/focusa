@@ -4,7 +4,10 @@
 
 /** Spec104 MEN-01: typed ScopeContext (advisory, not canonical). */
 export interface ScopeContext {
+  /** Canonical parent project root (legacy field name retained for compatibility). */
   project_root: string;
+  active_worktree_root?: string;
+  working_subpath_id?: string;
   continuity_id: string;
   session_id?: string;
   work_item_id?: string;
@@ -17,8 +20,10 @@ export interface ScopeContext {
 }
 
 export interface ProjectContext extends ScopeContext {
-  /** Alias of project_root for legacy callers. */
+  /** Alias of canonical parent project_root for legacy callers. */
   projectRoot: string;
+  activeWorktreeRoot?: string;
+  workingSubpathId?: string;
   /** Alias of continuity_id for legacy callers. */
   continuityId: string;
   sessionId?: string;
@@ -37,6 +42,18 @@ export function getProjectContext(s: any): ProjectContext {
     packet?.scope?.project_root ||
     '',
   );
+  const activeWorktreeRoot = String(
+    project.active_worktree_root ||
+    project.working_context?.active_worktree_root ||
+    packet?.scope?.active_worktree_root ||
+    projectRoot
+  );
+  const workingSubpathId = String(
+    project.working_context?.working_subpath?.working_subpath_id ||
+    packet?.scope?.working_subpath_id ||
+    workpoint.working_subpath_id ||
+    "primary"
+  );
   const continuityId = String(
     project.continuity_id ||
     packet?.scope?.continuity_id ||
@@ -48,11 +65,15 @@ export function getProjectContext(s: any): ProjectContext {
   return {
     // Snake_case fields satisfy ScopeContext (Spec104 MEN-01 typed interface).
     project_root: projectRoot,
+    active_worktree_root: activeWorktreeRoot,
+    working_subpath_id: workingSubpathId,
     continuity_id: continuityId,
     session_id: sessionId,
     work_item_id: workItemId,
     // CamelCase aliases satisfy legacy ProjectContext callers.
     projectRoot,
+    activeWorktreeRoot,
+    workingSubpathId,
     continuityId,
     sessionId,
     workItemId,
@@ -83,7 +104,10 @@ export function deriveTypedScopeStatus(scope?: Partial<ScopeContext> | null): {
 /** Spec104 WL-02: format scope + advisory status for TUI/menubar display. */
 export function formatScopeForDisplay(scope?: Partial<ScopeContext> | null): string {
   const status = deriveTypedScopeStatus(scope);
-  if (status.status === 'blocked') return `[BLOCKED] ${status.projectRoot}`;
-  if (status.isAdvisory) return `[advisory] ${status.projectRoot} (${status.continuityId})`;
-  return `${status.projectRoot} (${status.continuityId})`;
+  const workingRoot = scope?.active_worktree_root || status.projectRoot;
+  const workingId = scope?.working_subpath_id || 'primary';
+  const authority = `parent=${status.projectRoot} worktree=${workingRoot} subpath=${workingId}`;
+  if (status.status === 'blocked') return `[BLOCKED] ${authority}`;
+  if (status.isAdvisory) return `[advisory] ${authority} (${status.continuityId})`;
+  return `${authority} (${status.continuityId})`;
 }

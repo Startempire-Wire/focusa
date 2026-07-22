@@ -72,6 +72,8 @@ pub struct ProjectSessionTransferRequest {
     pub continuity_id: Option<String>,
     pub source_scope: Option<WorkstreamKey>,
     pub target_scope: Option<WorkstreamKey>,
+    pub source_working_subpath_id: Option<String>,
+    pub target_working_subpath_id: Option<String>,
     pub target_continuity_id: Option<String>,
     pub source_session_id: Option<String>,
     pub target_session_id: Option<String>,
@@ -123,6 +125,8 @@ pub struct ProjectDiscoverQuery {
 #[derive(Debug, Deserialize, Default)]
 pub struct ProjectSelectionRequest {
     pub project_root: String,
+    pub active_worktree_root: Option<String>,
+    pub working_subpath_id: Option<String>,
     pub selected_by: Option<String>,
     pub note: Option<String>,
 }
@@ -2474,7 +2478,14 @@ async fn use_project(
     let root = body.project_root;
     match store_selected_project(root.trim(), body.selected_by, body.note) {
         Ok(payload) => {
-            Json(json!({"status":"ok","schema":"focusa.project_selection.v1","selected":payload}))
+            Json(json!({
+                "status":"ok",
+                "schema":"focusa.project_selection.v2",
+                "selected":payload,
+                "canonical_parent_root":root,
+                "active_worktree_root":body.active_worktree_root.unwrap_or_else(|| root.clone()),
+                "working_subpath_id":body.working_subpath_id.unwrap_or_else(|| "primary".to_string())
+            }))
         }
         Err(reason) => {
             Json(json!({"status":"blocked","failure_class":"invalid_selection","reason":reason}))
@@ -4194,6 +4205,20 @@ async fn session_transfer(
     } else {
         body.target_scope.clone()
     };
+    let source_working_subpath_id = body
+        .source_working_subpath_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("primary")
+        .to_string();
+    let target_working_subpath_id = body
+        .target_working_subpath_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or(source_working_subpath_id.as_str())
+        .to_string();
     let inferred = card_payload
         .get("inferred_workpoint_candidate")
         .cloned()
@@ -4249,7 +4274,12 @@ async fn session_transfer(
                 && record
                     .pointer("/source_scope/continuity_id")
                     .and_then(Value::as_str)
-                    == Some(source_scope.continuity_id.as_str());
+                    == Some(source_scope.continuity_id.as_str())
+                && record
+                    .get("source_working_subpath_id")
+                    .and_then(Value::as_str)
+                    .unwrap_or("primary")
+                    == source_working_subpath_id.as_str();
             let target_matches = record
                 .pointer("/target_scope/root_scope/root_path")
                 .and_then(Value::as_str)
@@ -4257,7 +4287,12 @@ async fn session_transfer(
                 && record
                     .pointer("/target_scope/continuity_id")
                     .and_then(Value::as_str)
-                    == Some(source_scope.continuity_id.as_str());
+                    == Some(source_scope.continuity_id.as_str())
+                && record
+                    .get("target_working_subpath_id")
+                    .and_then(Value::as_str)
+                    .unwrap_or("primary")
+                    == source_working_subpath_id.as_str();
             source_matches || target_matches
         })
         .unwrap_or(Value::Null);
@@ -4283,13 +4318,15 @@ async fn session_transfer(
         "first_tool": format!("focusa_session_transfer action=\"continue\" project_root=\"{project_root}\" continuity_id=\"{continuity_id}\""),
         "preload": format!("focusa preload write --target {preload_target} --project-root {project_root} --continuity-id {continuity_id}"),
         "receipt_preview": format!("focusa preload receipt-preview --target {preload_target} --project-root {project_root} --continuity-id {continuity_id}"),
-        "authority_boundary": "project_root_plus_continuity_id"
+        "authority_boundary": "canonical_parent_plus_working_subpath_plus_continuity_id"
     });
     let record = json!({
-        "schema": "focusa.project_session_transfer.v2",
+        "schema": "focusa.project_session_transfer.v3",
         "transfer_id": transfer_id,
         "source_scope": source_scope,
         "target_scope": target_scope,
+        "source_working_subpath_id": source_working_subpath_id,
+        "target_working_subpath_id": target_working_subpath_id,
         "transition": {
             "status": if action == "rollover" { "target_attachment_pending" } else { "saved" },
             "source_session_id": body.source_session_id,

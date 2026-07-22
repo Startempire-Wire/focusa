@@ -320,6 +320,7 @@ mod tests {
             &parent,
             &["worktree", "remove", "--force", worktree.to_str().unwrap()],
         );
+        assert!(resolve_git_working_context(&worktree).unwrap().is_none());
         std::fs::remove_dir_all(base).unwrap();
     }
 

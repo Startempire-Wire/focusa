@@ -65,6 +65,12 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     ? trajectoryProjectIdentity || cachedProjectIdentity || verifiedProjectIdentity || {}
     : {};
   const projectSummary = projectIdentity.project_summary || {};
+  const activeWorktreeRoot = normalizeProjectRoot(
+    projectIdentity.active_worktree_root || projectIdentity.working_context?.active_worktree_root || getSessionCwd()
+  );
+  const workingSubpathId = line(
+    projectIdentity.working_context?.working_subpath?.working_subpath_id || "primary"
+  );
   const trajectoryFallback = trajectory.fallback_prior_project_trajectory === true;
   const projectUrls = trajectoryFallback
     ? projectIdentity.project_urls || projectSummary.urls || {}
@@ -113,7 +119,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
 
   const missionPacket = [
     "MISSION_PACKET:",
-    `- project=${safeScope ? compact(projectIdentity.canonical_name || projectIdentity.project_id, "unknown", 80) : "UNBOUND_UNSAFE_ROOT"} root=${projectRoot || "unknown"}${confidence}`,
+    `- project=${safeScope ? compact(projectIdentity.canonical_name || projectIdentity.project_id, "unknown", 80) : "UNBOUND_UNSAFE_ROOT"} canonical_parent=${projectRoot || "unknown"} working_root=${activeWorktreeRoot || "unknown"} working_subpath=${workingSubpathId}${confidence}`,
     `- hlt_status=${hltStatus}; trajectory_required=${trajectoryRequired}; hlt_required=${hltRequired}; action_authority=${actionAuthority}`,
     `- generic_bootstrap=${genericBootstrap}; fallback_level=${fallbackLevel}; fallback_source=${fallbackSourceScope || "none"}`,
     `- trajectory=${trajectoryFallback ? "prior_project_fallback_advisory" : trajectorySet ? "set" : "not_hydrated"}; high=${compact(trajectory.long_term_goal, "unknown")}; desired=${compact(trajectory.desired_end_state, "unknown")}`,
@@ -122,7 +128,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     ...(loudWarning ? [`- LOUD_WARNING: ${loudWarning}`] : []),
     `- next=${!safeScope || needsConfirm ? "auto-bootstrap project identity with focusa_project_identity before durable work" : hltRequired ? "focusa_trajectory_define_goal (HLT required)" : next ? compact(next) : compact(trajectory.active_gap || trajectory.short_term_goal || mission || "refresh trajectory then checkpoint mission")}`,
     `- environment=${envParts || "unknown; call focusa_project_identity/trajectory_view for URL/deploy facts"}`,
-    `- boundary=operator steering wins; project_root+continuity_id are authority; trajectory similarity/fallback is advisory only`,
+    `- boundary=operator steering wins; canonical_parent+working_subpath+continuity_id bound Workpoints; project Trajectory remains parent-scoped; similarity/fallback is advisory only`,
   ];
 
   const reconciliationActive =

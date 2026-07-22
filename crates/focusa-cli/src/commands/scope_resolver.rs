@@ -1,5 +1,6 @@
 use anyhow::{Result, anyhow};
 use focusa_core::scope_safety::classify_project_root;
+use focusa_core::working_subpath::resolve_git_working_context;
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
 use std::fs;
@@ -33,6 +34,9 @@ pub enum ScopeSource {
 #[derive(Debug, Clone)]
 pub struct ResolvedProjectScope {
     pub project_root: String,
+    pub canonical_parent_root: String,
+    pub active_worktree_root: String,
+    pub working_subpath_id: String,
     pub continuity_id: Option<String>,
     pub project_id: Option<String>,
     pub fingerprint: Option<String>,
@@ -91,10 +95,12 @@ fn read_json_file<T: serde::de::DeserializeOwned>(path: &Path) -> Option<T> {
 }
 
 fn project_root_from_path(path: &Path) -> Option<PathBuf> {
-    if path.join(".focusa-project.json").is_file() || path.join(".git").is_dir() {
-        return Some(path.to_path_buf());
+    if let Ok(Some(context)) = resolve_git_working_context(path) {
+        return Some(PathBuf::from(context.canonical_parent_root));
     }
-    None
+    path.join(".focusa-project.json")
+        .is_file()
+        .then(|| path.to_path_buf())
 }
 
 fn root_path_is_project_candidate(path: &Path) -> bool {
@@ -118,14 +124,30 @@ fn find_upward_root(start: &Path) -> Option<(PathBuf, ScopeSource)> {
 }
 
 fn resolved_from_root(root: &str, scope_source: ScopeSource) -> ResolvedProjectScope {
+    let working_context = resolve_git_working_context(Path::new(root)).ok().flatten();
+    let canonical_parent_root = working_context
+        .as_ref()
+        .map(|context| context.canonical_parent_root.clone())
+        .unwrap_or_else(|| root.to_string());
+    let active_worktree_root = working_context
+        .as_ref()
+        .map(|context| context.active_worktree_root.clone())
+        .unwrap_or_else(|| root.to_string());
+    let working_subpath_id = working_context
+        .as_ref()
+        .map(|context| context.working_subpath.working_subpath_id.clone())
+        .unwrap_or_else(|| "primary".to_string());
     ResolvedProjectScope {
-        project_root: root.to_string(),
+        project_root: canonical_parent_root.clone(),
+        canonical_parent_root: canonical_parent_root.clone(),
+        active_worktree_root,
+        working_subpath_id,
         continuity_id: None,
-        project_id: Path::new(root)
+        project_id: Path::new(&canonical_parent_root)
             .file_name()
             .and_then(|value| value.to_str())
             .map(ToString::to_string),
-        fingerprint: Some(project_fingerprint(root)),
+        fingerprint: Some(project_fingerprint(&canonical_parent_root)),
         scope_source,
         verified: true,
         authority: "selected_or_verified",
@@ -248,16 +270,10 @@ pub fn resolve_project_scope(
         {
             if let Ok(fallback_root) = std::env::var("FOCUSA_PROJECT_ROOT") {
                 if root_path_is_project_candidate(Path::new(&fallback_root)) {
-                    return Ok(ResolvedProjectScope {
-                        project_root: fallback_root,
-                        continuity_id: None,
-                        project_id: None,
-                        fingerprint: Some(profile),
-                        scope_source: ScopeSource::EnvSelectedProject,
-                        verified: true,
-                        authority: "selected_or_verified",
-                        project_root_authority_failure: None,
-                    });
+                    let mut resolved =
+                        resolved_from_root(&fallback_root, ScopeSource::EnvSelectedProject);
+                    resolved.fingerprint = Some(profile);
+                    return Ok(resolved);
                 }
             }
         }
@@ -289,16 +305,9 @@ pub fn resolve_project_scope(
                 .filter(|value| !value.trim().is_empty())
             {
                 if root_path_is_project_candidate(Path::new(root.as_str())) {
-                    return Ok(ResolvedProjectScope {
-                        project_root: root,
-                        continuity_id: None,
-                        project_id: None,
-                        fingerprint: Some(profile_fingerprint),
-                        scope_source: ScopeSource::CliSelectedProject,
-                        verified: true,
-                        authority: "selected_or_verified",
-                        project_root_authority_failure: None,
-                    });
+                    let mut resolved = resolved_from_root(&root, ScopeSource::CliSelectedProject);
+                    resolved.fingerprint = Some(profile_fingerprint);
+                    return Ok(resolved);
                 }
             }
         }

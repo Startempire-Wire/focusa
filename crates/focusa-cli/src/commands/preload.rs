@@ -5,6 +5,7 @@
 
 use anyhow::{Context, Result};
 use clap::Args;
+use focusa_core::working_subpath::resolve_git_working_context;
 use serde_json::{Value, json};
 use std::process::Command;
 
@@ -21,6 +22,14 @@ pub struct PreloadArgs {
     /// Daemon base URL for the daemon API.
     #[arg(long, default_value = "http://127.0.0.1:8787")]
     pub daemon_url: Option<String>,
+
+    /// Canonical project or active worktree root for scoped preload actions.
+    #[arg(long)]
+    pub project_root: Option<String>,
+
+    /// Stable continuity id for scoped preload actions.
+    #[arg(long)]
+    pub continuity_id: Option<String>,
 
     /// Target path for the write action (must use allowlisted prefix).
     #[arg(long)]
@@ -40,12 +49,26 @@ pub async fn run(args: PreloadArgs, _json_mode: bool) -> Result<()> {
         .daemon_url
         .clone()
         .unwrap_or_else(|| "http://127.0.0.1:8787".to_string());
+    let scope_path = args
+        .project_root
+        .as_deref()
+        .map(std::path::PathBuf::from)
+        .or_else(|| std::env::current_dir().ok());
+    let working_context = scope_path
+        .as_deref()
+        .and_then(|path| resolve_git_working_context(path).ok().flatten());
+    let scoped_request = json!({
+        "profile": args.profile.clone().unwrap_or_else(|| "rules_and_context".to_string()),
+        "project_root": working_context.as_ref().map(|value| value.canonical_parent_root.clone()).or(args.project_root.clone()),
+        "working_subpath_id": working_context.as_ref().map(|value| value.working_subpath.working_subpath_id.clone()).unwrap_or_else(|| "primary".to_string()),
+        "continuity_id": args.continuity_id.clone(),
+    });
     match args.action.as_str() {
         "profiles" => curl_get(&daemon_url, "/v1/preload/profiles").await,
-        "build" => curl_get(&daemon_url, "/v1/preload/build").await,
-        "render" => curl_get(&daemon_url, "/v1/preload/render").await,
-        "verify" => curl_get(&daemon_url, "/v1/preload/verify").await,
-        "doctor" => curl_get(&daemon_url, "/v1/preload/doctor").await,
+        "build" => curl_post(&daemon_url, "/v1/preload/build", scoped_request).await,
+        "render" => curl_post(&daemon_url, "/v1/preload/render", scoped_request).await,
+        "verify" => curl_post(&daemon_url, "/v1/preload/verify", scoped_request).await,
+        "doctor" => curl_post(&daemon_url, "/v1/preload/doctor", scoped_request).await,
         "receipt-preview" => {
             curl_post(
                 &daemon_url,

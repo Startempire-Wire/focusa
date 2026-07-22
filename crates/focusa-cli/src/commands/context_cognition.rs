@@ -5,6 +5,7 @@
 use crate::api_client::ApiClient;
 use crate::commands::scope::ensure_project_root_scope_safe;
 use clap::Subcommand;
+use focusa_core::working_subpath::resolve_git_working_context;
 use serde_json::Value;
 
 #[derive(Subcommand)]
@@ -494,10 +495,25 @@ fn build_query(base: &str, project_root: Option<String>, continuity_id: Option<S
     let mut path = String::from(base);
     let mut sep = "?";
     if let Some(pr) = project_root.as_deref() {
+        let context = resolve_git_working_context(std::path::Path::new(pr))
+            .ok()
+            .flatten();
+        let canonical_parent = context
+            .as_ref()
+            .map(|value| value.canonical_parent_root.as_str())
+            .unwrap_or(pr);
         path.push_str(sep);
         path.push_str("project_root=");
-        path.push_str(&urlencoding_minimal(pr));
+        path.push_str(&urlencoding_minimal(canonical_parent));
         sep = "&";
+        if let Some(working_subpath_id) = context
+            .as_ref()
+            .map(|value| value.working_subpath.working_subpath_id.as_str())
+        {
+            path.push_str(sep);
+            path.push_str("working_subpath_id=");
+            path.push_str(&urlencoding_minimal(working_subpath_id));
+        }
     }
     if let Some(cid) = continuity_id.as_deref() {
         path.push_str(sep);
