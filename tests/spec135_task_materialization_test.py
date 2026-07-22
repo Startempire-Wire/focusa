@@ -31,8 +31,9 @@ def main():
         'root.join(".git").is_dir()',
         "has_local_database",
         "stable provider ID collision",
-        "BD_ISSUE_PREFIX",
-        "--no-db",
+        "acquire_materialization_lock",
+        "OpenOptions::new()",
+        "append(true)",
         "TaskPlanMaterialized",
         "idempotency_key",
     ]:

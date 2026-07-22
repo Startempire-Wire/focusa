@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
+    io::Write,
     path::{Path, PathBuf},
     sync::Arc,
     time::Duration,
@@ -588,6 +589,20 @@ fn has_local_database(beads: &Path) -> bool {
                 .is_some_and(|extension| extension == "db")
         })
 }
+struct MaterializationLock(PathBuf);
+impl Drop for MaterializationLock {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
+}
+fn acquire_materialization_lock(beads: &Path) -> Result<MaterializationLock, std::io::Error> {
+    let path = beads.join(".focusa-materialize.lock");
+    std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&path)?;
+    Ok(MaterializationLock(path))
+}
 fn provider_id(prefix: &str, plan_id: &str, task_id: &str) -> String {
     let digest = hash("", &[plan_id, task_id]);
     format!("{prefix}-{}", digest.trim_start_matches(':'))
@@ -729,21 +744,36 @@ pub async fn materialize_beads(
         }
     }
     drop(snapshot);
+    let _lock = acquire_materialization_lock(&beads).map_err(|error| {
+        materialize_fail(
+            StatusCode::CONFLICT,
+            ToolStatus::Blocked,
+            FailureClass::WriterConflict,
+            format!("canonical Beads materialization is busy: {error}"),
+        )
+    })?;
+    let mut after = before.clone();
+    let created_at = Utc::now();
+    let mut append = std::fs::OpenOptions::new()
+        .append(true)
+        .open(&ledger)
+        .map_err(|error| {
+            materialize_fail(
+                StatusCode::SERVICE_UNAVAILABLE,
+                ToolStatus::Offline,
+                FailureClass::ProcessControlFailed,
+                format!("cannot append canonical Beads ledger: {error}"),
+            )
+        })?;
     for task in &plan.tasks {
         let id = &mapping[&task.provider_neutral_id];
-        if before.contains_key(id) {
+        if after.contains_key(id) {
             continue;
         }
         let external = format!(
             "focusa-task-plan:{}:{}",
             plan.task_plan_id, task.provider_neutral_id
         );
-        let dependencies = task
-            .dependencies
-            .iter()
-            .map(|dependency| mapping[dependency].as_str())
-            .collect::<Vec<_>>()
-            .join(",");
         let description = format!(
             "{}\n\nTask plan: {}@{}\nProvider-neutral ID: {}\nRequirements: {}\nSpec sections: {}\nEvidence: {}\nVerification policy: {}",
             task.description,
@@ -755,51 +785,31 @@ pub async fn materialize_beads(
             task.evidence_requirements.join(", "),
             task.verification_policy_ref
         );
-        let mut command = tokio::process::Command::new("bd");
-        command
-            .current_dir(&root)
-            .env("BD_ISSUE_PREFIX", &request.worktree_prefix)
-            .args([
-                "--no-db",
-                "create",
-                "--force",
-                "--id",
-                id,
-                "--title",
-                &task.title,
-                "--description",
-                &description,
-                "--acceptance",
-                &task.acceptance_criteria.join("\n"),
-                "--external-ref",
-                &external,
-                "--labels",
-                "spec135,generated-task",
-                "--json",
-            ]);
-        if !dependencies.is_empty() {
-            command.args(["--deps", &dependencies]);
-        }
-        let output = command.output().await.map_err(|error| {
+        let dependencies: Vec<_> = task.dependencies.iter().map(|dependency| serde_json::json!({"issue_id": id, "depends_on_id": mapping[dependency], "type": "blocks", "created_at": created_at, "created_by": "focusa"})).collect();
+        let entry = serde_json::json!({"id":id,"title":task.title,"description":description,"acceptance_criteria":task.acceptance_criteria.join("\n"),"status":"open","priority":2,"issue_type":"task","created_at":created_at,"updated_at":created_at,"external_ref":external,"labels":["spec135","generated-task"],"dependencies":dependencies});
+        writeln!(
+            append,
+            "{}",
+            serde_json::to_string(&entry).expect("Beads entry serializes")
+        )
+        .map_err(|error| {
             materialize_fail(
                 StatusCode::SERVICE_UNAVAILABLE,
                 ToolStatus::Offline,
-                FailureClass::DaemonUnavailable,
-                format!("Beads adapter unavailable: {error}"),
+                FailureClass::ProcessControlFailed,
+                format!("cannot write canonical Beads task {id}: {error}"),
             )
         })?;
-        if !output.status.success() {
-            return Err(materialize_fail(
-                StatusCode::BAD_GATEWAY,
-                ToolStatus::Blocked,
-                FailureClass::ProcessControlFailed,
-                format!(
-                    "Beads adapter rejected task {id}: {}",
-                    String::from_utf8_lossy(&output.stderr)
-                ),
-            ));
-        }
+        after.insert(id.clone(), entry);
     }
+    append.flush().map_err(|error| {
+        materialize_fail(
+            StatusCode::SERVICE_UNAVAILABLE,
+            ToolStatus::Offline,
+            FailureClass::ProcessControlFailed,
+            format!("cannot flush canonical Beads ledger: {error}"),
+        )
+    })?;
     if has_local_database(&beads) {
         return Err(materialize_fail(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -808,14 +818,6 @@ pub async fn materialize_beads(
             "Beads adapter created a prohibited local database",
         ));
     }
-    let after = read_ledger(&ledger).map_err(|message| {
-        materialize_fail(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            ToolStatus::Blocked,
-            FailureClass::ValidationRejected,
-            message,
-        )
-    })?;
     let tasks: Vec<_> = plan
         .tasks
         .iter()
