@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const srcDir = new URL("../src/", import.meta.url);
+const srcDir = fileURLToPath(new URL("../src/", import.meta.url));
 const files = readdirSync(srcDir).filter((name) => name.endsWith(".ts"));
-const sourceByFile = new Map(files.map((name) => [name, readFileSync(join(srcDir.pathname, name), "utf8")]));
+const sourceByFile = new Map(files.map((name) => [name, readFileSync(join(srcDir, name), "utf8")]));
 
 const forbiddenRuntimeName = "runtime" + "State";
 for (const [name, source] of sourceByFile) {

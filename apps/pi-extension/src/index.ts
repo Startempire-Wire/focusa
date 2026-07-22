@@ -139,11 +139,16 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     }
 
     // ── Wire all modules ────────────────────────────────────────────────────
+    // Acquire the process-wide lease before any Focusa handlers are registered.
+    // A duplicate installation emits one diagnostic and registers nothing.
+    const ownsCompactionCoordinator = registerAutoCompaction(pi, () =>
+      proactiveCompactionPolicy(getAttachmentRuntime().cfg)
+    );
+    if (!ownsCompactionCoordinator) return;
     registerTools(pi);
     registerCommands(pi);
     registerWbm(pi);
     registerCompaction(pi);
-    registerAutoCompaction(pi, () => proactiveCompactionPolicy(getAttachmentRuntime().cfg));
     registerSession(pi);
     registerTurns(pi);
     registerPolishHooks(pi);
