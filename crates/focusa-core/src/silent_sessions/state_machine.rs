@@ -224,6 +224,9 @@ fn transition_allowed(from: SilentSessionLifecycle, to: SilentSessionLifecycle) 
             | (State::Completing, State::Completed)
             | (State::Completing, State::Blocked)
             | (State::Completing, State::Failed)
+            | (State::Cancelled, State::Draft)
+            | (State::Completed, State::Draft)
+            | (State::Failed, State::Draft)
     )
 }
 
@@ -284,6 +287,32 @@ mod tests {
         for pair in path.windows(2) {
             assert!(reduce_lifecycle(pair[0], pair[1], &TransitionEvidence::default()).is_ok());
         }
+    }
+
+    #[test]
+    fn terminal_sessions_can_restart_only_through_draft() {
+        for terminal in [
+            SilentSessionLifecycle::Cancelled,
+            SilentSessionLifecycle::Completed,
+            SilentSessionLifecycle::Failed,
+        ] {
+            assert!(
+                reduce_lifecycle(
+                    terminal,
+                    SilentSessionLifecycle::Draft,
+                    &TransitionEvidence::default()
+                )
+                .is_ok()
+            );
+        }
+        assert!(
+            reduce_lifecycle(
+                SilentSessionLifecycle::Running,
+                SilentSessionLifecycle::Draft,
+                &TransitionEvidence::default()
+            )
+            .is_err()
+        );
     }
 
     #[test]

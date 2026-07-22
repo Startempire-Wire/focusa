@@ -60,6 +60,7 @@ pub mod silent_sessions_contract;
 pub mod silent_sessions_control;
 pub mod silent_sessions_create;
 pub mod silent_sessions_lifecycle;
+pub mod silent_sessions_restart;
 pub mod skills;
 pub mod snapshots;
 pub mod spec_workbench;
