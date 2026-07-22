@@ -31,7 +31,10 @@ pub fn router() -> Router<Arc<crate::server::AppState>> {
         .route("/v1/update/history", get(update_history))
         .route("/v1/update/rollback", post(update_rollback))
         .route("/v1/update/admin", post(update_admin))
-        .route("/v1/update/scheduler", get(update_scheduler))
+        .route(
+            "/v1/update/scheduler",
+            get(update_scheduler).post(update_scheduler_set),
+        )
         .route(
             "/v1/update/notifications",
             get(update_notifications_get).post(update_notifications),
@@ -115,6 +118,17 @@ fn default_true() -> bool {
 }
 
 #[derive(Debug, Deserialize, Default)]
+struct UpdateSchedulerSetBody {
+    enabled: bool,
+    #[serde(default = "default_dev_channel")]
+    channel: String,
+}
+
+fn default_dev_channel() -> String {
+    "dev".to_string()
+}
+
+#[derive(Debug, Deserialize, Default)]
 struct UpdatePolicySetBody {
     #[serde(default)]
     enabled: Option<bool>,
@@ -170,6 +184,42 @@ async fn update_rollback(Json(body): Json<UpdateRollbackBody>) -> Json<Value> {
 
 async fn update_admin(Json(body): Json<UpdateAdminBody>) -> Json<Value> {
     Json(build_admin_envelope(body))
+}
+
+async fn update_scheduler_set(Json(body): Json<UpdateSchedulerSetBody>) -> Json<Value> {
+    let cli = std::env::var_os("FOCUSA_CLI_PATH")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("/usr/local/bin/focusa"));
+    let action = if body.enabled { "--install" } else { "--uninstall" };
+    match Command::new(&cli)
+        .args(["update", "scheduler", action, "--channel", &body.channel, "--json"])
+        .output()
+        .await
+    {
+        Ok(output) if output.status.success() => Json(json!({
+            "schema": "focusa.update_scheduler_mutation.v1",
+            "status": "completed",
+            "enabled": body.enabled,
+            "channel": body.channel,
+            "mutations_performed": true,
+            "scheduler": serde_json::from_slice::<Value>(&output.stdout).unwrap_or(Value::Null)
+        })),
+        Ok(output) => Json(json!({
+            "schema": "focusa.update_scheduler_mutation.v1",
+            "status": "blocked",
+            "failure_class": "scheduler_command_failed",
+            "enabled": body.enabled,
+            "error": String::from_utf8_lossy(&output.stderr).chars().take(512).collect::<String>(),
+            "mutations_performed": false
+        })),
+        Err(error) => Json(json!({
+            "schema": "focusa.update_scheduler_mutation.v1",
+            "status": "blocked",
+            "failure_class": "scheduler_cli_unavailable",
+            "error": error.to_string(),
+            "mutations_performed": false
+        })),
+    }
 }
 
 async fn update_scheduler(Query(query): Query<UpdateQuery>) -> Json<Value> {
