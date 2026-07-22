@@ -14,13 +14,14 @@ use crate::{
         SilentSessionConfig, SilentSessionConfigRevision, SilentSessionEvent, SilentSessionEventId,
         SilentSessionLease, SilentSessionLeaseId, SilentSessionLifecycle, SilentSessionRun,
         SilentSessionRunId, SilentSessionWorkpointCheckpoint, WorkpointCheckpointId,
-        append_create_event_and_project, append_reducer_event_and_project,
-        append_restart_event_and_project, list_checkpoint_values, list_completion_evaluations,
-        list_sessions, load_completion_evaluation, load_config_revision, load_lease, load_run,
-        load_runtime_checkpoint, load_session, load_session_by_idempotency_key,
-        load_session_events, load_usage_summary, load_workpoint_checkpoint,
-        migrate_silent_session_schema, save_completion_evaluation, save_config_revision,
-        save_lease, save_run, save_runtime_checkpoint, save_workpoint_checkpoint,
+        append_config_revision_event_and_project, append_create_event_and_project,
+        append_reducer_event_and_project, append_restart_event_and_project, list_checkpoint_values,
+        list_completion_evaluations, list_sessions, load_completion_evaluation,
+        load_config_revision, load_lease, load_run, load_runtime_checkpoint, load_session,
+        load_session_by_idempotency_key, load_session_events, load_usage_summary,
+        load_workpoint_checkpoint, migrate_silent_session_schema, save_completion_evaluation,
+        save_config_revision, save_lease, save_run, save_runtime_checkpoint,
+        save_workpoint_checkpoint,
     },
     types::FocusaConfig,
 };
@@ -550,6 +551,38 @@ fn all_canonical_records_save_and_reload() {
             Ok(())
         })
         .unwrap();
+}
+
+#[test]
+fn config_revision_event_and_record_commit_atomically() {
+    let (_dir, persistence) = persistence();
+    let projection = session();
+    let mut first = event(&projection, 1, None);
+    append_reducer_event_and_project(&persistence, &mut first, &projection).unwrap();
+    let revision = SilentSessionConfigRevision {
+        config_schema_version: 1,
+        id: ConfigRevisionId::new(),
+        silent_session_id: projection.id,
+        revision: 2,
+        config: config(),
+        redacted_config_hash: "revision-hash".into(),
+        created_by: ActorInstanceId::new(),
+        created_at: projection.updated_at,
+    };
+    let mut proposed = event(&projection, 2, Some(first.event_hash));
+    proposed.kind = "config.revision_proposed".into();
+    append_config_revision_event_and_project(&persistence, &mut proposed, &projection, &revision)
+        .unwrap();
+    assert_eq!(
+        load_config_revision(&persistence, revision.id).unwrap(),
+        Some(revision)
+    );
+    assert_eq!(
+        load_session_events(&persistence, projection.id)
+            .unwrap()
+            .len(),
+        2
+    );
 }
 
 #[test]

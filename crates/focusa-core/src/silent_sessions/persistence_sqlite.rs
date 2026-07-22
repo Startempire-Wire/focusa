@@ -341,6 +341,18 @@ pub fn append_create_event_and_project(
     )
 }
 
+pub fn append_config_revision_event_and_project(
+    persistence: &SqlitePersistence,
+    event: &mut SilentSessionEvent,
+    projection: &SilentSession,
+    revision: &SilentSessionConfigRevision,
+) -> anyhow::Result<AppendOutcome> {
+    if revision.silent_session_id != projection.id || event.silent_session_id != projection.id {
+        anyhow::bail!("config revision does not match the session projection");
+    }
+    append_event_projection_and_revision(persistence, event, projection, Some(revision), None, None)
+}
+
 pub fn append_restart_event_and_project(
     persistence: &SqlitePersistence,
     event: &mut SilentSessionEvent,
