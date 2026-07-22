@@ -15,9 +15,10 @@ use crate::{
         SilentSessionLease, SilentSessionLeaseId, SilentSessionLifecycle, SilentSessionRun,
         SilentSessionRunId, SilentSessionWorkpointCheckpoint, WorkpointCheckpointId,
         append_create_event_and_project, append_reducer_event_and_project,
-        append_restart_event_and_project, list_sessions, load_completion_evaluation,
-        load_config_revision, load_lease, load_run, load_runtime_checkpoint, load_session,
-        load_session_by_idempotency_key, load_session_events, load_workpoint_checkpoint,
+        append_restart_event_and_project, list_checkpoint_values, list_completion_evaluations,
+        list_sessions, load_completion_evaluation, load_config_revision, load_lease, load_run,
+        load_runtime_checkpoint, load_session, load_session_by_idempotency_key,
+        load_session_events, load_usage_summary, load_workpoint_checkpoint,
         migrate_silent_session_schema, save_completion_evaluation, save_config_revision,
         save_lease, save_run, save_runtime_checkpoint, save_workpoint_checkpoint,
     },
@@ -516,6 +517,21 @@ fn all_canonical_records_save_and_reload() {
         load_completion_evaluation(&persistence, completion_id)
             .unwrap()
             .is_some()
+    );
+    let usage = load_usage_summary(&persistence, projection.id, run_id).unwrap();
+    assert_eq!(usage.lifecycle_event_count, 0);
+    assert_eq!(usage.stream_event_count, 0);
+    assert_eq!(
+        list_checkpoint_values(&persistence, projection.id, run_id)
+            .unwrap()
+            .len(),
+        2
+    );
+    assert_eq!(
+        list_completion_evaluations(&persistence, projection.id, run_id)
+            .unwrap()
+            .len(),
+        1
     );
     persistence
         .with_connection_mut(|connection| {
