@@ -31,24 +31,62 @@ const runtimeCfg = {
 
 function buildCtx() {
   const compact = [];
-  return {
-    compact,
-    ctx: {
-      getContextUsage: () => ({ percent: 0, tokens: 1_000 }),
-      ui: {
-        notify() {},
-        setStatus() {},
-      },
-      compact(payload) {
-        compact.push(payload);
-        payload.onComplete?.();
-      },
+  const contextWindow = 200_000;
+  let usagePct = 0;
+  const message = (id) => ({
+    type: "message",
+    id,
+    parentId: null,
+    timestamp: 1,
+    message: { role: "user", content: "x".repeat(100_000), timestamp: 1 },
+  });
+  const branch = [message("a"), message("b"), message("c"), message("d")];
+  const ctx = {
+    cwd: "/tmp/focusa-bloatgaurd-pressure",
+    getContextUsage: () => ({
+      percent: usagePct,
+      tokens: Math.ceil((contextWindow * usagePct) / 100),
+      contextWindow,
+    }),
+    isIdle: () => true,
+    hasPendingMessages: () => false,
+    sessionManager: {
+      getBranch: () => branch,
+      getSessionId: () => "spec101-pressure-session",
+    },
+    ui: {
+      notify() {},
+      setStatus() {},
+    },
+    hasUI: true,
+    compact(payload) {
+      compact.push(payload);
+      payload.onComplete?.({
+        summary: "bounded summary",
+        firstKeptEntryId: "d",
+        tokensBefore: Math.ceil((contextWindow * usagePct) / 100),
+      });
     },
   };
+  return { compact, ctx, setUsagePct: (pct) => (usagePct = pct) };
 }
 
-async function runCheck(compaction, state, attachmentKey, pct, canCompact) {
+async function runCheck(autoCompaction, compaction, state, attachmentKey, pct, canCompact) {
   const ctxBundle = buildCtx();
+  const handlers = new Map();
+  const pi = {
+    on(name, handler) {
+      handlers.set(name, handler);
+    },
+    appendEntry() {},
+  };
+  assert.equal(
+    autoCompaction.registerAutoCompaction(pi, () => ({
+      ...autoCompaction.DEFAULT_PROACTIVE_COMPACTION_POLICY,
+      cooldownMs: 0,
+    })),
+    true
+  );
   state.runWithAttachmentRuntime(attachmentKey, () => {
     const runtime = state.getAttachmentRuntime();
     runtime.cfg = {
@@ -63,13 +101,14 @@ async function runCheck(compaction, state, attachmentKey, pct, canCompact) {
     runtime.compactHourStart = Date.now() - 5_000;
     runtime.turnsSinceCompact = Math.max(runtimeCfg.minTurnsBetweenCompactions - 1, 0);
   });
-  ctxBundle.ctx.getContextUsage = () => ({ percent: pct, tokens: 1_000 });
+  ctxBundle.setUsagePct(pct);
 
   await state.runWithAttachmentRuntime(attachmentKey, async () => {
     await compaction.checkCompactionTier(ctxBundle.ctx);
   });
 
   const runtime = state.runWithAttachmentRuntime(attachmentKey, () => state.getAttachmentRuntime());
+  await handlers.get("session_shutdown")({ type: "session_shutdown" }, ctxBundle.ctx);
   return {
     compactCalls: ctxBundle.compact,
     runtime,
@@ -85,6 +124,7 @@ try {
   );
   writeFileSync(join(outDir, "package.json"), '{"type":"module"}\n');
 
+  const autoCompaction = await import(pathToFileURL(join(outDir, "auto-compaction.js")).href);
   const compaction = await import(pathToFileURL(join(outDir, "compaction.js")).href);
   const state = await import(pathToFileURL(join(outDir, "state.js")).href);
 
@@ -96,8 +136,12 @@ try {
     "checkCompactionTier should call the bloatgaurd pressure classifier"
   );
   assert(
-    checkBlock.includes("ctx.compact({"),
-    "checkCompactionTier should preserve existing ctx.compact path"
+    checkBlock.includes("requestCoordinatedCompaction(ctx"),
+    "checkCompactionTier must route native compaction through the process-wide coordinator"
+  );
+  assert(
+    !checkBlock.includes("ctx.compact({"),
+    "checkCompactionTier must not own an independent native compaction path"
   );
   assert(
     sessionCompactStart >= 0 && sessionCompactEnd > sessionCompactStart,
@@ -159,7 +203,7 @@ try {
     "native pressure notice must not be cleared by prompt compaction"
   );
 
-  const hardByCooldown = await runCheck(compaction, state, attachmentKey, 85, false);
+  const hardByCooldown = await runCheck(autoCompaction, compaction, state, attachmentKey, 85, false);
   assert.equal(
     hardByCooldown.compactCalls.length,
     1,
@@ -172,7 +216,7 @@ try {
     "hard compaction completion must clear percentage"
   );
 
-  const highWithCooldown = await runCheck(compaction, state, attachmentKey, 75, false);
+  const highWithCooldown = await runCheck(autoCompaction, compaction, state, attachmentKey, 75, false);
   assert.equal(highWithCooldown.compactCalls.length, 0, "auto-tier should be suppressed during cooldown");
   assert.equal(
     highWithCooldown.runtime.currentTier,
@@ -180,7 +224,7 @@ try {
     "cooldown-suppressed high pressure should remain warn"
   );
 
-  const highWithoutCooldown = await runCheck(compaction, state, attachmentKey, 75, true);
+  const highWithoutCooldown = await runCheck(autoCompaction, compaction, state, attachmentKey, 75, true);
   assert.equal(
     highWithoutCooldown.compactCalls.length,
     1,

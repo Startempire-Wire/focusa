@@ -3,6 +3,7 @@
 //        §33.10 (customInstructions), §35.6 (files), §38.1 (trim)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { requestCoordinatedCompaction } from "./auto-compaction.js";
 import { buildProjectWorkstreamKey, scopedQueryParams, type WorkstreamKey } from "./scoped-state.js";
 import {
   getAttachmentRuntime,
@@ -1230,80 +1231,31 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
         );
       }
     }
-    if (getAttachmentRuntime().focusaAvailable) {
-      await checkpointBeforeCompaction();
-      await checkpointTrajectoryBeforeCompaction("hard_context_pressure");
-      await refreshTrajectoryClarityLifecycle(
-        "hard_context_pressure",
-        currentCompactionScope()?.root_scope.root_path || ""
-      );
-    }
-    const r = getAttachmentRuntime().focusaAvailable
-      ? await focusaFetch("/commands/submit", {
-          method: "POST",
-          body: JSON.stringify({
-            command: "compact",
-            args: { force: true, tier: "hard" },
-            idempotency_key: `hard-${Date.now()}`,
-          }),
-        })
-      : null;
-    // /commands/submit materializes Focusa's CLT/ASCC checkpoint only. It cannot
-    // compact the live Pi context. API acceptance therefore prepares authority
-    // but must never be mistaken for completion of ctx.compact().
-    const focusaPrepared = Boolean(r?.accepted);
-    if (!focusaPrepared) recordLocalWorkpointFallback("hard context fallback before local compact");
-    if (typeof ctx.compact === "function") {
-      ctx.compact({
-        customInstructions: buildCompactInstructions(
-          focusaPrepared
-            ? "HARD COMPACT: Focusa checkpoint accepted; compact the live Pi context now."
-            : "[NON-CANONICAL FALLBACK — Focusa unavailable] HARD COMPACT: Context critically full."
-        ),
-        onComplete: onDone,
-        onError: (e: Error) => ctx.ui.notify(`Compaction failed: ${e.message}`, "error"),
-      });
-    } else {
-      ctx.ui.notify("Compaction failed: Pi ctx.compact is unavailable", "error");
+    const requestResult = requestCoordinatedCompaction(ctx, {
+      triggerClass: "hard_pressure",
+      customInstructions: buildCompactInstructions(
+        "HARD COMPACT: preserve canonical Focusa authority and release live Pi context."
+      ),
+      onComplete: onDone,
+      onError: (error) => ctx.ui.notify(`Compaction failed: ${error.message}`, "error"),
+    });
+    if (requestResult === "coordinator_unavailable") {
+      ctx.ui.notify("Compaction blocked: Focusa compaction coordinator is unavailable", "error");
     }
   } else if (pressureAction === "auto") {
     getAttachmentRuntime().currentTier = "auto";
     setContextStatus(ctx, "auto", pct);
     ctx.ui.notify(`📊 Context ${pct.toFixed(0)}% — compacting`, "info");
-    if (getAttachmentRuntime().focusaAvailable) {
-      await checkpointBeforeCompaction();
-      await checkpointTrajectoryBeforeCompaction("auto_context_pressure");
-      await refreshTrajectoryClarityLifecycle(
-        "auto_context_pressure",
-        currentCompactionScope()?.root_scope.root_path || ""
-      );
-    }
-    const r = getAttachmentRuntime().focusaAvailable
-      ? await focusaFetch("/commands/submit", {
-          method: "POST",
-          body: JSON.stringify({
-            command: "compact",
-            args: { force: false, tier: "auto" },
-            idempotency_key: `auto-${Date.now()}`,
-          }),
-        })
-      : null;
-    // API acceptance prepares Focusa state; only Pi's public ctx.compact API
-    // releases the live model context. Never return before invoking it.
-    const focusaPrepared = Boolean(r?.accepted);
-    if (!focusaPrepared) recordLocalWorkpointFallback("auto context fallback before local compact");
-    if (typeof ctx.compact === "function") {
-      ctx.compact({
-        customInstructions: buildCompactInstructions(
-          focusaPrepared
-            ? "Focusa checkpoint accepted. Compact the live Pi context while preserving canonical authority."
-            : "[NON-CANONICAL FALLBACK] Context approaching limit. Preserve Focus State."
-        ),
-        onComplete: onDone,
-        onError: (e: Error) => ctx.ui.notify(`Compaction failed: ${e.message}`, "error"),
-      });
-    } else {
-      ctx.ui.notify("Compaction failed: Pi ctx.compact is unavailable", "error");
+    const requestResult = requestCoordinatedCompaction(ctx, {
+      triggerClass: "predicted_pressure",
+      customInstructions: buildCompactInstructions(
+        "Compact live Pi context while preserving canonical Focusa authority."
+      ),
+      onComplete: onDone,
+      onError: (error) => ctx.ui.notify(`Compaction failed: ${error.message}`, "error"),
+    });
+    if (requestResult === "coordinator_unavailable") {
+      ctx.ui.notify("Compaction blocked: Focusa compaction coordinator is unavailable", "error");
     }
   } else if (pressureAction === "warn") {
     getAttachmentRuntime().currentTier = "warn";
