@@ -85,7 +85,7 @@ fn hash(prefix: &str, parts: &[&str]) -> String {
         h.update(p.as_bytes());
         h.update([0]);
     }
-    format!("{prefix}:{}", hex::encode(h.finalize())[..24].to_string())
+    format!("{prefix}:{}", &hex::encode(h.finalize())[..24])
 }
 fn fail(
     code: StatusCode,
