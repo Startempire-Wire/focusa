@@ -69,6 +69,10 @@ pub fn router() -> Router<Arc<AppState>> {
             "/v1/silent-sessions/{session_id}/adopt",
             post(super::silent_sessions_adopt::adopt),
         )
+        .route(
+            "/v1/silent-sessions/{session_id}/events",
+            get(super::silent_sessions_observe::events),
+        )
 }
 
 async fn list(State(state): State<Arc<AppState>>, headers: HeaderMap) -> ApiResponse {
