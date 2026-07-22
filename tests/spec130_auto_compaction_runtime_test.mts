@@ -127,6 +127,7 @@ try {
 
 const handlers = new Map<string, Function[]>();
 const pi = {
+  appendEntry() {},
   on(name: string, handler: Function) {
     const current = handlers.get(name) || [];
     current.push(handler);
@@ -146,9 +147,21 @@ let compactCalls = 0;
 let compactOptions: any;
 let idle = true;
 const statuses: Array<[string, string | undefined]> = [];
+const branchEntries = Array.from({ length: 6 }, (_, index) => ({
+  type: "message",
+  id: `spec130-entry-${index}`,
+  message: { role: "user", content: "x".repeat(200_000) },
+}));
 const ctx = {
+  hasUI: true,
   isIdle: () => idle,
+  hasPendingMessages: () => false,
   getContextUsage: () => usage,
+  sessionManager: {
+    getSessionId: () => "spec130-auto-compaction-session",
+    getSessionFile: () => "/tmp/spec130-auto-compaction-session.jsonl",
+    getBranch: () => branchEntries,
+  },
   compact(options: any) {
     compactCalls += 1;
     compactOptions = options;
@@ -166,9 +179,9 @@ const invoke = async (name: string, ...args: any[]) => {
 const waitForTimer = () => new Promise((resolve) => setTimeout(resolve, 10));
 
 await invoke("session_start", {}, ctx);
-await invoke("agent_end", {}, ctx);
+await invoke("agent_settled", {}, ctx);
 await waitForTimer();
-assert(compactCalls === 1, "pressure fallback did not invoke ctx.compact");
+assert(compactCalls === 1, "settled pressure check did not invoke ctx.compact");
 assert(
   typeof compactOptions.onComplete === "function",
   "completion callback missing",
@@ -179,7 +192,7 @@ assert(
   "status not exposed",
 );
 
-await invoke("agent_end", {}, ctx);
+await invoke("agent_settled", {}, ctx);
 await waitForTimer();
 assert(compactCalls === 1, "pending compaction was duplicated");
 compactOptions.onComplete({});
@@ -201,12 +214,13 @@ assert(
 );
 compactOptions.onComplete({});
 
-// Native Pi compaction gets first chance: usage becomes unknown before the
-// zero-delay fallback recheck, so Focusa must not issue a duplicate compact.
+// Native Pi compaction gets first chance: its completion resets Focusa state,
+// then the settled boundary observes unknown usage and must not duplicate it.
 await invoke("session_start", {}, ctx);
 usage = { tokens: 371_566, contextWindow: 372_000, percent: 99.88 };
-await invoke("agent_end", {}, ctx);
+await invoke("session_compact", {});
 usage = { tokens: null, contextWindow: 372_000, percent: null };
+await invoke("agent_settled", {}, ctx);
 await waitForTimer();
 assert(compactCalls === 2, "fallback duplicated native compaction");
 
