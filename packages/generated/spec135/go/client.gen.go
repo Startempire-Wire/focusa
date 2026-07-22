@@ -1509,6 +1509,133 @@ type FocusaProtocolHandshakeResponseV1Status string
 // FocusaResourceModeResponseV1 Generated contract for Focusa schema focusa.resource_mode.response.v1
 type FocusaResourceModeResponseV1 map[string]interface{}
 
+// FocusaSpecWorkbenchMutationRequestV1 defines model for focusa_spec_workbench_mutation_request_v1.
+type FocusaSpecWorkbenchMutationRequestV1 struct {
+	Action                  interface{}             `json:"action"`
+	Amendment               *map[string]interface{} `json:"amendment,omitempty"`
+	AttachmentId            string                  `json:"attachment_id"`
+	ContinuityId            string                  `json:"continuity_id"`
+	CurrentAsk              *string                 `json:"current_ask,omitempty"`
+	Decision                *map[string]interface{} `json:"decision,omitempty"`
+	ExpectedSessionRevision int                     `json:"expected_session_revision"`
+	ExpectedStateVersion    int                     `json:"expected_state_version"`
+	IdempotencyKey          string                  `json:"idempotency_key"`
+	Objection               *map[string]interface{} `json:"objection,omitempty"`
+	ObjectionId             *string                 `json:"objection_id,omitempty"`
+	ProjectRoot             string                  `json:"project_root"`
+	Resolution              *string                 `json:"resolution,omitempty"`
+	Round                   *map[string]interface{} `json:"round,omitempty"`
+	Section                 *map[string]interface{} `json:"section,omitempty"`
+	WorkbenchSessionId      *string                 `json:"workbench_session_id,omitempty"`
+}
+
+// FocusaSpecWorkbenchMutationResultV1 defines model for focusa_spec_workbench_mutation_result_v1.
+type FocusaSpecWorkbenchMutationResultV1 struct {
+	EvidenceRef string      `json:"evidence_ref"`
+	ExactResume interface{} `json:"exact_resume"`
+	ReceiptRef  string      `json:"receipt_ref"`
+	Replayed    bool        `json:"replayed"`
+	Schema      interface{} `json:"schema"`
+	Session     struct {
+		AdvisoryAgents   interface{}              `json:"advisory_agents"`
+		Amendments       []map[string]interface{} `json:"amendments"`
+		AttachmentId     string                   `json:"attachment_id"`
+		Canonical        interface{}              `json:"canonical"`
+		ClosedAt         *time.Time               `json:"closed_at,omitempty"`
+		ContinuityId     string                   `json:"continuity_id"`
+		CreatedAt        time.Time                `json:"created_at"`
+		CurrentAsk       string                   `json:"current_ask"`
+		CurrentSectionId *string                  `json:"current_section_id,omitempty"`
+		FinalSpecId      *string                  `json:"final_spec_id,omitempty"`
+		Gates            []map[string]interface{} `json:"gates"`
+		IdempotencyKey   string                   `json:"idempotency_key"`
+		Objections       []map[string]interface{} `json:"objections"`
+		OperatorRequired interface{}              `json:"operator_required"`
+		ProjectRoot      string                   `json:"project_root"`
+		ReceiptRefs      []string                 `json:"receipt_refs"`
+		Rounds           []map[string]interface{} `json:"rounds"`
+		Sections         []struct {
+			AmendmentIds     []string  `json:"amendment_ids"`
+			ApprovedRevision *int      `json:"approved_revision,omitempty"`
+			Content          string    `json:"content"`
+			CreatedAt        time.Time `json:"created_at"`
+			Grounding        struct {
+				CodebaseRefs []string `json:"codebase_refs"`
+				ContextRefs  []string `json:"context_refs"`
+				DocsOnly     bool     `json:"docs_only"`
+				EvidenceRefs []string `json:"evidence_refs"`
+				ResearchRefs []string `json:"research_refs"`
+			} `json:"grounding"`
+			ObjectionIds   []string    `json:"objection_ids"`
+			OperatorGateId *string     `json:"operator_gate_id,omitempty"`
+			OrderIndex     int         `json:"order_index"`
+			Revision       int         `json:"revision"`
+			SectionId      string      `json:"section_id"`
+			SectionKind    string      `json:"section_kind"`
+			Status         interface{} `json:"status"`
+			Title          string      `json:"title"`
+			UpdatedAt      time.Time   `json:"updated_at"`
+		} `json:"sections"`
+		StateRevision      int         `json:"state_revision"`
+		Status             interface{} `json:"status"`
+		UpdatedAt          time.Time   `json:"updated_at"`
+		WorkbenchSessionId string      `json:"workbench_session_id"`
+	} `json:"session"`
+	StateVersion int                    `json:"state_version"`
+	ToolResult   map[string]interface{} `json:"tool_result"`
+}
+
+// FocusaSpecWorkbenchSessionListV1 defines model for focusa_spec_workbench_session_list_v1.
+type FocusaSpecWorkbenchSessionListV1 struct {
+	Schema   interface{} `json:"schema"`
+	Sessions []struct {
+		AdvisoryAgents   interface{}              `json:"advisory_agents"`
+		Amendments       []map[string]interface{} `json:"amendments"`
+		AttachmentId     string                   `json:"attachment_id"`
+		Canonical        interface{}              `json:"canonical"`
+		ClosedAt         *time.Time               `json:"closed_at,omitempty"`
+		ContinuityId     string                   `json:"continuity_id"`
+		CreatedAt        time.Time                `json:"created_at"`
+		CurrentAsk       string                   `json:"current_ask"`
+		CurrentSectionId *string                  `json:"current_section_id,omitempty"`
+		FinalSpecId      *string                  `json:"final_spec_id,omitempty"`
+		Gates            []map[string]interface{} `json:"gates"`
+		IdempotencyKey   string                   `json:"idempotency_key"`
+		Objections       []map[string]interface{} `json:"objections"`
+		OperatorRequired interface{}              `json:"operator_required"`
+		ProjectRoot      string                   `json:"project_root"`
+		ReceiptRefs      []string                 `json:"receipt_refs"`
+		Rounds           []map[string]interface{} `json:"rounds"`
+		Sections         []struct {
+			AmendmentIds     []string  `json:"amendment_ids"`
+			ApprovedRevision *int      `json:"approved_revision,omitempty"`
+			Content          string    `json:"content"`
+			CreatedAt        time.Time `json:"created_at"`
+			Grounding        struct {
+				CodebaseRefs []string `json:"codebase_refs"`
+				ContextRefs  []string `json:"context_refs"`
+				DocsOnly     bool     `json:"docs_only"`
+				EvidenceRefs []string `json:"evidence_refs"`
+				ResearchRefs []string `json:"research_refs"`
+			} `json:"grounding"`
+			ObjectionIds   []string    `json:"objection_ids"`
+			OperatorGateId *string     `json:"operator_gate_id,omitempty"`
+			OrderIndex     int         `json:"order_index"`
+			Revision       int         `json:"revision"`
+			SectionId      string      `json:"section_id"`
+			SectionKind    string      `json:"section_kind"`
+			Status         interface{} `json:"status"`
+			Title          string      `json:"title"`
+			UpdatedAt      time.Time   `json:"updated_at"`
+		} `json:"sections"`
+		StateRevision      int         `json:"state_revision"`
+		Status             interface{} `json:"status"`
+		UpdatedAt          time.Time   `json:"updated_at"`
+		WorkbenchSessionId string      `json:"workbench_session_id"`
+	} `json:"sessions"`
+	StateVersion int `json:"state_version"`
+}
+
 // FocusaStateCurrentResponseV1 Generated contract for Focusa schema focusa.state_current.response.v1
 type FocusaStateCurrentResponseV1 map[string]interface{}
 
@@ -2261,6 +2388,30 @@ type FocusaRoleProfileReviewParams struct {
 	AttachmentId string `form:"attachment_id" json:"attachment_id"`
 }
 
+// FocusaSpecWorkbenchSessionMutateParams defines parameters for FocusaSpecWorkbenchSessionMutate.
+type FocusaSpecWorkbenchSessionMutateParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+}
+
+// FocusaSpecWorkbenchSessionListParams defines parameters for FocusaSpecWorkbenchSessionList.
+type FocusaSpecWorkbenchSessionListParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+}
+
 // FocusaStateCurrentParams defines parameters for FocusaStateCurrent.
 type FocusaStateCurrentParams struct {
 	// ProjectRoot Required Focusa scope key: project_root
@@ -2536,6 +2687,9 @@ type FocusaRoleProfileDraftJSONRequestBody = FocusaProjectAgentRoleProfileDraftR
 
 // FocusaRoleProfileReviewJSONRequestBody defines body for FocusaRoleProfileReview for application/json ContentType.
 type FocusaRoleProfileReviewJSONRequestBody = FocusaProjectAgentRoleProfileReviewRequestV1
+
+// FocusaSpecWorkbenchSessionMutateJSONRequestBody defines body for FocusaSpecWorkbenchSessionMutate for application/json ContentType.
+type FocusaSpecWorkbenchSessionMutateJSONRequestBody = FocusaSpecWorkbenchMutationRequestV1
 
 // FocusaTrajectoryAssessJSONRequestBody defines body for FocusaTrajectoryAssess for application/json ContentType.
 type FocusaTrajectoryAssessJSONRequestBody = FocusaTrajectoryAssessRequestV1
@@ -3066,6 +3220,14 @@ type ClientInterface interface {
 	FocusaRoleProfileReviewWithBody(ctx context.Context, params *FocusaRoleProfileReviewParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	FocusaRoleProfileReview(ctx context.Context, params *FocusaRoleProfileReviewParams, body FocusaRoleProfileReviewJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaSpecWorkbenchSessionMutateWithBody request with any body
+	FocusaSpecWorkbenchSessionMutateWithBody(ctx context.Context, params *FocusaSpecWorkbenchSessionMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	FocusaSpecWorkbenchSessionMutate(ctx context.Context, params *FocusaSpecWorkbenchSessionMutateParams, body FocusaSpecWorkbenchSessionMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaSpecWorkbenchSessionList request
+	FocusaSpecWorkbenchSessionList(ctx context.Context, params *FocusaSpecWorkbenchSessionListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// FocusaStateCurrent request
 	FocusaStateCurrent(ctx context.Context, params *FocusaStateCurrentParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4013,6 +4175,42 @@ func (c *Client) FocusaRoleProfileReviewWithBody(ctx context.Context, params *Fo
 
 func (c *Client) FocusaRoleProfileReview(ctx context.Context, params *FocusaRoleProfileReviewParams, body FocusaRoleProfileReviewJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewFocusaRoleProfileReviewRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaSpecWorkbenchSessionMutateWithBody(ctx context.Context, params *FocusaSpecWorkbenchSessionMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaSpecWorkbenchSessionMutateRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaSpecWorkbenchSessionMutate(ctx context.Context, params *FocusaSpecWorkbenchSessionMutateParams, body FocusaSpecWorkbenchSessionMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaSpecWorkbenchSessionMutateRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaSpecWorkbenchSessionList(ctx context.Context, params *FocusaSpecWorkbenchSessionListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaSpecWorkbenchSessionListRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -7473,6 +7671,151 @@ func NewFocusaRoleProfileReviewRequestWithBody(server string, params *FocusaRole
 	return req, nil
 }
 
+// NewFocusaSpecWorkbenchSessionMutateRequest calls the generic FocusaSpecWorkbenchSessionMutate builder with application/json body
+func NewFocusaSpecWorkbenchSessionMutateRequest(server string, params *FocusaSpecWorkbenchSessionMutateParams, body FocusaSpecWorkbenchSessionMutateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewFocusaSpecWorkbenchSessionMutateRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewFocusaSpecWorkbenchSessionMutateRequestWithBody generates requests for FocusaSpecWorkbenchSessionMutate with any type of body
+func NewFocusaSpecWorkbenchSessionMutateRequestWithBody(server string, params *FocusaSpecWorkbenchSessionMutateParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/spec-workbench/session/mutate")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewFocusaSpecWorkbenchSessionListRequest generates requests for FocusaSpecWorkbenchSessionList
+func NewFocusaSpecWorkbenchSessionListRequest(server string, params *FocusaSpecWorkbenchSessionListParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/spec-workbench/sessions")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewFocusaStateCurrentRequest generates requests for FocusaStateCurrent
 func NewFocusaStateCurrentRequest(server string, params *FocusaStateCurrentParams) (*http.Request, error) {
 	var err error
@@ -9252,6 +9595,14 @@ type ClientWithResponsesInterface interface {
 
 	FocusaRoleProfileReviewWithResponse(ctx context.Context, params *FocusaRoleProfileReviewParams, body FocusaRoleProfileReviewJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaRoleProfileReviewResponse, error)
 
+	// FocusaSpecWorkbenchSessionMutateWithBodyWithResponse request with any body
+	FocusaSpecWorkbenchSessionMutateWithBodyWithResponse(ctx context.Context, params *FocusaSpecWorkbenchSessionMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaSpecWorkbenchSessionMutateResponse, error)
+
+	FocusaSpecWorkbenchSessionMutateWithResponse(ctx context.Context, params *FocusaSpecWorkbenchSessionMutateParams, body FocusaSpecWorkbenchSessionMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaSpecWorkbenchSessionMutateResponse, error)
+
+	// FocusaSpecWorkbenchSessionListWithResponse request
+	FocusaSpecWorkbenchSessionListWithResponse(ctx context.Context, params *FocusaSpecWorkbenchSessionListParams, reqEditors ...RequestEditorFn) (*FocusaSpecWorkbenchSessionListResponse, error)
+
 	// FocusaStateCurrentWithResponse request
 	FocusaStateCurrentWithResponse(ctx context.Context, params *FocusaStateCurrentParams, reqEditors ...RequestEditorFn) (*FocusaStateCurrentResponse, error)
 
@@ -10812,6 +11163,68 @@ func (r FocusaRoleProfileReviewResponse) ContentType() string {
 	return ""
 }
 
+type FocusaSpecWorkbenchSessionMutateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaSpecWorkbenchMutationResultV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaSpecWorkbenchSessionMutateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaSpecWorkbenchSessionMutateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaSpecWorkbenchSessionMutateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaSpecWorkbenchSessionListResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaSpecWorkbenchSessionListV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaSpecWorkbenchSessionListResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaSpecWorkbenchSessionListResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaSpecWorkbenchSessionListResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type FocusaStateCurrentResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -12138,6 +12551,32 @@ func (c *ClientWithResponses) FocusaRoleProfileReviewWithResponse(ctx context.Co
 		return nil, err
 	}
 	return ParseFocusaRoleProfileReviewResponse(rsp)
+}
+
+// FocusaSpecWorkbenchSessionMutateWithBodyWithResponse request with arbitrary body returning *FocusaSpecWorkbenchSessionMutateResponse
+func (c *ClientWithResponses) FocusaSpecWorkbenchSessionMutateWithBodyWithResponse(ctx context.Context, params *FocusaSpecWorkbenchSessionMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaSpecWorkbenchSessionMutateResponse, error) {
+	rsp, err := c.FocusaSpecWorkbenchSessionMutateWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaSpecWorkbenchSessionMutateResponse(rsp)
+}
+
+func (c *ClientWithResponses) FocusaSpecWorkbenchSessionMutateWithResponse(ctx context.Context, params *FocusaSpecWorkbenchSessionMutateParams, body FocusaSpecWorkbenchSessionMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaSpecWorkbenchSessionMutateResponse, error) {
+	rsp, err := c.FocusaSpecWorkbenchSessionMutate(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaSpecWorkbenchSessionMutateResponse(rsp)
+}
+
+// FocusaSpecWorkbenchSessionListWithResponse request returning *FocusaSpecWorkbenchSessionListResponse
+func (c *ClientWithResponses) FocusaSpecWorkbenchSessionListWithResponse(ctx context.Context, params *FocusaSpecWorkbenchSessionListParams, reqEditors ...RequestEditorFn) (*FocusaSpecWorkbenchSessionListResponse, error) {
+	rsp, err := c.FocusaSpecWorkbenchSessionList(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaSpecWorkbenchSessionListResponse(rsp)
 }
 
 // FocusaStateCurrentWithResponse request returning *FocusaStateCurrentResponse
@@ -14010,6 +14449,72 @@ func ParseFocusaRoleProfileReviewResponse(rsp *http.Response) (*FocusaRoleProfil
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest FocusaProjectAgentRoleProfileMutationResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaSpecWorkbenchSessionMutateResponse parses an HTTP response from a FocusaSpecWorkbenchSessionMutateWithResponse call
+func ParseFocusaSpecWorkbenchSessionMutateResponse(rsp *http.Response) (*FocusaSpecWorkbenchSessionMutateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaSpecWorkbenchSessionMutateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaSpecWorkbenchMutationResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaSpecWorkbenchSessionListResponse parses an HTTP response from a FocusaSpecWorkbenchSessionListWithResponse call
+func ParseFocusaSpecWorkbenchSessionListResponse(rsp *http.Response) (*FocusaSpecWorkbenchSessionListResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaSpecWorkbenchSessionListResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaSpecWorkbenchSessionListV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

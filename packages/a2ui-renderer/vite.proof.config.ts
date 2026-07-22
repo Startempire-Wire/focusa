@@ -19,6 +19,7 @@ export default defineConfig({
         roleProfile: resolve(import.meta.dirname, "proof/role-profile.html"),
         interviewStrategy: resolve(import.meta.dirname, "proof/interview-strategy.html"),
         interviewResume: resolve(import.meta.dirname, "proof/interview-resume.html"),
+        specWorkbench: resolve(import.meta.dirname, "proof/spec-workbench.html"),
       },
     },
   },

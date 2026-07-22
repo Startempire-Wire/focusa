@@ -1,6 +1,6 @@
 {
   "attachment_id": "example",
-  "binding_count": 70,
+  "binding_count": 72,
   "bindings": [
     {
       "action_id": "focusa.health.check",
@@ -1202,6 +1202,98 @@
         "plain_language_description": "Approve, Reject, or Defer Project Role Profile",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "consequential"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "attachment_id": "example",
+        "continuity_id": "example",
+        "project_root": "/example",
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.spec_workbench.session.list",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "spec_workbench"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.spec_workbench_session_list.request.v1",
+        "output_schema_ref": "focusa.spec_workbench_session_list.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.spec_workbench.session.list",
+      "permission_scopes": [
+        "spec:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "List Spec Workbench Session Revisions",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "List Spec Workbench Session Revisions",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "attachment_id": "example",
+        "continuity_id": "example",
+        "project_root": "/example",
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.spec_workbench.session.mutate",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "spec_workbench"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.spec_workbench_mutation.request.v1",
+        "output_schema_ref": "focusa.spec_workbench_mutation_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": true,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.spec_workbench.session.mutate",
+      "permission_scopes": [
+        "spec:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Mutate Canonical Spec Workbench",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Mutate Canonical Spec Workbench",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
       },
       "recovery_envelope_ref": "focusa.tool_result.v1",
       "result_envelope_ref": "focusa.tool_result.v1",

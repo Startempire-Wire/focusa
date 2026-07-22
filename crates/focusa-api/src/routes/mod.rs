@@ -62,6 +62,7 @@ pub mod silent_sessions_create;
 pub mod silent_sessions_lifecycle;
 pub mod skills;
 pub mod snapshots;
+pub mod spec_workbench;
 pub mod sse;
 pub mod subagent;
 pub mod telemetry;

@@ -69,3 +69,8 @@ restart determinism, generated clients/UI, and desktop/mobile UIAI Eval.
 state: append-only session revisions, governed branches, source-linked questions,
 operator answers, idempotent writes, exact close/reopen/restart continuation,
 visible deferred branches, generated clients/UI, and desktop/mobile UIAI Eval.
+
+`spec135-st1-spec-workbench-proof.json` proves the canonical Spec 120 Workbench
+slice: grounded sections, adversarial rounds and objections, explicit operator
+promotion gates, amendment/reapproval history, exact close/reopen/restart,
+generated clients/UI, Receipts, and desktop/mobile UIAI Eval.

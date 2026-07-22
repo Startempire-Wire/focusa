@@ -944,6 +944,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/spec-workbench/session/mutate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mutate Canonical Spec Workbench
+         * @description Mutate Canonical Spec Workbench — family=spec_workbench budget=standard_mutation materialization=canonical_event
+         */
+        post: operations["focusa.spec_workbench.session.mutate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/spec-workbench/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Spec Workbench Session Revisions
+         * @description List Spec Workbench Session Revisions — family=spec_workbench budget=standard_read materialization=canonical_read
+         */
+        get: operations["focusa.spec_workbench.session.list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/state/current": {
         parameters: {
             query?: never;
@@ -3075,6 +3115,171 @@ export interface components {
          */
         focusa_resource_mode_response_v1: {
             [key: string]: unknown;
+        };
+        /** focusa.spec_workbench_mutation.request.v1 */
+        focusa_spec_workbench_mutation_request_v1: {
+            /** @enum {unknown} */
+            action: "open" | "upsert_section" | "add_round" | "add_objection" | "resolve_objection" | "approve_section" | "reject_section" | "amend_section" | "close" | "reopen" | "final_approve";
+            amendment?: {
+                [key: string]: unknown;
+            };
+            attachment_id: string;
+            continuity_id: string;
+            current_ask?: string;
+            decision?: {
+                [key: string]: unknown;
+            };
+            expected_session_revision: number;
+            expected_state_version: number;
+            idempotency_key: string;
+            objection?: {
+                [key: string]: unknown;
+            };
+            objection_id?: string;
+            project_root: string;
+            resolution?: string;
+            round?: {
+                [key: string]: unknown;
+            };
+            section?: {
+                [key: string]: unknown;
+            };
+            workbench_session_id?: string;
+        };
+        /** focusa.spec_workbench_mutation_result.v1 */
+        focusa_spec_workbench_mutation_result_v1: {
+            evidence_ref: string;
+            /** @constant */
+            exact_resume: true;
+            receipt_ref: string;
+            replayed: boolean;
+            /** @constant */
+            schema: "focusa.spec_workbench_mutation_result.v1";
+            session: {
+                /** @constant */
+                advisory_agents: true;
+                amendments: Record<string, never>[];
+                attachment_id: string;
+                /** @constant */
+                canonical: true;
+                /** Format: date-time */
+                closed_at?: string;
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                current_ask: string;
+                current_section_id?: string;
+                final_spec_id?: string;
+                gates: Record<string, never>[];
+                idempotency_key: string;
+                objections: Record<string, never>[];
+                /** @constant */
+                operator_required: true;
+                project_root: string;
+                receipt_refs: string[];
+                rounds: Record<string, never>[];
+                sections: {
+                    amendment_ids: string[];
+                    approved_revision?: number;
+                    content: string;
+                    /** Format: date-time */
+                    created_at: string;
+                    grounding: {
+                        codebase_refs: string[];
+                        context_refs: string[];
+                        docs_only: boolean;
+                        evidence_refs: string[];
+                        research_refs: string[];
+                    };
+                    objection_ids: string[];
+                    operator_gate_id?: string;
+                    order_index: number;
+                    revision: number;
+                    section_id: string;
+                    section_kind: string;
+                    /** @enum {unknown} */
+                    status: "draft" | "grounded" | "challenged" | "pending_approval" | "approved" | "rejected" | "amended";
+                    title: string;
+                    /** Format: date-time */
+                    updated_at: string;
+                }[];
+                state_revision: number;
+                /** @enum {unknown} */
+                status: "active" | "closed" | "final_approved";
+                /** Format: date-time */
+                updated_at: string;
+                workbench_session_id: string;
+            };
+            state_version: number;
+            tool_result: Record<string, never>;
+        };
+        /** focusa.spec_workbench_session_list.request.v1 */
+        focusa_spec_workbench_session_list_request_v1: {
+            attachment_id: string;
+            continuity_id: string;
+            project_root: string;
+            workbench_session_id?: string;
+        };
+        /** focusa.spec_workbench_session_list.v1 */
+        focusa_spec_workbench_session_list_v1: {
+            /** @constant */
+            schema: "focusa.spec_workbench_session_list.v1";
+            sessions: {
+                /** @constant */
+                advisory_agents: true;
+                amendments: Record<string, never>[];
+                attachment_id: string;
+                /** @constant */
+                canonical: true;
+                /** Format: date-time */
+                closed_at?: string;
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                current_ask: string;
+                current_section_id?: string;
+                final_spec_id?: string;
+                gates: Record<string, never>[];
+                idempotency_key: string;
+                objections: Record<string, never>[];
+                /** @constant */
+                operator_required: true;
+                project_root: string;
+                receipt_refs: string[];
+                rounds: Record<string, never>[];
+                sections: {
+                    amendment_ids: string[];
+                    approved_revision?: number;
+                    content: string;
+                    /** Format: date-time */
+                    created_at: string;
+                    grounding: {
+                        codebase_refs: string[];
+                        context_refs: string[];
+                        docs_only: boolean;
+                        evidence_refs: string[];
+                        research_refs: string[];
+                    };
+                    objection_ids: string[];
+                    operator_gate_id?: string;
+                    order_index: number;
+                    revision: number;
+                    section_id: string;
+                    section_kind: string;
+                    /** @enum {unknown} */
+                    status: "draft" | "grounded" | "challenged" | "pending_approval" | "approved" | "rejected" | "amended";
+                    title: string;
+                    /** Format: date-time */
+                    updated_at: string;
+                }[];
+                state_revision: number;
+                /** @enum {unknown} */
+                status: "active" | "closed" | "final_approved";
+                /** Format: date-time */
+                updated_at: string;
+                workbench_session_id: string;
+            }[];
+            state_version: number;
         };
         /**
          * focusa.state_current.request.v1
@@ -5360,6 +5565,82 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_project_agent_role_profile_mutation_result_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.spec_workbench.session.mutate": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_spec_workbench_mutation_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Mutate Canonical Spec Workbench response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_spec_workbench_mutation_result_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.spec_workbench.session.list": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List Spec Workbench Session Revisions response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_spec_workbench_session_list_v1"];
                 };
             };
             /** @description Standard error envelope */

@@ -677,6 +677,160 @@ pub fn reduce_with_meta(
                     .then(left.state_revision.cmp(&right.state_revision))
             });
         }
+        FocusaEvent::SpecWorkbenchSessionRevised { session } => {
+            if session.workbench_session_id.trim().is_empty()
+                || session.project_root.trim().is_empty()
+                || session.continuity_id.trim().is_empty()
+                || session.attachment_id.trim().is_empty()
+                || session.current_ask.trim().is_empty()
+                || session.idempotency_key.trim().is_empty()
+                || session.state_revision == 0
+                || !session.canonical
+                || !session.advisory_agents
+                || !session.operator_required
+            {
+                return Err(ReducerError::InvalidEvent("Spec Workbench requires identity, exact scope, ask, canonical operator authority, idempotency, and positive revision".to_string()));
+            }
+            let expected_revision = state
+                .spec_workbench_sessions
+                .iter()
+                .filter(|existing| existing.workbench_session_id == session.workbench_session_id)
+                .map(|existing| existing.state_revision)
+                .max()
+                .unwrap_or(0)
+                + 1;
+            if session.state_revision != expected_revision {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Spec Workbench revision must be {expected_revision}"
+                )));
+            }
+            let section_ids: std::collections::BTreeSet<_> = session
+                .sections
+                .iter()
+                .map(|section| section.section_id.as_str())
+                .collect();
+            let round_ids: std::collections::BTreeSet<_> = session
+                .rounds
+                .iter()
+                .map(|round| round.round_id.as_str())
+                .collect();
+            let objection_ids: std::collections::BTreeSet<_> = session
+                .objections
+                .iter()
+                .map(|item| item.objection_id.as_str())
+                .collect();
+            let gate_ids: std::collections::BTreeSet<_> = session
+                .gates
+                .iter()
+                .map(|gate| gate.gate_id.as_str())
+                .collect();
+            let amendment_ids: std::collections::BTreeSet<_> = session
+                .amendments
+                .iter()
+                .map(|item| item.amendment_id.as_str())
+                .collect();
+            if section_ids.len() != session.sections.len()
+                || round_ids.len() != session.rounds.len()
+                || objection_ids.len() != session.objections.len()
+                || gate_ids.len() != session.gates.len()
+                || amendment_ids.len() != session.amendments.len()
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "Spec Workbench records require unique IDs".to_string(),
+                ));
+            }
+            if session
+                .current_section_id
+                .as_deref()
+                .is_some_and(|id| !section_ids.contains(id))
+                || session.rounds.iter().any(|round| {
+                    !section_ids.contains(round.section_id.as_str())
+                        || round.transcript_ref.trim().is_empty()
+                })
+                || session.objections.iter().any(|item| {
+                    !section_ids.contains(item.section_id.as_str())
+                        || !round_ids.contains(item.round_id.as_str())
+                        || item.evidence_refs.is_empty()
+                })
+                || session.gates.iter().any(|gate| {
+                    !section_ids.contains(gate.section_id.as_str())
+                        || gate.decided_by.trim().is_empty()
+                        || gate.evidence_refs.is_empty()
+                })
+                || session.amendments.iter().any(|item| {
+                    !section_ids.contains(item.section_id.as_str())
+                        || item.after_revision != item.before_revision + 1
+                        || item.evidence_refs.is_empty()
+                })
+            {
+                return Err(ReducerError::InvalidEvent("Spec Workbench references, grounding evidence, gates, and amendments must remain linked".to_string()));
+            }
+            for section in &session.sections {
+                if section.title.trim().is_empty()
+                    || section.content.trim().is_empty()
+                    || section
+                        .objection_ids
+                        .iter()
+                        .any(|id| !objection_ids.contains(id.as_str()))
+                    || section
+                        .amendment_ids
+                        .iter()
+                        .any(|id| !amendment_ids.contains(id.as_str()))
+                {
+                    return Err(ReducerError::InvalidEvent(
+                        "Spec section requires content and valid objection/amendment links"
+                            .to_string(),
+                    ));
+                }
+                if matches!(section.status, SpecSectionStatus::Approved) {
+                    let grounded = !section.grounding.context_refs.is_empty()
+                        && !section.grounding.evidence_refs.is_empty();
+                    let unresolved = session.objections.iter().any(|item| {
+                        item.section_id == section.section_id
+                            && matches!(item.status, SpecObjectionStatus::Open)
+                    });
+                    let approved_gate = section.operator_gate_id.as_deref().is_some_and(|id| {
+                        gate_ids.contains(id)
+                            && session.gates.iter().any(|gate| {
+                                gate.gate_id == id
+                                    && matches!(gate.decision, SpecGateDecision::Approve)
+                            })
+                    });
+                    if !grounded
+                        || unresolved
+                        || !approved_gate
+                        || section.approved_revision != Some(section.revision)
+                    {
+                        return Err(ReducerError::InvalidEvent("approved Spec section requires grounding, resolved objections, matching revision, and explicit operator gate".to_string()));
+                    }
+                }
+            }
+            if matches!(session.status, SpecWorkbenchStatus::FinalApproved)
+                && (session.sections.is_empty()
+                    || session
+                        .sections
+                        .iter()
+                        .any(|section| !matches!(section.status, SpecSectionStatus::Approved))
+                    || session.final_spec_id.is_none())
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "final Spec approval requires all sections approved and final_spec_id"
+                        .to_string(),
+                ));
+            }
+            if matches!(session.status, SpecWorkbenchStatus::Closed) != session.closed_at.is_some()
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "Spec Workbench closed_at must match closed status".to_string(),
+                ));
+            }
+            state.spec_workbench_sessions.push(session);
+            state.spec_workbench_sessions.sort_by(|left, right| {
+                left.workbench_session_id
+                    .cmp(&right.workbench_session_id)
+                    .then(left.state_revision.cmp(&right.state_revision))
+            });
+        }
         FocusaEvent::ContextClaimProposed { claim } => {
             if state.context_claims.iter().any(|existing| {
                 existing.claim_id == claim.claim_id

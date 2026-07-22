@@ -2115,6 +2115,172 @@ pub struct ProjectInterviewSessionRecord {
     pub closed_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SpecWorkbenchStatus {
+    Active,
+    Closed,
+    FinalApproved,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SpecSectionStatus {
+    Draft,
+    Grounded,
+    Challenged,
+    PendingApproval,
+    Approved,
+    Rejected,
+    Amended,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SpecObjectionStatus {
+    Open,
+    Resolved,
+    Accepted,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SpecGateDecision {
+    Approve,
+    Reject,
+    Defer,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpecGroundingBlock {
+    #[serde(default)]
+    pub context_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub codebase_refs: Vec<String>,
+    #[serde(default)]
+    pub research_refs: Vec<String>,
+    pub docs_only: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpecObjectionRecord {
+    pub objection_id: String,
+    pub section_id: String,
+    pub round_id: String,
+    pub actor_role: String,
+    pub claim: String,
+    pub reasoning_summary: String,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    pub confidence: f64,
+    pub status: SpecObjectionStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolution: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpecRoundRecord {
+    pub round_id: String,
+    pub section_id: String,
+    pub round_index: u32,
+    pub round_kind: String,
+    #[serde(default)]
+    pub output_refs: Vec<String>,
+    pub transcript_ref: String,
+    pub verdict: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stop_reason: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpecOperatorGateRecord {
+    pub gate_id: String,
+    pub section_id: String,
+    pub decision: SpecGateDecision,
+    pub approval_scope: String,
+    pub rationale: String,
+    pub decided_by: String,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    pub decided_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpecAmendmentRecord {
+    pub amendment_id: String,
+    pub section_id: String,
+    pub before_revision: u64,
+    pub after_revision: u64,
+    pub reason: String,
+    pub changed_by: String,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpecSectionRecord {
+    pub section_id: String,
+    pub title: String,
+    pub section_kind: String,
+    pub status: SpecSectionStatus,
+    pub order_index: u32,
+    pub revision: u64,
+    pub content: String,
+    pub grounding: SpecGroundingBlock,
+    #[serde(default)]
+    pub objection_ids: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approved_revision: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operator_gate_id: Option<String>,
+    #[serde(default)]
+    pub amendment_ids: Vec<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Canonical Spec 120 Workbench asset; exports and agent rounds remain projections.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpecWorkbenchSessionRecord {
+    pub workbench_session_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub current_ask: String,
+    pub state_revision: u64,
+    pub status: SpecWorkbenchStatus,
+    pub canonical: bool,
+    pub advisory_agents: bool,
+    pub operator_required: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_section_id: Option<String>,
+    #[serde(default)]
+    pub sections: Vec<SpecSectionRecord>,
+    #[serde(default)]
+    pub rounds: Vec<SpecRoundRecord>,
+    #[serde(default)]
+    pub objections: Vec<SpecObjectionRecord>,
+    #[serde(default)]
+    pub gates: Vec<SpecOperatorGateRecord>,
+    #[serde(default)]
+    pub amendments: Vec<SpecAmendmentRecord>,
+    #[serde(default)]
+    pub receipt_refs: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub final_spec_id: Option<String>,
+    pub idempotency_key: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub closed_at: Option<DateTime<Utc>>,
+}
+
 /// Canonical candidate/accepted claim extracted from source-preserving Context.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ContextClaimRecord {
@@ -2257,6 +2423,9 @@ pub struct FocusaState {
     /// Append-only restart-safe Interview session revisions.
     #[serde(default)]
     pub project_interview_sessions: Vec<ProjectInterviewSessionRecord>,
+    /// Append-only Spec 120 Workbench session revisions.
+    #[serde(default)]
+    pub spec_workbench_sessions: Vec<SpecWorkbenchSessionRecord>,
     /// Canonical contradiction edges requiring explicit resolution.
     #[serde(default)]
     pub context_contradictions: Vec<ContextContradictionRecord>,
@@ -2329,6 +2498,7 @@ impl FocusaState {
             context_claims: vec![],
             project_role_profiles: vec![],
             project_interview_sessions: vec![],
+            spec_workbench_sessions: vec![],
             context_contradictions: vec![],
             context_decisions: vec![],
             reactive_context: vec![],
@@ -2945,6 +3115,9 @@ pub enum FocusaEvent {
     },
     ProjectInterviewSessionRevised {
         session: ProjectInterviewSessionRecord,
+    },
+    SpecWorkbenchSessionRevised {
+        session: SpecWorkbenchSessionRecord,
     },
     ContextClaimReviewed {
         claim: ContextClaimRecord,

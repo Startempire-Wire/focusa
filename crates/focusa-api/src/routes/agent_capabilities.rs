@@ -208,6 +208,7 @@ fn op(
             | "project_role_profile"
             | "interview_strategy"
             | "project_interview"
+            | "spec_workbench"
     ) || matches!(
         id,
         "focusa.ui_action_bindings.read"
@@ -222,6 +223,7 @@ fn op(
                 | "project_role_profile"
                 | "interview_strategy"
                 | "project_interview"
+                | "spec_workbench"
         );
     let mut required_keys = Vec::new();
     if project_scoped {
@@ -944,6 +946,52 @@ fn build_operations() -> Vec<OperationEntry> {
             "focusa.project_agent_role_profile_review.request.v1",
             "focusa.project_agent_role_profile_mutation_result.v1",
             "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+            None,
+        ),
+        op(
+            "focusa.spec_workbench.session.list",
+            "List Spec Workbench Session Revisions",
+            "spec_workbench",
+            "GET",
+            "/v1/spec-workbench/sessions",
+            true,
+            None,
+            "read_spec_workbench",
+            "canonical_read",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec!["spec:read"],
+            false,
+            "standard_read",
+            vec!["compact", "standard", "debug"],
+            "focusa.spec_workbench_session_list.request.v1",
+            "focusa.spec_workbench_session_list.v1",
+            "docs/120-adversarial-spec-workbench-and-operator-approval-gates.md",
+            None,
+        ),
+        op(
+            "focusa.spec_workbench.session.mutate",
+            "Mutate Canonical Spec Workbench",
+            "spec_workbench",
+            "POST",
+            "/v1/spec-workbench/session/mutate",
+            true,
+            None,
+            "append_spec_workbench_revision",
+            "canonical_event",
+            vec!["dry_run", "preview", "commit"],
+            true,
+            true,
+            false,
+            vec!["spec:write"],
+            false,
+            "standard_mutation",
+            vec!["compact", "standard", "debug"],
+            "focusa.spec_workbench_mutation.request.v1",
+            "focusa.spec_workbench_mutation_result.v1",
+            "docs/120-adversarial-spec-workbench-and-operator-approval-gates.md",
             None,
         ),
         op(
@@ -2488,6 +2536,17 @@ fn workspace_artifact_schema() -> Value {
     })
 }
 
+fn spec_workbench_session_schema() -> Value {
+    let strings = || json!({"type": "array", "items": {"type": "string"}});
+    let grounding = json!({"type":"object","required":["context_refs","evidence_refs","codebase_refs","research_refs","docs_only"],"properties":{"context_refs":strings(),"evidence_refs":strings(),"codebase_refs":strings(),"research_refs":strings(),"docs_only":{"type":"boolean"}}});
+    let section = json!({"type":"object","required":["section_id","title","section_kind","status","order_index","revision","content","grounding","objection_ids","amendment_ids","created_at","updated_at"],"properties":{"section_id":{"type":"string"},"title":{"type":"string"},"section_kind":{"type":"string"},"status":{"enum":["draft","grounded","challenged","pending_approval","approved","rejected","amended"]},"order_index":{"type":"integer"},"revision":{"type":"integer","minimum":1},"content":{"type":"string"},"grounding":grounding,"objection_ids":strings(),"approved_revision":{"type":"integer"},"operator_gate_id":{"type":"string"},"amendment_ids":strings(),"created_at":{"type":"string","format":"date-time"},"updated_at":{"type":"string","format":"date-time"}}});
+    json!({"type":"object","required":["workbench_session_id","project_root","continuity_id","attachment_id","current_ask","state_revision","status","canonical","advisory_agents","operator_required","sections","rounds","objections","gates","amendments","receipt_refs","idempotency_key","created_at","updated_at"],"properties":{"workbench_session_id":{"type":"string"},"project_root":{"type":"string"},"continuity_id":{"type":"string"},"attachment_id":{"type":"string"},"current_ask":{"type":"string"},"state_revision":{"type":"integer","minimum":1},"status":{"enum":["active","closed","final_approved"]},"canonical":{"const":true},"advisory_agents":{"const":true},"operator_required":{"const":true},"current_section_id":{"type":"string"},"sections":{"type":"array","items":section},"rounds":{"type":"array","items":{"type":"object"}},"objections":{"type":"array","items":{"type":"object"}},"gates":{"type":"array","items":{"type":"object"}},"amendments":{"type":"array","items":{"type":"object"}},"receipt_refs":strings(),"final_spec_id":{"type":"string"},"idempotency_key":{"type":"string"},"created_at":{"type":"string","format":"date-time"},"updated_at":{"type":"string","format":"date-time"},"closed_at":{"type":"string","format":"date-time"}}})
+}
+
+fn spec_workbench_mutation_request_schema() -> Value {
+    json!({"type":"object","additionalProperties":false,"required":["project_root","continuity_id","attachment_id","idempotency_key","expected_state_version","expected_session_revision","action"],"properties":{"project_root":{"type":"string","minLength":1,"maxLength":4096},"continuity_id":{"type":"string","minLength":1,"maxLength":256},"attachment_id":{"type":"string","minLength":1,"maxLength":256},"idempotency_key":{"type":"string","minLength":1,"maxLength":256},"expected_state_version":{"type":"integer","minimum":0},"expected_session_revision":{"type":"integer","minimum":0},"action":{"enum":["open","upsert_section","add_round","add_objection","resolve_objection","approve_section","reject_section","amend_section","close","reopen","final_approve"]},"workbench_session_id":{"type":"string"},"current_ask":{"type":"string"},"section":{"type":"object","additionalProperties":true},"round":{"type":"object","additionalProperties":true},"objection":{"type":"object","additionalProperties":true},"objection_id":{"type":"string"},"resolution":{"type":"string"},"decision":{"type":"object","additionalProperties":true},"amendment":{"type":"object","additionalProperties":true}}})
+}
+
 fn project_interview_session_schema() -> Value {
     let strings = || json!({"type": "array", "items": {"type": "string"}});
     let branch = json!({
@@ -2942,6 +3001,27 @@ fn json_schema_document(schema_id: &str) -> Value {
             "x-focusa-schema-id": schema_id,
             "x-focusa-generated-from": "ContextRetrieveResponse"
         });
+    }
+    if schema_id == "focusa.spec_workbench_session_list.request.v1" {
+        return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","additionalProperties":false,"required":["project_root","continuity_id","attachment_id"],"properties":{"project_root":{"type":"string"},"continuity_id":{"type":"string"},"attachment_id":{"type":"string"},"workbench_session_id":{"type":"string"}},"x-focusa-schema-id":schema_id});
+    }
+    if schema_id == "focusa.spec_workbench_session_list.v1" {
+        return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","required":["schema","state_version","sessions"],"properties":{"schema":{"const":"focusa.spec_workbench_session_list.v1"},"state_version":{"type":"integer"},"sessions":{"type":"array","items":spec_workbench_session_schema()}},"x-focusa-schema-id":schema_id});
+    }
+    if schema_id == "focusa.spec_workbench_mutation.request.v1" {
+        let mut schema = spec_workbench_mutation_request_schema();
+        let object = schema.as_object_mut().expect("Spec mutation schema");
+        object.insert("$schema".into(), json!(JSON_SCHEMA_DIALECT_2020_12));
+        object.insert(
+            "$id".into(),
+            json!(format!("/v1/agent/schemas/{schema_id}")),
+        );
+        object.insert("title".into(), json!(schema_id));
+        object.insert("x-focusa-schema-id".into(), json!(schema_id));
+        return schema;
+    }
+    if schema_id == "focusa.spec_workbench_mutation_result.v1" {
+        return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","required":["schema","state_version","replayed","exact_resume","session","evidence_ref","receipt_ref","tool_result"],"properties":{"schema":{"const":"focusa.spec_workbench_mutation_result.v1"},"state_version":{"type":"integer"},"replayed":{"type":"boolean"},"exact_resume":{"const":true},"session":spec_workbench_session_schema(),"evidence_ref":{"type":"string"},"receipt_ref":{"type":"string"},"tool_result":{"type":"object"}},"x-focusa-schema-id":schema_id});
     }
     if schema_id == "focusa.project_interview_session_list.request.v1" {
         return json!({"$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id, "type": "object", "additionalProperties": false, "required": ["project_root", "continuity_id", "attachment_id"], "properties": {"project_root": {"type": "string", "minLength": 1, "maxLength": 4096}, "continuity_id": {"type": "string", "minLength": 1, "maxLength": 256}, "attachment_id": {"type": "string", "minLength": 1, "maxLength": 256}, "interview_session_id": {"type": "string"}}, "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "InterviewSessionQuery"});
