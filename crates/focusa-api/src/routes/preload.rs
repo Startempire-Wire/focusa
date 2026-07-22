@@ -8,6 +8,7 @@
 
 use crate::routes::context_cognition::{CurateCandidate, curate_preload_candidates};
 use crate::routes::project::project_identity_payload_for_scope;
+use crate::routes::workpoint::active_workpoint_for_context;
 use crate::server::AppState;
 use axum::{
     Json, Router,
@@ -94,6 +95,8 @@ struct PreloadBuildRequest {
     target: Option<String>,
     #[serde(default)]
     project_root: Option<String>,
+    #[serde(default)]
+    working_subpath_id: Option<String>,
     #[serde(default)]
     continuity_id: Option<String>,
     #[serde(default)]
@@ -241,11 +244,12 @@ async fn build_post(
     }
 
     let focus = state.focusa.read().await;
-    let workpoint = focus.workpoint.records.iter().rev().find(|record| {
-        record.canonical
-            && record.project_root.as_deref() == Some(project_root)
-            && record.continuity_id.as_deref() == Some(continuity_id)
-    });
+    let workpoint = active_workpoint_for_context(
+        &focus,
+        Some(project_root),
+        Some(continuity_id),
+        query.working_subpath_id.as_deref(),
+    );
     let mut candidates = Vec::new();
     let mut evidence_refs = Vec::new();
     let mut selection_target = query.current_ask.clone().unwrap_or_default();

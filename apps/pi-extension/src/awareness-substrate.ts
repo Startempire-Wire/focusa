@@ -8,6 +8,7 @@ import {
   isProjectRootAuthoritySafe,
   normalizeProjectRoot,
   focusaFetch,
+  getLastProjectIdentity,
 } from "./state.js";
 
 // ─── Type definitions ───────────────────────────────────────────────────────
@@ -30,6 +31,8 @@ export interface AwarenessInput {
   // Authority layer
   projectIdentity: {
     projectRoot: string;
+    activeWorktreeRoot: string;
+    workingSubpathId: string;
     canonicalName: string;
     continuityId: string;
     sessionId: string;
@@ -265,9 +268,19 @@ export async function gatherAwarenessInput(surface: AwarenessSurface): Promise<A
     },
   });
 
+  const cachedIdentity: any = getLastProjectIdentity() || {};
+  const activeWorktreeRoot = normalizeProjectRoot(
+    cachedIdentity.active_worktree_root || cachedIdentity.working_context?.active_worktree_root || projectRoot
+  );
+  const workingSubpathId = String(
+    cachedIdentity.working_context?.working_subpath?.working_subpath_id || "primary"
+  );
+
   return {
     projectIdentity: {
       projectRoot,
+      activeWorktreeRoot,
+      workingSubpathId,
       canonicalName: authoritySafe ? "focusa" : "unknown",
       continuityId,
       sessionId,
@@ -396,7 +409,7 @@ export function generateCandidateLines(input: AwarenessInput): AwarenessCandidat
       id: String(++id),
       layer: "identity",
       category: "authority",
-      text: `project_root=${input.projectIdentity.projectRoot}`,
+      text: `canonical_parent=${input.projectIdentity.projectRoot} working_root=${input.projectIdentity.activeWorktreeRoot} working_subpath=${input.projectIdentity.workingSubpathId}`,
       authorityValue: input.projectIdentity.verified ? 9 : 0,
       actionability: 5,
       riskReduction: input.projectRootSafety.safe ? 5 : 8,

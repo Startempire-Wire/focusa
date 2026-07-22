@@ -3,6 +3,7 @@
 use crate::api_client::ApiClient;
 use crate::commands::scope::ensure_project_root_scope_safe;
 use clap::Subcommand;
+use focusa_core::working_subpath::resolve_git_working_context;
 use serde_json::{Value, json};
 
 #[derive(Subcommand)]
@@ -24,6 +25,9 @@ pub enum WorkpointCmd {
         /// Safe project folder/container for canonical Workpoint authority.
         #[arg(long)]
         project_root: Option<String>,
+        /// WorkingSubpath id; inferred from the active checkout and defaults to primary.
+        #[arg(long)]
+        working_subpath_id: Option<String>,
         /// Stable logical workstream id for same-project continuity.
         #[arg(long)]
         continuity_id: Option<String>,
@@ -51,6 +55,9 @@ pub enum WorkpointCmd {
         /// Safe project folder/container for scoped lookup.
         #[arg(long)]
         project_root: Option<String>,
+        /// WorkingSubpath id; inferred from the active checkout and defaults to primary.
+        #[arg(long)]
+        working_subpath_id: Option<String>,
         /// Stable logical workstream id for scoped lookup.
         #[arg(long)]
         continuity_id: Option<String>,
@@ -63,6 +70,9 @@ pub enum WorkpointCmd {
         /// Safe project folder/container for canonical resume.
         #[arg(long)]
         project_root: Option<String>,
+        /// WorkingSubpath id; inferred from the active checkout and defaults to primary.
+        #[arg(long)]
+        working_subpath_id: Option<String>,
         /// Stable logical workstream id for canonical resume.
         #[arg(long)]
         continuity_id: Option<String>,
@@ -131,10 +141,43 @@ fn query_escape(value: &str) -> String {
         .collect()
 }
 
-fn current_path(project_root: Option<String>, continuity_id: Option<String>) -> String {
+fn resolve_workpoint_scope(
+    project_root: Option<String>,
+    working_subpath_id: Option<String>,
+) -> (Option<String>, String) {
+    let candidate = project_root
+        .as_deref()
+        .map(std::path::PathBuf::from)
+        .or_else(|| std::env::current_dir().ok());
+    let context = candidate
+        .as_deref()
+        .and_then(|path| resolve_git_working_context(path).ok().flatten());
+    let canonical_parent = context
+        .as_ref()
+        .map(|value| value.canonical_parent_root.clone())
+        .or(project_root);
+    let working_subpath_id = working_subpath_id
+        .filter(|value| !value.trim().is_empty())
+        .or_else(|| {
+            context
+                .as_ref()
+                .map(|value| value.working_subpath.working_subpath_id.clone())
+        })
+        .unwrap_or_else(|| "primary".to_string());
+    (canonical_parent, working_subpath_id)
+}
+
+fn current_path(
+    project_root: Option<String>,
+    working_subpath_id: Option<String>,
+    continuity_id: Option<String>,
+) -> String {
     let mut params = Vec::new();
     if let Some(root) = project_root.filter(|value| !value.trim().is_empty()) {
         params.push(format!("project_root={}", query_escape(&root)));
+    }
+    if let Some(working) = working_subpath_id.filter(|value| !value.trim().is_empty()) {
+        params.push(format!("working_subpath_id={}", query_escape(&working)));
     }
     if let Some(continuity) = continuity_id.filter(|value| !value.trim().is_empty()) {
         params.push(format!("continuity_id={}", query_escape(&continuity)));
@@ -210,6 +253,7 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
             work_item,
             session,
             project_root,
+            working_subpath_id,
             continuity_id,
             reason,
             action_type,
@@ -222,12 +266,15 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
                 project_root.as_deref(),
                 "workpoint checkpoint: project_root",
             )?;
+            let (project_root, working_subpath_id) =
+                resolve_workpoint_scope(project_root, working_subpath_id);
             let mut body = json!({
                 "mission": mission,
                 "next_slice": next_action,
                 "work_item_id": work_item,
                 "session_id": session,
                 "project_root": project_root,
+                "working_subpath_id": working_subpath_id,
                 "continuity_id": continuity_id,
                 "checkpoint_reason": reason_to_api(&reason),
                 "canonical": !degraded,
@@ -254,20 +301,29 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
         }
         WorkpointCmd::Current {
             project_root,
+            working_subpath_id,
             continuity_id,
         } => {
             ensure_project_root_scope_safe(
                 project_root.as_deref(),
                 "workpoint current: project_root",
             )?;
+            let (project_root, working_subpath_id) =
+                resolve_workpoint_scope(project_root, working_subpath_id);
             (
                 "current",
-                api.get(&current_path(project_root, continuity_id)).await?,
+                api.get(&current_path(
+                    project_root,
+                    Some(working_subpath_id),
+                    continuity_id,
+                ))
+                .await?,
             )
         }
         WorkpointCmd::Resume {
             mode,
             project_root,
+            working_subpath_id,
             continuity_id,
             copy_prompt: should_copy_prompt,
         } => {
@@ -275,6 +331,8 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
                 project_root.as_deref(),
                 "workpoint resume: project_root",
             )?;
+            let (project_root, working_subpath_id) =
+                resolve_workpoint_scope(project_root, working_subpath_id);
             copy_prompt = should_copy_prompt;
             (
                 "resume",
@@ -283,6 +341,7 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
                     &json!({
                         "mode": if should_copy_prompt { "compact_prompt" } else { mode.as_str() },
                         "project_root": project_root,
+                        "working_subpath_id": working_subpath_id,
                         "continuity_id": continuity_id,
                     }),
                 )
@@ -363,9 +422,10 @@ mod tests {
         assert_eq!(
             current_path(
                 Some("/tmp/focusa-project".to_string()),
+                Some("working-subpath:a".to_string()),
                 Some("a b".to_string())
             ),
-            "/v1/workpoint/current?project_root=%2Ftmp%2Ffocusa-project&continuity_id=a%20b"
+            "/v1/workpoint/current?project_root=%2Ftmp%2Ffocusa-project&working_subpath_id=working-subpath%3Aa&continuity_id=a%20b"
         );
     }
 

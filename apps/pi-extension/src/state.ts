@@ -3066,9 +3066,6 @@ export async function buildFocusaSessionIdentity(
   const ambientInsideProject = ambientCwd === projectRoot || ambientCwd.startsWith(`${projectRoot}/`);
   const cwdForIdentity = safe && !ambientInsideProject ? projectRoot : ambientCwd;
   const sessionId = String(overrides.sessionId || getAttachmentRuntime().sessionFrameKey || "").trim();
-  const continuityId = String(
-    overrides.continuityId || ensureContinuityId(projectRoot || process.cwd()) || ""
-  ).trim();
   let projectIdentity: any = null;
   if (safe) {
     const query = new URLSearchParams();
@@ -3086,7 +3083,26 @@ export async function buildFocusaSessionIdentity(
     projectIdentity = response?.project_identity || null;
     if (projectIdentity) setLastProjectIdentity(projectIdentity);
   }
-  const rootParts = projectRoot.split("/").filter(Boolean);
+  const canonicalProjectRoot = normalizeProjectRoot(
+    projectIdentity?.canonical_parent_root || projectIdentity?.project_root || projectRoot
+  );
+  const activeWorktreeRoot = normalizeProjectRoot(
+    projectIdentity?.active_worktree_root || projectIdentity?.working_context?.active_worktree_root || cwdForIdentity
+  );
+  const workingSubpath = projectIdentity?.working_context?.working_subpath || null;
+  const workingSubpathId = String(workingSubpath?.working_subpath_id || "primary").trim();
+  const sharedBeadsRoot = String(workingSubpath?.beads_root || "").trim();
+  const workingBeadsPrefix = String(workingSubpath?.beads_prefix || "").trim();
+  if (sharedBeadsRoot) process.env.BEADS_DIR = sharedBeadsRoot;
+  else delete process.env.BEADS_DIR;
+  if (workingSubpathId) process.env.FOCUSA_WORKING_SUBPATH_ID = workingSubpathId;
+  else delete process.env.FOCUSA_WORKING_SUBPATH_ID;
+  if (workingBeadsPrefix) process.env.FOCUSA_BEADS_PREFIX = workingBeadsPrefix;
+  else delete process.env.FOCUSA_BEADS_PREFIX;
+  const continuityId = String(
+    overrides.continuityId || ensureContinuityId(canonicalProjectRoot || process.cwd()) || ""
+  ).trim();
+  const rootParts = activeWorktreeRoot.split("/").filter(Boolean);
   const resolution = (
     getLastProjectRootResolution() &&
     normalizeProjectRoot(getLastProjectRootResolution()!.projectRoot) === projectRoot
@@ -3100,9 +3116,13 @@ export async function buildFocusaSessionIdentity(
     session_frame_key: sessionId || "unknown-session",
     session_incarnation_id: `${sessionId || "unknown"}:${process.pid}:${getAttachmentRuntime().sessionStartTime}`,
     continuity_id: continuityId || undefined,
-    project_root: projectRoot,
-    cwd: cwdForIdentity,
-    workspace_id: rootParts[rootParts.length - 1] || "workspace",
+    project_root: canonicalProjectRoot,
+    canonical_parent_root: canonicalProjectRoot,
+    cwd: activeWorktreeRoot,
+    active_worktree_root: activeWorktreeRoot,
+    working_subpath_id: workingSubpathId,
+    working_subpath: workingSubpath,
+    workspace_id: workingSubpathId || rootParts[rootParts.length - 1] || "workspace",
     process_id: process.pid,
     started_at: new Date(getAttachmentRuntime().sessionStartTime).toISOString(),
     resume_source: resumeSource,

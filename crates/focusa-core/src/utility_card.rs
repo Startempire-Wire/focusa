@@ -28,7 +28,7 @@ pub fn utility_card() -> UtilityCard {
         status: "completed".to_string(),
         purpose: "Compact but decision-useful startup, bootstrap, post-compaction, recovery, and tool-brevity guidance for Focusa-aware agents.".to_string(),
         preferred_layer: "focusa_* tools before raw daemon calls".to_string(),
-        authority_boundary: "Action authority requires matching project_root plus continuity_id; trajectory is north-star context only.".to_string(),
+        authority_boundary: "Action authority requires matching canonical parent, working-subpath, and continuity_id; project Trajectory is parent-scoped north-star context only.".to_string(),
         usefulness_bar: vec![
             "A card is useful only if it states status, authority, why, exact next action, evidence refs, and recovery path.".to_string(),
             "Brevity removes filler, not decision-critical context.".to_string(),
@@ -36,12 +36,12 @@ pub fn utility_card() -> UtilityCard {
         ],
         scope_gate: vec![
             "Resolve project identity before trusting Workpoint or Trajectory authority.".to_string(),
-            "Compare project_root and continuity_id before durable writes.".to_string(),
+            "Compare canonical parent, working-subpath, and continuity_id before durable writes.".to_string(),
             "If scope conflicts, verify project then checkpoint before durable writes.".to_string(),
         ],
         bootstrap_card: vec![
             "Read focusa_utility_card or focusa_agent_prompt at session start.".to_string(),
-            "Resume Workpoint and verify canonical=true plus matching project_root/continuity_id.".to_string(),
+            "Resume Workpoint and verify canonical=true plus matching parent/subpath/continuity authority.".to_string(),
             "Read Trajectory as north-star context, not mutation authority.".to_string(),
             "Run git status and bd ready from the verified project root.".to_string(),
             "If changing code: inspect diff, implement smallest useful slice, run gates, capture evidence, commit, push.".to_string(),
@@ -54,7 +54,7 @@ pub fn utility_card() -> UtilityCard {
             "Before final report: evaluate/re-record relevant prediction and capture metacog only if reusable.".to_string(),
         ],
         exact_next_actions: vec![
-            "focusa_workpoint_resume -- project_root + continuity_id".to_string(),
+            "focusa_workpoint_resume -- canonical parent + working_subpath_id + continuity_id".to_string(),
             "focusa_project_identity -- verify current repository".to_string(),
             "bd ready -- choose highest-priority unblocked bead".to_string(),
             "git status --short --branch -- separate intended edits from generated residue".to_string(),
@@ -122,7 +122,7 @@ mod tests {
     #[test]
     fn utility_card_is_compact_but_decision_useful() {
         let card = utility_card();
-        assert!(card.authority_boundary.contains("project_root"));
+        assert!(card.authority_boundary.contains("working-subpath"));
         assert!(
             card.usefulness_bar
                 .iter()

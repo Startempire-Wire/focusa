@@ -23,6 +23,9 @@
   let stg = $derived(text(trajectory.stg ?? trajectory.short_term_goal ?? trajectory.intelligence_view?.short_term_goal, 'STG unavailable'));
   let nextAction = $derived(text(workpoint.next_action ?? workpoint.next ?? trajectory.next_action ?? trajectory.gap, 'No next action'));
   let scopeStatus = $derived(text(project.status ?? project.scope_status ?? workpoint.scope_status, 'unknown'));
+  let canonicalParent = $derived(text(project.canonical_parent_root ?? project.project_root ?? project.root, 'unbound'));
+  let activeWorktree = $derived(text(project.active_worktree_root ?? project.working_context?.active_worktree_root, canonicalParent));
+  let workingSubpathId = $derived(text(project.working_context?.working_subpath?.working_subpath_id ?? workpoint.working_subpath_id, 'primary'));
   let contextAuthorityStatus = $derived(text(contextAuthority.verdict ?? contextAuthority.status ?? contextAuthority.mode, 'unknown'));
   let pairingStatus = $derived(text(pairing.status ?? pairing.paired ?? pairing.device_id, 'unknown'));
   let daemonCliVersionStatus = $derived(`daemon=${text(s.health?.version, 'n/a')} cli=${text(release.cli_version ?? release.version, 'n/a')}`);
@@ -62,7 +65,7 @@
   }
 
   async function copyResumeCommand() {
-    const command = `focusa workpoint resume --project-root ${text(project.project_root ?? project.root, '/path/to/project')} --continuity-id ${text((s as any).session?.continuity_id ?? workpoint.continuity_id ?? trajectory.continuity_id, 'continuity-id')}`;
+    const command = `focusa workpoint resume --project-root ${canonicalParent} --working-subpath-id ${workingSubpathId} --continuity-id ${text((s as any).session?.continuity_id ?? workpoint.continuity_id ?? trajectory.continuity_id, 'continuity-id')}`;
     await navigator.clipboard?.writeText(command);
   }
 </script>
@@ -78,6 +81,9 @@
   </div>
   <div class="mission-fields">
     <div><span>ProjectIdentity</span><strong>{text(project.project_id ?? project.project?.id ?? project.canonical_name, 'unknown')}</strong></div>
+    <div><span>Canonical parent</span><strong>{canonicalParent}</strong></div>
+    <div><span>Active worktree</span><strong>{activeWorktree}</strong></div>
+    <div><span>WorkingSubpath</span><strong>{workingSubpathId}</strong></div>
     <div><span>Continuity ID</span><strong>{text((s as any).session?.continuity_id ?? workpoint.continuity_id ?? trajectory.continuity_id, 'unbound')}</strong></div>
     <div><span>HLT</span><strong>{hlt}</strong></div>
     <div><span>MLG</span><strong>{mlg}</strong></div>
@@ -108,7 +114,7 @@
   <article class="card" class:ok={project.status === 'verified'}>
     <div class="label">PROJECT</div>
     <div class="value">{text(project.project_id ?? project.project?.id ?? project.canonical_name, 'unknown')}</div>
-    <div class="meta">{text(project.project_root ?? project.root ?? project.workspace_root, 'no verified root')}</div>
+    <div class="meta">parent={canonicalParent} · worktree={activeWorktree} · subpath={workingSubpathId}</div>
     <div class="chips"><span class="chip" class:ok={project.status === 'verified'}>{text(project.status, 'unknown')}</span></div>
     <code>GET /v1/project/identity</code>
   </article>

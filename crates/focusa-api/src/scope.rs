@@ -14,6 +14,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use focusa_core::scoped_state::{ScopeRef, WorkstreamKey};
+use focusa_core::working_subpath::resolve_git_working_context;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fmt;
@@ -23,6 +24,10 @@ use std::fmt;
 pub struct ScopeContext {
     /// The resolved project root path (e.g., `/workspace/focusa-project`).
     pub project_root: Option<String>,
+    /// Active checkout/worktree root before canonical-parent normalization.
+    pub active_worktree_root: Option<String>,
+    /// Stable working context identity within the canonical project.
+    pub working_subpath_id: Option<String>,
     /// The continuity/workstream identifier (e.g., `focusa-cont-root-...`).
     pub continuity_id: Option<String>,
     /// The Pi session identifier (e.g., `pi-3850319-...`).
@@ -125,12 +130,28 @@ where
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         // Try headers first
-        let project_root = header_or_query(
+        let requested_project_root = header_or_query(
             &parts.headers,
             parts.uri.query().unwrap_or(""),
             "x-scope-project-root",
             "project_root",
         );
+        let working_context = if let Some(root) = requested_project_root.clone() {
+            tokio::task::spawn_blocking(move || {
+                resolve_git_working_context(std::path::Path::new(&root))
+                    .ok()
+                    .flatten()
+            })
+            .await
+            .ok()
+            .flatten()
+        } else {
+            None
+        };
+        let project_root = working_context
+            .as_ref()
+            .map(|context| context.canonical_parent_root.clone())
+            .or(requested_project_root.clone());
         let continuity_id = header_or_query(
             &parts.headers,
             parts.uri.query().unwrap_or(""),
@@ -154,6 +175,13 @@ where
 
         Ok(ScopeContext {
             project_root: project_root.filter(|s| !s.is_empty()),
+            active_worktree_root: working_context
+                .as_ref()
+                .map(|context| context.active_worktree_root.clone())
+                .or(requested_project_root.filter(|s| !s.is_empty())),
+            working_subpath_id: working_context
+                .as_ref()
+                .map(|context| context.working_subpath.working_subpath_id.clone()),
             continuity_id: continuity_id.filter(|s| !s.is_empty()),
             session_id: session_id.filter(|s| !s.is_empty()),
             source,

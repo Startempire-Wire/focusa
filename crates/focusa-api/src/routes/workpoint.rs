@@ -21,6 +21,7 @@ use focusa_core::types::{
     WorkpointActionIntentRecord, WorkpointCheckpointReason, WorkpointConfidence,
     WorkpointDriftSeverity, WorkpointRecord, WorkpointStatus, WorkpointVerificationRecord,
 };
+use focusa_core::working_subpath::resolve_git_working_context;
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 use std::collections::HashSet;
@@ -32,6 +33,7 @@ use uuid::Uuid;
 #[derive(Debug, Deserialize, Default)]
 pub struct WorkpointCheckpointRequest {
     pub session_identity: Option<FocusaSessionIdentity>,
+    pub working_subpath_id: Option<String>,
     pub workpoint_id: Option<Uuid>,
     pub work_item_id: Option<String>,
     pub continuity_id: Option<String>,
@@ -56,6 +58,7 @@ pub struct WorkpointCheckpointRequest {
 #[derive(Debug, Deserialize, Default)]
 pub struct WorkpointResumeRequest {
     pub session_identity: Option<FocusaSessionIdentity>,
+    pub working_subpath_id: Option<String>,
     pub workpoint_id: Option<Uuid>,
     pub mode: Option<String>,
     pub continuity_id: Option<String>,
@@ -75,6 +78,7 @@ pub struct WorkpointRolloverTargetMaterializeRequest {
     pub target_session_id: Option<String>,
     pub source_session_id: Option<String>,
     pub project_root: Option<String>,
+    pub working_subpath_id: Option<String>,
     pub checkpoint_ref: Option<String>,
     pub workpoint_packet_ref: Option<String>,
     pub compaction_packet_ref: Option<String>,
@@ -150,6 +154,7 @@ fn rollover_target_materialization_idempotency_key(
 pub struct WorkpointCurrentQuery {
     pub continuity_id: Option<String>,
     pub project_root: Option<String>,
+    pub working_subpath_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -165,6 +170,7 @@ pub struct WorkpointDriftCheckRequest {
 #[derive(Debug, Deserialize, Default)]
 pub struct WorkpointEvidenceLinkRequest {
     pub session_identity: Option<FocusaSessionIdentity>,
+    pub working_subpath_id: Option<String>,
     pub workpoint_id: Option<Uuid>,
     pub target_ref: String,
     pub result: String,
@@ -192,6 +198,8 @@ struct ResumeScopeDecision {
     rejection: Option<Value>,
     canonical_scope_ok: bool,
     warnings: Vec<String>,
+    expected_working_subpath_id: Option<String>,
+    actual_working_subpath_id: Option<String>,
     session_changed: bool,
     expected_session_id: Option<String>,
     packet_session_id: Option<String>,
@@ -204,6 +212,24 @@ fn clean_resume_scope_value(value: Option<&str>) -> Option<String> {
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(ToOwned::to_owned)
+}
+
+fn session_identity_working_subpath_id(identity: Option<&FocusaSessionIdentity>) -> Option<String> {
+    let identity = identity?;
+    clean_resume_scope_value(identity.working_subpath_id.as_deref()).or_else(|| {
+        identity
+            .project_identity
+            .as_ref()
+            .and_then(|project| project.working_context.as_ref())
+            .and_then(|context| context.pointer("/working_subpath/working_subpath_id"))
+            .and_then(Value::as_str)
+            .and_then(|value| clean_resume_scope_value(Some(value)))
+    })
+}
+
+fn record_working_subpath_id(record: &WorkpointRecord) -> String {
+    session_identity_working_subpath_id(record.session_identity.as_ref())
+        .unwrap_or_else(|| "primary".to_string())
 }
 
 fn session_identity_project_root(identity: Option<&FocusaSessionIdentity>) -> Option<String> {
@@ -229,6 +255,12 @@ fn session_identity_session_id(identity: Option<&FocusaSessionIdentity>) -> Opti
 }
 
 fn apply_checkpoint_session_identity(req: &mut WorkpointCheckpointRequest) {
+    if req.session_identity.is_none() && req.working_subpath_id.is_some() {
+        req.session_identity = Some(FocusaSessionIdentity {
+            working_subpath_id: req.working_subpath_id.clone(),
+            ..FocusaSessionIdentity::default()
+        });
+    }
     if let Some(project_root) = session_identity_project_root(req.session_identity.as_ref()) {
         req.project_root = Some(project_root);
     }
@@ -241,6 +273,12 @@ fn apply_checkpoint_session_identity(req: &mut WorkpointCheckpointRequest) {
 }
 
 fn apply_resume_session_identity(req: &mut WorkpointResumeRequest) {
+    if req.session_identity.is_none() && req.working_subpath_id.is_some() {
+        req.session_identity = Some(FocusaSessionIdentity {
+            working_subpath_id: req.working_subpath_id.clone(),
+            ..FocusaSessionIdentity::default()
+        });
+    }
     if let Some(project_root) = session_identity_project_root(req.session_identity.as_ref()) {
         req.project_root = Some(project_root);
     }
@@ -397,6 +435,7 @@ fn evaluate_resume_scope(
     expected_project_root: Option<&str>,
     expected_continuity_id: Option<&str>,
     expected_session_id: Option<&str>,
+    expected_working_subpath_id: Option<&str>,
 ) -> ResumeScopeDecision {
     let mut decision = ResumeScopeDecision {
         canonical_scope_ok: true,
@@ -451,6 +490,26 @@ fn evaluate_resume_scope(
             "resume requested without project_root and packet has no project_root; project folder is unbound"
                 .to_string(),
         );
+    }
+
+    let actual_working_subpath_id = record_working_subpath_id(record);
+    decision.actual_working_subpath_id = Some(actual_working_subpath_id.clone());
+    let expected_working_subpath_id = clean_resume_scope_value(expected_working_subpath_id)
+        .unwrap_or_else(|| "primary".to_string());
+    decision.expected_working_subpath_id = Some(expected_working_subpath_id.clone());
+    if actual_working_subpath_id != expected_working_subpath_id {
+        decision.canonical_scope_ok = false;
+        decision.rejection = Some(json!({
+            "status": "scope_mismatch",
+            "canonical": false,
+            "failure_class": "working_subpath_mismatch",
+            "workpoint_id": record.workpoint_id,
+            "expected_working_subpath_id": expected_working_subpath_id,
+            "actual_working_subpath_id": actual_working_subpath_id,
+            "recovery_hint": "resume the Workpoint from its exact working context or explicitly transfer it; uncommitted state is not transferable",
+            "next_step_hint": "checkpoint a new Workpoint in the active working subpath or use focusa_session_transfer"
+        }));
+        return decision;
     }
 
     if let Some(expected) = clean_resume_scope_value(expected_continuity_id) {
@@ -834,6 +893,26 @@ pub(crate) fn active_workpoint_for_scope<'a>(
             && unsafe_project_root_reason(record.project_root.as_deref()).is_none()
             && record.project_root.as_deref().map(str::trim) == Some(clean_project.as_str())
             && record.continuity_id.as_deref().map(str::trim) == Some(clean_continuity.as_str())
+    })
+}
+
+pub(crate) fn active_workpoint_for_context<'a>(
+    state: &'a focusa_core::types::FocusaState,
+    project_root: Option<&str>,
+    continuity_id: Option<&str>,
+    working_subpath_id: Option<&str>,
+) -> Option<&'a WorkpointRecord> {
+    let expected =
+        clean_resume_scope_value(working_subpath_id).unwrap_or_else(|| "primary".to_string());
+    state.workpoint.records.iter().rev().find(|record| {
+        record.status == WorkpointStatus::Active
+            && record.canonical
+            && unsafe_project_root_reason(record.project_root.as_deref()).is_none()
+            && record.project_root.as_deref().map(str::trim)
+                == clean_resume_scope_value(project_root).as_deref()
+            && record.continuity_id.as_deref().map(str::trim)
+                == clean_resume_scope_value(continuity_id).as_deref()
+            && record_working_subpath_id(record) == expected
     })
 }
 
@@ -1662,11 +1741,14 @@ async fn rollover_target_materialize(
         ));
     };
 
+    let working_subpath_id = clean_resume_scope_value(req.working_subpath_id.as_deref())
+        .unwrap_or_else(|| "primary".to_string());
     let focusa = state.focusa.read().await;
-    let source_record = active_workpoint_for_scope(
+    let source_record = active_workpoint_for_context(
         &focusa,
         Some(project_root.as_str()),
         Some(source_continuity_id.as_str()),
+        Some(working_subpath_id.as_str()),
     )
     .cloned();
 
@@ -2144,7 +2226,7 @@ async fn idempotency_cache_status(
 }
 
 async fn current(
-    _scope: ScopeContext,
+    scope: ScopeContext,
     Query(query): Query<WorkpointCurrentQuery>,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -2156,12 +2238,33 @@ async fn current(
     // Auto-detect project_root from PWD when not provided (Spec 109 AX +
     // transcript gap 6: `focusa workpoint current` (no args) should
     // discover scope from .focusa-project.json walking up from CWD).
-    let detected_project_root = detect_project_root_from_cwd();
-    let effective_project_root = query
+    let detected_working_context = std::env::current_dir()
+        .ok()
+        .and_then(|cwd| resolve_git_working_context(&cwd).ok().flatten());
+    let detected_project_root = detected_working_context
+        .as_ref()
+        .map(|context| context.canonical_parent_root.clone())
+        .or_else(detect_project_root_from_cwd);
+    let effective_project_root = scope
         .project_root
+        .clone()
+        .or_else(|| {
+            query
+                .project_root
+                .as_deref()
+                .and_then(|value| clean_resume_scope_value(Some(value)))
+        })
+        .or(detected_project_root);
+    let effective_working_subpath_id = query
+        .working_subpath_id
         .as_deref()
         .and_then(|value| clean_resume_scope_value(Some(value)))
-        .or(detected_project_root);
+        .or(scope.working_subpath_id.clone())
+        .or_else(|| {
+            detected_working_context
+                .as_ref()
+                .map(|context| context.working_subpath.working_subpath_id.clone())
+        });
     let effective_continuity_id = query
         .continuity_id
         .as_deref()
@@ -2192,10 +2295,11 @@ async fn current(
             (effective_project_root, effective_continuity_id, false)
         };
     let focusa = state.focusa.read().await;
-    let Some(record) = active_workpoint_for_scope(
+    let Some(record) = active_workpoint_for_context(
         &focusa,
         effective_project_root.as_deref(),
         effective_continuity_id.as_deref(),
+        effective_working_subpath_id.as_deref(),
     ) else {
         let mut payload = json!({
             "status": "not_found",
@@ -2889,11 +2993,14 @@ async fn resume(
             .iter()
             .find(|record| record.workpoint_id == id)
     });
+    let requested_working_subpath_id =
+        session_identity_working_subpath_id(req.session_identity.as_ref());
     let fallback_record = if requested_record.is_none() {
-        active_workpoint_for_scope(
+        active_workpoint_for_context(
             &focusa,
             req.project_root.as_deref(),
             req.continuity_id.as_deref(),
+            requested_working_subpath_id.as_deref(),
         )
     } else {
         None
@@ -2930,6 +3037,7 @@ async fn resume(
         req.project_root.as_deref(),
         req.continuity_id.as_deref(),
         req.session_id.as_deref(),
+        requested_working_subpath_id.as_deref(),
     );
     if let Some(rejection) = scope.rejection {
         return Ok(Json(rejection));
@@ -3205,6 +3313,10 @@ async fn link_evidence(
         return Err(rejection);
     }
     let explicit_workpoint_id = req.workpoint_id;
+    let expected_working_subpath_id = session_identity_working_subpath_id(req.session_identity.as_ref())
+        .or_else(|| clean_resume_scope_value(req.working_subpath_id.as_deref()))
+        .or_else(|| clean_resume_scope_value(_scope.working_subpath_id.as_deref()))
+        .unwrap_or_else(|| "primary".to_string());
     let record = if let Some(workpoint_id) = explicit_workpoint_id {
         let visible = {
             let focusa = state.focusa.read().await;
@@ -3224,10 +3336,11 @@ async fn link_evidence(
         let expected_continuity_id = session_identity_continuity_id(req.session_identity.as_ref());
         let focusa = state.focusa.read().await;
         if expected_project_root.is_some() || expected_continuity_id.is_some() {
-            active_workpoint_for_scope(
+            active_workpoint_for_context(
                 &focusa,
                 expected_project_root.as_deref(),
                 expected_continuity_id.as_deref(),
+                Some(expected_working_subpath_id.as_str()),
             )
             .cloned()
         } else {
@@ -3254,6 +3367,19 @@ async fn link_evidence(
         }
         return Err(workpoint_no_active_to_link());
     };
+    if record_working_subpath_id(&record) != expected_working_subpath_id {
+        return Err((
+            StatusCode::CONFLICT,
+            Json(json!({
+                "status": "rejected_scope_mismatch",
+                "canonical": false,
+                "failure_class": "working_subpath_mismatch",
+                "expected_working_subpath_id": expected_working_subpath_id,
+                "actual_working_subpath_id": record_working_subpath_id(&record),
+                "next_step_hint": "link evidence from the exact Workpoint working context or perform an explicit session transfer"
+            })),
+        ));
+    }
     if let Some(expected_project_root) =
         session_identity_project_root(req.session_identity.as_ref())
     {
@@ -3600,7 +3726,11 @@ mod tests {
             session_incarnation_id: format!("{session_id}:test"),
             continuity_id: Some(continuity_id.to_string()),
             project_root: project_root.to_string(),
+            canonical_parent_root: Some(project_root.to_string()),
             cwd: project_root.to_string(),
+            active_worktree_root: Some(project_root.to_string()),
+            working_subpath_id: Some("primary".to_string()),
+            working_subpath: None,
             workspace_id: project_root.to_string(),
             process_id: Some(123),
             started_at: "2026-05-21T00:00:00Z".to_string(),
@@ -3715,8 +3845,13 @@ mod tests {
             canonical: true,
             ..WorkpointRecord::default()
         };
-        let scope =
-            evaluate_resume_scope(&record, Some("/repo/a"), Some("cont-a"), Some("session-a"));
+        let scope = evaluate_resume_scope(
+            &record,
+            Some("/repo/a"),
+            Some("cont-a"),
+            Some("session-a"),
+            None,
+        );
         let packet = workpoint_packet(&record);
         let summary = resume_summary(&record);
         let req = WorkpointResumeRequest {
@@ -3804,6 +3939,7 @@ mod tests {
             Some("/tmp/focusa-project"),
             Some("focusa-cont"),
             Some("session-a"),
+            None,
         );
         let req = WorkpointResumeRequest {
             project_root: Some("/tmp/focusa-project".to_string()),
@@ -3953,6 +4089,7 @@ mod tests {
             Some("/repo/asapdigest"),
             Some("cont-a"),
             Some("session-b"),
+            None,
         );
         assert!(!decision.canonical_scope_ok);
         let rejection = decision.rejection.expect("project mismatch rejects");
@@ -3977,6 +4114,7 @@ mod tests {
             Some("/repo/focusa"),
             Some("cont-a"),
             Some("pi-after-compact"),
+            None,
         );
         assert!(decision.rejection.is_none());
         assert!(decision.canonical_scope_ok);
@@ -3994,6 +4132,36 @@ mod tests {
     }
 
     #[test]
+    fn working_subpath_mismatch_rejects_inside_same_project_and_continuity() {
+        let mut identity = test_session_identity("/repo/focusa", "cont-a", "pi-worktree-a");
+        identity.working_subpath_id = Some("working-subpath:a".to_string());
+        let record = WorkpointRecord {
+            workpoint_id: Uuid::now_v7(),
+            continuity_id: Some("cont-a".to_string()),
+            session_id: Some("pi-worktree-a".to_string()),
+            project_root: Some("/repo/focusa".to_string()),
+            session_identity: Some(identity),
+            canonical: true,
+            ..WorkpointRecord::default()
+        };
+        let decision = evaluate_resume_scope(
+            &record,
+            Some("/repo/focusa"),
+            Some("cont-a"),
+            Some("pi-worktree-b"),
+            Some("working-subpath:b"),
+        );
+        assert!(!decision.canonical_scope_ok);
+        let rejection = decision
+            .rejection
+            .expect("working subpath mismatch rejects");
+        assert_eq!(
+            rejection.get("failure_class").and_then(Value::as_str),
+            Some("working_subpath_mismatch")
+        );
+    }
+
+    #[test]
     fn continuity_id_mismatch_rejects_inside_same_project_root() {
         let record = WorkpointRecord {
             workpoint_id: Uuid::now_v7(),
@@ -4008,6 +4176,7 @@ mod tests {
             Some("/repo/focusa"),
             Some("cont-b"),
             Some("pi-after-compact"),
+            None,
         );
         assert!(!decision.canonical_scope_ok);
         let rejection = decision.rejection.expect("continuity mismatch rejects");
@@ -4072,8 +4241,13 @@ mod tests {
             canonical: true,
             ..WorkpointRecord::default()
         };
-        let decision =
-            evaluate_resume_scope(&record, Some("/root"), Some("cont-a"), Some("pi-after"));
+        let decision = evaluate_resume_scope(
+            &record,
+            Some("/root"),
+            Some("cont-a"),
+            Some("pi-after"),
+            None,
+        );
         assert!(!decision.canonical_scope_ok);
         let rejection = decision.rejection.expect("unsafe root rejects");
         assert_eq!(

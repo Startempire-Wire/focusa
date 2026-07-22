@@ -320,6 +320,10 @@ mod tests {
             &parent,
             &["worktree", "remove", "--force", worktree.to_str().unwrap()],
         );
+        assert!(matches!(
+            resolve_git_working_context(&worktree),
+            Err(WorkingSubpathError::MissingPath(_))
+        ));
         std::fs::remove_dir_all(base).unwrap();
     }
 

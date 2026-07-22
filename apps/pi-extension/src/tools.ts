@@ -1694,9 +1694,30 @@ function focusaToolWorkpointScope(packet: any): { projectRoot: string; continuit
 
 async function resolveFocusaToolProjectRoot(explicitProjectRoot?: unknown): Promise<string> {
   const explicit = normalizeProjectRoot(explicitProjectRoot);
-  if (explicit) return explicit;
-  const sessionRoot = resolvePiProjectRoot(getSessionCwd() || process.cwd());
-  if (isProjectRootAuthoritySafe(sessionRoot)) return sessionRoot;
+  const sessionCwd = normalizeProjectRoot(getSessionCwd() || process.cwd());
+  const cachedIdentity: any = getLastProjectIdentity() || {};
+  const cachedCanonical = normalizeProjectRoot(
+    cachedIdentity.canonical_parent_root || cachedIdentity.project_root
+  );
+  const cachedWorking = normalizeProjectRoot(
+    cachedIdentity.active_worktree_root || cachedIdentity.working_context?.active_worktree_root
+  );
+  if (
+    cachedCanonical &&
+    (!explicit || explicit === cachedCanonical || explicit === cachedWorking) &&
+    (!sessionCwd || sessionCwd === cachedCanonical || sessionCwd === cachedWorking)
+  ) {
+    return cachedCanonical;
+  }
+  if (explicit) {
+    const identity: any = await buildFocusaSessionIdentity(explicit, "manual");
+    return normalizeProjectRoot(identity.canonical_parent_root || identity.project_root || explicit);
+  }
+  const sessionRoot = resolvePiProjectRoot(sessionCwd || process.cwd());
+  if (isProjectRootAuthoritySafe(sessionRoot)) {
+    const identity: any = await buildFocusaSessionIdentity(sessionRoot, "manual");
+    return normalizeProjectRoot(identity.canonical_parent_root || identity.project_root || sessionRoot);
+  }
 
   const localScope = focusaToolWorkpointScope(getActiveWorkpointPacket());
   if (localScope) {
@@ -5499,6 +5520,14 @@ export function registerTools(pi: ExtensionAPI) {
     execute: async () => {
       const result = await focusaFetchDetailed("/utility/card");
       const body = result.body || {};
+      const identity: any = getLastProjectIdentity() || {};
+      const canonicalParent = normalizeProjectRoot(identity.canonical_parent_root || identity.project_root);
+      const activeWorktree = normalizeProjectRoot(
+        identity.active_worktree_root || identity.working_context?.active_worktree_root || canonicalParent
+      );
+      const workingSubpathId = String(
+        identity.working_context?.working_subpath?.working_subpath_id || "primary"
+      );
       const ok = result.ok && body.status === "completed";
       const toolResult = focusaToolResult({
         ok,
@@ -5520,10 +5549,15 @@ export function registerTools(pi: ExtensionAPI) {
         content: [
           {
             type: "text",
-            text: `utility card ${body.status || result.status}\nnext=${Array.isArray(body.next_tools) ? body.next_tools.join(", ") : "unknown"}`,
+            text: `utility card ${body.status || result.status}\nparent=${canonicalParent || "unknown"}\nworktree=${activeWorktree || "unknown"}\nworking_subpath=${workingSubpathId}\nnext=${Array.isArray(body.next_tools) ? body.next_tools.join(", ") : "unknown"}`,
           },
         ],
-        details: { tool_result_v1: toolResult },
+        details: {
+          tool_result_v1: toolResult,
+          canonical_parent_root: canonicalParent || null,
+          active_worktree_root: activeWorktree || null,
+          working_subpath_id: workingSubpathId,
+        },
       };
     },
   });
@@ -5748,7 +5782,7 @@ export function registerTools(pi: ExtensionAPI) {
             content: [
               {
                 type: "text",
-                text: `project identity → status=verified confidence=${preserved.confidence || "unknown"} root=${preserved.project_root || "unknown"} (preserved from session; incoming result rejected as different project: ${incomingRoot})`,
+                text: `project identity → status=verified confidence=${preserved.confidence || "unknown"} parent=${preserved.canonical_parent_root || preserved.project_root || "unknown"} worktree=${preserved.active_worktree_root || preserved.working_context?.active_worktree_root || preserved.project_root || "unknown"} subpath=${preserved.working_context?.working_subpath?.working_subpath_id || "primary"} (preserved from session; incoming result rejected as different project: ${incomingRoot})`,
               },
             ],
             details: {
@@ -5793,7 +5827,7 @@ export function registerTools(pi: ExtensionAPI) {
           : [];
       const text = result.ok
         ? [
-            `project identity → status=${String(identity.status || body.status || "unknown")} confidence=${String(identity.confidence || "unknown")} root=${String(identity.project_root || "unknown")}`,
+            `project identity → status=${String(identity.status || body.status || "unknown")} confidence=${String(identity.confidence || "unknown")} parent=${String(identity.canonical_parent_root || identity.project_root || "unknown")} worktree=${String(identity.active_worktree_root || identity.working_context?.active_worktree_root || identity.project_root || "unknown")} subpath=${String(identity.working_context?.working_subpath?.working_subpath_id || "primary")}`,
             body.mismatch_reason ? `mismatch_reason=${body.mismatch_reason}` : null,
             Array.isArray(body.degraded_reasons) && body.degraded_reasons.length > 0
               ? `degraded_reasons=${body.degraded_reasons.map((r: any) => `${r.code}:${r.severity}`).join(", ")}`
@@ -5924,7 +5958,7 @@ export function registerTools(pi: ExtensionAPI) {
         : 0;
       const ontologyCounts = ontology.counts || {};
       const text = result.ok
-        ? `project card → project=${String(project.canonical_name || project.project_id || "unknown")} root=${String(project.project_root || "unknown")} bootstrap_needed=${bootstrap.needed === true} hlg=${String(priorLadder.high_level_goal || body.trajectory?.hlt || "missing").slice(0, 80)} stg=${String(priorLadder.short_term_goal || body.trajectory?.stg || "missing").slice(0, 80)} decisions=${priorDecisionCount} outcomes=${priorOutcomeCount} elapsed_avg=${String(efficiency.average_elapsed_hms || "00:00:00")} tokens_avg=${String(efficiency.average_total_tokens ?? 0)} waypoints=${String(waypointSummary.waypoints_accomplished_by_recent_outcomes ?? 0)}/${String(waypointSummary.waypoints_total ?? 0)} crosswire=${String(crosswire.prediction_feed?.elapsed_tokens_waypoints_feed_future_predictions === true ? "ok" : "check")} inferred_wp=${String(inferredWorkpoint.current_action || "none")} ask_bridge=${String(askToWorkpointBridge.recommended_bridge_action || "unknown")} exact_next=${String(askToWorkpointBridge.exact_next_action || inferredWorkpoint.next_action || "unknown").slice(0, 80)} next_event=${String(sequence.recommended_first_event || "unknown")} shortest=${String(selectedPath.path_id || "unknown")} cost=${String(selectedPath.cost ?? "unknown")} eliminated=${eliminatedCount} predictions=${String(prediction.total ?? "unknown")}/${String(prediction.evaluated ?? "unknown")} ontology_runtime=${String(ontologyCounts.runtime_objects ?? ontology.runtime_objects ?? "unknown")} ontology_effective=${String(ontologyCounts.effective_project_card_objects ?? ontology.objects ?? "unknown")} ontology_source=${String(ontology.source_index || "unknown")} selector=${String(ontology.selector || "unknown")}`
+        ? `project card → project=${String(project.canonical_name || project.project_id || "unknown")} parent=${String(project.canonical_parent_root || project.project_root || "unknown")} worktree=${String(project.active_worktree_root || project.working_context?.active_worktree_root || project.project_root || "unknown")} subpath=${String(project.working_context?.working_subpath?.working_subpath_id || "primary")} bootstrap_needed=${bootstrap.needed === true} hlg=${String(priorLadder.high_level_goal || body.trajectory?.hlt || "missing").slice(0, 80)} stg=${String(priorLadder.short_term_goal || body.trajectory?.stg || "missing").slice(0, 80)} decisions=${priorDecisionCount} outcomes=${priorOutcomeCount} elapsed_avg=${String(efficiency.average_elapsed_hms || "00:00:00")} tokens_avg=${String(efficiency.average_total_tokens ?? 0)} waypoints=${String(waypointSummary.waypoints_accomplished_by_recent_outcomes ?? 0)}/${String(waypointSummary.waypoints_total ?? 0)} crosswire=${String(crosswire.prediction_feed?.elapsed_tokens_waypoints_feed_future_predictions === true ? "ok" : "check")} inferred_wp=${String(inferredWorkpoint.current_action || "none")} ask_bridge=${String(askToWorkpointBridge.recommended_bridge_action || "unknown")} exact_next=${String(askToWorkpointBridge.exact_next_action || inferredWorkpoint.next_action || "unknown").slice(0, 80)} next_event=${String(sequence.recommended_first_event || "unknown")} shortest=${String(selectedPath.path_id || "unknown")} cost=${String(selectedPath.cost ?? "unknown")} eliminated=${eliminatedCount} predictions=${String(prediction.total ?? "unknown")}/${String(prediction.evaluated ?? "unknown")} ontology_runtime=${String(ontologyCounts.runtime_objects ?? ontology.runtime_objects ?? "unknown")} ontology_effective=${String(ontologyCounts.effective_project_card_objects ?? ontology.objects ?? "unknown")} ontology_source=${String(ontology.source_index || "unknown")} selector=${String(ontology.selector || "unknown")}`
         : `project card blocked → ${explainWorkLoopResult(result, "project card unavailable")}`;
       const toolResult = body.details?.tool_result_v1 || {
         ok: result.ok,
@@ -6174,6 +6208,12 @@ export function registerTools(pi: ExtensionAPI) {
           ),
         })
       ),
+      source_working_subpath_id: Type.Optional(
+        Type.String({ description: "Source WorkingSubpath id; defaults to active context or primary." })
+      ),
+      target_working_subpath_id: Type.Optional(
+        Type.String({ description: "Explicit target WorkingSubpath id for auditable cross-worktree transfer." })
+      ),
       target_continuity_id: Type.Optional(
         Type.String({
           description:
@@ -6249,6 +6289,8 @@ export function registerTools(pi: ExtensionAPI) {
         rollover_action?: string;
         source_scope?: Record<string, any>;
         target_scope?: Record<string, any>;
+        source_working_subpath_id?: string;
+        target_working_subpath_id?: string;
         target_continuity_id?: string;
         source_session_id?: string;
         target_session_id?: string;
@@ -6290,10 +6332,18 @@ export function registerTools(pi: ExtensionAPI) {
           },
         } as any;
       }
-      const targetRootHint = String(p.target_scope?.root_path || p.target_scope?.project_root || projectRoot);
+      const targetRootHint = String(
+        p.target_scope?.root_path || p.target_scope?.project_root || sourceRootHint
+      );
       const targetProjectRoot = await resolveFocusaToolProjectRoot(targetRootHint);
       const targetContinuityId = String(
         p.target_scope?.continuity_id || p.target_continuity_id || sourceContinuityId
+      ).trim();
+      const sourceWorkingSubpathId = String(
+        p.source_working_subpath_id || process.env.FOCUSA_WORKING_SUBPATH_ID || "primary"
+      ).trim();
+      const targetWorkingSubpathId = String(
+        p.target_working_subpath_id || sourceWorkingSubpathId
       ).trim();
       const sourceScope = buildProjectWorkstreamKey(
         projectRoot,
@@ -6325,6 +6375,8 @@ export function registerTools(pi: ExtensionAPI) {
         rollover_action: rolloverAction,
         source_scope: sourceScope,
         target_scope: targetScope,
+        source_working_subpath_id: sourceWorkingSubpathId,
+        target_working_subpath_id: targetWorkingSubpathId,
         target_continuity_id: targetContinuityId,
         source_session_id: sourceSessionId,
         target_session_id: targetSessionId,
@@ -6381,7 +6433,12 @@ export function registerTools(pi: ExtensionAPI) {
             active_object_refs: hint.target_objects || inferred.target_objects || [],
             project_root: projectRoot,
             continuity_id: sourceContinuityId,
+            working_subpath_id: sourceWorkingSubpathId,
             target_continuity_id: targetContinuityId,
+            session_identity: await buildFocusaSessionIdentity(projectRoot, "session_switch", {
+              continuityId: sourceContinuityId,
+              sessionId: sourceSessionId,
+            }),
             source_session_id: sourceSessionId,
             target_session_id: targetSessionId,
             session_id: sourceSessionId,
@@ -6398,7 +6455,12 @@ export function registerTools(pi: ExtensionAPI) {
           }),
         });
       }
-      if (action === "rollover" && apiTransfer.ok && targetContinuityId !== sourceContinuityId) {
+      if (
+        action === "rollover" &&
+        apiTransfer.ok &&
+        targetContinuityId !== sourceContinuityId &&
+        targetWorkingSubpathId === sourceWorkingSubpathId
+      ) {
         const hint = inferred.checkpoint_payload_hint || {};
         const targetMission = p.mission || hint.mission || inferred.mission || currentAsk;
         const targetNextAction =
@@ -6428,7 +6490,8 @@ export function registerTools(pi: ExtensionAPI) {
             checkpoint_reason: "session_resume",
             canonical: true,
             promote: true,
-            session_identity: await buildFocusaSessionIdentity(targetProjectRoot, "session_switch", {
+            working_subpath_id: targetWorkingSubpathId,
+            session_identity: await buildFocusaSessionIdentity(targetRootHint, "session_switch", {
               continuityId: targetContinuityId,
               sessionId: targetSessionId,
             }),
@@ -6457,6 +6520,10 @@ export function registerTools(pi: ExtensionAPI) {
             compaction_packet_ref: p.compaction_packet_ref || undefined,
             rollover_action: rolloverAction,
             mode: "compact_prompt",
+            session_identity: await buildFocusaSessionIdentity(targetRootHint, "session_switch", {
+              continuityId: targetContinuityId,
+              sessionId: targetSessionId,
+            }),
           }),
         });
         const tq = scopedQueryParams(targetScope);
@@ -10799,6 +10866,8 @@ export function registerTools(pi: ExtensionAPI) {
       if (projectRootGate) return projectRootGate;
       const query = new URLSearchParams();
       query.set("project_root", String(projectRoot));
+      const workingSubpathId = String(process.env.FOCUSA_WORKING_SUBPATH_ID || "").trim();
+      if (workingSubpathId) query.set("working_subpath_id", workingSubpathId);
       const cid = (keyCheck.value as any).continuity_id;
       if (typeof cid === "string" && cid.trim() !== "") query.set("continuity_id", cid.trim());
       const sid = (keyCheck.value as any).session_id;
@@ -10916,6 +10985,8 @@ export function registerTools(pi: ExtensionAPI) {
       if (projectRootGate) return projectRootGate;
       const query = new URLSearchParams();
       query.set("project_root", String(projectRoot));
+      const workingSubpathId = String(process.env.FOCUSA_WORKING_SUBPATH_ID || "").trim();
+      if (workingSubpathId) query.set("working_subpath_id", workingSubpathId);
       const cid = (keyCheck.value as any).continuity_id;
       if (typeof cid === "string" && cid.trim() !== "") query.set("continuity_id", cid.trim());
       const res = await focusaFetchDetailed(`/context-cognition/render?${query.toString()}`);
@@ -11023,6 +11094,8 @@ export function registerTools(pi: ExtensionAPI) {
       if (projectRootGate) return projectRootGate;
       const query = new URLSearchParams();
       query.set("project_root", String(projectRoot));
+      const workingSubpathId = String(process.env.FOCUSA_WORKING_SUBPATH_ID || "").trim();
+      if (workingSubpathId) query.set("working_subpath_id", workingSubpathId);
       const cid = (keyCheck.value as any).continuity_id;
       if (typeof cid === "string" && cid.trim() !== "") query.set("continuity_id", cid.trim());
       const res = await focusaFetchDetailed(`/context-cognition/proof?${query.toString()}`);
@@ -14189,7 +14262,14 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       description: `${label} through the scoped Spec 111 preload API.`,
       parameters: strictObject(preloadScopeParams),
       async execute(_id, params) {
-        const request = params as Record<string, any>;
+        const input = params as Record<string, any>;
+        const projectRoot = await resolveFocusaToolProjectRoot(input.project_root);
+        const request: Record<string, any> = {
+          ...input,
+          project_root: projectRoot,
+          continuity_id: input.continuity_id || getContinuityId() || ensureContinuityId(projectRoot),
+          working_subpath_id: process.env.FOCUSA_WORKING_SUBPATH_ID || "primary",
+        };
         const res = await callSpec80Tool(name, `/preload/${action}`, request, { method: "POST" });
         const bodyStatus = String(res.body?.status || (res.ok ? "completed" : "failed")).toLowerCase();
         const functionallyFailed = ["failed", "error", "blocked"].includes(bodyStatus);

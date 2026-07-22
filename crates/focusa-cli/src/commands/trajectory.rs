@@ -2,6 +2,7 @@
 
 use crate::api_client::ApiClient;
 use crate::commands::scope::ensure_project_root_scope_safe;
+use focusa_core::working_subpath::resolve_git_working_context;
 use clap::Subcommand;
 use serde_json::{Value, json};
 
@@ -181,7 +182,22 @@ fn print_summary(label: &str, resp: &Value) {
     }
 }
 
-pub async fn run(cmd: TrajectoryCmd, json_output: bool) -> anyhow::Result<()> {
+pub async fn run(mut cmd: TrajectoryCmd, json_output: bool) -> anyhow::Result<()> {
+    fn canonicalize(root: &mut Option<String>) {
+        let Some(input) = root.clone() else { return };
+        if let Ok(Some(context)) = resolve_git_working_context(std::path::Path::new(&input)) {
+            *root = Some(context.canonical_parent_root);
+        }
+    }
+    match &mut cmd {
+        TrajectoryCmd::View(scope) | TrajectoryCmd::Resume(scope) => {
+            canonicalize(&mut scope.project_root)
+        }
+        TrajectoryCmd::DefineGoal { project_root, .. }
+        | TrajectoryCmd::Assess { project_root, .. }
+        | TrajectoryCmd::ProposeWorkpoint { project_root, .. }
+        | TrajectoryCmd::Checkpoint { project_root, .. } => canonicalize(project_root),
+    }
     let api = ApiClient::new();
     let (label, resp) = match cmd {
         TrajectoryCmd::View(scope) => {
