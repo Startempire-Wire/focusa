@@ -209,6 +209,7 @@ fn op(
             | "interview_strategy"
             | "project_interview"
             | "spec_workbench"
+            | "provider_execution"
     ) || matches!(
         id,
         "focusa.ui_action_bindings.read"
@@ -224,6 +225,7 @@ fn op(
                 | "interview_strategy"
                 | "project_interview"
                 | "spec_workbench"
+                | "provider_execution"
         );
     let mut required_keys = Vec::new();
     if project_scoped {
@@ -946,6 +948,52 @@ fn build_operations() -> Vec<OperationEntry> {
             "focusa.project_agent_role_profile_review.request.v1",
             "focusa.project_agent_role_profile_mutation_result.v1",
             "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+            None,
+        ),
+        op(
+            "focusa.provider.contract.list",
+            "List Provider Governance Contracts",
+            "provider_execution",
+            "GET",
+            "/v1/providers/contracts",
+            true,
+            None,
+            "read_provider_contracts",
+            "canonical_read",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec!["provider:read"],
+            false,
+            "standard_read",
+            vec!["compact", "standard", "debug"],
+            "focusa.provider_contract_list.request.v1",
+            "focusa.provider_contract_list.v1",
+            "docs/135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md",
+            None,
+        ),
+        op(
+            "focusa.provider.conformance.evaluate",
+            "Evaluate Provider Governance Conformance",
+            "provider_execution",
+            "POST",
+            "/v1/providers/conformance",
+            true,
+            None,
+            "evaluate_provider_conformance",
+            "governed_validation",
+            vec!["dry_run", "preview", "commit"],
+            true,
+            true,
+            false,
+            vec!["provider:execute"],
+            false,
+            "standard_mutation",
+            vec!["compact", "standard", "debug"],
+            "focusa.provider_conformance.request.v1",
+            "focusa.provider_conformance_response.v1",
+            "docs/135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md",
             None,
         ),
         op(
@@ -2055,6 +2103,13 @@ pub async fn capabilities_index_handler(State(_state): State<Arc<AppState>>) -> 
     })))
 }
 
+pub(crate) fn registered_operation_ids() -> std::collections::BTreeSet<String> {
+    build_operations()
+        .into_iter()
+        .map(|operation| operation.operation_id.to_string())
+        .collect()
+}
+
 pub async fn operation_registry_handler(State(_state): State<Arc<AppState>>) -> Json<Value> {
     let operations = build_operations();
     Json(json!({
@@ -2536,6 +2591,14 @@ fn workspace_artifact_schema() -> Value {
     })
 }
 
+fn provider_contract_schema() -> Value {
+    json!({"type":"object","required":["provider_id","provider_class","implementation_owner","execution_owner","operation_prefixes","exact_scope_required","permission_required","idempotency_required","receipt_required","operation_registry_required","canonical_state_owner","direct_canonical_mutation_allowed"],"properties":{"provider_id":{"type":"string"},"provider_class":{"enum":["focusa_operation","work_item","model","browser","agent_transport"]},"implementation_owner":{"type":"string"},"execution_owner":{"type":"string"},"operation_prefixes":{"type":"array","items":{"type":"string"}},"exact_scope_required":{"const":true},"permission_required":{"const":true},"idempotency_required":{"const":true},"receipt_required":{"const":true},"operation_registry_required":{"const":true},"canonical_state_owner":{"const":"focusa_core_reducer"},"direct_canonical_mutation_allowed":{"const":false}}})
+}
+
+fn provider_conformance_request_schema() -> Value {
+    json!({"type":"object","additionalProperties":false,"required":["provider_id","operation_id","scope","permission_grant_ref","idempotency_key","receipt_required","payload_ref"],"properties":{"provider_id":{"type":"string","minLength":1},"operation_id":{"type":"string","minLength":1},"scope":{"type":"object","additionalProperties":false,"required":["project_root","continuity_id","attachment_id"],"properties":{"project_root":{"type":"string","minLength":1},"continuity_id":{"type":"string","minLength":1},"attachment_id":{"type":"string","minLength":1}}},"permission_grant_ref":{"type":"string","minLength":1},"idempotency_key":{"type":"string","minLength":1},"receipt_required":{"const":true},"payload_ref":{"type":"string","minLength":1}}})
+}
+
 fn spec_workbench_session_schema() -> Value {
     let strings = || json!({"type": "array", "items": {"type": "string"}});
     let grounding = json!({"type":"object","required":["context_refs","evidence_refs","codebase_refs","research_refs","docs_only"],"properties":{"context_refs":strings(),"evidence_refs":strings(),"codebase_refs":strings(),"research_refs":strings(),"docs_only":{"type":"boolean"}}});
@@ -3001,6 +3064,27 @@ fn json_schema_document(schema_id: &str) -> Value {
             "x-focusa-schema-id": schema_id,
             "x-focusa-generated-from": "ContextRetrieveResponse"
         });
+    }
+    if schema_id == "focusa.provider_contract_list.request.v1" {
+        return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","additionalProperties":false,"required":["project_root","continuity_id","attachment_id"],"properties":{"project_root":{"type":"string","minLength":1},"continuity_id":{"type":"string","minLength":1},"attachment_id":{"type":"string","minLength":1}},"x-focusa-schema-id":schema_id});
+    }
+    if schema_id == "focusa.provider_contract_list.v1" {
+        return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","required":["schema","scope","contracts","parity"],"properties":{"schema":{"const":"focusa.provider_contract_list.v1"},"scope":{"type":"object"},"contracts":{"type":"array","items":provider_contract_schema(),"minItems":1},"parity":{"type":"object"}},"x-focusa-schema-id":schema_id});
+    }
+    if schema_id == "focusa.provider_conformance.request.v1" {
+        let mut schema = provider_conformance_request_schema();
+        let object = schema.as_object_mut().expect("provider conformance schema");
+        object.insert("$schema".into(), json!(JSON_SCHEMA_DIALECT_2020_12));
+        object.insert(
+            "$id".into(),
+            json!(format!("/v1/agent/schemas/{schema_id}")),
+        );
+        object.insert("title".into(), json!(schema_id));
+        object.insert("x-focusa-schema-id".into(), json!(schema_id));
+        return schema;
+    }
+    if schema_id == "focusa.provider_conformance_response.v1" {
+        return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","required":["schema","result","execution_performed","canonical_state_mutated","evidence_ref","tool_result"],"properties":{"schema":{"const":"focusa.provider_conformance_response.v1"},"result":{"type":"object","required":["schema","conformant","provider_id","operation_id","checks","violations","receipt_ref"],"properties":{"schema":{"const":"focusa.provider_conformance_result.v1"},"conformant":{"type":"boolean"},"provider_id":{"type":"string"},"operation_id":{"type":"string"},"checks":{"type":"array","items":{"type":"string"}},"violations":{"type":"array","items":{"type":"string"}},"receipt_ref":{"type":"string"}}},"execution_performed":{"const":false},"canonical_state_mutated":{"const":false},"evidence_ref":{"type":"string"},"tool_result":{"type":"object"}},"x-focusa-schema-id":schema_id});
     }
     if schema_id == "focusa.spec_workbench_session_list.request.v1" {
         return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","additionalProperties":false,"required":["project_root","continuity_id","attachment_id"],"properties":{"project_root":{"type":"string"},"continuity_id":{"type":"string"},"attachment_id":{"type":"string"},"workbench_session_id":{"type":"string"}},"x-focusa-schema-id":schema_id});

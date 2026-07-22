@@ -6044,6 +6044,259 @@
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.protocol_handshake.response.v1"
       },
+      "focusa_provider_conformance_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "operation_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "payload_ref": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "permission_grant_ref": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "provider_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "receipt_required": {
+            "const": true
+          },
+          "scope": {
+            "additionalProperties": false,
+            "properties": {
+              "attachment_id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "continuity_id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "project_root": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "project_root",
+              "continuity_id",
+              "attachment_id"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "provider_id",
+          "operation_id",
+          "scope",
+          "permission_grant_ref",
+          "idempotency_key",
+          "receipt_required",
+          "payload_ref"
+        ],
+        "title": "focusa.provider_conformance.request.v1",
+        "type": "object",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.provider_conformance.request.v1"
+      },
+      "focusa_provider_conformance_response_v1": {
+        "properties": {
+          "canonical_state_mutated": {
+            "const": false
+          },
+          "evidence_ref": {
+            "type": "string"
+          },
+          "execution_performed": {
+            "const": false
+          },
+          "result": {
+            "properties": {
+              "checks": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "conformant": {
+                "type": "boolean"
+              },
+              "operation_id": {
+                "type": "string"
+              },
+              "provider_id": {
+                "type": "string"
+              },
+              "receipt_ref": {
+                "type": "string"
+              },
+              "schema": {
+                "const": "focusa.provider_conformance_result.v1"
+              },
+              "violations": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "schema",
+              "conformant",
+              "provider_id",
+              "operation_id",
+              "checks",
+              "violations",
+              "receipt_ref"
+            ],
+            "type": "object"
+          },
+          "schema": {
+            "const": "focusa.provider_conformance_response.v1"
+          },
+          "tool_result": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "schema",
+          "result",
+          "execution_performed",
+          "canonical_state_mutated",
+          "evidence_ref",
+          "tool_result"
+        ],
+        "title": "focusa.provider_conformance_response.v1",
+        "type": "object",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.provider_conformance_response.v1"
+      },
+      "focusa_provider_contract_list_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "attachment_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "continuity_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "project_root": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "title": "focusa.provider_contract_list.request.v1",
+        "type": "object",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.provider_contract_list.request.v1"
+      },
+      "focusa_provider_contract_list_v1": {
+        "properties": {
+          "contracts": {
+            "items": {
+              "properties": {
+                "canonical_state_owner": {
+                  "const": "focusa_core_reducer"
+                },
+                "direct_canonical_mutation_allowed": {
+                  "const": false
+                },
+                "exact_scope_required": {
+                  "const": true
+                },
+                "execution_owner": {
+                  "type": "string"
+                },
+                "idempotency_required": {
+                  "const": true
+                },
+                "implementation_owner": {
+                  "type": "string"
+                },
+                "operation_prefixes": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "operation_registry_required": {
+                  "const": true
+                },
+                "permission_required": {
+                  "const": true
+                },
+                "provider_class": {
+                  "enum": [
+                    "focusa_operation",
+                    "work_item",
+                    "model",
+                    "browser",
+                    "agent_transport"
+                  ]
+                },
+                "provider_id": {
+                  "type": "string"
+                },
+                "receipt_required": {
+                  "const": true
+                }
+              },
+              "required": [
+                "provider_id",
+                "provider_class",
+                "implementation_owner",
+                "execution_owner",
+                "operation_prefixes",
+                "exact_scope_required",
+                "permission_required",
+                "idempotency_required",
+                "receipt_required",
+                "operation_registry_required",
+                "canonical_state_owner",
+                "direct_canonical_mutation_allowed"
+              ],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "parity": {
+            "type": "object"
+          },
+          "schema": {
+            "const": "focusa.provider_contract_list.v1"
+          },
+          "scope": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "schema",
+          "scope",
+          "contracts",
+          "parity"
+        ],
+        "title": "focusa.provider_contract_list.v1",
+        "type": "object",
+        "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+        "x-focusa-schema-id": "focusa.provider_contract_list.v1"
+      },
       "focusa_resource_mode_request_v1": {
         "additionalProperties": true,
         "description": "Generated contract for Focusa schema focusa.resource_mode.request.v1",
@@ -12458,6 +12711,213 @@
         ],
         "x-focusa-sensitive": "routine",
         "x-focusa-subsystem": "project"
+      }
+    },
+    "/v1/providers/conformance": {
+      "post": {
+        "description": "Evaluate Provider Governance Conformance \u2014 family=provider_execution budget=standard_mutation materialization=governed_validation",
+        "operationId": "focusa.provider.conformance.evaluate",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_provider_conformance_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_provider_conformance_response_v1"
+                }
+              }
+            },
+            "description": "Evaluate Provider Governance Conformance response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Evaluate Provider Governance Conformance",
+        "tags": [
+          "provider_execution"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "provider_execution",
+          "materialization_mode": "governed_validation",
+          "requires_preview_token": false,
+          "side_effect_profile": "evaluate_provider_conformance",
+          "supports_side_effect_policy": [
+            "dry_run",
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "provider_execution"
+        ],
+        "x-focusa-concurrency": true,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.provider.conformance.evaluate",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "provider:execute"
+        ],
+        "x-focusa-plain-label": "Evaluate Provider Governance Conformance",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "provider_execution"
+      }
+    },
+    "/v1/providers/contracts": {
+      "get": {
+        "description": "List Provider Governance Contracts \u2014 family=provider_execution budget=standard_read materialization=canonical_read",
+        "operationId": "focusa.provider.contract.list",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_provider_contract_list_v1"
+                }
+              }
+            },
+            "description": "List Provider Governance Contracts response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "List Provider Governance Contracts",
+        "tags": [
+          "provider_execution"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "provider_execution",
+          "materialization_mode": "canonical_read",
+          "requires_preview_token": false,
+          "side_effect_profile": "read_provider_contracts",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "provider_execution"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.provider.contract.list",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "provider:read"
+        ],
+        "x-focusa-plain-label": "List Provider Governance Contracts",
+        "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "provider_execution"
       }
     },
     "/v1/resource/mode": {

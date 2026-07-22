@@ -74,3 +74,8 @@ visible deferred branches, generated clients/UI, and desktop/mobile UIAI Eval.
 slice: grounded sections, adversarial rounds and objections, explicit operator
 promotion gates, amendment/reapproval history, exact close/reopen/restart,
 generated clients/UI, Receipts, and desktop/mobile UIAI Eval.
+
+`spec135-p1-provider-conformance-proof.json` proves provider-neutral execution
+contracts across Focusa operations, work-item adapters, model adapters, UIAI,
+and Pi: exact scope, permission, idempotency, Operation Registry, reducer
+ownership, and Receipt gates have parity and cannot be bypassed.

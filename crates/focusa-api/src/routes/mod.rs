@@ -48,6 +48,7 @@ pub mod predictions;
 pub mod preload;
 pub mod project;
 pub mod proposals;
+pub mod provider_execution;
 pub mod proxy;
 pub mod reflection;
 pub mod reflex;

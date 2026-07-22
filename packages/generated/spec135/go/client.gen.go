@@ -1506,6 +1506,60 @@ type FocusaProtocolHandshakeResponseV1Schema string
 // FocusaProtocolHandshakeResponseV1Status defines model for FocusaProtocolHandshakeResponseV1.Status.
 type FocusaProtocolHandshakeResponseV1Status string
 
+// FocusaProviderConformanceRequestV1 defines model for focusa_provider_conformance_request_v1.
+type FocusaProviderConformanceRequestV1 struct {
+	IdempotencyKey     string      `json:"idempotency_key"`
+	OperationId        string      `json:"operation_id"`
+	PayloadRef         string      `json:"payload_ref"`
+	PermissionGrantRef string      `json:"permission_grant_ref"`
+	ProviderId         string      `json:"provider_id"`
+	ReceiptRequired    interface{} `json:"receipt_required"`
+	Scope              struct {
+		AttachmentId string `json:"attachment_id"`
+		ContinuityId string `json:"continuity_id"`
+		ProjectRoot  string `json:"project_root"`
+	} `json:"scope"`
+}
+
+// FocusaProviderConformanceResponseV1 defines model for focusa_provider_conformance_response_v1.
+type FocusaProviderConformanceResponseV1 struct {
+	CanonicalStateMutated interface{} `json:"canonical_state_mutated"`
+	EvidenceRef           string      `json:"evidence_ref"`
+	ExecutionPerformed    interface{} `json:"execution_performed"`
+	Result                struct {
+		Checks      []string    `json:"checks"`
+		Conformant  bool        `json:"conformant"`
+		OperationId string      `json:"operation_id"`
+		ProviderId  string      `json:"provider_id"`
+		ReceiptRef  string      `json:"receipt_ref"`
+		Schema      interface{} `json:"schema"`
+		Violations  []string    `json:"violations"`
+	} `json:"result"`
+	Schema     interface{}            `json:"schema"`
+	ToolResult map[string]interface{} `json:"tool_result"`
+}
+
+// FocusaProviderContractListV1 defines model for focusa_provider_contract_list_v1.
+type FocusaProviderContractListV1 struct {
+	Contracts []struct {
+		CanonicalStateOwner            interface{} `json:"canonical_state_owner"`
+		DirectCanonicalMutationAllowed interface{} `json:"direct_canonical_mutation_allowed"`
+		ExactScopeRequired             interface{} `json:"exact_scope_required"`
+		ExecutionOwner                 string      `json:"execution_owner"`
+		IdempotencyRequired            interface{} `json:"idempotency_required"`
+		ImplementationOwner            string      `json:"implementation_owner"`
+		OperationPrefixes              []string    `json:"operation_prefixes"`
+		OperationRegistryRequired      interface{} `json:"operation_registry_required"`
+		PermissionRequired             interface{} `json:"permission_required"`
+		ProviderClass                  interface{} `json:"provider_class"`
+		ProviderId                     string      `json:"provider_id"`
+		ReceiptRequired                interface{} `json:"receipt_required"`
+	} `json:"contracts"`
+	Parity map[string]interface{} `json:"parity"`
+	Schema interface{}            `json:"schema"`
+	Scope  map[string]interface{} `json:"scope"`
+}
+
 // FocusaResourceModeResponseV1 Generated contract for Focusa schema focusa.resource_mode.response.v1
 type FocusaResourceModeResponseV1 map[string]interface{}
 
@@ -2346,6 +2400,30 @@ type FocusaProjectVerifyParams struct {
 	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
+// FocusaProviderConformanceEvaluateParams defines parameters for FocusaProviderConformanceEvaluate.
+type FocusaProviderConformanceEvaluateParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+}
+
+// FocusaProviderContractListParams defines parameters for FocusaProviderContractList.
+type FocusaProviderContractListParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+}
+
 // FocusaResourceModeParams defines parameters for FocusaResourceMode.
 type FocusaResourceModeParams struct {
 	// ProjectRoot Required Focusa scope key: project_root
@@ -2681,6 +2759,9 @@ type FocusaPredictionEvaluateJSONRequestBody = FocusaPredictionEvaluateRequestV1
 
 // FocusaPredictionRecordJSONRequestBody defines body for FocusaPredictionRecord for application/json ContentType.
 type FocusaPredictionRecordJSONRequestBody = FocusaPredictionRecordRequestV1
+
+// FocusaProviderConformanceEvaluateJSONRequestBody defines body for FocusaProviderConformanceEvaluate for application/json ContentType.
+type FocusaProviderConformanceEvaluateJSONRequestBody = FocusaProviderConformanceRequestV1
 
 // FocusaRoleProfileDraftJSONRequestBody defines body for FocusaRoleProfileDraft for application/json ContentType.
 type FocusaRoleProfileDraftJSONRequestBody = FocusaProjectAgentRoleProfileDraftRequestV1
@@ -3204,6 +3285,14 @@ type ClientInterface interface {
 
 	// FocusaProjectVerify request
 	FocusaProjectVerify(ctx context.Context, params *FocusaProjectVerifyParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaProviderConformanceEvaluateWithBody request with any body
+	FocusaProviderConformanceEvaluateWithBody(ctx context.Context, params *FocusaProviderConformanceEvaluateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	FocusaProviderConformanceEvaluate(ctx context.Context, params *FocusaProviderConformanceEvaluateParams, body FocusaProviderConformanceEvaluateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaProviderContractList request
+	FocusaProviderContractList(ctx context.Context, params *FocusaProviderContractListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// FocusaResourceMode request
 	FocusaResourceMode(ctx context.Context, params *FocusaResourceModeParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4103,6 +4192,42 @@ func (c *Client) FocusaProjectIdentity(ctx context.Context, params *FocusaProjec
 
 func (c *Client) FocusaProjectVerify(ctx context.Context, params *FocusaProjectVerifyParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewFocusaProjectVerifyRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaProviderConformanceEvaluateWithBody(ctx context.Context, params *FocusaProviderConformanceEvaluateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaProviderConformanceEvaluateRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaProviderConformanceEvaluate(ctx context.Context, params *FocusaProviderConformanceEvaluateParams, body FocusaProviderConformanceEvaluateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaProviderConformanceEvaluateRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaProviderContractList(ctx context.Context, params *FocusaProviderContractListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaProviderContractListRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -7397,6 +7522,151 @@ func NewFocusaProjectVerifyRequest(server string, params *FocusaProjectVerifyPar
 	return req, nil
 }
 
+// NewFocusaProviderConformanceEvaluateRequest calls the generic FocusaProviderConformanceEvaluate builder with application/json body
+func NewFocusaProviderConformanceEvaluateRequest(server string, params *FocusaProviderConformanceEvaluateParams, body FocusaProviderConformanceEvaluateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewFocusaProviderConformanceEvaluateRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewFocusaProviderConformanceEvaluateRequestWithBody generates requests for FocusaProviderConformanceEvaluate with any type of body
+func NewFocusaProviderConformanceEvaluateRequestWithBody(server string, params *FocusaProviderConformanceEvaluateParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/providers/conformance")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewFocusaProviderContractListRequest generates requests for FocusaProviderContractList
+func NewFocusaProviderContractListRequest(server string, params *FocusaProviderContractListParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/providers/contracts")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewFocusaResourceModeRequest generates requests for FocusaResourceMode
 func NewFocusaResourceModeRequest(server string, params *FocusaResourceModeParams) (*http.Request, error) {
 	var err error
@@ -9579,6 +9849,14 @@ type ClientWithResponsesInterface interface {
 	// FocusaProjectVerifyWithResponse request
 	FocusaProjectVerifyWithResponse(ctx context.Context, params *FocusaProjectVerifyParams, reqEditors ...RequestEditorFn) (*FocusaProjectVerifyResponse, error)
 
+	// FocusaProviderConformanceEvaluateWithBodyWithResponse request with any body
+	FocusaProviderConformanceEvaluateWithBodyWithResponse(ctx context.Context, params *FocusaProviderConformanceEvaluateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaProviderConformanceEvaluateResponse, error)
+
+	FocusaProviderConformanceEvaluateWithResponse(ctx context.Context, params *FocusaProviderConformanceEvaluateParams, body FocusaProviderConformanceEvaluateJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaProviderConformanceEvaluateResponse, error)
+
+	// FocusaProviderContractListWithResponse request
+	FocusaProviderContractListWithResponse(ctx context.Context, params *FocusaProviderContractListParams, reqEditors ...RequestEditorFn) (*FocusaProviderContractListResponse, error)
+
 	// FocusaResourceModeWithResponse request
 	FocusaResourceModeWithResponse(ctx context.Context, params *FocusaResourceModeParams, reqEditors ...RequestEditorFn) (*FocusaResourceModeResponse, error)
 
@@ -11033,6 +11311,68 @@ func (r FocusaProjectVerifyResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r FocusaProjectVerifyResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaProviderConformanceEvaluateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaProviderConformanceResponseV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaProviderConformanceEvaluateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaProviderConformanceEvaluateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaProviderConformanceEvaluateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaProviderContractListResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaProviderContractListV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaProviderContractListResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaProviderContractListResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaProviderContractListResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -12499,6 +12839,32 @@ func (c *ClientWithResponses) FocusaProjectVerifyWithResponse(ctx context.Contex
 		return nil, err
 	}
 	return ParseFocusaProjectVerifyResponse(rsp)
+}
+
+// FocusaProviderConformanceEvaluateWithBodyWithResponse request with arbitrary body returning *FocusaProviderConformanceEvaluateResponse
+func (c *ClientWithResponses) FocusaProviderConformanceEvaluateWithBodyWithResponse(ctx context.Context, params *FocusaProviderConformanceEvaluateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaProviderConformanceEvaluateResponse, error) {
+	rsp, err := c.FocusaProviderConformanceEvaluateWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaProviderConformanceEvaluateResponse(rsp)
+}
+
+func (c *ClientWithResponses) FocusaProviderConformanceEvaluateWithResponse(ctx context.Context, params *FocusaProviderConformanceEvaluateParams, body FocusaProviderConformanceEvaluateJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaProviderConformanceEvaluateResponse, error) {
+	rsp, err := c.FocusaProviderConformanceEvaluate(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaProviderConformanceEvaluateResponse(rsp)
+}
+
+// FocusaProviderContractListWithResponse request returning *FocusaProviderContractListResponse
+func (c *ClientWithResponses) FocusaProviderContractListWithResponse(ctx context.Context, params *FocusaProviderContractListParams, reqEditors ...RequestEditorFn) (*FocusaProviderContractListResponse, error) {
+	rsp, err := c.FocusaProviderContractList(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaProviderContractListResponse(rsp)
 }
 
 // FocusaResourceModeWithResponse request returning *FocusaResourceModeResponse
@@ -14317,6 +14683,72 @@ func ParseFocusaProjectVerifyResponse(rsp *http.Response) (*FocusaProjectVerifyR
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest FocusaProjectVerifyResponseV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaProviderConformanceEvaluateResponse parses an HTTP response from a FocusaProviderConformanceEvaluateWithResponse call
+func ParseFocusaProviderConformanceEvaluateResponse(rsp *http.Response) (*FocusaProviderConformanceEvaluateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaProviderConformanceEvaluateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaProviderConformanceResponseV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaProviderContractListResponse parses an HTTP response from a FocusaProviderContractListWithResponse call
+func ParseFocusaProviderContractListResponse(rsp *http.Response) (*FocusaProviderContractListResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaProviderContractListResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaProviderContractListV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

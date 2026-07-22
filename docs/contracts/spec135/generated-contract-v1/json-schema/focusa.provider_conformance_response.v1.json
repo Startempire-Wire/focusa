@@ -1,0 +1,73 @@
+{
+  "$id": "/v1/agent/schemas/focusa.provider_conformance_response.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "canonical_state_mutated": {
+      "const": false
+    },
+    "evidence_ref": {
+      "type": "string"
+    },
+    "execution_performed": {
+      "const": false
+    },
+    "result": {
+      "properties": {
+        "checks": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "conformant": {
+          "type": "boolean"
+        },
+        "operation_id": {
+          "type": "string"
+        },
+        "provider_id": {
+          "type": "string"
+        },
+        "receipt_ref": {
+          "type": "string"
+        },
+        "schema": {
+          "const": "focusa.provider_conformance_result.v1"
+        },
+        "violations": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema",
+        "conformant",
+        "provider_id",
+        "operation_id",
+        "checks",
+        "violations",
+        "receipt_ref"
+      ],
+      "type": "object"
+    },
+    "schema": {
+      "const": "focusa.provider_conformance_response.v1"
+    },
+    "tool_result": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema",
+    "result",
+    "execution_performed",
+    "canonical_state_mutated",
+    "evidence_ref",
+    "tool_result"
+  ],
+  "title": "focusa.provider_conformance_response.v1",
+  "type": "object",
+  "x-focusa-schema-id": "focusa.provider_conformance_response.v1"
+}

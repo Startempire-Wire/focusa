@@ -864,6 +864,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/providers/conformance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Evaluate Provider Governance Conformance
+         * @description Evaluate Provider Governance Conformance — family=provider_execution budget=standard_mutation materialization=governed_validation
+         */
+        post: operations["focusa.provider.conformance.evaluate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/providers/contracts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Provider Governance Contracts
+         * @description List Provider Governance Contracts — family=provider_execution budget=standard_read materialization=canonical_read
+         */
+        get: operations["focusa.provider.contract.list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/resource/mode": {
         parameters: {
             query?: never;
@@ -3101,6 +3141,77 @@ export interface components {
             };
             /** @enum {string} */
             status: "accepted";
+        };
+        /** focusa.provider_conformance.request.v1 */
+        focusa_provider_conformance_request_v1: {
+            idempotency_key: string;
+            operation_id: string;
+            payload_ref: string;
+            permission_grant_ref: string;
+            provider_id: string;
+            /** @constant */
+            receipt_required: true;
+            scope: {
+                attachment_id: string;
+                continuity_id: string;
+                project_root: string;
+            };
+        };
+        /** focusa.provider_conformance_response.v1 */
+        focusa_provider_conformance_response_v1: {
+            /** @constant */
+            canonical_state_mutated: false;
+            evidence_ref: string;
+            /** @constant */
+            execution_performed: false;
+            result: {
+                checks: string[];
+                conformant: boolean;
+                operation_id: string;
+                provider_id: string;
+                receipt_ref: string;
+                /** @constant */
+                schema: "focusa.provider_conformance_result.v1";
+                violations: string[];
+            };
+            /** @constant */
+            schema: "focusa.provider_conformance_response.v1";
+            tool_result: Record<string, never>;
+        };
+        /** focusa.provider_contract_list.request.v1 */
+        focusa_provider_contract_list_request_v1: {
+            attachment_id: string;
+            continuity_id: string;
+            project_root: string;
+        };
+        /** focusa.provider_contract_list.v1 */
+        focusa_provider_contract_list_v1: {
+            contracts: {
+                /** @constant */
+                canonical_state_owner: "focusa_core_reducer";
+                /** @constant */
+                direct_canonical_mutation_allowed: false;
+                /** @constant */
+                exact_scope_required: true;
+                execution_owner: string;
+                /** @constant */
+                idempotency_required: true;
+                implementation_owner: string;
+                operation_prefixes: string[];
+                /** @constant */
+                operation_registry_required: true;
+                /** @constant */
+                permission_required: true;
+                /** @enum {unknown} */
+                provider_class: "focusa_operation" | "work_item" | "model" | "browser" | "agent_transport";
+                provider_id: string;
+                /** @constant */
+                receipt_required: true;
+            }[];
+            parity: Record<string, never>;
+            /** @constant */
+            schema: "focusa.provider_contract_list.v1";
+            scope: Record<string, never>;
         };
         /**
          * focusa.resource_mode.request.v1
@@ -5417,6 +5528,82 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_project_verify_response_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.provider.conformance.evaluate": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_provider_conformance_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Evaluate Provider Governance Conformance response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_provider_conformance_response_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.provider.contract.list": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List Provider Governance Contracts response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_provider_contract_list_v1"];
                 };
             };
             /** @description Standard error envelope */

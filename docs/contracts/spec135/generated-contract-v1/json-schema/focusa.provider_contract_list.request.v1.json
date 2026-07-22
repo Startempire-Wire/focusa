@@ -1,0 +1,27 @@
+{
+  "$id": "/v1/agent/schemas/focusa.provider_contract_list.request.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attachment_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "continuity_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "project_root": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "project_root",
+    "continuity_id",
+    "attachment_id"
+  ],
+  "title": "focusa.provider_contract_list.request.v1",
+  "type": "object",
+  "x-focusa-schema-id": "focusa.provider_contract_list.request.v1"
+}

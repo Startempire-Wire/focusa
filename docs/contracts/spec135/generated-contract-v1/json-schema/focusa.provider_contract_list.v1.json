@@ -1,0 +1,92 @@
+{
+  "$id": "/v1/agent/schemas/focusa.provider_contract_list.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "contracts": {
+      "items": {
+        "properties": {
+          "canonical_state_owner": {
+            "const": "focusa_core_reducer"
+          },
+          "direct_canonical_mutation_allowed": {
+            "const": false
+          },
+          "exact_scope_required": {
+            "const": true
+          },
+          "execution_owner": {
+            "type": "string"
+          },
+          "idempotency_required": {
+            "const": true
+          },
+          "implementation_owner": {
+            "type": "string"
+          },
+          "operation_prefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "operation_registry_required": {
+            "const": true
+          },
+          "permission_required": {
+            "const": true
+          },
+          "provider_class": {
+            "enum": [
+              "focusa_operation",
+              "work_item",
+              "model",
+              "browser",
+              "agent_transport"
+            ]
+          },
+          "provider_id": {
+            "type": "string"
+          },
+          "receipt_required": {
+            "const": true
+          }
+        },
+        "required": [
+          "provider_id",
+          "provider_class",
+          "implementation_owner",
+          "execution_owner",
+          "operation_prefixes",
+          "exact_scope_required",
+          "permission_required",
+          "idempotency_required",
+          "receipt_required",
+          "operation_registry_required",
+          "canonical_state_owner",
+          "direct_canonical_mutation_allowed"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "parity": {
+      "type": "object"
+    },
+    "schema": {
+      "const": "focusa.provider_contract_list.v1"
+    },
+    "scope": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema",
+    "scope",
+    "contracts",
+    "parity"
+  ],
+  "title": "focusa.provider_contract_list.v1",
+  "type": "object",
+  "x-focusa-schema-id": "focusa.provider_contract_list.v1"
+}
