@@ -367,6 +367,43 @@ pub fn load_completion_evaluation(
     )
 }
 
+pub fn list_checkpoint_values(
+    persistence: &SqlitePersistence,
+    session_id: SilentSessionId,
+    run_id: SilentSessionRunId,
+) -> anyhow::Result<Vec<serde_json::Value>> {
+    persistence.with_connection_mut(|connection| {
+        let mut statement = connection.prepare(
+            r#"SELECT checkpoint_json FROM silent_session_checkpoints
+               WHERE silent_session_id=?1 AND (run_id=?2 OR run_id IS NULL)
+               ORDER BY event_sequence DESC,created_at DESC"#,
+        )?;
+        let rows = statement
+            .query_map(params![session_id.to_string(), run_id.to_string()], |row| {
+                row.get::<_, String>(0)
+            })?;
+        rows.map(|row| Ok(serde_json::from_str(&row?)?)).collect()
+    })
+}
+
+pub fn list_completion_evaluations(
+    persistence: &SqlitePersistence,
+    session_id: SilentSessionId,
+    run_id: SilentSessionRunId,
+) -> anyhow::Result<Vec<CompletionEvaluation>> {
+    persistence.with_connection_mut(|connection| {
+        let mut statement = connection.prepare(
+            r#"SELECT evaluation_json FROM silent_session_completion_evaluations
+               WHERE silent_session_id=?1 AND run_id=?2 ORDER BY evaluated_at DESC"#,
+        )?;
+        let rows = statement
+            .query_map(params![session_id.to_string(), run_id.to_string()], |row| {
+                row.get::<_, String>(0)
+            })?;
+        rows.map(|row| Ok(serde_json::from_str(&row?)?)).collect()
+    })
+}
+
 #[allow(clippy::too_many_arguments)]
 fn save_checkpoint<T: Serialize>(
     persistence: &SqlitePersistence,
