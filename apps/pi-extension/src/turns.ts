@@ -1046,6 +1046,7 @@ export function registerTurns(pi: ExtensionAPI) {
         });
       }
     }
+    // §130: utility-card persistence block end.
   });
 
   // ── context — DECISIONS ONLY (§36.6, §33.5)
