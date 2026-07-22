@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation-complete — closed 2026-07-12 with signed manifest/provenance, eligibility, cross-part atomic install/rollback, platform preflight, status/API/CLI, 14 core update tests, installer/service tests, rollback fault tests, and end-to-end runtime evidence.
+Release-blocked audit reopened 2026-07-22. Signed assets, guarded apply/rollback, inventory, policy, and schedulers exist; dev auto-update authority and easy Pi controls are being completed and re-proven before release.
 
 ## Problem
 
@@ -553,9 +553,11 @@ Update events should be visible in:
 30. Admin can pin, unpin, skip, pause, resume, force check, and trusted-dev force latest without bypassing trust verification.
 31. Static/runtime tests cover stale CLI detection, dev-mode default auto-update, eval unattended denial, checksum/signature failures, daemon restart only when changed, rollback on health failure, interrupted update recovery, installer preflight/dependency prompt, and privacy boundary.
 
-## Implementation status — 2026-07-10
+## Implementation status — 2026-07-22
 
-Implemented MVP-safe scaffolds through `focusa-wefzg.11`:
+Release-gate audit found the installed scheduler active while the effective policy remained evaluation/notify with every part disabled; CLI/API also hard-coded `auto_apply_allowed=false`, and Pi had no policy control. The current completion slice adds persisted trusted dev override, all-surface policy, policy-derived automatic authority, scheduler-only authorization enforcement, and `/focusa-settings` OTA controls.
+
+Implemented foundations through `focusa-wefzg.11`:
 
 - release manifest/signing/eligibility primitives in `focusa_core::update`;
 - `focusa update status/check` read-only stale-surface inventory;

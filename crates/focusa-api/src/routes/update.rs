@@ -1,8 +1,7 @@
-//! Spec 128 read-only update inventory/status/check/plan/apply guard API routes.
+//! Spec 128 update inventory, mutable policy, scheduler status, and guarded apply API routes.
 //!
-//! These routes intentionally do not mutate local state. They inventory local
-//! Focusa surfaces and expose stale-part information for CLI/Pi/TUI/menubar
-//! consumers before update planning/apply exists.
+//! Inventory and planning remain read-only; policy mutation is explicit and
+//! automatic apply authority is derived from mode, enabled parts, and license.
 
 use axum::extract::Query;
 use axum::{
@@ -11,7 +10,9 @@ use axum::{
 };
 use chrono::Utc;
 use focusa_core::license::load_license_status;
-use focusa_core::update::{ReleaseChannel, UPDATE_POLICY_SCHEMA_V1, UpdateMode, UpdatePolicy};
+use focusa_core::update::{
+    ReleaseChannel, UPDATE_POLICY_SCHEMA_V1, UpdateMode, UpdatePolicy, UpdatePolicyParts,
+};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -121,6 +122,10 @@ struct UpdatePolicySetBody {
     channel: Option<String>,
     #[serde(default)]
     mode: Option<String>,
+    #[serde(default)]
+    dev_mode: Option<bool>,
+    #[serde(default)]
+    parts: Option<UpdatePolicyParts>,
 }
 
 async fn update_status(Query(query): Query<UpdateQuery>) -> Json<Value> {
@@ -182,10 +187,28 @@ async fn update_notifications(Json(body): Json<UpdateQuery>) -> Json<Value> {
     update_notifications_get(Query(body)).await
 }
 
+fn refresh_update_policy_authority(policy: &mut UpdatePolicy) {
+    let dev_override = policy.dev_mode_override
+        || std::env::var("FOCUSA_DEV_MODE")
+            .map(|value| matches!(value.as_str(), "1" | "true" | "yes"))
+            .unwrap_or(false);
+    match load_license_status() {
+        Ok(status) => {
+            policy.license_level = if dev_override { "dev_mode".into() } else { status.tier };
+            policy.refresh_auto_apply_authority(&status.features, dev_override);
+        }
+        Err(_) => {
+            policy.license_level = if dev_override { "dev_mode".into() } else { "evaluation".into() };
+            policy.refresh_auto_apply_authority(&[], dev_override);
+        }
+    }
+}
+
 async fn update_policy() -> Json<Value> {
     let path = update_policy_path();
     let exists = path.exists();
-    let policy = read_update_policy().unwrap_or_else(|_| default_policy_from_license());
+    let mut policy = read_update_policy().unwrap_or_else(|_| default_policy_from_license());
+    refresh_update_policy_authority(&mut policy);
     Json(json!({
         "schema": "focusa.update_policy_status.v1",
         "status": "completed",
@@ -193,7 +216,7 @@ async fn update_policy() -> Json<Value> {
         "exists": exists,
         "policy": policy,
         "mutations_performed": false,
-        "auto_apply_allowed": false,
+        "auto_apply_allowed": policy.auto_apply_allowed,
     }))
 }
 
@@ -212,15 +235,19 @@ async fn update_policy_set(Json(body): Json<UpdatePolicySetBody>) -> Json<Value>
             policy.mode = parsed;
         }
     }
-    policy.auto_apply_allowed = false;
-    if policy.auto_apply_blocked_until.is_empty() {
-        policy.auto_apply_blocked_until = vec![
-            "update_locking".into(),
-            "atomic_install".into(),
-            "rollback_apply".into(),
-            "health_proof".into(),
-        ];
+    if let Some(dev_mode) = body.dev_mode {
+        policy.dev_mode_override = dev_mode;
+        if dev_mode {
+            policy.channel = ReleaseChannel::Dev;
+            policy.mode = UpdateMode::Automatic;
+            policy.parts = UpdatePolicyParts::all_surfaces(true);
+            policy.maintenance_window = "always".into();
+        }
     }
+    if let Some(parts) = body.parts {
+        policy.parts = parts;
+    }
+    refresh_update_policy_authority(&mut policy);
     match write_update_policy(&policy) {
         Ok(path) => Json(json!({
             "schema": "focusa.update_policy_write.v1",
@@ -229,7 +256,7 @@ async fn update_policy_set(Json(body): Json<UpdatePolicySetBody>) -> Json<Value>
             "policy": policy,
             "mutations_performed": true,
             "mutation_scope": "update_policy_file_only",
-            "auto_apply_allowed": false,
+            "auto_apply_allowed": policy.auto_apply_allowed,
             "next_action": "GET /v1/update/status"
         })),
         Err(err) => Json(json!({
@@ -1046,7 +1073,8 @@ fn write_update_policy(policy: &UpdatePolicy) -> anyhow::Result<std::path::PathB
 fn policy_summary_json() -> Value {
     let path = update_policy_path();
     let exists = path.exists();
-    let policy = read_update_policy().unwrap_or_else(|_| default_policy_from_license());
+    let mut policy = read_update_policy().unwrap_or_else(|_| default_policy_from_license());
+    refresh_update_policy_authority(&mut policy);
     json!({
         "path": path,
         "exists": exists,
@@ -1056,7 +1084,7 @@ fn policy_summary_json() -> Value {
         "auto_apply_allowed": policy.auto_apply_allowed,
         "auto_apply_blocked_until": policy.auto_apply_blocked_until,
         "note": if exists {
-            "policy file loaded; auto-apply still requires later locking/rollback/apply gates"
+            "policy file loaded; apply still requires release trust, lock, rollback, and health gates"
         } else {
             "license-derived default policy; no policy file exists yet"
         }

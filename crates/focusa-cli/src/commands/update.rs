@@ -68,6 +68,12 @@ pub struct UpdatePolicySetArgs {
     /// Mode: notify, prompt, scheduled, automatic, manual.
     #[arg(long)]
     pub mode: Option<String>,
+    /// Enable/disable the explicit trusted developer-host override.
+    #[arg(long)]
+    pub dev_mode: Option<bool>,
+    /// Enable/disable every release-managed surface in one move.
+    #[arg(long)]
+    pub all_surfaces: Option<bool>,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -153,9 +159,13 @@ pub struct UpdateApplyArgs {
     #[arg(long)]
     pub yes: bool,
 
-    /// Explicitly request mutation when future apply is implemented. Still blocked in this slice.
+    /// Explicitly request guarded mutation after every trust/safety gate passes.
     #[arg(long)]
     pub allow_apply: bool,
+
+    /// Mark this invocation as background automatic apply; policy authority is mandatory.
+    #[arg(long)]
+    pub automatic: bool,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -624,9 +634,18 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
             let dry_run = args.dry_run;
             let yes = args.yes;
             let allow_apply = args.allow_apply;
+            let automatic = args.automatic || std::env::var_os("INVOCATION_ID").is_some();
             let envelope = build_inventory("apply", args.status).await?;
             let plan = build_update_plan(envelope);
             let mut apply = build_apply_envelope(plan, dry_run, yes, allow_apply);
+            if automatic && !apply.plan.policy.auto_apply_allowed {
+                apply.consent.effective = false;
+                apply.plan.apply_allowed = false;
+                apply.blocked_reason.push("automatic_apply_not_authorized_by_policy".into());
+                apply.blocked_reason
+                    .extend(apply.plan.policy.auto_apply_blocked_until.clone());
+                apply.recovery_hint = "Enable an entitled automatic policy or run a separately authorized manual apply.".into();
+            }
             if apply.consent.effective && apply.plan.apply_allowed {
                 match execute_verified_apply(&apply.plan).await {
                     Ok(promoted) => {
@@ -746,6 +765,7 @@ async fn build_inventory(
         inspect_tui(&latest.version).await?,
         inspect_pi_extension(&latest.version),
         inspect_menubar(&latest.version),
+        inspect_installer(&latest.version),
     ];
     let stale_parts = parts
         .iter()
@@ -997,7 +1017,7 @@ fn configure_launchd_scheduler(channel: &str, install: bool) -> anyhow::Result<(
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>Label</key><string>{UPDATE_LAUNCHD_LABEL}</string>
-<key>ProgramArguments</key><array><string>{focusa}</string><string>update</string><string>apply</string><string>--channel</string><string>{channel}</string><string>--yes</string><string>--allow-apply</string><string>--dry-run</string><string>false</string><string>--json</string></array>
+<key>ProgramArguments</key><array><string>{focusa}</string><string>update</string><string>apply</string><string>--channel</string><string>{channel}</string><string>--yes</string><string>--allow-apply</string><string>--automatic</string><string>--dry-run</string><string>false</string><string>--json</string></array>
 <key>RunAtLoad</key><true/><key>StartInterval</key><integer>120</integer>
 <key>ThrottleInterval</key><integer>300</integer><key>ProcessType</key><string>Background</string>
 </dict></plist>
@@ -1050,7 +1070,7 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/focusa update apply --channel {channel} --yes --allow-apply --dry-run false --json
+ExecStart=/usr/local/bin/focusa update apply --channel {channel} --yes --allow-apply --automatic --dry-run false --json
 "#
             ),
         )?;
@@ -2515,7 +2535,8 @@ fn target_triple() -> String {
 fn update_policy_summary() -> UpdatePolicySummary {
     let path = update_policy_path();
     let exists = path.exists();
-    let policy = read_update_policy().unwrap_or_else(|_| default_policy_from_license());
+    let mut policy = read_update_policy().unwrap_or_else(|_| default_policy_from_license());
+    refresh_update_policy_authority(&mut policy);
     UpdatePolicySummary {
         path: path.display().to_string(),
         exists,
@@ -2525,7 +2546,7 @@ fn update_policy_summary() -> UpdatePolicySummary {
         auto_apply_allowed: policy.auto_apply_allowed,
         auto_apply_blocked_until: policy.auto_apply_blocked_until,
         note: if exists {
-            "policy file loaded; auto-apply still requires later locking/rollback/apply gates"
+            "policy file loaded; apply still requires release trust, lock, rollback, and health gates"
                 .into()
         } else {
             "license-derived default policy; no policy file exists yet".into()
@@ -2536,7 +2557,11 @@ fn update_policy_summary() -> UpdatePolicySummary {
 fn license_summary() -> LicenseSummary {
     match load_license_status() {
         Ok(status) => {
-            let dev_mode = status.tier == "dev_mode"
+            let policy_dev_override = read_update_policy()
+                .map(|policy| policy.dev_mode_override)
+                .unwrap_or(false);
+            let dev_mode = policy_dev_override
+                || status.tier == "dev_mode"
                 || (status.features.iter().any(|f| f == "developer_channel")
                     && status.features.iter().any(|f| f == "ota_auto_update"));
             LicenseSummary {
@@ -2595,6 +2620,23 @@ fn read_update_policy() -> anyhow::Result<UpdatePolicy> {
     Ok(policy)
 }
 
+fn refresh_update_policy_authority(policy: &mut UpdatePolicy) {
+    let dev_override = policy.dev_mode_override
+        || std::env::var("FOCUSA_DEV_MODE")
+            .map(|value| matches!(value.as_str(), "1" | "true" | "yes"))
+            .unwrap_or(false);
+    match load_license_status() {
+        Ok(status) => {
+            policy.license_level = if dev_override { "dev_mode".into() } else { status.tier };
+            policy.refresh_auto_apply_authority(&status.features, dev_override);
+        }
+        Err(_) => {
+            policy.license_level = if dev_override { "dev_mode".into() } else { "evaluation".into() };
+            policy.refresh_auto_apply_authority(&[], dev_override);
+        }
+    }
+}
+
 fn write_update_policy(policy: &UpdatePolicy) -> anyhow::Result<PathBuf> {
     let path = update_policy_path();
     if let Some(parent) = path.parent() {
@@ -2612,7 +2654,8 @@ fn run_policy(cmd: UpdatePolicyCmd, json_mode: bool) -> anyhow::Result<()> {
         UpdatePolicyCmd::Show => {
             let path = update_policy_path();
             let exists = path.exists();
-            let policy = read_update_policy().unwrap_or_else(|_| default_policy_from_license());
+            let mut policy = read_update_policy().unwrap_or_else(|_| default_policy_from_license());
+            refresh_update_policy_authority(&mut policy);
             let out = serde_json::json!({
                 "schema": "focusa.update_policy_status.v1",
                 "status": "completed",
@@ -2620,7 +2663,7 @@ fn run_policy(cmd: UpdatePolicyCmd, json_mode: bool) -> anyhow::Result<()> {
                 "exists": exists,
                 "policy": policy,
                 "mutations_performed": false,
-                "auto_apply_allowed": false,
+                "auto_apply_allowed": policy.auto_apply_allowed,
             });
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&out)?);
@@ -2636,7 +2679,7 @@ fn run_policy(cmd: UpdatePolicyCmd, json_mode: bool) -> anyhow::Result<()> {
                     "channel: {}",
                     out["policy"]["channel"].as_str().unwrap_or("unknown")
                 );
-                println!("auto_apply_allowed: false");
+                println!("auto_apply_allowed: {}", policy.auto_apply_allowed);
             }
         }
         UpdatePolicyCmd::Set(args) => {
@@ -2652,16 +2695,19 @@ fn run_policy(cmd: UpdatePolicyCmd, json_mode: bool) -> anyhow::Result<()> {
             if let Some(mode) = args.mode {
                 policy.mode = mode.parse::<UpdateMode>().map_err(anyhow::Error::msg)?;
             }
-            // Setting policy still cannot unlock auto-apply in this slice.
-            policy.auto_apply_allowed = false;
-            if policy.auto_apply_blocked_until.is_empty() {
-                policy.auto_apply_blocked_until = vec![
-                    "update_locking".into(),
-                    "atomic_install".into(),
-                    "rollback_apply".into(),
-                    "health_proof".into(),
-                ];
+            if let Some(dev_mode) = args.dev_mode {
+                policy.dev_mode_override = dev_mode;
+                if dev_mode {
+                    policy.channel = ReleaseChannel::Dev;
+                    policy.mode = UpdateMode::Automatic;
+                    policy.parts = focusa_core::update::UpdatePolicyParts::all_surfaces(true);
+                    policy.maintenance_window = "always".into();
+                }
             }
+            if let Some(enabled) = args.all_surfaces {
+                policy.parts = focusa_core::update::UpdatePolicyParts::all_surfaces(enabled);
+            }
+            refresh_update_policy_authority(&mut policy);
             let path = write_update_policy(&policy)?;
             let out = serde_json::json!({
                 "schema": "focusa.update_policy_write.v1",
@@ -2670,7 +2716,7 @@ fn run_policy(cmd: UpdatePolicyCmd, json_mode: bool) -> anyhow::Result<()> {
                 "policy": policy,
                 "mutations_performed": true,
                 "mutation_scope": "update_policy_file_only",
-                "auto_apply_allowed": false,
+                "auto_apply_allowed": policy.auto_apply_allowed,
                 "next_action": "focusa update status --json"
             });
             if json_mode {
@@ -2680,7 +2726,7 @@ fn run_policy(cmd: UpdatePolicyCmd, json_mode: bool) -> anyhow::Result<()> {
                     "updated policy: {}",
                     out["path"].as_str().unwrap_or("unknown")
                 );
-                println!("auto_apply_allowed: false");
+                println!("auto_apply_allowed: {}", policy.auto_apply_allowed);
             }
         }
     }
@@ -2813,6 +2859,28 @@ fn inspect_pi_extension(latest: &str) -> InstalledPart {
             "Pi extension updates remain package-channel managed and are never binary-promoted by focusa update apply".to_string(),
         ],
     )
+}
+
+fn inspect_installer(_latest: &str) -> InstalledPart {
+    let expected = std::env::var_os("FOCUSA_INSTALLER_PATH")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("/usr/local/lib/focusa/install-focusa.sh"));
+    let exists = expected.is_file();
+    InstalledPart {
+        part: "installer",
+        expected_path: expected.display().to_string(),
+        resolved_path: exists.then(|| expected.display().to_string()),
+        exists,
+        version: None,
+        version_source: "release_channel_metadata",
+        version_probe_safe: true,
+        sha256: None,
+        stale: None,
+        stale_reason: "public installer follows separately signed installer release proof".into(),
+        notes: vec![
+            "installer metadata is updated across surfaces; local replacement requires installer release approval".into(),
+        ],
+    }
 }
 
 fn inspect_menubar(latest: &str) -> InstalledPart {
