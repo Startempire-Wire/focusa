@@ -66,6 +66,7 @@ pub enum SilentSessionAction {
     Interrupt,
     Cancel,
     Restart,
+    PreviewConfig,
     ReviseConfig,
     RollbackConfig,
     Adopt,
@@ -85,7 +86,9 @@ impl SilentSessionAction {
             | Self::Interrupt
             | Self::Cancel
             | Self::Restart => SilentSessionRouteScope::Control,
-            Self::ReviseConfig | Self::RollbackConfig => SilentSessionRouteScope::Config,
+            Self::PreviewConfig | Self::ReviseConfig | Self::RollbackConfig => {
+                SilentSessionRouteScope::Config
+            }
             Self::Adopt | Self::ForceKill => SilentSessionRouteScope::Admin,
             Self::ReadRawForensics => SilentSessionRouteScope::Forensics,
         }

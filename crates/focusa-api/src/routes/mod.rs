@@ -54,6 +54,8 @@ pub mod session;
 pub mod silent_sessions;
 pub mod silent_sessions_adopt;
 pub mod silent_sessions_authorize;
+pub mod silent_sessions_config_mutation;
+pub mod silent_sessions_config_read;
 pub mod silent_sessions_contract;
 pub mod silent_sessions_control;
 pub mod silent_sessions_create;
