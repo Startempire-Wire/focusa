@@ -1,0 +1,553 @@
+schema: focusa.complete_feature_ledger.v1
+spec_id: "139"
+spec_title: "Distributed Presence Authority, Environment Identity, Execution Placement, and Multi-Daemon Coordination"
+source_path: docs/139-distributed-presence-environment-awareness-execution-placement-and-multi-daemon-coordination-spec.md
+source_blob_sha: 04cbb3b1e43c2c2bac50613dab15a802d76c87d3
+created_at: 2026-07-22
+normalization_status: initial_grouped_draft
+completeness_status: clause_level_normalization_required_before_implementation_closure
+status_values:
+  - not_started
+  - active
+  - blocked
+  - implemented_unverified
+  - verified
+  - variance_approved
+  - not_applicable_verified
+requirements:
+  - requirement_id: S139-REQ-001
+    spec_section: "0"
+    requirement_text: "Maintain a continuously refreshed, scope-safe, multi-daemon Operational Reality Field covering environment, presence, coordination, placement, and safe-next-action facts."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.operational_reality_field
+    implementation_slice: foundation
+    blocking_dependencies: [spec104.typed_scope, spec98.scoped_crdt]
+    core_types: [OperationalRealityField, EnvironmentCoordinate, TopologySnapshot]
+    reducer_events: [topology.materialized]
+    persistence: [topology_snapshots]
+    api_operations: [presence.field, topology.get]
+    cli_commands: [focusa_presence_field, focusa_environment_topology]
+    pi_tools: [focusa_presence_field, focusa_topology_view]
+    ui_surfaces: [presence_field, topology_canvas]
+    positive_tests: [s139_operational_field_materialization]
+    negative_tests: [s139_unscoped_field_blocks]
+    evidence_refs: []
+    receipt_refs: []
+    status: not_started
+
+  - requirement_id: S139-REQ-002
+    spec_section: "4.1"
+    requirement_text: "Apply fresh presence and topology awareness at every consequential planning, tool, mutation, checkpoint, handoff, prediction, completion, and continuation boundary."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.presence_primacy
+    implementation_slice: awareness_saturation
+    blocking_dependencies: [S139-REQ-001, spec137.temporal_guard]
+    core_types: [PresenceExecutionGuard]
+    reducer_events: [presence.guard_issued, presence.guard_invalidated]
+    persistence: [presence_guards]
+    api_operations: [presence.guard]
+    cli_commands: [focusa_presence_guard]
+    pi_tools: [focusa_presence_guard]
+    ui_surfaces: [presence_guard_status]
+    positive_tests: [s139_guard_all_boundaries]
+    negative_tests: [s139_consequential_action_without_guard]
+    status: not_started
+
+  - requirement_id: S139-REQ-003
+    spec_section: "4.2"
+    requirement_text: "Require every actor to resolve an EnvironmentCoordinate or carry an explicit ambiguous/unavailable posture."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.environment_identity
+    implementation_slice: identity_environment
+    blocking_dependencies: [spec96.project_identity, spec104.scope_ref]
+    core_types: [EnvironmentCoordinate, EnvironmentResolution]
+    reducer_events: [environment.resolved]
+    persistence: [environment_resolutions]
+    api_operations: [environment.resolve]
+    cli_commands: [focusa_environment_orient]
+    pi_tools: [focusa_environment_resolve]
+    positive_tests: [s139_environment_coordinate_complete_or_unknown]
+    negative_tests: [s139_implicit_local_environment_authority]
+    status: not_started
+
+  - requirement_id: S139-REQ-004
+    spec_section: "4.3"
+    requirement_text: "Admit every costly, consequential, shared, or externally effective operation against ProjectExecutionPolicy before process spawn or remote dispatch."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.execution_admission
+    implementation_slice: placement_admission
+    blocking_dependencies: [S139-REQ-003, spec137.temporal_guard]
+    core_types: [ProjectExecutionPolicy, OperationIntent, ExecutionAdmission]
+    reducer_events: [operation.admission_requested, operation.admission_decided]
+    persistence: [execution_policies, operation_intents, execution_admissions]
+    api_operations: [execution.classify, execution.admit]
+    cli_commands: [focusa_execution_preflight]
+    pi_tools: [focusa_execution_preflight]
+    operation_registry_changes: [operation_classification_and_transitive_effects]
+    positive_tests: [s139_pre_spawn_admission]
+    negative_tests: [s139_spawn_without_admission]
+    status: not_started
+
+  - requirement_id: S139-REQ-005
+    spec_section: "4.4"
+    requirement_text: "Treat failure to observe presence as unknown/stale/partitioned rather than proof of absence."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.presence_freshness
+    implementation_slice: presence_core
+    blocking_dependencies: [S139-REQ-002]
+    core_types: [PresenceFreshness, PartitionState]
+    reducer_events: [presence.expired, daemon.partitioned]
+    persistence: [presence_records, partitions]
+    positive_tests: [s139_stale_not_absent]
+    negative_tests: [s139_expired_heartbeat_auto_abandon]
+    status: not_started
+
+  - requirement_id: S139-REQ-006
+    spec_section: "4.5"
+    requirement_text: "Prohibit daemon-global current actor, session, worktree, operation, release, or lease authority."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec104.scoped_runtime
+    implementation_slice: singleton_elimination
+    blocking_dependencies: [spec104.typed_scope]
+    core_types: [EnvironmentCoordinate, WorkstreamKey]
+    positive_tests: [s139_multi_actor_no_bleed]
+    negative_tests: [s139_global_current_pointer_authority]
+    status: not_started
+
+  - requirement_id: S139-REQ-007
+    spec_section: "7"
+    requirement_text: "Implement typed identities for coordination realm, node, daemon, daemon boot, repository, workspace, worktree, actor, session, workstream, Workpoint, and execution run."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.identity_coordinate
+    implementation_slice: identity_environment
+    blocking_dependencies: [spec72.agent_identity, spec104.scope_ref]
+    core_types: [CoordinationRealm, NodeIdentity, DaemonIdentity, DaemonBootIdentity, RepositoryIdentity, WorkspaceIdentity, WorktreeIdentity, EnvironmentCoordinate]
+    persistence: [node_identities, daemon_identities, daemon_boots, workspace_identities, worktree_identities]
+    generated_contracts: [focusa.environment_coordinate.v1]
+    positive_tests: [s139_identity_family_roundtrip]
+    status: not_started
+
+  - requirement_id: S139-REQ-008
+    spec_section: "7.3"
+    requirement_text: "Compute explicit same-realm/project/repository/workspace/worktree/node/daemon/session/workstream/Workpoint/run/resource relationships with evidence and freshness."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.environment_relationships
+    implementation_slice: identity_environment
+    blocking_dependencies: [S139-REQ-007]
+    core_types: [EnvironmentRelationship, RelationshipEvidence]
+    api_operations: [environment.diff]
+    cli_commands: [focusa_environment_diff]
+    positive_tests: [s139_relationship_matrix]
+    status: not_started
+
+  - requirement_id: S139-REQ-009
+    spec_section: "8"
+    requirement_text: "Implement bounded environment probes, normalized observations, signal precedence, mismatch detection, confidence, and immutable snapshots."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.environment_detection
+    implementation_slice: identity_environment
+    blocking_dependencies: [S139-REQ-007]
+    core_types: [EnvironmentProbeDefinition, EnvironmentObservation, EnvironmentSignal, EnvironmentSnapshot]
+    reducer_events: [environment.snapshot_observed]
+    persistence: [environment_snapshots]
+    api_operations: [environment.detect, environment.resolve]
+    positive_tests: [s139_probe_resolution_quorum]
+    negative_tests: [s139_weak_signal_overrides_verified]
+    status: not_started
+
+  - requirement_id: S139-REQ-010
+    spec_section: "8.3-8.7"
+    requirement_text: "Detect system, CPU architecture, runtime, filesystem, toolchain, network, service, repository, workspace, worktree, daemon, and deployment facts."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.environment_detection
+    implementation_slice: identity_environment
+    blocking_dependencies: [S139-REQ-009]
+    core_types: [SystemEnvironmentProfile, FilesystemProfile, RuntimeProfile, ToolchainProfile, NetworkAndServiceProfile]
+    positive_tests: [s139_mac_linux_architecture_profiles, s139_worktree_detection]
+    status: not_started
+
+  - requirement_id: S139-REQ-011
+    spec_section: "8.8"
+    requirement_text: "Represent environment variables by classified presence/source/precedence/hash or secret reference and never replicate raw secrets."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.environment_variables
+    implementation_slice: identity_environment
+    blocking_dependencies: [S139-REQ-009]
+    core_types: [EnvironmentVariableObservation, VariableClassification, VariableRepresentation]
+    security_tests: [s139_no_raw_secret_replication]
+    positive_tests: [s139_variable_precedence_and_shadowing]
+    status: not_started
+
+  - requirement_id: S139-REQ-012
+    spec_section: "9"
+    requirement_text: "Implement versioned EnvironmentProfiles with inheritance, expected facts, policy, profile binding, verification, and drift."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.environment_profiles
+    implementation_slice: identity_environment
+    blocking_dependencies: [S139-REQ-009]
+    core_types: [EnvironmentProfile, ProfileBinding, ProfileDrift]
+    reducer_events: [environment.profile_bound, environment.profile_drifted]
+    persistence: [environment_profiles]
+    api_operations: [environment.profile_preview, environment.profile_commit, environment.profile_bind]
+    ui_surfaces: [environment_profile_editor]
+    positive_tests: [s139_profile_inheritance]
+    negative_tests: [s139_profile_coerces_observed_fact]
+    status: not_started
+
+  - requirement_id: S139-REQ-013
+    spec_section: "10"
+    requirement_text: "Implement PresenceRecord, PresenceState, truth class, authority class, heartbeat, freshness, expiry, detach, partition, orphan, and recovery semantics."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.presence_core
+    implementation_slice: presence_core
+    blocking_dependencies: [S139-REQ-007]
+    core_types: [PresenceRecord, PresenceState, PresenceTruthClass, PresenceAuthorityClass, PresenceHeartbeat]
+    reducer_events: [actor.attached, actor.detached, presence.heartbeat, presence.expired, presence.recovered]
+    persistence: [actor_attachments, presence_records, presence_heartbeats]
+    api_operations: [presence.attach, presence.heartbeat, presence.detach]
+    positive_tests: [s139_presence_lifecycle]
+    negative_tests: [s139_presence_grants_permission]
+    status: not_started
+
+  - requirement_id: S139-REQ-014
+    spec_section: "11"
+    requirement_text: "Run a daemon-owned event-driven and periodic PresencePulse that refreshes liveness, topology, partitions, occupancy, conflicts, leases, and guards."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.presence_pulse
+    implementation_slice: presence_core
+    blocking_dependencies: [S139-REQ-013, spec137.temporal_pulse]
+    core_types: [PresencePulse]
+    positive_tests: [s139_presence_pulse_event_and_timer]
+    restart_recovery_tests: [s139_presence_pulse_restart]
+    status: not_started
+
+  - requirement_id: S139-REQ-015
+    spec_section: "12"
+    requirement_text: "Implement WorkIntent, ActivityRecord, ResourceFootprint, and materialized ResourceOccupancy."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.activity_coordination
+    implementation_slice: coordination
+    blocking_dependencies: [S139-REQ-013]
+    core_types: [WorkIntent, ActivityRecord, ResourceFootprint, ResourceOccupancy]
+    reducer_events: [intent.declared, intent.revised, activity.started, activity.progressed, resource.footprint_declared, resource.occupancy_changed]
+    persistence: [work_intents, activity_records, resource_footprints, resource_occupancy]
+    api_operations: [intent.declare, intent.revise]
+    pi_tools: [focusa_work_intent_declare, focusa_resource_footprint_declare]
+    positive_tests: [s139_intent_footprint_occupancy]
+    status: not_started
+
+  - requirement_id: S139-REQ-016
+    spec_section: "13"
+    requirement_text: "Implement typed claims and authority-issued shared/exclusive leases with Spec 137 time references and fencing tokens."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.claims_leases
+    implementation_slice: coordination
+    blocking_dependencies: [S139-REQ-015, spec137.temporal_authority]
+    core_types: [ActivityClaim, ResourceLease, FencingToken]
+    reducer_events: [claim.acquired, claim.released, lease.acquired, lease.renewed, lease.expired, lease.revoked, fencing.rejected]
+    persistence: [claims, leases]
+    api_operations: [claim.acquire, claim.release, lease.acquire, lease.renew, lease.release]
+    positive_tests: [s139_lease_lifecycle]
+    negative_tests: [s139_stale_fencing_token]
+    status: not_started
+
+  - requirement_id: S139-REQ-017
+    spec_section: "14"
+    requirement_text: "Classify hard, structural, semantic, complementary, and dependency relationships and interrupt hard conflicts."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.conflict_dependency
+    implementation_slice: coordination
+    blocking_dependencies: [S139-REQ-015, S139-REQ-016]
+    core_types: [ConflictAssessment, DependencyRelationship, CoordinationOpportunity]
+    reducer_events: [conflict.detected, conflict.resolved]
+    persistence: [conflicts, dependencies]
+    api_operations: [conflicts.get, conflict.resolve]
+    ui_surfaces: [conflict_workbench]
+    positive_tests: [s139_conflict_taxonomy]
+    negative_tests: [s139_hard_conflict_continues]
+    status: not_started
+
+  - requirement_id: S139-REQ-018
+    spec_section: "14.3"
+    requirement_text: "Implement explicit source-linked handoff offer, acceptance, rejection, expiry, and supersession with Receipt integration."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.handoffs
+    implementation_slice: coordination
+    blocking_dependencies: [S139-REQ-015, spec119.receipts]
+    core_types: [PresenceHandoff]
+    reducer_events: [handoff.offered, handoff.accepted]
+    persistence: [handoffs]
+    api_operations: [handoff.create, handoff.accept]
+    pi_tools: [focusa_handoff]
+    positive_tests: [s139_handoff_lifecycle]
+    receipt_refs: [handoff_receipt]
+    status: not_started
+
+  - requirement_id: S139-REQ-019
+    spec_section: "15"
+    requirement_text: "Implement multi-daemon local-first topology with one local persistence store per daemon and direct/relay/offline transport adapters."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.multi_daemon_topology
+    implementation_slice: multi_daemon
+    blocking_dependencies: [spec43.multi_device_sync, spec98.scoped_crdt]
+    core_types: [DaemonPeer, PeerCursor, TopologyEpoch]
+    persistence: [peer_cursors]
+    positive_tests: [s139_two_daemon_topology]
+    negative_tests: [s139_shared_sqlite_multi_machine]
+    status: not_started
+
+  - requirement_id: S139-REQ-020
+    spec_section: "15.3"
+    requirement_text: "Acquire an OS-level data-directory writer lock and refuse a second writable daemon process."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.daemon_data_dir_exclusivity
+    implementation_slice: multi_daemon
+    blocking_dependencies: [S139-REQ-007]
+    core_types: [DataDirectoryLock]
+    restart_recovery_tests: [s139_second_daemon_same_data_dir]
+    status: not_started
+
+  - requirement_id: S139-REQ-021
+    spec_section: "15.4"
+    requirement_text: "Detect copied/incompatible DaemonIdentity usage across nodes and quarantine canonical-capable publication until rekey/adoption."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.daemon_identity_security
+    implementation_slice: multi_daemon
+    blocking_dependencies: [S139-REQ-007]
+    core_types: [DaemonIdentityCollision]
+    reducer_events: [daemon.identity_collision]
+    security_tests: [s139_daemon_identity_collision]
+    receipt_refs: [daemon_rekey_receipt]
+    status: not_started
+
+  - requirement_id: S139-REQ-022
+    spec_section: "15.5-15.7"
+    requirement_text: "Authenticate peers through realm/node/daemon/boot identity and sign, scope, version, replay-protect, and causally order cross-daemon events."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.peer_identity_and_events
+    implementation_slice: multi_daemon
+    blocking_dependencies: [S139-REQ-019, S139-REQ-021]
+    core_types: [SignedPresenceEvent, ReplayWindow, OriginSequence]
+    security_tests: [s139_event_signature, s139_event_replay_rejected, s139_scope_quarantine]
+    positive_tests: [s139_signed_event_convergence]
+    status: not_started
+
+  - requirement_id: S139-REQ-023
+    spec_section: "16"
+    requirement_text: "Materialize versioned TopologySnapshots and increment topology epochs on relevant coordination changes."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.topology_snapshot
+    implementation_slice: multi_daemon
+    blocking_dependencies: [S139-REQ-014, S139-REQ-019]
+    core_types: [TopologySnapshot, TopologyEpoch]
+    reducer_events: [topology.materialized]
+    persistence: [topology_snapshots]
+    api_operations: [topology.get, topology.snapshot_get]
+    positive_tests: [s139_topology_epoch_invalidation]
+    status: not_started
+
+  - requirement_id: S139-REQ-024
+    spec_section: "17"
+    requirement_text: "Implement versioned ProjectExecutionPolicy and operation routes by profile, venue, executor role, fallback, lease, capability, permission, and validation route."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.execution_placement
+    implementation_slice: placement_admission
+    blocking_dependencies: [S139-REQ-012]
+    core_types: [ProjectExecutionPolicy, ExecutionRoute, ExecutionVenue]
+    persistence: [execution_policies]
+    api_operations: [execution.policy_get]
+    ui_surfaces: [execution_placement_editor]
+    positive_tests: [s139_execution_route_resolution]
+    status: not_started
+
+  - requirement_id: S139-REQ-025
+    spec_section: "17.2-17.3"
+    requirement_text: "Register operation classes and transitive effects for tools, scripts, package commands, Make targets, tasks, and skills."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec135j.operation_registry
+    implementation_slice: placement_admission
+    blocking_dependencies: [S139-REQ-024]
+    operation_registry_changes: [operation_classes, transitive_effect_graph]
+    positive_tests: [s139_wrapper_script_classification]
+    negative_tests: [s139_absolute_path_bypass]
+    status: not_started
+
+  - requirement_id: S139-REQ-026
+    spec_section: "18"
+    requirement_text: "Deduplicate equivalent expensive operations using scope, source, patch, operation, target, feature, toolchain, and input hashes."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.execution_deduplication
+    implementation_slice: placement_admission
+    blocking_dependencies: [S139-REQ-024, S139-REQ-025]
+    core_types: [ExecutionDeduplicationKey, ExecutionSubscription]
+    persistence: [execution_runs, execution_subscriptions]
+    api_operations: [execution.run_create, execution.subscribe]
+    positive_tests: [s139_equivalent_run_subscribe, s139_fresh_run_reuse]
+    negative_tests: [s139_duplicate_expensive_spawn]
+    status: not_started
+
+  - requirement_id: S139-REQ-027
+    spec_section: "18.4"
+    requirement_text: "Reserve and admit CPU, memory, disk, process, network, and external quota resources for expensive operations."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.resource_admission
+    implementation_slice: placement_admission
+    blocking_dependencies: [S139-REQ-026]
+    core_types: [ResourceReservation, ResourcePressureSnapshot]
+    performance_tests: [s139_resource_pressure_queue_block]
+    status: not_started
+
+  - requirement_id: S139-REQ-028
+    spec_section: "19"
+    requirement_text: "Issue PresenceExecutionGuard, EnvironmentExecutionGuard, and ExecutionPlacementGuard with exact validity and invalidation conditions."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.execution_guards
+    implementation_slice: awareness_saturation
+    blocking_dependencies: [S139-REQ-023, S139-REQ-024]
+    core_types: [PresenceExecutionGuard, EnvironmentExecutionGuard, ExecutionPlacementGuard]
+    api_operations: [presence.guard, execution.admit]
+    positive_tests: [s139_guard_validity]
+    negative_tests: [s139_stale_guard_after_branch_or_lease_change]
+    status: not_started
+
+  - requirement_id: S139-REQ-029
+    spec_section: "20-22"
+    requirement_text: "Deliver bounded guard, delta, standard packet, and rich topology levels and require them at specified session, reasoning, execution, continuity, and closure boundaries."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.awareness_delivery
+    implementation_slice: awareness_saturation
+    blocking_dependencies: [S139-REQ-028]
+    core_types: [PresenceAwarenessPacket, PresenceDelta, PresenceInterrupt]
+    api_operations: [presence.bootstrap, presence.stream]
+    pi_tools: [focusa_presence_guard, focusa_presence_field]
+    positive_tests: [s139_bounded_packet, s139_boundary_refresh]
+    performance_tests: [s139_presence_context_budget]
+    status: not_started
+
+  - requirement_id: S139-REQ-030
+    spec_section: "23"
+    requirement_text: "Interrupt agents on hard conflicts, lease/fencing loss, authority change, daemon collision, unsafe partition, operator invalidation, venue invalidation, or equivalent-operation start."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.hard_interrupts
+    implementation_slice: awareness_saturation
+    blocking_dependencies: [S139-REQ-017, S139-REQ-028]
+    core_types: [PresenceInterrupt]
+    positive_tests: [s139_interrupt_matrix]
+    negative_tests: [s139_agent_continues_after_hard_interrupt]
+    status: not_started
+
+  - requirement_id: S139-REQ-031
+    spec_section: "24"
+    requirement_text: "Enforce operation placement through tool interception, daemon admission, managed shell routing, and optional process-supervisor backstop."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.runtime_enforcement
+    implementation_slice: placement_admission
+    blocking_dependencies: [S139-REQ-004, S139-REQ-025]
+    core_types: [OperationPermit]
+    operation_registry_changes: [pre_spawn_enforcement]
+    security_tests: [s139_process_bypass_backstop]
+    status: not_started
+
+  - requirement_id: S139-REQ-032
+    spec_section: "25"
+    requirement_text: "Provide a policy configuration that deterministically prevents duplicate local Focusa Rust builds and routes validation/release to the approved remote venue."
+    requirement_class: must
+    applicability: conditional
+    applicability_condition_ref: focusa_project_policy
+    primitive_owner: spec139.execution_placement
+    implementation_slice: incident_prevention
+    blocking_dependencies: [S139-REQ-024, S139-REQ-026, S139-REQ-031]
+    positive_tests: [s139_focusa_remote_build_route]
+    negative_tests: [s139_focusa_dual_local_rust_build]
+    evidence_refs: [focusa_local_dual_build_incident]
+    status: not_started
+
+  - requirement_id: S139-REQ-033
+    spec_section: "26-31"
+    requirement_text: "Implement append-only events, persistence, typed API/CLI/Pi surfaces, and A2UI operator projections for environment, presence, coordination, execution, and daemon topology."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.surface_and_storage
+    implementation_slice: surfaces
+    blocking_dependencies: [S139-REQ-013, S139-REQ-019, S139-REQ-024]
+    generated_contracts: [openapi, json_schema, typescript_client, pi_tool_contracts, a2ui_catalog]
+    positive_tests: [s139_api_cli_pi_parity, s139_a2ui_actions]
+    status: not_started
+
+  - requirement_id: S139-REQ-034
+    spec_section: "32-33"
+    requirement_text: "Preserve environment, presence, topology, contention, partition, and placement references in Spec 137 estimates/incidents and Spec 138 prediction/learning provenance without duplicating their authority."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.cross_spec_provenance
+    implementation_slice: cross_spec
+    blocking_dependencies: [spec137.temporal_authority, spec138.epistemic_governance]
+    core_types: [EnvironmentSnapshotReference, TopologySnapshotReference, PresenceSnapshotReference]
+    positive_tests: [s139_temporal_presence_interlock, s139_prediction_topology_provenance]
+    status: not_started
+
+  - requirement_id: S139-REQ-035
+    spec_section: "34"
+    requirement_text: "Protect peer identity, events, topology metadata, environment variables, and resource admission with signing, replay protection, revocation, rate limits, redaction, quarantine, and tamper evidence."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.security_privacy
+    implementation_slice: security
+    blocking_dependencies: [S139-REQ-022]
+    security_tests: [s139_forged_peer, s139_replay, s139_secret_redaction, s139_cross_project_bleed, s139_claim_spam]
+    status: not_started
+
+  - requirement_id: S139-REQ-036
+    spec_section: "35"
+    requirement_text: "Migrate in ordered phases from identity/environment through local multiplexing, multi-daemon topology, leases, placement, and full awareness saturation without claiming missing slices as implemented."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.migration
+    implementation_slice: migration
+    migrations: [s139_phase0_audit, s139_phase1_identity, s139_phase2_local, s139_phase3_multi_daemon, s139_phase4_leases, s139_phase5_placement, s139_phase6_ui]
+    positive_tests: [s139_migration_compatibility]
+    status: not_started
+
+  - requirement_id: S139-REQ-037
+    spec_section: "36-37"
+    requirement_text: "Pass the full identity, multi-daemon, presence, coordination, placement, saturation, temporal/prediction, privacy, and incident-prevention test matrix before conformance."
+    requirement_class: must
+    applicability: required
+    primitive_owner: spec139.conformance
+    implementation_slice: closure
+    blocking_dependencies: [S139-REQ-001, S139-REQ-037]
+    positive_tests: [spec139_required_test_matrix]
+    evidence_refs: [spec139_conformance_bundle]
+    receipt_refs: [spec139_closure_receipt]
+    status: not_started
