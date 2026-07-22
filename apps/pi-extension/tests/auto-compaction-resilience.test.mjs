@@ -30,9 +30,16 @@ test("agent_settled is the extension-owned compaction boundary", () => {
   assert.match(handlerBody("agent_settled"), /maybeCompact\(ctx\)/);
 });
 
-test("transient failures use one bounded linked retry epoch and live-context suppression", () => {
-  assert.match(source, /maxTransientRetries\s*=\s*1/);
+test("provider transport failures are terminal for unchanged context", () => {
   assert.match(source, /websocket\|network\|socket\|timeout/);
+  assert.match(source, /terminalTransportFailure/);
+  assert.match(source, /automatic retry is suppressed for unchanged context/);
+  assert.match(source, /terminalNoopContextKey = failedEpoch\.contextKey/);
+});
+
+test("rate limits and temporary server failures retain one bounded linked retry", () => {
+  assert.match(source, /maxTransientRetries\s*=\s*1/);
+  assert.match(source, /rate\.\?limit\|429\|502\|503\|504/);
   assert.match(source, /getPolicy\(\)\.cooldownMs \* 2 \*\*/);
   assert.match(source, /consecutiveTransientFailures \+ 1,\n\s+priorEpochId/);
   assert.match(source, /live_context_no_longer_requires_action/);

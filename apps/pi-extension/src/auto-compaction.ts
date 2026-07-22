@@ -621,13 +621,16 @@ export function registerAutoCompaction(
         const failedEpoch = invokedEpoch;
         const exactRejection =
           failedEpoch.exactEligibility?.eligible === false ? failedEpoch.exactEligibility : undefined;
+        const failureClass = compactionFailureClass(message, exactRejection);
+        const retryableFailure = isRetryableCompactionError(message);
+        const terminalTransportFailure = failureClass === "primary_transport" && !retryableFailure;
         if (ctx.hasUI) ctx.ui.setStatus("focusa-auto-compaction", undefined);
         persist(
           exactRejection ? "eligibility_rejected" : "attempt_failed",
           {
             primary_error: message,
-            failure_class: compactionFailureClass(message, exactRejection),
-            terminal: exactRejection?.terminal ?? isTerminalNoopError(message),
+            failure_class: failureClass,
+            terminal: (exactRejection?.terminal ?? isTerminalNoopError(message)) || terminalTransportFailure,
             eligibility: exactRejection,
             duration_ms: Date.now() - failedEpoch.startedAt,
           },
@@ -652,7 +655,23 @@ export function registerAutoCompaction(
           return;
         }
 
-        if (isTransientCompactionError(message) && consecutiveTransientFailures < maxTransientRetries) {
+        if (terminalTransportFailure) {
+          terminalNoopContextKey = failedEpoch.contextKey;
+          consecutiveTransientFailures = 0;
+          setActiveEpoch(undefined);
+          notifyOnce(
+            ctx,
+            `transport-failed:${terminalNoopContextKey}:${message}`,
+            `Focusa stopped proactive compaction after a provider transport failure; automatic retry is suppressed for unchanged context: ${message}`,
+            "warning"
+          );
+          const failedRequest = activeRequest;
+          activeRequest = undefined;
+          failedRequest?.onError?.(error);
+          return;
+        }
+
+        if (retryableFailure && consecutiveTransientFailures < maxTransientRetries) {
           consecutiveTransientFailures += 1;
           const retryDelay = getPolicy().cooldownMs * 2 ** (consecutiveTransientFailures - 1);
           const priorEpochId = failedEpoch.epochId;
@@ -941,4 +960,8 @@ function isTransientCompactionError(message: string): boolean {
   return /websocket|network|socket|timeout|timed out|connection|temporar|rate.?limit|429|502|503|504/i.test(
     message
   );
+}
+
+function isRetryableCompactionError(message: string): boolean {
+  return /rate.?limit|429|502|503|504|service unavailable|bad gateway|gateway timeout/i.test(message);
 }
