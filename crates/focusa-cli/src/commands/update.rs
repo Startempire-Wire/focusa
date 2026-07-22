@@ -1754,6 +1754,7 @@ async fn execute_verified_apply_locked(
     )?;
     // part, target path, backup path, SHA-256 of the pre-update target.
     let mut promoted: Vec<PromotedPart> = Vec::new();
+    let mut package_promoted: Vec<String> = Vec::new();
     let operation = async {
         for part in plan
             .parts
@@ -1887,6 +1888,47 @@ async fn execute_verified_apply_locked(
                 )
             })?;
         }
+        for part in plan.parts.iter().filter(|part| {
+            matches!(part.action, "would_update_package" | "would_install_package")
+        }) {
+            let url = part.download_url.as_deref().context("Pi extension asset URL missing")?;
+            let expected = part.expected_sha256.as_deref().context("Pi extension checksum missing")?;
+            let archive = stage.join(format!("{}-{}.tar.gz", part.part, plan.latest.tag));
+            let bytes = reqwest::get(url).await?.error_for_status()?.bytes().await?;
+            if format!("{:x}", Sha256::digest(&bytes)) != expected {
+                anyhow::bail!("Pi extension staged checksum mismatch");
+            }
+            std::fs::write(&archive, &bytes)?;
+            std::fs::File::open(&archive)?.sync_all()?;
+            let package_json = PathBuf::from(part.target_path.as_deref().context("Pi extension package path missing")?);
+            let extension_root = package_json
+                .parent()
+                .and_then(Path::parent)
+                .context("Pi extension destination root missing")?;
+            let installed = crate::commands::install::InstalledAsset {
+                name: "focusa-pi-extension".into(),
+                version: plan.latest.version.clone(),
+                triple: "all".into(),
+                sha256: expected.to_string(),
+                install_path: archive.display().to_string(),
+            };
+            crate::commands::install::integrate_pi_extension(
+                &installed,
+                &stage,
+                None,
+                Some(extension_root),
+            )?;
+            std::fs::write(
+                state.join("pi-extension-restart-required.json"),
+                serde_json::to_vec_pretty(&json!({
+                    "schema": "focusa.pi_extension_restart_required.v1",
+                    "version": plan.latest.version,
+                    "installed_at": chrono_like_timestamp(),
+                    "action": "restart or /reload Pi to activate the updated Focusa extension"
+                }))?,
+            )?;
+            package_promoted.push(part.part.to_string());
+        }
         Ok::<(), anyhow::Error>(())
     }
     .await;
@@ -1921,10 +1963,11 @@ async fn execute_verified_apply_locked(
         }
         return Err(error);
     }
-    let names = promoted
+    let mut names = promoted
         .iter()
         .map(|(part, _, _, _)| part.clone())
         .collect::<Vec<_>>();
+    names.extend(package_promoted);
     let rollback_manifest = backup_root.join("rollback-manifest.json");
     let manifest_entries = promoted
         .iter()
@@ -1941,7 +1984,14 @@ async fn execute_verified_apply_locked(
             "entries":manifest_entries,
         }))?,
     )?;
-    if names.is_empty() && plan.parts.iter().any(|part| part.action == "would_update") {
+    if names.is_empty()
+        && plan.parts.iter().any(|part| {
+            matches!(
+                part.action,
+                "would_update" | "would_update_package" | "would_install_package"
+            )
+        })
+    {
         anyhow::bail!("no stale release parts were promoted");
     }
     std::fs::write(
@@ -2136,14 +2186,40 @@ fn update_state_root() -> PathBuf {
         .join("update")
 }
 
+fn path_is_git_managed(path: &str) -> bool {
+    let candidate = Path::new(path);
+    let cwd = if candidate.is_dir() {
+        candidate
+    } else {
+        candidate.parent().unwrap_or(candidate)
+    };
+    std::process::Command::new("git")
+        .args(["-C", cwd.to_string_lossy().as_ref(), "rev-parse", "--is-inside-work-tree"])
+        .output()
+        .map(|output| output.status.success())
+        .unwrap_or(false)
+}
+
 fn part_plan(part: &InstalledPart, latest: &LatestVersion, order: &mut u8) -> PartPlan {
-    let externally_managed = matches!(part.part, "pi_extension" | "menubar");
+    let externally_managed = part.part == "menubar"
+        || (part.part == "pi_extension"
+            && path_is_git_managed(part.resolved_path.as_deref().unwrap_or(&part.expected_path)));
     let action = if externally_managed {
         if !part.exists {
             "not_installed"
         } else {
             match part.stale {
                 Some(true) => "notify_update",
+                Some(false) => "no_op",
+                None => "probe_required",
+            }
+        }
+    } else if part.part == "pi_extension" {
+        if !part.exists {
+            "would_install_package"
+        } else {
+            match part.stale {
+                Some(true) => "would_update_package",
                 Some(false) => "no_op",
                 None => "probe_required",
             }
@@ -2335,6 +2411,17 @@ fn build_latest_from_release(
             sha256: None,
         });
     }
+    let pi_extension_name = format!("focusa-pi-extension-{tag}.tar.gz");
+    let pi_extension = release
+        .assets
+        .iter()
+        .find(|asset| asset.name == pi_extension_name)?;
+    assets.push(ReleaseAssetRef {
+        part: "pi_extension",
+        name: pi_extension_name,
+        download_url: pi_extension.browser_download_url.clone(),
+        sha256: None,
+    });
     let sha256sums_present = release
         .assets
         .iter()
@@ -3199,8 +3286,8 @@ fn print_human(envelope: &UpdateInventoryEnvelope) {
 #[cfg(test)]
 mod tests {
     use super::{
-        PromotedPart, inspect_package_part, normalize_version, pi_extension_package_from_settings,
-        rollback_promoted_parts,
+        PromotedPart, inspect_package_part, normalize_version, path_is_git_managed,
+        pi_extension_package_from_settings, rollback_promoted_parts,
     };
 
     #[test]
@@ -3208,6 +3295,26 @@ mod tests {
         assert_eq!(normalize_version("focusa 0.9.74-dev"), "0.9.74-dev");
         assert_eq!(normalize_version("v0.9.80-dev"), "0.9.80-dev");
         assert_eq!(normalize_version("0.9.80-dev"), "0.9.80-dev");
+    }
+
+    #[test]
+    fn pi_package_promotion_refuses_git_managed_source_checkout() {
+        let root = std::env::temp_dir().join(format!(
+            "focusa-pi-update-source-{}-{}",
+            std::process::id(),
+            super::chrono_like_timestamp()
+        ));
+        std::fs::create_dir_all(root.join("apps/pi-extension")).expect("create source fixture");
+        let status = std::process::Command::new("git")
+            .args(["init", "-q"])
+            .current_dir(&root)
+            .status()
+            .expect("initialize git fixture");
+        assert!(status.success());
+        let package = root.join("apps/pi-extension/package.json");
+        std::fs::write(&package, "{}").expect("write package fixture");
+        assert!(path_is_git_managed(package.to_str().unwrap()));
+        let _ = std::fs::remove_dir_all(root);
     }
 
     #[test]

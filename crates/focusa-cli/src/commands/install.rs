@@ -2538,7 +2538,7 @@ fn tar_command() -> std::process::Command {
     command
 }
 
-fn integrate_pi_extension(
+pub(crate) fn integrate_pi_extension(
     asset: &InstalledAsset,
     install_root: &std::path::Path,
     destination_root: Option<&std::path::Path>,

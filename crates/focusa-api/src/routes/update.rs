@@ -723,12 +723,22 @@ fn build_notifications_envelope(inventory: Value) -> Value {
         .iter()
         .filter_map(Value::as_str)
         .collect::<Vec<_>>();
-    let severity = if stale_names.is_empty() {
-        "none"
-    } else {
+    let pi_restart = std::fs::read_to_string(
+        update_state_root().join("pi-extension-restart-required.json"),
+    )
+    .ok()
+    .and_then(|raw| serde_json::from_str::<Value>(&raw).ok());
+    let severity = if !stale_names.is_empty() || pi_restart.is_some() {
         "warning"
+    } else {
+        "none"
     };
-    let body = if stale_names.is_empty() {
+    let body = if let Some(restart) = &pi_restart {
+        format!(
+            "Focusa Pi extension {} was updated; restart or /reload Pi to activate it.",
+            restart.get("version").and_then(Value::as_str).unwrap_or("unknown")
+        )
+    } else if stale_names.is_empty() {
         "Focusa surfaces are current or unknown; no update warning is required.".to_string()
     } else {
         format!(
@@ -743,6 +753,7 @@ fn build_notifications_envelope(inventory: Value) -> Value {
         "mutations_performed": false,
         "stale_parts": stale_parts,
         "severity": severity,
+        "pi_extension_restart_required": pi_restart,
         "surfaces": notification_routes_json(),
         "messages": [
             {"surface": "cli", "title": "Focusa update status", "body": body, "action": "focusa update plan"},
