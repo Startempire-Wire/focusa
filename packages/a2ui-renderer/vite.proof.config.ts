@@ -21,6 +21,7 @@ export default defineConfig({
         interviewResume: resolve(import.meta.dirname, "proof/interview-resume.html"),
         specWorkbench: resolve(import.meta.dirname, "proof/spec-workbench.html"),
         providerConformance: resolve(import.meta.dirname, "proof/provider-conformance.html"),
+        taskPlan: resolve(import.meta.dirname, "proof/task-plan.html"),
       },
     },
   },

@@ -68,6 +68,7 @@ pub mod snapshots;
 pub mod spec_workbench;
 pub mod sse;
 pub mod subagent;
+pub mod task_plans;
 pub mod telemetry;
 pub mod threads;
 pub mod tokens;

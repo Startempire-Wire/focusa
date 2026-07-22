@@ -2281,6 +2281,77 @@ pub struct SpecWorkbenchSessionRecord {
     pub closed_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TaskPlanStatus {
+    Draft,
+    PendingOperator,
+    Approved,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProviderNeutralTaskRecord {
+    pub provider_neutral_id: String,
+    pub title: String,
+    pub description: String,
+    pub order_index: u32,
+    #[serde(default)]
+    pub linked_spec_sections: Vec<String>,
+    #[serde(default)]
+    pub requirement_refs: Vec<String>,
+    #[serde(default)]
+    pub acceptance_criteria: Vec<String>,
+    #[serde(default)]
+    pub evidence_requirements: Vec<String>,
+    #[serde(default)]
+    pub semantic_object_refs: Vec<String>,
+    #[serde(default)]
+    pub allowed_action_type_ids: Vec<String>,
+    pub verification_policy_ref: String,
+    #[serde(default)]
+    pub allowed_scope: Vec<String>,
+    #[serde(default)]
+    pub dependencies: Vec<String>,
+    #[serde(default)]
+    pub blockers: Vec<String>,
+    pub task_class: String,
+    pub closure_kind: String,
+    pub closure_policy_ref: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preferred_provider: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_ref: Option<String>,
+}
+
+/// Canonical provider-neutral task DAG; materialization is a separate approved step.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProviderNeutralTaskPlanRecord {
+    pub task_plan_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub workbench_session_id: String,
+    pub final_spec_id: String,
+    pub state_revision: u64,
+    pub status: TaskPlanStatus,
+    #[serde(default)]
+    pub tasks: Vec<ProviderNeutralTaskRecord>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preview_token: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previewed_revision: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approved_revision: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approved_by: Option<String>,
+    #[serde(default)]
+    pub receipt_refs: Vec<String>,
+    pub materialized: bool,
+    pub idempotency_key: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 /// Canonical candidate/accepted claim extracted from source-preserving Context.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ContextClaimRecord {
@@ -2426,6 +2497,9 @@ pub struct FocusaState {
     /// Append-only Spec 120 Workbench session revisions.
     #[serde(default)]
     pub spec_workbench_sessions: Vec<SpecWorkbenchSessionRecord>,
+    /// Append-only provider-neutral task plan revisions; never materialized before approval.
+    #[serde(default)]
+    pub provider_neutral_task_plans: Vec<ProviderNeutralTaskPlanRecord>,
     /// Canonical contradiction edges requiring explicit resolution.
     #[serde(default)]
     pub context_contradictions: Vec<ContextContradictionRecord>,
@@ -2499,6 +2573,7 @@ impl FocusaState {
             project_role_profiles: vec![],
             project_interview_sessions: vec![],
             spec_workbench_sessions: vec![],
+            provider_neutral_task_plans: vec![],
             context_contradictions: vec![],
             context_decisions: vec![],
             reactive_context: vec![],
@@ -3118,6 +3193,9 @@ pub enum FocusaEvent {
     },
     SpecWorkbenchSessionRevised {
         session: SpecWorkbenchSessionRecord,
+    },
+    ProviderNeutralTaskPlanRevised {
+        task_plan: ProviderNeutralTaskPlanRecord,
     },
     ContextClaimReviewed {
         claim: ContextClaimRecord,

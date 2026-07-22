@@ -831,6 +831,143 @@ pub fn reduce_with_meta(
                     .then(left.state_revision.cmp(&right.state_revision))
             });
         }
+        FocusaEvent::ProviderNeutralTaskPlanRevised { task_plan } => {
+            if task_plan.task_plan_id.trim().is_empty()
+                || task_plan.project_root.trim().is_empty()
+                || task_plan.continuity_id.trim().is_empty()
+                || task_plan.attachment_id.trim().is_empty()
+                || task_plan.workbench_session_id.trim().is_empty()
+                || task_plan.final_spec_id.trim().is_empty()
+                || task_plan.idempotency_key.trim().is_empty()
+                || task_plan.state_revision == 0
+                || task_plan.materialized
+            {
+                return Err(ReducerError::InvalidEvent("provider-neutral task plan requires identity, exact scope, approved Spec refs, idempotency, positive revision, and unmaterialized state".to_string()));
+            }
+            let source = state
+                .spec_workbench_sessions
+                .iter()
+                .find(|source| {
+                    source.workbench_session_id == task_plan.workbench_session_id
+                        && source.project_root == task_plan.project_root
+                        && source.continuity_id == task_plan.continuity_id
+                        && source.attachment_id == task_plan.attachment_id
+                        && source.final_spec_id.as_deref() == Some(task_plan.final_spec_id.as_str())
+                        && matches!(source.status, SpecWorkbenchStatus::FinalApproved)
+                })
+                .ok_or_else(|| {
+                    ReducerError::InvalidEvent(
+                        "task plan source must be an exact-scoped final-approved Spec Workbench"
+                            .to_string(),
+                    )
+                })?;
+            let expected_revision = state
+                .provider_neutral_task_plans
+                .iter()
+                .filter(|existing| existing.task_plan_id == task_plan.task_plan_id)
+                .map(|existing| existing.state_revision)
+                .max()
+                .unwrap_or(0)
+                + 1;
+            if task_plan.state_revision != expected_revision {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "task plan revision must be {expected_revision}"
+                )));
+            }
+            let task_ids: std::collections::BTreeSet<_> = task_plan
+                .tasks
+                .iter()
+                .map(|task| task.provider_neutral_id.as_str())
+                .collect();
+            let section_ids: std::collections::BTreeSet<_> = source
+                .sections
+                .iter()
+                .map(|section| section.section_id.as_str())
+                .collect();
+            if task_ids.len() != task_plan.tasks.len() {
+                return Err(ReducerError::InvalidEvent(
+                    "task DAG requires unique provider-neutral IDs".to_string(),
+                ));
+            }
+            if task_plan.tasks.iter().any(|task| {
+                task.provider_neutral_id.trim().is_empty()
+                    || task.title.trim().is_empty()
+                    || task.description.trim().is_empty()
+                    || task.linked_spec_sections.is_empty()
+                    || task
+                        .linked_spec_sections
+                        .iter()
+                        .any(|id| !section_ids.contains(id.as_str()))
+                    || task.requirement_refs.is_empty()
+                    || task.acceptance_criteria.is_empty()
+                    || task.evidence_requirements.is_empty()
+                    || task.verification_policy_ref.trim().is_empty()
+                    || task.allowed_scope.is_empty()
+                    || task.task_class.trim().is_empty()
+                    || task.closure_kind.trim().is_empty()
+                    || task.closure_policy_ref.trim().is_empty()
+                    || task.dependencies.iter().any(|id| {
+                        id == &task.provider_neutral_id || !task_ids.contains(id.as_str())
+                    })
+            }) {
+                return Err(ReducerError::InvalidEvent("every task requires valid Spec/requirement/proof links, policy, scope, and in-graph dependencies".to_string()));
+            }
+            let mut resolved = std::collections::BTreeSet::new();
+            loop {
+                let before = resolved.len();
+                for task in &task_plan.tasks {
+                    if task
+                        .dependencies
+                        .iter()
+                        .all(|dependency| resolved.contains(dependency.as_str()))
+                    {
+                        resolved.insert(task.provider_neutral_id.as_str());
+                    }
+                }
+                if resolved.len() == before {
+                    break;
+                }
+            }
+            if resolved.len() != task_plan.tasks.len() {
+                return Err(ReducerError::InvalidEvent(
+                    "task dependency graph must be acyclic".to_string(),
+                ));
+            }
+            match task_plan.status {
+                TaskPlanStatus::Draft => {
+                    if task_plan.approved_revision.is_some() || task_plan.approved_by.is_some() {
+                        return Err(ReducerError::InvalidEvent(
+                            "draft task plan cannot contain approval authority".to_string(),
+                        ));
+                    }
+                }
+                TaskPlanStatus::PendingOperator => {
+                    if task_plan.tasks.is_empty()
+                        || task_plan.preview_token.as_deref().is_none_or(str::is_empty)
+                        || task_plan.previewed_revision != Some(task_plan.state_revision)
+                    {
+                        return Err(ReducerError::InvalidEvent("operator preview requires a non-empty valid DAG and revision-bound preview token".to_string()));
+                    }
+                }
+                TaskPlanStatus::Approved => {
+                    if task_plan.tasks.is_empty()
+                        || task_plan.preview_token.as_deref().is_none_or(str::is_empty)
+                        || task_plan.previewed_revision != Some(task_plan.state_revision - 1)
+                        || task_plan.approved_revision != Some(task_plan.state_revision)
+                        || task_plan.approved_by.as_deref().is_none_or(str::is_empty)
+                        || task_plan.receipt_refs.is_empty()
+                    {
+                        return Err(ReducerError::InvalidEvent("task plan approval requires prior revision-bound preview, explicit operator, matching revision, and Receipt".to_string()));
+                    }
+                }
+            }
+            state.provider_neutral_task_plans.push(task_plan);
+            state.provider_neutral_task_plans.sort_by(|left, right| {
+                left.task_plan_id
+                    .cmp(&right.task_plan_id)
+                    .then(left.state_revision.cmp(&right.state_revision))
+            });
+        }
         FocusaEvent::ContextClaimProposed { claim } => {
             if state.context_claims.iter().any(|existing| {
                 existing.claim_id == claim.claim_id

@@ -1560,6 +1560,140 @@ type FocusaProviderContractListV1 struct {
 	Scope  map[string]interface{} `json:"scope"`
 }
 
+// FocusaProviderNeutralTaskPlanListV1 defines model for focusa_provider_neutral_task_plan_list_v1.
+type FocusaProviderNeutralTaskPlanListV1 struct {
+	Schema       interface{} `json:"schema"`
+	StateVersion int         `json:"state_version"`
+	TaskPlans    []struct {
+		ApprovedBy        *string     `json:"approved_by,omitempty"`
+		ApprovedRevision  *int        `json:"approved_revision,omitempty"`
+		AttachmentId      string      `json:"attachment_id"`
+		ContinuityId      string      `json:"continuity_id"`
+		CreatedAt         time.Time   `json:"created_at"`
+		FinalSpecId       string      `json:"final_spec_id"`
+		IdempotencyKey    string      `json:"idempotency_key"`
+		Materialized      interface{} `json:"materialized"`
+		PreviewToken      *string     `json:"preview_token,omitempty"`
+		PreviewedRevision *int        `json:"previewed_revision,omitempty"`
+		ProjectRoot       string      `json:"project_root"`
+		ReceiptRefs       []string    `json:"receipt_refs"`
+		StateRevision     int         `json:"state_revision"`
+		Status            interface{} `json:"status"`
+		TaskPlanId        string      `json:"task_plan_id"`
+		Tasks             []struct {
+			AcceptanceCriteria    []string `json:"acceptance_criteria"`
+			AllowedActionTypeIds  []string `json:"allowed_action_type_ids"`
+			AllowedScope          []string `json:"allowed_scope"`
+			Blockers              []string `json:"blockers"`
+			ClosureKind           string   `json:"closure_kind"`
+			ClosurePolicyRef      string   `json:"closure_policy_ref"`
+			Dependencies          []string `json:"dependencies"`
+			Description           string   `json:"description"`
+			EvidenceRequirements  []string `json:"evidence_requirements"`
+			LinkedSpecSections    []string `json:"linked_spec_sections"`
+			OrderIndex            int      `json:"order_index"`
+			PreferredProvider     *string  `json:"preferred_provider,omitempty"`
+			ProviderNeutralId     string   `json:"provider_neutral_id"`
+			ProviderRef           *string  `json:"provider_ref,omitempty"`
+			RequirementRefs       []string `json:"requirement_refs"`
+			SemanticObjectRefs    []string `json:"semantic_object_refs"`
+			TaskClass             string   `json:"task_class"`
+			Title                 string   `json:"title"`
+			VerificationPolicyRef string   `json:"verification_policy_ref"`
+		} `json:"tasks"`
+		UpdatedAt          time.Time `json:"updated_at"`
+		WorkbenchSessionId string    `json:"workbench_session_id"`
+	} `json:"task_plans"`
+}
+
+// FocusaProviderNeutralTaskPlanMutationRequestV1 defines model for focusa_provider_neutral_task_plan_mutation_request_v1.
+type FocusaProviderNeutralTaskPlanMutationRequestV1 struct {
+	Action               interface{} `json:"action"`
+	ApprovedBy           *string     `json:"approved_by,omitempty"`
+	AttachmentId         string      `json:"attachment_id"`
+	ContinuityId         string      `json:"continuity_id"`
+	ExpectedPlanRevision int         `json:"expected_plan_revision"`
+	ExpectedStateVersion int         `json:"expected_state_version"`
+	IdempotencyKey       string      `json:"idempotency_key"`
+	PreviewToken         *string     `json:"preview_token,omitempty"`
+	ProjectRoot          string      `json:"project_root"`
+	Task                 *struct {
+		AcceptanceCriteria    []string `json:"acceptance_criteria"`
+		AllowedActionTypeIds  []string `json:"allowed_action_type_ids"`
+		AllowedScope          []string `json:"allowed_scope"`
+		Blockers              []string `json:"blockers"`
+		ClosureKind           string   `json:"closure_kind"`
+		ClosurePolicyRef      string   `json:"closure_policy_ref"`
+		Dependencies          []string `json:"dependencies"`
+		Description           string   `json:"description"`
+		EvidenceRequirements  []string `json:"evidence_requirements"`
+		LinkedSpecSections    []string `json:"linked_spec_sections"`
+		OrderIndex            int      `json:"order_index"`
+		PreferredProvider     *string  `json:"preferred_provider,omitempty"`
+		ProviderNeutralId     string   `json:"provider_neutral_id"`
+		ProviderRef           *string  `json:"provider_ref,omitempty"`
+		RequirementRefs       []string `json:"requirement_refs"`
+		SemanticObjectRefs    []string `json:"semantic_object_refs"`
+		TaskClass             string   `json:"task_class"`
+		Title                 string   `json:"title"`
+		VerificationPolicyRef string   `json:"verification_policy_ref"`
+	} `json:"task,omitempty"`
+	TaskId             *string `json:"task_id,omitempty"`
+	TaskPlanId         *string `json:"task_plan_id,omitempty"`
+	WorkbenchSessionId *string `json:"workbench_session_id,omitempty"`
+}
+
+// FocusaProviderNeutralTaskPlanMutationResultV1 defines model for focusa_provider_neutral_task_plan_mutation_result_v1.
+type FocusaProviderNeutralTaskPlanMutationResultV1 struct {
+	EvidenceRef            string      `json:"evidence_ref"`
+	MaterializationAllowed bool        `json:"materialization_allowed"`
+	ReceiptRef             string      `json:"receipt_ref"`
+	Replayed               bool        `json:"replayed"`
+	Schema                 interface{} `json:"schema"`
+	StateVersion           int         `json:"state_version"`
+	TaskPlan               struct {
+		ApprovedBy        *string     `json:"approved_by,omitempty"`
+		ApprovedRevision  *int        `json:"approved_revision,omitempty"`
+		AttachmentId      string      `json:"attachment_id"`
+		ContinuityId      string      `json:"continuity_id"`
+		CreatedAt         time.Time   `json:"created_at"`
+		FinalSpecId       string      `json:"final_spec_id"`
+		IdempotencyKey    string      `json:"idempotency_key"`
+		Materialized      interface{} `json:"materialized"`
+		PreviewToken      *string     `json:"preview_token,omitempty"`
+		PreviewedRevision *int        `json:"previewed_revision,omitempty"`
+		ProjectRoot       string      `json:"project_root"`
+		ReceiptRefs       []string    `json:"receipt_refs"`
+		StateRevision     int         `json:"state_revision"`
+		Status            interface{} `json:"status"`
+		TaskPlanId        string      `json:"task_plan_id"`
+		Tasks             []struct {
+			AcceptanceCriteria    []string `json:"acceptance_criteria"`
+			AllowedActionTypeIds  []string `json:"allowed_action_type_ids"`
+			AllowedScope          []string `json:"allowed_scope"`
+			Blockers              []string `json:"blockers"`
+			ClosureKind           string   `json:"closure_kind"`
+			ClosurePolicyRef      string   `json:"closure_policy_ref"`
+			Dependencies          []string `json:"dependencies"`
+			Description           string   `json:"description"`
+			EvidenceRequirements  []string `json:"evidence_requirements"`
+			LinkedSpecSections    []string `json:"linked_spec_sections"`
+			OrderIndex            int      `json:"order_index"`
+			PreferredProvider     *string  `json:"preferred_provider,omitempty"`
+			ProviderNeutralId     string   `json:"provider_neutral_id"`
+			ProviderRef           *string  `json:"provider_ref,omitempty"`
+			RequirementRefs       []string `json:"requirement_refs"`
+			SemanticObjectRefs    []string `json:"semantic_object_refs"`
+			TaskClass             string   `json:"task_class"`
+			Title                 string   `json:"title"`
+			VerificationPolicyRef string   `json:"verification_policy_ref"`
+		} `json:"tasks"`
+		UpdatedAt          time.Time `json:"updated_at"`
+		WorkbenchSessionId string    `json:"workbench_session_id"`
+	} `json:"task_plan"`
+	ToolResult map[string]interface{} `json:"tool_result"`
+}
+
 // FocusaResourceModeResponseV1 Generated contract for Focusa schema focusa.resource_mode.response.v1
 type FocusaResourceModeResponseV1 map[string]interface{}
 
@@ -2496,6 +2630,30 @@ type FocusaStateCurrentParams struct {
 	ProjectRoot string `form:"project_root" json:"project_root"`
 }
 
+// FocusaTaskPlanListParams defines parameters for FocusaTaskPlanList.
+type FocusaTaskPlanListParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+}
+
+// FocusaTaskPlanMutateParams defines parameters for FocusaTaskPlanMutate.
+type FocusaTaskPlanMutateParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+}
+
 // FocusaToolDoctorParams defines parameters for FocusaToolDoctor.
 type FocusaToolDoctorParams struct {
 	// ProjectRoot Required Focusa scope key: project_root
@@ -2771,6 +2929,9 @@ type FocusaRoleProfileReviewJSONRequestBody = FocusaProjectAgentRoleProfileRevie
 
 // FocusaSpecWorkbenchSessionMutateJSONRequestBody defines body for FocusaSpecWorkbenchSessionMutate for application/json ContentType.
 type FocusaSpecWorkbenchSessionMutateJSONRequestBody = FocusaSpecWorkbenchMutationRequestV1
+
+// FocusaTaskPlanMutateJSONRequestBody defines body for FocusaTaskPlanMutate for application/json ContentType.
+type FocusaTaskPlanMutateJSONRequestBody = FocusaProviderNeutralTaskPlanMutationRequestV1
 
 // FocusaTrajectoryAssessJSONRequestBody defines body for FocusaTrajectoryAssess for application/json ContentType.
 type FocusaTrajectoryAssessJSONRequestBody = FocusaTrajectoryAssessRequestV1
@@ -3320,6 +3481,14 @@ type ClientInterface interface {
 
 	// FocusaStateCurrent request
 	FocusaStateCurrent(ctx context.Context, params *FocusaStateCurrentParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaTaskPlanList request
+	FocusaTaskPlanList(ctx context.Context, params *FocusaTaskPlanListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaTaskPlanMutateWithBody request with any body
+	FocusaTaskPlanMutateWithBody(ctx context.Context, params *FocusaTaskPlanMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	FocusaTaskPlanMutate(ctx context.Context, params *FocusaTaskPlanMutateParams, body FocusaTaskPlanMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// FocusaToolDoctor request
 	FocusaToolDoctor(ctx context.Context, params *FocusaToolDoctorParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4348,6 +4517,42 @@ func (c *Client) FocusaSpecWorkbenchSessionList(ctx context.Context, params *Foc
 
 func (c *Client) FocusaStateCurrent(ctx context.Context, params *FocusaStateCurrentParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewFocusaStateCurrentRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaTaskPlanList(ctx context.Context, params *FocusaTaskPlanListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaTaskPlanListRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaTaskPlanMutateWithBody(ctx context.Context, params *FocusaTaskPlanMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaTaskPlanMutateRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaTaskPlanMutate(ctx context.Context, params *FocusaTaskPlanMutateParams, body FocusaTaskPlanMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaTaskPlanMutateRequest(c.Server, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -8136,6 +8341,151 @@ func NewFocusaStateCurrentRequest(server string, params *FocusaStateCurrentParam
 	return req, nil
 }
 
+// NewFocusaTaskPlanListRequest generates requests for FocusaTaskPlanList
+func NewFocusaTaskPlanListRequest(server string, params *FocusaTaskPlanListParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/task-plans")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewFocusaTaskPlanMutateRequest calls the generic FocusaTaskPlanMutate builder with application/json body
+func NewFocusaTaskPlanMutateRequest(server string, params *FocusaTaskPlanMutateParams, body FocusaTaskPlanMutateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewFocusaTaskPlanMutateRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewFocusaTaskPlanMutateRequestWithBody generates requests for FocusaTaskPlanMutate with any type of body
+func NewFocusaTaskPlanMutateRequestWithBody(server string, params *FocusaTaskPlanMutateParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/task-plans/mutate")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewFocusaToolDoctorRequest generates requests for FocusaToolDoctor
 func NewFocusaToolDoctorRequest(server string, params *FocusaToolDoctorParams) (*http.Request, error) {
 	var err error
@@ -9884,6 +10234,14 @@ type ClientWithResponsesInterface interface {
 	// FocusaStateCurrentWithResponse request
 	FocusaStateCurrentWithResponse(ctx context.Context, params *FocusaStateCurrentParams, reqEditors ...RequestEditorFn) (*FocusaStateCurrentResponse, error)
 
+	// FocusaTaskPlanListWithResponse request
+	FocusaTaskPlanListWithResponse(ctx context.Context, params *FocusaTaskPlanListParams, reqEditors ...RequestEditorFn) (*FocusaTaskPlanListResponse, error)
+
+	// FocusaTaskPlanMutateWithBodyWithResponse request with any body
+	FocusaTaskPlanMutateWithBodyWithResponse(ctx context.Context, params *FocusaTaskPlanMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaTaskPlanMutateResponse, error)
+
+	FocusaTaskPlanMutateWithResponse(ctx context.Context, params *FocusaTaskPlanMutateParams, body FocusaTaskPlanMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaTaskPlanMutateResponse, error)
+
 	// FocusaToolDoctorWithResponse request
 	FocusaToolDoctorWithResponse(ctx context.Context, params *FocusaToolDoctorParams, reqEditors ...RequestEditorFn) (*FocusaToolDoctorResponse, error)
 
@@ -11596,6 +11954,68 @@ func (r FocusaStateCurrentResponse) ContentType() string {
 	return ""
 }
 
+type FocusaTaskPlanListResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaProviderNeutralTaskPlanListV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaTaskPlanListResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaTaskPlanListResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaTaskPlanListResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaTaskPlanMutateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaProviderNeutralTaskPlanMutationResultV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaTaskPlanMutateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaTaskPlanMutateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaTaskPlanMutateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type FocusaToolDoctorResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -12952,6 +13372,32 @@ func (c *ClientWithResponses) FocusaStateCurrentWithResponse(ctx context.Context
 		return nil, err
 	}
 	return ParseFocusaStateCurrentResponse(rsp)
+}
+
+// FocusaTaskPlanListWithResponse request returning *FocusaTaskPlanListResponse
+func (c *ClientWithResponses) FocusaTaskPlanListWithResponse(ctx context.Context, params *FocusaTaskPlanListParams, reqEditors ...RequestEditorFn) (*FocusaTaskPlanListResponse, error) {
+	rsp, err := c.FocusaTaskPlanList(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaTaskPlanListResponse(rsp)
+}
+
+// FocusaTaskPlanMutateWithBodyWithResponse request with arbitrary body returning *FocusaTaskPlanMutateResponse
+func (c *ClientWithResponses) FocusaTaskPlanMutateWithBodyWithResponse(ctx context.Context, params *FocusaTaskPlanMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaTaskPlanMutateResponse, error) {
+	rsp, err := c.FocusaTaskPlanMutateWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaTaskPlanMutateResponse(rsp)
+}
+
+func (c *ClientWithResponses) FocusaTaskPlanMutateWithResponse(ctx context.Context, params *FocusaTaskPlanMutateParams, body FocusaTaskPlanMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaTaskPlanMutateResponse, error) {
+	rsp, err := c.FocusaTaskPlanMutate(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaTaskPlanMutateResponse(rsp)
 }
 
 // FocusaToolDoctorWithResponse request returning *FocusaToolDoctorResponse
@@ -14980,6 +15426,72 @@ func ParseFocusaStateCurrentResponse(rsp *http.Response) (*FocusaStateCurrentRes
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest FocusaStateCurrentResponseV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaTaskPlanListResponse parses an HTTP response from a FocusaTaskPlanListWithResponse call
+func ParseFocusaTaskPlanListResponse(rsp *http.Response) (*FocusaTaskPlanListResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaTaskPlanListResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaProviderNeutralTaskPlanListV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaTaskPlanMutateResponse parses an HTTP response from a FocusaTaskPlanMutateWithResponse call
+func ParseFocusaTaskPlanMutateResponse(rsp *http.Response) (*FocusaTaskPlanMutateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaTaskPlanMutateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaProviderNeutralTaskPlanMutationResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

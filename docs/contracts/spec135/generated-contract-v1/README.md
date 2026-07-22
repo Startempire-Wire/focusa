@@ -79,3 +79,8 @@ generated clients/UI, Receipts, and desktop/mobile UIAI Eval.
 contracts across Focusa operations, work-item adapters, model adapters, UIAI,
 and Pi: exact scope, permission, idempotency, Operation Registry, reducer
 ownership, and Receipt gates have parity and cannot be bypassed.
+
+`spec135-st2-task-plan-proof.json` proves the canonical provider-neutral task
+DAG: final-approved Spec source, linked requirements/acceptance/proof,
+acyclic dependencies, preview/edit/re-preview, explicit operator approval,
+restart exactness, and a strict no-materialization-before-approval boundary.

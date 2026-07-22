@@ -1044,6 +1044,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/task-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Provider-Neutral Task Plan Revisions
+         * @description List Provider-Neutral Task Plan Revisions — family=task_plan budget=standard_read materialization=canonical_read
+         */
+        get: operations["focusa.task_plan.list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-plans/mutate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Draft, Preview, Edit, and Approve Task Plan
+         * @description Draft, Preview, Edit, and Approve Task Plan — family=task_plan budget=standard_mutation materialization=canonical_event
+         */
+        post: operations["focusa.task_plan.mutate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/tool-doctor": {
         parameters: {
             query?: never;
@@ -3212,6 +3252,155 @@ export interface components {
             /** @constant */
             schema: "focusa.provider_contract_list.v1";
             scope: Record<string, never>;
+        };
+        /** focusa.provider_neutral_task_plan_list.request.v1 */
+        focusa_provider_neutral_task_plan_list_request_v1: {
+            attachment_id: string;
+            continuity_id: string;
+            project_root: string;
+            task_plan_id?: string;
+        };
+        /** focusa.provider_neutral_task_plan_list.v1 */
+        focusa_provider_neutral_task_plan_list_v1: {
+            /** @constant */
+            schema: "focusa.provider_neutral_task_plan_list.v1";
+            state_version: number;
+            task_plans: {
+                approved_by?: string;
+                approved_revision?: number;
+                attachment_id: string;
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                final_spec_id: string;
+                idempotency_key: string;
+                /** @constant */
+                materialized: false;
+                preview_token?: string;
+                previewed_revision?: number;
+                project_root: string;
+                receipt_refs: string[];
+                state_revision: number;
+                /** @enum {unknown} */
+                status: "draft" | "pending_operator" | "approved";
+                task_plan_id: string;
+                tasks: {
+                    acceptance_criteria: string[];
+                    allowed_action_type_ids: string[];
+                    allowed_scope: string[];
+                    blockers: string[];
+                    closure_kind: string;
+                    closure_policy_ref: string;
+                    dependencies: string[];
+                    description: string;
+                    evidence_requirements: string[];
+                    linked_spec_sections: string[];
+                    order_index: number;
+                    preferred_provider?: string;
+                    provider_neutral_id: string;
+                    provider_ref?: string;
+                    requirement_refs: string[];
+                    semantic_object_refs: string[];
+                    task_class: string;
+                    title: string;
+                    verification_policy_ref: string;
+                }[];
+                /** Format: date-time */
+                updated_at: string;
+                workbench_session_id: string;
+            }[];
+        };
+        /** focusa.provider_neutral_task_plan_mutation.request.v1 */
+        focusa_provider_neutral_task_plan_mutation_request_v1: {
+            /** @enum {unknown} */
+            action: "open" | "upsert_task" | "remove_task" | "preview" | "approve";
+            approved_by?: string;
+            attachment_id: string;
+            continuity_id: string;
+            expected_plan_revision: number;
+            expected_state_version: number;
+            idempotency_key: string;
+            preview_token?: string;
+            project_root: string;
+            task?: {
+                acceptance_criteria: string[];
+                allowed_action_type_ids: string[];
+                allowed_scope: string[];
+                blockers: string[];
+                closure_kind: string;
+                closure_policy_ref: string;
+                dependencies: string[];
+                description: string;
+                evidence_requirements: string[];
+                linked_spec_sections: string[];
+                order_index: number;
+                preferred_provider?: string;
+                provider_neutral_id: string;
+                provider_ref?: string;
+                requirement_refs: string[];
+                semantic_object_refs: string[];
+                task_class: string;
+                title: string;
+                verification_policy_ref: string;
+            };
+            task_id?: string;
+            task_plan_id?: string;
+            workbench_session_id?: string;
+        };
+        /** focusa.provider_neutral_task_plan_mutation_result.v1 */
+        focusa_provider_neutral_task_plan_mutation_result_v1: {
+            evidence_ref: string;
+            materialization_allowed: boolean;
+            receipt_ref: string;
+            replayed: boolean;
+            /** @constant */
+            schema: "focusa.provider_neutral_task_plan_mutation_result.v1";
+            state_version: number;
+            task_plan: {
+                approved_by?: string;
+                approved_revision?: number;
+                attachment_id: string;
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                final_spec_id: string;
+                idempotency_key: string;
+                /** @constant */
+                materialized: false;
+                preview_token?: string;
+                previewed_revision?: number;
+                project_root: string;
+                receipt_refs: string[];
+                state_revision: number;
+                /** @enum {unknown} */
+                status: "draft" | "pending_operator" | "approved";
+                task_plan_id: string;
+                tasks: {
+                    acceptance_criteria: string[];
+                    allowed_action_type_ids: string[];
+                    allowed_scope: string[];
+                    blockers: string[];
+                    closure_kind: string;
+                    closure_policy_ref: string;
+                    dependencies: string[];
+                    description: string;
+                    evidence_requirements: string[];
+                    linked_spec_sections: string[];
+                    order_index: number;
+                    preferred_provider?: string;
+                    provider_neutral_id: string;
+                    provider_ref?: string;
+                    requirement_refs: string[];
+                    semantic_object_refs: string[];
+                    task_class: string;
+                    title: string;
+                    verification_policy_ref: string;
+                }[];
+                /** Format: date-time */
+                updated_at: string;
+                workbench_session_id: string;
+            };
+            tool_result: Record<string, never>;
         };
         /**
          * focusa.resource_mode.request.v1
@@ -5860,6 +6049,82 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_state_current_response_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.task_plan.list": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List Provider-Neutral Task Plan Revisions response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_provider_neutral_task_plan_list_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.task_plan.mutate": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_provider_neutral_task_plan_mutation_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Draft, Preview, Edit, and Approve Task Plan response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_provider_neutral_task_plan_mutation_result_v1"];
                 };
             };
             /** @description Standard error envelope */
