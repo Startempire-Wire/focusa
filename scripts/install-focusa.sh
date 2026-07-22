@@ -29,6 +29,12 @@
 # ============================================================================
 set -euo pipefail
 
+FOCUSA_INSTALLER_VERSION="dev-source"
+if [[ "${1:-}" == "--version" ]]; then
+  printf 'focusa-installer %s\n' "$FOCUSA_INSTALLER_VERSION"
+  exit 0
+fi
+
 # ----------------------------------------------------------------------------
 # Defaults — override via env or flags.
 # ----------------------------------------------------------------------------

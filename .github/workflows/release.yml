@@ -420,22 +420,27 @@ jobs:
           set -euo pipefail
           python3 scripts/stamp-menubar-version.py "${{ github.ref_name }}"
           python3 scripts/verify-version-surfaces.py "${{ github.ref_name }}"
-      - name: Package bundled Pi extension and agent context
+      - name: Package bundled Pi extension, installer, and agent context
         run: |
           set -euo pipefail
           TAG="${{ github.ref_name }}"
           tar -C apps -czf "focusa-pi-extension-${TAG}.tar.gz" pi-extension
+          cp scripts/install-focusa.sh "focusa-installer-${TAG}.sh"
+          sed -i "s/FOCUSA_INSTALLER_VERSION=\"dev-source\"/FOCUSA_INSTALLER_VERSION=\"${TAG#v}\"/" "focusa-installer-${TAG}.sh"
+          chmod 0755 "focusa-installer-${TAG}.sh"
+          "./focusa-installer-${TAG}.sh" --version | grep -F "${TAG#v}"
           mkdir -p bundle/focusa-agent-context/skills
           cp AGENTS.md bundle/focusa-agent-context/AGENTS.md
           cp -R .pi/skills/. bundle/focusa-agent-context/skills/
           test -f bundle/focusa-agent-context/AGENTS.md
           find bundle/focusa-agent-context/skills -name SKILL.md -type f | grep -q .
           tar -C bundle -czf "focusa-agent-context-${TAG}.tar.gz" focusa-agent-context
-      - name: Upload Pi extension and agent context archives
+      - name: Upload Pi extension, installer, and agent context archives
         uses: softprops/action-gh-release@v2
         with:
           files: |
             focusa-pi-extension-*.tar.gz
+            focusa-installer-*.sh
             focusa-agent-context-*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

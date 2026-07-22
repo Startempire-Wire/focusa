@@ -60,10 +60,12 @@ import {
 import { loadPersistedRecoveryState } from "./persistence.js";
 import { measureNativeSessionPressure, type NativeSessionPressureV1 } from "./session-pressure.js";
 import { pushDelta } from "./tools.js";
+import { LifecycleGenerationGuard } from "./lifecycle-guard.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
 let sseAbort: AbortController | null = null;
 let sseReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+const healthLifecycle = new LifecycleGenerationGuard();
 
 export function nativeSessionPressureOperatorAction(
   pressure: Pick<NativeSessionPressureV1, "recommended_action">
@@ -890,6 +892,8 @@ function handleSSEEvent(evt: any) {
 export function registerSession(pi: ExtensionAPI) {
   // ── session_start — single merged handler ──────────────────────────────────
   pi.on("session_start", async (event, ctx) => {
+    const lifecycleGeneration = healthLifecycle.begin();
+    const healthLifecycleIsCurrent = () => healthLifecycle.isCurrent(lifecycleGeneration);
     getAttachmentRuntime().pi = pi;
     getAttachmentRuntime().uiCtx = ctx.ui; // §93: SSE handler needs ctx.ui for high-priority agent alerts
     getAttachmentRuntime().sessionStartTime = Date.now();
@@ -1072,10 +1076,14 @@ export function registerSession(pi: ExtensionAPI) {
 
     // §38.3 + §11: Health check with exponential backoff via recursive setTimeout
     function scheduleHealthCheck() {
+      if (!healthLifecycleIsCurrent()) return;
       if (getAttachmentRuntime().healthInterval) clearTimeout(getAttachmentRuntime().healthInterval);
-      getAttachmentRuntime().healthInterval = setTimeout(async () => {
+      getAttachmentRuntime().healthInterval = setTimeout(() => {
+        if (!healthLifecycleIsCurrent()) return;
+        void (async () => {
         refreshNativeSessionPressure(ctx, "health_tick");
         await checkFocusa();
+        if (!healthLifecycleIsCurrent()) return;
 
         if (
           !getAttachmentRuntime().focusaAvailable &&
@@ -1146,6 +1154,9 @@ export function registerSession(pi: ExtensionAPI) {
 
         // Schedule next check with (possibly updated) backoff interval
         scheduleHealthCheck();
+        })().catch(() => {
+          if (healthLifecycleIsCurrent()) scheduleHealthCheck();
+        });
       }, getAttachmentRuntime().healthBackoffMs);
     }
     scheduleHealthCheck();
@@ -1155,6 +1166,11 @@ export function registerSession(pi: ExtensionAPI) {
 
   // ── session_shutdown — single handler (§33.8, §34.2A, §37.9) ──────────────
   pi.on("session_shutdown", async (_event, _ctx) => {
+    healthLifecycle.end();
+    if (getAttachmentRuntime().healthInterval) {
+      clearTimeout(getAttachmentRuntime().healthInterval);
+      getAttachmentRuntime().healthInterval = null;
+    }
     await persistAuthoritativeState();
 
     // §37.9: Tell Context Core Pi is no longer active
@@ -1181,10 +1197,6 @@ export function registerSession(pi: ExtensionAPI) {
     if (getAttachmentRuntime().focusaAvailable) {
       focusaPost("/instance/disconnect", { instance_id: `pi-${process.pid}` });
       focusaPost("/telemetry/activity", { surface: "pi", event: "session_shutdown" });
-    }
-    if (getAttachmentRuntime().healthInterval) {
-      clearInterval(getAttachmentRuntime().healthInterval);
-      getAttachmentRuntime().healthInterval = null;
     }
     if (getAttachmentRuntime().footerSyncInterval) {
       clearInterval(getAttachmentRuntime().footerSyncInterval);
