@@ -5,6 +5,7 @@
 
 pub mod authorization;
 pub mod authorization_persistence;
+pub mod capability_catalog;
 pub mod completion_artifacts;
 pub mod config;
 pub mod config_resolution;
@@ -26,6 +27,7 @@ pub mod types;
 
 pub use authorization::*;
 pub use authorization_persistence::*;
+pub use capability_catalog::*;
 pub use completion_artifacts::*;
 pub use config::*;
 pub use config_resolution::*;
