@@ -16,6 +16,7 @@ use axum::{
 use chrono::Utc;
 use focusa_core::scope_safety::classify_project_root;
 use focusa_core::scoped_state::{ScopeKind, ScopeRef, WorkstreamKey};
+use focusa_core::working_subpath::{GitWorkingContext, resolve_git_working_context};
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
@@ -253,6 +254,7 @@ struct IdentityCandidate {
     project_urls: Value,
     deployment: Value,
     remote_context: Value,
+    working_context: Value,
     fingerprint: String,
     confidence: &'static str,
     status: &'static str,
@@ -352,6 +354,13 @@ fn resolve_start(cwd: Option<&str>, project_root: Option<&str>) -> PathBuf {
             .unwrap_or_else(|_| PathBuf::from("."))
             .join(raw)
     }
+}
+
+fn canonicalize_working_scope_root(root: String, context: Option<&GitWorkingContext>) -> String {
+    context
+        .filter(|context| context.active_worktree_root == root)
+        .map(|context| context.canonical_parent_root.clone())
+        .unwrap_or(root)
 }
 
 fn find_upwards(start: &Path, name: &str) -> Option<PathBuf> {
@@ -1386,7 +1395,15 @@ fn discover_identity(
 ) -> IdentityCandidate {
     let start = resolve_start(cwd, project_root);
     let start_root = normalize_path(&start);
-    let explicit_project_root = clean(project_root).map(|root| normalize_path(&expand_home(&root)));
+    let remote_nonlocal = remote_hint.is_present() && !start.exists();
+    let git_context = if remote_nonlocal {
+        None
+    } else {
+        resolve_git_working_context(&start).ok().flatten()
+    };
+    let explicit_project_root = clean(project_root)
+        .map(|root| normalize_path(&expand_home(&root)))
+        .map(|root| canonicalize_working_scope_root(root, git_context.as_ref()));
     let now = chrono::Utc::now().to_rfc3339();
     let mut signals = Vec::<ProjectSignal>::new();
 
@@ -1457,11 +1474,18 @@ fn discover_identity(
         });
     }
 
-    let remote_nonlocal = remote_hint.is_present() && !start.exists();
     let marker_root = if remote_nonlocal {
         None
     } else {
-        find_upwards(&start, ".focusa-project.json")
+        find_upwards(&start, ".focusa-project.json").or_else(|| {
+            git_context.as_ref().and_then(|context| {
+                let parent = PathBuf::from(&context.canonical_parent_root);
+                parent
+                    .join(".focusa-project.json")
+                    .is_file()
+                    .then_some(parent)
+            })
+        })
     };
     let marker = marker_root.as_ref().and_then(|root| read_marker(root));
     if let Some((detected_root, detected_marker, matched_hint)) =
@@ -1498,11 +1522,16 @@ fn discover_identity(
         });
     }
 
-    let git_root = if remote_nonlocal {
-        None
-    } else {
-        find_upwards(&start, ".git")
-    };
+    let git_root = git_context
+        .as_ref()
+        .map(|context| PathBuf::from(&context.canonical_parent_root))
+        .or_else(|| {
+            if remote_nonlocal {
+                None
+            } else {
+                find_upwards(&start, ".git")
+            }
+        });
     let repo_remote = git_root.as_ref().and_then(|root| read_git_remote(root));
     let explicit_git_scope_verified = explicit_project_root.as_deref().is_some_and(|root| {
         git_root
@@ -1511,18 +1540,28 @@ fn discover_identity(
     });
     if let Some(root) = &git_root {
         signals.push(ProjectSignal {
-            source: "git_root",
+            source: "git_common_dir",
             root: Some(normalize_path(root)),
             confidence: "high",
             independent: true,
-            details: json!({"repo_remote": repo_remote}),
+            details: json!({
+                "repo_remote": repo_remote,
+                "canonical_parent_git_root": root,
+                "active_worktree_root": git_context.as_ref().map(|context| &context.active_worktree_root),
+                "git_common_dir_id": git_context.as_ref().map(|context| &context.working_subpath.git_common_dir_id),
+                "authority_note": "git common-dir proves parent lineage while active worktree remains separate execution authority"
+            }),
         });
     }
 
     let beads_root = if remote_nonlocal {
         None
     } else {
-        find_upwards(&start, ".beads")
+        git_context
+            .as_ref()
+            .and_then(|context| context.working_subpath.beads_root.as_ref())
+            .and_then(|beads| Path::new(beads).parent().map(Path::to_path_buf))
+            .or_else(|| find_upwards(&start, ".beads"))
     };
     let discovered_beads_prefix = beads_root
         .as_ref()
@@ -1606,6 +1645,7 @@ fn discover_identity(
     }
     if let Some(persisted_root) = clean(remote_hint.persisted_project_root.as_deref())
         .map(|root| normalize_path(&expand_home(&root)))
+        .map(|root| canonicalize_working_scope_root(root, git_context.as_ref()))
         && persisted_root != canonical_root
     {
         mismatches.push(json!({
@@ -1785,6 +1825,10 @@ fn discover_identity(
         project_urls,
         deployment,
         remote_context,
+        working_context: git_context
+            .as_ref()
+            .map(|context| json!(context))
+            .unwrap_or(Value::Null),
         fingerprint,
         confidence,
         status,
@@ -1999,7 +2043,9 @@ fn candidate_payload(
         })
     };
     let project_summary = compact_project_summary(&candidate);
-    let authority_boundary = if candidate.remote_context.is_null() {
+    let authority_boundary = if !candidate.working_context.is_null() {
+        "canonical_project_plus_working_subpath_plus_continuity"
+    } else if candidate.remote_context.is_null() {
         "project_root_plus_fingerprint"
     } else {
         "remote_host_plus_project_root_plus_fingerprint"
@@ -2032,6 +2078,9 @@ fn candidate_payload(
             "project_urls": candidate.project_urls,
             "deployment": candidate.deployment,
             "remote_context": candidate.remote_context.clone(),
+            "working_context": candidate.working_context,
+            "canonical_parent_root": candidate.project_root,
+            "active_worktree_root": candidate.working_context.get("active_worktree_root").cloned().unwrap_or(Value::Null),
             "project_summary": project_summary.clone(),
             "fingerprint": candidate.fingerprint,
             "confidence": candidate.confidence,

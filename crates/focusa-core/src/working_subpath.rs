@@ -264,6 +264,81 @@ mod tests {
     }
 
     #[test]
+    fn linked_worktree_resolves_parent_git_and_shared_beads_authority() {
+        let base = std::env::temp_dir().join(format!("focusa-worktree-{}", uuid::Uuid::now_v7()));
+        let parent = base.join("focusa");
+        let worktree = base.join("focusa-mac-agent");
+        std::fs::create_dir_all(parent.join(".beads")).unwrap();
+        std::fs::write(
+            parent.join(".beads/issues.jsonl"),
+            r#"{"id":"focusa-test","title":"test"}"#,
+        )
+        .unwrap();
+        std::fs::write(parent.join("README.md"), "focusa").unwrap();
+        git_ok(&base, &["init", "-b", "main", parent.to_str().unwrap()]);
+        git_ok(&parent, &["config", "user.email", "test@focusa.local"]);
+        git_ok(&parent, &["config", "user.name", "Focusa Test"]);
+        git_ok(&parent, &["add", "README.md", ".beads/issues.jsonl"]);
+        git_ok(&parent, &["commit", "-m", "initial"]);
+        git_ok(
+            &parent,
+            &[
+                "worktree",
+                "add",
+                "-b",
+                "feature/mac-agent",
+                worktree.to_str().unwrap(),
+            ],
+        );
+
+        let context = resolve_git_working_context(&worktree).unwrap().unwrap();
+        assert_eq!(
+            context.canonical_parent_root,
+            path_text(&canonical(&parent))
+        );
+        assert_eq!(
+            context.active_worktree_root,
+            path_text(&canonical(&worktree))
+        );
+        assert_eq!(
+            context.working_subpath.workspace_kind,
+            WorkspaceKind::LinkedWorktree
+        );
+        assert_eq!(
+            context.working_subpath.beads_root,
+            Some(path_text(&canonical(&parent).join(".beads")))
+        );
+        assert!(
+            context
+                .working_subpath
+                .beads_prefix
+                .as_deref()
+                .is_some_and(|prefix| prefix.starts_with("focusa-wt-"))
+        );
+
+        git_ok(
+            &parent,
+            &["worktree", "remove", "--force", worktree.to_str().unwrap()],
+        );
+        std::fs::remove_dir_all(base).unwrap();
+    }
+
+    fn git_ok(cwd: &Path, args: &[&str]) {
+        let output = Command::new("git")
+            .arg("-C")
+            .arg(cwd)
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "git {} failed: {}",
+            args.join(" "),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    #[test]
     fn working_context_ids_are_deterministic_and_workspace_specific() {
         let common = "git-common:abc".to_string();
         let first = stable_id(
