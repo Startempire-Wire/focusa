@@ -2391,6 +2391,51 @@ pub struct TaskMaterializationRecord {
     pub created_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkRailStatus {
+    Ready,
+    Active,
+    Verifying,
+    ProofMissing,
+    Reconciling,
+    VerifiedComplete,
+    ProviderClosedFocusaUnverified,
+    Cancelled,
+}
+
+/// Canonical Work Rail row joining Beads, Workpoint, proof, closure, and Receipt truth.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkRailRecord {
+    pub work_rail_id: String,
+    pub state_revision: u64,
+    pub provider: String,
+    pub provider_item_id: String,
+    pub title: String,
+    pub provider_status: String,
+    pub focusa_status: WorkRailStatus,
+    pub workpoint_id: WorkpointId,
+    pub project_root: String,
+    pub working_subpath_id: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    #[serde(default)]
+    pub dependencies: Vec<String>,
+    #[serde(default)]
+    pub blockers: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub artifact_refs: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub receipt_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub closure_claim_ref: Option<String>,
+    pub idempotency_key: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 /// Canonical candidate/accepted claim extracted from source-preserving Context.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ContextClaimRecord {
@@ -2542,6 +2587,9 @@ pub struct FocusaState {
     /// Provider adapter materialization proofs for approved task plans.
     #[serde(default)]
     pub task_materializations: Vec<TaskMaterializationRecord>,
+    /// Append-only Work Rail revisions linked to canonical Workpoints and Beads.
+    #[serde(default)]
+    pub work_rail_records: Vec<WorkRailRecord>,
     /// Canonical contradiction edges requiring explicit resolution.
     #[serde(default)]
     pub context_contradictions: Vec<ContextContradictionRecord>,
@@ -2617,6 +2665,7 @@ impl FocusaState {
             spec_workbench_sessions: vec![],
             provider_neutral_task_plans: vec![],
             task_materializations: vec![],
+            work_rail_records: vec![],
             context_contradictions: vec![],
             context_decisions: vec![],
             reactive_context: vec![],
@@ -3242,6 +3291,9 @@ pub enum FocusaEvent {
     },
     TaskPlanMaterialized {
         materialization: TaskMaterializationRecord,
+    },
+    WorkRailRevised {
+        record: WorkRailRecord,
     },
     ContextClaimReviewed {
         claim: ContextClaimRecord,

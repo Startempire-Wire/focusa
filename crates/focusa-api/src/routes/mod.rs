@@ -90,5 +90,6 @@ pub mod uxp;
 pub mod visual_workflow;
 pub mod work_items;
 pub mod work_loop;
+pub mod work_rail;
 pub mod workpoint;
 pub mod workspace_artifacts;

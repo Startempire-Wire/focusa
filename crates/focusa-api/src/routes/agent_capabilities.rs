@@ -211,6 +211,7 @@ fn op(
             | "spec_workbench"
             | "provider_execution"
             | "task_plan"
+            | "work_rail"
     ) || matches!(
         id,
         "focusa.ui_action_bindings.read"
@@ -228,6 +229,7 @@ fn op(
                 | "spec_workbench"
                 | "provider_execution"
                 | "task_plan"
+                | "work_rail"
         );
     let mut required_keys = Vec::new();
     if project_scoped {
@@ -950,6 +952,52 @@ fn build_operations() -> Vec<OperationEntry> {
             "focusa.project_agent_role_profile_review.request.v1",
             "focusa.project_agent_role_profile_mutation_result.v1",
             "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+            None,
+        ),
+        op(
+            "focusa.work_rail.list",
+            "List Scoped Work Rail Revisions",
+            "work_rail",
+            "GET",
+            "/v1/work-rail",
+            true,
+            None,
+            "read_work_rail",
+            "canonical_read",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec!["work_rail:read"],
+            false,
+            "standard_read",
+            vec!["compact", "standard", "debug"],
+            "focusa.work_rail_list.request.v1",
+            "focusa.work_rail_list.v1",
+            "docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md",
+            None,
+        ),
+        op(
+            "focusa.work_rail.mutate",
+            "Bind, Activate, Verify, or Close Work Rail Row",
+            "work_rail",
+            "POST",
+            "/v1/work-rail/mutate",
+            true,
+            None,
+            "append_work_rail_revision",
+            "canonical_and_provider_event",
+            vec!["dry_run", "preview", "commit"],
+            true,
+            true,
+            true,
+            vec!["work_rail:write"],
+            false,
+            "standard_mutation",
+            vec!["compact", "standard", "debug"],
+            "focusa.work_rail_mutation.request.v1",
+            "focusa.work_rail_mutation_result.v1",
+            "docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md",
             None,
         ),
         op(
@@ -2673,6 +2721,14 @@ fn provider_task_plan_mutation_schema() -> Value {
     json!({"type":"object","additionalProperties":false,"required":["project_root","continuity_id","attachment_id","idempotency_key","expected_state_version","expected_plan_revision","action"],"properties":{"project_root":{"type":"string","minLength":1},"continuity_id":{"type":"string","minLength":1},"attachment_id":{"type":"string","minLength":1},"idempotency_key":{"type":"string","minLength":1},"expected_state_version":{"type":"integer","minimum":0},"expected_plan_revision":{"type":"integer","minimum":0},"action":{"enum":["open","upsert_task","remove_task","preview","approve"]},"task_plan_id":{"type":"string"},"workbench_session_id":{"type":"string"},"task":provider_neutral_task_schema(),"task_id":{"type":"string"},"preview_token":{"type":"string"},"approved_by":{"type":"string"}}})
 }
 
+fn work_rail_schema() -> Value {
+    let strings = || json!({"type":"array","items":{"type":"string"}});
+    json!({"type":"object","required":["work_rail_id","state_revision","provider","provider_item_id","title","provider_status","focusa_status","workpoint_id","project_root","working_subpath_id","continuity_id","attachment_id","dependencies","blockers","evidence_refs","artifact_refs","idempotency_key","created_at","updated_at"],"properties":{"work_rail_id":{"type":"string"},"state_revision":{"type":"integer","minimum":1},"provider":{"const":"work_item.bd"},"provider_item_id":{"type":"string"},"title":{"type":"string"},"provider_status":{"type":"string"},"focusa_status":{"enum":["ready","active","verifying","proof_missing","reconciling","verified_complete","provider_closed_focusa_unverified","cancelled"]},"workpoint_id":{"type":"string","format":"uuid"},"project_root":{"type":"string"},"working_subpath_id":{"type":"string"},"continuity_id":{"type":"string"},"attachment_id":{"type":"string"},"dependencies":strings(),"blockers":strings(),"evidence_refs":strings(),"artifact_refs":strings(),"receipt_ref":{"type":"string"},"closure_claim_ref":{"type":"string"},"idempotency_key":{"type":"string"},"created_at":{"type":"string","format":"date-time"},"updated_at":{"type":"string","format":"date-time"}}})
+}
+fn work_rail_mutation_schema() -> Value {
+    json!({"type":"object","additionalProperties":false,"required":["project_root","working_subpath_id","continuity_id","attachment_id","idempotency_key","expected_state_version","expected_rail_revision","action","workpoint_id","provider_item_id"],"properties":{"project_root":{"type":"string","minLength":1},"working_subpath_id":{"type":"string","minLength":1},"continuity_id":{"type":"string","minLength":1},"attachment_id":{"type":"string","minLength":1},"idempotency_key":{"type":"string","minLength":1},"expected_state_version":{"type":"integer","minimum":0},"expected_rail_revision":{"type":"integer","minimum":0},"action":{"enum":["bind","activate","verify_close","cancel"]},"work_rail_id":{"type":"string"},"workpoint_id":{"type":"string","format":"uuid"},"provider_item_id":{"type":"string","minLength":1},"title":{"type":"string"},"evidence_refs":{"type":"array","items":{"type":"string"}},"artifact_refs":{"type":"array","items":{"type":"string"}},"closure_claim_ref":{"type":"string"},"cancellation_reason":{"type":"string"}}})
+}
+
 fn task_materialization_schema() -> Value {
     json!({"type":"object","required":["materialization_id","task_plan_id","task_plan_revision","project_root","continuity_id","attachment_id","provider","worktree_prefix","target_ledger_ref","tasks","permission_grant_ref","idempotency_key","evidence_ref","receipt_ref","created_at"],"properties":{"materialization_id":{"type":"string"},"task_plan_id":{"type":"string"},"task_plan_revision":{"type":"integer","minimum":1},"project_root":{"type":"string"},"continuity_id":{"type":"string"},"attachment_id":{"type":"string"},"provider":{"const":"work_item.bd"},"worktree_prefix":{"type":"string"},"target_ledger_ref":{"type":"string"},"tasks":{"type":"array","items":{"type":"object","required":["provider_neutral_id","provider_id","provider_dependency_ids","external_ref"],"properties":{"provider_neutral_id":{"type":"string"},"provider_id":{"type":"string"},"provider_dependency_ids":{"type":"array","items":{"type":"string"}},"external_ref":{"type":"string"}}}},"permission_grant_ref":{"type":"string"},"idempotency_key":{"type":"string"},"evidence_ref":{"type":"string"},"receipt_ref":{"type":"string"},"created_at":{"type":"string","format":"date-time"}}})
 }
@@ -3150,6 +3206,27 @@ fn json_schema_document(schema_id: &str) -> Value {
             "x-focusa-schema-id": schema_id,
             "x-focusa-generated-from": "ContextRetrieveResponse"
         });
+    }
+    if schema_id == "focusa.work_rail_list.request.v1" {
+        return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","additionalProperties":false,"required":["project_root","working_subpath_id","continuity_id","attachment_id"],"properties":{"project_root":{"type":"string"},"working_subpath_id":{"type":"string"},"continuity_id":{"type":"string"},"attachment_id":{"type":"string"},"work_rail_id":{"type":"string"}},"x-focusa-schema-id":schema_id});
+    }
+    if schema_id == "focusa.work_rail_list.v1" {
+        return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","required":["schema","state_version","rows"],"properties":{"schema":{"const":"focusa.work_rail_list.v1"},"state_version":{"type":"integer"},"rows":{"type":"array","items":work_rail_schema()}},"x-focusa-schema-id":schema_id});
+    }
+    if schema_id == "focusa.work_rail_mutation.request.v1" {
+        let mut schema = work_rail_mutation_schema();
+        let object = schema.as_object_mut().expect("Work Rail mutation schema");
+        object.insert("$schema".into(), json!(JSON_SCHEMA_DIALECT_2020_12));
+        object.insert(
+            "$id".into(),
+            json!(format!("/v1/agent/schemas/{schema_id}")),
+        );
+        object.insert("title".into(), json!(schema_id));
+        object.insert("x-focusa-schema-id".into(), json!(schema_id));
+        return schema;
+    }
+    if schema_id == "focusa.work_rail_mutation_result.v1" {
+        return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","required":["schema","state_version","replayed","row","evidence_ref","receipt_ref","tool_result"],"properties":{"schema":{"const":"focusa.work_rail_mutation_result.v1"},"state_version":{"type":"integer"},"replayed":{"type":"boolean"},"row":work_rail_schema(),"evidence_ref":{"type":"string"},"receipt_ref":{"type":"string"},"tool_result":{"type":"object"}},"x-focusa-schema-id":schema_id});
     }
     if schema_id == "focusa.task_plan_beads_materialization.request.v1" {
         return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","additionalProperties":false,"required":["project_root","continuity_id","attachment_id","task_plan_id","expected_state_version","expected_plan_revision","worktree_prefix","permission_grant_ref","idempotency_key"],"properties":{"project_root":{"type":"string","minLength":1},"continuity_id":{"type":"string","minLength":1},"attachment_id":{"type":"string","minLength":1},"task_plan_id":{"type":"string","minLength":1},"expected_state_version":{"type":"integer","minimum":0},"expected_plan_revision":{"type":"integer","minimum":1},"worktree_prefix":{"type":"string","pattern":"^[a-z0-9][a-z0-9-]*$"},"permission_grant_ref":{"type":"string","minLength":1},"idempotency_key":{"type":"string","minLength":1}},"x-focusa-schema-id":schema_id});

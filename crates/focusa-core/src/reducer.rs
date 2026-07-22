@@ -1062,6 +1062,70 @@ pub fn reduce_with_meta(
                 .task_materializations
                 .sort_by(|left, right| left.materialization_id.cmp(&right.materialization_id));
         }
+        FocusaEvent::WorkRailRevised { record } => {
+            if record.work_rail_id.trim().is_empty()
+                || record.state_revision == 0
+                || record.provider != "work_item.bd"
+                || record.provider_item_id.trim().is_empty()
+                || record.title.trim().is_empty()
+                || record.project_root.trim().is_empty()
+                || record.working_subpath_id.trim().is_empty()
+                || record.continuity_id.trim().is_empty()
+                || record.attachment_id.trim().is_empty()
+                || record.idempotency_key.trim().is_empty()
+            {
+                return Err(ReducerError::InvalidEvent("Work Rail requires identity, exact project/working-subpath/continuity/attachment scope, Beads provider, and idempotency".to_string()));
+            }
+            let expected_revision = state
+                .work_rail_records
+                .iter()
+                .filter(|existing| existing.work_rail_id == record.work_rail_id)
+                .map(|existing| existing.state_revision)
+                .max()
+                .unwrap_or(0)
+                + 1;
+            if record.state_revision != expected_revision {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Work Rail revision must be {expected_revision}"
+                )));
+            }
+            let workpoint = state.workpoint.records.iter().find(|workpoint| {
+                workpoint.workpoint_id == record.workpoint_id
+                    && workpoint.canonical
+                    && workpoint.project_root.as_deref() == Some(record.project_root.as_str())
+                    && workpoint.continuity_id.as_deref() == Some(record.continuity_id.as_str())
+                    && workpoint.work_item_id.as_deref() == Some(record.provider_item_id.as_str())
+                    && workpoint.session_identity.as_ref().and_then(|identity| identity.working_subpath_id.as_deref()) == Some(record.working_subpath_id.as_str())
+            }).ok_or_else(|| ReducerError::InvalidEvent("Work Rail authority requires one canonical Workpoint matching project, working sub-path, continuity, and Bead".to_string()))?;
+            if matches!(record.focusa_status, WorkRailStatus::VerifiedComplete) {
+                let linked: std::collections::BTreeSet<_> = workpoint
+                    .verification_records
+                    .iter()
+                    .filter_map(|verification| verification.evidence_ref.as_deref())
+                    .collect();
+                if record.provider_status != "closed"
+                    || record.evidence_refs.is_empty()
+                    || record
+                        .evidence_refs
+                        .iter()
+                        .any(|evidence| !linked.contains(evidence.as_str()))
+                    || record.receipt_ref.as_deref().is_none_or(str::is_empty)
+                    || record
+                        .closure_claim_ref
+                        .as_deref()
+                        .is_none_or(str::is_empty)
+                    || !record.blockers.is_empty()
+                {
+                    return Err(ReducerError::InvalidEvent("verified Work Rail closure requires provider closed, Workpoint-linked proof, no blockers, closure claim, and Receipt".to_string()));
+                }
+            }
+            state.work_rail_records.push(record);
+            state.work_rail_records.sort_by(|left, right| {
+                left.work_rail_id
+                    .cmp(&right.work_rail_id)
+                    .then(left.state_revision.cmp(&right.state_revision))
+            });
+        }
         FocusaEvent::ContextClaimProposed { claim } => {
             if state.context_claims.iter().any(|existing| {
                 existing.claim_id == claim.claim_id
