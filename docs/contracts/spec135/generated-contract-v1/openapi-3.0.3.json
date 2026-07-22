@@ -16853,6 +16853,7 @@
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
+          "working_subpath_id",
           "continuity_id",
           "attachment_id"
         ],
@@ -16869,6 +16870,15 @@
             "description": "Required Focusa scope key: project_root",
             "in": "query",
             "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: working_subpath_id",
+            "in": "query",
+            "name": "working_subpath_id",
             "required": true,
             "schema": {
               "type": "string"
@@ -16962,6 +16972,7 @@
         "x-focusa-reversible": false,
         "x-focusa-scope-keys": [
           "project_root",
+          "working_subpath_id",
           "continuity_id",
           "attachment_id"
         ],

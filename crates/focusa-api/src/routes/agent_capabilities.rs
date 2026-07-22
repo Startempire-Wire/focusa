@@ -235,6 +235,9 @@ fn op(
     if project_scoped {
         required_keys.push("project_root");
     }
+    if family == "work_rail" {
+        required_keys.push("working_subpath_id");
+    }
     if workstream_scoped {
         required_keys.push("continuity_id");
     }

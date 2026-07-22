@@ -2962,6 +2962,9 @@ type FocusaWorkRailMutateParams struct {
 	// ProjectRoot Required Focusa scope key: project_root
 	ProjectRoot string `form:"project_root" json:"project_root"`
 
+	// WorkingSubpathId Required Focusa scope key: working_subpath_id
+	WorkingSubpathId string `form:"working_subpath_id" json:"working_subpath_id"`
+
 	// ContinuityId Required Focusa scope key: continuity_id
 	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 
@@ -10090,6 +10093,14 @@ func NewFocusaWorkRailMutateRequestWithBody(server string, params *FocusaWorkRai
 		var rawQueryFragments []string
 
 		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "working_subpath_id", params.WorkingSubpathId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 			return nil, err
 		} else {
 			for _, qp := range strings.Split(queryFrag, "&") {

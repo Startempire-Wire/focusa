@@ -7053,6 +7053,8 @@ export interface operations {
             query: {
                 /** @description Required Focusa scope key: project_root */
                 project_root: string;
+                /** @description Required Focusa scope key: working_subpath_id */
+                working_subpath_id: string;
                 /** @description Required Focusa scope key: continuity_id */
                 continuity_id: string;
                 /** @description Required Focusa scope key: attachment_id */

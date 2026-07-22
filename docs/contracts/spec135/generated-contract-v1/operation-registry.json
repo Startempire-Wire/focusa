@@ -5997,6 +5997,7 @@
         "project_scoped": true,
         "required_keys": [
           "project_root",
+          "working_subpath_id",
           "continuity_id",
           "attachment_id"
         ],
@@ -6076,6 +6077,7 @@
         "project_scoped": true,
         "required_keys": [
           "project_root",
+          "working_subpath_id",
           "continuity_id",
           "attachment_id"
         ],

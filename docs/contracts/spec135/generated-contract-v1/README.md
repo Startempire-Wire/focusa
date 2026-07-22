@@ -94,3 +94,8 @@ Receipts. Runtime/release proof is delegated to the remote validation server.
 provider-neutral plan approval and canonical parent-Beads materialization,
 including shared-ledger dependency parity, remote Rust/E2E proof, UIAI feeder
 Eval, Evidence, and the Alpha 3 closure Receipt.
+
+`spec135-st4-work-rail-proof.json` defines the scoped Work Rail bridge across
+project, working sub-path, continuity, Bead, and Workpoint authority. Verified
+closure requires Workpoint-linked proof, provider reconciliation, no blockers,
+and a canonical Receipt; remote CI owns runtime validation.

@@ -3494,9 +3494,11 @@
         "project_root": "/example",
         "required_keys": [
           "project_root",
+          "working_subpath_id",
           "continuity_id",
           "attachment_id"
-        ]
+        ],
+        "working_subpath_id": "mission-canvas"
       }
     },
     {
@@ -3540,9 +3542,11 @@
         "project_root": "/example",
         "required_keys": [
           "project_root",
+          "working_subpath_id",
           "continuity_id",
           "attachment_id"
-        ]
+        ],
+        "working_subpath_id": "mission-canvas"
       }
     }
   ],
