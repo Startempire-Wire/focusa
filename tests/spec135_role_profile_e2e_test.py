@@ -15,7 +15,9 @@ import urllib.parse
 import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-BINARY = ROOT / "target/debug/focusa-daemon"
+BINARY = pathlib.Path(
+    os.environ.get("FOCUSA_DAEMON_BIN", ROOT / "target/debug/focusa-daemon")
+)
 SCOPE = {
     "project_root": "/example/focusa",
     "continuity_id": "focusa-cont-ri1",
