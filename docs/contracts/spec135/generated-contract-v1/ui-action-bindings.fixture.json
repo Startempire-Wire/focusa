@@ -1,6 +1,6 @@
 {
   "attachment_id": "example",
-  "binding_count": 77,
+  "binding_count": 79,
   "bindings": [
     {
       "action_id": "focusa.health.check",
@@ -3436,6 +3436,98 @@
         "default_label": "Materialize Approved Task Plan into Canonical Beads",
         "input_presentation_ref": "focusa.generated_form.v1",
         "plain_language_description": "Materialize Approved Task Plan into Canonical Beads",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "attachment_id": "example",
+        "continuity_id": "example",
+        "project_root": "/example",
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.work_rail.list",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "work_rail"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.work_rail_list.request.v1",
+        "output_schema_ref": "focusa.work_rail_list.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.work_rail.list",
+      "permission_scopes": [
+        "work_rail:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "List Scoped Work Rail Revisions",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "List Scoped Work Rail Revisions",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "attachment_id": "example",
+        "continuity_id": "example",
+        "project_root": "/example",
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.work_rail.mutate",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "work_rail"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.work_rail_mutation.request.v1",
+        "output_schema_ref": "focusa.work_rail_mutation_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "preview",
+        "optimistic_concurrency_required": true,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.work_rail.mutate",
+      "permission_scopes": [
+        "work_rail:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Bind, Activate, Verify, or Close Work Rail Row",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Bind, Activate, Verify, or Close Work Rail Row",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
       },

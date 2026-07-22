@@ -8344,6 +8344,398 @@
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.work_loop_status.response.v1"
       },
+      "focusa_work_rail_list_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "attachment_id": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "work_rail_id": {
+            "type": "string"
+          },
+          "working_subpath_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "working_subpath_id",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "type": "object"
+      },
+      "focusa_work_rail_list_v1": {
+        "properties": {
+          "rows": {
+            "items": {
+              "properties": {
+                "artifact_refs": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "attachment_id": {
+                  "type": "string"
+                },
+                "blockers": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "closure_claim_ref": {
+                  "type": "string"
+                },
+                "continuity_id": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "dependencies": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "evidence_refs": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "focusa_status": {
+                  "enum": [
+                    "ready",
+                    "active",
+                    "verifying",
+                    "proof_missing",
+                    "reconciling",
+                    "verified_complete",
+                    "provider_closed_focusa_unverified",
+                    "cancelled"
+                  ]
+                },
+                "idempotency_key": {
+                  "type": "string"
+                },
+                "project_root": {
+                  "type": "string"
+                },
+                "provider": {
+                  "const": "work_item.bd"
+                },
+                "provider_item_id": {
+                  "type": "string"
+                },
+                "provider_status": {
+                  "type": "string"
+                },
+                "receipt_ref": {
+                  "type": "string"
+                },
+                "state_revision": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "updated_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "work_rail_id": {
+                  "type": "string"
+                },
+                "working_subpath_id": {
+                  "type": "string"
+                },
+                "workpoint_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "work_rail_id",
+                "state_revision",
+                "provider",
+                "provider_item_id",
+                "title",
+                "provider_status",
+                "focusa_status",
+                "workpoint_id",
+                "project_root",
+                "working_subpath_id",
+                "continuity_id",
+                "attachment_id",
+                "dependencies",
+                "blockers",
+                "evidence_refs",
+                "artifact_refs",
+                "idempotency_key",
+                "created_at",
+                "updated_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "schema": {
+            "const": "focusa.work_rail_list.v1"
+          },
+          "state_version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schema",
+          "state_version",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "focusa_work_rail_mutation_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "bind",
+              "activate",
+              "verify_close",
+              "cancel"
+            ]
+          },
+          "artifact_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "attachment_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "cancellation_reason": {
+            "type": "string"
+          },
+          "closure_claim_ref": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "expected_rail_revision": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "expected_state_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "idempotency_key": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "project_root": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "provider_item_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "work_rail_id": {
+            "type": "string"
+          },
+          "working_subpath_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "workpoint_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "working_subpath_id",
+          "continuity_id",
+          "attachment_id",
+          "idempotency_key",
+          "expected_state_version",
+          "expected_rail_revision",
+          "action",
+          "workpoint_id",
+          "provider_item_id"
+        ],
+        "type": "object"
+      },
+      "focusa_work_rail_mutation_result_v1": {
+        "properties": {
+          "evidence_ref": {
+            "type": "string"
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "row": {
+            "properties": {
+              "artifact_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "attachment_id": {
+                "type": "string"
+              },
+              "blockers": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "closure_claim_ref": {
+                "type": "string"
+              },
+              "continuity_id": {
+                "type": "string"
+              },
+              "created_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "dependencies": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "evidence_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "focusa_status": {
+                "enum": [
+                  "ready",
+                  "active",
+                  "verifying",
+                  "proof_missing",
+                  "reconciling",
+                  "verified_complete",
+                  "provider_closed_focusa_unverified",
+                  "cancelled"
+                ]
+              },
+              "idempotency_key": {
+                "type": "string"
+              },
+              "project_root": {
+                "type": "string"
+              },
+              "provider": {
+                "const": "work_item.bd"
+              },
+              "provider_item_id": {
+                "type": "string"
+              },
+              "provider_status": {
+                "type": "string"
+              },
+              "receipt_ref": {
+                "type": "string"
+              },
+              "state_revision": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "title": {
+                "type": "string"
+              },
+              "updated_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "work_rail_id": {
+                "type": "string"
+              },
+              "working_subpath_id": {
+                "type": "string"
+              },
+              "workpoint_id": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "work_rail_id",
+              "state_revision",
+              "provider",
+              "provider_item_id",
+              "title",
+              "provider_status",
+              "focusa_status",
+              "workpoint_id",
+              "project_root",
+              "working_subpath_id",
+              "continuity_id",
+              "attachment_id",
+              "dependencies",
+              "blockers",
+              "evidence_refs",
+              "artifact_refs",
+              "idempotency_key",
+              "created_at",
+              "updated_at"
+            ],
+            "type": "object"
+          },
+          "schema": {
+            "const": "focusa.work_rail_mutation_result.v1"
+          },
+          "state_version": {
+            "type": "integer"
+          },
+          "tool_result": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "schema",
+          "state_version",
+          "replayed",
+          "row",
+          "evidence_ref",
+          "receipt_ref",
+          "tool_result"
+        ],
+        "type": "object"
+      },
       "focusa_workpoint_checkpoint_request_v1": {
         "additionalProperties": true,
         "description": "Generated contract for Focusa schema focusa.workpoint_checkpoint.request.v1",
@@ -16351,6 +16743,230 @@
         ],
         "x-focusa-sensitive": "routine",
         "x-focusa-subsystem": "work_loop"
+      }
+    },
+    "/v1/work-rail": {
+      "get": {
+        "description": "List Scoped Work Rail Revisions \u2014 family=work_rail materialization=canonical_read",
+        "operationId": "focusa.work_rail.list",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: working_subpath_id",
+            "in": "query",
+            "name": "working_subpath_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "work_rail_id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_work_rail_list_v1"
+                }
+              }
+            },
+            "description": "List Scoped Work Rail Revisions response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "List Scoped Work Rail Revisions",
+        "tags": [
+          "work_rail"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "work_rail",
+          "materialization_mode": "canonical_read",
+          "requires_preview_token": false,
+          "side_effect_profile": "read_work_rail",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "work_rail"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.work_rail.list",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "work_rail:read"
+        ],
+        "x-focusa-plain-label": "List Scoped Work Rail Revisions",
+        "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "work_rail"
+      }
+    },
+    "/v1/work-rail/mutate": {
+      "post": {
+        "description": "Bind, Activate, Verify, or Close Work Rail Row \u2014 family=work_rail materialization=canonical_and_provider_event",
+        "operationId": "focusa.work_rail.mutate",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_work_rail_mutation_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_work_rail_mutation_result_v1"
+                }
+              }
+            },
+            "description": "Bind, Activate, Verify, or Close Work Rail Row response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Bind, Activate, Verify, or Close Work Rail Row",
+        "tags": [
+          "work_rail"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "work_rail",
+          "materialization_mode": "canonical_and_provider_event",
+          "requires_preview_token": true,
+          "side_effect_profile": "append_work_rail_revision",
+          "supports_side_effect_policy": [
+            "dry_run",
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "work_rail"
+        ],
+        "x-focusa-concurrency": true,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.work_rail.mutate",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "preview",
+        "x-focusa-permissions": [
+          "work_rail:write"
+        ],
+        "x-focusa-plain-label": "Bind, Activate, Verify, or Close Work Rail Row",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "work_rail"
       }
     },
     "/v1/workpoint/checkpoint": {

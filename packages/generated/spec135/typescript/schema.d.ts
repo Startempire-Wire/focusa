@@ -1444,6 +1444,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/work-rail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Scoped Work Rail Revisions
+         * @description List Scoped Work Rail Revisions — family=work_rail materialization=canonical_read
+         */
+        get: operations["focusa.work_rail.list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/work-rail/mutate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bind, Activate, Verify, or Close Work Rail Row
+         * @description Bind, Activate, Verify, or Close Work Rail Row — family=work_rail materialization=canonical_and_provider_event
+         */
+        post: operations["focusa.work_rail.mutate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workpoint/checkpoint": {
         parameters: {
             query?: never;
@@ -3932,6 +3972,103 @@ export interface components {
          */
         focusa_work_loop_status_response_v1: {
             [key: string]: unknown;
+        };
+        focusa_work_rail_list_request_v1: {
+            attachment_id: string;
+            continuity_id: string;
+            project_root: string;
+            work_rail_id?: string;
+            working_subpath_id: string;
+        };
+        focusa_work_rail_list_v1: {
+            rows: {
+                artifact_refs: string[];
+                attachment_id: string;
+                blockers: string[];
+                closure_claim_ref?: string;
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                dependencies: string[];
+                evidence_refs: string[];
+                /** @enum {unknown} */
+                focusa_status: "ready" | "active" | "verifying" | "proof_missing" | "reconciling" | "verified_complete" | "provider_closed_focusa_unverified" | "cancelled";
+                idempotency_key: string;
+                project_root: string;
+                /** @constant */
+                provider: "work_item.bd";
+                provider_item_id: string;
+                provider_status: string;
+                receipt_ref?: string;
+                state_revision: number;
+                title: string;
+                /** Format: date-time */
+                updated_at: string;
+                work_rail_id: string;
+                working_subpath_id: string;
+                /** Format: uuid */
+                workpoint_id: string;
+            }[];
+            /** @constant */
+            schema: "focusa.work_rail_list.v1";
+            state_version: number;
+        };
+        focusa_work_rail_mutation_request_v1: {
+            /** @enum {unknown} */
+            action: "bind" | "activate" | "verify_close" | "cancel";
+            artifact_refs?: string[];
+            attachment_id: string;
+            cancellation_reason?: string;
+            closure_claim_ref?: string;
+            continuity_id: string;
+            evidence_refs?: string[];
+            expected_rail_revision: number;
+            expected_state_version: number;
+            idempotency_key: string;
+            project_root: string;
+            provider_item_id: string;
+            title?: string;
+            work_rail_id?: string;
+            working_subpath_id: string;
+            /** Format: uuid */
+            workpoint_id: string;
+        };
+        focusa_work_rail_mutation_result_v1: {
+            evidence_ref: string;
+            receipt_ref: string;
+            replayed: boolean;
+            row: {
+                artifact_refs: string[];
+                attachment_id: string;
+                blockers: string[];
+                closure_claim_ref?: string;
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                dependencies: string[];
+                evidence_refs: string[];
+                /** @enum {unknown} */
+                focusa_status: "ready" | "active" | "verifying" | "proof_missing" | "reconciling" | "verified_complete" | "provider_closed_focusa_unverified" | "cancelled";
+                idempotency_key: string;
+                project_root: string;
+                /** @constant */
+                provider: "work_item.bd";
+                provider_item_id: string;
+                provider_status: string;
+                receipt_ref?: string;
+                state_revision: number;
+                title: string;
+                /** Format: date-time */
+                updated_at: string;
+                work_rail_id: string;
+                working_subpath_id: string;
+                /** Format: uuid */
+                workpoint_id: string;
+            };
+            /** @constant */
+            schema: "focusa.work_rail_mutation_result.v1";
+            state_version: number;
+            tool_result: Record<string, never>;
         };
         /**
          * focusa.workpoint_checkpoint.request.v1
@@ -6859,6 +6996,85 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_work_loop_status_response_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.work_rail.list": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+                /** @description Required Focusa scope key: working_subpath_id */
+                working_subpath_id: string;
+                work_rail_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List Scoped Work Rail Revisions response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_work_rail_list_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.work_rail.mutate": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_work_rail_mutation_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Bind, Activate, Verify, or Close Work Rail Row response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_work_rail_mutation_result_v1"];
                 };
             };
             /** @description Standard error envelope */

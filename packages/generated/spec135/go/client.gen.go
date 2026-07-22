@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Defines values for FocusaAgentExecutionAdapterResultV1Adapter.
@@ -1988,6 +1989,88 @@ type FocusaWorkLoopControlResponseV1 map[string]interface{}
 // FocusaWorkLoopStatusResponseV1 Generated contract for Focusa schema focusa.work_loop_status.response.v1
 type FocusaWorkLoopStatusResponseV1 map[string]interface{}
 
+// FocusaWorkRailListV1 defines model for focusa_work_rail_list_v1.
+type FocusaWorkRailListV1 struct {
+	Rows []struct {
+		ArtifactRefs     []string           `json:"artifact_refs"`
+		AttachmentId     string             `json:"attachment_id"`
+		Blockers         []string           `json:"blockers"`
+		ClosureClaimRef  *string            `json:"closure_claim_ref,omitempty"`
+		ContinuityId     string             `json:"continuity_id"`
+		CreatedAt        time.Time          `json:"created_at"`
+		Dependencies     []string           `json:"dependencies"`
+		EvidenceRefs     []string           `json:"evidence_refs"`
+		FocusaStatus     interface{}        `json:"focusa_status"`
+		IdempotencyKey   string             `json:"idempotency_key"`
+		ProjectRoot      string             `json:"project_root"`
+		Provider         interface{}        `json:"provider"`
+		ProviderItemId   string             `json:"provider_item_id"`
+		ProviderStatus   string             `json:"provider_status"`
+		ReceiptRef       *string            `json:"receipt_ref,omitempty"`
+		StateRevision    int                `json:"state_revision"`
+		Title            string             `json:"title"`
+		UpdatedAt        time.Time          `json:"updated_at"`
+		WorkRailId       string             `json:"work_rail_id"`
+		WorkingSubpathId string             `json:"working_subpath_id"`
+		WorkpointId      openapi_types.UUID `json:"workpoint_id"`
+	} `json:"rows"`
+	Schema       interface{} `json:"schema"`
+	StateVersion int         `json:"state_version"`
+}
+
+// FocusaWorkRailMutationRequestV1 defines model for focusa_work_rail_mutation_request_v1.
+type FocusaWorkRailMutationRequestV1 struct {
+	Action               interface{}        `json:"action"`
+	ArtifactRefs         *[]string          `json:"artifact_refs,omitempty"`
+	AttachmentId         string             `json:"attachment_id"`
+	CancellationReason   *string            `json:"cancellation_reason,omitempty"`
+	ClosureClaimRef      *string            `json:"closure_claim_ref,omitempty"`
+	ContinuityId         string             `json:"continuity_id"`
+	EvidenceRefs         *[]string          `json:"evidence_refs,omitempty"`
+	ExpectedRailRevision int                `json:"expected_rail_revision"`
+	ExpectedStateVersion int                `json:"expected_state_version"`
+	IdempotencyKey       string             `json:"idempotency_key"`
+	ProjectRoot          string             `json:"project_root"`
+	ProviderItemId       string             `json:"provider_item_id"`
+	Title                *string            `json:"title,omitempty"`
+	WorkRailId           *string            `json:"work_rail_id,omitempty"`
+	WorkingSubpathId     string             `json:"working_subpath_id"`
+	WorkpointId          openapi_types.UUID `json:"workpoint_id"`
+}
+
+// FocusaWorkRailMutationResultV1 defines model for focusa_work_rail_mutation_result_v1.
+type FocusaWorkRailMutationResultV1 struct {
+	EvidenceRef string `json:"evidence_ref"`
+	ReceiptRef  string `json:"receipt_ref"`
+	Replayed    bool   `json:"replayed"`
+	Row         struct {
+		ArtifactRefs     []string           `json:"artifact_refs"`
+		AttachmentId     string             `json:"attachment_id"`
+		Blockers         []string           `json:"blockers"`
+		ClosureClaimRef  *string            `json:"closure_claim_ref,omitempty"`
+		ContinuityId     string             `json:"continuity_id"`
+		CreatedAt        time.Time          `json:"created_at"`
+		Dependencies     []string           `json:"dependencies"`
+		EvidenceRefs     []string           `json:"evidence_refs"`
+		FocusaStatus     interface{}        `json:"focusa_status"`
+		IdempotencyKey   string             `json:"idempotency_key"`
+		ProjectRoot      string             `json:"project_root"`
+		Provider         interface{}        `json:"provider"`
+		ProviderItemId   string             `json:"provider_item_id"`
+		ProviderStatus   string             `json:"provider_status"`
+		ReceiptRef       *string            `json:"receipt_ref,omitempty"`
+		StateRevision    int                `json:"state_revision"`
+		Title            string             `json:"title"`
+		UpdatedAt        time.Time          `json:"updated_at"`
+		WorkRailId       string             `json:"work_rail_id"`
+		WorkingSubpathId string             `json:"working_subpath_id"`
+		WorkpointId      openapi_types.UUID `json:"workpoint_id"`
+	} `json:"row"`
+	Schema       interface{}            `json:"schema"`
+	StateVersion int                    `json:"state_version"`
+	ToolResult   map[string]interface{} `json:"tool_result"`
+}
+
 // FocusaWorkpointCheckpointRequestV1 Generated contract for Focusa schema focusa.workpoint_checkpoint.request.v1
 type FocusaWorkpointCheckpointRequestV1 map[string]interface{}
 
@@ -2858,6 +2941,34 @@ type FocusaWorkLoopStatusParams struct {
 	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
+// FocusaWorkRailListParams defines parameters for FocusaWorkRailList.
+type FocusaWorkRailListParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+
+	// WorkingSubpathId Required Focusa scope key: working_subpath_id
+	WorkingSubpathId string  `form:"working_subpath_id" json:"working_subpath_id"`
+	WorkRailId       *string `form:"work_rail_id,omitempty" json:"work_rail_id,omitempty"`
+}
+
+// FocusaWorkRailMutateParams defines parameters for FocusaWorkRailMutate.
+type FocusaWorkRailMutateParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+}
+
 // FocusaWorkpointCheckpointParams defines parameters for FocusaWorkpointCheckpoint.
 type FocusaWorkpointCheckpointParams struct {
 	// ProjectRoot Required Focusa scope key: project_root
@@ -3034,6 +3145,9 @@ type FocusaAgentExecutionStartJSONRequestBody = FocusaAgentExecutionStartRequest
 
 // FocusaAgentExecutionStopJSONRequestBody defines body for FocusaAgentExecutionStop for application/json ContentType.
 type FocusaAgentExecutionStopJSONRequestBody = FocusaAgentExecutionStopRequestV1
+
+// FocusaWorkRailMutateJSONRequestBody defines body for FocusaWorkRailMutate for application/json ContentType.
+type FocusaWorkRailMutateJSONRequestBody = FocusaWorkRailMutationRequestV1
 
 // FocusaWorkpointCheckpointJSONRequestBody defines body for FocusaWorkpointCheckpoint for application/json ContentType.
 type FocusaWorkpointCheckpointJSONRequestBody = FocusaWorkpointCheckpointRequestV1
@@ -3633,6 +3747,14 @@ type ClientInterface interface {
 
 	// FocusaWorkLoopStatus request
 	FocusaWorkLoopStatus(ctx context.Context, params *FocusaWorkLoopStatusParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaWorkRailList request
+	FocusaWorkRailList(ctx context.Context, params *FocusaWorkRailListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaWorkRailMutateWithBody request with any body
+	FocusaWorkRailMutateWithBody(ctx context.Context, params *FocusaWorkRailMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	FocusaWorkRailMutate(ctx context.Context, params *FocusaWorkRailMutateParams, body FocusaWorkRailMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// FocusaWorkpointCheckpointWithBody request with any body
 	FocusaWorkpointCheckpointWithBody(ctx context.Context, params *FocusaWorkpointCheckpointParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -5014,6 +5136,42 @@ func (c *Client) FocusaAgentExecutionStop(ctx context.Context, params *FocusaAge
 
 func (c *Client) FocusaWorkLoopStatus(ctx context.Context, params *FocusaWorkLoopStatusParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewFocusaWorkLoopStatusRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaWorkRailList(ctx context.Context, params *FocusaWorkRailListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaWorkRailListRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaWorkRailMutateWithBody(ctx context.Context, params *FocusaWorkRailMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaWorkRailMutateRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaWorkRailMutate(ctx context.Context, params *FocusaWorkRailMutateParams, body FocusaWorkRailMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaWorkRailMutateRequest(c.Server, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -9806,6 +9964,171 @@ func NewFocusaWorkLoopStatusRequest(server string, params *FocusaWorkLoopStatusP
 	return req, nil
 }
 
+// NewFocusaWorkRailListRequest generates requests for FocusaWorkRailList
+func NewFocusaWorkRailListRequest(server string, params *FocusaWorkRailListParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/work-rail")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "working_subpath_id", params.WorkingSubpathId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.WorkRailId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "work_rail_id", *params.WorkRailId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewFocusaWorkRailMutateRequest calls the generic FocusaWorkRailMutate builder with application/json body
+func NewFocusaWorkRailMutateRequest(server string, params *FocusaWorkRailMutateParams, body FocusaWorkRailMutateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewFocusaWorkRailMutateRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewFocusaWorkRailMutateRequestWithBody generates requests for FocusaWorkRailMutate with any type of body
+func NewFocusaWorkRailMutateRequestWithBody(server string, params *FocusaWorkRailMutateParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/work-rail/mutate")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewFocusaWorkpointCheckpointRequest calls the generic FocusaWorkpointCheckpoint builder with application/json body
 func NewFocusaWorkpointCheckpointRequest(server string, params *FocusaWorkpointCheckpointParams, body FocusaWorkpointCheckpointJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -10493,6 +10816,14 @@ type ClientWithResponsesInterface interface {
 
 	// FocusaWorkLoopStatusWithResponse request
 	FocusaWorkLoopStatusWithResponse(ctx context.Context, params *FocusaWorkLoopStatusParams, reqEditors ...RequestEditorFn) (*FocusaWorkLoopStatusResponse, error)
+
+	// FocusaWorkRailListWithResponse request
+	FocusaWorkRailListWithResponse(ctx context.Context, params *FocusaWorkRailListParams, reqEditors ...RequestEditorFn) (*FocusaWorkRailListResponse, error)
+
+	// FocusaWorkRailMutateWithBodyWithResponse request with any body
+	FocusaWorkRailMutateWithBodyWithResponse(ctx context.Context, params *FocusaWorkRailMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaWorkRailMutateResponse, error)
+
+	FocusaWorkRailMutateWithResponse(ctx context.Context, params *FocusaWorkRailMutateParams, body FocusaWorkRailMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaWorkRailMutateResponse, error)
 
 	// FocusaWorkpointCheckpointWithBodyWithResponse request with any body
 	FocusaWorkpointCheckpointWithBodyWithResponse(ctx context.Context, params *FocusaWorkpointCheckpointParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaWorkpointCheckpointResponse, error)
@@ -12747,6 +13078,68 @@ func (r FocusaWorkLoopStatusResponse) ContentType() string {
 	return ""
 }
 
+type FocusaWorkRailListResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaWorkRailListV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaWorkRailListResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaWorkRailListResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaWorkRailListResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaWorkRailMutateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaWorkRailMutationResultV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaWorkRailMutateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaWorkRailMutateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaWorkRailMutateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type FocusaWorkpointCheckpointResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -13884,6 +14277,32 @@ func (c *ClientWithResponses) FocusaWorkLoopStatusWithResponse(ctx context.Conte
 		return nil, err
 	}
 	return ParseFocusaWorkLoopStatusResponse(rsp)
+}
+
+// FocusaWorkRailListWithResponse request returning *FocusaWorkRailListResponse
+func (c *ClientWithResponses) FocusaWorkRailListWithResponse(ctx context.Context, params *FocusaWorkRailListParams, reqEditors ...RequestEditorFn) (*FocusaWorkRailListResponse, error) {
+	rsp, err := c.FocusaWorkRailList(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaWorkRailListResponse(rsp)
+}
+
+// FocusaWorkRailMutateWithBodyWithResponse request with arbitrary body returning *FocusaWorkRailMutateResponse
+func (c *ClientWithResponses) FocusaWorkRailMutateWithBodyWithResponse(ctx context.Context, params *FocusaWorkRailMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaWorkRailMutateResponse, error) {
+	rsp, err := c.FocusaWorkRailMutateWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaWorkRailMutateResponse(rsp)
+}
+
+func (c *ClientWithResponses) FocusaWorkRailMutateWithResponse(ctx context.Context, params *FocusaWorkRailMutateParams, body FocusaWorkRailMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaWorkRailMutateResponse, error) {
+	rsp, err := c.FocusaWorkRailMutate(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaWorkRailMutateResponse(rsp)
 }
 
 // FocusaWorkpointCheckpointWithBodyWithResponse request with arbitrary body returning *FocusaWorkpointCheckpointResponse
@@ -16307,6 +16726,72 @@ func ParseFocusaWorkLoopStatusResponse(rsp *http.Response) (*FocusaWorkLoopStatu
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest FocusaWorkLoopStatusResponseV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaWorkRailListResponse parses an HTTP response from a FocusaWorkRailListWithResponse call
+func ParseFocusaWorkRailListResponse(rsp *http.Response) (*FocusaWorkRailListResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaWorkRailListResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaWorkRailListV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaWorkRailMutateResponse parses an HTTP response from a FocusaWorkRailMutateWithResponse call
+func ParseFocusaWorkRailMutateResponse(rsp *http.Response) (*FocusaWorkRailMutateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaWorkRailMutateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaWorkRailMutationResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
