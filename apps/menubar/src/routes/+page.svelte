@@ -1,6 +1,7 @@
 <script lang="ts">
   import { fetchJson, focusaPost, hasEverConnected } from '$lib/api';
   import { getProjectContext } from '$lib/projectContext.svelte';
+  import { workLoopScopedPaths } from '$lib/workLoopScope.js';
   import { focusStore } from '$lib/stores/focus.svelte';
   import { gateStore } from '$lib/stores/gate.svelte';
   import { runtimeStore } from '$lib/stores/runtime.svelte';
@@ -42,7 +43,11 @@
       const activeWorkpointRecord = state?.workpoint?.active ?? state?.workpoint?.records?.find?.((record: any) => record?.workpoint_id === activeWorkpointId) ?? null;
       const projectIdentityRecord = projectIdentityRaw?.project_identity ?? projectIdentityRaw ?? {};
       // Spec104 MEN-02: derive typed scope from one source of truth (projectContext.svelte.ts).
-      const typedScope = getProjectContext({ projectIdentity: projectIdentityRecord, workpointResume: state?.workpointResume, workpoint: state?.workpoint });
+      const typedScope = getProjectContext({
+        projectIdentity: projectIdentityRecord,
+        workpointResume: state?.workpointResume,
+        workpoint: activeWorkpointRecord ?? state?.workpoint,
+      });
       const projectRoot = typedScope.projectRoot || null;
       const continuityId = typedScope.continuityId || null;
       const projectIdentity = {
@@ -57,6 +62,7 @@
       const scopedQuery = scopedParams.toString();
       const scopedSuffix = scopedQuery ? `&${scopedQuery}` : '';
       const scopedPathSuffix = scopedQuery ? `?${scopedQuery}` : '';
+      const workLoopPaths = workLoopScopedPaths(projectRoot, continuityId);
       const [health, doctor, contracts, focusFrame, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, workLoopCheckpoints, memoryTelemetry, events, tokenBudget, cacheMetadata, predictionsRecent, predictionsStats, metacogStatus, metacogEvaluations, snapshotsRecent, lineageHead, releaseProof, updateNotifications] = await Promise.all([
         safe(() => fetchJson('/v1/health')),
         safe(() => fetchJson('/v1/doctor', 5000)),
@@ -65,9 +71,9 @@
         safe(() => fetchJson(`/v1/trajectory/view?mode=summary${scopedSuffix}`)),
         safe(() => fetchJson(`/v1/workpoint/current${scopedPathSuffix}`)),
         safe(() => focusaPost('/v1/workpoint/resume', scopedQuery ? { project_root: projectRoot, continuity_id: continuityId } : {}, { projectRoot: projectRoot || undefined, continuityId: continuityId || undefined }, 5000)),
-        safe(() => fetchJson('/v1/work-loop/status?summary_only=true')),
-        safe(() => fetchJson('/v1/work-loop/health')),
-        safe(() => fetchJson('/v1/work-loop/checkpoints')),
+        safe(() => workLoopPaths ? fetchJson(workLoopPaths.status) : Promise.resolve(null)),
+        safe(() => workLoopPaths ? fetchJson(workLoopPaths.health) : Promise.resolve(null)),
+        safe(() => workLoopPaths ? fetchJson(workLoopPaths.checkpoints) : Promise.resolve(null)),
         safe(() => fetchJson('/v1/telemetry/memory')),
         safe(() => fetchJson('/v1/events/recent?limit=5')),
         safe(() => fetchJson('/v1/telemetry/token-budget/status?limit=5')),

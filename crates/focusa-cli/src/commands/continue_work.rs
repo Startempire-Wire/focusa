@@ -10,6 +10,14 @@ pub struct ContinueArgs {
     #[arg(long, default_value = "agent requested focusa continue")]
     pub reason: String,
 
+    /// Canonical absolute project root for Work Loop authority.
+    #[arg(long)]
+    pub project_root: String,
+
+    /// Canonical continuity/workstream id for Work Loop authority.
+    #[arg(long)]
+    pub continuity_id: String,
+
     /// Select the next ready subtask under this Beads/root work item before resuming.
     #[arg(long)]
     pub parent_work_item_id: Option<String>,
@@ -33,8 +41,8 @@ fn envelope(status: &str, summary: String, next_action: &str, details: Value) ->
         "summary": summary,
         "next_action": next_action,
         "why": "Spec92 continue resumes bounded, governed work-loop execution without relying on transcript tail.",
-        "commands": ["focusa continue", "focusa work-loop status", "focusa_workpoint_resume"],
-        "recovery": ["focusa doctor", "focusa start", "focusa continue --enable --parent-work-item-id <id>", "journalctl -u focusa-daemon -n 80 --no-pager (Linux service installs)"],
+        "commands": ["focusa continue --project-root <abs> --continuity-id <id>", "focusa work-loop status", "focusa_workpoint_resume"],
+        "recovery": ["focusa doctor", "focusa start", "focusa continue --project-root <abs> --continuity-id <id> --enable --parent-work-item-id <id>", "journalctl -u focusa-daemon -n 80 --no-pager (Linux service installs)"],
         "evidence_refs": ["/v1/work-loop/status?summary_only=true", "/v1/workpoint/current"],
         "docs": ["docs/92-agent-first-polish-hooks-efficiency-spec.md", "docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md"],
         "warnings": [],
@@ -42,33 +50,77 @@ fn envelope(status: &str, summary: String, next_action: &str, details: Value) ->
     })
 }
 
-fn scoped_fencing_token(status: &Value, writer_id: &str) -> Option<u64> {
+fn scoped_fencing_token(
+    status: &Value,
+    writer_id: &str,
+    project_root: &str,
+    continuity_id: &str,
+) -> Option<u64> {
     if status.get("schema").and_then(Value::as_str) != Some("focusa.work_loop_status.v3")
         || status.get("state").and_then(Value::as_str) == Some("unsupported")
     {
         return None;
     }
     let partition = status.get("execution_partition")?;
-    (partition.get("writer_key")?.as_str()? == writer_id)
+    (partition.get("writer_key")?.as_str()? == writer_id
+        && partition.get("project_root_key")?.as_str()? == project_root
+        && partition.get("workstream_key")?.as_str()? == continuity_id
+        && partition.get("lease_freshness")?.as_str()? == "current")
         .then(|| partition.get("fencing_token")?.as_u64())
         .flatten()
+}
+
+fn operator_surface_details(status: &Value, project_root: &str, continuity_id: &str) -> Value {
+    let partition = status
+        .get("execution_partition")
+        .cloned()
+        .unwrap_or_else(|| json!({}));
+    json!({
+        "project_root": project_root,
+        "continuity_id": continuity_id,
+        "work_item_id": partition.get("work_item_key"),
+        "writer_id": partition.get("writer_key"),
+        "lease_freshness": partition.get("lease_freshness"),
+        "lease_expires_at": partition.get("lease_expires_at"),
+        "fencing_token": partition.get("fencing_token"),
+        "partition_status": partition.get("partition_status"),
+        "typed_state": status.get("state"),
+        "canonical_workpoint": status
+            .pointer("/active_workpoint/active/canonical")
+            .or_else(|| status.pointer("/active_workpoint/canonical")),
+    })
 }
 
 pub async fn run(args: ContinueArgs, json_mode: bool) -> anyhow::Result<()> {
     let api = ApiClient::new();
     let before_status = api
-        .get("/v1/work-loop/status?summary_only=true")
+        .get_scoped(
+            "/v1/work-loop/status?summary_only=true",
+            &args.project_root,
+            &args.continuity_id,
+        )
         .await
         .unwrap_or_else(|err| json!({"status":"blocked","error":err.to_string()}));
     let workpoint = api
-        .get("/v1/workpoint/current")
+        .get_scoped(
+            "/v1/workpoint/current",
+            &args.project_root,
+            &args.continuity_id,
+        )
         .await
         .unwrap_or_else(|err| json!({"status":"blocked","error":err.to_string()}));
 
     let mut actions = Vec::new();
-    let mut fencing_token = scoped_fencing_token(&before_status, &args.writer_id);
+    let mut fencing_token = scoped_fencing_token(
+        &before_status,
+        &args.writer_id,
+        &args.project_root,
+        &args.continuity_id,
+    );
     if args.enable {
         let enable_headers = [
+            ("x-scope-project-root", args.project_root.as_str()),
+            ("x-scope-continuity-id", args.continuity_id.as_str()),
             ("x-focusa-writer-id", args.writer_id.as_str()),
             ("x-focusa-approval", "approved"),
         ];
@@ -94,6 +146,8 @@ pub async fn run(args: ContinueArgs, json_mode: bool) -> anyhow::Result<()> {
     })?;
     let fencing_token_header = fencing_token.to_string();
     let headers = [
+        ("x-scope-project-root", args.project_root.as_str()),
+        ("x-scope-continuity-id", args.continuity_id.as_str()),
         ("x-focusa-writer-id", args.writer_id.as_str()),
         ("x-focusa-fencing-token", fencing_token_header.as_str()),
     ];
@@ -120,14 +174,25 @@ pub async fn run(args: ContinueArgs, json_mode: bool) -> anyhow::Result<()> {
     actions.push(json!({"action":"resume", "response": resume}));
 
     let after_status = api
-        .get("/v1/work-loop/status?summary_only=true")
+        .get_scoped(
+            "/v1/work-loop/status?summary_only=true",
+            &args.project_root,
+            &args.continuity_id,
+        )
         .await
         .unwrap_or_else(|err| json!({"status":"blocked","error":err.to_string()}));
+    let operator_surface =
+        operator_surface_details(&after_status, &args.project_root, &args.continuity_id);
     let response = envelope(
         "completed",
         "Work-loop continue request accepted and current state refreshed".to_string(),
         "Watch the next Pi turn or run focusa work-loop status to confirm follow-on dispatch",
         json!({
+            "authority_scope": {
+                "project_root": args.project_root,
+                "continuity_id": args.continuity_id,
+            },
+            "operator_surface": operator_surface,
             "before_work_loop": before_status,
             "current_workpoint": workpoint,
             "actions": actions,
@@ -158,8 +223,40 @@ pub async fn run(args: ContinueArgs, json_mode: bool) -> anyhow::Result<()> {
                 .as_str()
                 .unwrap_or("Spec92 governed continuation")
         );
+        let operator_surface = &response["details"]["operator_surface"];
+        println!(
+            "Authority: project_root={} continuity_id={} work_item={}",
+            operator_surface["project_root"]
+                .as_str()
+                .unwrap_or("unbound"),
+            operator_surface["continuity_id"]
+                .as_str()
+                .unwrap_or("unbound"),
+            operator_surface["work_item_id"]
+                .as_str()
+                .unwrap_or("unbound")
+        );
+        println!(
+            "Writer lease: writer={} freshness={} fence={} expires={}",
+            operator_surface["writer_id"]
+                .as_str()
+                .unwrap_or("unclaimed"),
+            operator_surface["lease_freshness"]
+                .as_str()
+                .unwrap_or("unknown"),
+            operator_surface["fencing_token"]
+                .as_u64()
+                .map(|value| value.to_string())
+                .as_deref()
+                .unwrap_or("none"),
+            operator_surface["lease_expires_at"]
+                .as_str()
+                .unwrap_or("unknown")
+        );
         println!("Command: focusa work-loop status");
-        println!("Recovery: focusa doctor && focusa continue --enable --parent-work-item-id <id>");
+        println!(
+            "Recovery: focusa doctor && focusa continue --project-root <abs> --continuity-id <id> --enable --parent-work-item-id <id>"
+        );
         println!("Evidence: /v1/work-loop/status?summary_only=true, /v1/workpoint/current");
         println!("Docs: docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md");
     }
@@ -176,18 +273,55 @@ mod tests {
             "schema": "focusa.work_loop_status.v3",
             "state": "healthy",
             "execution_partition": {
+                "project_root_key": "/tmp/focusa",
+                "workstream_key": "focusa-continuity",
                 "writer_key": "cli-writer",
                 "fencing_token": 42,
                 "lease_freshness": "current"
             }
         });
-        assert_eq!(scoped_fencing_token(&status, "cli-writer"), Some(42));
-        assert_eq!(scoped_fencing_token(&status, "other-writer"), None);
+        assert_eq!(
+            scoped_fencing_token(&status, "cli-writer", "/tmp/focusa", "focusa-continuity"),
+            Some(42)
+        );
+        assert_eq!(
+            scoped_fencing_token(&status, "other-writer", "/tmp/focusa", "focusa-continuity"),
+            None
+        );
+        assert_eq!(
+            scoped_fencing_token(&status, "cli-writer", "/tmp/other", "focusa-continuity"),
+            None
+        );
+        assert_eq!(
+            scoped_fencing_token(&status, "cli-writer", "/tmp/focusa", "other-continuity"),
+            None
+        );
+        let mut stale = status.clone();
+        stale["execution_partition"]["lease_freshness"] = json!("expired");
+        assert_eq!(
+            scoped_fencing_token(&stale, "cli-writer", "/tmp/focusa", "focusa-continuity"),
+            None
+        );
         let unsupported = json!({
             "schema": "focusa.work_loop_status.v999",
             "state": "healthy",
             "execution_partition": {"writer_key": "cli-writer", "fencing_token": 42}
         });
-        assert_eq!(scoped_fencing_token(&unsupported, "cli-writer"), None);
+        assert_eq!(
+            scoped_fencing_token(
+                &unsupported,
+                "cli-writer",
+                "/tmp/focusa",
+                "focusa-continuity"
+            ),
+            None
+        );
+
+        let details = operator_surface_details(&status, "/tmp/focusa", "focusa-continuity");
+        assert_eq!(details["project_root"], json!("/tmp/focusa"));
+        assert_eq!(details["continuity_id"], json!("focusa-continuity"));
+        assert_eq!(details["writer_id"], json!("cli-writer"));
+        assert_eq!(details["lease_freshness"], json!("current"));
+        assert_eq!(details["fencing_token"], json!(42));
     }
 }

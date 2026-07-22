@@ -3,11 +3,14 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const tools = readFileSync(fileURLToPath(new URL("../src/tools.ts", import.meta.url)), "utf8");
+const state = readFileSync(fileURLToPath(new URL("../src/state.ts", import.meta.url)), "utf8");
 const commands = readFileSync(fileURLToPath(new URL("../src/commands.ts", import.meta.url)), "utf8");
 const turns = readFileSync(fileURLToPath(new URL("../src/turns.ts", import.meta.url)), "utf8");
 assert.match(tools, /const workLoopLeases = new Map<string, WorkLoopWriterLease>/);
 assert.match(tools, /Number\.isSafeInteger\(fencingToken\)/);
 assert.match(tools, /x-focusa-fencing-token/);
+assert.match(tools, /"x-scope-project-root": attachmentKey\.workstream\.root_scope\.root_path/);
+assert.match(tools, /"x-scope-continuity-id": attachmentKey\.workstream\.continuity_id/);
 assert.match(tools, /focusa\.work_loop_status\.v3/, "tool lease cache must reject unsupported status schemas");
 assert.match(tools, /current scoped writer lease is missing, expired, or owned by another writer/);
 assert.doesNotMatch(
@@ -15,6 +18,11 @@ assert.doesNotMatch(
   /active_writer/,
   "Pi writer identity must not adopt another partition owner's writer id",
 );
+assert.match(state, /const attachment = currentAttachmentKey\(\)/);
+assert.match(state, /isProjectRootAuthoritySafe\(root\)/);
+assert.match(state, /"X-Scope-Project-Root": root/);
+assert.match(state, /"X-Scope-Continuity-Id": continuity/);
+assert.match(state, /continuity !== "extension-bootstrap"/);
 for (const [name, source] of [["commands", commands], ["turns", turns]]) {
   assert.match(source, /focusa\.work_loop_status\.v3/, `${name} must reject unsupported status schemas`);
   assert.match(source, /lease_freshness !== "current"/, `${name} must reject stale leases`);

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { runtimeStore } from '$lib/stores/runtime.svelte';
-  import { formatScopeForDisplay, type ScopeContext } from '$lib/projectContext.svelte';
+  import { formatScopeForDisplay, getProjectContext, type ScopeContext } from '$lib/projectContext.svelte';
+  import { evaluateWorkLoopAuthority } from '$lib/workLoopScope.js';
 
   let s = $derived(runtimeStore.snapshot);
   let health = $derived(s.workLoopHealth ?? {});
@@ -40,10 +41,17 @@
   );
   let writer = $derived(partition.writer_key ?? health.writer_owner ?? status.writer_owner ?? status.active_writer ?? health.active_writer ?? status.writer?.owner);
   let leaseFreshness = $derived(partition.lease_freshness ?? 'unclaimed');
-  let projectRoot = $derived(s.projectIdentity?.project_root ?? s.workpointResume?.project_root ?? s.session?.project_root);
+  let currentScope = $derived(getProjectContext(s));
   let loopWorkpoint = $derived(status.active_workpoint?.active ?? status.active_workpoint ?? {});
-  let loopProjectRoot = $derived(loopWorkpoint.project_root);
-  let loopTaskStale = $derived(Boolean(status.authority?.canonical === false || (loopProjectRoot && projectRoot && loopProjectRoot !== projectRoot)));
+  let loopAuthority = $derived(evaluateWorkLoopAuthority(
+    { project_root: currentScope.projectRoot, continuity_id: currentScope.continuityId },
+    {
+      project_root: partition.project_root_key ?? loopWorkpoint.project_root,
+      continuity_id: partition.workstream_key ?? loopWorkpoint.continuity_id,
+      canonical: loopWorkpoint.canonical,
+    },
+  ));
+  let loopTaskStale = $derived(loopAuthority.stale);
   let currentWorkpoint = $derived(s.workpointResume ?? {});
 </script>
 
@@ -87,7 +95,7 @@
       {#if loopTaskStale}
         <p><span class="stale-chip">stale/unscoped</span> {text(activeTask.work_item_id ?? activeTask.id ?? status.current_work_item_id, 'no active task')}</p>
         <p class="muted">Hidden from current scope: {text(activeTask.title ?? activeTask.summary ?? status.current_task?.summary, 'no summary')}</p>
-        <p class="muted">Loop authority is advisory or out-of-scope; current project root {text(projectRoot, 'not surfaced')}.</p>
+        <p class="muted">Loop authority rejected: {loopAuthority.reason}; current {text(loopAuthority.currentProjectRoot, 'unbound')} ({text(loopAuthority.currentContinuityId, 'unbound')}) · loop {text(loopAuthority.loopProjectRoot, 'unbound')} ({text(loopAuthority.loopContinuityId, 'unbound')}).</p>
       {:else}
         <p>{text(activeTask.work_item_id ?? activeTask.id ?? status.current_work_item_id, 'no active task')}</p>
         <p class="muted">{text(activeTask.title ?? activeTask.summary ?? status.current_task?.summary, 'no summary')}</p>
