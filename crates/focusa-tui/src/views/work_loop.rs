@@ -46,6 +46,8 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         });
 
     let mut lines: Vec<Line<'static>> = Vec::new();
+    let typed_scope = typed_scope_from_status(loop_status);
+    lines.push(typed_scope_line(typed_scope.as_ref()));
 
     if loop_status.is_none() && replay_consumer.is_none() {
         lines.push(Line::from("  No work-loop replay data").style(theme::label()));
@@ -321,6 +323,29 @@ fn metric(label: &str, value: impl Into<String>, style: Style) -> Line<'static> 
         Span::styled(format!("{label}: "), theme::label()),
         Span::styled(value.into(), style),
     ])
+}
+
+fn typed_scope_from_status(status: Option<&Value>) -> Option<crate::api::TypedScope> {
+    let partition = status?.get("execution_partition")?;
+    let project_root = partition.get("project_root_key")?.as_str()?.to_string();
+    let continuity_id = partition.get("workstream_key")?.as_str()?.to_string();
+    let partition_status = partition
+        .get("partition_status")
+        .and_then(Value::as_str)
+        .unwrap_or("blocked");
+    let scope_status = match partition_status {
+        "work_item_pinned" => "ok",
+        "advisory" => "advisory",
+        _ => "blocked",
+    };
+    Some(crate::api::TypedScope {
+        project_root,
+        continuity_id,
+        session_id: None,
+        scope_status: Some(scope_status.to_string()),
+        scope_source: Some("work_loop_execution_partition.v2".to_string()),
+        canonical_scope: Some(scope_status == "ok"),
+    })
 }
 
 /// Spec104 WL-02: format typed scope + advisory/blocked status for TUI display.

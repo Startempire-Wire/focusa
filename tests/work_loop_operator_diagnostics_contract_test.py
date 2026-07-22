@@ -19,6 +19,16 @@ class OperatorDiagnosticsContract(unittest.TestCase):
             self.assertIn("budget", source.lower())
             self.assertIn("transport", source.lower())
 
+    def test_tui_scope_formatter_is_wired_to_execution_partition(self):
+        for marker in [
+            "typed_scope_from_status(loop_status)",
+            "lines.push(typed_scope_line(typed_scope.as_ref()))",
+            'get("project_root_key")',
+            'get("workstream_key")',
+            'get("partition_status")',
+        ]:
+            self.assertIn(marker, TUI)
+
     def test_agent_surface_can_configure_and_renew_budgets(self):
         for field in ["renew_budget", "max_turns", "max_wall_clock_ms", "max_retries"]:
             self.assertIn(field, PI)
