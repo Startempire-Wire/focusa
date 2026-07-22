@@ -8,7 +8,7 @@ Usage:
   scripts/validate-commit-messages.sh --range <git-revision-range>
 
 Valid subjects use Conventional Commits (feat, fix, docs, test, refactor,
-perf, build, ci, chore, or revert). Merge and generated Git revert subjects
+perf, build, ci, chore, proof, merge, or revert). Merge and generated Git revert subjects
 are also accepted. Bead IDs belong in the body/trailers, never the subject.
 USAGE
 }
@@ -22,7 +22,7 @@ validate_message_file() {
   local file="$1"
   local label="${2:-$file}"
   local subject
-  local conventional_pattern='^(feat|fix|docs|test|refactor|perf|build|ci|chore|revert)(\([^)]+\))?!?:[[:space:]].{4,}$'
+  local conventional_pattern='^(feat|fix|docs|test|refactor|perf|build|ci|chore|proof|merge|revert)(\([^)]+\))?!?:[[:space:]].{4,}$'
   subject=$(awk 'NF && $0 !~ /^[[:space:]]*#/ { sub(/\r$/, ""); print; exit }' "$file")
 
   [[ -n "$subject" ]] || { fail "${label}: subject is empty"; return 1; }
