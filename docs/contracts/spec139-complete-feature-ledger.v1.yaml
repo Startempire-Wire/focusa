@@ -546,7 +546,7 @@ requirements:
     applicability: required
     primitive_owner: spec139.conformance
     implementation_slice: closure
-    blocking_dependencies: [S139-REQ-001, S139-REQ-037]
+    blocking_dependencies: [S139-REQ-001, S139-REQ-036]
     positive_tests: [spec139_required_test_matrix]
     evidence_refs: [spec139_conformance_bundle]
     receipt_refs: [spec139_closure_receipt]
