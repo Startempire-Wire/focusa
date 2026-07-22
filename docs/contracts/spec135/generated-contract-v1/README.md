@@ -104,3 +104,8 @@ and a canonical Receipt; remote CI owns runtime validation.
 workspace shell: Mission Canvas naming/routing, canonical API read-model
 projection, UIAI Cockpit separation, scoped authority, and remote Menubar/static
 integration validation.
+
+`spec135-m2-pi-work-rail-proof.json` proves responsive Work Rail projection in
+Pi and Mission Canvas: active Bead/Workpoint/proof/next-action visibility,
+keyboard and mouse reachability, narrow layouts, wide detail, and ASCII
+fallback without duplicating canonical state.

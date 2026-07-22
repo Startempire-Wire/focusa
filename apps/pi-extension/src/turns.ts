@@ -94,6 +94,7 @@ import {
   markRecentTurnsSliceEmitted,
   type RecentTurnSlice,
 } from "./state.js";
+import { renderWorkRailWidget, workRailSnapshotFromPacket } from "./work-rail-widget.js";
 import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
@@ -2392,7 +2393,33 @@ export function registerTurns(pi: ExtensionAPI) {
     if (liveFocus?.frame?.thread_thesis) w.push(`🎯 ${liveFocus.frame.thread_thesis.slice(0, 50)}`);
     // §30: Metacognitive indicator
     if (getAttachmentRuntime().lastMetacogEvent) w.push(`✨ ${getAttachmentRuntime().lastMetacogEvent}`);
-    ctx.ui.setWidget("focusa", w.length ? w : undefined);
+    const workRailWidget = workRailSnapshotFromPacket(getActiveWorkpointPacket());
+    workRailWidget.badges = w;
+    const asciiWorkRail = process.env.FOCUSA_ASCII_UI === "1" || process.env.TERM === "dumb";
+    if (ctx.mode === "tui") {
+      ctx.ui.setWidget("focusa", (_tui, theme) => ({
+        render(width: number) {
+          return renderWorkRailWidget(
+            workRailWidget,
+            width,
+            {
+              accent: (text) => theme.fg("accent", text),
+              dim: (text) => theme.fg("dim", text),
+              good: (text) => theme.fg("accent", text),
+            },
+            asciiWorkRail
+          );
+        },
+        invalidate() {},
+      }));
+    } else {
+      const plain = {
+        accent: (text: string) => text,
+        dim: (text: string) => text,
+        good: (text: string) => text,
+      };
+      ctx.ui.setWidget("focusa", renderWorkRailWidget(workRailWidget, 80, plain, true));
+    }
 
     // §34.2C: Update Focus State on significant progress
     if (getAttachmentRuntime().focusaAvailable && getAttachmentRuntime().activeFrameId) {
