@@ -78,6 +78,13 @@ fn route_scope(method: &Method, path: &str) -> &'static str {
     if is_preauth_pairing_route(method, path) {
         return "public:pairing";
     }
+    if path.starts_with("/v1/harnesses") || path.starts_with("/v1/providers") {
+        return if method == Method::GET {
+            "silent_sessions:read"
+        } else {
+            "silent_sessions:create"
+        };
+    }
     if path.starts_with("/v1/silent-sessions") {
         if path.contains("/config/") || path.ends_with("/config/resolve") {
             return "silent_sessions:config";
@@ -258,6 +265,22 @@ mod tests {
         assert_eq!(
             route_scope(&Method::POST, "/v1/silent-sessions/id/adopt"),
             "silent_sessions:admin"
+        );
+        assert_eq!(
+            route_scope(&Method::GET, "/v1/harnesses/pi/capabilities"),
+            "silent_sessions:read"
+        );
+        assert_eq!(
+            route_scope(&Method::POST, "/v1/harnesses/pi/preflight"),
+            "silent_sessions:create"
+        );
+        assert_eq!(
+            route_scope(&Method::GET, "/v1/providers/provider/models"),
+            "silent_sessions:read"
+        );
+        assert_eq!(
+            route_scope(&Method::POST, "/v1/providers/provider/models/preflight"),
+            "silent_sessions:create"
         );
     }
 

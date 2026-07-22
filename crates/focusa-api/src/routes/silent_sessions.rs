@@ -81,6 +81,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .merge(super::silent_sessions_input::router())
         .merge(super::silent_sessions_config_read::router())
         .merge(super::silent_sessions_config_mutation::router())
+        .merge(super::silent_sessions_capabilities::router())
 }
 
 async fn list(State(state): State<Arc<AppState>>, headers: HeaderMap) -> ApiResponse {

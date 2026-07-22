@@ -34,7 +34,7 @@ macro_rules! route {
     };
 }
 
-pub const SILENT_SESSION_PHASE2_ROUTES: [SilentSessionRouteSpec; 28] = [
+pub const SILENT_SESSION_PHASE2_ROUTES: [SilentSessionRouteSpec; 35] = [
     route!(
         "preflight",
         Post,
@@ -245,6 +245,48 @@ pub const SILENT_SESSION_PHASE2_ROUTES: [SilentSessionRouteSpec; 28] = [
         true,
         true
     ),
+    route!(
+        "capabilities",
+        Get,
+        "/v1/silent-sessions/capabilities",
+        Read,
+        false,
+        false
+    ),
+    route!("harnesses", Get, "/v1/harnesses", Read, false, false),
+    route!(
+        "harness_capabilities",
+        Get,
+        "/v1/harnesses/{harness}/capabilities",
+        Read,
+        false,
+        false
+    ),
+    route!(
+        "harness_preflight",
+        Post,
+        "/v1/harnesses/{harness}/preflight",
+        Create,
+        false,
+        false
+    ),
+    route!("providers", Get, "/v1/providers", Read, false, false),
+    route!(
+        "provider_models",
+        Get,
+        "/v1/providers/{provider}/models",
+        Read,
+        false,
+        false
+    ),
+    route!(
+        "provider_model_preflight",
+        Post,
+        "/v1/providers/{provider}/models/preflight",
+        Create,
+        false,
+        false
+    ),
 ];
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -403,12 +445,12 @@ mod tests {
 
     #[test]
     fn registry_covers_all_owned_routes_without_duplicates() {
-        assert_eq!(SILENT_SESSION_PHASE2_ROUTES.len(), 28);
+        assert_eq!(SILENT_SESSION_PHASE2_ROUTES.len(), 35);
         let unique = SILENT_SESSION_PHASE2_ROUTES
             .iter()
             .map(|route| (route.method, route.path))
             .collect::<std::collections::BTreeSet<_>>();
-        assert_eq!(unique.len(), 28);
+        assert_eq!(unique.len(), 35);
         assert!(SILENT_SESSION_PHASE2_ROUTES.iter().all(|route| {
             !route.mutates || matches!(route.method, SilentSessionApiMethod::Post)
         }));
