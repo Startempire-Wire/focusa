@@ -27,7 +27,7 @@ def main():
     assert (
         "renderWorkRailWidget" in turns
         and 'setWidget("focusa"' in turns
-        and 'ctx.mode === "tui"' in turns
+        and "if (ctx.hasUI)" in turns
     )
     assert (
         "ctrl+shift+r" in index
