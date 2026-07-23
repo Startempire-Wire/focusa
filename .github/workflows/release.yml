@@ -9,13 +9,13 @@ permissions:
   issues: read
 
 jobs:
-  # Durable release boundary: any open issue carrying this label blocks a tag.
-  compaction-session-release-gate:
-    name: Compaction/session issue gate
+  # Durable release boundary: any open issue with a release-gate:* label blocks a tag.
+  open-issue-release-gate:
+    name: Open release-gate issue check
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     steps:
-      - name: Require all cross-surface compaction/session blockers closed
+      - name: Require every release-gating issue closed
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
@@ -23,13 +23,16 @@ jobs:
           set -euo pipefail
           open="$(gh api --paginate \
             -H 'Accept: application/vnd.github+json' \
-            "/repos/${REPOSITORY}/issues?state=open&labels=release-gate%3Acompaction-session&per_page=100" \
-            --jq '[.[] | select(.pull_request == null) | {number, title}]')"
+            "/repos/${REPOSITORY}/issues?state=open&per_page=100" \
+            | jq -s '[.[][]
+                | select(has("pull_request") | not)
+                | select(any(.labels[]?; .name | startswith("release-gate:")))
+                | {number, title, labels: [.labels[].name]}]')"
           if [ "$(jq 'length' <<<"$open")" -ne 0 ]; then
-            echo "::error::Release blocked by open compaction/session recovery issues: $open"
+            echo "::error::Release blocked by open release-gate issues: $open"
             exit 1
           fi
-          echo "compaction_session_release_gate=passed"
+          echo "open_issue_release_gate=passed"
 
   # Gate: tests + clippy must pass
   rust-check:
@@ -66,7 +69,7 @@ jobs:
   create-release:
     name: Create Release
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
-    needs: [rust-check, compaction-session-release-gate]
+    needs: [rust-check, open-issue-release-gate]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
