@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fetchJson, focusaPost, hasEverConnected } from '$lib/api';
   import { getProjectContext } from '$lib/projectContext.svelte';
-  import { workLoopScopedPaths } from '$lib/workLoopScope.js';
+  import { predictionScopedPath, projectScopedPath, workLoopScopedPaths } from '$lib/workLoopScope.js';
   import { focusStore } from '$lib/stores/focus.svelte';
   import { gateStore } from '$lib/stores/gate.svelte';
   import { runtimeStore } from '$lib/stores/runtime.svelte';
@@ -63,6 +63,13 @@
       const scopedSuffix = scopedQuery ? `&${scopedQuery}` : '';
       const scopedPathSuffix = scopedQuery ? `?${scopedQuery}` : '';
       const workLoopPaths = workLoopScopedPaths(projectRoot, continuityId);
+      const scopedObservabilityPaths = {
+        predictionsRecent: predictionScopedPath('/v1/predictions/recent?limit=5', projectIdentityRecord, continuityId),
+        predictionsStats: predictionScopedPath('/v1/predictions/stats', projectIdentityRecord, continuityId),
+        metacogStatus: projectScopedPath('/v1/metacognition/status', projectRoot, continuityId),
+        metacogEvaluations: projectScopedPath('/v1/metacognition/evaluations/recent?limit=5', projectRoot, continuityId),
+        snapshotsRecent: projectScopedPath('/v1/focus/snapshots/recent?limit=5', projectRoot, continuityId),
+      };
       const [health, doctor, contracts, focusFrame, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, workLoopCheckpoints, memoryTelemetry, events, tokenBudget, cacheMetadata, predictionsRecent, predictionsStats, metacogStatus, metacogEvaluations, snapshotsRecent, lineageHead, releaseProof, updateNotifications] = await Promise.all([
         safe(() => fetchJson('/v1/health')),
         safe(() => fetchJson('/v1/doctor', 5000)),
@@ -78,11 +85,11 @@
         safe(() => fetchJson('/v1/events/recent?limit=5')),
         safe(() => fetchJson('/v1/telemetry/token-budget/status?limit=5')),
         safe(() => fetchJson('/v1/telemetry/cache-metadata/status?limit=5')),
-        safe(() => fetchJson('/v1/predictions/recent?limit=5')),
-        safe(() => fetchJson('/v1/predictions/stats')),
-        safe(() => fetchJson('/v1/metacognition/status')),
-        safe(() => fetchJson('/v1/metacognition/evaluations/recent?limit=5')),
-        safe(() => fetchJson('/v1/focus/snapshots/recent?limit=5')),
+        safe(() => scopedObservabilityPaths.predictionsRecent ? fetchJson(scopedObservabilityPaths.predictionsRecent) : Promise.resolve(null)),
+        safe(() => scopedObservabilityPaths.predictionsStats ? fetchJson(scopedObservabilityPaths.predictionsStats) : Promise.resolve(null)),
+        safe(() => scopedObservabilityPaths.metacogStatus ? fetchJson(scopedObservabilityPaths.metacogStatus) : Promise.resolve(null)),
+        safe(() => scopedObservabilityPaths.metacogEvaluations ? fetchJson(scopedObservabilityPaths.metacogEvaluations) : Promise.resolve(null)),
+        safe(() => scopedObservabilityPaths.snapshotsRecent ? fetchJson(scopedObservabilityPaths.snapshotsRecent) : Promise.resolve(null)),
         safe(() => fetchJson('/v1/lineage/head')),
         safe(() => fetchJson('/v1/release/proof/status')),
         safe(() => fetchJson('/v1/update/notifications')),

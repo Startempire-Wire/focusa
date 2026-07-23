@@ -5,11 +5,22 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DAEMON_BIN="${DAEMON_BIN:-${REPO_ROOT}/target/debug/focusa-daemon}"
 BIND_ADDR="${FOCUSA_LEASE_TEST_BIND:-127.0.0.1:18883}"
 BASE_URL="http://${BIND_ADDR}"
-PROJECT_ROOT="${REPO_ROOT}"
 CONTINUITY_ID="lease-fencing-live-test"
 WORK_ITEM_ID="focusa-workloop-completion.3"
 DATA_DIR="$(mktemp -d /tmp/focusa-lease-fencing.XXXXXX)"
+PROJECT_ROOT="${DATA_DIR}/project"
 LOG_FILE="${DATA_DIR}/daemon.log"
+
+# Keep the writer/fencing proof independent from the repository's live Beads
+# graph. A bounded terminal fixture prevents provider scans or ready work from
+# spawning an agent while retaining real JSONL adapter behavior.
+mkdir -p "${PROJECT_ROOT}/.beads"
+cat >"${PROJECT_ROOT}/.focusa-project.json" <<JSON
+{"schema":"focusa.project.v1","project_id":"focusa-lease-fixture","canonical_name":"Focusa Lease Fixture","project_root":"${PROJECT_ROOT}","beads_prefix":"focusa","workspace_kind":"fixture","aliases":[]}
+JSON
+cat >"${PROJECT_ROOT}/.beads/issues.jsonl" <<JSON
+{"id":"${WORK_ITEM_ID}","title":"Writer lease fixture root","description":"Terminal fixture for isolated fencing proof","status":"closed","priority":0,"issue_type":"task","created_at":"2026-07-22T00:00:00Z","updated_at":"2026-07-22T00:00:00Z","closed_at":"2026-07-22T00:00:00Z"}
+JSON
 
 cleanup() {
   if [[ -n "${DAEMON_PID:-}" ]]; then
@@ -77,7 +88,7 @@ jq -e \
   --argjson token "${first_token}" '
     .schema == "focusa.work_loop_status.v3" and
     .state == "healthy" and
-    (.supported_states | sort) == (["absent","unavailable","stale","unsupported","blocked","zero","healthy"] | sort) and
+    (.supported_states | sort) == (["absent","unavailable","stale","unsupported","blocked","exhausted","zero","healthy"] | sort) and
     .execution_partition.project_root_key == $root and
     .execution_partition.workstream_key == $continuity and
     .execution_partition.work_item_key == $work_item and

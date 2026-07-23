@@ -20,6 +20,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { predictionScopedPath, projectScopedPath } from '../src/lib/workLoopScope.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DAEMON = process.env.FOCUSA_DAEMON_URL || 'http://127.0.0.1:8787';
@@ -49,17 +50,28 @@ async function extractEndpoints() {
 }
 
 const ENDPOINTS = await extractEndpoints();
-const SCOPED_WORK_LOOP_ENDPOINTS = new Set([
+const SCOPED_ENDPOINTS = new Set([
+  '/v1/focus/snapshots/recent',
+  '/v1/metacognition/evaluations/recent',
+  '/v1/metacognition/status',
+  '/v1/predictions/recent',
+  '/v1/predictions/stats',
   '/v1/work-loop/status',
   '/v1/work-loop/health',
   '/v1/work-loop/checkpoints',
 ]);
-const WORK_LOOP_SCOPE_QUERY = await resolveWorkLoopScopeQuery();
+const REQUEST_SCOPE = await resolveRequestScope();
 
-async function resolveWorkLoopScopeQuery() {
+async function resolveRequestScope() {
+  const explicitProjectRoot = process.env.FOCUSA_PROJECT_ROOT?.trim();
+  const explicitContinuityId = process.env.FOCUSA_CONTINUITY_ID?.trim();
+
   try {
+    const identityQuery = explicitProjectRoot
+      ? `?${new URLSearchParams({ project_root: explicitProjectRoot })}`
+      : '';
     const [identityResponse, workpointResponse] = await Promise.all([
-      fetch(`${DAEMON}/v1/project/identity`),
+      fetch(`${DAEMON}/v1/project/identity${identityQuery}`),
       fetch(`${DAEMON}/v1/workpoint/current`),
     ]);
     if (!identityResponse.ok || !workpointResponse.ok) return null;
@@ -69,23 +81,25 @@ async function resolveWorkLoopScopeQuery() {
     const identity = identityBody.project_identity ?? identityBody;
     const workpoint = workpointBody.workpoint ?? workpointBody.packet ?? workpointBody;
     const projectRoot =
+      explicitProjectRoot ??
       identity.project_root ??
       workpointBody.project_root ??
       workpointBody.scope?.project_root ??
       workpoint.project_root ??
       workpoint.scope?.project_root;
     const continuityId =
+      explicitContinuityId ??
       workpointBody.continuity_id ??
       workpointBody.scope?.continuity_id ??
       workpoint.continuity_id ??
       workpoint.scope?.continuity_id ??
       identity.continuity_id;
     if (!projectRoot || !continuityId) return null;
-
-    return new URLSearchParams({
-      project_root: String(projectRoot),
-      continuity_id: String(continuityId),
-    }).toString();
+    return {
+      projectRoot: String(projectRoot),
+      continuityId: String(continuityId),
+      projectIdentity: { ...identity, project_root: String(projectRoot) },
+    };
   } catch {
     return null;
   }
@@ -136,9 +150,11 @@ let pass = 0, fail = 0, criticalFail = 0;
 const results = [];
 
 async function check(ep) {
-  const scopeRequired = SCOPED_WORK_LOOP_ENDPOINTS.has(ep);
-  const requestPath = scopeRequired && WORK_LOOP_SCOPE_QUERY
-    ? `${ep}?${WORK_LOOP_SCOPE_QUERY}`
+  const scopeRequired = SCOPED_ENDPOINTS.has(ep);
+  const requestPath = scopeRequired && REQUEST_SCOPE
+    ? ep.startsWith('/v1/predictions/')
+      ? predictionScopedPath(ep, REQUEST_SCOPE.projectIdentity, REQUEST_SCOPE.continuityId)
+      : projectScopedPath(ep, REQUEST_SCOPE.projectRoot, REQUEST_SCOPE.continuityId)
     : ep;
   const url = `${DAEMON}${requestPath}`;
   const expected = EXPECTED[ep]?.expect ?? 200;
@@ -147,7 +163,7 @@ async function check(ep) {
   const t0 = performance.now();
   let actual, ok = false;
   try {
-    if (scopeRequired && !WORK_LOOP_SCOPE_QUERY) {
+    if (scopeRequired && !REQUEST_SCOPE) {
       throw new Error('canonical project_root + continuity_id unavailable');
     }
     const r = await fetch(url, { method: 'GET' });

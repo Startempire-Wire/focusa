@@ -28,6 +28,57 @@ export function compatibleWorkLoopStatusState(schema, state) {
 }
 
 /**
+ * Scope a daemon read to one exact project workstream. Missing authority or a
+ * non-API path fails closed instead of issuing an unscoped request.
+ *
+ * @param {unknown} path
+ * @param {unknown} projectRoot
+ * @param {unknown} continuityId
+ * @returns {string | null}
+ */
+export function projectScopedPath(path, projectRoot, continuityId) {
+  const route = clean(path);
+  const root = clean(projectRoot);
+  const continuity = clean(continuityId);
+  if (!route.startsWith('/v1/') || !root || !continuity) return null;
+
+  const url = new URL(route, 'http://focusa.local');
+  url.searchParams.set('project_root', root);
+  url.searchParams.set('continuity_id', continuity);
+  return `${url.pathname}?${url.searchParams.toString()}`;
+}
+
+/**
+ * Scope prediction reads with the complete typed project identity required by
+ * the predictions API. Partial identity fails closed.
+ *
+ * @param {unknown} path
+ * @param {{ project_root?: unknown, project_id?: unknown, scope_id?: unknown, canonical_name?: unknown, fingerprint?: unknown } | null | undefined} identity
+ * @param {unknown} continuityId
+ * @returns {string | null}
+ */
+export function predictionScopedPath(path, identity, continuityId) {
+  const route = clean(path);
+  const rootPath = clean(identity?.project_root);
+  const fingerprint = clean(identity?.fingerprint);
+  const scopeId = clean(identity?.scope_id) || clean(identity?.project_id);
+  const canonicalName = clean(identity?.canonical_name);
+  const continuity = clean(continuityId);
+  if (!/^\/v1\/predictions\/(?:recent|stats)(?:\?|$)/.test(route) || !rootPath || !fingerprint || !scopeId || !canonicalName || !continuity) {
+    return null;
+  }
+
+  const url = new URL(route, 'http://focusa.local');
+  url.searchParams.set('scope_kind', 'project');
+  url.searchParams.set('scope_id', scopeId);
+  url.searchParams.set('root_path', rootPath);
+  url.searchParams.set('canonical_name', canonicalName);
+  url.searchParams.set('fingerprint', fingerprint);
+  url.searchParams.set('continuity_id', continuity);
+  return `${url.pathname}?${url.searchParams.toString()}`;
+}
+
+/**
  * Build the three read-only Work Loop URLs only when both authority keys exist.
  *
  * @param {unknown} projectRoot
@@ -35,16 +86,11 @@ export function compatibleWorkLoopStatusState(schema, state) {
  * @returns {{ status: string, health: string, checkpoints: string } | null}
  */
 export function workLoopScopedPaths(projectRoot, continuityId) {
-  const root = clean(projectRoot);
-  const continuity = clean(continuityId);
-  if (!root || !continuity) return null;
-
-  const query = new URLSearchParams({ project_root: root, continuity_id: continuity }).toString();
-  return {
-    status: `/v1/work-loop/status?summary_only=true&${query}`,
-    health: `/v1/work-loop/health?${query}`,
-    checkpoints: `/v1/work-loop/checkpoints?${query}`,
-  };
+  const status = projectScopedPath('/v1/work-loop/status?summary_only=true', projectRoot, continuityId);
+  const health = projectScopedPath('/v1/work-loop/health', projectRoot, continuityId);
+  const checkpoints = projectScopedPath('/v1/work-loop/checkpoints', projectRoot, continuityId);
+  if (!status || !health || !checkpoints) return null;
+  return { status, health, checkpoints };
 }
 
 /**
