@@ -27,7 +27,7 @@ fn hot_clt_snapshot_max_nodes() -> usize {
         .ok()
         .and_then(|value| value.parse::<usize>().ok())
         .filter(|value| *value > 0)
-        .unwrap_or(10_000)
+        .unwrap_or(1_000)
 }
 
 fn trim_hot_clt_snapshot(state: &mut FocusaState) -> usize {

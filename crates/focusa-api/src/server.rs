@@ -1081,22 +1081,26 @@ pub async fn run(
 
     let app = build_router(state.clone());
 
-    // V2: Rehydrate PairingStore in-memory maps (connect_sessions, tokens)
-    // from the SQLite ledger on daemon startup so /join and /approve do not
-    // 404 after a daemon restart.
-    match rehydrate_pairing_state_from_ledger(&state).await {
-        Ok((rooms, tokens)) => {
-            tracing::info!(
-                rooms = rooms,
-                tokens = tokens,
-                "V2: PairingStore rehydrated from ledger on startup"
-            );
-        }
-        Err(e) => {
-            tracing::warn!(error = %e, "V2: PairingStore rehydrate on startup failed");
-        }
-    }
+    // Bind readiness before eager pairing-ledger rehydration. The ledger shares
+    // SQLite with the persistence actor and may wait behind recovery backlog;
+    // health/readiness must never wait on that optional cache warm-up. Pairing
+    // token auth retains its on-demand SQLite recovery path during this window.
     let listener = tokio::net::TcpListener::bind(&bind_addr).await?;
+    let pairing_rehydrate_state = state.clone();
+    tokio::spawn(async move {
+        match rehydrate_pairing_state_from_ledger(&pairing_rehydrate_state).await {
+            Ok((rooms, tokens)) => {
+                tracing::info!(
+                    rooms = rooms,
+                    tokens = tokens,
+                    "V2: PairingStore rehydrated from ledger after API readiness"
+                );
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "V2: PairingStore rehydrate after readiness failed");
+            }
+        }
+    });
 
     let scheduler_url = scheduler_base_url(&bind_addr);
     tokio::spawn(async move {

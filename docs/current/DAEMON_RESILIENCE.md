@@ -4,6 +4,7 @@ Focusa is configured for two layers of daemon resilience:
 
 1. **systemd hardening** keeps the production daemon restarting outside any agent session.
 2. **Pi extension holdover/kickstart** preserves the active Pi session if the daemon is briefly unavailable.
+3. **Readiness isolation** binds the health/API socket before optional pairing-cache warm-up, while the hot CLT projection stays bounded at 1,000 nodes.
 
 ## Live systemd hardening
 

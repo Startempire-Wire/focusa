@@ -164,3 +164,18 @@ Repairs added after this trace:
 - a failed probe during probation resets the healthy count without leaving holdover.
 
 Linux and Mac both pass TypeScript, ESLint, 29 Node tests, and the Spec130A runtime harness with these repairs. Issues #11 and #14 remain reopened until installed-runtime Mac proof is collected; the release-gate label blocks release.
+
+### Installed Mac daemon candidate proof
+
+The pre-repair installed daemon had run since July 17 and produced one timeout in 30 health probes. After restart, API readiness could remain unavailable behind eager SQLite pairing-ledger rehydration. A current-source candidate was installed with atomic binary backup/rollback and launchd handoff.
+
+Additional repairs and proof:
+
+- API socket bind now precedes asynchronous optional pairing cache warm-up;
+- default hot CLT projection reduced from 10,000 nodes (~17 MB in the observed snapshot) to 1,000 while durable lineage remains append-only;
+- candidate launchd handoff: new PID, health ready 1.68 seconds after candidate process start (28.483 seconds total including old-process shutdown);
+- live state snapshot reduced from 19,856,085 to 4,727,009 JSON bytes after bounded hot projection;
+- 120 sequential live `/v1/health` probes under Mac load averages 23/42/84: 0 failures, p50 4.7 ms, p95 20.2 ms, p99 117.2 ms, max 162.6 ms;
+- daemon PID remained stable; persistence reported queue depth max 3, 12 coalesced requests, zero saturation, and zero failures.
+
+The public `v0.9.121-dev` release and tag were deleted after the operator's stop directive. Issues #11/#14 and the tagged release gate remain open pending final fresh-session operator confirmation.

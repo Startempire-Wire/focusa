@@ -697,7 +697,7 @@ or an equivalent bounded single-writer mechanism.
 
 Hard-pressure recovery records receive priority over ordinary background snapshot work.
 
-Implementation boundary (2026-07-23): daemon and direct API writers share one bounded `PersistenceActor`. It appends every event in order, coalesces ordinary whole-state snapshots to the latest state, uses `spawn_blocking` for serialization/SQLite/filesystem work, and acknowledges checkpoint/recovery mutations only after durable commit. `/v1/health` exposes queue depth/max, coalescing, saturation/failure counts, write latency, snapshot bytes, and WAL bytes. Direct `save_state`/`append_event` calls are forbidden on Tokio route/daemon hot paths.
+Implementation boundary (2026-07-23): daemon and direct API writers share one bounded `PersistenceActor`. It appends every event in order, coalesces ordinary whole-state snapshots to the latest state, uses `spawn_blocking` for serialization/SQLite/filesystem work, and acknowledges checkpoint/recovery mutations only after durable commit. `/v1/health` exposes queue depth/max, coalescing, saturation/failure counts, write latency, snapshot bytes, and WAL bytes. Direct `save_state`/`append_event` calls are forbidden on Tokio route/daemon hot paths. API socket readiness precedes optional pairing-ledger cache rehydration so SQLite backlog cannot suppress `/v1/health`. The in-memory/snapshot CLT projection retains at most 1,000 hot nodes by default; complete lineage remains in durable append-only history and bounded cold traversal.
 
 ---
 

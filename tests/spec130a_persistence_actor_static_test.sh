@@ -26,6 +26,16 @@ grep -F 'attach_persistence_actor' "$DAEMON" >/dev/null || fail "daemon does not
 grep -F 'persist_reducer_batch' "$DAEMON" >/dev/null || fail "daemon reductions bypass persistence actor"
 grep -F 'persistence_actor: Some(persistence_actor)' "$SERVER" >/dev/null || fail "API does not share persistence actor"
 grep -F 'actor.metrics()' "$HEALTH" >/dev/null || fail "health omits persistence pressure metrics"
+grep -F '.unwrap_or(1_000)' "$ROOT/crates/focusa-core/src/runtime/persistence_sqlite.rs" >/dev/null \
+  || fail "hot CLT projection remains large enough to stall reducer state clones"
+python3 - "$SERVER" <<'PY'
+import pathlib, sys
+text = pathlib.Path(sys.argv[1]).read_text()
+bind = text.index('tokio::net::TcpListener::bind(&bind_addr).await?')
+rehydrate = text.index('tokio::spawn(async move {', bind)
+call = text.index('rehydrate_pairing_state_from_ledger(&pairing_rehydrate_state).await', rehydrate)
+assert bind < rehydrate < call, "API readiness must precede asynchronous pairing-ledger rehydration"
+PY
 
 if rg -n 'state\.persistence\.(save_state|append_event)' "$ROOT/crates/focusa-api/src/routes" --glob '!**/*test*'; then
   fail "API route performs synchronous SQLite persistence"
