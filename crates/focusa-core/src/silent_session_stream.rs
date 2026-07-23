@@ -5,6 +5,7 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{Receiver, SyncSender, TrySendError, sync_channel};
+use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
 pub const SILENT_STREAM_MANIFEST_SCHEMA: &str = "focusa.silent_stream_manifest.v1";
@@ -328,7 +329,7 @@ impl RotatingSilentStreamWriter {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StreamCaptureRecord {
     pub seq: u64,
     pub data: String,
@@ -339,26 +340,64 @@ pub enum CaptureAdmission {
     Queued,
     BackpressureApplied,
     ConsumerDisconnected,
+    DurabilityFailed,
 }
 
 #[derive(Clone)]
 pub struct NonBlockingStreamCapture {
     sender: SyncSender<StreamCaptureRecord>,
+    overflow_spool: Arc<Mutex<File>>,
 }
 
 impl NonBlockingStreamCapture {
-    pub fn bounded(capacity: usize) -> anyhow::Result<(Self, Receiver<StreamCaptureRecord>)> {
+    pub fn durable_bounded(
+        capacity: usize,
+        overflow_spool_path: impl AsRef<Path>,
+    ) -> anyhow::Result<(Self, Receiver<StreamCaptureRecord>)> {
         anyhow::ensure!(capacity > 0, "capture queue capacity must be positive");
+        let path = overflow_spool_path.as_ref();
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        let overflow_spool = OpenOptions::new().create(true).append(true).open(path)?;
         let (sender, receiver) = sync_channel(capacity);
-        Ok((Self { sender }, receiver))
+        Ok((
+            Self {
+                sender,
+                overflow_spool: Arc::new(Mutex::new(overflow_spool)),
+            },
+            receiver,
+        ))
     }
 
     pub fn try_capture(&self, record: StreamCaptureRecord) -> CaptureAdmission {
         match self.sender.try_send(record) {
             Ok(()) => CaptureAdmission::Queued,
-            Err(TrySendError::Full(_)) => CaptureAdmission::BackpressureApplied,
-            Err(TrySendError::Disconnected(_)) => CaptureAdmission::ConsumerDisconnected,
+            Err(TrySendError::Full(record)) => {
+                if self.persist_overflow(&record) {
+                    CaptureAdmission::BackpressureApplied
+                } else {
+                    CaptureAdmission::DurabilityFailed
+                }
+            }
+            Err(TrySendError::Disconnected(record)) => {
+                if self.persist_overflow(&record) {
+                    CaptureAdmission::ConsumerDisconnected
+                } else {
+                    CaptureAdmission::DurabilityFailed
+                }
+            }
         }
+    }
+
+    fn persist_overflow(&self, record: &StreamCaptureRecord) -> bool {
+        let Ok(mut spool) = self.overflow_spool.lock() else {
+            return false;
+        };
+        serde_json::to_writer(&mut *spool, record).is_ok()
+            && spool.write_all(b"\n").is_ok()
+            && spool.flush().is_ok()
+            && spool.sync_data().is_ok()
     }
 }
 
@@ -827,8 +866,11 @@ mod tests {
     }
 
     #[test]
-    fn bounded_capture_reports_backpressure_without_blocking() {
-        let (capture, receiver) = NonBlockingStreamCapture::bounded(1).unwrap();
+    fn bounded_capture_reports_backpressure_without_blocking_or_truth_loss() {
+        let root =
+            std::env::temp_dir().join(format!("focusa-capture-overflow-{}", uuid::Uuid::now_v7()));
+        let spool = root.join("overflow.jsonl");
+        let (capture, receiver) = NonBlockingStreamCapture::durable_bounded(1, &spool).unwrap();
         assert_eq!(
             capture.try_capture(StreamCaptureRecord {
                 seq: 1,
@@ -852,5 +894,17 @@ mod tests {
             }),
             CaptureAdmission::ConsumerDisconnected
         );
+        let overflow = fs::read_to_string(&spool).unwrap();
+        let records = overflow
+            .lines()
+            .map(|line| serde_json::from_str::<StreamCaptureRecord>(line).unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            records.iter().map(|record| record.seq).collect::<Vec<_>>(),
+            vec![2, 3]
+        );
+        assert_eq!(records[0].data, "two");
+        assert_eq!(records[1].data, "three");
+        let _ = fs::remove_dir_all(root);
     }
 }
