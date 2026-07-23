@@ -1,56 +1,68 @@
 # `focusa_tree_snapshot_state`
 
-**Family:** `tree-lineage`  
-**Label:** Tree Snapshot State
-
-## Purpose
-
-Create a recoverable checkpoint before risky work or comparisons. Best write tool for saving current state with a reason.
+Create a recoverable checkpoint before risky work or comparisons. Best write tool for saving current state with a reason. Use it when Create a recoverable checkpoint before risky work or comparisons. Best write tool for saving current state with a reason. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-Use `focusa_tree_snapshot_state` when its specific Focusa state or workflow surface is the narrowest tool that matches the current need. Prefer this tool over raw transcript memory when the result should survive compaction, be inspectable, or guide a later agent turn.
+- Create a recoverable checkpoint before risky work or comparisons. Best write tool for saving current state with a reason.
+- Capability family: `tree_lineage`; namespace: `focusa.tree_lineage`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## When not to use
+## Parameters and strict input schema
 
-Do not use `focusa_tree_snapshot_state` to dump unbounded logs, bypass operator steering, or create parallel memory outside Focusa. If the tool returns `pending`, `blocked`, `degraded`, or `canonical=false`, treat that as a recovery state and follow the returned next-step guidance.
+- `clt_node_id` (optional; string): Optional CLT node id. Defaults to current head.
+- `snapshot_reason` (optional; string): Reason label for snapshot.
 
-## Example usage
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_tree_snapshot_state`.
 
-```text
-focusa_tree_snapshot_state snapshot_reason="before README tool-doc rewrite"
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
+
+```json
+{}
 ```
 
-## Expected result
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_snapshot_state.md
 
-The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
+## Anti-examples
 
-## Recovery notes
+- treating lineage as current project authority
+- restore without explicit rollback intent
 
-- If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.
-- If the result is non-canonical/degraded, call `focusa_workpoint_resume` or a relevant read tool before continuing.
-- If writer ownership is involved, call `focusa_work_loop_writer_status` or use work-loop preflight first.
+## Authority, permissions, and side effects
 
-## Related tools
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_only`, `read_only`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-- [`focusa_tree_head`](./focusa_tree_head.md)
-- [`focusa_tree_path`](./focusa_tree_path.md)
-- [`focusa_tree_restore_state`](./focusa_tree_restore_state.md)
-- [`focusa_tree_diff_context`](./focusa_tree_diff_context.md)
-- [`focusa_tree_recent_snapshots`](./focusa_tree_recent_snapshots.md)
-- [`focusa_tree_snapshot_compare_latest`](./focusa_tree_snapshot_compare_latest.md)
+## Failure and recovery
 
-## Contract summary
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- Family: Tree / Lineage.
-- Side effects: `read_only`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `POST /v1/focus/snapshots`
-- CLI commands: `focusa state snapshot create`
-- Parity: `full`.
-- Core surface: Context lineage tree/snapshot state.
-- Live check: contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-## Source
-Defined in `apps/pi-extension/src/tools.ts`.
+## Dependencies and workflow position
+
+- `focusa_tree_recent_snapshots` (likely_next)
+- `focusa_tree_diff_context` (likely_next)
+- `focusa_tree_restore_state` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_tree_recent_snapshots`, `focusa_tree_diff_context`, `focusa_tree_restore_state`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-session-recovery`
+- Runbooks: `runbook:tree_lineage`
+- Pi: `focusa_tree_snapshot_state`; MCP: `focusa.tree.snapshot.state`; OpenAI: `focusa_tree_snapshot_state`.
+- CLI: `focusa state snapshot create`.
+- REST: `POST /v1/focus/snapshots`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:53fd3ec0a162879b68e3a84f7049996b1c135470193435811ebf249284a34e1d`.

@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:fd7c0977731a2ef943e569b79b99749af2634053786d8e9f0472c593fdeb7d9a",
+  "registry_digest": "sha256:b9793d0eb515d53b607c447453c8c9ecc49eaf67327757cbe91eae5742f604bb",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -23,8 +23,37 @@
       "examples": [
         {
           "description": "Resolve likely active object references from the current Workpoint and optional hint without inventing canonical refs.",
-          "arguments": "focusa workpoint resolve-object",
+          "arguments": {},
+          "human_invocation": "focusa workpoint resolve-object",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_active_object_resolve.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa help all --json",
+      "capability_id": "focusa.agent.card",
+      "summary": "Read compact cross-harness interfaces, auth, capabilities, families, and discovery entry points.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "include_families": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_state",
+        "read_state"
+      ],
+      "examples": [
+        {
+          "description": "Read compact cross-harness interfaces, auth, capabilities, families, and discovery entry points.",
+          "arguments": {},
+          "human_invocation": "focusa help all --json",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_card.md"
         }
       ],
       "deprecation": null
@@ -55,7 +84,10 @@
       "examples": [
         {
           "description": "Spec 101 — read one Bloatgaurd budget domain and its checks/findings.",
-          "arguments": "focusa bloatgaurd domain <name>",
+          "arguments": {
+            "name": "focusa_workpoint_resume"
+          },
+          "human_invocation": "focusa bloatgaurd domain <name>",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_domain.md"
         }
       ],
@@ -87,7 +119,10 @@
       "examples": [
         {
           "description": "Spec 101 — read one Bloatgaurd gate mode by code/name.",
-          "arguments": "focusa bloatgaurd gate-mode <name>",
+          "arguments": {
+            "name": "focusa_workpoint_resume"
+          },
+          "human_invocation": "focusa bloatgaurd gate-mode <name>",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_gate_mode.md"
         }
       ],
@@ -109,7 +144,8 @@
       "examples": [
         {
           "description": "Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema.",
-          "arguments": "focusa bloatgaurd gate-modes",
+          "arguments": {},
+          "human_invocation": "focusa bloatgaurd gate-modes",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_gate_modes.md"
         }
       ],
@@ -141,7 +177,10 @@
       "examples": [
         {
           "description": "Spec 101 — read one profile preset by name.",
-          "arguments": "focusa bloatgaurd profile <name>",
+          "arguments": {
+            "name": "focusa_workpoint_resume"
+          },
+          "human_invocation": "focusa bloatgaurd profile <name>",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_profile.md"
         }
       ],
@@ -163,7 +202,8 @@
       "examples": [
         {
           "description": "Spec 101 — read profile presets and operator switches.",
-          "arguments": "focusa bloatgaurd profiles",
+          "arguments": {},
+          "human_invocation": "focusa bloatgaurd profiles",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_profiles.md"
         }
       ],
@@ -185,7 +225,8 @@
       "examples": [
         {
           "description": "Spec 101 — read the compact Bloatgaurd budget report for domains 5.1-5.8.",
-          "arguments": "focusa bloatgaurd report",
+          "arguments": {},
+          "human_invocation": "focusa bloatgaurd report",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_report.md"
         }
       ],
@@ -207,7 +248,8 @@
       "examples": [
         {
           "description": "Spec 101 — read rollout phases, acceptance checks, and proof commands.",
-          "arguments": "focusa bloatgaurd rollout",
+          "arguments": {},
+          "human_invocation": "focusa bloatgaurd rollout",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_rollout.md"
         }
       ],
@@ -239,7 +281,10 @@
       "examples": [
         {
           "description": "Spec 101 — read one named routine by name.",
-          "arguments": "focusa bloatgaurd routine <name>",
+          "arguments": {
+            "name": "focusa_workpoint_resume"
+          },
+          "human_invocation": "focusa bloatgaurd routine <name>",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_routine.md"
         }
       ],
@@ -261,7 +306,8 @@
       "examples": [
         {
           "description": "Spec 101 — read named routines and automation matrix.",
-          "arguments": "focusa bloatgaurd routines",
+          "arguments": {},
+          "human_invocation": "focusa bloatgaurd routines",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_routines.md"
         }
       ],
@@ -293,7 +339,10 @@
       "examples": [
         {
           "description": "Spec 101 — read one Tokenbloat Control domain and its prompt-visible fields/boundaries.",
-          "arguments": "focusa bloatgaurd token-domain <name>",
+          "arguments": {
+            "name": "focusa_workpoint_resume"
+          },
+          "human_invocation": "focusa bloatgaurd token-domain <name>",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_domain.md"
         }
       ],
@@ -315,8 +364,110 @@
       "examples": [
         {
           "description": "Spec 101 — read Tokenbloat Control report for domains 5.9-5.10.",
-          "arguments": "focusa bloatgaurd tokenbloat",
+          "arguments": {},
+          "human_invocation": "focusa bloatgaurd tokenbloat",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_report.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa help all --json",
+      "capability_id": "focusa.browser.capabilities.intake",
+      "summary": "Validate and session/origin-bind UIAI or WebMCP page capabilities under Focusa governance.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "session_id",
+          "origin",
+          "tools"
+        ],
+        "properties": {
+          "session_id": {
+            "description": "Exact active UIAI browser session identifier.",
+            "type": "string"
+          },
+          "origin": {
+            "description": "Absolute http(s) page origin bound to these capabilities.",
+            "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "const": "webmcp",
+                "type": "string"
+              },
+              {
+                "const": "uiai",
+                "type": "string"
+              },
+              {
+                "const": "page_manifest",
+                "type": "string"
+              }
+            ]
+          },
+          "trusted_origin": {
+            "default": false,
+            "type": "boolean"
+          },
+          "tools": {
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "inputSchema"
+              ],
+              "properties": {
+                "name": {
+                  "description": "Page/browser tool identifier.",
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "inputSchema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "properties": {}
+                },
+                "annotations": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "properties": {}
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "write_browser_capability_evidence",
+        "write_browser_capability_evidence"
+      ],
+      "examples": [
+        {
+          "description": "Validate and session/origin-bind UIAI or WebMCP page capabilities under Focusa governance.",
+          "arguments": {
+            "session_id": "example",
+            "origin": "https://example.com",
+            "tools": []
+          },
+          "human_invocation": "focusa help all --json",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_capabilities_intake.md"
         }
       ],
       "deprecation": null
@@ -381,7 +532,8 @@
       "examples": [
         {
           "description": "Turn UIAI/browser diagnostics JSON into bounded Workpoint evidence, active-object hints, prediction context, and optional metacog learning.",
-          "arguments": "focusa workpoint evidence-link",
+          "arguments": {},
+          "human_invocation": "focusa workpoint evidence-link",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md"
         }
       ],
@@ -447,7 +599,8 @@
       "examples": [
         {
           "description": "Turn UIAI/browser diagnostics JSON into bounded Workpoint evidence, active-object hints, prediction context, and optional metacog learning.",
-          "arguments": "focusa workpoint evidence-link",
+          "arguments": {},
+          "human_invocation": "focusa workpoint evidence-link",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md"
         }
       ],
@@ -513,8 +666,56 @@
       "examples": [
         {
           "description": "Turn UIAI/browser diagnostics JSON into bounded Workpoint evidence, active-object hints, prediction context, and optional metacog learning.",
-          "arguments": "focusa workpoint evidence-link",
+          "arguments": {},
+          "human_invocation": "focusa workpoint evidence-link",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa help all --json",
+      "capability_id": "focusa.browser.workflow.plan",
+      "summary": "Plan a governed UIAI/WebMCP read, action, diagnostics, evidence, and cleanup sequence.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "operation"
+        ],
+        "properties": {
+          "operation": {
+            "description": "Bounded browser action intent.",
+            "type": "string"
+          },
+          "mutation": {
+            "default": false,
+            "type": "boolean"
+          },
+          "webmcp_available": {
+            "default": false,
+            "type": "boolean"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_state",
+        "read_state"
+      ],
+      "examples": [
+        {
+          "description": "Plan a governed UIAI/WebMCP read, action, diagnostics, evidence, and cleanup sequence.",
+          "arguments": {
+            "operation": "example"
+          },
+          "human_invocation": "focusa help all --json",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_workflow_plan.md"
         }
       ],
       "deprecation": null
@@ -602,7 +803,11 @@
       "examples": [
         {
           "description": "Write a typed, append-only Call Stack Design for a feature before implementation. Returns the standard Focusa call stack scaffold.",
-          "arguments": "focusa call-stack design",
+          "arguments": {
+            "mission": "example",
+            "entry_name": "focusa_workpoint_resume"
+          },
+          "human_invocation": "focusa call-stack design",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_call_stack_design.md"
         }
       ],
@@ -645,7 +850,8 @@
       "examples": [
         {
           "description": "Verify a Call Stack Design against bounded implementation surfaces and report drift without mutating Focus State.",
-          "arguments": "focusa call-stack verify",
+          "arguments": {},
+          "human_invocation": "focusa call-stack verify",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_call_stack_verify.md"
         }
       ],
@@ -688,7 +894,8 @@
       "examples": [
         {
           "description": "Verify a Call Stack Design against bounded implementation surfaces and report drift without mutating Focus State.",
-          "arguments": "focusa call-stack verify",
+          "arguments": {},
+          "human_invocation": "focusa call-stack verify",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_call_stack_verify.md"
         }
       ],
@@ -731,7 +938,8 @@
       "examples": [
         {
           "description": "Verify a Call Stack Design against bounded implementation surfaces and report drift without mutating Focus State.",
-          "arguments": "focusa call-stack verify",
+          "arguments": {},
+          "human_invocation": "focusa call-stack verify",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_call_stack_verify.md"
         }
       ],
@@ -765,7 +973,10 @@
       "examples": [
         {
           "description": "Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture — NOT self-imposed tasks. Max 200 chars.",
-          "arguments": "focusa focus update --constraint",
+          "arguments": {
+            "constraint": "example"
+          },
+          "human_invocation": "focusa focus update --constraint",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_constraint.md"
         }
       ],
@@ -807,7 +1018,8 @@
       "examples": [
         {
           "description": "Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Never mutates state.",
-          "arguments": "focusa context-cognition view",
+          "arguments": {},
+          "human_invocation": "focusa context-cognition view",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition.md"
         }
       ],
@@ -892,7 +1104,8 @@
       "examples": [
         {
           "description": "Spec 100 Phase 3 — token-budgeted context selection. Ranks candidates by workpoint target + evidence overlap and selects the highest-scoring subset under a token budget.",
-          "arguments": "focusa context-cognition curate",
+          "arguments": {},
+          "human_invocation": "focusa context-cognition curate",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_curate.md"
         }
       ],
@@ -992,7 +1205,8 @@
       "examples": [
         {
           "description": "Spec 100 Phase 4 — run a curator eval case, compute precision/recall/F1, append to curator-eval-ledger JSONL.",
-          "arguments": "focusa context-cognition curate-eval",
+          "arguments": {},
+          "human_invocation": "focusa context-cognition curate-eval",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md"
         }
       ],
@@ -1092,7 +1306,8 @@
       "examples": [
         {
           "description": "Spec 100 Phase 4 — run a curator eval case, compute precision/recall/F1, append to curator-eval-ledger JSONL.",
-          "arguments": "focusa context-cognition curate-eval",
+          "arguments": {},
+          "human_invocation": "focusa context-cognition curate-eval",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md"
         }
       ],
@@ -1165,7 +1380,11 @@
       "examples": [
         {
           "description": "Spec 100 Phase 5 — submit a Cognition Optimizer artifact and get the promote/rollback decision per §15 promotion rule.",
-          "arguments": "focusa context-cognition curate-optimize",
+          "arguments": {
+            "prompt_artifact_ref": "example",
+            "eval_score": 0
+          },
+          "human_invocation": "focusa context-cognition curate-optimize",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_curate_optimize.md"
         }
       ],
@@ -1203,7 +1422,8 @@
       "examples": [
         {
           "description": "Spec 100 Phase 5 — list Cognition Optimizer artifacts (versioned JSONL) for a project+module.",
-          "arguments": "focusa context-cognition optimizer artifacts",
+          "arguments": {},
+          "human_invocation": "focusa context-cognition optimizer artifacts",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_optimizer_artifacts.md"
         }
       ],
@@ -1236,7 +1456,8 @@
       "examples": [
         {
           "description": "Map Spec 100 ContextCognitionPacket surfaces to proof commands (curl + focusa + audits).",
-          "arguments": "focusa context-cognition proof",
+          "arguments": {},
+          "human_invocation": "focusa context-cognition proof",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_proof.md"
         }
       ],
@@ -1269,7 +1490,8 @@
       "examples": [
         {
           "description": "Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menubar).",
-          "arguments": "focusa context-cognition render",
+          "arguments": {},
+          "human_invocation": "focusa context-cognition render",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_render.md"
         }
       ],
@@ -1299,7 +1521,10 @@
       "examples": [
         {
           "description": "Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars).",
-          "arguments": "focusa focus update --current-focus",
+          "arguments": {
+            "focus": "example"
+          },
+          "human_invocation": "focusa focus update --current-focus",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_current_focus.md"
         }
       ],
@@ -1333,7 +1558,10 @@
       "examples": [
         {
           "description": "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=160 chars) — architectural choices only, not task lists.",
-          "arguments": "focusa focus update --decision",
+          "arguments": {
+            "decision": "example"
+          },
+          "human_invocation": "focusa focus update --decision",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_decide.md"
         }
       ],
@@ -1375,7 +1603,10 @@
       "examples": [
         {
           "description": "Mac menubar OAuth-like device pairing (focusa-ui0y). Run on the VPS side; returns the long-lived token.",
-          "arguments": "focusa device pair-complete",
+          "arguments": {
+            "code": "example"
+          },
+          "human_invocation": "focusa device pair-complete",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_complete.md"
         }
       ],
@@ -1408,7 +1639,8 @@
       "examples": [
         {
           "description": "Mac menubar OAuth-like device pairing (focusa-ui0y). List paired devices for a host (append-only JSONL ledger).",
-          "arguments": "focusa device pair-list",
+          "arguments": {},
+          "human_invocation": "focusa device pair-list",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_list.md"
         }
       ],
@@ -1451,7 +1683,8 @@
       "examples": [
         {
           "description": "Mac menubar OAuth-like device pairing with QR handoff (focusa-ui0y, Mode B). Same as pair_start but surfaces pair_url for QR rendering (Telegram/Discord-style).",
-          "arguments": "focusa device pair-qr",
+          "arguments": {},
+          "human_invocation": "focusa device pair-qr",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_qr.md"
         }
       ],
@@ -1489,7 +1722,10 @@
       "examples": [
         {
           "description": "Mac menubar OAuth-like device pairing (focusa-ui0y). Revoke a paired device; appends revoked=true to ledger.",
-          "arguments": "focusa device pair-revoke",
+          "arguments": {
+            "device_id": "example"
+          },
+          "human_invocation": "focusa device pair-revoke",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_revoke.md"
         }
       ],
@@ -1532,7 +1768,8 @@
       "examples": [
         {
           "description": "Mac menubar OAuth-like device pairing (focusa-ui0y). Generate an 8-char code + pair_url for VPS-side completion via CLI, QR+phone, or QR+VPS browser.",
-          "arguments": "focusa device pair-start",
+          "arguments": {},
+          "human_invocation": "focusa device pair-start",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_start.md"
         }
       ],
@@ -1575,7 +1812,8 @@
       "examples": [
         {
           "description": "Mac menubar OAuth-like device pairing (focusa-ui0y). Generate an 8-char code + pair_url for VPS-side completion via CLI, QR+phone, or QR+VPS browser.",
-          "arguments": "focusa device pair-start",
+          "arguments": {},
+          "human_invocation": "focusa device pair-start",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_start.md"
         }
       ],
@@ -1606,7 +1844,8 @@
       "examples": [
         {
           "description": "Mac menubar OAuth-like device pairing (focusa-ui0y). Check pairing status by code or device_id.",
-          "arguments": "focusa device pair-status",
+          "arguments": {},
+          "human_invocation": "focusa device pair-status",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_status.md"
         }
       ],
@@ -1628,7 +1867,8 @@
       "examples": [
         {
           "description": "Spec105 — read compact continuation/doability digest.",
-          "arguments": "focusa dxux digest",
+          "arguments": {},
+          "human_invocation": "focusa dxux digest",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_dxux_digest.md"
         }
       ],
@@ -1660,7 +1900,10 @@
       "examples": [
         {
           "description": "Spec105 — explain a failure and return recovery commands.",
-          "arguments": "focusa explain <failure>",
+          "arguments": {
+            "failure": "example"
+          },
+          "human_invocation": "focusa explain <failure>",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_dxux_explain.md"
         }
       ],
@@ -1682,7 +1925,8 @@
       "examples": [
         {
           "description": "Spec105 — read implementation report for DXUX-001..012.",
-          "arguments": "focusa dxux report",
+          "arguments": {},
+          "human_invocation": "focusa dxux report",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_dxux_report.md"
         }
       ],
@@ -1714,7 +1958,10 @@
       "examples": [
         {
           "description": "Spec105 — read one DXUX requirement by id.",
-          "arguments": "focusa dxux requirement <id>",
+          "arguments": {
+            "id": "example"
+          },
+          "human_invocation": "focusa dxux requirement <id>",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_dxux_requirement.md"
         }
       ],
@@ -1774,7 +2021,12 @@
       "examples": [
         {
           "description": "Capture a bounded evidence ref/result and optionally link it to the active Workpoint.",
-          "arguments": "focusa workpoint evidence-link",
+          "arguments": {
+            "target_ref": "example",
+            "result": "example",
+            "evidence_ref": "example"
+          },
+          "human_invocation": "focusa workpoint evidence-link",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_evidence_capture.md"
         }
       ],
@@ -1808,7 +2060,10 @@
       "examples": [
         {
           "description": "Record a specific failure with diagnosis in Focus State. Must identify WHAT failed and WHY (or suspected why). Max 300 chars.",
-          "arguments": "focusa focus update --failure",
+          "arguments": {
+            "failure": "example"
+          },
+          "human_invocation": "focusa focus update --failure",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_failure.md"
         }
       ],
@@ -1857,7 +2112,8 @@
       "examples": [
         {
           "description": "Read append-only HLT change history with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6.",
-          "arguments": "focusa hlt history",
+          "arguments": {},
+          "human_invocation": "focusa hlt history",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_hlt_history.md"
         }
       ],
@@ -1906,7 +2162,8 @@
       "examples": [
         {
           "description": "Read append-only HLT change history with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6.",
-          "arguments": "focusa hlt history",
+          "arguments": {},
+          "human_invocation": "focusa hlt history",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_hlt_history.md"
         }
       ],
@@ -1955,7 +2212,8 @@
       "examples": [
         {
           "description": "Read append-only HLT change history with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6.",
-          "arguments": "focusa hlt history",
+          "arguments": {},
+          "human_invocation": "focusa hlt history",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_hlt_history.md"
         }
       ],
@@ -1985,7 +2243,10 @@
       "examples": [
         {
           "description": "Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars).",
-          "arguments": "focusa focus update --intent",
+          "arguments": {
+            "intent": "example"
+          },
+          "human_invocation": "focusa focus update --intent",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_intent.md"
         }
       ],
@@ -2016,7 +2277,8 @@
       "examples": [
         {
           "description": "Extract decision/constraint/risk signals and reflection trigger from lineage tree for metacognitive compounding.",
-          "arguments": "focusa lineage extract",
+          "arguments": {},
+          "human_invocation": "focusa lineage extract",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_li_tree_extract.md"
         }
       ],
@@ -2051,7 +2313,8 @@
       "examples": [
         {
           "description": "Fetch Focusa lineage tree for /tree-aware reasoning and LI addon workflows.",
-          "arguments": "focusa lineage tree",
+          "arguments": {},
+          "human_invocation": "focusa lineage tree",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_lineage_tree.md"
         }
       ],
@@ -2113,7 +2376,11 @@
       "examples": [
         {
           "description": "Store a reusable learning signal so future reasoning can retrieve it instead of rediscovering the same lesson.",
-          "arguments": "focusa metacognition capture",
+          "arguments": {
+            "kind": "example",
+            "content": "example"
+          },
+          "human_invocation": "focusa metacognition capture",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_capture.md"
         }
       ],
@@ -2159,7 +2426,10 @@
       "examples": [
         {
           "description": "Diagnose signal quality and retrieval usefulness in one move. Best safe diagnostic tool when deciding whether more capture or reflection work is needed.",
-          "arguments": "focusa metacognition doctor",
+          "arguments": {
+            "current_ask": "example"
+          },
+          "human_invocation": "focusa metacognition doctor",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_doctor.md"
         }
       ],
@@ -2202,7 +2472,10 @@
       "examples": [
         {
           "description": "Judge whether an adjustment improved results and whether the learning should be promoted.",
-          "arguments": "focusa metacognition evaluate",
+          "arguments": {
+            "adjustment_id": "example"
+          },
+          "human_invocation": "focusa metacognition evaluate",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md"
         }
       ],
@@ -2306,7 +2579,11 @@
       "examples": [
         {
           "description": "Run capture -> retrieve -> reflect -> adjust -> evaluate in one move. Best composite tool when you want learning workflow compression instead of manual chaining.",
-          "arguments": "focusa metacognition loop run",
+          "arguments": {
+            "current_ask": "example",
+            "turn_range": "example"
+          },
+          "human_invocation": "focusa metacognition loop run",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_loop_run.md"
         }
       ],
@@ -2349,7 +2626,10 @@
       "examples": [
         {
           "description": "Turn a reflection into a tracked adjustment artifact that can later be evaluated for real improvement.",
-          "arguments": "focusa metacognition adjust",
+          "arguments": {
+            "reflection_id": "example"
+          },
+          "human_invocation": "focusa metacognition adjust",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_plan_adjust.md"
         }
       ],
@@ -2378,7 +2658,8 @@
       "examples": [
         {
           "description": "Best safe helper for finding recent adjustment ids before evaluation or promotion decisions.",
-          "arguments": "focusa metacognition recent-adjustments",
+          "arguments": {},
+          "human_invocation": "focusa metacognition recent-adjustments",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_recent_adjustments.md"
         }
       ],
@@ -2407,7 +2688,8 @@
       "examples": [
         {
           "description": "Best safe helper for finding recent reflection ids and update sets before adjust or promote work.",
-          "arguments": "focusa metacognition recent-reflections",
+          "arguments": {},
+          "human_invocation": "focusa metacognition recent-reflections",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_recent_reflections.md"
         }
       ],
@@ -2450,7 +2732,10 @@
       "examples": [
         {
           "description": "Generate reusable hypotheses and strategy updates from recent turns when you need learning from past outcomes.",
-          "arguments": "focusa metacognition reflect",
+          "arguments": {
+            "turn_range": "example"
+          },
+          "human_invocation": "focusa metacognition reflect",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_reflect.md"
         }
       ],
@@ -2498,7 +2783,10 @@
       "examples": [
         {
           "description": "Best safe search tool for past learning signals relevant to the current ask. Use this before planning or reflection.",
-          "arguments": "focusa metacognition retrieve",
+          "arguments": {
+            "current_ask": "example"
+          },
+          "human_invocation": "focusa metacognition retrieve",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_retrieve.md"
         }
       ],
@@ -2528,7 +2816,10 @@
       "examples": [
         {
           "description": "Record what you plan to do next (max 160 chars).",
-          "arguments": "focusa focus update --next-step",
+          "arguments": {
+            "step": "example"
+          },
+          "human_invocation": "focusa focus update --next-step",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_next_step.md"
         }
       ],
@@ -2558,7 +2849,10 @@
       "examples": [
         {
           "description": "Miscellaneous note (max 180 chars). Bounded at 20, oldest decay first.",
-          "arguments": "focusa focus update --note",
+          "arguments": {
+            "note": "example"
+          },
+          "human_invocation": "focusa focus update --note",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_note.md"
         }
       ],
@@ -2588,7 +2882,10 @@
       "examples": [
         {
           "description": "Record an open question that needs to be answered (max 180 chars).",
-          "arguments": "focusa focus update --open-question",
+          "arguments": {
+            "question": "example"
+          },
+          "human_invocation": "focusa focus update --open-question",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_open_question.md"
         }
       ],
@@ -2639,7 +2936,11 @@
       "examples": [
         {
           "description": "Evaluate a Focusa prediction against an actual outcome and optional score; required before final task completion when relevant predictions exist.",
-          "arguments": "focusa predict evaluate",
+          "arguments": {
+            "prediction_id": "example",
+            "actual_outcome": "example"
+          },
+          "human_invocation": "focusa predict evaluate",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_evaluate.md"
         }
       ],
@@ -2674,7 +2975,8 @@
       "examples": [
         {
           "description": "List recent bounded Focusa prediction records.",
-          "arguments": "focusa predict recent",
+          "arguments": {},
+          "human_invocation": "focusa predict recent",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_recent.md"
         }
       ],
@@ -2742,7 +3044,14 @@
       "examples": [
         {
           "description": "Record a bounded, inspectable Focusa prediction; core at task start, trajectory review, compaction review, and end-of-task reports.",
-          "arguments": "focusa predict record",
+          "arguments": {
+            "prediction_type": "example",
+            "predicted_outcome": "example",
+            "confidence": 0,
+            "recommended_action": "example",
+            "why": "example"
+          },
+          "human_invocation": "focusa predict record",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_record.md"
         }
       ],
@@ -2773,7 +3082,8 @@
       "examples": [
         {
           "description": "Report Focusa prediction accuracy/calibration stats for compaction cards, trajectory reviews, and work reports.",
-          "arguments": "focusa predict stats",
+          "arguments": {},
+          "human_invocation": "focusa predict stats",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_stats.md"
         }
       ],
@@ -2827,7 +3137,8 @@
       "examples": [
         {
           "description": "Build a scoped agent bootstrap packet without writing it.",
-          "arguments": "focusa preload build",
+          "arguments": {},
+          "human_invocation": "focusa preload build",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_build.md"
         }
       ],
@@ -2881,7 +3192,8 @@
       "examples": [
         {
           "description": "Diagnose bootstrap delivery readiness and recovery steps.",
-          "arguments": "focusa preload doctor",
+          "arguments": {},
+          "human_invocation": "focusa preload doctor",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_doctor.md"
         }
       ],
@@ -2903,7 +3215,8 @@
       "examples": [
         {
           "description": "List bounded agent bootstrap profiles.",
-          "arguments": "focusa preload profiles",
+          "arguments": {},
+          "human_invocation": "focusa preload profiles",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_profiles.md"
         }
       ],
@@ -2955,7 +3268,10 @@
       "examples": [
         {
           "description": "Commit an idempotent bootstrap delivery receipt.",
-          "arguments": "focusa preload receipt-commit",
+          "arguments": {
+            "idempotency_key": "example"
+          },
+          "human_invocation": "focusa preload receipt-commit",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_receipt_commit.md"
         }
       ],
@@ -2999,7 +3315,8 @@
       "examples": [
         {
           "description": "Preview a bootstrap delivery receipt without committing it.",
-          "arguments": "focusa preload receipt-preview",
+          "arguments": {},
+          "human_invocation": "focusa preload receipt-preview",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_receipt_preview.md"
         }
       ],
@@ -3053,7 +3370,8 @@
       "examples": [
         {
           "description": "Render a scoped agent bootstrap packet.",
-          "arguments": "focusa preload render",
+          "arguments": {},
+          "human_invocation": "focusa preload render",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_render.md"
         }
       ],
@@ -3107,7 +3425,8 @@
       "examples": [
         {
           "description": "Verify bootstrap packet scope and integrity.",
-          "arguments": "focusa preload verify",
+          "arguments": {},
+          "human_invocation": "focusa preload verify",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_verify.md"
         }
       ],
@@ -3168,7 +3487,11 @@
       "examples": [
         {
           "description": "Write an agent bootstrap packet to an allowlisted target.",
-          "arguments": "focusa preload write",
+          "arguments": {
+            "target": "example",
+            "idempotency_key": "example"
+          },
+          "human_invocation": "focusa preload write",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_write.md"
         }
       ],
@@ -3229,7 +3552,8 @@
       "examples": [
         {
           "description": "Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals for bootstrap/re-bootstrap.",
-          "arguments": "focusa project card",
+          "arguments": {},
+          "human_invocation": "focusa project card",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_card.md"
         }
       ],
@@ -3289,7 +3613,11 @@
       "examples": [
         {
           "description": "Attach a verified result to a project-card algorithm_run_id so project-card learning weights and future bootstrap/sequence planning can improve.",
-          "arguments": "focusa project card-outcome",
+          "arguments": {
+            "algorithm_run_id": "example",
+            "actual_outcome": "example"
+          },
+          "human_invocation": "focusa project card-outcome",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_card_outcome.md"
         }
       ],
@@ -3346,7 +3674,8 @@
       "examples": [
         {
           "description": "Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator project signals before trusting project-bound context.",
-          "arguments": "focusa project identity",
+          "arguments": {},
+          "human_invocation": "focusa project identity",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_identity.md"
         }
       ],
@@ -3415,7 +3744,8 @@
       "examples": [
         {
           "description": "Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state.",
-          "arguments": "focusa project verify",
+          "arguments": {},
+          "human_invocation": "focusa project verify",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_verify.md"
         }
       ],
@@ -3445,7 +3775,10 @@
       "examples": [
         {
           "description": "Record a completed result, output, or reference (max 180 chars).",
-          "arguments": "focusa focus update --recent-result",
+          "arguments": {
+            "result": "example"
+          },
+          "human_invocation": "focusa focus update --recent-result",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_recent_result.md"
         }
       ],
@@ -3534,7 +3867,8 @@
       "examples": [
         {
           "description": "Read or control Focusa ResourceMode, including activating or deactivating LowMem mode when resources are constrained.",
-          "arguments": "focusa resource mode",
+          "arguments": {},
+          "human_invocation": "focusa resource mode",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_resource_mode.md"
         }
       ],
@@ -3799,7 +4133,10 @@
       "examples": [
         {
           "description": "Save, continue, or Spec130-roll over a long Focusa/Pi work session with explicit source_scope/target_scope or target_continuity_id, source/target session ids, checkpoint/packet refs, and rollover action.",
-          "arguments": "focusa project session-transfer",
+          "arguments": {
+            "action": "example"
+          },
+          "human_invocation": "focusa project session-transfer",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_session_transfer.md"
         }
       ],
@@ -3913,7 +4250,8 @@
       "examples": [
         {
           "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-          "arguments": "tmux list-sessions",
+          "arguments": {},
+          "human_invocation": "tmux list-sessions",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
         }
       ],
@@ -4027,7 +4365,8 @@
       "examples": [
         {
           "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-          "arguments": "tmux list-sessions",
+          "arguments": {},
+          "human_invocation": "tmux list-sessions",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
         }
       ],
@@ -4141,7 +4480,8 @@
       "examples": [
         {
           "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-          "arguments": "tmux list-sessions",
+          "arguments": {},
+          "human_invocation": "tmux list-sessions",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
         }
       ],
@@ -4255,7 +4595,8 @@
       "examples": [
         {
           "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-          "arguments": "tmux list-sessions",
+          "arguments": {},
+          "human_invocation": "tmux list-sessions",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
         }
       ],
@@ -4369,7 +4710,8 @@
       "examples": [
         {
           "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-          "arguments": "tmux list-sessions",
+          "arguments": {},
+          "human_invocation": "tmux list-sessions",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
         }
       ],
@@ -4483,7 +4825,8 @@
       "examples": [
         {
           "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-          "arguments": "tmux list-sessions",
+          "arguments": {},
+          "human_invocation": "tmux list-sessions",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
         }
       ],
@@ -4597,7 +4940,8 @@
       "examples": [
         {
           "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-          "arguments": "tmux list-sessions",
+          "arguments": {},
+          "human_invocation": "tmux list-sessions",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
         }
       ],
@@ -4711,7 +5055,8 @@
       "examples": [
         {
           "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-          "arguments": "tmux list-sessions",
+          "arguments": {},
+          "human_invocation": "tmux list-sessions",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
         }
       ],
@@ -4825,8 +5170,177 @@
       "examples": [
         {
           "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-          "arguments": "tmux list-sessions",
+          "arguments": {},
+          "human_invocation": "tmux list-sessions",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa help all --json",
+      "capability_id": "focusa.tool.bundle",
+      "summary": "Load one bounded capability family with schemas deferred by default.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "family"
+        ],
+        "properties": {
+          "family": {
+            "description": "Exact Focusa tool family.",
+            "type": "string"
+          },
+          "include_schemas": {
+            "default": false,
+            "type": "boolean"
+          },
+          "limit": {
+            "minimum": 1,
+            "maximum": 50,
+            "default": 25,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_state",
+        "read_state"
+      ],
+      "examples": [
+        {
+          "description": "Load one bounded capability family with schemas deferred by default.",
+          "arguments": {
+            "family": "example"
+          },
+          "human_invocation": "focusa help all --json",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_bundle.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa help all --json",
+      "capability_id": "focusa.tool.describe",
+      "summary": "Cold-load one complete capability contract including strict schemas and recovery.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "description": "Exact Focusa Pi tool name returned by focusa_tool_search.",
+            "type": "string"
+          },
+          "include_schemas": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_state",
+        "read_state"
+      ],
+      "examples": [
+        {
+          "description": "Cold-load one complete capability contract including strict schemas and recovery.",
+          "arguments": {
+            "name": "focusa_workpoint_resume"
+          },
+          "human_invocation": "focusa help all --json",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_describe.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa help all --json",
+      "capability_id": "focusa.tool.graph",
+      "summary": "Traverse bounded capability dependencies and likely-next workflow edges.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "anchor"
+        ],
+        "properties": {
+          "anchor": {
+            "description": "Exact tool name or family.",
+            "type": "string"
+          },
+          "depth": {
+            "minimum": 1,
+            "maximum": 4,
+            "default": 2,
+            "type": "integer"
+          },
+          "limit": {
+            "minimum": 1,
+            "maximum": 100,
+            "default": 40,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_state",
+        "read_state"
+      ],
+      "examples": [
+        {
+          "description": "Traverse bounded capability dependencies and likely-next workflow edges.",
+          "arguments": {
+            "anchor": "example"
+          },
+          "human_invocation": "focusa help all --json",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_graph.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa help all --json",
+      "capability_id": "focusa.tool.search",
+      "summary": "Search bounded capability metadata before cold-loading full schemas.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "properties": {
+          "query": {
+            "description": "Capability, action, object, failure, or workflow search text.",
+            "type": "string"
+          },
+          "family": {
+            "description": "Optional exact Focusa tool family filter.",
+            "type": "string"
+          },
+          "limit": {
+            "minimum": 1,
+            "maximum": 50,
+            "default": 10,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_state",
+        "read_state"
+      ],
+      "examples": [
+        {
+          "description": "Search bounded capability metadata before cold-loading full schemas.",
+          "arguments": {
+            "query": "workpoint resume"
+          },
+          "human_invocation": "focusa help all --json",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_search.md"
         }
       ],
       "deprecation": null
@@ -4871,7 +5385,8 @@
       "examples": [
         {
           "description": "Assess project current state against desired Trajectory end state and return gaps/recommended action; task-boundary reviews should cross-check predictions and metacog lessons.",
-          "arguments": "focusa trajectory assess",
+          "arguments": {},
+          "human_invocation": "focusa trajectory assess",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_assess.md"
         }
       ],
@@ -4914,7 +5429,8 @@
       "examples": [
         {
           "description": "Create an advisory Trajectory checkpoint packet before compaction/model switch; pair with Workpoint checkpoint for canonical continuation.",
-          "arguments": "focusa trajectory checkpoint",
+          "arguments": {},
+          "human_invocation": "focusa trajectory checkpoint",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_checkpoint.md"
         }
       ],
@@ -5035,7 +5551,11 @@
       "examples": [
         {
           "description": "Create an advisory per-project Trajectory goal candidate, including HLT/MLG/STG/Waypoints, without changing task or execution authority.",
-          "arguments": "focusa trajectory define-goal",
+          "arguments": {
+            "long_term_goal": "example",
+            "desired_end_state": "example"
+          },
+          "human_invocation": "focusa trajectory define-goal",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_define_goal.md"
         }
       ],
@@ -5082,7 +5602,8 @@
       "examples": [
         {
           "description": "Propose an advisory Workpoint candidate from the active per-project Trajectory gap; does not promote or execute it.",
-          "arguments": "focusa trajectory propose-workpoint",
+          "arguments": {},
+          "human_invocation": "focusa trajectory propose-workpoint",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md"
         }
       ],
@@ -5130,7 +5651,8 @@
       "examples": [
         {
           "description": "Resume per-project Trajectory orientation plus Workpoint handoff context after compaction/model switch/session resume, including prediction/metacog review prompts.",
-          "arguments": "focusa trajectory resume",
+          "arguments": {},
+          "human_invocation": "focusa trajectory resume",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_resume.md"
         }
       ],
@@ -5182,7 +5704,8 @@
       "examples": [
         {
           "description": "Read the per-project Trajectory Intelligence view before acting: project identity, goal/state/gap/evidence/drift, next Workpoint candidate, and learning-loop context for task closure.",
-          "arguments": "focusa trajectory view",
+          "arguments": {},
+          "human_invocation": "focusa trajectory view",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_view.md"
         }
       ],
@@ -5223,7 +5746,11 @@
       "examples": [
         {
           "description": "Best safe compare tool for snapshots. Use this instead of guessing what changed across checkpoints.",
-          "arguments": "focusa state snapshot diff",
+          "arguments": {
+            "from_snapshot_id": "example",
+            "to_snapshot_id": "example"
+          },
+          "human_invocation": "focusa state snapshot diff",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_diff_context.md"
         }
       ],
@@ -5252,7 +5779,8 @@
       "examples": [
         {
           "description": "Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work.",
-          "arguments": "focusa lineage head",
+          "arguments": {},
+          "human_invocation": "focusa lineage head",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_head.md"
         }
       ],
@@ -5285,7 +5813,10 @@
       "examples": [
         {
           "description": "Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns.",
-          "arguments": "focusa lineage path",
+          "arguments": {
+            "clt_node_id": "example"
+          },
+          "human_invocation": "focusa lineage path",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_path.md"
         }
       ],
@@ -5314,7 +5845,8 @@
       "examples": [
         {
           "description": "Best safe helper for finding recent snapshot ids. Use this before diff or restore when you do not already know the right snapshot id.",
-          "arguments": "focusa state snapshot recent",
+          "arguments": {},
+          "human_invocation": "focusa state snapshot recent",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_recent_snapshots.md"
         }
       ],
@@ -5360,7 +5892,10 @@
       "examples": [
         {
           "description": "Restore a saved checkpoint when you need rollback or exact/merge recovery. State-changing tool.",
-          "arguments": "focusa state snapshot restore",
+          "arguments": {
+            "snapshot_id": "example"
+          },
+          "human_invocation": "focusa state snapshot restore",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_restore_state.md"
         }
       ],
@@ -5394,7 +5929,8 @@
       "examples": [
         {
           "description": "Create a fresh snapshot and compare it to the latest prior snapshot in one move. Best tool when you want checkpoint + diff without manual id hunting.",
-          "arguments": "focusa state snapshot compare-latest",
+          "arguments": {},
+          "human_invocation": "focusa state snapshot compare-latest",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_snapshot_compare_latest.md"
         }
       ],
@@ -5428,7 +5964,8 @@
       "examples": [
         {
           "description": "Create a recoverable checkpoint before risky work or comparisons. Best write tool for saving current state with a reason.",
-          "arguments": "focusa state snapshot create",
+          "arguments": {},
+          "human_invocation": "focusa state snapshot create",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_snapshot_state.md"
         }
       ],
@@ -5450,7 +5987,8 @@
       "examples": [
         {
           "description": "Read compact bootstrap, post-compaction, recovery, and brevity guidance.",
-          "arguments": "focusa utility card",
+          "arguments": {},
+          "human_invocation": "focusa utility card",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_utility_card.md"
         }
       ],
@@ -5472,7 +6010,8 @@
       "examples": [
         {
           "description": "Read compact bootstrap, post-compaction, recovery, and brevity guidance.",
-          "arguments": "focusa utility card",
+          "arguments": {},
+          "human_invocation": "focusa utility card",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_utility_card.md"
         }
       ],
@@ -5494,7 +6033,8 @@
       "examples": [
         {
           "description": "Read compact bootstrap, post-compaction, recovery, and brevity guidance.",
-          "arguments": "focusa utility card",
+          "arguments": {},
+          "human_invocation": "focusa utility card",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_utility_card.md"
         }
       ],
@@ -5593,7 +6133,11 @@
       "examples": [
         {
           "description": "Create a typed Focusa Workpoint checkpoint before compaction, resume, context overflow, model switch, or risky continuation. Use this instead of trusting raw transcript memory; Focusa becomes the canonical continuation source and returns an explicit next-step hint.",
-          "arguments": "focusa workpoint checkpoint",
+          "arguments": {
+            "mission": "example",
+            "next_action": "example"
+          },
+          "human_invocation": "focusa workpoint checkpoint",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_workpoint_checkpoint.md"
         }
       ],
@@ -5652,7 +6196,11 @@
       "examples": [
         {
           "description": "Attach a stable evidence reference or verification result to the active canonical Workpoint.",
-          "arguments": "focusa workpoint evidence-link",
+          "arguments": {
+            "target_ref": "example",
+            "result": "example"
+          },
+          "human_invocation": "focusa workpoint evidence-link",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_workpoint_link_evidence.md"
         }
       ],
@@ -5699,7 +6247,8 @@
       "examples": [
         {
           "description": "Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action.",
-          "arguments": "focusa workpoint resume",
+          "arguments": {},
+          "human_invocation": "focusa workpoint resume",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_workpoint_resume.md"
         }
       ],

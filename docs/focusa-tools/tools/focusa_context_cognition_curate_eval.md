@@ -1,121 +1,76 @@
 # `focusa_context_cognition_curate_eval`
 
-**Family:** `trajectory`
-**Label:** Context Cognition Curate Eval
-
-## Purpose
-
-**Spec 100 Phase 4 — Eval harness** with CQRS write side. Run a curator eval case: take a list of candidates, run the deterministic curator, and compute precision / recall / F1 versus an operator-supplied `expected_selected_paths`. Append the result as a `CuratorEvalRun` to `data/curator-eval-ledger/{project_root_hash}/eval-runs.jsonl` (append-only, scope-bounded, replay-friendly).
-
-The eval result is the input to the **Phase 5 Cognition Optimizer**: the operator then submits the eval result + a candidate artifact to `focusa_context_cognition_curate_optimize`, which decides `promote | rollback` per Spec 100 §15 promotion rule.
+Spec 100 Phase 4 — run a curator eval case. Computes precision/recall/F1 vs. expected_selected_paths. Appends to curator-eval-ledger/{hash}/eval-runs.jsonl. Returns run_id, eval_ref, scores, and promoted flag (F1 > baseline_f1 AND F1 >= score_threshold). Use it when Spec 100 Phase 4 — run a curator eval case, compute precision/recall/F1, append to curator-eval-ledger JSONL. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- The operator has a curator eval case (target, candidates, expected_selected_paths, score_threshold).
-- The operator wants to measure whether the v0 deterministic curator's selection matches expectations.
-- The operator wants a durable, append-only record of the eval for the promotion gate.
+- Spec 100 Phase 4 — run a curator eval case, compute precision/recall/F1, append to curator-eval-ledger JSONL.
+- Capability family: `trajectory`; namespace: `focusa.trajectory`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-Do not use for production context selection; use `focusa_context_cognition_curate` instead.
+## Parameters and strict input schema
 
-## Parameters
+- `project_root` (optional; string): Project root. Defaults to Pi session cwd.
+- `continuity_id` (optional; string): Optional continuity id filter.
+- `case_id` (optional; string): Optional case id; defaults to a generated UUID.
+- `target` (optional; string): Curator target string.
+- `token_budget` (optional; integer; min=1, max=1000000): Token budget for the selection. Defaults to 2000.
+- `candidates` (optional; array): See the strict descriptor schema.
+- `expected_selected_paths` (optional; array): Operator-supplied expected selected paths for precision/recall/F1.
+- `score_threshold` (optional; number; min=0, max=1): F1 threshold for promotion. Defaults to 0.5.
+- `baseline_f1` (optional; number; min=0, max=1): Baseline F1 to beat. Defaults to 0.0.
+- `evidence_refs` (optional; array): See the strict descriptor schema.
 
-- `project_root` — project scope. Defaults to Pi session cwd.
-- `continuity_id` — **required** workstream scope for eval-ledger writes; missing/blank rejects with `failure_class=continuity_id_missing`.
-- `case_id` — optional case id; defaults to a generated UUID v7.
-- `target` — curator target string. Defaults to the active workpoint's `next_slice` or `mission`.
-- `token_budget` — total tokens allowed. Default 2000, max 1,000,000; `0` rejects with `failure_class=token_budget_invalid`.
-- `candidates` — list of `{kind, path, body?, evidence_ref?, tokens?}` items.
-- `expected_selected_paths` — list of paths the operator expects the curator to keep.
-- `score_threshold` — F1 threshold for promotion. Default 0.5; must be finite `0.0..=1.0`.
-- `baseline_f1` — baseline F1 to beat. Default 0.0; must be finite `0.0..=1.0`.
-- `evidence_refs` — list of evidence refs that boost candidate ranking.
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_context_cognition_curate_eval`.
 
-## Expected result
+## Output
 
-Returns `tool_result_v1` with `ok`, `advisory=true`, `canonical=false`, plus the run fields:
-
-- `run_id` (UUID v7)
-- `case_id`
-- `selected_paths` (curator's selection)
-- `expected_paths` (operator-supplied)
-- `precision`, `recall`, `f1` (computed)
-- `baseline_f1`, `score_threshold`
-- `tokens_used`, `token_budget`
-- `promoted` (bool: F1 > baseline_f1 AND F1 >= score_threshold)
-- `eval_ref` (ledger handle: `curator-eval:{project_root}:{run_id}`)
-- `rehydrate_id` (= `run_id`)
-
-The `eval_ref` is an evidence-citation handle. The result is also returned in `details.evidence_refs` for direct linking via `focusa_evidence_capture`.
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
 ## Example
 
 ```json
-{
-  "project_root": "/home/wirebot/focusa",
-  "case_id": "case-001",
-  "target": "focusa_context_cognition_curate",
-  "token_budget": 200,
-  "candidates": [
-    {"kind": "file", "path": "crates/focusa-api/src/routes/context_cognition.rs", "body": "curate handler"},
-    {"kind": "file", "path": "crates/focusa-cli/src/commands/context_cognition.rs", "body": "unrelated"}
-  ],
-  "expected_selected_paths": ["crates/focusa-api/src/routes/context_cognition.rs"],
-  "score_threshold": 0.5,
-  "baseline_f1": 0.0,
-  "evidence_refs": []
-}
+{}
 ```
 
-```text
-focusa_context_cognition_curate_eval ok | context cognition curate eval → f1=0.66 promoted=yes
-ids: run_id=019ea... eval_ref=curator-eval:/home/wirebot/focusa:019ea... rehydrate_id=019ea...
-fields: f1=0.667 precision=1.000 recall=0.500 baseline_f1=0.000 tokens_used=2 promoted=yes advisory=true
-next: focusa_context_cognition_curate_optimize → focusa_metacog_capture → focusa_predict_record
-```
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md
 
-## Scope rules
+## Anti-examples
 
-- `project_root` is **required** — eval is scoped to project.
-- `continuity_id` is **required** — eval writes are scoped by `project_root + continuity_id`.
-- Agent runtime paths (e.g. `/root/pi-mono`, `/home/wirebot/.cargo`) are rejected with `failure_class=scope_mismatch`.
-- The eval is **deterministic** for the same input (curator is deterministic; precision/recall/F1 are computed in-route).
-- The ledger is **append-only** — existing eval runs are never modified or deleted.
+- overriding Workpoint/operator authority
+- merging sessions on goal similarity alone
 
-## Notes
+## Authority, permissions, and side effects
 
-- Per Spec 100 §15.1 the curator-eval-ledger is the **CQRS write side** for eval runs. The read side is `GET /v1/context-cognition/curate/eval/runs` (CLI: `focusa context-cognition curate-eval-runs`).
-- The eval harness pairs with `focusa_context_cognition_curate_optimize` (Phase 5) for the promotion gate.
-- The eval result is suitable for emitting as a `focusa_metacog_capture` lesson (`kind=curator_eval_v0`) and a `focusa_predict_record` prediction (`prediction_type=curator_optimization_v1`).
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `write_curator_eval`, `write_curator_eval`
+- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-## Failure recovery
+## Failure and recovery
 
-`tool_result_v1.failure_class` is part of the recovery contract. Common values:
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- `project_root_missing` — provide an explicit `project_root` and retry.
-- `project_root_unverified` — call `focusa_project_verify` first.
-- `continuity_id_missing` — provide the active continuity id from Workpoint/Trajectory scope.
-- `scope_mismatch` — the `project_root` is an agent runtime path; pick a real project folder.
-- `token_budget_invalid` — provide a token budget greater than zero.
-- `score_out_of_range` — keep `score_threshold` and `baseline_f1` finite and within `0.0..=1.0`.
-- `daemon_unavailable` — run `focusa_tool_doctor` and retry.
-- `storage_unwritable` — inspect daemon logs; the eval is not persisted and the route returns 500.
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-When `failure_class` is missing, treat the response as a successful eval; verify with `GET /v1/context-cognition/curate/eval/runs`.
+## Dependencies and workflow position
 
-## Contract summary
+- `focusa_context_cognition_curate_optimize` (likely_next)
+- `focusa_metacog_capture` (likely_next)
+- `focusa_predict_record` (likely_next)
 
-- Family: `trajectory`
-- Side effects: `write_curator_eval` (append-only ledger)
-- Result envelope: `tool_result_v1`
-- API routes: `POST /v1/context-cognition/curate/eval`, `GET /v1/context-cognition/curate/eval/runs`
-- CLI commands: `focusa context-cognition curate-eval`, `focusa context-cognition curate-eval-runs`
-- Core surface: `Spec100 §15.1 CQRS write side (eval-ledger append-only JSONL)`
-- Spec: `docs/100-context-cognition-spec.md`
-- Contract source: `docs/current/focusa-tool-contracts.json`
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_context_cognition_curate_optimize`, `focusa_metacog_capture`, `focusa_predict_record`.
 
-## Next tools
+## Skills, protocols, and source authority
 
-- `focusa_context_cognition_curate_optimize` — submit the eval result + a candidate artifact for the promotion decision.
-- `focusa_metacog_capture` — capture the eval as a lesson (kind=curator_eval_v0).
-- `focusa_predict_record` — record a prediction (prediction_type=curator_optimization_v1) for the eval outcome.
-- `focusa_evidence_capture` — link the eval run as evidence to the active Workpoint.
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Runbooks: `runbook:trajectory`
+- Pi: `focusa_context_cognition_curate_eval`; MCP: `focusa.context.cognition.curate.eval`; OpenAI: `focusa_context_cognition_curate_eval`.
+- CLI: `focusa context-cognition curate-eval`, `focusa context-cognition curate-eval-runs`.
+- REST: `POST /v1/context-cognition/curate/eval`, `GET /v1/context-cognition/curate/eval/runs`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:018155e866364a5e200a3f9770c1aa7b7d0341d90250082dbe55051d0ba20527`.

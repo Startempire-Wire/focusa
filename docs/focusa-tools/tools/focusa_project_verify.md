@@ -1,59 +1,77 @@
 # `focusa_project_verify`
 
-**Family:** `project_identity`  
-**Label:** Project Verify
-
-## Purpose
-
-Verify expected ProjectIdentity fields and surface project mismatches without mutating Focusa state.
+Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state. Use it when Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Before treating a packet as canonical after compaction/model switch/session resume.
-- When operator supplied an expected project root, id, name, or remote.
-- When Focusa reports `scope_mismatch`, `read_model_lag`, or degraded ProjectIdentity. (`scope_mismatch` is the legacy failure-class name for project/continuity context mismatch.)
+- Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state.
+- Capability family: `project_identity`; namespace: `focusa.project_identity`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Parameters
+## Parameters and strict input schema
 
-- `cwd` — optional cwd/project path hint; defaults to Pi session cwd.
-- `project_root` — expected project root.
-- `project_id` — expected project id.
-- `canonical_name` — expected canonical project name.
-- `repo_remote` — expected git origin remote.
-- `remote_host`, `remote_user`, `remote_port` — optional remote SSH context for a project that lives outside the local daemon filesystem.
-- `remote_repo_remote`, `remote_workspace_kind`, `remote_deploy_root` — optional caller-supplied remote evidence to verify against the expected project root.
-- `persisted_project_root`, `persisted_project_fingerprint`, `persisted_project_id`, `persisted_canonical_name` — optional prior-session ProjectIdentity signal used to detect stale/cross-session scope before canonical trust.
+- `cwd` (optional; string): Optional cwd/project path hint; defaults to Pi session cwd.
+- `project_root` (optional; string): Expected project root.
+- `project_id` (optional; string): Expected project id from marker/operator.
+- `canonical_name` (optional; string): Expected canonical project name.
+- `repo_remote` (optional; string): Expected git origin remote.
+- `remote_host` (optional; string): Remote SSH host that contains the project root; caller supplies inspected evidence.
+- `remote_user` (optional; string): Remote SSH user, if known.
+- `remote_port` (optional; integer; min=1, max=65535): Remote SSH port, if known.
+- `remote_repo_remote` (optional; string): Git origin/repo remote observed on the remote host.
+- `remote_workspace_kind` (optional; string): Workspace kind observed on the remote host.
+- `remote_deploy_root` (optional; string): Deployment/site root observed on the remote host.
 
-## Expected result
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_project_verify`.
 
-Returns ProjectIdentity plus `verification.verified`, quorum rule, matching independent signal count, aliases, Beads issue-prefix evidence, persisted-session signal diagnostics, and mismatch diagnostics. Remote SSH verification may return `remote_context` and `authority_boundary=remote_host_plus_project_root_plus_fingerprint` when caller-supplied remote evidence forms the quorum. Pi results include `details.tool_result_v1` with `status`, `failure_class`, `canonical`, `degraded`, recovery posture, and `next_tools`.
+## Output
 
-## Failure and recovery
-
-- `failure_class=hot_path_timeout` or `status=timeout_preserved`: cached ProjectIdentity can be returned as noncanonical advisory only; retry verification after `focusa_tool_doctor`/`focusa_resource_mode` before trusting scope.
-
-- `failure_class=scope_mismatch`: suppress stale packet/context; use current repo/operator scope and retry with corrected expected fields.
-- `canonical=false`: do not promote Workpoint/Trajectory carryover as canonical.
-- `validation_rejected` or HTTP schema error: fix request fields; do not retry unchanged.
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
 ## Example
 
-```text
-focusa_project_verify cwd="/home/wirebot/focusa" project_root="/home/wirebot/focusa" project_id="focusa"
-focusa_project_verify project_root="/home/site/project" remote_host="site.example" remote_repo_remote="git@github.com:org/project.git" remote_workspace_kind="wordpress"
+```json
+{}
 ```
 
-## Contract summary
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_verify.md
 
-- Family: Project Identity.
-- Side effects: `read_state`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `POST /v1/project/verify`
-- CLI commands: `focusa project verify`
-- Parity: `domain`; exemptions: `domain_cli_only`.
-- Core surface: Spec96 ProjectIdentity quorum and project-folder safety.
-- Live check: contract_static plus /v1/project/verify safe probe and mismatch diagnostics.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+## Anti-examples
 
-## Source
-Backed by `POST /v1/project/verify`.
+- assuming unsafe broad cwd is canonical
+- skipping verify after scope mismatch
+
+## Authority, permissions, and side effects
+
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_state`, `read_state`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `true`.
+- Confirmation required: `false`; preview supported: `false`.
+
+## Failure and recovery
+
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
+
+## Dependencies and workflow position
+
+- `focusa_trajectory_view` (likely_next)
+- `focusa_workpoint_resume` (likely_next)
+- `focusa_tool_doctor` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_tool_doctor`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-project-scope`
+- Runbooks: `runbook:project_identity`
+- Pi: `focusa_project_verify`; MCP: `focusa.project.verify`; OpenAI: `focusa_project_verify`.
+- CLI: `focusa project verify`.
+- REST: `POST /v1/project/verify`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:d38ddf2d0fd398f26b9b6e93ebca6016357911931ddebc04688985f15f3baab6`.

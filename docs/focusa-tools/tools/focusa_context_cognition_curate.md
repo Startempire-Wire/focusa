@@ -1,104 +1,72 @@
 # `focusa_context_cognition_curate`
 
-**Family:** `trajectory`
-**Label:** Context Cognition Curate
-
-## Purpose
-
-**Spec 100 Phase 3 — Context Curator** with token-budgeted context selection. Takes a list of candidates (files, docs, diffs, snippets, codemaps, evidence) and selects the highest-scoring subset under a token budget. Returns `selected_context` (the kept items) and `excluded_context` (the dropped items with reasons: `low_score` or `over_budget`).
-
-The curator preserves `project_root + continuity_id` scope, prefers bounded handles, and avoids transcript-tail authority. v0 ranks candidates by:
-
-- workpoint target keyword overlap (workpoint `next_slice` or `mission`, or operator-supplied `target`),
-- evidence_ref overlap with operator-supplied `evidence_refs`,
-- tie-breaker on token count (denser items preferred).
-
-v0.5 will replace the word-count tokenizer with a real `tiktoken`-backed estimator and add ontology/workpoint-active-object relevance.
+Spec 100 Phase 3 — token-budgeted context selection. Takes candidates (files/docs/diffs/snippets/codemaps/evidence) and selects the highest-scoring subset under a token budget. Returns selected_context + excluded_context (with reasons). Use it when Spec 100 Phase 3 — token-budgeted context selection. Ranks candidates by workpoint target + evidence overlap and selects the highest-scoring subset under a token budget. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- The agent or operator has a candidate list (≥ 1 file, doc, diff, evidence ref) and a token budget.
-- The next prompt/CLI/menubar section needs a curated subset, not a raw dump.
-- Workpoint has a clear `next_slice` or `mission`; the curator uses it as the default target.
+- Spec 100 Phase 3 — token-budgeted context selection. Ranks candidates by workpoint target + evidence overlap and selects the highest-scoring subset under a token budget.
+- Capability family: `trajectory`; namespace: `focusa.trajectory`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-Do not use for trivial single-file selection; just read the file.
+## Parameters and strict input schema
 
-## Parameters
+- `project_root` (optional; string): Project root. Defaults to Pi session cwd.
+- `continuity_id` (optional; string): Optional continuity id filter.
+- `target` (optional; string): Curator target string (workpoint next_slice, mission, query). Defaults to the active workpoint's next_slice/mission.
+- `token_budget` (optional; integer; min=1, max=1000000): Token budget for the selection. Defaults to 2000.
+- `candidates` (optional; array): Candidates to curate. Each is a {kind, path, body?, evidence_ref?, tokens?} object.
+- `evidence_refs` (optional; array): Evidence refs that boost candidate ranking when matched.
 
-- `project_root` — project scope. Defaults to Pi session cwd.
-- `continuity_id` — optional workstream filter.
-- `target` — curator target string. Defaults to the active workpoint's `next_slice`, then `mission`, then empty.
-- `token_budget` — total tokens allowed. Default 2000, max 1,000,000.
-- `candidates` — list of `{kind, path, body?, evidence_ref?, tokens?}` items. `kind` is `file | doc | diff | snippet | codemap | evidence`. `tokens` overrides the body-derived estimate.
-- `evidence_refs` — list of evidence refs that boost candidates matching them.
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_context_cognition_curate`.
 
-## Expected result
+## Output
 
-Returns `tool_result_v1` with `ok`, `advisory=true`, `canonical=false`, `target`, `token_budget`, `tokens_used`, `tokens_remaining`, `selected_context` (array of `{kind, path, body?, tokens, score}`), `excluded_context` (array of `{kind, path, reason}`), `selected_count`, `excluded_count`, `evidence_refs`, and `rehydrate_id`.
-
-The output is bounded: at most the operator's candidate count, plus bounded per-item fields (≤ ~1KB JSON each). v0 does not mutate Workpoint or Trajectory.
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
 ## Example
 
 ```json
-{
-  "project_root": "/home/wirebot/focusa",
-  "target": "focusa_context_cognition curate",
-  "token_budget": 200,
-  "candidates": [
-    {"kind": "file", "path": "crates/focusa-api/src/routes/context_cognition.rs", "body": "focusa_context_cognition_curate handler", "evidence_ref": "ev:1"},
-    {"kind": "file", "path": "crates/focusa-cli/src/commands/context_cognition.rs", "body": "unrelated CLI commands"}
-  ],
-  "evidence_refs": ["ev:1", "ev:2"]
-}
+{}
 ```
 
-```text
-focusa_context_cognition_curate ok | context cognition curate → selected=2 excluded=0
-ids: rehydrate_id=ctx_curate:/home/wirebot/focusa:2 target=focusa_context_cognition curate
-fields: selected_count=2 excluded_count=0 tokens_used=9 token_budget=200 tokens_remaining=191 advisory=true
-next: focusa_context_cognition → focusa_context_cognition_render → focusa_evidence_capture
-```
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_curate.md
 
-## Scope rules
+## Anti-examples
 
-- `project_root` is **required** — curator is scoped to project.
-- Agent runtime paths (e.g. `/root/pi-mono`) are rejected with `failure_class=scope_mismatch`.
-- The curator never reads files from disk in v0; the operator must supply `body` (or accept the empty fallback). v0.5 will add bounded file reads.
-- `token_budget` must be a positive integer (1–1,000,000).
+- overriding Workpoint/operator authority
+- merging sessions on goal similarity alone
 
-## Notes
+## Authority, permissions, and side effects
 
-- The curator's score is **deterministic** for the same input (workpoint target + body + evidence_refs). No randomness, no model calls.
-- `excluded_context` reasons are bounded strings: `low_score: N.NN < 2.0` or `over_budget: N > remaining M`. Operators can audit exclusions without model calls.
-- v0 implements: scoring, exclusion, budget cut, evidence overlap boost. v0.5 will add ontology/workpoint active-object relevance + tiktoken-backed token estimation.
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_state`, `read_state`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-## Failure recovery
+## Failure and recovery
 
-`tool_result_v1.failure_class` is part of the recovery contract. Common values:
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- `project_root_missing` — provide an explicit `project_root` and retry.
-- `project_root_unverified` — call `focusa_project_verify` first.
-- `scope_mismatch` — the `project_root` is an agent runtime path; pick a real project folder.
-- `daemon_unavailable` — run `focusa_tool_doctor` and retry.
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-When `failure_class` is missing, treat the response as a successful curation; verify with `focusa_context_cognition`.
+## Dependencies and workflow position
 
-## Contract summary
+- `focusa_context_cognition` (likely_next)
+- `focusa_context_cognition_render` (likely_next)
+- `focusa_evidence_capture` (likely_next)
 
-- Family: `trajectory`
-- Side effects: `read_state`
-- Result envelope: `tool_result_v1`
-- API routes: `POST /v1/context-cognition/curate`
-- CLI commands: `focusa context-cognition curate`
-- Core surface: `Spec100 §14 Context Curator with token-budgeted selection`
-- Spec: `docs/100-context-cognition-spec.md`
-- Contract source: `docs/current/focusa-tool-contracts.json`
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_context_cognition`, `focusa_context_cognition_render`, `focusa_evidence_capture`.
 
-## Next tools
+## Skills, protocols, and source authority
 
-- `focusa_context_cognition` — the full packet JSON.
-- `focusa_context_cognition_render` — the compact text render.
-- `focusa_evidence_capture` — link the curated selection to the active Workpoint.
-- `focusa_project_verify` — verify project identity on `project_root_unverified`.
-- `focusa_workpoint_resume` — rehydrate the active Workpoint on discontinuity.
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Runbooks: `runbook:trajectory`
+- Pi: `focusa_context_cognition_curate`; MCP: `focusa.context.cognition.curate`; OpenAI: `focusa_context_cognition_curate`.
+- CLI: `focusa context-cognition curate`.
+- REST: `POST /v1/context-cognition/curate`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:12cb82efda06bfa998a6b36969030ec99a3f44afc6a37cbca2b979c8e418bb19`.

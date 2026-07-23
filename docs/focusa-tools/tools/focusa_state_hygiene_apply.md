@@ -1,54 +1,70 @@
 # `focusa_state_hygiene_apply`
 
-**Family:** `diagnostics-hygiene`  
-**Label:** Focus State Hygiene Apply
-
-## Purpose
-
-Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed `/v1/focus/update`.
+Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed /focus/update. Use it when Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed /focus/update. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-Use `focusa_state_hygiene_apply` when its specific Focusa state or workflow surface is the narrowest tool that matches the current need. Prefer this tool over raw transcript memory when the result should survive compaction, be inspectable, or guide a later agent turn.
+- Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed /focus/update.
+- Capability family: `diagnostics_hygiene`; namespace: `focusa.diagnostics_hygiene`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## When not to use
+## Parameters and strict input schema
 
-Do not use `focusa_state_hygiene_apply` to dump unbounded logs, bypass operator steering, or create parallel memory outside Focusa. If the tool returns `pending`, `blocked`, `degraded`, or `canonical=false`, treat that as a recovery state and follow the returned next-step guidance.
+- `approved` (required; boolean): Must be true to apply proposal-safe hygiene.
+- `reason` (optional; string): See the strict descriptor schema.
 
-## Example usage
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_state_hygiene_apply`.
 
-```text
-focusa_state_hygiene_apply approved=false reason="review hygiene plan first"
-focusa_state_hygiene_apply approved=true reason="duplicate review complete"
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
+
+```json
+{
+  "approved": false
+}
 ```
 
-## Expected result
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_state_hygiene_apply.md
 
-The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
+## Anti-examples
 
-## Recovery notes
+- hiding failures behind null/unknown
+- silent deletion or cleanup
 
-- If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.
-- If the result is non-canonical/degraded, call `focusa_workpoint_resume` or a relevant read tool before continuing.
-- If writer ownership is involved, call `focusa_work_loop_writer_status` or use work-loop preflight first.
+## Authority, permissions, and side effects
 
-## Related tools
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `write_focus_state_note`, `write_focus_state_note`
+- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-- [`focusa_tool_doctor`](./focusa_tool_doctor.md)
-- [`focusa_state_hygiene_doctor`](./focusa_state_hygiene_doctor.md)
-- [`focusa_state_hygiene_plan`](./focusa_state_hygiene_plan.md)
+## Failure and recovery
 
-## Contract summary
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- Family: Diagnostics / Hygiene.
-- Side effects: `write_focus_state_note` when `approved=true`; no deletion.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `POST /v1/focus/update`.
-- CLI commands: none.
-- Parity: `pi_only`; exemptions: `domain_cli_only`.
-- Core surface: Reducer-backed Focus State note append through `/v1/focus/update`.
-- Live check: contract_static plus bounded hot-path live checks; approved apply writes an auditable Focus State note.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-## Source
-Defined in `apps/pi-extension/src/tools.ts`.
+## Dependencies and workflow position
+
+- `focusa_state_hygiene_doctor` (likely_next)
+- `focusa_workpoint_resume` (likely_next)
+- `focusa_tool_doctor` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_state_hygiene_doctor`, `focusa_workpoint_resume`, `focusa_tool_doctor`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Runbooks: `runbook:diagnostics_hygiene`
+- Pi: `focusa_state_hygiene_apply`; MCP: `focusa.state.hygiene.apply`; OpenAI: `focusa_state_hygiene_apply`.
+- CLI: none.
+- REST: `POST /v1/focus/update`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:b3a4f42fa80b5b07b9edcaf750e09c87254b076b61ec3d05e7dc7d3a1282cfd7`.

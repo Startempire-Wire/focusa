@@ -554,6 +554,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::ecs::router())
         .merge(routes::memory::router())
         .merge(routes::mcp::router())
+        .merge(routes::browser_interop::router())
         .merge(routes::metacognition::router())
         .merge(routes::ontology::router())
         .merge(routes::events_sqlite::router())

@@ -50,7 +50,8 @@ with tempfile.TemporaryDirectory(prefix="focusa-spec141-") as tmp:
     codes = {item["code"] for item in report["findings"]}
     assert {"AF-TOOL-002", "AF-TOOL-003", "AF-TOOL-004", "AF-TOOL-012"}.isdisjoint(codes)
     if report["release_gate"] == "fail":
-        assert {"AF-TOOL-005", "AF-TOOL-007", "AF-TOOL-008", "AF-TOOL-013", "AF-TOOL-014"} <= codes
+        assert {"AF-TOOL-014"} <= codes
+        assert {"AF-TOOL-005", "AF-TOOL-007", "AF-TOOL-008", "AF-TOOL-009", "AF-TOOL-011", "AF-TOOL-013"}.isdisjoint(codes)
         strict = subprocess.run(
             ["python3", str(SCRIPT), "--strict", "--json", str(Path(tmp) / "strict.json")],
             cwd=ROOT,

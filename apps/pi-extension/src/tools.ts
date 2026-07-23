@@ -55,7 +55,11 @@ import {
   getCurrentTaskTurnStart,
   currentAttachmentKey,
 } from "./state.js";
-import { FOCUSA_TOOL_CONTRACTS, focusaToolContractSummary } from "./tool-contracts.js";
+import {
+  FOCUSA_TOOL_CONTRACTS,
+  buildFocusaToolAffordanceCatalog,
+  focusaToolContractSummary,
+} from "./tool-contracts.js";
 import {
   buildProjectWorkstreamKey,
   renderScopedResultHuman,
@@ -2136,8 +2140,14 @@ export function registerTools(pi: ExtensionAPI) {
   // invalidate sessionFrameKey on model switch or session reload.
   registerVuopFix(pi);
   const registerTool = pi.registerTool.bind(pi);
-  pi.registerTool = ((tool: any) =>
-    registerTool(withAgentFirstSchemas(withToolResultEnvelope(tool)))) as typeof pi.registerTool;
+  const agentFirstToolDefinitions = new Map<string, any>();
+  pi.registerTool = ((tool: any) => {
+    const normalized = withAgentFirstSchemas(withToolResultEnvelope(tool));
+    if (normalized?.name?.startsWith?.("focusa_")) {
+      agentFirstToolDefinitions.set(normalized.name, normalized);
+    }
+    return registerTool(normalized);
+  }) as typeof pi.registerTool;
   // ── focusa_scratch ──────────────────────────────────────────────────────
   // Agent's working notebook. Lives at /tmp/pi-scratch/. No Focus State write.
   // ALL working notes welcome: reasoning, task lists, hypotheses, dead ends,
@@ -14523,6 +14533,382 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           scope,
           next_tools: ["focusa_predict_record", "focusa_predict_recent"],
         },
+      } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_tool_search",
+    label: "Focusa Tool Search",
+    description:
+      "Search the bounded Focusa capability catalog before loading full schemas. Returns ranked metadata, scope, side-effect, skill, documentation, and discovery refs so agents can select the narrowest tool under token budget.",
+    parameters: Type.Object({
+      query: Type.String({ description: "Capability, action, object, failure, or workflow search text." }),
+      family: Type.Optional(Type.String({ description: "Optional exact Focusa tool family filter." })),
+      limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 50, default: 10 })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const query = String(p.query || "").trim().toLowerCase();
+      const terms = query.split(/\s+/).filter(Boolean);
+      const limit = Math.max(1, Math.min(50, Number(p.limit || 10)));
+      const affordances = new Map(
+        buildFocusaToolAffordanceCatalog().map((item) => [item.name, item])
+      );
+      const results = FOCUSA_TOOL_CONTRACTS.filter(
+        (contract) => !p.family || contract.family === p.family
+      )
+        .map((contract) => {
+          const affordance = affordances.get(contract.name);
+          const haystack = [
+            contract.name,
+            contract.label,
+            contract.purpose,
+            contract.family,
+            contract.ontology_action,
+            ...contract.ontology_objects,
+            ...(affordance?.when_to_use || []),
+            ...(affordance?.failure_classes || []),
+          ]
+            .join(" ")
+            .toLowerCase();
+          const score = terms.reduce(
+            (sum, term) => sum + (contract.name.includes(term) ? 5 : haystack.includes(term) ? 1 : 0),
+            query === contract.name.toLowerCase() ? 20 : 0
+          );
+          return { contract, affordance, score };
+        })
+        .filter((item) => !terms.length || item.score > 0)
+        .sort((a, b) => b.score - a.score || a.contract.name.localeCompare(b.contract.name))
+        .slice(0, limit)
+        .map(({ contract, affordance, score }) => ({
+          name: contract.name,
+          label: contract.label,
+          family: contract.family,
+          purpose: contract.purpose,
+          score,
+          side_effect_profile: contract.side_effect_profile,
+          scope_requirement: contract.scope_requirement,
+          skill_refs: [`skill:focusa`, `skill:focusa-${contract.family.replaceAll("_", "-")}`],
+          likely_next_tools: affordance?.likely_next_tools || [],
+          describe_with: "focusa_tool_describe",
+        }));
+      return {
+        content: [
+          {
+            type: "text",
+            text: `tool search → ${results.length} ranked result(s): ${results
+              .slice(0, 5)
+              .map((item) => item.name)
+              .join(", ") || "none"}`,
+          },
+        ],
+        details: {
+          schema: "focusa.tool_search_result.v1",
+          query,
+          family: p.family || null,
+          count: results.length,
+          results,
+          next_tools: results.length ? ["focusa_tool_describe"] : ["focusa_tool_bundle"],
+        },
+      } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_tool_describe",
+    label: "Focusa Tool Describe",
+    description:
+      "Cold-load one complete runtime Focusa tool definition after search. Returns strict input/output schemas, operational guidance, authority, side effects, failures, recovery, dependencies, skills, docs, and protocol bindings without loading unrelated tools.",
+    parameters: Type.Object({
+      name: Type.String({ description: "Exact Focusa Pi tool name returned by focusa_tool_search." }),
+      include_schemas: Type.Optional(Type.Boolean({ default: true })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const name = String(p.name || "").trim();
+      const contract = FOCUSA_TOOL_CONTRACTS.find((item) => item.name === name);
+      const affordance = buildFocusaToolAffordanceCatalog().find((item) => item.name === name);
+      const definition = agentFirstToolDefinitions.get(name);
+      if (!contract || !affordance || !definition) {
+        return blockedToolResponse(
+          "focusa_tool_describe",
+          "traversal",
+          `tool describe blocked → unknown capability ${name}`,
+          "not_found",
+          { name },
+          ["focusa_tool_search"]
+        );
+      }
+      const descriptor = {
+        name: contract.name,
+        family: contract.family,
+        label: contract.label,
+        purpose: contract.purpose,
+        api_routes: contract.api_routes,
+        cli_commands: contract.cli_commands,
+        docs_ref: contract.doc_path,
+        scope_requirement: contract.scope_requirement,
+        authority_requirement: contract.authority_requirement,
+        side_effect_profile: contract.side_effect_profile,
+        affordance,
+        input_schema: p.include_schemas === false ? undefined : definition.parameters,
+        output_schema: p.include_schemas === false ? undefined : definition.outputSchema,
+        schema_loading: p.include_schemas === false ? "metadata_only" : "cold_loaded",
+      };
+      return {
+        content: [
+          {
+            type: "text",
+            text: `tool describe → ${name}: ${contract.purpose} side_effect=${contract.side_effect_profile} next=${affordance.likely_next_tools.join(",")}`,
+          },
+        ],
+        details: {
+          schema: "focusa.tool_description.v2",
+          descriptor,
+          next_tools: affordance.likely_next_tools,
+        },
+      } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_tool_graph",
+    label: "Focusa Tool Graph",
+    description:
+      "Traverse the bounded capability dependency and likely-next graph from one tool or family. Use it to plan a valid workflow sequence without loading the complete registry or inventing dependencies.",
+    parameters: Type.Object({
+      anchor: Type.String({ description: "Exact tool name or family." }),
+      depth: Type.Optional(Type.Integer({ minimum: 1, maximum: 4, default: 2 })),
+      limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100, default: 40 })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const depth = Math.max(1, Math.min(4, Number(p.depth || 2)));
+      const limit = Math.max(1, Math.min(100, Number(p.limit || 40)));
+      const catalog = buildFocusaToolAffordanceCatalog();
+      const byName = new Map(catalog.map((item) => [item.name, item]));
+      let frontier = FOCUSA_TOOL_CONTRACTS.filter(
+        (item) => item.name === p.anchor || item.family === p.anchor
+      ).map((item) => item.name);
+      const seen = new Set(frontier);
+      const edges: Array<{ from: string; to: string; relation: string }> = [];
+      for (let level = 0; level < depth && frontier.length && seen.size <= limit; level += 1) {
+        const next: string[] = [];
+        for (const from of frontier) {
+          for (const to of byName.get(from)?.likely_next_tools || []) {
+            edges.push({ from, to, relation: "likely_next" });
+            if (!seen.has(to) && seen.size < limit) {
+              seen.add(to);
+              next.push(to);
+            }
+          }
+        }
+        frontier = next;
+      }
+      return {
+        content: [
+          {
+            type: "text",
+            text: `tool graph → anchor=${p.anchor} nodes=${seen.size} edges=${edges.length} depth=${depth}`,
+          },
+        ],
+        details: {
+          schema: "focusa.tool_graph.v1",
+          anchor: p.anchor,
+          depth,
+          nodes: [...seen],
+          edges,
+          next_tools: ["focusa_tool_describe", "focusa_tool_bundle"],
+        },
+      } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_tool_bundle",
+    label: "Focusa Tool Bundle",
+    description:
+      "Load a bounded family bundle of capability metadata and optionally strict schemas. Use after search or graph traversal when one workflow needs several related tools; avoid broad all-tool prompt injection.",
+    parameters: Type.Object({
+      family: Type.String({ description: "Exact Focusa tool family." }),
+      include_schemas: Type.Optional(Type.Boolean({ default: false })),
+      limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 50, default: 25 })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const limit = Math.max(1, Math.min(50, Number(p.limit || 25)));
+      const items = FOCUSA_TOOL_CONTRACTS.filter((item) => item.family === p.family)
+        .slice(0, limit)
+        .map((contract) => {
+          const definition = agentFirstToolDefinitions.get(contract.name);
+          return {
+            name: contract.name,
+            family: contract.family,
+            label: contract.label,
+            purpose: contract.purpose,
+            api_routes: contract.api_routes,
+            cli_commands: contract.cli_commands,
+            docs_ref: contract.doc_path,
+            side_effect_profile: contract.side_effect_profile,
+            input_schema: p.include_schemas ? definition?.parameters : undefined,
+            output_schema: p.include_schemas ? definition?.outputSchema : undefined,
+          };
+        });
+      return {
+        content: [
+          {
+            type: "text",
+            text: `tool bundle → family=${p.family} count=${items.length} schemas=${p.include_schemas === true ? "included" : "deferred"}`,
+          },
+        ],
+        details: {
+          schema: "focusa.tool_bundle.v1",
+          family: p.family,
+          count: items.length,
+          schema_loading: p.include_schemas ? "cold_loaded" : "metadata_only",
+          tools: items,
+          next_tools: items.length ? ["focusa_tool_describe", "focusa_tool_graph"] : ["focusa_tool_search"],
+        },
+      } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_agent_card",
+    label: "Focusa Agent Card",
+    description:
+      "Read a compact, versioned Focusa Agent Card for cross-harness discovery. Returns interfaces, auth methods, progressive-discovery entry points, capability families, registry digest guidance, and extended-card routes without loading full schemas.",
+    parameters: Type.Object({
+      include_families: Type.Optional(Type.Boolean({ default: true })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const families = [...new Set(FOCUSA_TOOL_CONTRACTS.map((item) => item.family))].sort();
+      const card = {
+        schema: "focusa.agent_card.v1",
+        name: "Focusa",
+        version: "0.9.120-dev",
+        description:
+          "Agent-first cognitive infrastructure with scoped Workpoints, Trajectory, evidence, recovery, browser interoperability, and cross-harness contracts.",
+        interfaces: ["pi", "mcp", "openai-functions", "cli", "rest"],
+        authentication: ["bearer", "device_pairing", "local_trusted"],
+        capabilities: {
+          streaming: true,
+          durable_tasks: true,
+          list_changed: true,
+          progressive_discovery: true,
+          structured_output: true,
+        },
+        discovery_tools: [
+          "focusa_tool_search",
+          "focusa_tool_describe",
+          "focusa_tool_graph",
+          "focusa_tool_bundle",
+        ],
+        capability_count: FOCUSA_TOOL_CONTRACTS.length,
+        capability_families: p.include_families === false ? undefined : families,
+        extended_card_path: "/v1/agent/card",
+      };
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Focusa Agent Card → capabilities=${card.capability_count} interfaces=${card.interfaces.join(",")} discovery=${card.discovery_tools.join(",")}`,
+          },
+        ],
+        details: { ...card, next_tools: card.discovery_tools },
+      } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_browser_capabilities_intake",
+    label: "Browser Capabilities Intake",
+    description:
+      "Validate and govern a UIAI or WebMCP browser capability manifest. Binds page tools to one session and origin, treats page safety annotations as untrusted, requires confirmation/evidence for mutation, and returns Focusa browser capability descriptors without executing them.",
+    parameters: Type.Object({
+      session_id: Type.String({ description: "Exact active UIAI browser session identifier." }),
+      origin: Type.String({ description: "Absolute http(s) page origin bound to these capabilities." }),
+      source: Type.Optional(Type.Union([Type.Literal("webmcp"), Type.Literal("uiai"), Type.Literal("page_manifest")])),
+      trusted_origin: Type.Optional(Type.Boolean({ default: false })),
+      tools: Type.Array(
+        Type.Object({
+          name: Type.String({ description: "Page/browser tool identifier." }),
+          description: Type.Optional(Type.String()),
+          inputSchema: Type.Object({}, { additionalProperties: true }),
+          annotations: Type.Optional(Type.Object({}, { additionalProperties: true })),
+        }),
+        { maxItems: 50 }
+      ),
+      project_root: Type.Optional(Type.String()),
+      continuity_id: Type.Optional(Type.String()),
+      workpoint_id: Type.Optional(Type.String()),
+    }),
+    async execute(_id, params) {
+      const res = await focusaFetchDetailed("/browser/capabilities/intake", {
+        method: "POST",
+        body: JSON.stringify(params),
+      });
+      const body = res.body || {};
+      if (!res.ok) {
+        return blockedToolResponse(
+          "focusa_browser_capabilities_intake",
+          "browser_interop",
+          `browser capability intake blocked → ${scopedResponseHuman(body, "manifest rejected")}`,
+          (body.failure_class || "validation_rejected") as FocusaFailureClass,
+          body,
+          ["focusa_browser_diagnostics_intake", "focusa_tool_doctor"]
+        );
+      }
+      return {
+        content: [
+          {
+            type: "text",
+            text: `browser capability intake → accepted=${body.capability_count || 0} session=${body.session_binding?.session_id || "unknown"} advisory_only=true`,
+          },
+        ],
+        details: body,
+      } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_browser_workflow_plan",
+    label: "Browser Workflow Plan",
+    description:
+      "Build the governed UIAI/WebMCP sequence for one browser operation before action. Returns health, read/source, diagnostics, snapshot refs, mutation confirmation, bound execution, evidence intake, Workpoint linkage, and session cleanup steps.",
+    parameters: Type.Object({
+      operation: Type.String({ description: "Bounded browser action intent." }),
+      mutation: Type.Optional(Type.Boolean({ default: false })),
+      webmcp_available: Type.Optional(Type.Boolean({ default: false })),
+      session_id: Type.Optional(Type.String()),
+      origin: Type.Optional(Type.String()),
+    }),
+    async execute(_id, params) {
+      const res = await focusaFetchDetailed("/browser/workflow/plan", {
+        method: "POST",
+        body: JSON.stringify(params),
+      });
+      const body = res.body || {};
+      if (!res.ok) {
+        return blockedToolResponse(
+          "focusa_browser_workflow_plan",
+          "browser_interop",
+          `browser workflow plan blocked → ${scopedResponseHuman(body, "plan rejected")}`,
+          (body.failure_class || "validation_rejected") as FocusaFailureClass,
+          body,
+          ["focusa_browser_diagnostics_intake", "focusa_tool_doctor"]
+        );
+      }
+      return {
+        content: [
+          {
+            type: "text",
+            text: `browser workflow plan → route=${body.route} mutation=${body.mutation} steps=${body.steps?.length || 0}`,
+          },
+        ],
+        details: body,
       } as any;
     },
   });

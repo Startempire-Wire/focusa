@@ -1,6 +1,6 @@
 {
   "schema": "focusa.mcp_tool_projection.v2",
-  "registry_digest": "sha256:fd7c0977731a2ef943e569b79b99749af2634053786d8e9f0472c593fdeb7d9a",
+  "registry_digest": "sha256:b9793d0eb515d53b607c447453c8c9ecc49eaf67327757cbe91eae5742f604bb",
   "tools": [
     {
       "name": "focusa.active.object.resolve",
@@ -189,7 +189,215 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_active_object_resolve.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_active_object_resolve.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/workpoint/active-object/resolve"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
+      }
+    },
+    {
+      "name": "focusa.agent.card",
+      "title": "Focusa Agent Card",
+      "description": "Read a compact, versioned Focusa Agent Card for cross-harness discovery. Returns interfaces, auth methods, progressive-discovery entry points, capability families, registry digest guidance, and extended-card routes without loading full schemas. Use it when Read compact cross-harness interfaces, auth, capabilities, families, and discovery entry points. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "include_families": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "capability_id": "focusa.agent.card",
+        "version": "2.0.0",
+        "skill_refs": [
+          "skill:focusa",
+          "skill:focusa-agent-bootstrap"
+        ],
+        "docs_ref": "docs/focusa-tools/tools/focusa_agent_card.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/agent/card"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -373,7 +581,16 @@
         "skill_refs": [
           "skill:focusa"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_agent_prompt.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_agent_prompt.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/agent/prompt"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -621,7 +838,20 @@
           "skill:focusa",
           "skill:focusa-agent-bootstrap"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_awareness_packet.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_awareness_packet.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/awareness/packet"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/awareness/packet/{surface}"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -816,7 +1046,16 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_domain.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_domain.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/bloatgaurd/domain/{name}"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -1011,7 +1250,16 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_gate_mode.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_gate_mode.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/bloatgaurd/gate-modes/mode/{name}"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -1196,7 +1444,16 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_gate_modes.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_gate_modes.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/bloatgaurd/gate-modes/report"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -1391,7 +1648,16 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_profile.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_profile.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/bloatgaurd/profiles/profile/{name}"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -1576,7 +1842,16 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_profiles.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_profiles.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/bloatgaurd/profiles/report"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -1761,7 +2036,16 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_report.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_report.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/bloatgaurd/report"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -1946,7 +2230,16 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_rollout.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_rollout.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/bloatgaurd/rollout/report"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -2141,7 +2434,16 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_routine.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_routine.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/bloatgaurd/routines/routine/{name}"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -2326,7 +2628,16 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_routines.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_routines.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/bloatgaurd/routines/report"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -2521,7 +2832,16 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_domain.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_domain.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/bloatgaurd/tokenbloat/domain/{name}"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -2706,7 +3026,285 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_report.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_report.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/bloatgaurd/tokenbloat/report"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
+      }
+    },
+    {
+      "name": "focusa.browser.capabilities.intake",
+      "title": "Browser Capabilities Intake",
+      "description": "Validate and govern a UIAI or WebMCP browser capability manifest. Binds page tools to one session and origin, treats page safety annotations as untrusted, requires confirmation/evidence for mutation, and returns Focusa browser capability descriptors without executing them. Use it when Validate and session/origin-bind UIAI or WebMCP page capabilities under Focusa governance. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "session_id",
+          "origin",
+          "tools"
+        ],
+        "properties": {
+          "session_id": {
+            "description": "Exact active UIAI browser session identifier.",
+            "type": "string"
+          },
+          "origin": {
+            "description": "Absolute http(s) page origin bound to these capabilities.",
+            "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "const": "webmcp",
+                "type": "string"
+              },
+              {
+                "const": "uiai",
+                "type": "string"
+              },
+              {
+                "const": "page_manifest",
+                "type": "string"
+              }
+            ]
+          },
+          "trusted_origin": {
+            "default": false,
+            "type": "boolean"
+          },
+          "tools": {
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "inputSchema"
+              ],
+              "properties": {
+                "name": {
+                  "description": "Page/browser tool identifier.",
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "inputSchema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "properties": {}
+                },
+                "annotations": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "properties": {}
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "_meta": {
+        "capability_id": "focusa.browser.capabilities.intake",
+        "version": "2.0.0",
+        "skill_refs": [
+          "skill:focusa",
+          "skill:focusa-troubleshooting",
+          "skill:focusa-browser-uiai"
+        ],
+        "docs_ref": "docs/focusa-tools/tools/focusa_browser_capabilities_intake.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/browser/capabilities/intake"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -2936,7 +3534,241 @@
           "skill:focusa-workpoint",
           "skill:focusa-browser-uiai"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/workpoint/evidence/link"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/predictions"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/metacognition/capture"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
+      }
+    },
+    {
+      "name": "focusa.browser.workflow.plan",
+      "title": "Browser Workflow Plan",
+      "description": "Build the governed UIAI/WebMCP sequence for one browser operation before action. Returns health, read/source, diagnostics, snapshot refs, mutation confirmation, bound execution, evidence intake, Workpoint linkage, and session cleanup steps. Use it when Plan a governed UIAI/WebMCP read, action, diagnostics, evidence, and cleanup sequence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "operation"
+        ],
+        "properties": {
+          "operation": {
+            "description": "Bounded browser action intent.",
+            "type": "string"
+          },
+          "mutation": {
+            "default": false,
+            "type": "boolean"
+          },
+          "webmcp_available": {
+            "default": false,
+            "type": "boolean"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "_meta": {
+        "capability_id": "focusa.browser.workflow.plan",
+        "version": "2.0.0",
+        "skill_refs": [
+          "skill:focusa",
+          "skill:focusa-troubleshooting",
+          "skill:focusa-browser-uiai"
+        ],
+        "docs_ref": "docs/focusa-tools/tools/focusa_browser_workflow_plan.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/browser/workflow/plan"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -3188,7 +4020,16 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_call_stack_design.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_call_stack_design.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/call-stack/design"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -3394,7 +4235,24 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_call_stack_verify.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_call_stack_verify.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/call-stack/verify"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/call-stack/list"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/call-stack/show"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -3590,7 +4448,16 @@
         "skill_refs": [
           "skill:focusa"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_constraint.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_constraint.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/focus/update"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -3795,7 +4662,16 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/context-cognition"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -4043,7 +4919,16 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_curate.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_curate.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/context-cognition/curate"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -4306,7 +5191,20 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/context-cognition/curate/eval"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/context-cognition/curate/eval/runs"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -4542,7 +5440,16 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_curate_optimize.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_curate_optimize.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/context-cognition/curate/optimize"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -4743,7 +5650,16 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_optimizer_artifacts.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_optimizer_artifacts.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/context-cognition/optimizer/artifacts"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -4939,7 +5855,16 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_proof.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_proof.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/context-cognition/proof"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -5135,7 +6060,16 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_render.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_render.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/context-cognition/render"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -5327,7 +6261,16 @@
         "skill_refs": [
           "skill:focusa"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_current_focus.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_current_focus.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/focus/update"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -5523,7 +6466,16 @@
         "skill_refs": [
           "skill:focusa"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_decide.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_decide.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/focus/update"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -5728,7 +6680,16 @@
           "skill:focusa",
           "skill:focusa-session-recovery"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_complete.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_complete.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/device/pair/complete"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -5924,7 +6885,16 @@
           "skill:focusa",
           "skill:focusa-session-recovery"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_list.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_list.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/device/pair/list"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -6130,7 +7100,16 @@
           "skill:focusa",
           "skill:focusa-session-recovery"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_qr.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_qr.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/device/pair/start"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -6331,7 +7310,16 @@
           "skill:focusa",
           "skill:focusa-session-recovery"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_revoke.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_revoke.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/device/pair/revoke"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -6537,7 +7525,16 @@
           "skill:focusa",
           "skill:focusa-session-recovery"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_start.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_start.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/device/pair/start"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -6731,7 +7728,16 @@
           "skill:focusa",
           "skill:focusa-session-recovery"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_status.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_status.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/device/pair/status"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -6916,7 +7922,16 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_dxux_digest.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_dxux_digest.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/dxux/digest"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -7111,7 +8126,16 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_dxux_explain.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_dxux_explain.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/dxux/explain/{failure}"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -7296,7 +8320,16 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_dxux_report.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_dxux_report.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/dxux/report"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -7491,7 +8524,16 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_dxux_requirement.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_dxux_requirement.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/dxux/requirement/{id}"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -7714,7 +8756,16 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_evidence_capture.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_evidence_capture.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/workpoint/evidence/link"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -7910,7 +8961,16 @@
         "skill_refs": [
           "skill:focusa"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_failure.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_failure.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/focus/update"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -8122,7 +9182,16 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_hlt_history.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_hlt_history.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/hlt/history"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -8314,7 +9383,16 @@
         "skill_refs": [
           "skill:focusa"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_intent.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_intent.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/focus/update"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -8508,7 +9586,16 @@
           "skill:focusa",
           "skill:focusa-session-recovery"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_li_tree_extract.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_li_tree_extract.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/lineage/tree"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -8706,7 +9793,16 @@
           "skill:focusa",
           "skill:focusa-session-recovery"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_lineage_tree.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_lineage_tree.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/lineage/tree"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -8931,7 +10027,16 @@
           "skill:focusa",
           "skill:focusa-metacognition"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_metacog_capture.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_metacog_capture.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/metacognition/capture"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -9140,7 +10245,20 @@
           "skill:focusa",
           "skill:focusa-metacognition"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_metacog_doctor.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_metacog_doctor.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/metacognition/retrieve"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/metacognition/reflections/recent"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -9346,7 +10464,16 @@
           "skill:focusa",
           "skill:focusa-metacognition"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/metacognition/evaluate"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -9613,7 +10740,32 @@
           "skill:focusa",
           "skill:focusa-metacognition"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_metacog_loop_run.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_metacog_loop_run.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/metacognition/capture"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/metacognition/retrieve"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/metacognition/reflect"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/metacognition/adjust"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/metacognition/evaluate"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -9819,7 +10971,16 @@
           "skill:focusa",
           "skill:focusa-metacognition"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_metacog_plan_adjust.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_metacog_plan_adjust.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/metacognition/adjust"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -10011,7 +11172,16 @@
           "skill:focusa",
           "skill:focusa-metacognition"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_metacog_recent_adjustments.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_metacog_recent_adjustments.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/metacognition/adjustments/recent"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -10203,7 +11373,16 @@
           "skill:focusa",
           "skill:focusa-metacognition"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_metacog_recent_reflections.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_metacog_recent_reflections.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/metacognition/reflections/recent"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -10409,7 +11588,16 @@
           "skill:focusa",
           "skill:focusa-metacognition"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_metacog_reflect.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_metacog_reflect.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/metacognition/reflect"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -10620,7 +11808,16 @@
           "skill:focusa",
           "skill:focusa-metacognition"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_metacog_retrieve.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_metacog_retrieve.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/metacognition/retrieve"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -10812,7 +12009,16 @@
         "skill_refs": [
           "skill:focusa"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_next_step.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_next_step.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/focus/update"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -11004,7 +12210,16 @@
         "skill_refs": [
           "skill:focusa"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_note.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_note.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/focus/update"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -11196,7 +12411,16 @@
         "skill_refs": [
           "skill:focusa"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_open_question.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_open_question.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/focus/update"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -11410,7 +12634,16 @@
           "skill:focusa",
           "skill:focusa-metacognition"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_predict_evaluate.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_predict_evaluate.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/predictions/{prediction_id}/evaluate"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -11608,7 +12841,16 @@
           "skill:focusa",
           "skill:focusa-metacognition"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_predict_recent.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_predict_recent.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/predictions/recent"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -11839,7 +13081,16 @@
           "skill:focusa",
           "skill:focusa-metacognition"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_predict_record.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_predict_record.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/predictions"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -12033,7 +13284,16 @@
           "skill:focusa",
           "skill:focusa-metacognition"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_predict_stats.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_predict_stats.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/predictions/stats"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -12250,7 +13510,16 @@
           "skill:focusa",
           "skill:focusa-agent-bootstrap"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_preload_build.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_preload_build.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/preload/build"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -12467,7 +13736,16 @@
           "skill:focusa",
           "skill:focusa-agent-bootstrap"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_preload_doctor.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_preload_doctor.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/preload/doctor"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -12652,7 +13930,16 @@
           "skill:focusa",
           "skill:focusa-agent-bootstrap"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_preload_profiles.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_preload_profiles.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/preload/profiles"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -12867,7 +14154,17 @@
           "skill:focusa",
           "skill:focusa-agent-bootstrap"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_preload_receipt_commit.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_preload_receipt_commit.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/preload/receipt-commit"
+          }
+        ],
+        "authority": {
+          "kind": "canonical",
+          "path": "/v1/preload/receipt-commit"
+        }
       }
     },
     {
@@ -13074,7 +14371,16 @@
           "skill:focusa",
           "skill:focusa-agent-bootstrap"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_preload_receipt_preview.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_preload_receipt_preview.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/preload/receipt-preview"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -13291,7 +14597,16 @@
           "skill:focusa",
           "skill:focusa-agent-bootstrap"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_preload_render.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_preload_render.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/preload/render"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -13508,7 +14823,16 @@
           "skill:focusa",
           "skill:focusa-agent-bootstrap"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_preload_verify.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_preload_verify.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/preload/verify"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -13732,7 +15056,17 @@
           "skill:focusa",
           "skill:focusa-agent-bootstrap"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_preload_write.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_preload_write.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/preload/write"
+          }
+        ],
+        "authority": {
+          "kind": "canonical",
+          "path": "/v1/preload/write"
+        }
       }
     },
     {
@@ -13956,7 +15290,16 @@
           "skill:focusa",
           "skill:focusa-project-scope"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_project_card.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_project_card.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/project/card"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -14179,7 +15522,16 @@
           "skill:focusa",
           "skill:focusa-project-scope"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_project_card_outcome.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_project_card_outcome.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/project/card/outcome"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -14399,7 +15751,16 @@
           "skill:focusa",
           "skill:focusa-project-scope"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_project_identity.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_project_identity.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/project/identity"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -14631,7 +15992,16 @@
           "skill:focusa",
           "skill:focusa-project-scope"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_project_verify.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_project_verify.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/project/verify"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -14823,7 +16193,16 @@
         "skill_refs": [
           "skill:focusa"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_recent_result.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_recent_result.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/focus/update"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -15027,7 +16406,16 @@
           "skill:focusa",
           "skill:focusa-tool-discovery"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_reflex_primitives.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_reflex_primitives.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/reflex/primitives"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -15279,7 +16667,20 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_resource_mode.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_resource_mode.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/resource/mode"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/resource/mode"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -15707,7 +17108,32 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_session_transfer.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_session_transfer.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/project/session-transfer"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/project/card"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/workpoint/checkpoint"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/workpoint/resume"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/trajectory/view"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -15903,7 +17329,434 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_state_hygiene_apply.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_state_hygiene_apply.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/focus/update"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
+      }
+    },
+    {
+      "name": "focusa.tool.bundle",
+      "title": "Focusa Tool Bundle",
+      "description": "Load a bounded family bundle of capability metadata and optionally strict schemas. Use after search or graph traversal when one workflow needs several related tools; avoid broad all-tool prompt injection. Use it when Load one bounded capability family with schemas deferred by default. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "family"
+        ],
+        "properties": {
+          "family": {
+            "description": "Exact Focusa tool family.",
+            "type": "string"
+          },
+          "include_schemas": {
+            "default": false,
+            "type": "boolean"
+          },
+          "limit": {
+            "minimum": 1,
+            "maximum": 50,
+            "default": 25,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "capability_id": "focusa.tool.bundle",
+        "version": "2.0.0",
+        "skill_refs": [
+          "skill:focusa",
+          "skill:focusa-tool-discovery"
+        ],
+        "docs_ref": "docs/focusa-tools/tools/focusa_tool_bundle.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/agent/tool-bundles"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
+      }
+    },
+    {
+      "name": "focusa.tool.describe",
+      "title": "Focusa Tool Describe",
+      "description": "Cold-load one complete runtime Focusa tool definition after search. Returns strict input/output schemas, operational guidance, authority, side effects, failures, recovery, dependencies, skills, docs, and protocol bindings without loading unrelated tools. Use it when Cold-load one complete capability contract including strict schemas and recovery. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "description": "Exact Focusa Pi tool name returned by focusa_tool_search.",
+            "type": "string"
+          },
+          "include_schemas": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "capability_id": "focusa.tool.describe",
+        "version": "2.0.0",
+        "skill_refs": [
+          "skill:focusa",
+          "skill:focusa-tool-discovery"
+        ],
+        "docs_ref": "docs/focusa-tools/tools/focusa_tool_describe.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/agent/tools/{name}"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -16093,7 +17946,450 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_tool_doctor.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_tool_doctor.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/health"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/workpoint/current"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/work-loop/status?summary_only=true"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
+      }
+    },
+    {
+      "name": "focusa.tool.graph",
+      "title": "Focusa Tool Graph",
+      "description": "Traverse the bounded capability dependency and likely-next graph from one tool or family. Use it to plan a valid workflow sequence without loading the complete registry or inventing dependencies. Use it when Traverse bounded capability dependencies and likely-next workflow edges. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "anchor"
+        ],
+        "properties": {
+          "anchor": {
+            "description": "Exact tool name or family.",
+            "type": "string"
+          },
+          "depth": {
+            "minimum": 1,
+            "maximum": 4,
+            "default": 2,
+            "type": "integer"
+          },
+          "limit": {
+            "minimum": 1,
+            "maximum": 100,
+            "default": 40,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "capability_id": "focusa.tool.graph",
+        "version": "2.0.0",
+        "skill_refs": [
+          "skill:focusa",
+          "skill:focusa-tool-discovery"
+        ],
+        "docs_ref": "docs/focusa-tools/tools/focusa_tool_graph.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/agent/tool-graph"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
+      }
+    },
+    {
+      "name": "focusa.tool.search",
+      "title": "Focusa Tool Search",
+      "description": "Search the bounded Focusa capability catalog before loading full schemas. Returns ranked metadata, scope, side-effect, skill, documentation, and discovery refs so agents can select the narrowest tool under token budget. Use it when Search bounded capability metadata before cold-loading full schemas. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "properties": {
+          "query": {
+            "description": "Capability, action, object, failure, or workflow search text.",
+            "type": "string"
+          },
+          "family": {
+            "description": "Optional exact Focusa tool family filter.",
+            "type": "string"
+          },
+          "limit": {
+            "minimum": 1,
+            "maximum": 50,
+            "default": 10,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "capability_id": "focusa.tool.search",
+        "version": "2.0.0",
+        "skill_refs": [
+          "skill:focusa",
+          "skill:focusa-tool-discovery"
+        ],
+        "docs_ref": "docs/focusa-tools/tools/focusa_tool_search.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/agent/tools"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -16302,7 +18598,16 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_assess.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_assess.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/trajectory/assess"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -16508,7 +18813,16 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_checkpoint.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_checkpoint.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/trajectory/checkpoint"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -16792,7 +19106,16 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_define_goal.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_define_goal.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/trajectory/define-goal"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -17002,7 +19325,16 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/trajectory/propose-workpoint"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -17213,7 +19545,16 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_resume.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_resume.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/trajectory/resume"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -17428,7 +19769,16 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_view.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_trajectory_view.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/trajectory/view"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -17751,7 +20101,20 @@
           "skill:focusa",
           "skill:focusa-tool-discovery"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_traverse.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_traverse.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/traverse"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/traverse/verify-tags"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -17955,7 +20318,16 @@
           "skill:focusa",
           "skill:focusa-session-recovery"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_tree_diff_context.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_tree_diff_context.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/focus/snapshots/diff"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -18147,7 +20519,16 @@
           "skill:focusa",
           "skill:focusa-session-recovery"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_tree_head.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_tree_head.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/lineage/head"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -18343,7 +20724,16 @@
           "skill:focusa",
           "skill:focusa-session-recovery"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_tree_path.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_tree_path.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/lineage/path/{clt_node_id}"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -18535,7 +20925,16 @@
           "skill:focusa",
           "skill:focusa-session-recovery"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_tree_recent_snapshots.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_tree_recent_snapshots.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/focus/snapshots/recent"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -18744,7 +21143,16 @@
           "skill:focusa",
           "skill:focusa-session-recovery"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_tree_restore_state.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_tree_restore_state.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/focus/snapshots/restore"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -18941,7 +21349,24 @@
           "skill:focusa",
           "skill:focusa-session-recovery"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_tree_snapshot_compare_latest.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_tree_snapshot_compare_latest.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/focus/snapshots/recent"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/focus/snapshots"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/focus/snapshots/diff"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -19138,7 +21563,16 @@
           "skill:focusa",
           "skill:focusa-session-recovery"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_tree_snapshot_state.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_tree_snapshot_state.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/focus/snapshots"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -19323,7 +21757,24 @@
           "skill:focusa",
           "skill:focusa-troubleshooting"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_utility_card.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_utility_card.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/utility/card"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/utility/bootstrap"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/utility/post-compaction"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -19513,7 +21964,16 @@
           "skill:focusa",
           "skill:focusa-work-loop"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_checkpoint.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_checkpoint.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/work-loop/checkpoint"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -19734,7 +22194,16 @@
           "skill:focusa",
           "skill:focusa-work-loop"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_context.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_context.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/work-loop/context"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -19975,7 +22444,28 @@
           "skill:focusa",
           "skill:focusa-work-loop"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_control.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_control.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/work-loop/enable"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/work-loop/pause"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/work-loop/resume"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/work-loop/stop"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -20165,7 +22655,16 @@
           "skill:focusa",
           "skill:focusa-work-loop"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_select_next.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_select_next.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/work-loop/select-next"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -20350,7 +22849,16 @@
           "skill:focusa",
           "skill:focusa-work-loop"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_status.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_status.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/work-loop/status?summary_only=true"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -20535,7 +23043,16 @@
           "skill:focusa",
           "skill:focusa-work-loop"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_writer_status.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_work_loop_writer_status.md",
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/work-loop/status?summary_only=true"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -20797,7 +23314,16 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_workpoint_checkpoint.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_workpoint_checkpoint.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/workpoint/checkpoint"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -21019,7 +23545,16 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_workpoint_link_evidence.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_workpoint_link_evidence.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/workpoint/evidence/link"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     },
     {
@@ -21229,7 +23764,16 @@
           "skill:focusa",
           "skill:focusa-workpoint"
         ],
-        "docs_ref": "docs/focusa-tools/tools/focusa_workpoint_resume.md"
+        "docs_ref": "docs/focusa-tools/tools/focusa_workpoint_resume.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/workpoint/resume"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
       }
     }
   ]

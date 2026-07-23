@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/Startempire-Wire/focusa/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Startempire-Wire/focusa/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/Startempire-Wire/focusa/actions/workflows/release.yml"><img alt="Release" src="https://github.com/Startempire-Wire/focusa/actions/workflows/release.yml/badge.svg"></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.9.80--dev-blue">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.9.120--dev-blue">
   <img alt="Rust" src="https://img.shields.io/badge/rust-1.91%2B-dea584?logo=rust">
   <img alt="License" src="https://img.shields.io/badge/license-BSL--1.1-orange">
   <img alt="Local first" src="https://img.shields.io/badge/local--first-proof%20layer-2b82ff">
@@ -178,6 +178,20 @@ Focusa can produce public-safe proof summaries without exposing local paths, ful
 focusa release prove --tag v0.9.80-dev --fast --json
 bash tests/spec_cli_cross_phase_smoke_test.sh
 ```
+
+## Agent-first capability discovery
+
+Focusa publishes one generated Agent Capability Descriptor V2 across Pi, MCP, OpenAI-compatible functions, CLI JSON help, REST, skills, and browser workflows. Agents start with metadata—not 100+ hot schemas—and progressively load only what the next action needs:
+
+1. `focusa_agent_card` — interfaces, auth, families, capability count, and discovery entry points.
+2. `focusa_tool_search` — ranked metadata by action, object, failure, or workflow.
+3. `focusa_tool_describe` — one strict input/output/error contract.
+4. `focusa_tool_graph` — bounded dependency and likely-next edges.
+5. `focusa_tool_bundle` — one family, schemas deferred by default.
+
+MCP exposes the generated callable catalog with pagination, `listChanged`, strict schemas, structured output, safety annotations, and scoped REST authority. UIAI/WebMCP capabilities are bound to one browser session and origin; page safety claims remain untrusted, mutations require governance, and results become evidence.
+
+Machine contracts: [`docs/contracts/spec141/generated-capability-v2/`](docs/contracts/spec141/generated-capability-v2/) · Skills/runbooks: [`.pi/skills/`](.pi/skills/) · Release gate: [`docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md`](docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md)
 
 ## Core commands
 

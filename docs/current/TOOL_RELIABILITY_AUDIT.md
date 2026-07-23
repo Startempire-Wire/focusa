@@ -8,7 +8,7 @@
 node scripts/audit-focusa-tool-suite-safe.mjs
 ```
 
-This audit is read-only for daemon/API probes. It validates all 59 registered tool contracts and docs, probes safe GET routes, and classifies warnings/failures with `failure_class` and optional Spec97 `reflex_suggestions`.
+This audit is read-only for daemon/API probes. It validates every registered tool contract and doc from the generated registry, probes safe GET routes, and classifies warnings/failures with `failure_class` and optional Spec97 `reflex_suggestions`.
 
 ## Latest safe audit result
 

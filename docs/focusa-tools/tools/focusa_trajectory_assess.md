@@ -1,55 +1,71 @@
-# focusa_trajectory_assess
+# `focusa_trajectory_assess`
 
-## Purpose
-
-Compare observed/current state against desired end state and return gaps, evidence refs, context sufficiency, and recommended action.
+Assess current project state against the desired Trajectory end state and return gaps/recommended action. Use it when Assess project current state against desired Trajectory end state and return gaps/recommended action; task-boundary reviews should cross-check predictions and metacog lessons. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Project start/resume when trajectory is unclear.
-- After operator steering changes project goal/state.
-- Before compaction/model switch/handoff.
-- Before converting trajectory gap into Workpoint continuation.
+- Assess project current state against desired Trajectory end state and return gaps/recommended action; task-boundary reviews should cross-check predictions and metacog lessons.
+- Capability family: `trajectory`; namespace: `focusa.trajectory`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Example usage
+## Parameters and strict input schema
+
+- `observed_state` (optional; string): Observed current state override.
+- `evidence_refs` (optional; array): Evidence refs supporting observed state.
+- `project_root` (optional; string): Optional expected project root; defaults to Pi session cwd.
+- `session_id` (optional; string): Optional temporal Pi session id; defaults to Pi session key.
+- `continuity_id` (optional; string): Optional logical continuity id; defaults to Pi continuity id.
+
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_trajectory_assess`.
+
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
 
 ```json
-{
-  "project_root": "<focusa-repo>",
-  "session_id": "pi-session"
-}
+{}
 ```
 
-## Expected result
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_assess.md
 
-Returns `tool_result_v1` details backed by the `/v1/trajectory/*` endpoint. The result is project-scoped, bounded, and explicit about `canonical`, `degraded`, `advisory_only`, `next_tools`, and recovery posture.
+## Anti-examples
 
-## Recovery notes
+- overriding Workpoint/operator authority
+- merging sessions on goal similarity alone
 
-- `failure_class=hot_path_timeout` or `status=timeout_preserved`: the Pi tool preserves a degraded noncanonical fallback candidate/checkpoint/resume packet; use it only as advisory orientation, then retry after `focusa_tool_doctor`/`focusa_resource_mode`.
+## Authority, permissions, and side effects
 
-Use `details.tool_result_v1.failure_class` plus status/canonical/degraded fields for recovery decisions.
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_state`, `read_state`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-- Scope mismatch: verify ProjectIdentity before trusting context.
-- Advisory candidate: do not treat as canonical Workpoint until `focusa_workpoint_checkpoint` accepts it.
-- Unclear trajectory: use `focusa_trajectory_define_goal` or request only missing goal facts.
-- Degraded daemon: fall back to Workpoint resume + Focus Slice, then retry trajectory view.
+## Failure and recovery
 
-## Related tools
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- `focusa_trajectory_view`
-- `focusa_workpoint_resume`
-- `focusa_workpoint_checkpoint`
-- `focusa_active_object_resolve`
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-## Contract summary
+## Dependencies and workflow position
 
-- Family: Trajectory.
-- Side effects: `read_state`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `POST /v1/trajectory/assess`
-- CLI commands: `focusa trajectory assess`
-- Parity: `domain`; exemptions: `domain_cli_only`.
-- Core surface: Spec96 per-project Trajectory Intelligence projection.
-- Live check: contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+- `focusa_trajectory_propose_workpoint` (likely_next)
+- `focusa_workpoint_checkpoint` (likely_next)
+- `focusa_evidence_capture` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_trajectory_propose_workpoint`, `focusa_workpoint_checkpoint`, `focusa_evidence_capture`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Runbooks: `runbook:trajectory`
+- Pi: `focusa_trajectory_assess`; MCP: `focusa.trajectory.assess`; OpenAI: `focusa_trajectory_assess`.
+- CLI: `focusa trajectory assess`.
+- REST: `POST /v1/trajectory/assess`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:c8fad58603fae51983c6e476fb795d676b8d3ad898f8c0d5c34b95508b8f5ecc`.

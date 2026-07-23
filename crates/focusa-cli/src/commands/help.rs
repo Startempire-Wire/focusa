@@ -1,7 +1,10 @@
 //! Spec124 command hierarchy and migration help.
 
 use clap::{Args, Subcommand};
-use serde_json::json;
+use serde_json::{Value, json};
+
+const SPEC141_CLI_PROJECTION: &str =
+    include_str!("../../../../docs/contracts/spec141/generated-capability-v2/cli-commands.json");
 
 #[derive(Args, Debug)]
 pub struct HelpArgs {
@@ -178,6 +181,7 @@ pub fn warn_alias(old: &str, new: &str) {
 pub fn run(args: HelpArgs, json_output: bool) -> anyhow::Result<()> {
     let topic = args.topic.unwrap_or(HelpTopic::All);
     if json_output {
+        let generated: Value = serde_json::from_str(SPEC141_CLI_PROJECTION)?;
         let migrations: Vec<_> = MIGRATIONS
             .iter()
             .map(|(old, new, note)| json!({"old": old, "new": new, "note": note}))
@@ -187,6 +191,9 @@ pub fn run(args: HelpArgs, json_output: bool) -> anyhow::Result<()> {
             "status": "completed",
             "topic": format!("{:?}", topic),
             "inventory": inventory_lines(),
+            "agent_capability_registry_digest": generated.get("registry_digest"),
+            "agent_command_count": generated.get("commands").and_then(Value::as_array).map(Vec::len).unwrap_or_default(),
+            "agent_commands": generated.get("commands").cloned().unwrap_or_else(|| json!([])),
             "migrations": migrations,
             "next": ["focusa project", "focusa first-mission --dry-run --json", "focusa help migration"]
         });

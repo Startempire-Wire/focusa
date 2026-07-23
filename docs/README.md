@@ -184,13 +184,16 @@ This is **institutional intelligence**, not novelty AI.
 - [focusa-tools/tree-lineage.md](focusa-tools/tree-lineage.md) — tree, lineage, snapshot tools.
 - [focusa-tools/diagnostics-hygiene.md](focusa-tools/diagnostics-hygiene.md) — troubleshooting and state hygiene tools.
 - [focusa-tools/predictive-power.md](focusa-tools/predictive-power.md) — prediction record/evaluate/stats tools.
+- [141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md](141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md) — agent-first tool, skill, browser, docs, and conformance release gate.
+- [contracts/spec141/generated-capability-v2/agent-capability-reference.md](contracts/spec141/generated-capability-v2/agent-capability-reference.md) — generated cross-harness capability reference.
+- [evidence/141-focusa-latest-spec-public-doc-alignment.md](evidence/141-focusa-latest-spec-public-doc-alignment.md) — rolling latest-15-spec public direction/status matrix.
 
-Companion Pi skills mirror these docs: `focusa-workpoint`, `focusa-metacognition`, `focusa-work-loop`, `focusa-cli-api`, `focusa-troubleshooting`, `focusa-docs-maintenance`, and `predictive-power`.
+Twenty-one root and packaged Pi skills now provide progressive domain guidance and dependency-aware runbooks. The generated parity/coverage authority is [evidence/141-focusa-skill-runbook-coverage.md](evidence/141-focusa-skill-runbook-coverage.md); capability schemas remain cold-loaded through `focusa_tool_search`, `focusa_tool_describe`, `focusa_tool_graph`, and `focusa_tool_bundle`.
 
 ## Status
 
 Focusa is under active development.
-The current `v0.9.13-dev` snapshot focuses on correctness, transparency, continuity, prediction accountability, compaction recovery, and live proof over marketing claims.
+The current `v0.9.120-dev` snapshot focuses on agent-first progressive discovery, strict cross-harness contracts, browser governance, durable continuity, evidence, prediction accountability, and live proof over marketing claims.
 
 ---
 

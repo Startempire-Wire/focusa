@@ -1,60 +1,68 @@
-# focusa_awareness_packet
+# `focusa_awareness_packet`
 
-**Family:** awareness  
-**Schema:** focusa.awareness_packet.v1  
-**Surface:** Spec108 awareness rendering substrate  
-**Parity:** API only (`GET /v1/awareness/packet`)
-
-## Purpose
-
-Render a surface-aware `AwarenessPacket` with DVS-scored visible lines, suppressed lines, metadata, next_tools, and recovery_tools. The packet distills Focusa cognitive state into a compact, ranked view appropriate for the current session context.
+Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed lines, metadata, next_tools, and recovery_tools, including Spec 111 preload status surfaces. Use it when Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed lines, metadata, next_tools, and recovery_tools. Use on reload, post-compaction, tool guidance, warning, or UIAI bridge surfaces. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- On session reload: surface=`reload`
-- After compaction: surface=`post_compaction`
-- During tool guidance: surface=`tool_guidance`
-- On warning/error: surface=`warning`
-- During UIAI bridge ops: surface=`uiai_bridge`
+- Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed lines, metadata, next_tools, and recovery_tools. Use on reload, post-compaction, tool guidance, warning, or UIAI bridge surfaces.
+- Capability family: `awareness`; namespace: `focusa.awareness`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Parameters
+## Parameters and strict input schema
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `surface` | string | `reload` | Awareness surface: `reload`, `post_compaction`, `warning`, `tool_guidance`, `uiai_bridge` |
+- `surface` (optional; string | string | string | string | string | string | string | string | string): Awareness surface (default: reload).
+- `mode` (optional; string | string | string | string): Awareness rendering mode (default: standard).
 
-## Result envelope
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_awareness_packet`.
 
-Returns `tool_result_v1` with:
+## Output
 
-- `schema`: `"focusa.awareness_packet.v1"`
-- `mode`: `"minimal" | "standard" | "rich" | "onboarding"`
-- `surface`: the requested surface
-- `visible_lines`: top DVS-scored lines (shown to operator)
-- `suppressed_lines`: lower-priority lines (hidden but available)
-- `metadata`: DVS cutoff, counts, confidence, freshness score, authority score
-- `next_tools`: recommended next tools
-- `recovery_tools`: recovery options if degraded
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
-## Guardrails
+## Example
 
-- AwarenessPacket is advisory; it does not override Workpoint authority.
-- Suppressed lines are available but not shown by default.
-- Confidence is derived from authority score (high ≥80, medium ≥50, low <50).
+```json
+{}
+```
 
-## Next tools
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_awareness_packet.md
 
-- `focusa_workpoint_resume` — canonical continuation
-- `focusa_trajectory_view` — goal/state orientation
-- `focusa_tool_doctor` — if packet is degraded
+## Anti-examples
 
-## Evidence
+- treating awareness as canonical authority
+- ignoring suppressed lines when debugging degraded awareness
 
-- Rust implementation: `crates/focusa-core/src/awareness.rs`
-- TypeScript port: `apps/pi-extension/src/awareness-substrate.ts`
-- API routes: `GET /v1/awareness/packet`, `GET /v1/awareness/packet/{surface}`
-- Static test: `tests/spec108_awareness_substrate_static_test.py`
+## Authority, permissions, and side effects
 
-- API: `GET /v1/awareness/packet`
-- API: `GET /v1/awareness/packet/{surface}`
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
+- Scope: `{"kind":"read","route_family":"awareness:read"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_state`, `read_state`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
+
+## Failure and recovery
+
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
+
+## Dependencies and workflow position
+
+- `focusa_workpoint_resume` (likely_next)
+- `focusa_trajectory_view` (likely_next)
+- `focusa_tool_doctor` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_workpoint_resume`, `focusa_trajectory_view`, `focusa_tool_doctor`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-agent-bootstrap`
+- Runbooks: `runbook:awareness`
+- Pi: `focusa_awareness_packet`; MCP: `focusa.awareness.packet`; OpenAI: `focusa_awareness_packet`.
+- CLI: none.
+- REST: `GET /v1/awareness/packet`, `GET /v1/awareness/packet/{surface}`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:920b9013407174442b0108d2caae4cbb237f9a13301555433765153a7125c7c0`.

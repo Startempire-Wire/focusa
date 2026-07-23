@@ -3,8 +3,8 @@
 #
 # Static guard for focusa-112-mcp-jsonrpc.
 # Backward compatibility: route is additive (/mcp and /v1/mcp); existing HTTP
-# routes are unchanged. Scope enforcement: minimal MCP bridge exposes only
-# unscoped focusa.health; project-bound actions stay behind scoped HTTP routes.
+# routes remain the authority. Spec141 projects the curated generated catalog
+# and bridges calls through scoped REST so auth/permission checks are preserved.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -53,13 +53,23 @@ grep -q '"tools/call"' "$MCP" \
   || fail "MCP bridge missing tools/call method"
 pass "MCP initialize/tools/list/tools/call methods present"
 
-# Scope enforcement: only unscoped health tool exposed, project-bound calls rejected
-grep -q '"focusa.health"' "$MCP" \
-  || fail "MCP bridge missing safe focusa.health tool"
-grep -q 'unscoped-health-only' "$MCP" \
-  || fail "MCP health tool must declare unscoped-health-only scope"
-grep -q 'Project-bound tools are intentionally not exposed' "$MCP" \
-  || fail "MCP bridge must reject project-bound tools instead of bypassing scope"
-pass "MCP bridge preserves scope enforcement (unscoped health only)"
+# Spec141 generated catalog, pagination, structured calls, and scope preservation
+PROJECTION="$ROOT_DIR/docs/contracts/spec141/generated-capability-v2/mcp-tools.json"
+[ -f "$PROJECTION" ] || fail "missing generated MCP capability projection"
+jq -e '.schema == "focusa.mcp_tool_projection.v2" and (.tools | length) > 1' "$PROJECTION" >/dev/null \
+  || fail "generated MCP projection must expose the curated catalog"
+jq -e 'all(.tools[]; has("inputSchema") and has("outputSchema") and has("annotations") and (._meta.rest | length) > 0)' "$PROJECTION" >/dev/null \
+  || fail "every MCP tool needs schemas, annotations, and a REST authority binding"
+grep -q 'listChanged' "$MCP" \
+  || fail "MCP bridge must advertise listChanged"
+grep -q 'nextCursor' "$MCP" \
+  || fail "MCP bridge must paginate tools/list"
+grep -q 'structuredContent' "$MCP" \
+  || fail "MCP bridge must return structuredContent"
+grep -q '\.get(AUTHORIZATION)' "$MCP" && grep -q 'request = request.header(AUTHORIZATION.as_str(), value)' "$MCP" \
+  || fail "MCP bridge must forward authorization to scoped REST authority"
+grep -q 'bind_path' "$MCP" \
+  || fail "MCP bridge must bind and validate generated route parameters"
+pass "MCP bridge exposes generated structured tools through scoped REST authority"
 
 echo "✓ All MCP JSON-RPC static checks passed"

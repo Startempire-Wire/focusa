@@ -1,57 +1,67 @@
 # `focusa_tool_doctor`
 
-**Family:** `diagnostics-hygiene`  
-**Label:** Focusa Tool Doctor
-
-## Purpose
-
-Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action.
+Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. Use it when Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-Use `focusa_tool_doctor` when its specific Focusa state or workflow surface is the narrowest tool that matches the current need. Prefer this tool over raw transcript memory when the result should survive compaction, be inspectable, or guide a later agent turn.
+- Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action.
+- Capability family: `diagnostics_hygiene`; namespace: `focusa.diagnostics_hygiene`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## When not to use
+## Parameters and strict input schema
 
-Do not use `focusa_tool_doctor` to dump unbounded logs, bypass operator steering, or create parallel memory outside Focusa. If the tool returns `pending`, `blocked`, `degraded`, or `canonical=false`, treat that as a recovery state and follow the returned next-step guidance.
+- `scope` (optional; string): Optional family/surface to diagnose, e.g. workpoint, focus_state, metacog.
 
-## Example usage
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_tool_doctor`.
 
-```text
-focusa_tool_doctor scope="workpoint"
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
+
+```json
+{}
 ```
 
-## Expected result
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_doctor.md
 
-The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
+## Anti-examples
 
-The doctor also compares the Pi static tool-contract registry with the live daemon `/v1/ontology/tool-contracts` view. `details.contract_drift` reports `static_count`, `live_count`, `missing_live`, `extra_live`, `stale_live_contracts`, and copy-ready `repair_commands` for daemon rebuild/restart plus live proof. `details.uiai_browser` reports UIAI `/api/health/browser` and `/api/metrics/browser` status/queue pressure when the local UIAI Engine is reachable. `details.evidence_capture_suggestion` contains a copy-ready `focusa_evidence_capture` payload for preserving the diagnostic proof without reconstructing fields.
+- hiding failures behind null/unknown
+- silent deletion or cleanup
 
-## Recovery notes
+## Authority, permissions, and side effects
 
-- If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.
-- If the result is non-canonical/degraded, call `focusa_workpoint_resume` or a relevant read tool before continuing.
-- If writer ownership is involved, call `focusa_work_loop_writer_status` or use work-loop preflight first.
-- If `contract_drift.drift_detected=true`, rebuild/restart the daemon from the documented production release route, then run live contract proof before trusting daemon-visible contracts.
-- If `uiai_browser.pressure=high`, narrow browser workload, close stale UIAI sessions, or retry after queue drains before running parallel browser work.
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `diagnostic`, `diagnostic`
+- Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `true`.
 
-## Related tools
+## Failure and recovery
 
-- [`focusa_state_hygiene_doctor`](./focusa_state_hygiene_doctor.md)
-- [`focusa_state_hygiene_plan`](./focusa_state_hygiene_plan.md)
-- [`focusa_state_hygiene_apply`](./focusa_state_hygiene_apply.md)
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-## Contract summary
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-- Family: Diagnostics / Hygiene.
-- Side effects: `diagnostic`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `GET /v1/health`, `GET /v1/workpoint/current`, `GET /v1/work-loop/status?summary_only=true`; local UIAI adjunct reads `GET /api/health/browser` and `GET /api/metrics/browser` from `UIAI_ENGINE_URL`/`WPUIAI_ENGINE_URL` or `http://127.0.0.1:7456`.
-- CLI commands: none.
-- Parity: `domain`; exemptions: `domain_cli_only`.
-- Core surface: Local diagnostic/hygiene composition.
-- Live check: contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+## Dependencies and workflow position
 
-## Source
-Defined in `apps/pi-extension/src/tools.ts`.
+- `focusa_resource_mode` (likely_next)
+- `focusa_project_identity` (likely_next)
+- `focusa_workpoint_resume` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_resource_mode`, `focusa_project_identity`, `focusa_workpoint_resume`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Runbooks: `runbook:diagnostics_hygiene`
+- Pi: `focusa_tool_doctor`; MCP: `focusa.tool.doctor`; OpenAI: `focusa_tool_doctor`.
+- CLI: none.
+- REST: `GET /v1/health`, `GET /v1/workpoint/current`, `GET /v1/work-loop/status?summary_only=true`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:49031605b8e6fe7d3d19afc88e7e257597a27ecd7ef40b1dccd88cd6c1558c39`.

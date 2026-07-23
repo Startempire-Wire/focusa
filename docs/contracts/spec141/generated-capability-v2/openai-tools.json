@@ -1,6 +1,6 @@
 {
   "schema": "focusa.openai_tool_projection.v2",
-  "registry_digest": "sha256:fd7c0977731a2ef943e569b79b99749af2634053786d8e9f0472c593fdeb7d9a",
+  "registry_digest": "sha256:b9793d0eb515d53b607c447453c8c9ecc49eaf67327757cbe91eae5742f604bb",
   "tools": [
     {
       "type": "function",
@@ -14,6 +14,24 @@
             "hint": {
               "description": "Optional file/object/endpoint/work item hint.",
               "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_agent_card",
+        "description": "Read a compact, versioned Focusa Agent Card for cross-harness discovery. Returns interfaces, auth methods, progressive-discovery entry points, capability families, registry digest guidance, and extended-card routes without loading full schemas. Use it when Read compact cross-harness interfaces, auth, capabilities, families, and discovery entry points. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "include_families": {
+              "default": true,
+              "type": "boolean"
             }
           },
           "additionalProperties": false
@@ -305,6 +323,93 @@
     {
       "type": "function",
       "function": {
+        "name": "focusa_browser_capabilities_intake",
+        "description": "Validate and govern a UIAI or WebMCP browser capability manifest. Binds page tools to one session and origin, treats page safety annotations as untrusted, requires confirmation/evidence for mutation, and returns Focusa browser capability descriptors without executing them. Use it when Validate and session/origin-bind UIAI or WebMCP page capabilities under Focusa governance. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "session_id",
+            "origin",
+            "tools"
+          ],
+          "properties": {
+            "session_id": {
+              "description": "Exact active UIAI browser session identifier.",
+              "type": "string"
+            },
+            "origin": {
+              "description": "Absolute http(s) page origin bound to these capabilities.",
+              "type": "string"
+            },
+            "source": {
+              "anyOf": [
+                {
+                  "const": "webmcp",
+                  "type": "string"
+                },
+                {
+                  "const": "uiai",
+                  "type": "string"
+                },
+                {
+                  "const": "page_manifest",
+                  "type": "string"
+                }
+              ]
+            },
+            "trusted_origin": {
+              "default": false,
+              "type": "boolean"
+            },
+            "tools": {
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "inputSchema"
+                ],
+                "properties": {
+                  "name": {
+                    "description": "Page/browser tool identifier.",
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "inputSchema": {
+                    "additionalProperties": true,
+                    "type": "object",
+                    "properties": {}
+                  },
+                  "annotations": {
+                    "additionalProperties": true,
+                    "type": "object",
+                    "properties": {}
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "project_root": {
+              "type": "string"
+            },
+            "continuity_id": {
+              "type": "string"
+            },
+            "workpoint_id": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
         "name": "focusa_browser_diagnostics_intake",
         "description": "Turn UIAI/browser diagnostics JSON into bounded Focusa evidence, active-object hints, a prediction candidate, and a metacog candidate. Use it when Turn UIAI/browser diagnostics JSON into bounded Workpoint evidence, active-object hints, prediction context, and optional metacog learning. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
         "strict": true,
@@ -353,6 +458,41 @@
             "create_metacog": {
               "description": "Defaults false; capture only when this diagnostics pattern should become reusable learning.",
               "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_browser_workflow_plan",
+        "description": "Build the governed UIAI/WebMCP sequence for one browser operation before action. Returns health, read/source, diagnostics, snapshot refs, mutation confirmation, bound execution, evidence intake, Workpoint linkage, and session cleanup steps. Use it when Plan a governed UIAI/WebMCP read, action, diagnostics, evidence, and cleanup sequence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "operation"
+          ],
+          "properties": {
+            "operation": {
+              "description": "Bounded browser action intent.",
+              "type": "string"
+            },
+            "mutation": {
+              "default": false,
+              "type": "boolean"
+            },
+            "webmcp_available": {
+              "default": false,
+              "type": "boolean"
+            },
+            "session_id": {
+              "type": "string"
+            },
+            "origin": {
+              "type": "string"
             }
           },
           "additionalProperties": false
@@ -2846,6 +2986,62 @@
     {
       "type": "function",
       "function": {
+        "name": "focusa_tool_bundle",
+        "description": "Load a bounded family bundle of capability metadata and optionally strict schemas. Use after search or graph traversal when one workflow needs several related tools; avoid broad all-tool prompt injection. Use it when Load one bounded capability family with schemas deferred by default. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "family"
+          ],
+          "properties": {
+            "family": {
+              "description": "Exact Focusa tool family.",
+              "type": "string"
+            },
+            "include_schemas": {
+              "default": false,
+              "type": "boolean"
+            },
+            "limit": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 25,
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_tool_describe",
+        "description": "Cold-load one complete runtime Focusa tool definition after search. Returns strict input/output schemas, operational guidance, authority, side effects, failures, recovery, dependencies, skills, docs, and protocol bindings without loading unrelated tools. Use it when Cold-load one complete capability contract including strict schemas and recovery. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "description": "Exact Focusa Pi tool name returned by focusa_tool_search.",
+              "type": "string"
+            },
+            "include_schemas": {
+              "default": true,
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
         "name": "focusa_tool_doctor",
         "description": "Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. Use it when Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
         "strict": true,
@@ -2855,6 +3051,70 @@
             "scope": {
               "description": "Optional family/surface to diagnose, e.g. workpoint, focus_state, metacog.",
               "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_tool_graph",
+        "description": "Traverse the bounded capability dependency and likely-next graph from one tool or family. Use it to plan a valid workflow sequence without loading the complete registry or inventing dependencies. Use it when Traverse bounded capability dependencies and likely-next workflow edges. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "anchor"
+          ],
+          "properties": {
+            "anchor": {
+              "description": "Exact tool name or family.",
+              "type": "string"
+            },
+            "depth": {
+              "minimum": 1,
+              "maximum": 4,
+              "default": 2,
+              "type": "integer"
+            },
+            "limit": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 40,
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_tool_search",
+        "description": "Search the bounded Focusa capability catalog before loading full schemas. Returns ranked metadata, scope, side-effect, skill, documentation, and discovery refs so agents can select the narrowest tool under token budget. Use it when Search bounded capability metadata before cold-loading full schemas. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "query"
+          ],
+          "properties": {
+            "query": {
+              "description": "Capability, action, object, failure, or workflow search text.",
+              "type": "string"
+            },
+            "family": {
+              "description": "Optional exact Focusa tool family filter.",
+              "type": "string"
+            },
+            "limit": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10,
+              "type": "integer"
             }
           },
           "additionalProperties": false

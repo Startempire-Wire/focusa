@@ -1,47 +1,76 @@
 # `focusa_project_card`
 
-**Family:** `project_identity`  
-**Label:** Project Card
-
-## Purpose
-
-Build an advisory project-intelligence card that fuses ProjectIdentity, ontology, trajectory, Workpoint/evidence, prior-session context, prediction, and metacog signals for bootstrap/re-bootstrap and next-step evaluation.
+Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals. Use it when Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals for bootstrap/re-bootstrap. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- At project bootstrap or re-bootstrap.
-- Before refreshing or defining trajectory hierarchy.
-- During project reviews when the best next step is unclear.
-- Before final work reports when the next possibility should be grounded in project intelligence.
+- Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals for bootstrap/re-bootstrap.
+- Capability family: `project_identity`; namespace: `focusa.project_identity`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Parameters
+## Parameters and strict input schema
 
-- `cwd` — optional cwd/project path hint; defaults to Pi session cwd.
-- `project_root` — optional expected project folder/root.
-- `current_ask` — optional current ask used to seed bootstrap/re-bootstrap candidate.
+- `cwd` (optional; string): Optional cwd/project path hint; defaults to Pi session cwd.
+- `project_root` (optional; string): Optional expected project root folder.
+- `current_ask` (optional; string): Optional current ask used to seed bootstrap/re-bootstrap candidate.
+- `remote_host` (optional; string): Remote SSH host that contains the project root; caller supplies inspected evidence.
+- `remote_user` (optional; string): Remote SSH user, if known.
+- `remote_port` (optional; number; min=1, max=65535): Remote SSH port, if known.
+- `remote_repo_remote` (optional; string): Git origin/repo remote observed on the remote host.
+- `remote_workspace_kind` (optional; string): Workspace kind observed on the remote host.
+- `remote_deploy_root` (optional; string): Deployment/site root observed on the remote host.
 
-## Expected result
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_project_card`.
 
-Returns `schema=focusa.project_card.v1`, `project_identity`, bounded/effective `ontology` counts, `trajectory` ladder context, `inferred_workpoint_candidate` for verified-project/no-packet recovery fed by prior session workpath, prediction, metacognition prompt, ontology, trajectory STG, file changes, git activity, current ask, and prior Workpoint signals, `trajectory_report_card` (HLT/LTG/MTG/STG, waypoint accomplishment status, elapsed time and token efficiency), `crosswire_health` (ontology/trajectory/prediction/metacog/outcome/time-token/waypoint feed status), `prior_session_context` (HLG/MLG/STG/waypoints, recent decisions/results, algorithm outcomes, prediction summary, metacog prompt), `success_sequence` (outcome-aware recommended next event sequence plus `shortest_path_to_success`), `algorithmic_intelligence.outcome_learning`, `active_workpoint`, `evidence`, `prediction` stats/recent records, metacog retrieval prompts, bootstrap/re-bootstrap candidate, possibilities, and next tool guidance. Pi text/details foreground inferred Workpoint action, crosswire status, elapsed/tokens, selected shortest path, weighted cost, and eliminated-path count while keeping the echoed response compact to reduce hot-path timeout risk.
+## Output
 
-The card is advisory-only. Use `focusa_trajectory_define_goal` or `focusa_trajectory_assess` for trajectory writes/reviews.
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
 ## Example
 
-```text
-focusa_project_card project_root="/home/wirebot/focusa" current_ask="Choose the next evidence-backed step"
+```json
+{}
 ```
 
-## Failure recovery
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_card.md
 
-`tool_result_v1.failure_class` is part of the recovery contract. When the card returns a failure (e.g. `project_identity_unverified`, `daemon_unavailable`, `scope_conflict`, `trajectory_unclear`, or `unknown_ambiguous_completion`), call `focusa_project_verify` first and re-run `focusa_project_card`. If trajectory clarity is the blocker, run `focusa_trajectory_define_goal` or `focusa_trajectory_view` and retry. The card is advisory-only and never overrides canonical Workpoint or trajectory envelopes.
+## Anti-examples
 
-## Contract summary
+- assuming unsafe broad cwd is canonical
+- skipping verify after scope mismatch
 
-- Family: Project Identity.
-- Side effects: `read_state`.
-- Result envelope: `tool_result_v1` with status, recovery posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `GET /v1/project/card`.
-- CLI commands: `focusa project card`.
-- Core surface: Spec98 ontology-grounded project-intelligence flywheel.
-- Prominent fields: `prior_session_context`, `success_sequence`, `bootstrap.candidate.prior_context_inputs`.
+## Authority, permissions, and side effects
+
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_state`, `read_state`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `true`.
+- Confirmation required: `false`; preview supported: `false`.
+
+## Failure and recovery
+
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
+
+## Dependencies and workflow position
+
+- `focusa_project_card_outcome` (likely_next)
+- `focusa_traverse` (likely_next)
+- `focusa_trajectory_view` (likely_next)
+- `focusa_metacog_retrieve` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_project_card_outcome`, `focusa_traverse`, `focusa_trajectory_view`, `focusa_metacog_retrieve`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-project-scope`
+- Runbooks: `runbook:project_identity`
+- Pi: `focusa_project_card`; MCP: `focusa.project.card`; OpenAI: `focusa_project_card`.
+- CLI: `focusa project card`.
+- REST: `GET /v1/project/card`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:7e9cf6a87edb40f22bf30d9740638d5b6b5597157f661f7a25d86a6db0e571b6`.

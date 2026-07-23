@@ -1,56 +1,69 @@
 # `focusa_next_step`
 
-**Family:** `focus-state`  
-**Label:** Record Next Step
-
-## Purpose
-
-Record what you plan to do next (max 160 chars).
+Record what you plan to do next (max 160 chars). Use it when Record what you plan to do next (max 160 chars). It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-Use `focusa_next_step` when its specific Focusa state or workflow surface is the narrowest tool that matches the current need. Prefer this tool over raw transcript memory when the result should survive compaction, be inspectable, or guide a later agent turn.
+- Record what you plan to do next (max 160 chars).
+- Capability family: `focus_state`; namespace: `focusa.focus_state`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## When not to use
+## Parameters and strict input schema
 
-Do not use `focusa_next_step` to dump unbounded logs, bypass operator steering, or create parallel memory outside Focusa. If the tool returns `pending`, `blocked`, `degraded`, or `canonical=false`, treat that as a recovery state and follow the returned next-step guidance.
+- `step` (required; string): Next step (max 160 chars).
 
-## Example usage
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_next_step`.
 
-```text
-focusa_next_step step="Validate 43 one-tool docs and push release tag."
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
+
+```json
+{
+  "step": "example"
+}
 ```
 
-## Expected result
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_next_step.md
 
-The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
+## Anti-examples
 
-## Recovery notes
+- raw transcript dumping
+- source-of-truth replacement for Workpoint continuation
 
-- If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.
-- If the result is non-canonical/degraded, call `focusa_workpoint_resume` or a relevant read tool before continuing.
-- If writer ownership is involved, call `focusa_work_loop_writer_status` or use work-loop preflight first.
+## Authority, permissions, and side effects
 
-## Related tools
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `write_state`, `write_state`
+- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-- [`focusa_scratch`](./focusa_scratch.md)
-- [`focusa_decide`](./focusa_decide.md)
-- [`focusa_constraint`](./focusa_constraint.md)
-- [`focusa_failure`](./focusa_failure.md)
-- [`focusa_intent`](./focusa_intent.md)
-- [`focusa_current_focus`](./focusa_current_focus.md)
+## Failure and recovery
 
-## Contract summary
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- Family: Focus State.
-- Side effects: `write_state`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `POST /v1/focus/update`
-- CLI commands: `focusa focus update --next-step`
-- Parity: `full`.
-- Core surface: FocusState reducer/update.
-- Live check: contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-## Source
-Defined in `apps/pi-extension/src/tools.ts`.
+## Dependencies and workflow position
+
+- `focusa_workpoint_checkpoint` (likely_next)
+- `focusa_active_object_resolve` (likely_next)
+- `focusa_evidence_capture` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_workpoint_checkpoint`, `focusa_active_object_resolve`, `focusa_evidence_capture`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`
+- Runbooks: `runbook:focus_state`
+- Pi: `focusa_next_step`; MCP: `focusa.next.step`; OpenAI: `focusa_next_step`.
+- CLI: `focusa focus update --next-step`.
+- REST: `POST /v1/focus/update`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:f0c533f6b6d882611e1ad578b6fdd17692dfffa241a210de0a71d2f6147245ab`.

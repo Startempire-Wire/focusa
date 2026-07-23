@@ -1,56 +1,75 @@
 # `focusa_project_identity`
 
-**Family:** `project_identity`  
-**Label:** Project Identity
-
-## Purpose
-
-Resolve the active ProjectIdentity before trusting project-bound Workpoints, Trajectory packets, evidence, or carryover context.
+Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator project signals before trusting project-bound context. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- At project start/resume when the project folder is unclear.
-- Before accepting a Workpoint/Trajectory packet as canonical.
-- When a packet, cwd, Beads root, git root, or operator-provided project folder might point at different projects.
+- Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator project signals before trusting project-bound context.
+- Capability family: `project_identity`; namespace: `focusa.project_identity`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Parameters
+## Parameters and strict input schema
 
-- `cwd` — optional cwd/project path hint; defaults to Pi session cwd.
-- `project_root` — optional expected project folder/root.
-- `remote_host`, `remote_user`, `remote_port` — optional remote SSH context for a project that lives outside the local Focusa daemon filesystem.
-- `remote_repo_remote`, `remote_workspace_kind`, `remote_deploy_root` — optional caller-supplied evidence observed after remote inspection. These signals let Focusa form a bounded remote ProjectIdentity without treating the daemon cwd as the project authority.
-- `persisted_project_root`, `persisted_project_fingerprint`, `persisted_project_id`, `persisted_canonical_name` — optional prior-session ProjectIdentity signal. Pi fills these from `S.lastProjectIdentity` when available; mismatches degrade the result instead of silently reusing stale scope.
+- `cwd` (optional; string): Optional cwd/project path hint; defaults to Pi session cwd.
+- `project_root` (optional; string): Optional expected project root folder.
+- `remote_host` (optional; string): Remote SSH host that contains the project root; caller supplies inspected evidence.
+- `remote_user` (optional; string): Remote SSH user, if known.
+- `remote_port` (optional; integer; min=1, max=65535): Remote SSH port, if known.
+- `remote_repo_remote` (optional; string): Git origin/repo remote observed on the remote host.
+- `remote_workspace_kind` (optional; string): Workspace kind observed on the remote host.
+- `remote_deploy_root` (optional; string): Deployment/site root observed on the remote host.
 
-## Expected result
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_project_identity`.
 
-Returns a bounded ProjectIdentity with `status`, `project_id`, `canonical_name`, `project_root`, `aliases`, `fingerprint`, `confidence`, `signals`, `mismatches`, `verified_at`, and quorum details. It also returns `project_summary` and `summary_lines` as the canonical compact project card: project/root/repo, stack, workspace kind, key dirs, root/live/local/wp/app/auth/graphql/api URLs, deployment environment/target/location/command, source confidence, `local_only`, public repo, and authority boundary. Marker-backed plus repo/live-root scanned `project_urls` and `deployment` fields expose these facts when present; scans include repo docs, SvelteKit/app files, same-project `wp-config.php`, explicit likely `/home/<site>/public_html` files, deploy scripts, and workflows. Docs/reference/upstream URLs are filtered unless the source line explicitly declares a project URL; uncertain live/deploy facts stay unknown or low confidence rather than being invented. It marks unsafe broad roots such as `/root` as `status=unsafe_project_root`, `canonical=false`. Beads signals include the discovered issue prefix when `.beads/issues.jsonl` is available. Persisted-session identity is a corroborating signal; fingerprint/project-id/name mismatch returns `scope_mismatch`/`canonical=false`. For remote SSH projects, a verified envelope includes `remote_context`, `remote_project_scope` / `remote_repo_evidence` signals, and `authority_boundary=remote_host_plus_project_root_plus_fingerprint`; Focusa records caller-supplied remote facts but does not open SSH sessions from the daemon. Pi results include `details.tool_result_v1` with `status`, `failure_class`, `canonical`, `degraded`, recovery posture, and `next_tools`.
+## Output
 
-## Failure and recovery
-
-- `failure_class=hot_path_timeout` or `status=timeout_preserved`: treat any cached identity as noncanonical advisory only; retry after `focusa_tool_doctor`/`focusa_resource_mode`, then verify before Workpoint or Trajectory trust.
-
-- `failure_class=scope_mismatch`: resolve mismatched marker/git/beads/cwd/operator signals, then retry unchanged only after scope is corrected.
-- `canonical=false` or `confidence=low|medium`: treat identity as advisory/degraded and verify before canonical resume.
-- `daemon_unavailable`: continue from current repo and Beads as noncanonical fallback, then retry `/v1/project/identity`.
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
 ## Example
 
-```text
-focusa_project_identity cwd="/home/wirebot/focusa"
-focusa_project_identity project_root="/home/site/project" remote_host="site.example" remote_repo_remote="git@github.com:org/project.git" remote_workspace_kind="wordpress" remote_deploy_root="/home/site/public_html"
+```json
+{}
 ```
 
-## Contract summary
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_identity.md
 
-- Family: Project Identity.
-- Side effects: `read_state`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `GET /v1/project/identity`
-- CLI commands: `focusa project identity`
-- Parity: `domain`; exemptions: `domain_cli_only`.
-- Core surface: Spec96 ProjectIdentity quorum and project-folder safety.
-- Live check: contract_static plus /v1/project/identity safe probe and quorum status.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+## Anti-examples
 
-## Source
-Backed by `GET /v1/project/identity`.
+- assuming unsafe broad cwd is canonical
+- skipping verify after scope mismatch
+
+## Authority, permissions, and side effects
+
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_state`, `read_state`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `true`.
+- Confirmation required: `false`; preview supported: `false`.
+
+## Failure and recovery
+
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
+
+## Dependencies and workflow position
+
+- `focusa_project_card` (likely_next)
+- `focusa_project_verify` (likely_next)
+- `focusa_trajectory_view` (likely_next)
+- `focusa_workpoint_resume` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_project_card`, `focusa_project_verify`, `focusa_trajectory_view`, `focusa_workpoint_resume`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-project-scope`
+- Runbooks: `runbook:project_identity`
+- Pi: `focusa_project_identity`; MCP: `focusa.project.identity`; OpenAI: `focusa_project_identity`.
+- CLI: `focusa project identity`.
+- REST: `GET /v1/project/identity`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:b10fafd60acb259c9eff1501ea1099136b480c7194db07376a760cc162db81ba`.

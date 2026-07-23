@@ -1,104 +1,71 @@
 # `focusa_device_pair_complete`
 
-**Family:** `session_transfer`
-**Label:** Device Pair Complete
-
-**Architecture spec:** [`docs/53-focusa-device-pairing-spec.md`](../../53-focusa-device-pairing-spec.md)
-
-## Purpose
-
-**Mac menubar OAuth-like device pairing (focusa-ui0y).** Run on the **VPS side** to complete a pending pairing initiated by `focusa_device_pair_start`. Returns the long-lived token (30-day TTL) that the Mac app will use for subsequent calls. Appends a `DeviceRecord` (revoked=false) to the append-only JSONL ledger.
-
-This tool is invoked in three handoff modes (see [§3 of the pairing spec](../../53-focusa-device-pairing-spec.md#3-handoff-modes)):
-
-- **Mode A (CLI):** the operator runs `focusa device pair-complete <code>` over SSH.
-- **Mode B (QR + phone):** the operator scans a QR on the Mac, opens `pair_url` on the phone, and the focusa-pairing PWA helper page calls this tool.
-- **Mode C (QR + VPS browser):** same as B but a kiosk/second device scans the QR.
-
-In all three modes, the body of the call is identical — only the transport differs.
+Complete a pending pairing (run on the VPS side; returns the long-lived token). Idempotent: re-running with the same code returns the original token. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Run on the VPS side; returns the long-lived token. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- The operator is on the VPS (or anywhere with daemon access) and has the `FOCUS-XXXX-XXXX` code from `focusa_device_pair_start`.
-- The Mac app should NOT be running this; the VPS runs it once and the Mac app polls `focusa_device_pair_status` to retrieve the token.
-- Single-use: re-running with the same code returns `pair_code_already_used`; the daemon does not issue a second token.
+- Mac menubar OAuth-like device pairing (focusa-ui0y). Run on the VPS side; returns the long-lived token.
+- Capability family: `session_transfer`; namespace: `focusa.session_transfer`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Parameters
+## Parameters and strict input schema
 
-- `code` — the `FOCUS-XXXX-XXXX` code from `focusa_device_pair_start`. Required.
-- `host` — host label (e.g. `operator-vps`, `home-mac`). Default: `operator-vps`; sanitized to a bounded safe label and checked against unsafe agent runtime paths.
-- `operator_id` — operator id (e.g. `verious`). Optional; sanitized to a bounded safe label.
-- `completed_by` — who/what completed the pairing. Default: `vps-cli`; sanitized to a bounded safe label.
+- `code` (required; string): The FOCUS-XXXX-XXXX code from focusa_device_pair_start.
+- `host` (optional; string): Host label (default: 'operator-host').
+- `operator_id` (optional; string): Operator id (e.g. 'verious').
+- `completed_by` (optional; string): Who/what completed the pairing. Default: 'vps-cli'.
 
-## Expected result
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_device_pair_complete`.
 
-Returns `tool_result_v1` with `ok`, `advisory=true`, plus:
-- `code` — the code (echoed)
-- `device_id` — UUID v7
-- `device_name` — the human name from `focusa_device_pair_start`
-- `host` — host label
-- `scopes` — scopes granted
-- `token` — 32-byte CSPRNG token encoded as base64url-no-pad (30-day TTL)
-- `token_expires_at` — ISO 8601 timestamp
-- `next_tools`: `["focusa_device_pair_status", "focusa_device_pair_list"]`
-- `rehydrate_id` — the device_id
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
 ## Example
 
 ```json
 {
-  "code": "FOCUS-019EA...-...",
-  "host": "operator-vps",
-  "operator_id": "verious",
-  "completed_by": "vps-cli"
+  "code": "example"
 }
 ```
 
-```text
-focusa_device_pair_complete ok | device pair complete → token issued for device_id=019ea...-...
-ids: device_id=019ea...-... rehydrate_id=019ea...-... token=019ea...-...
-fields: host=operator-vps operator_id=verious token_ttl_secs=2592000 advisory=true
-note: mac app: the on_your_vps_run response is for the operator; the mac app reads the token from focusa_device_pair_status after the operator runs this command on the VPS.
-next: focusa_device_pair_status → focusa_device_pair_list
-```
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_complete.md
 
-## Scope rules
+## Anti-examples
 
-- The `code` must be in `Pending` state and not expired (5-minute TTL from `pair-start`).
-- The `host` is recorded in the ledger and is used for the `pair-list` and `pair-revoke` filters; it must not be an agent runtime path.
-- The token is **long-lived** (30 days), generated from 32 bytes of CSPRNG entropy, and base64url-no-pad encoded; `pair-revoke` is the only way to invalidate it before then.
+- raw localStorage as canonical
+- raw URL paste without a saved pair
 
-## Notes
+## Authority, permissions, and side effects
 
-- The completion is idempotent at the API level: re-running with the same code returns `{"status":"already_completed","failure_class":"pair_code_already_used"}` and the daemon does NOT issue a new token.
-- The `DeviceRecord` is appended to `data/device-pairing/{host_hash}/devices.jsonl` — append-only, scope-bounded, replay-friendly.
-- The in-memory token map is invalidated by `focusa_device_pair_revoke`.
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `write_device_pair_complete`, `write_device_pair_complete`
+- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `true`.
+- Confirmation required: `false`; preview supported: `false`.
 
-## Failure recovery
+## Failure and recovery
 
-`tool_result_v1.failure_class` is part of the recovery contract. Common values:
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- `code_missing` — provide `code` and retry.
-- `pair_code_not_found` — the code is unknown; check spelling.
-- `pair_code_expired` — the code is older than 5 minutes; re-run `focusa_device_pair_start` to get a fresh code.
-- `pair_code_already_used` — the code was already completed; poll `focusa_device_pair_status` for the existing token.
-- `scope_mismatch` — the `host` is an agent runtime path.
-- `storage_unwritable` — the daemon can't append to the ledger; check daemon logs.
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-When `failure_class` is missing, treat the response as a successful completion; verify with `focusa_device_pair_list`.
+## Dependencies and workflow position
 
-## Contract summary
+- `focusa_device_pair_status` (likely_next)
+- `focusa_device_pair_list` (likely_next)
 
-- Family: `session_transfer`
-- Side effects: `write_device_pair_complete` (in-memory token insert + JSONL ledger append)
-- Result envelope: `tool_result_v1`
-- API routes: `POST /v1/device/pair/complete`
-- CLI commands: `focusa device pair-complete`
-- Core surface: `Mac menubar OAuth-like device pairing (long-lived token, 30-day TTL)`
-- Bead: `focusa-ui0y`
-- Contract source: `docs/current/focusa-tool-contracts.json`
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_device_pair_status`, `focusa_device_pair_list`.
 
-## Next tools
+## Skills, protocols, and source authority
 
-- `focusa_device_pair_status` — verify completion + retrieve token.
-- `focusa_device_pair_list` — see all paired devices.
+- Skills: `skill:focusa`, `skill:focusa-session-recovery`
+- Runbooks: `runbook:session_transfer`
+- Pi: `focusa_device_pair_complete`; MCP: `focusa.device.pair.complete`; OpenAI: `focusa_device_pair_complete`.
+- CLI: `focusa device pair-complete`.
+- REST: `POST /v1/device/pair/complete`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:0de1119449d31f6dfcdc8782bd44ef0dd0baf4833640c638e5e79f97bb0cada9`.

@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:fd7c0977731a2ef943e569b79b99749af2634053786d8e9f0472c593fdeb7d9a`
+Registry digest: `sha256:b9793d0eb515d53b607c447453c8c9ecc49eaf67327757cbe91eae5742f604bb`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -14,6 +14,17 @@ Resolve likely active object references from the current Workpoint and optional 
 - Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_workpoint_checkpoint`, `focusa_evidence_capture`, `focusa_traverse`
 - Documentation: `docs/focusa-tools/tools/focusa_active_object_resolve.md`
+
+## focusa_agent_card
+
+Read a compact, versioned Focusa Agent Card for cross-harness discovery. Returns interfaces, auth methods, progressive-discovery entry points, capability families, registry digest guidance, and extended-card routes without loading full schemas. Use it when Read compact cross-harness interfaces, auth, capabilities, families, and discovery entry points. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.agent.card`
+- Family: `awareness`
+- Side effects: `read_state`, `read_state`
+- Skills: `skill:focusa`, `skill:focusa-agent-bootstrap`
+- Dependencies/next: `focusa_tool_search`, `focusa_tool_bundle`, `focusa_project_identity`
+- Documentation: `docs/focusa-tools/tools/focusa_agent_card.md`
 
 ## focusa_agent_prompt
 
@@ -158,6 +169,17 @@ Spec 101 — read Tokenbloat Control report for domains 5.9-5.10. Use it when Sp
 - Dependencies/next: `focusa_bloatgaurd_tokenbloat_domain`, `focusa_bloatgaurd_report`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_report.md`
 
+## focusa_browser_capabilities_intake
+
+Validate and govern a UIAI or WebMCP browser capability manifest. Binds page tools to one session and origin, treats page safety annotations as untrusted, requires confirmation/evidence for mutation, and returns Focusa browser capability descriptors without executing them. Use it when Validate and session/origin-bind UIAI or WebMCP page capabilities under Focusa governance. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.browser.capabilities.intake`
+- Family: `diagnostics_hygiene`
+- Side effects: `write_browser_capability_evidence`, `write_browser_capability_evidence`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-browser-uiai`
+- Dependencies/next: `focusa_browser_workflow_plan`, `focusa_browser_diagnostics_intake`, `focusa_evidence_capture`
+- Documentation: `docs/focusa-tools/tools/focusa_browser_capabilities_intake.md`
+
 ## focusa_browser_diagnostics_intake
 
 Turn UIAI/browser diagnostics JSON into bounded Focusa evidence, active-object hints, a prediction candidate, and a metacog candidate. Use it when Turn UIAI/browser diagnostics JSON into bounded Workpoint evidence, active-object hints, prediction context, and optional metacog learning. It returns a typed Focusa result with bounded recovery and likely next capabilities.
@@ -168,6 +190,17 @@ Turn UIAI/browser diagnostics JSON into bounded Focusa evidence, active-object h
 - Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-browser-uiai`
 - Dependencies/next: `focusa_active_object_resolve`, `focusa_evidence_capture`, `focusa_predict_record`, `focusa_metacog_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md`
+
+## focusa_browser_workflow_plan
+
+Build the governed UIAI/WebMCP sequence for one browser operation before action. Returns health, read/source, diagnostics, snapshot refs, mutation confirmation, bound execution, evidence intake, Workpoint linkage, and session cleanup steps. Use it when Plan a governed UIAI/WebMCP read, action, diagnostics, evidence, and cleanup sequence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.browser.workflow.plan`
+- Family: `diagnostics_hygiene`
+- Side effects: `read_state`, `read_state`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-browser-uiai`
+- Dependencies/next: `focusa_browser_capabilities_intake`, `focusa_browser_diagnostics_intake`, `focusa_evidence_capture`
+- Documentation: `docs/focusa-tools/tools/focusa_browser_workflow_plan.md`
 
 ## focusa_call_stack_design
 
@@ -884,6 +917,28 @@ Create a proposal-style hygiene plan; does not mutate Focus State. Use it when C
 - Dependencies/next: `focusa_state_hygiene_apply`, `focusa_state_hygiene_doctor`, `focusa_tool_doctor`
 - Documentation: `docs/focusa-tools/tools/focusa_state_hygiene_plan.md`
 
+## focusa_tool_bundle
+
+Load a bounded family bundle of capability metadata and optionally strict schemas. Use after search or graph traversal when one workflow needs several related tools; avoid broad all-tool prompt injection. Use it when Load one bounded capability family with schemas deferred by default. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.tool.bundle`
+- Family: `traversal`
+- Side effects: `read_state`, `read_state`
+- Skills: `skill:focusa`, `skill:focusa-tool-discovery`
+- Dependencies/next: `focusa_tool_describe`, `focusa_tool_graph`, `focusa_tool_search`
+- Documentation: `docs/focusa-tools/tools/focusa_tool_bundle.md`
+
+## focusa_tool_describe
+
+Cold-load one complete runtime Focusa tool definition after search. Returns strict input/output schemas, operational guidance, authority, side effects, failures, recovery, dependencies, skills, docs, and protocol bindings without loading unrelated tools. Use it when Cold-load one complete capability contract including strict schemas and recovery. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.tool.describe`
+- Family: `traversal`
+- Side effects: `read_state`, `read_state`
+- Skills: `skill:focusa`, `skill:focusa-tool-discovery`
+- Dependencies/next: `focusa_tool_graph`, `focusa_agent_card`, `focusa_tool_search`
+- Documentation: `docs/focusa-tools/tools/focusa_tool_describe.md`
+
 ## focusa_tool_doctor
 
 Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. Use it when Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. It returns a typed Focusa result with bounded recovery and likely next capabilities.
@@ -894,6 +949,28 @@ Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health
 - Skills: `skill:focusa`, `skill:focusa-troubleshooting`
 - Dependencies/next: `focusa_resource_mode`, `focusa_project_identity`, `focusa_workpoint_resume`
 - Documentation: `docs/focusa-tools/tools/focusa_tool_doctor.md`
+
+## focusa_tool_graph
+
+Traverse the bounded capability dependency and likely-next graph from one tool or family. Use it to plan a valid workflow sequence without loading the complete registry or inventing dependencies. Use it when Traverse bounded capability dependencies and likely-next workflow edges. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.tool.graph`
+- Family: `traversal`
+- Side effects: `read_state`, `read_state`
+- Skills: `skill:focusa`, `skill:focusa-tool-discovery`
+- Dependencies/next: `focusa_tool_describe`, `focusa_tool_bundle`, `focusa_tool_search`
+- Documentation: `docs/focusa-tools/tools/focusa_tool_graph.md`
+
+## focusa_tool_search
+
+Search the bounded Focusa capability catalog before loading full schemas. Returns ranked metadata, scope, side-effect, skill, documentation, and discovery refs so agents can select the narrowest tool under token budget. Use it when Search bounded capability metadata before cold-loading full schemas. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.tool.search`
+- Family: `traversal`
+- Side effects: `read_state`, `read_state`
+- Skills: `skill:focusa`, `skill:focusa-tool-discovery`
+- Dependencies/next: `focusa_tool_describe`, `focusa_tool_bundle`, `focusa_tool_graph`
+- Documentation: `docs/focusa-tools/tools/focusa_tool_search.md`
 
 ## focusa_trajectory_assess
 

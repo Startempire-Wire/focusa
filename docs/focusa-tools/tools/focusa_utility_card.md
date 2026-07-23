@@ -1,44 +1,68 @@
 # `focusa_utility_card`
 
-**Family:** `diagnostics_hygiene`  
-**Label:** Focusa Utility Card
-
-## Purpose
-
-Read compact startup, bootstrap, post-compaction, recovery, and tool-brevity guidance from current core surfaces.
+Read compact bootstrap, post-compaction, recovery, and brevity guidance. Use it when Read compact bootstrap, post-compaction, recovery, and brevity guidance. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Session start or post-compaction resume.
-- Scope conflict or stale transcript risk.
-- Tool behavior/docs feel verbose or pre-current-core.
+- Read compact bootstrap, post-compaction, recovery, and brevity guidance.
+- Capability family: `diagnostics_hygiene`; namespace: `focusa.diagnostics_hygiene`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Expected result
+## Parameters and strict input schema
 
-A `tool_result_v1` envelope with `focusa.utility_card.v1` raw payload containing:
+- No arguments.
 
-- `authority_boundary`
-- `usefulness_bar`
-- `scope_gate`
-- `bootstrap_card`
-- `post_compaction_card`
-- `exact_next_actions`
-- `do_not_drift`
-- `evidence_policy`
-- `brevity_rules`
-- `recovery_order`
-- `proof_commands`
-- `next_tools`
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_utility_card`.
 
-## Contract summary
+## Output
 
-- API: `GET /v1/utility/card`, `GET /v1/utility/bootstrap`, `GET /v1/utility/post-compaction`.
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
+
+```json
+{}
+```
+
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_utility_card.md
+
+## Anti-examples
+
+- hiding failures behind null/unknown
+- silent deletion or cleanup
+
+## Authority, permissions, and side effects
+
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_state`, `read_state`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
+
+## Failure and recovery
+
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
+
+## Dependencies and workflow position
+
+- `focusa_agent_prompt` (likely_next)
+- `focusa_workpoint_resume` (likely_next)
+- `focusa_trajectory_view` (likely_next)
+- `focusa_evidence_capture` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_agent_prompt`, `focusa_workpoint_resume`, `focusa_trajectory_view`, `focusa_evidence_capture`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Runbooks: `runbook:diagnostics_hygiene`
+- Pi: `focusa_utility_card`; MCP: `focusa.utility.card`; OpenAI: `focusa_utility_card`.
 - CLI: `focusa utility card`, `focusa utility bootstrap`, `focusa utility post-compaction`.
-- Side effects: read-only.
-- Core: `focusa_core::utility_card::UtilityCard`.
-
-- API: `GET /v1/utility/bootstrap`
-- API: `GET /v1/utility/post-compaction`
-- CLI: `focusa utility bootstrap`
-- CLI: `focusa utility post-compaction`
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
+- REST: `GET /v1/utility/card`, `GET /v1/utility/bootstrap`, `GET /v1/utility/post-compaction`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:c399fc607c7e5e9ba7dd55dffbfe40e07d503b8736b0c2007ca22eb834835709`.

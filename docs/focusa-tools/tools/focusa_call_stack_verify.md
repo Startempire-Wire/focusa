@@ -1,73 +1,70 @@
 # `focusa_call_stack_verify`
 
-**Family:** `workpoint`
-**Label:** Call Stack Verify
-
-## Purpose
-
-Verify a saved Call Stack Design against bounded implementation surfaces and report drift before or during implementation. This is advisory only: it never mutates Focus State, Workpoints, Trajectory, code, or ledgers.
+Verify a Call Stack Design against bounded implementation surfaces and report drift: entry surface, handlers, services, adapters, storage, output envelope, evidence, and Workpoint/STG alignment. Advisory only. Use it when Verify a Call Stack Design against bounded implementation surfaces and report drift without mutating Focus State. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- After `focusa_call_stack_design` created a design.
-- Before reviewing/continuing implementation of a designed feature.
-- When checking whether entry surface, handlers, services, adapters, storage, output envelope, evidence, or Workpoint/STG alignment drifted.
+- Verify a Call Stack Design against bounded implementation surfaces and report drift without mutating Focus State.
+- Capability family: `workpoint`; namespace: `focusa.workpoint`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Parameters
+## Parameters and strict input schema
 
-- `project_root` — project scope. Defaults to Pi session cwd.
-- `continuity_id` — optional continuity scope filter.
-- `design_id` — specific Call Stack Design id to verify.
-- `entry_name` — entry name to verify when `design_id` is omitted; latest matching design is used.
+- `project_root` (optional; string): Project root for the design. Defaults to Pi session cwd.
+- `continuity_id` (optional; string): Optional continuity scope filter.
+- `design_id` (optional; string): Specific Call Stack Design id to verify.
+- `entry_name` (optional; string): Entry name to verify when design_id is omitted.
 
-## Expected result
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_call_stack_verify`.
 
-Returns `tool_result_v1` with `ok`, `advisory=true`, `canonical=false`, plus:
+## Output
 
-- `design_id`
-- `entry_surface`
-- `entry_name`
-- `drift_status` (`aligned`, `needs_review`, or `drifted`)
-- `failures`, `warnings`
-- `checks[]` with `id`, `status`, and bounded `message`
-- `rehydrate_id`
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
-## Drift checks
+## Example
 
-The verifier checks:
+```json
+{}
+```
 
-- requested `project_root + continuity_id` scope matches the design when supplied
-- entry surface kind is supported
-- entry surface string exists in bounded source search
-- handlers are declared
-- services are declared
-- adapters are declared
-- output envelope is `tool_result_v1`
-- claimed evidence refs are flagged for follow-up verification
-- Workpoint attachment intent is present or flagged as advisory review
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_call_stack_verify.md
 
-## Failure recovery
+## Anti-examples
 
-`tool_result_v1.failure_class` is part of the recovery contract. Common values:
+- broad roots such as /root
+- parallel memory outside the active project+continuity scope
 
-- `project_root_missing` — provide an explicit `project_root` and retry.
-- `scope_mismatch` — project root is an agent runtime path; pick a real project folder.
-- `call_stack_design_not_found` — call `focusa_call_stack_design` or pass the correct `design_id`/`entry_name`.
-- `storage_unreadable` — inspect daemon logs and ledger permissions.
-- `daemon_unavailable` — run `focusa_tool_doctor` and retry.
+## Authority, permissions, and side effects
 
-## Contract summary
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_call_stack_design_verify_drift`, `read_call_stack_design_verify_drift`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-- Family: `workpoint`
-- Side effects: none
-- Result envelope: `tool_result_v1`
-- API routes: `POST /v1/call-stack/verify`, `GET /v1/call-stack/list`, `GET /v1/call-stack/show`
-- CLI commands: `focusa call-stack verify`, `focusa call-stack list`, `focusa call-stack show`
-- Core surface: Spec106/Spec103 advisory Call Stack drift checker
-- Contract source: `docs/current/focusa-tool-contracts.json`
+## Failure and recovery
 
-## Next tools
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- `focusa_call_stack_design` — create/refine a design when drift is real.
-- `focusa_workpoint_link_evidence` — attach verification evidence.
-- `focusa_trajectory_assess` — reassess STG alignment after drift resolution.
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
+
+## Dependencies and workflow position
+
+- `focusa_call_stack_design` (likely_next)
+- `focusa_workpoint_link_evidence` (likely_next)
+- `focusa_trajectory_assess` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_call_stack_design`, `focusa_workpoint_link_evidence`, `focusa_trajectory_assess`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Runbooks: `runbook:workpoint`
+- Pi: `focusa_call_stack_verify`; MCP: `focusa.call.stack.verify`; OpenAI: `focusa_call_stack_verify`.
+- CLI: `focusa call-stack verify`, `focusa call-stack list`, `focusa call-stack show`.
+- REST: `POST /v1/call-stack/verify`, `GET /v1/call-stack/list`, `GET /v1/call-stack/show`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:7527d053bb4d4c1736354ad2f6d28c78a751fc15cdb3d360dd918294168e7b42`.

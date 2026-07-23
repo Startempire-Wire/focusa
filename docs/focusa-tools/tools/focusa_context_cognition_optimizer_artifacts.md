@@ -1,91 +1,67 @@
 # `focusa_context_cognition_optimizer_artifacts`
 
-**Family:** `trajectory`
-**Label:** Context Cognition Optimizer Artifacts
-
-## Purpose
-
-**Spec 100 Phase 5 — Cognition Optimizer** with CQRS read side. List the versioned `CognitionOptimizerArtifact` JSONL ledger for a project+module. Returns the recent artifact list and the latest promoted artifact (if any).
-
-This is the read companion to `focusa_context_cognition_curate_optimize` (the write side). The artifact ledger is append-only, scope-bounded by `(project_root, module_name)`, and replay-friendly.
+Spec 100 Phase 5 — list Cognition Optimizer artifacts (versioned JSONL) for a project+module. Returns the recent artifact list and the latest promoted artifact (if any). Use it when Spec 100 Phase 5 — list Cognition Optimizer artifacts (versioned JSONL) for a project+module. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- The operator wants to see the artifact history for a project+module.
-- The operator wants to know which artifact is currently promoted (active policy).
-- The operator wants the `rollback_ref` chain to understand the promotion/rollback sequence.
+- Spec 100 Phase 5 — list Cognition Optimizer artifacts (versioned JSONL) for a project+module.
+- Capability family: `trajectory`; namespace: `focusa.trajectory`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-Do not use for trivial artifact lookups; this is a structured read.
+## Parameters and strict input schema
 
-## Parameters
+- `project_root` (optional; string): Project root. Defaults to Pi session cwd.
+- `module_name` (optional; string): Module name (default: curator).
+- `limit` (optional; integer; min=1, max=200): Max artifacts to return (default 10).
 
-- `project_root` — project scope. Defaults to Pi session cwd.
-- `module_name` — module name. Default `curator`.
-- `limit` — max artifacts to return. Default 10, max 200.
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_context_cognition_optimizer_artifacts`.
 
-## Expected result
+## Output
 
-Returns `tool_result_v1` with `ok`, `advisory=true`, `canonical=false`, plus:
-
-- `count` — number of artifacts returned.
-- `artifacts` — list of `{artifact_id, module_name, prompt_artifact_ref, eval_score, baseline_score, promoted, rollback_ref, eval_run_id, created_at, promovido_at}`.
-- `latest_promoted` — the latest artifact with `promoted=true`, or `null` if none.
-- `rehydrate_id` — the id of the most recent artifact (regardless of promotion).
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
 ## Example
 
 ```json
-{
-  "project_root": "/home/wirebot/focusa",
-  "module_name": "curator",
-  "limit": 10
-}
+{}
 ```
 
-```text
-focusa_context_cognition_optimizer_artifacts ok | optimizer artifacts → count=3 module=curator
-ids: rehydrate_id=019ea... latest_promoted_id=019ea...
-fields: count=3 module_name=curator latest_promoted=019ea...@0.85 advisory=true
-next: focusa_context_cognition_curate_optimize
-```
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_optimizer_artifacts.md
 
-## Scope rules
+## Anti-examples
 
-- `project_root` is **required** — read is scoped to project.
-- Agent runtime paths are rejected with `failure_class=scope_mismatch`.
-- The read is **read-only** — no Workpoint, Trajectory, or HLT mutation.
+- overriding Workpoint/operator authority
+- merging sessions on goal similarity alone
 
-## Notes
+## Authority, permissions, and side effects
 
-- Per Spec 100 §15.1 the cognition-optimizer-artifacts ledger is the **CQRS write side** for the promotion gate; this tool is the read side.
-- The read is **deterministic** for the same ledger state.
-- The latest promoted artifact is the active policy; the runtime consumption happens on the next `focusa_context_cognition_curate` call.
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_state`, `read_state`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-## Failure recovery
+## Failure and recovery
 
-`tool_result_v1.failure_class` is part of the recovery contract. Common values:
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- `project_root_missing` — provide an explicit `project_root` and retry.
-- `project_root_unverified` — call `focusa_project_verify` first.
-- `scope_mismatch` — the `project_root` is an agent runtime path.
-- `daemon_unavailable` — run `focusa_tool_doctor` and retry.
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-When `failure_class` is missing, treat the response as a successful read; verify the returned `count` against the operator's expectation.
+## Dependencies and workflow position
 
-## Contract summary
+- `focusa_context_cognition_curate_optimize` (likely_next)
 
-- Family: `trajectory`
-- Side effects: `read_state`
-- Result envelope: `tool_result_v1`
-- API routes: `GET /v1/context-cognition/optimizer/artifacts`
-- CLI commands: `focusa context-cognition optimizer artifacts`
-- Core surface: `Spec100 §15.1 CQRS read side (artifact ledger)`
-- Spec: `docs/100-context-cognition-spec.md`
-- Contract source: `docs/current/focusa-tool-contracts.json`
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_context_cognition_curate_optimize`.
 
-## Next tools
+## Skills, protocols, and source authority
 
-- `focusa_context_cognition_curate_optimize` — submit a new artifact and get the promotion decision.
-- `focusa_context_cognition_curate_eval` — run a curator eval case (the input to the promotion gate).
-- `focusa_predict_record` — record a prediction (prediction_type=curator_optimization_v1) for the latest promotion.
-- `focusa_metacog_capture` — capture the latest promotion as a lesson.
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Runbooks: `runbook:trajectory`
+- Pi: `focusa_context_cognition_optimizer_artifacts`; MCP: `focusa.context.cognition.optimizer.artifacts`; OpenAI: `focusa_context_cognition_optimizer_artifacts`.
+- CLI: `focusa context-cognition optimizer artifacts`.
+- REST: `GET /v1/context-cognition/optimizer/artifacts`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:49c3ea1c1710a1f19665b79ebbcdd7de54bee87852059052803021b02ca9a6ca`.

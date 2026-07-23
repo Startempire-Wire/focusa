@@ -1,43 +1,70 @@
 # `focusa_reflex_primitives`
 
-## Purpose
-
-Read bounded Spec97 Reflex Primitive summaries from the read-only registry. This is advisory routing metadata only; existing Focusa tools and reducers retain mutation authority.
+List bounded Spec97 Reflex Primitive summaries by family/query; read-only routing metadata, never mutation authority. Use it when Read bounded Spec97 Reflex Primitive summaries by family/query from the read-only registry; advisory routing metadata only, never mutation authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-Use when a blocked/degraded result includes `reflex_suggestions`, or when an agent needs the smallest safe next-step affordance for a recurring risk, family, object, or action.
+- Read bounded Spec97 Reflex Primitive summaries by family/query from the read-only registry; advisory routing metadata only, never mutation authority.
+- Capability family: `traversal`; namespace: `focusa.traversal`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Inputs
+## Parameters and strict input schema
 
-- `family`: optional primitive family filter, e.g. `recovery`, `evidence`, `resource`.
-- `query`: optional risk/object/action search text.
-- `limit`: bounded result limit, max 50.
-- `include_payload`: explicit cold opt-in for full primitive payloads; default is bounded summaries.
+- `family` (optional; string): Optional primitive family filter, e.g. recovery, evidence, resource.
+- `query` (optional; string): Optional risk/object/action search text.
+- `limit` (optional; integer; min=1, max=50): Bounded result limit.
+- `include_payload` (optional; boolean): Cold opt-in for full primitive payloads; default false.
 
-## Expected result
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_reflex_primitives`.
 
-A successful call returns `status=completed`, `read_only=true`, `advisory_only=true`, bounded `items`, `bounds`, and `details.tool_result_v1`. If blocked, inspect `failure_class` and follow the returned recovery/next-tool hints instead of guessing.
+## Output
 
-## Output contract
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
-Default items include primitive id, family, trigger, recommended tool, authority boundary, escalation boundary, hot-path budget, failure envelope, and source marker. Full registry payloads require `include_payload=true`.
+## Example
 
-## Related
+```json
+{}
+```
 
-- [`focusa_traverse`](./focusa_traverse.md)
-- [`focusa_tool_doctor`](./focusa_tool_doctor.md)
-- `docs/97-focusa-reflex-primitives-spec.md`
-- `docs/evidence/SPEC97_REFLEX_DIRECT_API_LIVE_PROOF_2026-05-25.md`
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_reflex_primitives.md
 
-## Contract summary
+## Anti-examples
 
-- Family: Traversal.
-- Side effects: `read_state`.
-- Result envelope: `tool_result_v1` with `failure_class`, retry posture, recovery hints, and bounded next tools when blocked/degraded.
-- API route: `GET /v1/reflex/primitives`.
-- CLI commands: none.
-- Parity: `domain`; exemptions: `api_domain_only`.
-- Core surface: Spec97 Reflex Primitive registry and bounded direct API.
-- Live check: contract_static plus `/v1/reflex/primitives?family=recovery&limit=2` smoke test.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+- full payloads by default
+- unbounded history/tree/ontology reads
+
+## Authority, permissions, and side effects
+
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_state`, `read_state`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
+
+## Failure and recovery
+
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
+
+## Dependencies and workflow position
+
+- `focusa_traverse` (likely_next)
+- `focusa_tool_doctor` (likely_next)
+- `focusa_workpoint_resume` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_traverse`, `focusa_tool_doctor`, `focusa_workpoint_resume`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-tool-discovery`
+- Runbooks: `runbook:traversal`
+- Pi: `focusa_reflex_primitives`; MCP: `focusa.reflex.primitives`; OpenAI: `focusa_reflex_primitives`.
+- CLI: none.
+- REST: `GET /v1/reflex/primitives`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:2887a3ec45f969df8529d6e3423cb60588b9e689f75e8dcd58b1b1eba4f964df`.

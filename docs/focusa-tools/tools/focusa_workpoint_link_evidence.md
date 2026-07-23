@@ -1,60 +1,77 @@
 # `focusa_workpoint_link_evidence`
 
-**Family:** `workpoint`  
-**Label:** Workpoint Link Evidence
-
-## Purpose
-
-Attach a stable evidence reference or verification result to the active canonical Workpoint.
-
-## Project folder semantics
-
-After compaction/model switch, pass `project_root` and `continuity_id` from the canonical WorkpointResumePacket when Pi's ambient cwd is broad (for example `/root`). The tool builds a `FocusaSessionIdentity` from that explicit project context before trajectory clarity and evidence-link calls.
+Attach a stable evidence reference or verification result to the active canonical Workpoint. Use it when Attach a stable evidence reference or verification result to the active canonical Workpoint. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-Use `focusa_workpoint_link_evidence` when its specific Focusa state or workflow surface is the narrowest tool that matches the current need. Prefer this tool over raw transcript memory when the result should survive compaction, be inspectable, or guide a later agent turn.
+- Attach a stable evidence reference or verification result to the active canonical Workpoint.
+- Capability family: `workpoint`; namespace: `focusa.workpoint`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## When not to use
+## Parameters and strict input schema
 
-Do not use `focusa_workpoint_link_evidence` to dump unbounded logs, bypass operator steering, or create parallel memory outside Focusa. If the tool returns `pending`, `blocked`, `degraded`, or `canonical=false`, treat that as a recovery state and follow the returned next-step guidance.
+- `workpoint_id` (optional; string): Specific Workpoint id; omit to use active Workpoint.
+- `target_ref` (required; string): Object/file/test/endpoint/work item the evidence verifies.
+- `result` (required; string): Bounded verification result summary.
+- `evidence_ref` (optional; string): Stable evidence handle, file path, test id, or artifact ref.
+- `project_root` (optional; string): Explicit safe project folder/root; use after compaction if Pi cwd is broad like /root.
+- `session_id` (optional; string): Optional temporal Pi session id; defaults to this Pi session key.
+- `continuity_id` (optional; string): Stable logical session/workstream id; defaults to this Pi continuity id.
+- `attach_to_workpoint` (optional; boolean): Defaults true; false returns blocked/no-op guidance without linking.
 
-## Example usage
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_workpoint_link_evidence`.
 
-```text
-focusa_workpoint_link_evidence target_ref="docs/focusa-tools" result="43 one-tool docs generated" evidence_ref="docs/focusa-tools/tools/focusa_workpoint_link_evidence.md" project_root="/home/wirebot/focusa" continuity_id="spec96-lowmem-surgical"
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
+
+```json
+{
+  "target_ref": "example",
+  "result": "example"
+}
 ```
 
-## Expected result
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_workpoint_link_evidence.md
 
-The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
+## Anti-examples
 
-Project-aware results include `details.project_root_permission_posture` with root owner, current user, cross-user `/home` posture, and `as-user` guidance before file-affecting follow-up work.
+- broad roots such as /root
+- parallel memory outside the active project+continuity scope
 
-## Recovery notes
+## Authority, permissions, and side effects
 
-- If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.
-- If the result is non-canonical/degraded, call `focusa_workpoint_resume` or a relevant read tool before continuing.
-- If writer ownership is involved, call `focusa_work_loop_writer_status` or use work-loop preflight first.
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `evidence_link`, `evidence_link`
+- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-## Related tools
+## Failure and recovery
 
-- [`focusa_workpoint_checkpoint`](./focusa_workpoint_checkpoint.md)
-- [`focusa_workpoint_resume`](./focusa_workpoint_resume.md)
-- [`focusa_active_object_resolve`](./focusa_active_object_resolve.md)
-- [`focusa_evidence_capture`](./focusa_evidence_capture.md)
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-## Contract summary
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-- Family: Workpoint.
-- Side effects: `evidence_link`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `POST /v1/workpoint/evidence/link`
-- CLI commands: `focusa workpoint evidence-link`
-- Parity: `full`.
-- Core surface: Workpoint reducer/state.
-- Live check: contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+## Dependencies and workflow position
 
-## Source
-Defined in `apps/pi-extension/src/tools.ts`.
+- `focusa_trajectory_assess` (likely_next)
+- `focusa_workpoint_resume` (likely_next)
+- `focusa_evidence_capture` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_trajectory_assess`, `focusa_workpoint_resume`, `focusa_evidence_capture`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Runbooks: `runbook:workpoint`
+- Pi: `focusa_workpoint_link_evidence`; MCP: `focusa.workpoint.link.evidence`; OpenAI: `focusa_workpoint_link_evidence`.
+- CLI: `focusa workpoint evidence-link`.
+- REST: `POST /v1/workpoint/evidence/link`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:a86c6abece8bce34db40fb569249c1d7e0fe5cc56b4c8975c029c8d8bce7145e`.

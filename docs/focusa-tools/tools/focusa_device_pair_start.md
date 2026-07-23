@@ -1,96 +1,70 @@
 # `focusa_device_pair_start`
 
-**Family:** `session_transfer`
-**Label:** Device Pair Start
-
-**Architecture spec:** [`docs/53-focusa-device-pairing-spec.md`](../../53-focusa-device-pairing-spec.md)
-
-## Purpose
-
-**Mac menubar OAuth-like device pairing (focusa-ui0y).** Generate an 8-char pairing code (format `FOCUS-XXXX-XXXX`, 5-minute TTL) that the operator delivers to the VPS via one of three handoff modes (CLI / QR + phone / QR + VPS browser). The VPS runs `focusa device pair-complete <code>` to mint a long-lived token (30-day TTL); the Mac app polls `focusa_device_pair_status` to retrieve the token and store it in the macOS Keychain (via Tauri API).
+Mac menubar OAuth-like device pairing (Spec focusa-ui0y). Generate an 8-char pairing code (FOCUS-XXXX-XXXX, 5 min TTL). The operator runs `focusa device pair-complete <code>` on their VPS, then the Mac app polls focusa_device_pair_status to retrieve the long-lived token (30 day TTL). Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Generate an 8-char code + pair_url for VPS-side completion via CLI, QR+phone, or QR+VPS browser. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- The operator wants to connect the Focusa Mac menubar app to a remote Focusa daemon.
-- The operator is OK with the dumb-simple UX: mac app shows a code, operator runs one CLI command on the VPS, mac app polls and stores the token.
-- For deeper control, the operator can skip the Mac UI and call this tool + the others directly from a Pi session.
+- Mac menubar OAuth-like device pairing (focusa-ui0y). Generate an 8-char code + pair_url for VPS-side completion via CLI, QR+phone, or QR+VPS browser.
+- Capability family: `session_transfer`; namespace: `focusa.session_transfer`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Parameters
+## Parameters and strict input schema
 
-- `device_name` — human-readable device name (e.g. `operator-macbook-pro`). Default: `operator-device`; sanitized to a bounded safe label.
-- `platform` — platform string. Default: `macos`; sanitized/lowercased to a bounded safe label.
-- `daemon_base_url` — daemon base URL the device will reconnect to. Default: `http://127.0.0.1:8787`; must be `https://` or local-development `http://127.0.0.1` / `http://localhost`.
-- `scopes` — OAuth-like scopes. Default: `["read", "write"]`; only `read` and `write` are accepted.
+- `device_name` (optional; string): Human-readable device name (e.g. 'operator-macbook-pro'). Defaults to 'operator-device'.
+- `platform` (optional; string): Platform string. Default: 'macos'.
+- `daemon_base_url` (optional; string): Daemon base URL the device will reconnect to. Default: 'http://127.0.0.1:8787'.
+- `scopes` (optional; array): OAuth-like scopes. Default: ['read', 'write'].
 
-## Expected result
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_device_pair_start`.
 
-Returns `tool_result_v1` with `ok`, `advisory=true`, plus:
-- `code` — the `FOCUS-XXXX-XXXX` pairing code
-- `device_id` — UUID v7
-- `expires_in_secs` — always `300` (5 minutes)
-- `operator_handoff.on_your_vps_run` — the exact command the operator runs on the VPS
-- `pair_url` — full URL the operator's phone can open (built from `FOCUSA_PAIRING_URL` env or `daemon_base_url`)
-- `pair_url_qr_payload` — byte-equal to `pair_url` in this version (forward-compat invariant)
-- `next_tools`: `["focusa_device_pair_status", "focusa_device_pair_list", "focusa_device_pair_qr"]`
-- `rehydrate_id` — the code
+## Output
 
-See [§4 of the pairing spec](../../53-focusa-device-pairing-spec.md#4-the-pair_url-field-new-in-pair_start) for the `pair_url` semantics, portability, and multi-tenant guarantees.
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
 ## Example
 
 ```json
-{
-  "device_name": "operator-macbook-pro",
-  "platform": "macos",
-  "daemon_base_url": "http://127.0.0.1:8787"
-}
+{}
 ```
 
-```text
-focusa_device_pair_start ok | device pair start → code=FOCUS-019EA...-... device_id=019ea... expires_in=300s
-ids: code=FOCUS-019EA...-... device_id=019ea...-... rehydrate_id=FOCUS-019EA...-...
-fields: expires_in_secs=300 platform=macos on_your_vps_run=focusa device pair-complete FOCUS-019EA...-... --host <host>
-note: mac app: show the code to the operator; they run the on_your_vps_run command on their VPS; mac app polls focusa_device_pair_status until completed; then store token in Keychain and reconnect.
-next: focusa_device_pair_status → focusa_device_pair_list
-```
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_start.md
 
-## Scope rules
+## Anti-examples
 
-- `code` expires in 5 minutes; after that the daemon rejects `pair-complete` with `pair_code_expired`.
-- `daemon_base_url` / `FOCUSA_PAIRING_URL` must be `https://` or local-development `http://127.0.0.1` / `http://localhost`; other schemes, whitespace, and agent-runtime paths are rejected.
-- Unknown scopes reject with `failure_class=scope_not_allowed`; accepted scopes are normalized/deduplicated `read` and `write`.
-- The `device_id` is generated server-side; the mac app stores it alongside the token for subsequent re-pair/revoke flows.
+- raw localStorage as canonical
+- raw URL paste without a saved pair
 
-## Notes
+## Authority, permissions, and side effects
 
-- Per Spec focusa-ui0y the pairing is **OAuth-like, dumb-simple**: the operator does NOT need to type API tokens, base URLs, or auth headers manually. The mac app handles the token storage and refresh; the operator just types the code on the VPS.
-- For depth, the operator can call `focusa device pair-list` to see all paired devices, or `focusa device pair-revoke --device-id <id>` to remove one.
-- For QR handoff (Mode B), use `focusa device pair-qr` — same endpoint, but the CLI output highlights `pair_url` for QR encoding.
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `write_device_pair`, `write_device_pair`
+- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `true`.
+- Confirmation required: `false`; preview supported: `false`.
 
-## Failure recovery
+## Failure and recovery
 
-`tool_result_v1.failure_class` is part of the recovery contract. Common values:
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- `pairing_url_invalid` — provide an `https://` URL or local-development localhost/127.0.0.1 URL.
-- `scope_not_allowed` — use only `read` and/or `write` scopes.
-- `daemon_unavailable` — run `focusa_tool_doctor` and retry.
-- `scope_mismatch` — an unsafe agent runtime path was supplied.
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-When `failure_class` is missing, treat the response as a successful pair-start; verify with `focusa_device_pair_status` after the operator runs the VPS command.
+## Dependencies and workflow position
 
-## Contract summary
+- `focusa_device_pair_status` (likely_next)
+- `focusa_device_pair_list` (likely_next)
+- `focusa_device_pair_qr` (likely_next)
 
-- Family: `session_transfer`
-- Side effects: `write_device_pair` (in-memory pending pair append)
-- Result envelope: `tool_result_v1`
-- API routes: `POST /v1/device/pair/start`
-- CLI commands: `focusa device pair-start`
-- Core surface: `Mac menubar OAuth-like device pairing (8-char code, 5-min TTL)`
-- Bead: `focusa-ui0y`
-- Contract source: `docs/current/focusa-tool-contracts.json`
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_device_pair_status`, `focusa_device_pair_list`, `focusa_device_pair_qr`.
 
-## Next tools
+## Skills, protocols, and source authority
 
-- `focusa_device_pair_status` — poll whether the operator has completed the pairing.
-- `focusa_device_pair_list` — see all paired devices.
-- `focusa_device_pair_revoke` — remove a paired device.
+- Skills: `skill:focusa`, `skill:focusa-session-recovery`
+- Runbooks: `runbook:session_transfer`
+- Pi: `focusa_device_pair_start`; MCP: `focusa.device.pair.start`; OpenAI: `focusa_device_pair_start`.
+- CLI: `focusa device pair-start`, `focusa device pair-qr`.
+- REST: `POST /v1/device/pair/start`.
+- Specification: `docs/53-focusa-device-pairing-spec.md`.
+- Descriptor digest: `sha256:71349cd5a326c39de2fce33f7e8589b84ae0520761e81a5fd13838ba59ae66a3`.

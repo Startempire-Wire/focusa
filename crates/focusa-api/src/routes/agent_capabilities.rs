@@ -2301,6 +2301,272 @@ async fn adapter_capabilities_handler(
     Json(ADAPTER_CAPABILITY_REGISTRY.clone())
 }
 
+static SPEC141_CAPABILITY_REGISTRY: LazyLock<Value> = LazyLock::new(|| {
+    serde_json::from_str(include_str!(
+        "../../../../docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json"
+    ))
+    .expect("generated Spec141 capability registry must be valid JSON")
+});
+
+static SPEC141_AGENT_CARD: LazyLock<Value> = LazyLock::new(|| {
+    serde_json::from_str(include_str!(
+        "../../../../docs/contracts/spec141/generated-capability-v2/agent-card.json"
+    ))
+    .expect("generated Spec141 Agent Card must be valid JSON")
+});
+
+#[derive(Debug, Default, Deserialize)]
+struct AgentToolQuery {
+    query: Option<String>,
+    family: Option<String>,
+    cursor: Option<usize>,
+    limit: Option<usize>,
+    include_schemas: Option<bool>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct AgentToolGraphQuery {
+    anchor: Option<String>,
+    depth: Option<usize>,
+    limit: Option<usize>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct AgentToolChangesQuery {
+    since_digest: Option<String>,
+}
+
+fn spec141_descriptors() -> &'static [Value] {
+    SPEC141_CAPABILITY_REGISTRY
+        .get("descriptors")
+        .and_then(Value::as_array)
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+}
+
+fn descriptor_name(descriptor: &Value) -> &str {
+    descriptor
+        .pointer("/tool_names/pi")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+}
+
+fn metadata_only(mut descriptor: Value) -> Value {
+    if let Some(object) = descriptor.as_object_mut() {
+        object.remove("input_schema");
+        object.remove("output_schema");
+        object.remove("error_schema");
+        object.insert(
+            "schema_loading".to_string(),
+            Value::String("deferred".to_string()),
+        );
+    }
+    descriptor
+}
+
+async fn agent_card_handler(State(_state): State<Arc<AppState>>) -> Json<Value> {
+    Json(SPEC141_AGENT_CARD.clone())
+}
+
+async fn agent_tools_handler(
+    State(_state): State<Arc<AppState>>,
+    Query(query): Query<AgentToolQuery>,
+) -> Json<Value> {
+    let terms: Vec<String> = query
+        .query
+        .as_deref()
+        .unwrap_or_default()
+        .split_whitespace()
+        .map(str::to_lowercase)
+        .collect();
+    let mut matches: Vec<(usize, Value)> = spec141_descriptors()
+        .iter()
+        .filter(|descriptor| {
+            query.family.as_deref().is_none_or(|family| {
+                descriptor.get("family").and_then(Value::as_str) == Some(family)
+            })
+        })
+        .filter_map(|descriptor| {
+            let searchable = [
+                descriptor_name(descriptor),
+                descriptor
+                    .get("title")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default(),
+                descriptor
+                    .get("summary")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default(),
+                descriptor
+                    .get("family")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default(),
+            ]
+            .join(" ")
+            .to_lowercase();
+            let score = terms
+                .iter()
+                .filter(|term| searchable.contains(term.as_str()))
+                .count();
+            (terms.is_empty() || score > 0).then(|| (score, descriptor.clone()))
+        })
+        .collect();
+    matches.sort_by(|a, b| {
+        b.0.cmp(&a.0)
+            .then_with(|| descriptor_name(&a.1).cmp(descriptor_name(&b.1)))
+    });
+    let total = matches.len();
+    let cursor = query.cursor.unwrap_or(0).min(total);
+    let limit = query.limit.unwrap_or(10).clamp(1, 50);
+    let end = (cursor + limit).min(total);
+    let include_schemas = query.include_schemas.unwrap_or(false);
+    let tools: Vec<Value> = matches[cursor..end]
+        .iter()
+        .map(|(_, descriptor)| {
+            if include_schemas {
+                descriptor.clone()
+            } else {
+                metadata_only(descriptor.clone())
+            }
+        })
+        .collect();
+    Json(json!({
+        "schema": "focusa.agent_tool_search.v2",
+        "registry_digest": SPEC141_CAPABILITY_REGISTRY.get("registry_digest"),
+        "query": query.query,
+        "family": query.family,
+        "total": total,
+        "cursor": cursor,
+        "next_cursor": (end < total).then_some(end),
+        "schema_loading": if include_schemas { "cold_loaded" } else { "deferred" },
+        "tools": tools,
+    }))
+}
+
+async fn agent_tool_describe_handler(
+    State(_state): State<Arc<AppState>>,
+    Path(tool_name): Path<String>,
+) -> (StatusCode, Json<Value>) {
+    match spec141_descriptors()
+        .iter()
+        .find(|descriptor| descriptor_name(descriptor) == tool_name)
+    {
+        Some(descriptor) => (StatusCode::OK, Json(descriptor.clone())),
+        None => (
+            StatusCode::NOT_FOUND,
+            Json(json!({
+                "schema": "focusa.agent_tool_error.v1",
+                "status": "not_found",
+                "tool_name": tool_name,
+                "recovery": ["GET /v1/agent/tools?query=<terms>"]
+            })),
+        ),
+    }
+}
+
+async fn agent_tool_bundles_handler(
+    State(_state): State<Arc<AppState>>,
+    Query(query): Query<AgentToolQuery>,
+) -> Json<Value> {
+    let family = query.family.unwrap_or_default();
+    let include_schemas = query.include_schemas.unwrap_or(false);
+    let limit = query.limit.unwrap_or(25).clamp(1, 50);
+    let tools: Vec<Value> = spec141_descriptors()
+        .iter()
+        .filter(|descriptor| {
+            descriptor.get("family").and_then(Value::as_str) == Some(family.as_str())
+        })
+        .take(limit)
+        .map(|descriptor| {
+            if include_schemas {
+                descriptor.clone()
+            } else {
+                metadata_only(descriptor.clone())
+            }
+        })
+        .collect();
+    Json(json!({
+        "schema": "focusa.agent_tool_bundle.v1",
+        "registry_digest": SPEC141_CAPABILITY_REGISTRY.get("registry_digest"),
+        "family": family,
+        "count": tools.len(),
+        "schema_loading": if include_schemas { "cold_loaded" } else { "deferred" },
+        "tools": tools,
+    }))
+}
+
+async fn agent_tool_changes_handler(
+    State(_state): State<Arc<AppState>>,
+    Query(query): Query<AgentToolChangesQuery>,
+) -> Json<Value> {
+    let digest = SPEC141_CAPABILITY_REGISTRY
+        .get("registry_digest")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    Json(json!({
+        "schema": "focusa.agent_tool_changes.v1",
+        "registry_digest": digest,
+        "since_digest": query.since_digest,
+        "list_changed": query.since_digest.as_deref() != Some(digest),
+        "capability_count": spec141_descriptors().len(),
+        "recovery": if query.since_digest.as_deref() == Some(digest) { Value::Null } else { json!("refresh tools/list or GET /v1/agent/tools") },
+    }))
+}
+
+async fn agent_tool_graph_handler(
+    State(_state): State<Arc<AppState>>,
+    Query(query): Query<AgentToolGraphQuery>,
+) -> Json<Value> {
+    let anchor = query.anchor.unwrap_or_else(|| "workpoint".to_string());
+    let depth = query.depth.unwrap_or(2).clamp(1, 4);
+    let limit = query.limit.unwrap_or(40).clamp(1, 100);
+    let mut nodes: std::collections::BTreeSet<String> = spec141_descriptors()
+        .iter()
+        .filter(|descriptor| {
+            descriptor_name(descriptor) == anchor
+                || descriptor.get("family").and_then(Value::as_str) == Some(anchor.as_str())
+        })
+        .map(|descriptor| descriptor_name(descriptor).to_string())
+        .collect();
+    let mut frontier: Vec<String> = nodes.iter().cloned().collect();
+    let mut edges = Vec::new();
+    for _ in 0..depth {
+        let mut next = Vec::new();
+        for from in &frontier {
+            let Some(descriptor) = spec141_descriptors()
+                .iter()
+                .find(|descriptor| descriptor_name(descriptor) == from)
+            else {
+                continue;
+            };
+            for target in descriptor
+                .get("likely_next_capabilities")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+            {
+                edges.push(json!({"from": from, "to": target, "relation": "likely_next"}));
+                if nodes.len() < limit && nodes.insert(target.to_string()) {
+                    next.push(target.to_string());
+                }
+            }
+        }
+        frontier = next;
+        if frontier.is_empty() || nodes.len() >= limit {
+            break;
+        }
+    }
+    Json(json!({
+        "schema": "focusa.agent_tool_graph.v1",
+        "registry_digest": SPEC141_CAPABILITY_REGISTRY.get("registry_digest"),
+        "anchor": anchor,
+        "depth": depth,
+        "nodes": nodes,
+        "edges": edges,
+    }))
+}
+
 pub async fn capabilities_index_handler(State(_state): State<Arc<AppState>>) -> Json<Value> {
     let operations = build_operations();
     let families = build_families();
@@ -4208,8 +4474,13 @@ pub fn routes() -> Router<Arc<AppState>> {
             "/v1/agent/adapter-capabilities",
             get(adapter_capabilities_handler),
         )
+        .route("/v1/agent/card", get(agent_card_handler))
         .route("/v1/agent/capabilities", get(capabilities_index_handler))
-        .route("/v1/agent/tools", get(capabilities_index_handler))
+        .route("/v1/agent/tools", get(agent_tools_handler))
+        .route("/v1/agent/tools/{name}", get(agent_tool_describe_handler))
+        .route("/v1/agent/tool-graph", get(agent_tool_graph_handler))
+        .route("/v1/agent/tool-bundles", get(agent_tool_bundles_handler))
+        .route("/v1/agent/tool-changes", get(agent_tool_changes_handler))
         .route("/v1/agent/operations", get(operation_registry_handler))
         .route(
             "/v1/agent/compatibility-lock",

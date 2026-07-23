@@ -1,34 +1,81 @@
-# focusa_predict_record
+# `focusa_predict_record`
 
-First-class Spec92 prediction tool.
+Record a bounded, inspectable Focusa prediction. Predictions guide decisions; they never override operator steering. Use it when Record a bounded, inspectable Focusa prediction; core at task start, trajectory review, compaction review, and end-of-task reports. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
-## Purpose
+## When to use
 
-Use this tool to work with bounded, inspectable Focusa prediction records. Predictions guide agent behavior and never override operator steering. Pass bounded `ontology_context` when available so forecasts bind to objects/actions/tools/evidence.
+- Record a bounded, inspectable Focusa prediction; core at task start, trajectory review, compaction review, and end-of-task reports.
+- Capability family: `metacognition`; namespace: `focusa.metacognition`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## API / CLI parity
+## Parameters and strict input schema
 
-See [Predictive Power Guide](../../current/PREDICTIVE_POWER_GUIDE.md).
+- `prediction_type` (required; string): Prediction type, e.g. next_action_success|tool_choice|release_failure|stale_state|context_relevance|token_risk|cache_hit|drift_risk|workpoint_resume_success|compaction_recovery
+- `predicted_outcome` (required; string): Predicted outcome.
+- `confidence` (required; number): Confidence from 0.0 to 1.0.
+- `recommended_action` (required; string): Recommended action if this prediction matters.
+- `why` (required; string): Evidence-calibrated explanation.
+- `context_refs` (optional; array): See the strict descriptor schema.
+- `ontology_context` (optional; structured): Bounded ontology refs: object_refs, action_refs, tool_refs, evidence_refs, relation_refs.
+- `project_root` (optional; string): Optional project root to bind prediction trajectory scope; auto-filled when omitted.
+- `continuity_id` (optional; string): Optional continuity id to bind prediction trajectory scope; auto-filled when omitted.
 
-## Expected result
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_predict_record`.
 
-The tool should return a visible summary plus structured details. Inspect `details.tool_result_v1` for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`. Predictions are advisory signals only; they never choose work or override operator steering.
+## Output
 
-## Safety
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
-- No raw provider payloads.
-- Use evidence refs/handles in context refs.
-- Use bounded ontology refs (`object_refs`, `action_refs`, `tool_refs`, `evidence_refs`, `relation_refs`) instead of raw data.
-- Evaluate predictions after actual outcomes are known.
+## Example
 
-## Contract summary
+```json
+{
+  "prediction_type": "example",
+  "predicted_outcome": "example",
+  "confidence": 0,
+  "recommended_action": "example",
+  "why": "example"
+}
+```
 
-- Family: Metacognition.
-- Side effects: `write_prediction`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `POST /v1/predictions`
-- CLI commands: `focusa predict record`
-- Parity: `full`.
-- Core surface: Spec92 prediction store and telemetry.
-- Live check: contract_static plus focusa_predict_stats and /v1/predictions/stats.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_record.md
+
+## Anti-examples
+
+- journaling raw logs
+- unverified lessons without evidence
+
+## Authority, permissions, and side effects
+
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `write_prediction`, `write_prediction`
+- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
+
+## Failure and recovery
+
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
+
+## Dependencies and workflow position
+
+- `focusa_evidence_capture` (likely_next)
+- `focusa_predict_evaluate` (likely_next)
+- `focusa_metacog_capture` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_evidence_capture`, `focusa_predict_evaluate`, `focusa_metacog_capture`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-metacognition`
+- Runbooks: `runbook:metacognition`
+- Pi: `focusa_predict_record`; MCP: `focusa.predict.record`; OpenAI: `focusa_predict_record`.
+- CLI: `focusa predict record`.
+- REST: `POST /v1/predictions`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:a54c5710550bbcf1d318ff608c9c29210e7e4784e683ad0692527b241a93ae03`.

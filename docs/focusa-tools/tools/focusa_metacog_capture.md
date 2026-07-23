@@ -1,58 +1,75 @@
 # `focusa_metacog_capture`
 
-**Family:** `metacognition`  
-**Label:** Metacog Capture
-
-## Purpose
-
-Store a reusable learning signal so future reasoning can retrieve it instead of rediscovering the same lesson.
+Store a reusable learning signal so future reasoning can retrieve it instead of rediscovering the same lesson. Use it when Store a reusable learning signal so future reasoning can retrieve it instead of rediscovering the same lesson. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-Use `focusa_metacog_capture` when its specific Focusa state or workflow surface is the narrowest tool that matches the current need. Prefer this tool over raw transcript memory when the result should survive compaction, be inspectable, or guide a later agent turn.
+- Store a reusable learning signal so future reasoning can retrieve it instead of rediscovering the same lesson.
+- Capability family: `metacognition`; namespace: `focusa.metacognition`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## When not to use
+## Parameters and strict input schema
 
-Do not use `focusa_metacog_capture` to dump unbounded logs, bypass operator steering, or create parallel memory outside Focusa. If the tool returns `pending`, `blocked`, `degraded`, or `canonical=false`, treat that as a recovery state and follow the returned next-step guidance.
+- `kind` (required; string): Signal kind.
+- `content` (required; string): Signal content.
+- `rationale` (optional; string): Optional rationale.
+- `evidence_refs` (optional; array): Evidence refs supporting this learning signal.
+- `confidence` (optional; number; min=0, max=1): Optional confidence 0..1
+- `strategy_class` (optional; string): Optional strategy class.
 
-## Example usage
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_metacog_capture`.
 
-```text
-focusa_metacog_capture kind="docs_workflow" content="One tool per doc improves precise retrieval and linking." rationale="Operator explicitly requested one tool description and usage per doc." confidence=0.95 strategy_class="docs_quality"
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
+
+```json
+{
+  "kind": "example",
+  "content": "example"
+}
 ```
 
-## Expected result
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_capture.md
 
-The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
+## Anti-examples
 
-When an active project trajectory exists, metacognition records and hot-index tags can include bounded `trajectory` context. Use it to retrieve reusable lessons by HLT/MLG/STG alignment; it remains advisory and does not override project_root + continuity_id.
+- journaling raw logs
+- unverified lessons without evidence
 
-## Recovery notes
+## Authority, permissions, and side effects
 
-- If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.
-- If the result is non-canonical/degraded, call `focusa_workpoint_resume` or a relevant read tool before continuing.
-- If writer ownership is involved, call `focusa_work_loop_writer_status` or use work-loop preflight first.
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `write_state`, `write_state`
+- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-## Related tools
+## Failure and recovery
 
-- [`focusa_metacog_retrieve`](./focusa_metacog_retrieve.md)
-- [`focusa_metacog_reflect`](./focusa_metacog_reflect.md)
-- [`focusa_metacog_plan_adjust`](./focusa_metacog_plan_adjust.md)
-- [`focusa_metacog_evaluate_outcome`](./focusa_metacog_evaluate_outcome.md)
-- [`focusa_metacog_recent_reflections`](./focusa_metacog_recent_reflections.md)
-- [`focusa_metacog_recent_adjustments`](./focusa_metacog_recent_adjustments.md)
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-## Contract summary
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-- Family: Metacognition.
-- Side effects: `write_state`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `POST /v1/metacognition/capture`
-- CLI commands: `focusa metacognition capture`
-- Parity: `full`.
-- Core surface: Metacognition store/retriever.
-- Live check: contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+## Dependencies and workflow position
 
-## Source
-Defined in `apps/pi-extension/src/tools.ts`.
+- `focusa_metacog_retrieve` (likely_next)
+- `focusa_metacog_reflect` (likely_next)
+- `focusa_workpoint_checkpoint` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_metacog_retrieve`, `focusa_metacog_reflect`, `focusa_workpoint_checkpoint`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-metacognition`
+- Runbooks: `runbook:metacognition`
+- Pi: `focusa_metacog_capture`; MCP: `focusa.metacog.capture`; OpenAI: `focusa_metacog_capture`.
+- CLI: `focusa metacognition capture`.
+- REST: `POST /v1/metacognition/capture`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:385aeeb8003cbfb8bd389d7bd7176ab8e046ee0711d0d6c3024bb57c4b2e7753`.

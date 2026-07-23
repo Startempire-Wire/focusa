@@ -49,6 +49,16 @@ def main() -> int:
     capability_descriptors = capability_registry.get("descriptors", [])
     agent_card_path = capability_dir / "agent-card.json"
     agent_card = json.loads(agent_card_path.read_text()) if agent_card_path.exists() else None
+    mcp_projection_path = capability_dir / "mcp-tools.json"
+    mcp_projection = json.loads(mcp_projection_path.read_text()) if mcp_projection_path.exists() else {"tools": []}
+    cli_projection_path = capability_dir / "cli-commands.json"
+    cli_projection = json.loads(cli_projection_path.read_text()) if cli_projection_path.exists() else {"commands": []}
+    skill_coverage_path = ROOT / "docs/evidence/141-focusa-skill-runbook-coverage.json"
+    skill_coverage = json.loads(skill_coverage_path.read_text()) if skill_coverage_path.exists() else {}
+    public_alignment_path = ROOT / "docs/evidence/141-focusa-latest-spec-public-doc-alignment.json"
+    public_alignment = json.loads(public_alignment_path.read_text()) if public_alignment_path.exists() else {}
+    conformance_path = ROOT / "docs/evidence/141-focusa-agent-conformance-result.json"
+    conformance = json.loads(conformance_path.read_text()) if conformance_path.exists() else {}
     tool_docs = list((ROOT / "docs/focusa-tools/tools").glob("*.md"))
     tools_src = text("apps/pi-extension/src/tools.ts")
     contract_src = text("apps/pi-extension/src/tool-contracts.ts")
@@ -65,6 +75,9 @@ def main() -> int:
 
     route_paths = set(re.findall(r'\.route\(\s*"([^"]+)"', rust_api_src, re.S))
     operation_paths = {item["path"] for item in operations}
+    route_classification_path = capability_dir / "route-classification.json"
+    route_classification = json.loads(route_classification_path.read_text()) if route_classification_path.exists() else {"routes": []}
+    classified_route_paths = {item.get("path") for item in route_classification.get("routes", []) if item.get("path")}
     missing_operation_docs = sorted(
         {item["docs_ref"] for item in operations if not (ROOT / item["docs_ref"]).exists()}
     )
@@ -82,13 +95,13 @@ def main() -> int:
         "when its specific Focusa state or workflow surface is the narrowest tool" in p.read_text()
         for p in tool_docs
     )
-    docs_with_examples = sum("## Example usage" in p.read_text() for p in tool_docs)
+    docs_with_examples = sum(bool(re.search(r"^## Example(?: usage)?$", p.read_text(), re.M | re.I)) for p in tool_docs)
     docs_with_input = sum(
         bool(re.search(r"Input schema|Parameters|Required arguments", p.read_text(), re.I))
         for p in tool_docs
     )
     docs_with_dependency = sum(
-        bool(re.search(r"^## (Dependency|Prerequisite|Sequence|Workflow)", p.read_text(), re.M | re.I))
+        bool(re.search(r"^## (Dependencies?|Prerequisites?|Sequence|Workflow)", p.read_text(), re.M | re.I))
         for p in tool_docs
     )
 
@@ -116,7 +129,13 @@ def main() -> int:
         else 0
     )
 
-    mcp_names = set(re.findall(r'"name"\s*:\s*"(focusa\.[^"]+)"', mcp_src))
+    mcp_names = {
+        item.get("name")
+        for item in mcp_projection.get("tools", [])
+        if isinstance(item, dict) and item.get("name")
+    }
+    expected_mcp_tools = sum(bool(item.get("api_routes")) for item in contracts)
+    generated_cli_commands = cli_projection.get("commands", [])
     typebox_properties = len(re.findall(r"Type\.(?:String|Boolean|Number|Integer|Array|Object|Union|Optional)\(", tools_src))
     parameter_descriptions = len(re.findall(r"description\s*:", tools_src))
     strict_objects = len(re.findall(r"additionalProperties\s*:\s*false", tools_src))
@@ -187,17 +206,27 @@ def main() -> int:
         "pi_output_schema_markers": output_schemas,
         "tools_with_explicit_next_tool_graph": next_tool_overrides,
         "mcp_exposed_tools": len(mcp_names),
+        "mcp_expected_callable_tools": expected_mcp_tools,
         "mcp_tool_names": sorted(mcp_names),
         "cli_top_level_commands": cli_top_commands,
         "cli_machine_help_inventory_entries": cli_inventory_count,
+        "cli_generated_agent_commands": len(generated_cli_commands),
         "api_route_paths": len(route_paths),
         "agent_operation_registry_entries": len(operations),
         "agent_operation_openapi_paths": len(openapi.get("paths", {})),
+        "classified_api_route_paths": len(classified_route_paths),
+        "unclassified_api_route_paths": len(route_paths - classified_route_paths),
         "operation_schema_refs": len(schema_refs),
         "materialized_openapi_schema_refs": len(normalized_schema_refs & openapi_schema_names),
         "missing_operation_docs_refs": len(missing_operation_docs),
         "tool_contracts_without_api_route": sum(not item["api_routes"] for item in contracts),
         "tool_contracts_without_cli_command": sum(not item["cli_commands"] for item in contracts),
+        "installed_root_skills": skill_coverage.get("installed_root_skill_count", 0),
+        "packaged_skills": skill_coverage.get("packaged_skill_count", 0),
+        "skill_root_packaged_parity": skill_coverage.get("root_packaged_parity", False),
+        "latest_spec_public_alignment_count": public_alignment.get("spec_count", 0),
+        "agent_conformance_passed": conformance.get("status") == "passed",
+        "agent_conformance_levels": len(conformance.get("agent_levels", [])),
     }
 
     findings = []
@@ -229,18 +258,18 @@ def main() -> int:
             {"tools": len(contracts), "strict_objects": strict_descriptor_inputs},
             "Generate strict schemas with additionalProperties=false and conditional requirement tests.",
         ))
-    if len(mcp_names) < len(operations):
+    if len(mcp_names) < expected_mcp_tools or "call_rest_tool" not in mcp_src or "listChanged" not in mcp_src:
         findings.append(finding(
             "AF-TOOL-005", "critical", "mcp",
-            "MCP exposes only a health probe rather than the curated agent operation catalog.",
-            {"mcp_tools": sorted(mcp_names), "agent_operations": len(operations)},
-            "Generate paginated MCP tools/list and tools/call from the canonical operation registry, including outputSchema, structuredContent, annotations, tasks, and listChanged.",
+            "MCP does not expose the complete callable generated catalog with scoped invocation.",
+            {"mcp_tools": len(mcp_names), "expected_callable_tools": expected_mcp_tools},
+            "Generate paginated MCP tools/list and tools/call from the canonical registry, including outputSchema, structuredContent, annotations, scoped REST authority, and listChanged.",
         ))
-    if len(operations) < len(route_paths):
+    if route_paths != classified_route_paths:
         findings.append(finding(
             "AF-TOOL-006", "high", "rest_openapi",
-            "The agent operation/OpenAPI registry covers only a subset of API routes and does not classify every remaining route as agent-eligible or internal.",
-            {"api_routes": len(route_paths), "agent_operations": len(operations)},
+            "The route classification projection is missing or drifted from the Axum route inventory.",
+            {"api_routes": len(route_paths), "classified_routes": len(classified_route_paths), "unclassified": sorted(route_paths - classified_route_paths), "stale": sorted(classified_route_paths - route_paths)},
             "Classify every route; fully contract agent-eligible routes and explicitly mark internal/operator-only routes.",
         ))
     if missing_operation_docs:
@@ -263,12 +292,12 @@ def main() -> int:
             },
             "Generate specific parameter tables, positive/negative examples, failure recovery, prerequisites, dependency chains, and workflow position for every tool.",
         ))
-    if cli_inventory_count < cli_top_commands:
+    if cli_inventory_count < cli_top_commands and len(generated_cli_commands) < len(contracts):
         findings.append(finding(
             "AF-TOOL-009", "high", "cli",
-            "Machine-readable CLI help is a curated subset rather than an exhaustive generated command schema.",
-            {"top_level_commands": cli_top_commands, "help_inventory": cli_inventory_count},
-            "Generate JSON command schemas, flags, defaults, examples, effects, and migration metadata from Clap authority.",
+            "Machine-readable CLI help lacks an exhaustive generated agent command schema.",
+            {"top_level_commands": cli_top_commands, "help_inventory": cli_inventory_count, "generated_agent_commands": len(generated_cli_commands)},
+            "Generate JSON command schemas, flags, defaults, examples, effects, and migration metadata from capability/Clap authority.",
         ))
     if stale_count_docs:
         findings.append(finding(
@@ -277,11 +306,12 @@ def main() -> int:
             {"current_tools": len(contracts), "documents": stale_count_docs},
             "Replace hand-maintained totals with generated values and freshness checks.",
         ))
-    if generic_when:
+    discovery_tools = {"focusa_tool_search", "focusa_tool_describe", "focusa_tool_graph", "focusa_tool_bundle", "focusa_agent_card"}
+    if not discovery_tools.issubset(contract_names):
         findings.append(finding(
             "AF-TOOL-011", "high", "progressive_discovery",
-            "Focusa lacks a dedicated search/describe/graph surface for cold-loading tool schemas and uses family-generic affordances for many tools.",
-            {"generic_affordances": generic_when, "total_tools": len(contracts)},
+            "Focusa lacks one or more dedicated search/describe/graph/bundle/card surfaces for cold-loading schemas.",
+            {"missing_tools": sorted(discovery_tools - contract_names), "generic_affordances": generic_when, "total_tools": len(contracts)},
             "Add tool search, describe, dependency graph, namespaced bundles, digest/listChanged, and token-budgeted deferred schema loading.",
         ))
     if not agent_card or len(capability_descriptors) != len(contracts) or descriptor_generator.returncode:
@@ -291,18 +321,36 @@ def main() -> int:
             {"pi_tools": len(contracts), "capability_descriptors": len(capability_descriptors), "agent_card": bool(agent_card), "generator_passed": descriptor_generator.returncode == 0},
             "Generate a signed/versioned Focusa Agent Capability Manifest with protocol bindings, auth, skills, examples, compatibility, and conformance refs.",
         ))
-    findings.append(finding(
-        "AF-TOOL-013", "high", "browser_interop",
-        "Browser interoperability is diagnostics-intake centric; Focusa lacks a machine-readable WebMCP/UIAI capability bridge and browser workflow dependency graph.",
-        {"current_focusa_browser_tool": "focusa_browser_diagnostics_intake"},
-        "Add UIAI/WebMCP capability discovery, session-isolated browser operation descriptors, evidence contracts, and browser-to-Workpoint workflow graphs.",
-    ))
-    findings.append(finding(
-        "AF-TOOL-014", "high", "agent_evaluation",
-        "Current tests validate contracts and surfaces but do not score weak-to-strong agents on tool selection, parameter completion, recovery, and cross-tool workflows.",
-        {"existing_static_audits": 7},
-        "Add dumb-agent conformance fixtures, golden workflow tasks, invalid-call repair tests, token-cost budgets, and cross-harness behavioral parity evaluation.",
-    ))
+    browser_tools = {"focusa_browser_capabilities_intake", "focusa_browser_workflow_plan", "focusa_browser_diagnostics_intake"}
+    browser_interop_source = ROOT / "crates/focusa-api/src/routes/browser_interop.rs"
+    if not browser_tools.issubset(contract_names) or not browser_interop_source.exists():
+        findings.append(finding(
+            "AF-TOOL-013", "high", "browser_interop",
+            "Focusa lacks a complete machine-readable WebMCP/UIAI capability bridge or browser workflow dependency graph.",
+            {"missing_tools": sorted(browser_tools - contract_names), "browser_interop_route_module": browser_interop_source.exists()},
+            "Add UIAI/WebMCP capability discovery, session-isolated browser operation descriptors, evidence contracts, and browser-to-Workpoint workflow graphs.",
+        ))
+    if conformance.get("status") != "passed" or len(conformance.get("agent_levels", [])) < 7:
+        findings.append(finding(
+            "AF-TOOL-014", "high", "agent_evaluation",
+            "Weak-to-strong cross-harness agent conformance evidence is missing or incomplete.",
+            {"status": conformance.get("status"), "agent_levels": conformance.get("agent_levels", [])},
+            "Add dumb-agent conformance fixtures, golden workflow tasks, invalid-call repair tests, token-cost budgets, and cross-harness behavioral parity evaluation.",
+        ))
+    if not skill_coverage.get("root_packaged_parity") or skill_coverage.get("installed_root_skill_count", 0) < 21:
+        findings.append(finding(
+            "AF-TOOL-015", "high", "skills_runbooks",
+            "Skill/runbook domain coverage or root/package parity is incomplete.",
+            {"coverage": skill_coverage},
+            "Generate progressive skills, dependency-aware runbooks, and exact root/package parity proof.",
+        ))
+    if public_alignment.get("spec_count") != 15 or not public_alignment.get("integrity", {}).get("spec_paths_resolve"):
+        findings.append(finding(
+            "AF-TOOL-016", "high", "public_docs",
+            "Rolling latest-15-spec public documentation alignment is incomplete.",
+            {"alignment": public_alignment},
+            "Reconcile README, docs index, llms.txt, shipped/planned truth, and latest-spec direction.",
+        ))
 
     severity_counts = dict(sorted(Counter(item["severity"] for item in findings).items()))
     report = {

@@ -1,0 +1,123 @@
+{
+  "schema": "focusa.agent_skill_registry.v2",
+  "version": "2.0.0",
+  "skills": [
+    {
+      "name": "focusa-agent-bootstrap",
+      "description": "Use when orienting a new or resumed agent with bounded Focusa identity, Agent Card, progressive tool discovery, preload, Workpoint, and Trajectory context.",
+      "triggers": ["new agent session", "resume after context loss", "unknown Focusa capabilities"],
+      "non_triggers": ["one already-selected tool call", "unrelated repository work"],
+      "tools": ["focusa_agent_card", "focusa_project_identity", "focusa_workpoint_resume", "focusa_trajectory_view", "focusa_tool_search"],
+      "recovery": ["focusa_tool_doctor", "focusa_project_verify", "focusa_workpoint_checkpoint"],
+      "done": "Agent has verified scope, current Workpoint/Trajectory orientation, and only the schemas needed for the next action."
+    },
+    {
+      "name": "focusa-tool-discovery",
+      "description": "Use when selecting or composing Focusa capabilities through search, describe, graph, family bundles, strict schemas, and cross-harness bindings without prompt bloat.",
+      "triggers": ["unknown tool", "multi-tool workflow", "strict parameters required"],
+      "non_triggers": ["exact tool and schema already loaded", "request to load all schemas"],
+      "tools": ["focusa_tool_search", "focusa_tool_describe", "focusa_tool_graph", "focusa_tool_bundle", "focusa_agent_card"],
+      "recovery": ["focusa_tool_search", "focusa_tool_doctor"],
+      "done": "The narrowest valid capability and dependency sequence are selected under token budget."
+    },
+    {
+      "name": "focusa-project-scope",
+      "description": "Use when project root, continuity, repository, deployment, alias, or cross-project authority may be ambiguous before trusting state or mutating files.",
+      "triggers": ["project switch", "scope conflict", "cross-project handoff"],
+      "non_triggers": ["verified same-root read-only action"],
+      "tools": ["focusa_project_identity", "focusa_project_verify", "focusa_active_object_resolve", "focusa_workpoint_resume"],
+      "recovery": ["focusa_project_verify", "focusa_workpoint_checkpoint", "focusa_tool_doctor"],
+      "done": "project_root plus continuity_id authority is verified and target objects resolve in that scope."
+    },
+    {
+      "name": "focusa-session-recovery",
+      "description": "Use for compaction, model switch, context overflow, fork, rollover, session transfer, lineage snapshots, and canonical continuation recovery.",
+      "triggers": ["after compaction", "model switch", "session rollover", "context uncertainty"],
+      "non_triggers": ["transcript-tail guess", "routine stateless call"],
+      "tools": ["focusa_workpoint_resume", "focusa_trajectory_resume", "focusa_session_transfer", "focusa_tree_snapshot_state", "focusa_tree_restore_state"],
+      "recovery": ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_tool_doctor"],
+      "done": "A canonical Workpoint packet supplies mission, action, evidence, blockers, and exact next action."
+    },
+    {
+      "name": "focusa-browser-uiai",
+      "description": "Use for UIAI-first browser research/action, WebMCP capability intake, session/origin isolation, diagnostics, evidence, and Workpoint linkage.",
+      "triggers": ["URL or website task", "browser action", "WebMCP page tools", "visual failure"],
+      "non_triggers": ["generic web fallback before UIAI health", "unbound page mutation"],
+      "tools": ["focusa_browser_workflow_plan", "focusa_browser_capabilities_intake", "focusa_browser_diagnostics_intake", "focusa_evidence_capture"],
+      "recovery": ["focusa_browser_diagnostics_intake", "focusa_tool_doctor", "focusa_resource_mode"],
+      "done": "Browser result is proven in the bound session/origin, diagnostics are ingested, evidence is linked, and unused sessions are closed."
+    },
+    {
+      "name": "focusa-install-lifecycle",
+      "description": "Use for supported install, first Workpoint, repair/rerun, trusted OTA update, rollback, uninstall, and preserved-user-data verification.",
+      "triggers": ["install Focusa", "repair installation", "OTA update", "rollback", "uninstall"],
+      "non_triggers": ["unplanned system mutation", "Mac validation from VPS"],
+      "tools": ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_evidence_capture", "focusa_tool_doctor"],
+      "recovery": ["focusa_tool_doctor", "focusa_workpoint_resume", "focusa_evidence_capture"],
+      "done": "The requested lifecycle state passes end-to-end proof with rollback/preservation evidence."
+    },
+    {
+      "name": "focusa-security-auth-licensing",
+      "description": "Use for permissions, mutation confirmation, bearer/device pairing, revocation, license activation, secrets, and operator approval boundaries.",
+      "triggers": ["auth failure", "device pairing", "permission scope", "license", "secret-bearing operation"],
+      "non_triggers": ["exposing secrets in transcript", "trusting remote annotations as authority"],
+      "tools": ["focusa_device_pair_start", "focusa_device_pair_status", "focusa_device_pair_list", "focusa_device_pair_revoke", "focusa_tool_describe"],
+      "recovery": ["focusa_tool_doctor", "focusa_device_pair_status", "focusa_project_verify"],
+      "done": "Least-privilege scope, explicit approval, revocation/recovery, and secret-safe evidence are verified."
+    },
+    {
+      "name": "focusa-resource-performance",
+      "description": "Use for LowMem/resource pressure, Bloatgaurd budgets, token control, bounded traversal, latency, and hot/cold route performance.",
+      "triggers": ["resource exhausted", "hot-path timeout", "prompt bloat", "large traversal"],
+      "non_triggers": ["unbounded full payload", "premature generic context loading"],
+      "tools": ["focusa_resource_mode", "focusa_bloatgaurd_report", "focusa_bloatgaurd_tokenbloat_report", "focusa_traverse", "focusa_tool_bundle"],
+      "recovery": ["focusa_resource_mode", "focusa_traverse", "focusa_tool_doctor"],
+      "done": "Work completes inside declared memory/token/latency budgets with bounded payloads."
+    },
+    {
+      "name": "focusa-mission-canvas",
+      "description": "Use for Mission Canvas, Work Rail, CRIST interviews, generated UI, workspace artifacts, live refresh, and provider-neutral operation binding.",
+      "triggers": ["mission canvas", "CRIST", "work rail", "generated UI", "workspace artifact"],
+      "non_triggers": ["hand-coded parallel UI contract", "invented operation binding"],
+      "tools": ["focusa_call_stack_design", "focusa_context_cognition", "focusa_evidence_capture", "focusa_active_object_resolve"],
+      "recovery": ["focusa_call_stack_verify", "focusa_tool_doctor", "focusa_workpoint_resume"],
+      "done": "Generated UI binds canonical operations and durable workspace evidence without semantic drift."
+    },
+    {
+      "name": "focusa-release-proof",
+      "description": "Use when preparing a release gate, proof bundle, changelog, resolved-issue audit, local quality evidence, and operator-authorized CI/release execution.",
+      "triggers": ["release readiness", "proof rehearsal", "changelog", "close release gate"],
+      "non_triggers": ["development-time CI without authorization", "claiming unverified platform proof"],
+      "tools": ["focusa_evidence_capture", "focusa_workpoint_link_evidence", "focusa_predict_stats", "focusa_metacog_doctor"],
+      "recovery": ["focusa_tool_doctor", "focusa_workpoint_resume", "focusa_project_verify"],
+      "done": "Every acceptance criterion, issue, changelog entry, platform boundary, and evidence ref is verified before authorized release action."
+    },
+    {
+      "name": "focusa-temporal-authority",
+      "description": "Use when deadlines, freshness, temporal evidence, prior-valid fallback, forecast windows, or stale-state decisions affect authority.",
+      "triggers": ["deadline", "freshness", "stale state", "forecast", "history fallback"],
+      "non_triggers": ["invented dates", "transcript chronology as canonical state"],
+      "tools": ["focusa_trajectory_view", "focusa_hlt_history", "focusa_predict_record", "focusa_predict_evaluate", "focusa_evidence_capture"],
+      "recovery": ["focusa_trajectory_assess", "focusa_workpoint_resume", "focusa_project_verify"],
+      "done": "Decision cites current temporal evidence, freshness, confidence, and bounded forecast/recovery."
+    },
+    {
+      "name": "focusa-spec-implementation",
+      "description": "Use when turning a Focusa specification into a call-stack design, Trajectory gap, Beads tasks, bounded implementation, and conformance evidence.",
+      "triggers": ["implement spec", "new agent feature", "cross-layer refactor"],
+      "non_triggers": ["coding without spec/trajectory/tasks", "scope expansion by inference"],
+      "tools": ["focusa_call_stack_design", "focusa_trajectory_assess", "focusa_workpoint_checkpoint", "focusa_call_stack_verify", "focusa_evidence_capture"],
+      "recovery": ["focusa_project_verify", "focusa_workpoint_resume", "focusa_tool_doctor"],
+      "done": "Implementation matches the typed call stack, acceptance criteria, task closure, and linked proof."
+    },
+    {
+      "name": "focusa-evidence-outcomes",
+      "description": "Use for evidence refs, receipts, prediction evaluation, proposal settlement, project-card outcomes, acceptance truth, and false-completion prevention.",
+      "triggers": ["claim completion", "settle proposal", "evaluate prediction", "attach proof"],
+      "non_triggers": ["raw transcript as proof", "closing on degraded/pending status"],
+      "tools": ["focusa_evidence_capture", "focusa_workpoint_link_evidence", "focusa_predict_evaluate", "focusa_project_card_outcome", "focusa_metacog_capture"],
+      "recovery": ["focusa_active_object_resolve", "focusa_workpoint_resume", "focusa_tool_doctor"],
+      "done": "Canonical outcome status is backed by stable evidence/receipt refs and evaluated learning signals."
+    }
+  ]
+}

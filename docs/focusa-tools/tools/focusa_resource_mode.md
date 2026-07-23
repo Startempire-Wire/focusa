@@ -1,57 +1,70 @@
 # `focusa_resource_mode`
 
-**Family:** `diagnostics-hygiene`  
-**Label:** Focusa Resource Mode
-
-## Purpose
-
-Read or control Focusa ResourceMode, including activating or deactivating `LowMem` mode when resources are constrained.
+Read or control Focusa resource mode, including activating/deactivating LowMem mode when resources are constrained. Use it when Read or control Focusa ResourceMode, including activating or deactivating LowMem mode when resources are constrained. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-Use this tool when the model recognizes low resources, daemon hot paths risk timeouts, safe audit reports memory pressure, or the operator says “Activate LowMem mode” / “Deactivate LowMem mode”.
+- Read or control Focusa ResourceMode, including activating or deactivating LowMem mode when resources are constrained.
+- Capability family: `diagnostics_hygiene`; namespace: `focusa.diagnostics_hygiene`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## When not to use
+## Parameters and strict input schema
 
-Do not use this tool to hide or disable Focusa tools. LowMem keeps tools callable with bounded summaries, degraded envelopes, omitted counts, and rehydrate refs.
+- `action` (optional; string | string | string | string | string | string | string): Mode action. activate_lowmem enables LowMem; deactivate_lowmem clears the runtime override back to auto.
+- `mode` (optional; string | string | string | string | string): Optional target mode when action=set_mode.
+- `reason` (optional; string): Why the mode is being read or changed.
+- `preflight` (optional; boolean): If true, only read current mode and report intended change.
 
-## Example usage
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_resource_mode`.
 
-```text
-focusa_resource_mode action="status"
-focusa_resource_mode action="activate_lowmem" reason="RSS above soft budget"
-focusa_resource_mode action="deactivate_lowmem" reason="operator requested normal auto mode"
-focusa_resource_mode action="set_mode" mode="normal"
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
+
+```json
+{}
 ```
 
-## Expected result
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_resource_mode.md
 
-The tool returns the current mode, forced/auto status, pressure reason, LowMem budget, deferred cold surfaces, pruning order, and `next_tools`. Pi results include `details.tool_result_v1` with `status`, `failure_class`, `canonical`, `degraded`, `side_effects`, and recovery posture.
+## Anti-examples
 
-## Recovery notes
+- hiding failures behind null/unknown
+- silent deletion or cleanup
 
-- `activate_lowmem` sets a runtime LowMem override immediately.
-- `deactivate_lowmem` clears the runtime override back to auto; auto detection may still choose LowMem if pressure remains.
-- To force normal behavior, use `action="set_mode" mode="normal"`.
-- If the route is unavailable, use `focusa_tool_doctor` and `/v1/health`.
+## Authority, permissions, and side effects
 
-## Related tools
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `control_state`, `control_state`
+- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-- [`focusa_tool_doctor`](./focusa_tool_doctor.md)
-- [`focusa_trajectory_view`](./focusa_trajectory_view.md)
-- [`focusa_workpoint_resume`](./focusa_workpoint_resume.md)
+## Failure and recovery
 
-## Contract summary
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- Family: Diagnostics / Hygiene.
-- Side effects: `control_state`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `GET /v1/resource/mode`, `POST /v1/resource/mode`
-- CLI commands: `focusa resource mode`
-- Parity: `domain`; exemptions: `domain_cli_only`.
-- Core surface: Spec96 LowMem ResourceMode runtime policy.
-- Live check: contract_static plus /v1/resource/mode safe probe and activation/deactivation smoke test.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-## Source
-Defined in `apps/pi-extension/src/tools.ts` and `POST /v1/resource/mode`.
+## Dependencies and workflow position
+
+- `focusa_traverse` (likely_next)
+- `focusa_trajectory_view` (likely_next)
+- `focusa_workpoint_resume` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_traverse`, `focusa_trajectory_view`, `focusa_workpoint_resume`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Runbooks: `runbook:diagnostics_hygiene`
+- Pi: `focusa_resource_mode`; MCP: `focusa.resource.mode`; OpenAI: `focusa_resource_mode`.
+- CLI: `focusa resource mode`.
+- REST: `GET /v1/resource/mode`, `POST /v1/resource/mode`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:592ea9f2b2663ad838219595cced953aadf9ff5ebf72191e6614b9afd1e19235`.

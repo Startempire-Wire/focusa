@@ -1,56 +1,71 @@
 # `focusa_metacog_doctor`
 
-**Family:** `metacognition`  
-**Label:** Metacog Doctor
-
-## Purpose
-
-Diagnose signal quality and retrieval usefulness in one move. Best safe diagnostic tool when deciding whether more capture or reflection work is needed.
+Diagnose signal quality and retrieval usefulness in one move. Best safe diagnostic tool when deciding whether more capture or reflection work is needed. Use it when Diagnose signal quality and retrieval usefulness in one move. Best safe diagnostic tool when deciding whether more capture or reflection work is needed. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-Use `focusa_metacog_doctor` when its specific Focusa state or workflow surface is the narrowest tool that matches the current need. Prefer this tool over raw transcript memory when the result should survive compaction, be inspectable, or guide a later agent turn.
+- Diagnose signal quality and retrieval usefulness in one move. Best safe diagnostic tool when deciding whether more capture or reflection work is needed.
+- Capability family: `metacognition`; namespace: `focusa.metacognition`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## When not to use
+## Parameters and strict input schema
 
-Do not use `focusa_metacog_doctor` to dump unbounded logs, bypass operator steering, or create parallel memory outside Focusa. If the tool returns `pending`, `blocked`, `degraded`, or `canonical=false`, treat that as a recovery state and follow the returned next-step guidance.
+- `current_ask` (required; string): Current ask to diagnose against.
+- `scope_tags` (optional; array): See the strict descriptor schema.
+- `k` (optional; integer; min=1, max=50): Top-k retrieval size.
 
-## Example usage
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_metacog_doctor`.
 
-```text
-focusa_metacog_doctor current_ask="Focusa tool docs quality" scope_tags=["docs_workflow"] k=3
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
+
+```json
+{
+  "current_ask": "example"
+}
 ```
 
-## Expected result
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_doctor.md
 
-The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
+## Anti-examples
 
-## Recovery notes
+- journaling raw logs
+- unverified lessons without evidence
 
-- If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.
-- If the result is non-canonical/degraded, call `focusa_workpoint_resume` or a relevant read tool before continuing.
-- If writer ownership is involved, call `focusa_work_loop_writer_status` or use work-loop preflight first.
+## Authority, permissions, and side effects
 
-## Related tools
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_only`, `read_only`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `true`.
 
-- [`focusa_metacog_capture`](./focusa_metacog_capture.md)
-- [`focusa_metacog_retrieve`](./focusa_metacog_retrieve.md)
-- [`focusa_metacog_reflect`](./focusa_metacog_reflect.md)
-- [`focusa_metacog_plan_adjust`](./focusa_metacog_plan_adjust.md)
-- [`focusa_metacog_evaluate_outcome`](./focusa_metacog_evaluate_outcome.md)
-- [`focusa_metacog_recent_reflections`](./focusa_metacog_recent_reflections.md)
+## Failure and recovery
 
-## Contract summary
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- Family: Metacognition.
-- Side effects: `read_only`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `POST /v1/metacognition/retrieve`, `GET /v1/metacognition/reflections/recent`
-- CLI commands: `focusa metacognition doctor`
-- Parity: `full`.
-- Core surface: Metacognition store/retriever.
-- Live check: contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-## Source
-Defined in `apps/pi-extension/src/tools.ts`.
+## Dependencies and workflow position
+
+- `focusa_metacog_retrieve` (likely_next)
+- `focusa_metacog_recent_reflections` (likely_next)
+- `focusa_tool_doctor` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_metacog_retrieve`, `focusa_metacog_recent_reflections`, `focusa_tool_doctor`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-metacognition`
+- Runbooks: `runbook:metacognition`
+- Pi: `focusa_metacog_doctor`; MCP: `focusa.metacog.doctor`; OpenAI: `focusa_metacog_doctor`.
+- CLI: `focusa metacognition doctor`.
+- REST: `POST /v1/metacognition/retrieve`, `GET /v1/metacognition/reflections/recent`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:a02d16810471607ca082a3b3b5e1e04c685d210bed412865943b61c190afcf2c`.

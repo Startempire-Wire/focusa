@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 105,
-  "edge_count": 302,
+  "tool_count": 112,
+  "edge_count": 323,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -69,6 +69,41 @@
     }
   ],
   "per_tool_next_tools": {
+    "focusa_tool_search": [
+      "focusa_tool_describe",
+      "focusa_tool_bundle",
+      "focusa_tool_graph"
+    ],
+    "focusa_tool_describe": [
+      "focusa_tool_graph",
+      "focusa_agent_card",
+      "focusa_tool_search"
+    ],
+    "focusa_tool_graph": [
+      "focusa_tool_describe",
+      "focusa_tool_bundle",
+      "focusa_tool_search"
+    ],
+    "focusa_tool_bundle": [
+      "focusa_tool_describe",
+      "focusa_tool_graph",
+      "focusa_tool_search"
+    ],
+    "focusa_agent_card": [
+      "focusa_tool_search",
+      "focusa_tool_bundle",
+      "focusa_project_identity"
+    ],
+    "focusa_browser_capabilities_intake": [
+      "focusa_browser_workflow_plan",
+      "focusa_browser_diagnostics_intake",
+      "focusa_evidence_capture"
+    ],
+    "focusa_browser_workflow_plan": [
+      "focusa_browser_capabilities_intake",
+      "focusa_browser_diagnostics_intake",
+      "focusa_evidence_capture"
+    ],
     "focusa_preload_profiles": [
       "focusa_preload_build",
       "focusa_preload_doctor"
@@ -583,6 +618,111 @@
     ]
   },
   "edges": [
+    {
+      "from": "focusa_tool_search",
+      "to": "focusa_tool_describe",
+      "weight": 1
+    },
+    {
+      "from": "focusa_tool_search",
+      "to": "focusa_tool_bundle",
+      "weight": 1
+    },
+    {
+      "from": "focusa_tool_search",
+      "to": "focusa_tool_graph",
+      "weight": 1
+    },
+    {
+      "from": "focusa_tool_describe",
+      "to": "focusa_tool_graph",
+      "weight": 1
+    },
+    {
+      "from": "focusa_tool_describe",
+      "to": "focusa_agent_card",
+      "weight": 1
+    },
+    {
+      "from": "focusa_tool_describe",
+      "to": "focusa_tool_search",
+      "weight": 1
+    },
+    {
+      "from": "focusa_tool_graph",
+      "to": "focusa_tool_describe",
+      "weight": 1
+    },
+    {
+      "from": "focusa_tool_graph",
+      "to": "focusa_tool_bundle",
+      "weight": 1
+    },
+    {
+      "from": "focusa_tool_graph",
+      "to": "focusa_tool_search",
+      "weight": 1
+    },
+    {
+      "from": "focusa_tool_bundle",
+      "to": "focusa_tool_describe",
+      "weight": 1
+    },
+    {
+      "from": "focusa_tool_bundle",
+      "to": "focusa_tool_graph",
+      "weight": 1
+    },
+    {
+      "from": "focusa_tool_bundle",
+      "to": "focusa_tool_search",
+      "weight": 1
+    },
+    {
+      "from": "focusa_agent_card",
+      "to": "focusa_tool_search",
+      "weight": 1
+    },
+    {
+      "from": "focusa_agent_card",
+      "to": "focusa_tool_bundle",
+      "weight": 1
+    },
+    {
+      "from": "focusa_agent_card",
+      "to": "focusa_project_identity",
+      "weight": 1
+    },
+    {
+      "from": "focusa_browser_capabilities_intake",
+      "to": "focusa_browser_workflow_plan",
+      "weight": 1
+    },
+    {
+      "from": "focusa_browser_capabilities_intake",
+      "to": "focusa_browser_diagnostics_intake",
+      "weight": 1
+    },
+    {
+      "from": "focusa_browser_capabilities_intake",
+      "to": "focusa_evidence_capture",
+      "weight": 1
+    },
+    {
+      "from": "focusa_browser_workflow_plan",
+      "to": "focusa_browser_capabilities_intake",
+      "weight": 1
+    },
+    {
+      "from": "focusa_browser_workflow_plan",
+      "to": "focusa_browser_diagnostics_intake",
+      "weight": 1
+    },
+    {
+      "from": "focusa_browser_workflow_plan",
+      "to": "focusa_evidence_capture",
+      "weight": 1
+    },
     {
       "from": "focusa_preload_profiles",
       "to": "focusa_preload_build",

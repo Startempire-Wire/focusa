@@ -1,87 +1,67 @@
 # `focusa_device_pair_list`
 
-**Family:** `session_transfer`
-**Label:** Device Pair List
-
-**Architecture spec:** [`docs/53-focusa-device-pairing-spec.md`](../../53-focusa-device-pairing-spec.md)
-
-## Purpose
-
-**Mac menubar OAuth-like device pairing (focusa-ui0y).** List paired devices for a host (append-only JSONL ledger, scope-bounded). Returns the recent device list with name, scopes, paired_at, last_seen_at, revoked. The list is the **multi-tenant boundary** for a daemon — every device here is trusted, everything else is not. See [§6.3 of the pairing spec](../../53-focusa-device-pairing-spec.md#63-multi-device-is-a-property-of-the-ledger).
-
-This is the **read side** of the device ledger. The append side is `focusa_device_pair_complete` (paired=false) and `focusa_device_pair_revoke` (paired=true).
+List paired devices for a host (append-only JSONL ledger, scope-bounded). Returns the recent device list with name, scopes, paired_at, last_seen_at, revoked. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). List paired devices for a host (append-only JSONL ledger). It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- The operator wants to see which devices are currently paired with this Focusa daemon.
-- The operator wants to see which devices have been revoked (audit).
-- The Mac app can render the list to show the operator "your device is paired" with a revoke button.
+- Mac menubar OAuth-like device pairing (focusa-ui0y). List paired devices for a host (append-only JSONL ledger).
+- Capability family: `session_transfer`; namespace: `focusa.session_transfer`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Parameters
+## Parameters and strict input schema
 
-- `host` — host label (e.g. `operator-vps`, `home-mac`). Default: `operator-vps`.
-- `limit` — max records to return. Default 50, max 200.
+- `host` (optional; string): Host label (default: 'operator-host').
+- `limit` (optional; integer; min=1, max=200): Max records to return. Default: 50.
 
-## Expected result
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_device_pair_list`.
 
-Returns `tool_result_v1` with `ok`, `advisory=true`, plus:
-- `count` — number of records returned
-- `host` — host label
-- `devices` — list of `{device_id, name, platform, host, scopes, paired_at, last_seen_at, revoked, revoked_at}`
-- `next_tools`: `["focusa_device_pair_revoke", "focusa_session_transfer"]`
-- `rehydrate_id` — the most recent `device_id`
+## Output
 
-The same `device_id` may appear multiple times (paired=false then paired=true on revoke). Sort by `paired_at` descending to get the latest state.
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
 ## Example
 
 ```json
-{ "host": "operator-vps", "limit": 20 }
+{}
 ```
 
-```text
-focusa_device_pair_list ok | device pair list → count=3 host=operator-vps
-ids: rehydrate_id=019ea...-...
-fields: count=3 host=operator-vps advisory=true
-next: focusa_device_pair_revoke → focusa_session_transfer
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_list.md
 
-  - 019ea...-... name=operator-cli-final revoked=false
-  - 019ea...-... name=operator-cli-final revoked=true
-  - 019ea...-... name=operator-macbook-pro revoked=false
-```
+## Anti-examples
 
-## Scope rules
+- raw localStorage as canonical
+- raw URL paste without a saved pair
 
-- The `host` filter is applied; for a multi-host setup, run multiple calls with different `host` values.
-- The ledger is append-only; revoked devices show as `revoked=true` with `revoked_at` populated.
-- Agent runtime paths are rejected as `host` (matches the spec's `is_unsafe_agent_runtime_path_inline` rule).
+## Authority, permissions, and side effects
 
-## Notes
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_state`, `read_state`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `true`.
+- Confirmation required: `false`; preview supported: `false`.
 
-- This is a **read-only** operation; it never mutates state.
-- The same `device_id` can show up twice (paired=false then paired=true on revoke). The latest record is the active state.
-- For audit, the entire ledger can be inspected directly at `data/device-pairing/{host_hash}/devices.jsonl`.
+## Failure and recovery
 
-## Failure recovery
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-`tool_result_v1.failure_class` is part of the recovery contract. Common values:
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-- `daemon_unavailable` — run `focusa_tool_doctor` and retry.
+## Dependencies and workflow position
 
-When `failure_class` is missing, treat the response as a successful list query.
+- `focusa_device_pair_revoke` (likely_next)
+- `focusa_session_transfer` (likely_next)
 
-## Contract summary
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_device_pair_revoke`, `focusa_session_transfer`.
 
-- Family: `session_transfer`
-- Side Effects: `read_state`
-- Result envelope: `tool_result_v1`
-- API routes: `GET /v1/device/pair/list?host=...&limit=...`
-- CLI commands: `focusa device pair-list --host <h> --limit <n>`
-- Core surface: `Mac menubar OAuth-like device pairing (device ledger)`
-- Bead: `focusa-ui0y`
-- Contract source: `docs/current/focusa-tool-contracts.json`
+## Skills, protocols, and source authority
 
-## Next tools
-
-- `focusa_device_pair_revoke` — remove a paired device.
-- `focusa_session_transfer` — save/continue the current Focusa work (orthogonal).
+- Skills: `skill:focusa`, `skill:focusa-session-recovery`
+- Runbooks: `runbook:session_transfer`
+- Pi: `focusa_device_pair_list`; MCP: `focusa.device.pair.list`; OpenAI: `focusa_device_pair_list`.
+- CLI: `focusa device pair-list`.
+- REST: `GET /v1/device/pair/list`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:a7f094b89d780b5b3f35ff205a9ad57b542c55e5e53763a4175de06e8a0d6e0a`.

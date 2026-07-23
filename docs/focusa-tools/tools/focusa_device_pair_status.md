@@ -1,97 +1,67 @@
 # `focusa_device_pair_status`
 
-**Family:** `session_transfer`
-**Label:** Device Pair Status
-
-**Architecture spec:** [`docs/53-focusa-device-pairing-spec.md`](../../53-focusa-device-pairing-spec.md)
-
-## Purpose
-
-**Mac menubar OAuth-like device pairing (focusa-ui0y).** Check the status of a pending or completed pairing by **code** or by **device_id**. Returns the token (when completed) + status + scopes + expires_at. This endpoint is also hit by the focusa-pairing PWA helper page (served at `GET /pair/{device_id}`) so the phone can show "Pairing done — return to your Mac."
-
-The Mac app calls this in a poll loop after `focusa_device_pair_start` to detect completion. The first call that returns `status=completed` + a non-null `token` is the signal to store the token in the macOS Keychain.
+Check the status of a pending or completed pairing by code OR by device_id. Returns the token (when completed) + status + scopes + expires_at. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Check pairing status by code or device_id. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- The Mac app is polling after `focusa_device_pair_start` and the operator may have already completed the pairing on the VPS.
-- The operator wants to look up the long-lived token for a known `device_id`.
+- Mac menubar OAuth-like device pairing (focusa-ui0y). Check pairing status by code or device_id.
+- Capability family: `session_transfer`; namespace: `focusa.session_transfer`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Parameters
+## Parameters and strict input schema
 
-- `code` — pairing code (mutually exclusive with `device_id`).
-- `device_id` — device id (mutually exclusive with `code`).
+- `code` (optional; string): Pairing code (mutually exclusive with device_id).
+- `device_id` (optional; string): Device id (mutually exclusive with code).
 
-## Expected result
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_device_pair_status`.
 
-Returns `tool_result_v1` with `ok`, plus:
-- `status` — one of `pending | completed | expired`
-- `code` or `device_id` (echoed)
-- `token` — populated when `status=completed`
-- `expires_at` — for the code (5 min) or the token (30 days)
-- `expired` — `true | false`
-- `next_tools`: `["focusa_device_pair_list", "focusa_device_pair_revoke"]`
-- `rehydrate_id` — the device_id
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
 ## Example
 
 ```json
-{ "code": "FOCUS-019EA...-..." }
+{}
 ```
 
-```text
-focusa_device_pair_status ok | device pair status → status=completed
-ids: device_id=019ea...-... rehydrate_id=019ea...-...
-fields: status=completed token=019eb...-... expired=no advisory=true
-next: focusa_device_pair_list → focusa_device_pair_revoke
-```
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_status.md
 
-If the code is still pending:
+## Anti-examples
 
-```text
-fields: status=pending token=none expired=no
-```
+- raw localStorage as canonical
+- raw URL paste without a saved pair
 
-If the code has expired (past 5 minutes):
+## Authority, permissions, and side effects
 
-```text
-fields: status=expired token=none expired=yes
-```
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_state`, `read_state`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `true`.
+- Confirmation required: `false`; preview supported: `true`.
 
-## Scope rules
+## Failure and recovery
 
-- One of `code` or `device_id` is required.
-- The `code` lookup is case-insensitive (the daemon uppercases it).
-- The `device_id` lookup returns the long-lived token (and the expiry).
-- After `focusa_device_pair_revoke`, the `device_id` lookup returns `token=null` (the in-memory token was invalidated).
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-## Notes
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-- This is a **read-only** operation; it never mutates state.
-- The polling loop is bounded by the 5-minute code TTL.
-- The response is consistent with the underlying in-memory map and the JSONL ledger; the `device_id` path is the canonical way to look up a long-lived token.
+## Dependencies and workflow position
 
-## Failure recovery
+- `focusa_device_pair_list` (likely_next)
+- `focusa_device_pair_revoke` (likely_next)
 
-`tool_result_v1.failure_class` is part of the recovery contract. Common values:
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_device_pair_list`, `focusa_device_pair_revoke`.
 
-- `query_missing` — provide `code` or `device_id`.
-- `pair_code_not_found` — the code is unknown.
-- `daemon_unavailable` — run `focusa_tool_doctor` and retry.
+## Skills, protocols, and source authority
 
-When `failure_class` is missing, treat the response as a successful status query.
-
-## Contract summary
-
-- Family: `session_transfer`
-- Side effects: `read_state`
-- Result envelope: `tool_result_v1`
-- API routes: `GET /v1/device/pair/status?code=...&device_id=...`
-- CLI commands: `focusa device pair-status --code <c>|--device-id <id>`
-- Core surface: `Mac menubar OAuth-like device pairing (status query)`
-- Bead: `focusa-ui0y`
-- Contract source: `docs/current/focusa-tool-contracts.json`
-
-## Next tools
-
-- `focusa_device_pair_list` — see all paired devices.
-- `focusa_device_pair_revoke` — remove a paired device.
+- Skills: `skill:focusa`, `skill:focusa-session-recovery`
+- Runbooks: `runbook:session_transfer`
+- Pi: `focusa_device_pair_status`; MCP: `focusa.device.pair.status`; OpenAI: `focusa_device_pair_status`.
+- CLI: `focusa device pair-status`.
+- REST: `GET /v1/device/pair/status`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:961b35b9d8faad4f9a9657929df1c1938ed90a355b83669851282d75aa9f6ea1`.

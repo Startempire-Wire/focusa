@@ -1,11 +1,69 @@
-# focusa_dxux_requirement
+# `focusa_dxux_requirement`
 
-Spec105 DX/UX tool surface.
+Spec105 — read one DXUX requirement by id. Use it when Spec105 — read one DXUX requirement by id. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
-- API: see docs/current/focusa-tool-contracts.json
-- CLI: see docs/current/focusa-tool-contracts.json
-- Side effects: none unless running top-level `focusa preflight`
+## When to use
 
-- API: `GET /v1/dxux/requirement/{id}`
-- CLI: `focusa dxux requirement <id>`
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
+- Spec105 — read one DXUX requirement by id.
+- Capability family: `diagnostics_hygiene`; namespace: `focusa.diagnostics_hygiene`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
+
+## Parameters and strict input schema
+
+- `id` (required; string): Requirement id, e.g. DXUX-004.
+
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_dxux_requirement`.
+
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
+
+```json
+{
+  "id": "example"
+}
+```
+
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_dxux_requirement.md
+
+## Anti-examples
+
+- hiding failures behind null/unknown
+- silent deletion or cleanup
+
+## Authority, permissions, and side effects
+
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_state`, `read_state`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
+
+## Failure and recovery
+
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
+
+## Dependencies and workflow position
+
+- `focusa_dxux_report` (likely_next)
+- `focusa_dxux_digest` (likely_next)
+- `focusa_evidence_capture` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_dxux_report`, `focusa_dxux_digest`, `focusa_evidence_capture`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Runbooks: `runbook:diagnostics_hygiene`
+- Pi: `focusa_dxux_requirement`; MCP: `focusa.dxux.requirement`; OpenAI: `focusa_dxux_requirement`.
+- CLI: `focusa dxux requirement <id>`.
+- REST: `GET /v1/dxux/requirement/{id}`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:1aedf2384cb88cbe4544d581f70eb2f4f4dd846021b5d94f60bb76b5f603a145`.

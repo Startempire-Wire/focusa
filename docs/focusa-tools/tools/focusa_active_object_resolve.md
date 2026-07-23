@@ -1,54 +1,67 @@
 # `focusa_active_object_resolve`
 
-**Family:** `workpoint`  
-**Label:** Focusa Active Object Resolve
-
-## Purpose
-
-Resolve likely active object references from the current Workpoint and optional hint without inventing canonical refs.
+Resolve likely active object references from the current Workpoint and optional hint without inventing canonical refs. Use it when Resolve likely active object references from the current Workpoint and optional hint without inventing canonical refs. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-Use `focusa_active_object_resolve` when its specific Focusa state or workflow surface is the narrowest tool that matches the current need. Prefer this tool over raw transcript memory when the result should survive compaction, be inspectable, or guide a later agent turn.
+- Resolve likely active object references from the current Workpoint and optional hint without inventing canonical refs.
+- Capability family: `workpoint`; namespace: `focusa.workpoint`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## When not to use
+## Parameters and strict input schema
 
-Do not use `focusa_active_object_resolve` to dump unbounded logs, bypass operator steering, or create parallel memory outside Focusa. If the tool returns `pending`, `blocked`, `degraded`, or `canonical=false`, treat that as a recovery state and follow the returned next-step guidance.
+- `hint` (optional; string): Optional file/object/endpoint/work item hint.
 
-## Example usage
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_active_object_resolve`.
 
-```text
-focusa_active_object_resolve hint="apps/pi-extension/src/tools.ts"
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
+
+```json
+{}
 ```
 
-## Expected result
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_active_object_resolve.md
 
-The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
+## Anti-examples
 
-## Recovery notes
+- broad roots such as /root
+- parallel memory outside the active project+continuity scope
 
-- If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.
-- If the result is non-canonical/degraded, call `focusa_workpoint_resume` or a relevant read tool before continuing.
-- If writer ownership is involved, call `focusa_work_loop_writer_status` or use work-loop preflight first.
+## Authority, permissions, and side effects
 
-## Related tools
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_only`, `read_only`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-- [`focusa_workpoint_checkpoint`](./focusa_workpoint_checkpoint.md)
-- [`focusa_workpoint_resume`](./focusa_workpoint_resume.md)
-- [`focusa_workpoint_link_evidence`](./focusa_workpoint_link_evidence.md)
-- [`focusa_evidence_capture`](./focusa_evidence_capture.md)
+## Failure and recovery
 
-## Contract summary
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- Family: Workpoint.
-- Side effects: `read_only`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `POST /v1/workpoint/active-object/resolve`
-- CLI commands: `focusa workpoint resolve-object`
-- Parity: `full`.
-- Core surface: Workpoint reducer/state.
-- Live check: contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-## Source
-Defined in `apps/pi-extension/src/tools.ts`.
+## Dependencies and workflow position
+
+- `focusa_workpoint_checkpoint` (likely_next)
+- `focusa_evidence_capture` (likely_next)
+- `focusa_traverse` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_workpoint_checkpoint`, `focusa_evidence_capture`, `focusa_traverse`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Runbooks: `runbook:workpoint`
+- Pi: `focusa_active_object_resolve`; MCP: `focusa.active.object.resolve`; OpenAI: `focusa_active_object_resolve`.
+- CLI: `focusa workpoint resolve-object`.
+- REST: `POST /v1/workpoint/active-object/resolve`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:cd442fdf771eaa6924980e460ba24884e2bb27655350687391ea791663a7899e`.

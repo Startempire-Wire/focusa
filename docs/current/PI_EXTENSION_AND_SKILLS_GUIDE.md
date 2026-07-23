@@ -17,6 +17,21 @@
 - `focusa-troubleshooting` — degraded/offline/pending/blocked recovery.
 - `focusa-docs-maintenance` — public docs, tool docs, evidence, snapshot wording.
 - `predictive-power` — bounded prediction record/evaluate/stats workflow.
+- `focusa-agent-bootstrap` — bounded startup/resume orientation.
+- `focusa-tool-discovery` — progressive search/describe/graph/bundle loading.
+- `focusa-project-scope` — project-root and continuity authority.
+- `focusa-session-recovery` — compaction, rollover, transfer, and lineage recovery.
+- `focusa-browser-uiai` — UIAI/WebMCP session, diagnostics, evidence, and cleanup.
+- `focusa-install-lifecycle` — install, repair, OTA, rollback, and uninstall proof.
+- `focusa-security-auth-licensing` — permissions, pairing, revocation, licensing, and secrets.
+- `focusa-resource-performance` — LowMem, Bloatgaurd, bounded traversal, and token budgets.
+- `focusa-mission-canvas` — Mission Canvas, CRIST, Work Rail, and generated UI.
+- `focusa-release-proof` — acceptance evidence, issues, changelog, and authorized release gates.
+- `focusa-temporal-authority` — deadlines, freshness, history, and grounded forecasts.
+- `focusa-spec-implementation` — call-stack/spec/task implementation discipline.
+- `focusa-evidence-outcomes` — evidence, receipts, settlement, prediction outcomes, and learning.
+
+Generated coverage and root/package parity: `docs/evidence/141-focusa-skill-runbook-coverage.json`.
 
 ## Skill path hygiene
 
@@ -47,6 +62,7 @@ npm install
 ```bash
 cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 node scripts/validate-skill-hygiene.mjs
+python3 scripts/generate-agent-skills.py --check
 ```
 
 ## Tool contract validation
@@ -65,4 +81,4 @@ Every current `focusa_*` tool has one individual doc under:
 docs/focusa-tools/tools/<tool-name>.md
 ```
 
-Current public count: 79 tools. This count is generated from `docs/current/focusa-tool-contracts.json`; keep this guide, README, tool contracts, and Pi extension registry synchronized before release.
+The current count is generated from `docs/current/focusa-tool-contracts.json`; hand-maintained totals are non-authoritative. Descriptor, Pi, MCP, OpenAI, CLI, REST, Agent Card, and per-tool docs projections must pass their Spec141 drift checks before release.

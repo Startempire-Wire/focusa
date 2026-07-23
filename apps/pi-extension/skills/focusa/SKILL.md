@@ -222,6 +222,15 @@ Every `focusa_*` Pi tool should preserve a visible text summary and add `details
 
 Use `status`, `failure_class`, `retry.posture`, `canonical/degraded`, and `next_tools` for recovery decisions instead of parsing prose.
 
+## KH/OVH execution boundary
+
+- Pi and the authoritative Focusa daemon remain on KH.
+- KH `localhost:7456` is a compatibility SSH forward; UIAI workers, Chromium, and browser memory execute on OVH.
+- Focusa-scoped Cargo/npm/npx commands route to the synchronized OVH `wirebot` workspace through `/usr/local/bin/focusa-ovh-build`.
+- Remote `cargo test` uses an isolated temporary OVH daemon and must never target KH production state.
+- GitHub-hosted release builds are unchanged; the KH `focusa-deploy` runner downloads/verifies/installs artifacts only.
+- Canonical topology, proof, and rollback: `/root/dual-server-master-plan/runbooks/21-focusa-ovh-uiai-and-build-offload-runbook.md`.
+
 ## Real release evidence
 
 Current released proof:

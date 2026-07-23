@@ -1,167 +1,79 @@
 # `focusa_silent_sessions`
 
-**Family:** `work_loop`  
-**Label:** Focusa Silent Sessions (legacy tmux wrapper)
+Legacy/non-durable tmux compatibility wrapper for listing, starting, reopening, tailing, sending input to, or safely killing Pi-local Focusa SilentSessions. It is not the canonical Spec133 daemon-native control plane. Use it when Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
-## Spec 133 legacy posture
+## When to use
 
-This tool is frozen as a legacy Pi-local tmux compatibility wrapper. It is **not** the canonical Spec 133 daemon-native Silent Session control plane, does **not** create durable canonical session identity, and its tmux/session/log metadata are runtime observations only. New behavior must be implemented behind daemon-native `/v1/silent-sessions` APIs and this tool should become a facade over those APIs in later Spec 133 phases.
+- Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.
+- Capability family: `work_loop`; namespace: `focusa.work_loop`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Purpose
+## Parameters and strict input schema
 
-List, start, reopen, tail, send input to, or safely kill legacy tmux-backed Focusa SilentSessions running in the background.
+- `action` (optional; string | string | string | string | string | string | string | string | string): SilentSession action. list is default; kill/send/start/interrupt/restart require approved=true.
+- `session_name` (optional; string): SilentSession name or suffix. Names are normalized under focusa-silent-* prefix.
+- `root_dir` (optional; string): Working directory for a new SilentSession; defaults to current Pi cwd.
+- `command` (optional; string): Custom shell command for start or input line for send. Omit for default Focusa-governed Pi autopilot command.
+- `model` (optional; string): LLM model identifier. Required when using the default start command because implicit fallback is disabled.
+- `timeout_seconds` (optional; integer; min=30, max=3600): Runtime timeout in seconds for the default start command.
+- `mission` (optional; string): Mission prompt for default start command.
+- `work_item_id` (optional; string): Optional bead/work item id to anchor the SilentSession.
+- `lowmem` (optional; boolean): Activate LowMem at start; default true.
+- `lines` (optional; number): Tail lines for durable output; default 80, max 400.
+- `cursor` (optional; string): Byte cursor returned by a prior tail/follow call.
+- `approved` (optional; boolean): Required true for start/send/kill because those mutate background process state.
+- `force` (optional; boolean): Required true with approved=true to kill a SilentSession.
 
-## Why it exists
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_silent_sessions`.
 
-Operators need a `focusa_` tool surface to see background autonomous coding sessions, reopen them with tmux, and stop them when needed without manually remembering tmux commands.
+## Output
 
-## Actions
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
-- `list` — show all `focusa-silent-*` tmux sessions with attached/window/created/activity metadata.
-- `start` — create a detached tmux session with a Focusa-governed Pi command; requires `approved=true`.
-- `reopen` — return `tmux attach -t <session>`, `tmux attach -d -t <session>` for detach-others recovery, and recent pane output.
-- `tail` — capture recent pane output using `capture-pane -p -J` so wrapped lines are readable.
-- `health` — read pane metadata plus tmux activity/log mtime to classify the session as `running`, `stale`, `degraded`, `dead`, or `unknown`.
-- `send` — send literal operator steering text to the session and press Enter; requires `approved=true`.
-- `interrupt` — send `C-c` to the active pane for a hung/runaway agent; requires `approved=true`.
-- `restart` — kill the existing named tmux session if present and start it again from safe stored metadata (`root_dir`, `mission`, `work_item_id`, `run_as_user`) unless caller supplies explicit overrides; stored legacy shell `command` values are not auto-executed; requires `approved=true`.
-- `kill` — terminate the tmux session; requires `approved=true` and `force=true`.
-
-## Tmux control model
-
-SilentSessions intentionally use a small, memorable tmux subset inspired by common tmux cheat-sheet operations:
-Reference reviewed: https://tmuxcheatsheet.com/
-
-- `tmux list-sessions` for inventory.
-- `tmux new-session -d -s <name> -n agent -c <root>` for detached background work with a stable window name.
-- `tmux attach -t <name>` to reopen.
-- `tmux attach -d -t <name>` when the operator wants to detach other clients and take over the session.
-- `tmux capture-pane -p -J -S -<lines>` for readable tails.
-- `tmux list-panes -F ...` for read-only health/pane metadata.
-- `stat -c '%U:%G:%u' <root_dir>` before `start` to detect the target project-root owner.
-- `as-user <owner> 'tmux ...'` when Pi is root and the project root belongs to a non-root owner, so background sessions run as the project owner instead of creating root-owned project files.
-- `tmux pipe-pane -o` to persist pane output to `/tmp/focusa-silent-<session>-<run_as_user>.log` for unattended audit/recovery.
-- Before enabling `pipe-pane`, logs rotate at 5 MiB with three backups (`.1` through `.3`) so repeated starts/restarts do not append forever.
-- `/tmp/focusa-silent-<session>.json` stores best-effort per-session metadata (`root_dir`, `root_owner`, `run_as_user`, `permission_posture`, `command`, `mission`, `work_item_id`, `log_path`, `log_max_bytes`, `log_backups`) so later `list`, `tail`, `health`, `send`, `interrupt`, `restart`, and `kill` use the same execution identity and restart contract.
-- `/tmp/focusa-silent-registry.json` is treated as an untrusted legacy import source only. The compatibility wrapper may read it for operator visibility, but it must not promote it to canonical truth or automatically execute stored legacy shell commands.
-- `tmux send-keys -l -- <text>` followed by `Enter` for literal steering input.
-- `tmux send-keys C-c` for approved interruption without destroying the session.
-- `tmux kill-session -t <name>` only for explicit stop/kill/restart.
-
-## Safety
-
-`kill`, `send`, `interrupt`, and `restart` are process-control actions and require explicit approval flags. `start` also requires approval because it creates a background process. `reopen` and `tail` are read-only; they return exact tmux commands because tool calls cannot take over the operator terminal interactively.
-
-## Permission posture
-
-SilentSessions are not bound to one hardcoded user. On `start`/`restart`, the tool resolves `root_dir`, detects the filesystem owner, and if Pi is running as root in a non-root-owned project tree, starts tmux through `as-user <owner>`. Structured results include `root_owner`, `run_as_user`, `permission_posture`, `log_path`, and `ownership_warning` when a root-run session under `/home` could create root-owned files.
-
-## LowMem posture
-
-Default `start` activates LowMem via `/v1/resource/mode` before launching the agent command. Public Focusa tools stay callable; LowMem changes fidelity and budgets only.
-
-## Expected result
-
-The tool returns a visible text summary plus structured details for session names, tmux attach commands, detach-others attach commands, captured tail output, tmux version, session metadata, persistent `log_path`, `log_rotated`, `log_max_bytes`, `log_backups`, `log_stats`, `activity_age_seconds`, `stale_after_seconds`, `root_owner`, `run_as_user`, `permission_posture`, `registry`, `registry_metadata`, mutation approval posture, `evidence_capture_suggestion` for copy-ready proof capture, and recovery hints. Failure responses should include `failure_class`, `status`, `canonical/degraded` when applicable, `retry` posture, side effects, and next tools so agents can recover without guessing. Tmux process-control failures use `failure_class=process_control_failed` with list/health/tail recovery instead of ambiguous retry.
-
-## Examples
-
-```text
-focusa_silent_sessions action="list"
-focusa_silent_sessions action="start" session_name="focusa-c7e1" work_item_id="focusa-c7e1.2" approved=true
-focusa_silent_sessions action="reopen" session_name="focusa-c7e1"
-focusa_silent_sessions action="tail" session_name="focusa-c7e1" lines=120
-focusa_silent_sessions action="health" session_name="focusa-c7e1"
-focusa_silent_sessions action="send" session_name="focusa-c7e1" command="Steer: prioritize failing validation first" approved=true
-focusa_silent_sessions action="interrupt" session_name="focusa-c7e1" approved=true
-focusa_silent_sessions action="restart" session_name="focusa-c7e1" approved=true
-focusa_silent_sessions action="kill" session_name="focusa-c7e1" approved=true force=true
-```
-
-## Contract summary
-
-- Family: Work Loop.
-- Side effects: `process_control`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: none; local/Pi-only surface.
-- CLI commands: `stat`, `as-user`, `tmux list-sessions`, `tmux new-session`, `tmux attach-session`, `tmux capture-pane`, `tmux list-panes`, `tmux pipe-pane`, `tmux send-keys`, `tmux kill-session`
-- Parity: `pi_only`; exemptions: `pi_only`.
-- Core surface: Pi-local tmux SilentSession controller.
-- Live check: contract_static plus optional tmux list-sessions/stat owner probe; kill/send/start require explicit approval flags.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
-
-## Source
-Defined in `apps/pi-extension/src/tools.ts`; wraps `tmux` local commands.
-
-## Legacy observability and operator-control compatibility contract (Spec 132 D7, superseded by Spec 133)
-
-This section documents the best-effort compatibility seam that existed before Spec 133. Under Spec 133, these guarantees are implementation gaps until the daemon-native control plane owns identity, persistence, streams, authorization, and completion. The Pi-local tmux wrapper must not claim canonical durability.
-
-### Stable identity and scope
-
-Every session has a stable `session_id` (ULID/UUID), a normalized display name,
-`project_root`, `continuity_id`, optional `work_item_id`, and an owner/scope
-record. A restart creates a new `run_id` under the same `session_id`; it does
-not silently create a new logical session. Requests must carry the session
-identity or an unambiguous normalized name and must pass the project-root and
-operator-authorization checks.
-
-### Versioned envelopes
-
-Successful calls return `focusa.silent_session.<action>.v1` with:
+## Example
 
 ```json
-{
-  "session_id": "…",
-  "run_id": "…",
-  "status": "running",
-  "project_root": "~/projects/example",
-  "continuity_id": "…",
-  "cursor": "42",
-  "output": [],
-  "retention": {"max_bytes": 5242880, "backups": 3},
-  "authorization": {"approved": true, "operator_scope": "project"},
-  "recovery": {"next_tools": ["focusa_silent_sessions"]}
-}
+{}
 ```
 
-`output` is bounded and sanitized. `tail` accepts a cursor and returns the
-next cursor; `follow` is a bounded stream that terminates on completion,
-failure, cancellation, or disconnect. Control calls return `accepted`,
-`performed`, `run_id`, and an auditable event reference rather than claiming
-that a process changed when the control command only queued input.
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md
 
-Failure envelopes use `tool_result_v1` and include `failure_class`, `status`,
-`retry`, `side_effects`, `evidence_refs`, `next_tools`, and one actionable
-recovery hint. They never expose raw command lines, credentials, ANSI/OSC
-sequences, or unbounded npm/agent output.
+## Anti-examples
 
-### Lifecycle and retention
+- control mutations without writer/preflight authority
+- fresh direct questions that do not continue work
 
-The only canonical lifecycle values are `starting`, `running`,
-`waiting-input`, `blocked`, `completed`, `failed`, and `dead`. `stale` and
-`degraded` are diagnostic annotations, not replacement statuses. A durable
-registry record, append-only event log, bounded output log, and checkpoint
-cursor are written under the Focusa runtime home (not `/tmp`); logs rotate at
-5 MiB with three backups and rotation is itself an auditable event. Restart
-recovery reopens the same `session_id`, selects the latest run, and reports
-missing/corrupt records instead of silently reconstructing state.
+## Authority, permissions, and side effects
 
-### Operator controls and safety
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `process_control`, `process_control`
+- Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-`list`, `health`, `tail`, and `follow` are read-only. `start`, `send`,
-`interrupt`, `restart`, and `kill` require explicit approval bound to the
-project/workpoint scope; `kill` additionally requires force and records the
-reason. `reopen`/attach is read-only planning and never steals a terminal
-without an explicit detach-others choice. Authorization failure, a trust
-prompt, shell-quoting failure, LowMem activation failure, or daemon error is a
-visible blocked/warning result and must not silently terminate the worker.
+## Failure and recovery
 
-The effective start configuration is retained in a typed, redacted record:
-`root_dir`, `project_root`, `continuity_id`, `work_item_id`, provider/model,
-thinking mode, command arguments, LowMem request/result, run-as user, resource
-limits, and operator approval. Commands are passed as argument vectors or
-literal tmux input; nested shell interpolation is prohibited. Recovery is
-explicit: inspect `health`, then `tail` from the last cursor, then `reopen`,
-`restart`, `interrupt`, or `kill` according to the reported status and
-approval posture.
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
+
+## Dependencies and workflow position
+
+- `focusa_work_loop_status` (likely_next)
+- `focusa_work_loop_checkpoint` (likely_next)
+- `focusa_resource_mode` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_work_loop_status`, `focusa_work_loop_checkpoint`, `focusa_resource_mode`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-work-loop`
+- Runbooks: `runbook:work_loop`
+- Pi: `focusa_silent_sessions`; MCP: `focusa.silent.sessions`; OpenAI: `focusa_silent_sessions`.
+- CLI: `tmux list-sessions`, `tmux new-session`, `tmux attach-session`, `tmux capture-pane`, `tmux list-panes`, `tmux pipe-pane`, `tmux send-keys`, `tmux send-keys C-c`, `tmux kill-session`.
+- REST: Pi-local only.
+- Specification: contract registry.
+- Descriptor digest: `sha256:cc5070d4611a41b9d6b21cf348311d2029a489ed22f91bca8a845f3315e3117a`.

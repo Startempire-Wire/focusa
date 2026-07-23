@@ -1,80 +1,72 @@
 # `focusa_workpoint_resume`
 
-**Family:** `workpoint`  
-**Label:** Workpoint Resume
-
-## Purpose
-
-Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action.
-
-Authority boundary: a canonical Workpoint is immediate continuation authority only when scoped to the exact `project_root + continuity_id`. See [`docs/current/AUTHORITY_MODEL.md`](../../current/AUTHORITY_MODEL.md).
+Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action. Use it when Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-Use `focusa_workpoint_resume` when its specific Focusa state or workflow surface is the narrowest tool that matches the current need. Prefer this tool over raw transcript memory when the result should survive compaction, be inspectable, or guide a later agent turn.
+- Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action.
+- Capability family: `workpoint`; namespace: `focusa.workpoint`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## When not to use
+## Parameters and strict input schema
 
-Do not use `focusa_workpoint_resume` to dump unbounded logs, bypass operator steering, or create parallel memory outside Focusa. If the tool returns `pending`, `blocked`, `degraded`, or `canonical=false`, treat that as a recovery state and follow the returned next-step guidance. If it returns `status=rejected_current_ask_scope_conflict` or `action_authority_for_current_ask=false`, hard-stop: the packet is not executable next-action authority across the project mismatch.
+- `workpoint_id` (optional; string): Specific workpoint id; omit to use active workpoint.
+- `continuity_id` (optional; string): Stable logical session/workstream id; defaults to this Pi session continuity id.
+- `session_id` (optional; string): Optional temporal Pi session id; defaults to this Pi session key.
+- `mode` (optional; string): compact_prompt|full_json|operator_summary
+- `project_root` (optional; string): Explicit safe project folder/root; defaults to Pi session cwd when that cwd is safe.
+- `current_ask` (optional; string): Optional latest operator ask used to compute current-action authority; defaults to Pi current ask.
 
-## Project folder semantics
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_workpoint_resume`.
 
-`project_root` is the project folder/container holding related files, and `continuity_id` is the stable logical session/workstream identity. Broad roots (`/`, `/root`, `/home`, `/tmp`, `/var`, `/usr`, `/opt`) are unsafe and return `rejected_unsafe_project_root`/`scope_mismatch` instead of canonical packets. Cross-project packets return `rejected_scope_mismatch`; same-root/different-continuity packets return `rejected_continuity_mismatch`. When a `FocusaSessionIdentity` envelope is supplied, its `project_root`, `continuity_id`, `session_frame_key`, and ProjectIdentity are authoritative over flat legacy fields. `session_id` is temporal metadata across compaction, model switch, fork, or process restart. Trajectory/goals/work-item/frame tags can raise `identity_confidence_percent` only after the hard gates match.
+## Output
 
-## Example usage
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
-```text
-focusa_workpoint_resume mode="operator_summary"
+## Example
+
+```json
+{}
 ```
 
-## Expected result
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_workpoint_resume.md
 
-The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
+## Anti-examples
 
-When no canonical project-bound packet is available, the Pi tool returns `details.recovery_packet` with `authority=operator_and_current_project_context`, `safe_next_action`, `next_tools`, and `do_not_use` guidance. Treat this as a checkpoint-first recovery contract, not as continuation truth.
+- broad roots such as /root
+- parallel memory outside the active project+continuity scope
 
-## Recovery notes
+## Authority, permissions, and side effects
 
-- `failure_class=hot_path_timeout` or `status=timeout_preserved`: the Pi tool may preserve a noncanonical fallback packet even without a local packet; retry after `focusa_tool_doctor`/`focusa_resource_mode`, or checkpoint the current mission before trusting state.
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_only`, `read_only`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-- If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.
-- If the result is non-canonical/degraded, follow `details.recovery_packet.safe_next_action`: create a fresh `focusa_workpoint_checkpoint` from the current operator ask/project state before treating continuation as canonical.
-- If writer ownership is involved, call `focusa_work_loop_writer_status` or use work-loop preflight first.
+## Failure and recovery
 
-## Related tools
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- [`focusa_workpoint_checkpoint`](./focusa_workpoint_checkpoint.md)
-- [`focusa_workpoint_link_evidence`](./focusa_workpoint_link_evidence.md)
-- [`focusa_active_object_resolve`](./focusa_active_object_resolve.md)
-- [`focusa_evidence_capture`](./focusa_evidence_capture.md)
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-## Contract summary
+## Dependencies and workflow position
 
-- Family: Workpoint.
-- Side effects: `read_only`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `POST /v1/workpoint/resume`
-- CLI commands: `focusa workpoint resume`
-- Parity: `full`.
-- Core surface: Workpoint reducer/state.
-- Live check: contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+- `focusa_trajectory_view` (likely_next)
+- `focusa_active_object_resolve` (likely_next)
+- `focusa_evidence_capture` (likely_next)
 
-## Source
-Defined in `apps/pi-extension/src/tools.ts`.
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_trajectory_view`, `focusa_active_object_resolve`, `focusa_evidence_capture`.
 
+## Skills, protocols, and source authority
 
-## Workpoint Resume Packet v2
-
-`focusa_workpoint_resume` returns `schema_version="focusa.workpoint_resume_packet.v2"` plus `resume_packet_v2` when the daemon can render the structured packet. The v2 packet contains:
-
-- `packet_id`, `generated_at`, `resume_source`, `canonical`, `degraded`, and `confidence`.
-- Top-level `project_identity` and `session_identity` so project authority is explicit.
-- `rendered_summary` for compact prompt injection.
-- Rich `resume_summary` with one-line summary, current action, safest next action, warnings, do-not-use guidance, and context sufficiency.
-- `workpoint` continuation data with status, mission, active object refs, blockers, drift boundaries, hooks, evidence refs, and next action.
-- `trajectory` with high/mid/low hierarchy; similarity grouping is advisory only.
-- `traversal_slices` with tags, window tags, and `rehydrate_refs` for bounded `focusa_traverse` follow-up.
-- `tool_affordances.best_next`, `.recovery`, `.do_not_use`, `api_provenance` with freshness/tool-result metadata, `next_tools`, and `failure_class`.
-
-Authority boundary: project/session authority remains safe `project_root + continuity_id`; shared high-level trajectory similarity and broad folders such as `/root` must never merge sessions.
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Runbooks: `runbook:workpoint`
+- Pi: `focusa_workpoint_resume`; MCP: `focusa.workpoint.resume`; OpenAI: `focusa_workpoint_resume`.
+- CLI: `focusa workpoint resume`.
+- REST: `POST /v1/workpoint/resume`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:ab9c9bbe2ed5cd1be3c2be60126fbc6114de34d72116a188fdd0b734de5b3e68`.

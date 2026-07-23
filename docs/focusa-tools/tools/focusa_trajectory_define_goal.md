@@ -1,65 +1,88 @@
-# focusa_trajectory_define_goal
+# `focusa_trajectory_define_goal`
 
-## Purpose
-
-Create a project-scoped trajectory goal candidate. It validates HLT (High-Level Trajectory), optional MLG/STG/Waypoints, and desired end state, records provenance and lifecycle status in the response, and does not mutate task/execution authority. Root goal supersession requires operator confirmation or durable supersession evidence.
+Create an advisory per-project Trajectory goal candidate without changing task/execution authority. Use it when Create an advisory per-project Trajectory goal candidate, including HLT/MLG/STG/Waypoints, without changing task or execution authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Project start/resume when trajectory is unclear.
-- After operator steering changes project goal/state.
-- Before compaction/model switch/handoff.
-- Before converting trajectory gap into Workpoint continuation.
+- Create an advisory per-project Trajectory goal candidate, including HLT/MLG/STG/Waypoints, without changing task or execution authority.
+- Capability family: `trajectory`; namespace: `focusa.trajectory`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Example usage
+## Parameters and strict input schema
+
+- `long_term_goal` (required; string): Stable project-level long-term goal.
+- `desired_end_state` (required; string): Evidence-backed desired project end state.
+- `mid_level_goal` (optional; string): Current mid-level goal (MLG) derived from the HLT.
+- `short_term_goal` (optional; string): Current short-term goal (STG) derived from the HLT/MLG.
+- `waypoints` (optional; array): Concrete HLT-aligned progress markers along the MLG/STG path.
+- `current_state` (optional; string): Current verified state if known.
+- `current_ask` (optional; string): Explicit current operator intent; satisfies verified state gate (§169-175). Auto-populated from Pi session if omitted.
+- `goal_source` (optional; string): operator|durable_supersession|focus_state|workpoint|beads|imported|inferred_context
+- `supersedes_trajectory_id` (optional; string): Prior trajectory id if this supersedes one.
+- `operator_confirmed` (optional; boolean): True when operator explicitly confirmed a root goal change.
+- `supersession_evidence_refs` (optional; array): Durable evidence refs allowing root goal supersession without direct operator prompt.
+- `required_evidence_refs` (optional; array): Evidence refs required to prove the desired end state.
+- `required_checks` (optional; array): Checks required before the trajectory can be considered done.
+- `acceptance_risks` (optional; array): Known false-completion or acceptance risks.
+- `not_done_if` (optional; array): Conditions proving the trajectory is not done.
+- `project_root` (optional; string): Optional expected project root; defaults to Pi session cwd.
+- `session_id` (optional; string): Optional temporal Pi session id; defaults to Pi session key.
+- `continuity_id` (optional; string): Optional logical continuity id; defaults to Pi continuity id.
+- `idempotency_key` (optional; string): Optional external idempotency key.
+
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_trajectory_define_goal`.
+
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
 
 ```json
 {
-  "project_root": "<focusa-repo>",
-  "session_id": "pi-session",
-  "continuity_id": "logical-workstream-id",
-  "long_term_goal": "Stable project HLT",
-  "desired_end_state": "Evidence-backed desired end state",
-  "mid_level_goal": "Current MLG derived from the HLT",
-  "short_term_goal": "Current STG derived from the MLG",
-  "waypoints": ["First proof waypoint", "Second proof waypoint"],
-  "operator_confirmed": true,
-  "required_checks": ["test or live proof command"],
-  "not_done_if": ["required checks have not run"]
+  "long_term_goal": "example",
+  "desired_end_state": "example"
 }
 ```
 
-## Expected result
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_define_goal.md
 
-Returns `tool_result_v1` details backed by the `/v1/trajectory/*` endpoint. The result is project-scoped, bounded, and explicit about `canonical`, `degraded`, `advisory_only`, `trajectory_candidate.definition_status`, `trajectory_candidate.mid_level_goal`, `trajectory_candidate.short_term_goal`, `trajectory_candidate.waypoints`, `root_goal_change_allowed`, lifecycle `source_precedence`, `next_tools`, and recovery posture. Persisted trajectories include the Spec96 definition-of-done proof contract: `desired_end_state`, `required_evidence_refs`, `required_checks`, `acceptance_risks`, and `not_done_if`.
+## Anti-examples
 
-## Recovery notes
+- overriding Workpoint/operator authority
+- merging sessions on goal similarity alone
 
-- `failure_class=hot_path_timeout` or `status=timeout_preserved`: the Pi tool preserves a degraded noncanonical fallback candidate/checkpoint/resume packet; use it only as advisory orientation, then retry after `focusa_tool_doctor`/`focusa_resource_mode`.
+## Authority, permissions, and side effects
 
-Use `details.tool_result_v1.failure_class` plus status/canonical/degraded fields for recovery decisions.
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `advisory_projection`, `advisory_projection`
+- Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-- Scope mismatch: verify ProjectIdentity before trusting context.
-- Advisory candidate: do not treat as canonical Workpoint until `focusa_workpoint_checkpoint` accepts it.
-- Unclear trajectory: use `focusa_trajectory_define_goal` or request only missing goal facts.
-- Supersession rejected: provide `operator_confirmed=true` or `supersession_evidence_refs` from durable proof.
-- Degraded daemon: fall back to Workpoint resume + Focus Slice, then retry trajectory view.
+## Failure and recovery
 
-## Related tools
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- `focusa_trajectory_view`
-- `focusa_workpoint_resume`
-- `focusa_workpoint_checkpoint`
-- `focusa_active_object_resolve`
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-## Contract summary
+## Dependencies and workflow position
 
-- Family: Trajectory.
-- Side effects: `advisory_projection`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `POST /v1/trajectory/define-goal`
-- CLI commands: `focusa trajectory define-goal`
-- Parity: `domain`; exemptions: `domain_cli_only`.
-- Core surface: Spec96 per-project Trajectory Intelligence projection.
-- Live check: contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+- `focusa_trajectory_assess` (likely_next)
+- `focusa_trajectory_propose_workpoint` (likely_next)
+- `focusa_trajectory_checkpoint` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_trajectory_assess`, `focusa_trajectory_propose_workpoint`, `focusa_trajectory_checkpoint`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Runbooks: `runbook:trajectory`
+- Pi: `focusa_trajectory_define_goal`; MCP: `focusa.trajectory.define.goal`; OpenAI: `focusa_trajectory_define_goal`.
+- CLI: `focusa trajectory define-goal`.
+- REST: `POST /v1/trajectory/define-goal`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:1c36c2db854c7dbab97ccc1aea74a4a9f37a47c3ec0e1f89f0b8db2b9a20bb0b`.

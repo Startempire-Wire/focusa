@@ -1,56 +1,69 @@
 # `focusa_tree_path`
 
-**Family:** `tree-lineage`  
-**Label:** Tree Path
-
-## Purpose
-
-Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns.
+Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns. Use it when Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-Use `focusa_tree_path` when its specific Focusa state or workflow surface is the narrowest tool that matches the current need. Prefer this tool over raw transcript memory when the result should survive compaction, be inspectable, or guide a later agent turn.
+- Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns.
+- Capability family: `tree_lineage`; namespace: `focusa.tree_lineage`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## When not to use
+## Parameters and strict input schema
 
-Do not use `focusa_tree_path` to dump unbounded logs, bypass operator steering, or create parallel memory outside Focusa. If the tool returns `pending`, `blocked`, `degraded`, or `canonical=false`, treat that as a recovery state and follow the returned next-step guidance.
+- `clt_node_id` (required; string): CLT node id.
 
-## Example usage
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_tree_path`.
 
-```text
-focusa_tree_path clt_node_id="019dd69d-2e7e-74a0-a722-a6ed804d040f"
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
+
+```json
+{
+  "clt_node_id": "example"
+}
 ```
 
-## Expected result
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_path.md
 
-The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
+## Anti-examples
 
-## Recovery notes
+- treating lineage as current project authority
+- restore without explicit rollback intent
 
-- If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.
-- If the result is non-canonical/degraded, call `focusa_workpoint_resume` or a relevant read tool before continuing.
-- If writer ownership is involved, call `focusa_work_loop_writer_status` or use work-loop preflight first.
+## Authority, permissions, and side effects
 
-## Related tools
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_only`, `read_only`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-- [`focusa_tree_head`](./focusa_tree_head.md)
-- [`focusa_tree_snapshot_state`](./focusa_tree_snapshot_state.md)
-- [`focusa_tree_restore_state`](./focusa_tree_restore_state.md)
-- [`focusa_tree_diff_context`](./focusa_tree_diff_context.md)
-- [`focusa_tree_recent_snapshots`](./focusa_tree_recent_snapshots.md)
-- [`focusa_tree_snapshot_compare_latest`](./focusa_tree_snapshot_compare_latest.md)
+## Failure and recovery
 
-## Contract summary
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- Family: Tree / Lineage.
-- Side effects: `read_only`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `GET /v1/lineage/path/{clt_node_id}`
-- CLI commands: `focusa lineage path`
-- Parity: `full`.
-- Core surface: Context lineage tree/snapshot state.
-- Live check: contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-## Source
-Defined in `apps/pi-extension/src/tools.ts`.
+## Dependencies and workflow position
+
+- `focusa_tree_snapshot_state` (likely_next)
+- `focusa_tree_diff_context` (likely_next)
+- `focusa_traverse` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_tree_snapshot_state`, `focusa_tree_diff_context`, `focusa_traverse`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-session-recovery`
+- Runbooks: `runbook:tree_lineage`
+- Pi: `focusa_tree_path`; MCP: `focusa.tree.path`; OpenAI: `focusa_tree_path`.
+- CLI: `focusa lineage path`.
+- REST: `GET /v1/lineage/path/{clt_node_id}`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:e921e8af9ec64d697d6851fc568f5fbdcb528775bb6d698e54da586a0a8f24e0`.

@@ -1,60 +1,72 @@
-# focusa_trajectory_propose_workpoint
+# `focusa_trajectory_propose_workpoint`
 
-## Purpose
-
-Turn an active trajectory gap into an advisory Workpoint candidate. The candidate must be explicitly checkpointed through Workpoint tooling before it is canonical, and the proposal itself never selects work-loop items or executes actions.
+Propose an advisory Workpoint candidate from the active per-project Trajectory gap; does not promote or execute it. Use it when Propose an advisory Workpoint candidate from the active per-project Trajectory gap; does not promote or execute it. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Project start/resume when trajectory is unclear.
-- After operator steering changes project goal/state.
-- Before compaction/model switch/handoff.
-- Before converting trajectory gap into Workpoint continuation.
+- Propose an advisory Workpoint candidate from the active per-project Trajectory gap; does not promote or execute it.
+- Capability family: `trajectory`; namespace: `focusa.trajectory`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Example usage
+## Parameters and strict input schema
+
+- `trajectory_id` (optional; string): Trajectory id to use; defaults to active project trajectory.
+- `target_ref` (optional; string): Optional target object/file/ref.
+- `action_type` (optional; string): Optional action intent type.
+- `project_root` (optional; string): Optional expected project root; defaults to Pi session cwd.
+- `session_id` (optional; string): Optional temporal Pi session id; defaults to Pi session key.
+- `continuity_id` (optional; string): Optional logical continuity id; defaults to Pi continuity id.
+
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_trajectory_propose_workpoint`.
+
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
 
 ```json
-{
-  "project_root": "<focusa-repo>",
-  "session_id": "pi-session",
-  "continuity_id": "logical-workstream-id",
-  "target_ref": "optional/file/or/object",
-  "action_type": "trajectory_gap_followup"
-}
+{}
 ```
 
-## Expected result
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md
 
-Returns `tool_result_v1` details backed by the `/v1/trajectory/*` endpoint. The result is project-scoped, bounded, and explicit about `canonical`, `degraded`, `advisory_only`, `no_execution_side_effects`, `workpoint_candidate.action_intent`, target refs, verification hooks, blockers, `do_not_drift`, `checkpoint_required`, and recovery posture.
+## Anti-examples
 
-## Recovery notes
+- overriding Workpoint/operator authority
+- merging sessions on goal similarity alone
 
-- `failure_class=hot_path_timeout` or `status=timeout_preserved`: the Pi tool preserves a degraded noncanonical fallback candidate/checkpoint/resume packet; use it only as advisory orientation, then retry after `focusa_tool_doctor`/`focusa_resource_mode`.
+## Authority, permissions, and side effects
 
-Use `details.tool_result_v1.failure_class` plus status/canonical/degraded fields for recovery decisions.
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `advisory_projection`, `advisory_projection`
+- Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-- Scope mismatch: verify ProjectIdentity before trusting context.
-- Advisory candidate: do not treat as canonical Workpoint until `focusa_workpoint_checkpoint` accepts it.
-- Blockers present: run `focusa_trajectory_assess` or resolve active objects before checkpointing.
-- Work-loop authority: never call work-loop selection/execution from a trajectory proposal.
-- Unclear trajectory: use `focusa_trajectory_define_goal` or request only missing goal facts.
-- Degraded daemon: fall back to Workpoint resume + Focus Slice, then retry trajectory view.
+## Failure and recovery
 
-## Related tools
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- `focusa_trajectory_view`
-- `focusa_workpoint_resume`
-- `focusa_workpoint_checkpoint`
-- `focusa_active_object_resolve`
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-## Contract summary
+## Dependencies and workflow position
 
-- Family: Trajectory.
-- Side effects: `advisory_projection`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `POST /v1/trajectory/propose-workpoint`
-- CLI commands: `focusa trajectory propose-workpoint`
-- Parity: `domain`; exemptions: `domain_cli_only`.
-- Core surface: Spec96 per-project Trajectory Intelligence projection.
-- Live check: contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+- `focusa_workpoint_checkpoint` (likely_next)
+- `focusa_active_object_resolve` (likely_next)
+- `focusa_evidence_capture` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_workpoint_checkpoint`, `focusa_active_object_resolve`, `focusa_evidence_capture`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Runbooks: `runbook:trajectory`
+- Pi: `focusa_trajectory_propose_workpoint`; MCP: `focusa.trajectory.propose.workpoint`; OpenAI: `focusa_trajectory_propose_workpoint`.
+- CLI: `focusa trajectory propose-workpoint`.
+- REST: `POST /v1/trajectory/propose-workpoint`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:4cf10b7cb709a8b9c1f3b8e5416b8d2bf311d0ed356bb7cd1a8cd4c6fa867eca`.

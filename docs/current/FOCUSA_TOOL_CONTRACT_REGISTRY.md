@@ -8,7 +8,7 @@ Validation: `node scripts/validate-focusa-tool-contracts.mjs`.
 
 JSON projection: [`focusa-tool-contracts.json`](focusa-tool-contracts.json).
 
-Current count: **62 Focusa tools**.
+Current count is generated from `docs/current/focusa-tool-contracts.json`; hand-maintained totals are non-authoritative.
 
 Ontology API projections: `GET /v1/ontology/tool-contracts` and `GET /v1/ontology/tool-choreography`.
 

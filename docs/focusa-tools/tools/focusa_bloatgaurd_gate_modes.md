@@ -1,12 +1,67 @@
-# focusa_bloatgaurd_gate_modes
+# `focusa_bloatgaurd_gate_modes`
 
-Spec 101 read-only tool for Bloatgaurd gate modes A/B/C.
+Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema. Use it when Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
-- API: `GET /v1/bloatgaurd/gate-modes/report`
-- CLI: `focusa bloatgaurd gate-modes`
-- Core: `focusa_core::bloatgaurd::BloatgaurdGateModesReport`
-- Side effects: none (`read_state`)
+## When to use
 
-Use before enabling Bloatgaurd enforcement to inspect deterministic modes, thresholds, allowlist entries, and report schema fields.
+- Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema.
+- Capability family: `diagnostics_hygiene`; namespace: `focusa.diagnostics_hygiene`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
+## Parameters and strict input schema
+
+- No arguments.
+
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_bloatgaurd_gate_modes`.
+
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
+
+```json
+{}
+```
+
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_gate_modes.md
+
+## Anti-examples
+
+- hiding failures behind null/unknown
+- silent deletion or cleanup
+
+## Authority, permissions, and side effects
+
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_state`, `read_state`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
+
+## Failure and recovery
+
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
+
+## Dependencies and workflow position
+
+- `focusa_bloatgaurd_gate_mode` (likely_next)
+- `focusa_bloatgaurd_report` (likely_next)
+- `focusa_evidence_capture` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_bloatgaurd_gate_mode`, `focusa_bloatgaurd_report`, `focusa_evidence_capture`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Runbooks: `runbook:diagnostics_hygiene`
+- Pi: `focusa_bloatgaurd_gate_modes`; MCP: `focusa.bloatgaurd.gate.modes`; OpenAI: `focusa_bloatgaurd_gate_modes`.
+- CLI: `focusa bloatgaurd gate-modes`.
+- REST: `GET /v1/bloatgaurd/gate-modes/report`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:2b4b54f2e55c1fa1ce3ce2597fd7df6f2ec8c330bc3b59fab594b2a5fa48c5d0`.

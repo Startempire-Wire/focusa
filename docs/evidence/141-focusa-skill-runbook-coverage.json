@@ -1,0 +1,162 @@
+{
+  "schema": "focusa.agent_skill_runbook_coverage.v1",
+  "registry_version": "2.0.0",
+  "generated_skill_count": 13,
+  "installed_root_skill_count": 21,
+  "packaged_skill_count": 21,
+  "root_packaged_parity": true,
+  "parity_drift": [],
+  "skills": [
+    {
+      "name": "focusa-agent-bootstrap",
+      "tools": [
+        "focusa_agent_card",
+        "focusa_project_identity",
+        "focusa_workpoint_resume",
+        "focusa_trajectory_view",
+        "focusa_tool_search"
+      ],
+      "runbook": ".pi/skills/focusa-agent-bootstrap/references/01-focusa-agent-bootstrap-runbook.md",
+      "sha256": "c19ef07abfa21dd6a0bf23c4d128dfd4c9456bd682bef45db2f0b030afa41d9f"
+    },
+    {
+      "name": "focusa-tool-discovery",
+      "tools": [
+        "focusa_tool_search",
+        "focusa_tool_describe",
+        "focusa_tool_graph",
+        "focusa_tool_bundle",
+        "focusa_agent_card"
+      ],
+      "runbook": ".pi/skills/focusa-tool-discovery/references/01-focusa-tool-discovery-runbook.md",
+      "sha256": "ece160617ee51d3566bd2a92efe8f6288170c7c286e537606c7aaa2aad54d8bd"
+    },
+    {
+      "name": "focusa-project-scope",
+      "tools": [
+        "focusa_project_identity",
+        "focusa_project_verify",
+        "focusa_active_object_resolve",
+        "focusa_workpoint_resume"
+      ],
+      "runbook": ".pi/skills/focusa-project-scope/references/01-focusa-project-scope-runbook.md",
+      "sha256": "a6df36668ef40518f70a3d99d2ce639f9ce30800de487e86f6d38389937a775c"
+    },
+    {
+      "name": "focusa-session-recovery",
+      "tools": [
+        "focusa_workpoint_resume",
+        "focusa_trajectory_resume",
+        "focusa_session_transfer",
+        "focusa_tree_snapshot_state",
+        "focusa_tree_restore_state"
+      ],
+      "runbook": ".pi/skills/focusa-session-recovery/references/01-focusa-session-recovery-runbook.md",
+      "sha256": "d6191082027086cac5fbe437a190c659c72d9ed4507026d408f968b89a743c4c"
+    },
+    {
+      "name": "focusa-browser-uiai",
+      "tools": [
+        "focusa_browser_workflow_plan",
+        "focusa_browser_capabilities_intake",
+        "focusa_browser_diagnostics_intake",
+        "focusa_evidence_capture"
+      ],
+      "runbook": ".pi/skills/focusa-browser-uiai/references/01-focusa-browser-uiai-runbook.md",
+      "sha256": "4f27239440c3951e58217652fa0e4efd12b02fbdac35010ce035301e9be0add7"
+    },
+    {
+      "name": "focusa-install-lifecycle",
+      "tools": [
+        "focusa_project_identity",
+        "focusa_workpoint_checkpoint",
+        "focusa_evidence_capture",
+        "focusa_tool_doctor"
+      ],
+      "runbook": ".pi/skills/focusa-install-lifecycle/references/01-focusa-install-lifecycle-runbook.md",
+      "sha256": "22c52149922b61f00d814567ff283e288ec8daa69be0c7e8316522781628cc45"
+    },
+    {
+      "name": "focusa-security-auth-licensing",
+      "tools": [
+        "focusa_device_pair_start",
+        "focusa_device_pair_status",
+        "focusa_device_pair_list",
+        "focusa_device_pair_revoke",
+        "focusa_tool_describe"
+      ],
+      "runbook": ".pi/skills/focusa-security-auth-licensing/references/01-focusa-security-auth-licensing-runbook.md",
+      "sha256": "2871db8c5989a89535b69bbaf892ca6583df8f2853b9db7ddd99a4175db5229f"
+    },
+    {
+      "name": "focusa-resource-performance",
+      "tools": [
+        "focusa_resource_mode",
+        "focusa_bloatgaurd_report",
+        "focusa_bloatgaurd_tokenbloat_report",
+        "focusa_traverse",
+        "focusa_tool_bundle"
+      ],
+      "runbook": ".pi/skills/focusa-resource-performance/references/01-focusa-resource-performance-runbook.md",
+      "sha256": "74d87c011ed1c1f0389bec7b210bd296dba22ba96e010dac1b9683597f23708a"
+    },
+    {
+      "name": "focusa-mission-canvas",
+      "tools": [
+        "focusa_call_stack_design",
+        "focusa_context_cognition",
+        "focusa_evidence_capture",
+        "focusa_active_object_resolve"
+      ],
+      "runbook": ".pi/skills/focusa-mission-canvas/references/01-focusa-mission-canvas-runbook.md",
+      "sha256": "2109b6f9224fd7057903bb58a1c95f7e4766c61e13ac48a27aedd76682fb7523"
+    },
+    {
+      "name": "focusa-release-proof",
+      "tools": [
+        "focusa_evidence_capture",
+        "focusa_workpoint_link_evidence",
+        "focusa_predict_stats",
+        "focusa_metacog_doctor"
+      ],
+      "runbook": ".pi/skills/focusa-release-proof/references/01-focusa-release-proof-runbook.md",
+      "sha256": "fd13d0bc830ca2c91fc626dd120d0e4f8e67b50ebc7f1a73bedb4964b0f2568c"
+    },
+    {
+      "name": "focusa-temporal-authority",
+      "tools": [
+        "focusa_trajectory_view",
+        "focusa_hlt_history",
+        "focusa_predict_record",
+        "focusa_predict_evaluate",
+        "focusa_evidence_capture"
+      ],
+      "runbook": ".pi/skills/focusa-temporal-authority/references/01-focusa-temporal-authority-runbook.md",
+      "sha256": "c5c4fa05a92ef062a7a1280ae4006ca181dbe43a67ff2b5f7679799d2feab3d6"
+    },
+    {
+      "name": "focusa-spec-implementation",
+      "tools": [
+        "focusa_call_stack_design",
+        "focusa_trajectory_assess",
+        "focusa_workpoint_checkpoint",
+        "focusa_call_stack_verify",
+        "focusa_evidence_capture"
+      ],
+      "runbook": ".pi/skills/focusa-spec-implementation/references/01-focusa-spec-implementation-runbook.md",
+      "sha256": "e36dd6e63f2698bf430cce7d9dda4f641c45a756003dbbd55ebd0e4c458b3c6d"
+    },
+    {
+      "name": "focusa-evidence-outcomes",
+      "tools": [
+        "focusa_evidence_capture",
+        "focusa_workpoint_link_evidence",
+        "focusa_predict_evaluate",
+        "focusa_project_card_outcome",
+        "focusa_metacog_capture"
+      ],
+      "runbook": ".pi/skills/focusa-evidence-outcomes/references/01-focusa-evidence-outcomes-runbook.md",
+      "sha256": "1864d2bfa8887203deea7a9194fc0b959d9efa3ef82bb08fde855b53ca36c8c4"
+    }
+  ]
+}

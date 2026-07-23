@@ -1,57 +1,67 @@
 # `focusa_agent_prompt`
 
-**Family:** `focus_state`  
-**Label:** Agent Prompt
-
-## Purpose
-
-Retrieve the in-band reminder that Pi clients should use `focusa_*` tools for daemon interactions instead of raw `curl`/`fetch` calls.
+Read canonical Pi guidance; prefer focusa_* tools over raw daemon calls. Use it when Retrieve the Pi-aware daemon reminder and canonical tool-layer guidance to prevent raw curl/fetch drift. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-Use `focusa_agent_prompt` when:
+- Retrieve the Pi-aware daemon reminder and canonical tool-layer guidance to prevent raw curl/fetch drift.
+- Capability family: `focus_state`; namespace: `focusa.focus_state`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-- Starting a Pi session to re-establish the canonical tool-call path.
-- Reviewing whether the current interaction is in Pi-aware mode.
-- Diagnosing why non-canonical API calls are still happening.
+## Parameters and strict input schema
 
-## When not to use
+- No arguments.
 
-Do not rely on this for normal project planning, trajectory, or workpoint state changes; use the specialized tools for those operations.
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_agent_prompt`.
 
-## Example usage
+## Output
 
-```text
-focusa tool focusa_agent_prompt
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
+
+```json
+{}
 ```
 
-## Expected result
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_prompt.md
 
-A structured response with the canonical reminder payload (for Pi clients, with response header `x-focusa-agent-prompt: focusa_*`) including:
+## Anti-examples
 
-- `is_agent`
-- `preferred_layer`
-- `rule`
-- `tool_families`
-- `tool_count`
-- `next_tools`
+- raw transcript dumping
+- source-of-truth replacement for Workpoint continuation
 
-## Recovery notes
+## Authority, permissions, and side effects
 
-- If this call is unavailable, check `focusa_tool_doctor` and verify `/v1/health`.
-- Non-Pi traffic may return a non-agent minimal response (`is_agent: false`).
-- If reminder is still missing on Pi traffic, confirm headers:
-  - `X-Focusa-Client: pi`
-  - `X-Extension-Token: focusa-pi-*`
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_only`, `read_only`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-## Contract summary
+## Failure and recovery
 
-- Family: FocusState.
-- Side effects: `read_only`.
-- Result envelope: `tool_result_v1`; failures expose a typed `failure_class` and recovery tools.
-- API route: `GET /v1/agent/prompt`.
-- CLI: none (Pi-only).
-- Parity: `pi_only`; exemptions: `pi_only`, `domain_cli_only`.
-- Core surface: Pi runtime reminder and tool-discovery surface.
-- Live check: contract_static plus `/v1/agent/prompt` with Pi headers.
-- Contract source: `apps/pi-extension/src/tool-contracts.ts`.
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
+
+## Dependencies and workflow position
+
+- `focusa_tool_doctor` (likely_next)
+- `focusa_trajectory_view` (likely_next)
+- `focusa_project_identity` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_tool_doctor`, `focusa_trajectory_view`, `focusa_project_identity`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`
+- Runbooks: `runbook:focus_state`
+- Pi: `focusa_agent_prompt`; MCP: `focusa.agent.prompt`; OpenAI: `focusa_agent_prompt`.
+- CLI: none.
+- REST: `GET /v1/agent/prompt`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:0ca20f4bbe85cac0abfc6627b38800e789dbe403b5cb2a9aa4be8395bcb40272`.

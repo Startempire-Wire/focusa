@@ -1,55 +1,73 @@
 # `focusa_work_loop_control`
 
-**Family:** `work-loop`  
-**Label:** Work Loop Control
-
-## Purpose
-
-Control continuous work loop: on, pause, resume, stop.
+Control continuous work loop: on, pause, resume, stop. Use it when Control continuous work loop: on, pause, resume, stop. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-Use `focusa_work_loop_control` when its specific Focusa state or workflow surface is the narrowest tool that matches the current need. Prefer this tool over raw transcript memory when the result should survive compaction, be inspectable, or guide a later agent turn.
+- Control continuous work loop: on, pause, resume, stop.
+- Capability family: `work_loop`; namespace: `focusa.work_loop`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## When not to use
+## Parameters and strict input schema
 
-Do not use `focusa_work_loop_control` to dump unbounded logs, bypass operator steering, or create parallel memory outside Focusa. If the tool returns `pending`, `blocked`, `degraded`, or `canonical=false`, treat that as a recovery state and follow the returned next-step guidance.
+- `action` (required; string | string | string | string): See the strict descriptor schema.
+- `reason` (optional; string): Optional operator reason (max 200 chars).
+- `preset` (optional; string | string | string | string): See the strict descriptor schema.
+- `preflight` (optional; boolean): If true, only report intended route/writer and do not mutate work-loop state.
+- `root_work_item_id` (optional; string): Optional root BD/task/item id. If omitted, tool infers from active task or bd ready.
 
-## Example usage
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_work_loop_control`.
 
-```text
-focusa_work_loop_control action="pause" preflight=true reason="operator requested release check"
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
+
+```json
+{
+  "action": "on"
+}
 ```
 
-## Expected result
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_work_loop_control.md
 
-The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
+## Anti-examples
 
-## Recovery notes
+- control mutations without writer/preflight authority
+- fresh direct questions that do not continue work
 
-- If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.
-- If the result is non-canonical/degraded, call `focusa_workpoint_resume` or a relevant read tool before continuing.
-- If writer ownership is involved, call `focusa_work_loop_writer_status` or use work-loop preflight first.
+## Authority, permissions, and side effects
 
-## Related tools
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `control_state`, `control_state`
+- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-- [`focusa_work_loop_writer_status`](./focusa_work_loop_writer_status.md)
-- [`focusa_work_loop_status`](./focusa_work_loop_status.md)
-- [`focusa_work_loop_context`](./focusa_work_loop_context.md)
-- [`focusa_work_loop_checkpoint`](./focusa_work_loop_checkpoint.md)
-- [`focusa_work_loop_select_next`](./focusa_work_loop_select_next.md)
+## Failure and recovery
 
-## Contract summary
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- Family: Work Loop.
-- Side effects: `control_state`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `POST /v1/work-loop/enable`, `POST /v1/work-loop/pause`, `POST /v1/work-loop/resume`, `POST /v1/work-loop/stop`
-- CLI commands: none.
-- Parity: `domain`; exemptions: `domain_cli_only`.
-- Core surface: Work-loop state/writer controller.
-- Live check: contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-## Source
-Defined in `apps/pi-extension/src/tools.ts`.
+## Dependencies and workflow position
+
+- `focusa_work_loop_writer_status` (likely_next)
+- `focusa_work_loop_status` (likely_next)
+- `focusa_work_loop_checkpoint` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_work_loop_writer_status`, `focusa_work_loop_status`, `focusa_work_loop_checkpoint`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-work-loop`
+- Runbooks: `runbook:work_loop`
+- Pi: `focusa_work_loop_control`; MCP: `focusa.work.loop.control`; OpenAI: `focusa_work_loop_control`.
+- CLI: none.
+- REST: `POST /v1/work-loop/enable`, `POST /v1/work-loop/pause`, `POST /v1/work-loop/resume`, `POST /v1/work-loop/stop`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:daafbec36326d8fc18a1ba681421c5847e0f2cfe8db6e19c658d0d7274ced9c2`.

@@ -44,6 +44,45 @@ function jsonSchema(value: unknown): Record<string, unknown> {
   return JSON.parse(JSON.stringify(value || { type: "object", properties: {}, additionalProperties: false }));
 }
 
+function exampleFromSchema(schema: any, field = "value"): unknown {
+  if (!schema || typeof schema !== "object") return null;
+  if (schema.const !== undefined) return schema.const;
+  if (Array.isArray(schema.enum) && schema.enum.length) return schema.enum[0];
+  const variants = schema.anyOf || schema.oneOf;
+  if (Array.isArray(variants) && variants.length) {
+    const nonNull = variants.find((item: any) => item?.type !== "null") || variants[0];
+    return exampleFromSchema(nonNull, field);
+  }
+  if (schema.default !== undefined) return schema.default;
+  switch (schema.type) {
+    case "object": {
+      const result: Record<string, unknown> = {};
+      for (const name of schema.required || []) {
+        result[name] = exampleFromSchema(schema.properties?.[name] || {}, name);
+      }
+      return result;
+    }
+    case "array":
+      return schema.minItems > 0 ? [exampleFromSchema(schema.items || {}, field)] : [];
+    case "boolean":
+      return false;
+    case "integer":
+    case "number":
+      return schema.minimum ?? 0;
+    case "string": {
+      if (field.includes("project_root") || field.endsWith("path")) return "/tmp/focusa-project";
+      if (field.includes("continuity")) return "continuity-demo";
+      if (field.includes("url") || field === "origin") return "https://example.com";
+      if (field.includes("query")) return "workpoint resume";
+      if (field.includes("name")) return "focusa_workpoint_resume";
+      const minimum = Math.max(1, Number(schema.minLength || 1));
+      return "example".padEnd(minimum, "x");
+    }
+    default:
+      return {};
+  }
+}
+
 function strictObjects(schema: unknown, seen = new Set<unknown>()): void {
   if (!schema || typeof schema !== "object" || seen.has(schema)) return;
   seen.add(schema);
@@ -174,7 +213,7 @@ const descriptors = [...tools.values()].sort((a, b) => a.name.localeCompare(b.na
     cost_hint: { class: ann.openWorldHint ? "external_or_variable" : "local_bounded" },
     latency_hint: { class: /traverse|full|deep|browser/.test(tool.name) ? "cold_or_variable" : "hot_or_bounded" },
     token_budget: { discovery: "metadata_first", full_schema: "cold_load_on_selection" },
-    examples: [{ description: affordance.when_to_use[0] || contract.purpose, arguments: affordance.example, expected: affordance.expected_result }],
+    examples: [{ description: affordance.when_to_use[0] || contract.purpose, arguments: exampleFromSchema(inputSchema), human_invocation: affordance.example, expected: affordance.expected_result }],
     anti_examples: affordance.when_not_to_use.map((description) => ({ description })),
     failure_classes: affordance.failure_classes,
     recovery: affordance.recovery,
@@ -214,7 +253,7 @@ const mcp = {
     inputSchema: d.input_schema,
     outputSchema: d.output_schema,
     annotations: d.annotations,
-    _meta: { capability_id: d.capability_id, version: d.version, skill_refs: d.skill_refs, docs_ref: d.docs_ref },
+    _meta: { capability_id: d.capability_id, version: d.version, skill_refs: d.skill_refs, docs_ref: d.docs_ref, rest: d.tool_names.rest, authority: d.authority },
   })),
 };
 

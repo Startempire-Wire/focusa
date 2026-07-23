@@ -1,56 +1,84 @@
 # `focusa_workpoint_checkpoint`
 
-**Family:** `workpoint`  
-**Label:** Workpoint Checkpoint
-
-## Purpose
-
-Create a typed Focusa Workpoint checkpoint before compaction, resume, context overflow, model switch, or risky continuation. Use this instead of trusting raw transcript memory; Focusa becomes the canonical continuation source and returns an explicit next-step hint.
+Create a typed Focusa Workpoint checkpoint before compaction, resume, context overflow, model switch, or risky continuation. Use this instead of trusting raw transcript memory; Focusa becomes the canonical continuation source and returns an explicit next-step hint. Use it when Create a typed Focusa Workpoint checkpoint before compaction, resume, context overflow, model switch, or risky continuation. Use this instead of trusting raw transcript memory; Focusa becomes the canonical continuation source and returns an explicit next-step hint. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-Use `focusa_workpoint_checkpoint` when its specific Focusa state or workflow surface is the narrowest tool that matches the current need. Prefer this tool over raw transcript memory when the result should survive compaction, be inspectable, or guide a later agent turn.
+- Create a typed Focusa Workpoint checkpoint before compaction, resume, context overflow, model switch, or risky continuation. Use this instead of trusting raw transcript memory; Focusa becomes the canonical continuation source and returns an explicit next-step hint.
+- Capability family: `workpoint`; namespace: `focusa.workpoint`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## When not to use
+## Parameters and strict input schema
 
-Do not use `focusa_workpoint_checkpoint` to dump unbounded logs, bypass operator steering, or create parallel memory outside Focusa. If the tool returns `pending`, `blocked`, `degraded`, or `canonical=false`, treat that as a recovery state and follow the returned next-step guidance.
+- `current_ask` (optional; string): Current operator ask or mission framing.
+- `work_item_id` (optional; string): Beads/work item id, e.g. focusa-a2w2.6.
+- `continuity_id` (optional; string): Stable logical session/workstream id; defaults to this Pi session continuity id.
+- `checkpoint_reason` (optional; string): manual|operator_checkpoint|before_compact|after_compact|context_overflow|session_resume|model_switch|fork
+- `mission` (required; string): Current mission/objective to preserve across compaction.
+- `target_objects` (optional; array): Ontology/file/component/endpoint refs currently targeted.
+- `current_action` (optional; string): Typed action, e.g. patch_component_binding or resume_workpoint.
+- `verified_evidence` (optional; array): Short evidence refs/results already verified; use handles, not raw logs.
+- `blockers` (optional; array): Open blockers or drift boundaries.
+- `next_action` (required; string): Exact bounded next action to resume after compact/retry.
+- `do_not_drift` (optional; array): Actions/areas the next agent must not drift into.
+- `source_turn_id` (optional; string): Pi/source turn id for provenance.
+- `idempotency_key` (optional; string): Optional external idempotency key.
+- `canonical` (optional; boolean): False only for degraded fallback packets.
+- `project_root` (optional; string): Explicit safe project folder/root; defaults to Pi session cwd when that cwd is safe.
 
-## Example usage
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_workpoint_checkpoint`.
 
-```text
-focusa_workpoint_checkpoint mission="Publish Focusa tool docs" current_action="docs_release" verified_evidence=["tools_in_src 43 missing_docs []"] next_action="commit and push" checkpoint_reason="manual" canonical=true
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+
+## Example
+
+```json
+{
+  "mission": "example",
+  "next_action": "example"
+}
 ```
 
-## Expected result
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_workpoint_checkpoint.md
 
-The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
+## Anti-examples
 
-Project-aware results include `details.project_root_permission_posture` with root owner, current user, cross-user `/home` posture, and `as-user` guidance before file-affecting follow-up work.
+- broad roots such as /root
+- parallel memory outside the active project+continuity scope
 
-## Recovery notes
+## Authority, permissions, and side effects
 
-- If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.
-- If the result is non-canonical/degraded, call `focusa_workpoint_resume` or a relevant read tool before continuing.
-- If writer ownership is involved, call `focusa_work_loop_writer_status` or use work-loop preflight first.
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `checkpoint`, `checkpoint`
+- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-## Related tools
+## Failure and recovery
 
-- [`focusa_workpoint_resume`](./focusa_workpoint_resume.md)
-- [`focusa_workpoint_link_evidence`](./focusa_workpoint_link_evidence.md)
-- [`focusa_active_object_resolve`](./focusa_active_object_resolve.md)
-- [`focusa_evidence_capture`](./focusa_evidence_capture.md)
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-## Contract summary
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-- Family: Workpoint.
-- Side effects: `checkpoint`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `POST /v1/workpoint/checkpoint`
-- CLI commands: `focusa workpoint checkpoint`
-- Parity: `full`.
-- Core surface: Workpoint reducer/state.
-- Live check: contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+## Dependencies and workflow position
 
-## Source
-Defined in `apps/pi-extension/src/tools.ts`.
+- `focusa_workpoint_resume` (likely_next)
+- `focusa_active_object_resolve` (likely_next)
+- `focusa_evidence_capture` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_workpoint_resume`, `focusa_active_object_resolve`, `focusa_evidence_capture`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Runbooks: `runbook:workpoint`
+- Pi: `focusa_workpoint_checkpoint`; MCP: `focusa.workpoint.checkpoint`; OpenAI: `focusa_workpoint_checkpoint`.
+- CLI: `focusa workpoint checkpoint`.
+- REST: `POST /v1/workpoint/checkpoint`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:58967fd9bfaf244edd059e56bae48e0af08f5a7f5ddf20a6e6ddf84ff413cf60`.

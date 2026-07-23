@@ -1,89 +1,69 @@
 # `focusa_device_pair_revoke`
 
-**Family:** `session_transfer`
-**Label:** Device Pair Revoke
-
-**Architecture spec:** [`docs/53-focusa-device-pairing-spec.md`](../../53-focusa-device-pairing-spec.md)
-
-## Purpose
-
-**Mac menubar OAuth-like device pairing (focusa-ui0y).** Revoke a paired device. Appends a new entry with `revoked=true` to the append-only JSONL ledger and removes the in-memory token. The next call from the device will be rejected with `status=revoked`. Multi-device-safe: revoking one device does not affect any other paired device. See [§6.3 of the pairing spec](../../53-focusa-device-pairing-spec.md#63-multi-device-is-a-property-of-the-ledger).
-
-This is the **delete side** of the device ledger. The read side is `focusa_device_pair_list`. The append side is `focusa_device_pair_complete` (paired=false) and `focusa_device_pair_revoke` (paired=true).
+Revoke a paired device. Appends a new entry with revoked=true to the append-only JSONL ledger and removes the in-memory token. The next call from the device will be rejected with status=revoked. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Revoke a paired device; appends revoked=true to ledger. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- The operator wants to remove a paired device (lost laptop, rotation, security incident).
-- The Mac app is being decommissioned.
-- The token is suspected of compromise.
+- Mac menubar OAuth-like device pairing (focusa-ui0y). Revoke a paired device; appends revoked=true to ledger.
+- Capability family: `session_transfer`; namespace: `focusa.session_transfer`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Parameters
+## Parameters and strict input schema
 
-- `device_id` — device id to revoke. Required.
-- `host` — host label (e.g. `operator-vps`, `home-mac`). Default: `operator-vps`.
-- `reason` — optional human-readable reason (audit). Stored in the ledger.
+- `device_id` (required; string): Device id to revoke.
+- `host` (optional; string): Host label (default: 'operator-host').
+- `reason` (optional; string): Optional human-readable reason (audit). Stored in the ledger.
 
-## Expected result
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_device_pair_revoke`.
 
-Returns `tool_result_v1` with `ok`, `advisory=true`, plus:
-- `device_id` — UUID v7 (echoed)
-- `host` — host label
-- `revoked_at` — ISO 8601 timestamp
-- `ledger_appended` — `true | false`
-- `next_tools`: `["focusa_device_pair_list"]`
-- `rehydrate_id` — the device_id
+## Output
+
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
 ## Example
 
 ```json
 {
-  "device_id": "019ea...-...",
-  "host": "operator-vps",
-  "reason": "lost laptop 2026-06-09"
+  "device_id": "example"
 }
 ```
 
-```text
-focusa_device_pair_revoke ok | device pair revoke → device_id=019ea...-... ledger_appended=true
-ids: device_id=019ea...-... rehydrate_id=019ea...-...
-fields: ledger_appended=yes host=operator-vps reason=lost laptop 2026-06-09 advisory=true
-next: focusa_device_pair_list
-```
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_revoke.md
 
-## Scope rules
+## Anti-examples
 
-- The `host` filter is applied; cross-host revokes return `not_found`.
-- Agent runtime paths are rejected as `host` (matches the spec's `is_unsafe_agent_runtime_path_inline` rule).
-- Revocation is **append-only**: the original `paired=true` entry remains in the JSONL ledger; the new `revoked=true` entry supersedes it. `focusa_device_pair_list` returns both, sorted by `paired_at` descending.
+- raw localStorage as canonical
+- raw URL paste without a saved pair
 
-## Notes
+## Authority, permissions, and side effects
 
-- The in-memory token map is invalidated immediately; the next call from the device with the same token returns `status=revoked`.
-- The same `device_id` may be re-paired later; the new entry is appended with `paired_at` updated.
-- For audit, the entire ledger can be inspected directly at `data/device-pairing/{host_hash}/devices.jsonl`.
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `write_device_pair_revoke`, `write_device_pair_revoke`
+- Read-only: `false`; destructive: `true`; idempotent: `false`; open-world: `true`.
+- Confirmation required: `true`; preview supported: `false`.
 
-## Failure recovery
+## Failure and recovery
 
-`tool_result_v1.failure_class` is part of the recovery contract. Common values:
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- `device_id_missing` — provide `device_id` and retry.
-- `pair_device_not_found` — the device is unknown or already revoked.
-- `scope_mismatch` — the `host` is an agent runtime path.
-- `storage_unwritable` — the daemon can't append to the ledger; check daemon logs.
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
-When `failure_class` is missing, treat the response as a successful revocation; verify with `focusa_device_pair_list`.
+## Dependencies and workflow position
 
-## Contract summary
+- `focusa_device_pair_list` (likely_next)
 
-- Family: `session_transfer`
-- Side effects: `write_device_pair_revoke` (in-memory token invalidate + JSONL ledger append)
-- Result envelope: `tool_result_v1`
-- API routes: `POST /v1/device/pair/revoke`
-- CLI commands: `focusa device pair-revoke --device-id <id> --host <h> --reason <r>`
-- Core surface: `Mac menubar OAuth-like device pairing (revoke)`
-- Bead: `focusa-ui0y`
-- Contract source: `docs/current/focusa-tool-contracts.json`
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_device_pair_list`.
 
-## Next tools
+## Skills, protocols, and source authority
 
-- `focusa_device_pair_list` — see all paired devices, including revocations.
+- Skills: `skill:focusa`, `skill:focusa-session-recovery`
+- Runbooks: `runbook:session_transfer`
+- Pi: `focusa_device_pair_revoke`; MCP: `focusa.device.pair.revoke`; OpenAI: `focusa_device_pair_revoke`.
+- CLI: `focusa device pair-revoke`.
+- REST: `POST /v1/device/pair/revoke`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:f9b9fe3dcd8f5ac60410c139e6a6f88daff2da2518e0e8408d2bbcab40178854`.

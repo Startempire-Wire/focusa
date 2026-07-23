@@ -1,95 +1,72 @@
-# focusa_hlt_history
+# `focusa_hlt_history`
 
-## Purpose
-
-Read the append-only HLT (High-Level Trajectory) ledger for a project. Returns the exact history of HLT changes with timestamps, source, old/new values, and evidence refs.
-
-Per Spec98/99: scope-bounded by `(project_root, continuity_id)`, no singleton, CRDT-grade events.
+Read append-only HLT ledger entries with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6. Use it when Read append-only HLT change history with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- When agent needs to verify the exact HLT wording from previous sessions.
-- After compaction/resume when HLT precision is critical.
-- When reconstructing trajectory history for handover.
-- Before changing HLT to see what was previously set.
+- Read append-only HLT change history with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6.
+- Capability family: `trajectory`; namespace: `focusa.trajectory`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Example usage
+## Parameters and strict input schema
 
-```json
-{
-  "project_root": "/home/wirebot/focusa",
-  "continuity_id": "focusa-cont-focusa-99e8217b-31fc-4cba-95fa-21e0783f1079",
-  "limit": 20
-}
-```
+- `project_root` (optional; string): Project root for HLT history scope.
+- `continuity_id` (optional; string): Optional continuity_id filter.
+- `session_id` (optional; string): Spec 125 §7.6: filter by session. 'current' resolves to active session.
+- `include_cross_session_fallbacks` (optional; boolean): Include cross-session fallback candidates (default false).
+- `include_generic` (optional; boolean): Include generic HLT entries (default false).
+- `limit` (optional; integer; min=1, max=500): Max entries to return (defaults to 50).
 
-## Expected result
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_hlt_history`.
 
-```json
-{
-  "status": "completed",
-  "project_root": "/home/wirebot/focusa",
-  "continuity_id": "focusa-cont-...",
-  "count": 5,
-  "entries": [
-    {
-      "timestamp": "2026-06-08T12:00:00Z",
-      "event_id": "019ea9f2-...",
-      "project_root": "/home/wirebot/focusa",
-      "continuity_id": "focusa-cont-...",
-      "session_id": "pi-session-...",
-      "old_hlt": "Maintain and improve Focusa within verified project scope",
-      "new_hlt": "What WPUIAI desires to be: a self-driving WordPress...",
-      "source": "trajectory_define_goal",
-      "reason": "trajectory_goal_defined",
-      "evidence_refs": []
-    }
-  ],
-  "ledger_file": "/home/wirebot/.focusa/hlt-ledger/.../hlt.jsonl"
-}
-```
+## Output
 
-## Ledger file format
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
-Each line in `hlt.jsonl` is a JSON object:
+## Example
 
 ```json
-{
-  "timestamp": "2026-06-08T12:00:00Z",
-  "event_id": "019ea9f2-...",
-  "lamport_ts": 12345,
-  "project_root": "/home/wirebot/focusa",
-  "continuity_id": "focusa-cont-...",
-  "session_id": "pi-session-...",
-  "old_hlt": "previous HLT value or null",
-  "new_hlt": "current HLT value",
-  "source": "operator|focus_state|trajectory_define_goal|...",
-  "reason": "optional reason",
-  "evidence_refs": ["ref1", "ref2"]
-}
+{}
 ```
 
-## Scope rules
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_hlt_history.md
 
-- `project_root` is **required** — HLT ledger is scoped to project.
-- `continuity_id` is **optional** — filters entries to specific workstream.
-- `limit` defaults to 50, max 500.
-- File path is deterministic: `{data_dir}/hlt-ledger/{project_root_hash}/hlt.jsonl`
+## Anti-examples
 
-## Notes
+- overriding Workpoint/operator authority
+- merging sessions on goal similarity alone
 
-- Ledger is append-only — old entries are never modified or deleted.
-- Entries are ordered by timestamp (oldest first, most recent last).
-- Per Spec98/99: no singleton, scope-bounded, CRDT-grade.
+## Authority, permissions, and side effects
 
-## Failure recovery
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_state`, `read_state`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-`tool_result_v1.failure_class` is part of the recovery contract. On `project_root_missing`, provide an explicit `project_root` and retry. On `project_root_unverified`, call `focusa_project_verify` first. On `daemon_unavailable`, run `focusa_tool_doctor` and retry. On `limit_out_of_range` or `continuity_id_unresolved`, adjust parameters and re-run. When `failure_class` is missing, treat the response as read-only HLT history; do not infer changes from absence.
+## Failure and recovery
 
-## Contract summary
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
-- Family: `trajectory`
-- Side effects: `read_state`
-- Result envelope: `tool_result_v1`
-- API routes: `GET /v1/hlt/history`
-- Core surface: `Spec98 per-project append-only HLT ledger history`
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
+
+## Dependencies and workflow position
+
+- `focusa_trajectory_view` (likely_next)
+- `focusa_trajectory_define_goal` (likely_next)
+- `focusa_project_verify` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_trajectory_view`, `focusa_trajectory_define_goal`, `focusa_project_verify`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Runbooks: `runbook:trajectory`
+- Pi: `focusa_hlt_history`; MCP: `focusa.hlt.history`; OpenAI: `focusa_hlt_history`.
+- CLI: `focusa hlt history`, `focusa hlt sessions`, `focusa hlt fallback`.
+- REST: `GET /v1/hlt/history`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:3b1038e0597cc884856c22ea05790978f9d5f836b1b7d103ce2b4771d55eb70b`.

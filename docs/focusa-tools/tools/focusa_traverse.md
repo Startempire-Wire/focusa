@@ -1,67 +1,84 @@
 # `focusa_traverse`
 
-## Purpose
-
-Read-only surgical traversal across large Focusa surfaces. Use it for bounded lineage, ontology, Focus Stack, Workpoint, evidence/reference, telemetry, and tool-registry slices instead of full payload defaults.
+Read-only surgical traversal across large Focusa surfaces. Use for bounded lineage, ontology, evidence, telemetry, Workpoint, and registry slices instead of full payloads. Use it when Read-only surgical traversal across large Focusa surfaces using bounded selectors, cursors, field projection, tags, and cold full-payload guards. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-Use when Trajectory or Workpoint identifies a missing narrow slice and a full tree/store/log would be too broad.
+- Read-only surgical traversal across large Focusa surfaces using bounded selectors, cursors, field projection, tags, and cold full-payload guards.
+- Capability family: `traversal`; namespace: `focusa.traversal`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Inputs
+## Parameters and strict input schema
 
-- `surface`: `lineage`, `ontology`, `focus_stack`, `workpoints`, `evidence`, `telemetry`, `tool_registry`, etc.
-- `selector`: `window`, `head`, `path`, `children`, `neighborhood`, `summaries`, `search`, `recent`, or `tags_verify`.
-- `anchor`, `query`, `cursor`, `limit`, `depth`, `radius` for bounded traversal.
-- `fields` for projection and `tags` for verification.
-- `include_full_payload=true` is an explicit cold opt-in; default reads stay bounded.
+- `surface` (required; string): Surface: lineage|ontology|focus_stack|workpoints|evidence|telemetry|tool_registry etc.
+- `selector` (optional; string): Selector: window|head|path|children|neighborhood|summaries|search|recent|tags_verify.
+- `anchor` (optional; string): Optional anchor id/tag/ref.
+- `query` (optional; string): Optional search/filter query.
+- `cursor` (optional; string): Optional cursor/offset token.
+- `limit` (optional; integer; min=1, max=200): Bounded result limit.
+- `depth` (optional; integer; min=1, max=64): Traversal depth cap.
+- `radius` (optional; integer; min=1, max=8): Neighborhood radius cap.
+- `fields` (optional; array): Optional projected fields.
+- `tags` (optional; array): Optional traversal tags to verify as strings or TraverseTagRef-style objects.
+- `tag_mode` (optional; string | string | string | string | string): Traversal tag mode; defaults mixed.
+- `include_payload` (optional; boolean): Spec96 alias for explicit cold opt-in larger payload; defaults false.
+- `include_full_payload` (optional; boolean): Compatibility alias for explicit cold opt-in larger payload; defaults false.
+- `include_rehydrate_refs` (optional; boolean): Include rehydrate refs for omitted/cold slices.
+- `budget_tokens` (optional; integer; min=1, max=20000): Optional token budget hint.
+- `session_identity` (optional; structured): Optional FocusaSessionIdentity envelope for scoped traversal.
 
-## Expected result
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_traverse`.
 
-A successful call returns a bounded slice, traversal metadata, stable tags, and `details.tool_result_v1.status=completed`; unsupported surfaces return `failure_class=validation_rejected` without side effects.
+## Output
 
-## Surface adapters
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
-Current adapters include `trajectory`, `lineage`, `ontology`, `focus_stack`, `workpoints`, `evidence`/`ecs`/`references`, `metacognition`, `predictions`, `telemetry`/`commands`/`turns`, `snapshots`, and `tool_registry`/`capabilities`. Defaults are bounded; full payloads require explicit cold opt-in.
+## Example
 
-Trajectory context: `trajectory` slices expose the ladder directly; `evidence`/`ecs`/`references` default projections include bounded handle-level `trajectory` context when present so proof handles remain HLT/STG-aligned without requesting full payloads.
-
-## Output contract
-
-Responses include `items`, `traversal` metadata, `tag_scheme`, item/range/window/surface `tags`, `verified_tags`, `stale_tags`, `canonical/degraded`, `failure_class`, `next_tools`, and `details.tool_result_v1`.
-
-## Anchor tag semantics
-
-- `item` tags bind one returned item anchor to a SHA-256 digest of the projected item.
-- `range` tags bind the current cursor range to the returned item digests.
-- `window` tags bind cursor plus limit to the returned item digests.
-- `surface` tags bind the surface total plus window digest and may change after unrelated surface changes.
-- `tags_verify` checks tags and returns `verified_tags` and `stale_tags` without returning full payloads.
-- Collision policy: 24-hex SHA-256 digest plus anchor; on suspected collision request narrower fields or a future longer tag version.
-
-## Examples
-
-```text
-focusa_traverse surface="lineage" selector="path" anchor="<clt-node-id>" limit=25 fields=["node_id","summary"]
-focusa_traverse surface="ontology" selector="neighborhood" anchor="Component:checkout" radius=2 limit=20
-focusa_traverse surface="workpoints" selector="recent" limit=10
-focusa_traverse surface="lineage" selector="tags_verify" tags=["focusa://lineage/window/<node>#0"]
+```json
+{
+  "surface": "example"
+}
 ```
 
-## Related
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_traverse.md
 
-- [`focusa_trajectory_view`](./focusa_trajectory_view.md)
-- [`focusa_workpoint_resume`](./focusa_workpoint_resume.md)
-- [`focusa_lineage_tree`](./focusa_lineage_tree.md)
+## Anti-examples
 
-## Contract summary
+- full payloads by default
+- unbounded history/tree/ontology reads
 
-- Family: Traversal.
-- Side effects: `read_state`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `POST /v1/traverse`, `POST /v1/traverse/verify-tags`
-- CLI commands: none.
-- Parity: `domain`; exemptions: `api_domain_only`.
-- Core surface: Spec96 surgical traversal facade.
-- Live check: contract_static plus /v1/traverse lineage smoke test.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+## Authority, permissions, and side effects
+
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_state`, `read_state`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
+
+## Failure and recovery
+
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
+
+## Dependencies and workflow position
+
+- `focusa_active_object_resolve` (likely_next)
+- `focusa_evidence_capture` (likely_next)
+- `focusa_workpoint_resume` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_active_object_resolve`, `focusa_evidence_capture`, `focusa_workpoint_resume`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-tool-discovery`
+- Runbooks: `runbook:traversal`
+- Pi: `focusa_traverse`; MCP: `focusa.traverse`; OpenAI: `focusa_traverse`.
+- CLI: none.
+- REST: `POST /v1/traverse`, `POST /v1/traverse/verify-tags`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:fcece7431d6a7dae27897dba541a95329b387ba4c7191937eeb63f992bb00bea`.

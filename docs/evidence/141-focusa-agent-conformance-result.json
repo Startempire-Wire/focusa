@@ -1,0 +1,31 @@
+{
+  "schema": "focusa.agent_conformance_result.v1",
+  "status": "passed",
+  "runtime_tools": 112,
+  "strict_examples_valid": 112,
+  "agent_levels": [
+    "weak_metadata_only",
+    "medium_progressive_discovery",
+    "strong_full_descriptor",
+    "mcp_client",
+    "openai_function_client",
+    "cli_automation",
+    "browser_uiai_workflow"
+  ],
+  "weak_agent_cases": 5,
+  "mcp_tools": 108,
+  "classified_routes": 452,
+  "installed_skills": 21,
+  "metrics": {
+    "tool_selection_accuracy": 1,
+    "machine_example_validity": 1,
+    "unknown_property_rejection": 1,
+    "invalid_tool_recovery": 1,
+    "unsafe_call_rate": 0,
+    "scope_violation_rate": 0,
+    "cross_harness_descriptor_parity": 1,
+    "evidence_contract_coverage": 1,
+    "schema_loading": "deferred_by_default"
+  },
+  "registry_digest": "sha256:b9793d0eb515d53b607c447453c8c9ecc49eaf67327757cbe91eae5742f604bb"
+}

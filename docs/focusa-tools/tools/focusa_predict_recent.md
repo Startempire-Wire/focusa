@@ -1,33 +1,69 @@
-# focusa_predict_recent
+# `focusa_predict_recent`
 
-First-class Spec92 prediction tool.
+List recent predictions from one typed project/workstream scope. Use it when List recent bounded Focusa prediction records. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
-## Purpose
+## When to use
 
-Use this tool to work with bounded, inspectable Focusa prediction records. Predictions guide agent behavior and never override operator steering.
+- List recent bounded Focusa prediction records.
+- Capability family: `metacognition`; namespace: `focusa.metacognition`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## API / CLI parity
+## Parameters and strict input schema
 
-See [Predictive Power Guide](../../current/PREDICTIVE_POWER_GUIDE.md).
+- `limit` (optional; number): Recent prediction count, max 100.
+- `project_root` (optional; string): Explicit or current verified project root.
+- `continuity_id` (optional; string): Explicit or current workstream continuity id.
 
-## Expected result
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_predict_recent`.
 
-The tool should return a visible summary plus structured details. Inspect `details.tool_result_v1` for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`. Predictions are advisory signals only; they never choose work or override operator steering.
+## Output
 
-## Safety
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
-- No raw provider payloads.
-- Use evidence refs/handles in context refs.
-- Evaluate predictions after actual outcomes are known.
+## Example
 
-## Contract summary
+```json
+{}
+```
 
-- Family: Metacognition.
-- Side effects: `read_state`.
-- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `GET /v1/predictions/recent`
-- CLI commands: `focusa predict recent`
-- Parity: `full`.
-- Core surface: Spec92 prediction store and telemetry.
-- Live check: contract_static plus focusa_predict_stats and /v1/predictions/stats.
-- Contract source: `docs/current/focusa-tool-contracts.json`.
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_recent.md
+
+## Anti-examples
+
+- journaling raw logs
+- unverified lessons without evidence
+
+## Authority, permissions, and side effects
+
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"advisory_only"}`
+- Side effects: `read_state`, `read_state`
+- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
+
+## Failure and recovery
+
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
+
+## Dependencies and workflow position
+
+- `focusa_predict_stats` (likely_next)
+- `focusa_predict_evaluate` (likely_next)
+- `focusa_metacog_retrieve` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_predict_stats`, `focusa_predict_evaluate`, `focusa_metacog_retrieve`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-metacognition`
+- Runbooks: `runbook:metacognition`
+- Pi: `focusa_predict_recent`; MCP: `focusa.predict.recent`; OpenAI: `focusa_predict_recent`.
+- CLI: `focusa predict recent`.
+- REST: `GET /v1/predictions/recent`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:310a5510549063230d3787eb4b8ea5b9dc3a12d52ee90e1b34df6c638a5fc7a1`.

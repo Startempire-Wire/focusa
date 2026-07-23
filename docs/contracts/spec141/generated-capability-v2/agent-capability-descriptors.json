@@ -5,7 +5,7 @@
     "apps/pi-extension/src/tools.ts",
     "apps/pi-extension/src/tool-contracts.ts"
   ],
-  "capability_count": 105,
+  "capability_count": 112,
   "descriptors": [
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -310,7 +310,8 @@
       "examples": [
         {
           "description": "Resolve likely active object references from the current Workpoint and optional hint without inventing canonical refs.",
-          "arguments": "focusa workpoint resolve-object",
+          "arguments": {},
+          "human_invocation": "focusa workpoint resolve-object",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_active_object_resolve.md"
         }
       ],
@@ -390,7 +391,395 @@
         "snippet": "Use before linking evidence or acting when target object/file/endpoint is ambiguous.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:85fc29f2de5c8a17f032e7f128c07b223a3c2f86c419d4bc1009e50aaf27e709"
+      "descriptor_digest": "sha256:cd442fdf771eaa6924980e460ba24884e2bb27655350687391ea791663a7899e"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
+      "capability_id": "focusa.agent.card",
+      "tool_names": {
+        "pi": "focusa_agent_card",
+        "mcp": "focusa.agent.card",
+        "openai": "focusa_agent_card",
+        "cli": [
+          "focusa help all --json"
+        ],
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/agent/card"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "Focusa Agent Card",
+      "summary": "Read compact cross-harness interfaces, auth, capabilities, families, and discovery entry points.",
+      "description": "Read a compact, versioned Focusa Agent Card for cross-harness discovery. Returns interfaces, auth methods, progressive-discovery entry points, capability families, registry digest guidance, and extended-card routes without loading full schemas. Use it when Read compact cross-harness interfaces, auth, capabilities, families, and discovery entry points. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "awareness",
+      "namespace": "focusa.awareness",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "include_families": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "read",
+        "route_family": "agent"
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/agent/card",
+          "scope": {
+            "kind": "read",
+            "route_family": "agent"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "side_effects": [
+        "read_state",
+        "read_state"
+      ],
+      "confirmation": {
+        "required": false,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": true,
+        "key_recommended": false
+      },
+      "reversibility": {
+        "reversible": true,
+        "compensation": []
+      },
+      "cost_hint": {
+        "class": "local_bounded"
+      },
+      "latency_hint": {
+        "class": "hot_or_bounded"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "Read compact cross-harness interfaces, auth, capabilities, families, and discovery entry points.",
+          "arguments": {},
+          "human_invocation": "focusa help all --json",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_card.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "treating awareness as canonical authority"
+        },
+        {
+          "description": "ignoring suppressed lines when debugging degraded awareness"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_tool_search",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_tool_bundle",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_project_identity",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_tool_search",
+        "focusa_tool_bundle",
+        "focusa_project_identity"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-agent-bootstrap"
+      ],
+      "runbook_refs": [
+        "runbook:awareness"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_agent_card.md",
+      "spec_refs": [
+        "docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md"
+      ],
+      "ontology": {
+        "action": "agent.card",
+        "objects": [
+          "AgentCard",
+          "AgentCapabilityDescriptor"
+        ],
+        "core_surface": "Spec141 cross-harness agent capability discovery"
+      },
+      "evidence_requirements": [],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_agent_card"
+      ],
+      "prompt": {
+        "snippet": "Read a compact, versioned Focusa Agent Card for cross-harness discovery. Returns interfaces, auth methods, progressive-discovery entry points, capability families, registry digest guidance, and extended-card routes without loading full sche",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:3f2fc50089b9b893bb6ba8772404005f1d9b1d480fc11007f6df7907ced0313e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -690,7 +1079,8 @@
       "examples": [
         {
           "description": "Retrieve the Pi-aware daemon reminder and canonical tool-layer guidance to prevent raw curl/fetch drift.",
-          "arguments": "focusa_agent_prompt { ... }",
+          "arguments": {},
+          "human_invocation": "focusa_agent_prompt { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_prompt.md"
         }
       ],
@@ -768,7 +1158,7 @@
         "snippet": "Use at session start or when tool routing drifts.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:4a2ed9306731329a828725b7dc39a197315e136d48c2cd088f76236be9c1e6f8"
+      "descriptor_digest": "sha256:0ca20f4bbe85cac0abfc6627b38800e789dbe403b5cb2a9aa4be8395bcb40272"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -1141,7 +1531,8 @@
       "examples": [
         {
           "description": "Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed lines, metadata, next_tools, and recovery_tools. Use on reload, post-compaction, tool guidance, warning, or UIAI bridge surfaces.",
-          "arguments": "focusa_awareness_packet { ... }",
+          "arguments": {},
+          "human_invocation": "focusa_awareness_packet { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_awareness_packet.md"
         }
       ],
@@ -1223,7 +1614,7 @@
         "snippet": "Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed lines, metadata, next_tools, and recovery_tools, including Spec 111 preload status surfaces.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:aea6387adc98425503752e471a58125fe020acaf35d9ec61ffd6021302c92c82"
+      "descriptor_digest": "sha256:920b9013407174442b0108d2caae4cbb237f9a13301555433765153a7125c7c0"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -1533,7 +1924,10 @@
       "examples": [
         {
           "description": "Spec 101 — read one Bloatgaurd budget domain and its checks/findings.",
-          "arguments": "focusa bloatgaurd domain <name>",
+          "arguments": {
+            "name": "focusa_workpoint_resume"
+          },
+          "human_invocation": "focusa bloatgaurd domain <name>",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_domain.md"
         }
       ],
@@ -1613,7 +2007,7 @@
         "snippet": "Use when a gap maps to one budget domain such as output-firewall, docs-diet, or dead-code-safety.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c2f3f73a56953520a94508f948c60e8ec13e97ce558117497dd8b58ee88be2c0"
+      "descriptor_digest": "sha256:5ea925069d08e3a9c9238d64e5a4832b82c59272b4be0d89be31749e79edfb52"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -1923,7 +2317,10 @@
       "examples": [
         {
           "description": "Spec 101 — read one Bloatgaurd gate mode by code/name.",
-          "arguments": "focusa bloatgaurd gate-mode <name>",
+          "arguments": {
+            "name": "focusa_workpoint_resume"
+          },
+          "human_invocation": "focusa bloatgaurd gate-mode <name>",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_gate_mode.md"
         }
       ],
@@ -2003,7 +2400,7 @@
         "snippet": "Use to inspect a gate mode such as A/advisory, B/warning, or C/fail-candidate before enforcing it.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:008dfcd2ce4a7952743b9cc33c065a10d0b45ca5a2849719f793dc8015aaeef3"
+      "descriptor_digest": "sha256:de90e3b856f499b2e71a3a183e5fbfc20610d9bfff5589cba6f6174cf8049e85"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -2303,7 +2700,8 @@
       "examples": [
         {
           "description": "Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema.",
-          "arguments": "focusa bloatgaurd gate-modes",
+          "arguments": {},
+          "human_invocation": "focusa bloatgaurd gate-modes",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_gate_modes.md"
         }
       ],
@@ -2384,7 +2782,7 @@
         "snippet": "Use before enabling warning/fail-candidate Bloatgaurd gates; this tool is read-only.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:fc9971d93b05ae96448149fc1acf5961933777a45ff4f051a0a4f545f4c7edc4"
+      "descriptor_digest": "sha256:2b4b54f2e55c1fa1ce3ce2597fd7df6f2ec8c330bc3b59fab594b2a5fa48c5d0"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -2694,7 +3092,10 @@
       "examples": [
         {
           "description": "Spec 101 — read one profile preset by name.",
-          "arguments": "focusa bloatgaurd profile <name>",
+          "arguments": {
+            "name": "focusa_workpoint_resume"
+          },
+          "human_invocation": "focusa bloatgaurd profile <name>",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_profile.md"
         }
       ],
@@ -2773,7 +3174,7 @@
         "snippet": "Use to inspect a profile such as daily_driver or tightwad.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:9e8370b5c49fa571e70a1b7da51829666f3018ed4e144fda895e6606f1c868a1"
+      "descriptor_digest": "sha256:ff28a016e62491520abd65226c937d4fac3bb32773c60a3e70f6e0426670018b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -3073,7 +3474,8 @@
       "examples": [
         {
           "description": "Spec 101 — read profile presets and operator switches.",
-          "arguments": "focusa bloatgaurd profiles",
+          "arguments": {},
+          "human_invocation": "focusa bloatgaurd profiles",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_profiles.md"
         }
       ],
@@ -3153,7 +3555,7 @@
         "snippet": "Use to inspect Daily Driver, Beast Mode, Speedy, Neat Freak, and Tightwad profile settings.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:5e42da7d09341184a1b7194cdd1d2f8c3c4cbd0d2770108773631f11e986bf1d"
+      "descriptor_digest": "sha256:f3e78a2dad10bc8f685ab4286c8bfb1f1e19cc5e6f696a8a3912499efd245b51"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -3453,7 +3855,8 @@
       "examples": [
         {
           "description": "Spec 101 — read the compact Bloatgaurd budget report for domains 5.1-5.8.",
-          "arguments": "focusa bloatgaurd report",
+          "arguments": {},
+          "human_invocation": "focusa bloatgaurd report",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_report.md"
         }
       ],
@@ -3534,7 +3937,7 @@
         "snippet": "Use before cleanup or context-budget work to inspect Bloatgaurd budget domains and full-payload/deletion gates.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:9f3e852aa4bd6fdb9d72dfc7eefa402e38d169801959e00c550a548f4f68fe21"
+      "descriptor_digest": "sha256:b3873999bca1131eaed30f23d1f5b60de3d25a15eb7425c421db6f0844e698dd"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -3834,7 +4237,8 @@
       "examples": [
         {
           "description": "Spec 101 — read rollout phases, acceptance checks, and proof commands.",
-          "arguments": "focusa bloatgaurd rollout",
+          "arguments": {},
+          "human_invocation": "focusa bloatgaurd rollout",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_rollout.md"
         }
       ],
@@ -3913,7 +4317,7 @@
         "snippet": "Use to verify rollout hardening acceptance/proof for Bloatgaurd MVP.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:02790e1bcd667b913b72c0505fb27b5933fb5cec2377d32b473801f090d7f5be"
+      "descriptor_digest": "sha256:5cafe996a6e75835559fea4f28df701ee1d248e50eb9f8488ac033f3599148b2"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -4223,7 +4627,10 @@
       "examples": [
         {
           "description": "Spec 101 — read one named routine by name.",
-          "arguments": "focusa bloatgaurd routine <name>",
+          "arguments": {
+            "name": "focusa_workpoint_resume"
+          },
+          "human_invocation": "focusa bloatgaurd routine <name>",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_routine.md"
         }
       ],
@@ -4302,7 +4709,7 @@
         "snippet": "Use to inspect a routine such as patrol, gatekeeper, or scout.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:47f919e5b1dae4364be0e74b2f790055c4978addf907038e19f7f7db3d55bfa0"
+      "descriptor_digest": "sha256:a7b27bee3ade91ebcbf281023b846b40a71ccde8ed599c2e864ba3f4cfbc53c0"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -4602,7 +5009,8 @@
       "examples": [
         {
           "description": "Spec 101 — read named routines and automation matrix.",
-          "arguments": "focusa bloatgaurd routines",
+          "arguments": {},
+          "human_invocation": "focusa bloatgaurd routines",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_routines.md"
         }
       ],
@@ -4682,7 +5090,7 @@
         "snippet": "Use to inspect Patrol through Scout automation policy.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:718a11a3d5c14a971f7a1a176a178a09f41d850d04e3b4b0a4b7fc6fcac95f65"
+      "descriptor_digest": "sha256:6f636792402fb050f48b477531e892d49e21b5a57c10e3b8c9edbff07a1801ef"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -4992,7 +5400,10 @@
       "examples": [
         {
           "description": "Spec 101 — read one Tokenbloat Control domain and its prompt-visible fields/boundaries.",
-          "arguments": "focusa bloatgaurd token-domain <name>",
+          "arguments": {
+            "name": "focusa_workpoint_resume"
+          },
+          "human_invocation": "focusa bloatgaurd token-domain <name>",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_domain.md"
         }
       ],
@@ -5071,7 +5482,7 @@
         "snippet": "Use when a gap maps to tokenbloat-control or tool-call-history-elision.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:928101f9fa9291ecf787c8eec1ffdcee346a81ab8053ecc0f9f43c7d487961f0"
+      "descriptor_digest": "sha256:c038a7b0807a426f2cdc6371082622d37d09720bab9bfd676d668e5dffcbca1e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -5371,7 +5782,8 @@
       "examples": [
         {
           "description": "Spec 101 — read Tokenbloat Control report for domains 5.9-5.10.",
-          "arguments": "focusa bloatgaurd tokenbloat",
+          "arguments": {},
+          "human_invocation": "focusa bloatgaurd tokenbloat",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_report.md"
         }
       ],
@@ -5451,7 +5863,472 @@
         "snippet": "Use to inspect prompt/runtime tokenbloat controls before reducing context or eliding tool history.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:0b245bbc20b90ef93703b75f6787126f171d41642eabfd336cea7cce7a27ce94"
+      "descriptor_digest": "sha256:1ae21fdd6ff6716c9084c5129d7e90a0827435d2adf5c6d36b0e5f334444fded"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
+      "capability_id": "focusa.browser.capabilities.intake",
+      "tool_names": {
+        "pi": "focusa_browser_capabilities_intake",
+        "mcp": "focusa.browser.capabilities.intake",
+        "openai": "focusa_browser_capabilities_intake",
+        "cli": [
+          "focusa help all --json"
+        ],
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/browser/capabilities/intake"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "Browser Capabilities Intake",
+      "summary": "Validate and session/origin-bind UIAI or WebMCP page capabilities under Focusa governance.",
+      "description": "Validate and govern a UIAI or WebMCP browser capability manifest. Binds page tools to one session and origin, treats page safety annotations as untrusted, requires confirmation/evidence for mutation, and returns Focusa browser capability descriptors without executing them. Use it when Validate and session/origin-bind UIAI or WebMCP page capabilities under Focusa governance. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "diagnostics_hygiene",
+      "namespace": "focusa.diagnostics_hygiene",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "session_id",
+          "origin",
+          "tools"
+        ],
+        "properties": {
+          "session_id": {
+            "description": "Exact active UIAI browser session identifier.",
+            "type": "string"
+          },
+          "origin": {
+            "description": "Absolute http(s) page origin bound to these capabilities.",
+            "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "const": "webmcp",
+                "type": "string"
+              },
+              {
+                "const": "uiai",
+                "type": "string"
+              },
+              {
+                "const": "page_manifest",
+                "type": "string"
+              }
+            ]
+          },
+          "trusted_origin": {
+            "default": false,
+            "type": "boolean"
+          },
+          "tools": {
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "inputSchema"
+              ],
+              "properties": {
+                "name": {
+                  "description": "Page/browser tool identifier.",
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "inputSchema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "properties": {}
+                },
+                "annotations": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "properties": {}
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "write",
+        "route_family": "browser"
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/browser/capabilities/intake",
+          "scope": {
+            "kind": "write",
+            "route_family": "browser"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "side_effects": [
+        "write_browser_capability_evidence",
+        "write_browser_capability_evidence"
+      ],
+      "confirmation": {
+        "required": false,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": false,
+        "key_recommended": false
+      },
+      "reversibility": {
+        "reversible": true,
+        "compensation": []
+      },
+      "cost_hint": {
+        "class": "external_or_variable"
+      },
+      "latency_hint": {
+        "class": "cold_or_variable"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "Validate and session/origin-bind UIAI or WebMCP page capabilities under Focusa governance.",
+          "arguments": {
+            "session_id": "example",
+            "origin": "https://example.com",
+            "tools": []
+          },
+          "human_invocation": "focusa help all --json",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_capabilities_intake.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "hiding failures behind null/unknown"
+        },
+        {
+          "description": "silent deletion or cleanup"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_browser_workflow_plan",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_browser_diagnostics_intake",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_evidence_capture",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_browser_workflow_plan",
+        "focusa_browser_diagnostics_intake",
+        "focusa_evidence_capture"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-troubleshooting",
+        "skill:focusa-browser-uiai"
+      ],
+      "runbook_refs": [
+        "runbook:diagnostics_hygiene"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_browser_capabilities_intake.md",
+      "spec_refs": [
+        "docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md"
+      ],
+      "ontology": {
+        "action": "browser.capabilities_intake",
+        "objects": [
+          "BrowserSession",
+          "AgentCapabilityDescriptor",
+          "EvidenceRef"
+        ],
+        "core_surface": "Spec141 governed UIAI and WebMCP capability bridge"
+      },
+      "evidence_requirements": [
+        "stable evidence or receipt ref proving the mutation outcome"
+      ],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_browser_capabilities_intake"
+      ],
+      "prompt": {
+        "snippet": "Validate and govern a UIAI or WebMCP browser capability manifest. Binds page tools to one session and origin, treats page safety annotations as untrusted, requires confirmation/evidence for mutation, and returns Focusa browser capability de",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:b28a8efecc1c43cbd2a2db30e97c974cb05186c37770fbea8717f54bceefc336"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -5821,7 +6698,8 @@
       "examples": [
         {
           "description": "Turn UIAI/browser diagnostics JSON into bounded Workpoint evidence, active-object hints, prediction context, and optional metacog learning.",
-          "arguments": "focusa workpoint evidence-link",
+          "arguments": {},
+          "human_invocation": "focusa workpoint evidence-link",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md"
         }
       ],
@@ -5911,7 +6789,416 @@
         "snippet": "Use after UIAI browser diagnostics/error envelopes to standardize evidence + learning intake before manual interpretation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:4b713090b2c6d7ffcdc6a4c6ca12dabed380d4626a143589a8f9fec5b363cddd"
+      "descriptor_digest": "sha256:405ac17546b7be5a001eeca730e4a9a8a896324f277e00a93a164fcac2c4de77"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
+      "capability_id": "focusa.browser.workflow.plan",
+      "tool_names": {
+        "pi": "focusa_browser_workflow_plan",
+        "mcp": "focusa.browser.workflow.plan",
+        "openai": "focusa_browser_workflow_plan",
+        "cli": [
+          "focusa help all --json"
+        ],
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/browser/workflow/plan"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "Browser Workflow Plan",
+      "summary": "Plan a governed UIAI/WebMCP read, action, diagnostics, evidence, and cleanup sequence.",
+      "description": "Build the governed UIAI/WebMCP sequence for one browser operation before action. Returns health, read/source, diagnostics, snapshot refs, mutation confirmation, bound execution, evidence intake, Workpoint linkage, and session cleanup steps. Use it when Plan a governed UIAI/WebMCP read, action, diagnostics, evidence, and cleanup sequence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "diagnostics_hygiene",
+      "namespace": "focusa.diagnostics_hygiene",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "operation"
+        ],
+        "properties": {
+          "operation": {
+            "description": "Bounded browser action intent.",
+            "type": "string"
+          },
+          "mutation": {
+            "default": false,
+            "type": "boolean"
+          },
+          "webmcp_available": {
+            "default": false,
+            "type": "boolean"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "read",
+        "route_family": "browser"
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/browser/workflow/plan",
+          "scope": {
+            "kind": "read",
+            "route_family": "browser"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "side_effects": [
+        "read_state",
+        "read_state"
+      ],
+      "confirmation": {
+        "required": false,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": true,
+        "key_recommended": false
+      },
+      "reversibility": {
+        "reversible": true,
+        "compensation": []
+      },
+      "cost_hint": {
+        "class": "external_or_variable"
+      },
+      "latency_hint": {
+        "class": "cold_or_variable"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "Plan a governed UIAI/WebMCP read, action, diagnostics, evidence, and cleanup sequence.",
+          "arguments": {
+            "operation": "example"
+          },
+          "human_invocation": "focusa help all --json",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_workflow_plan.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "hiding failures behind null/unknown"
+        },
+        {
+          "description": "silent deletion or cleanup"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_browser_capabilities_intake",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_browser_diagnostics_intake",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_evidence_capture",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_browser_capabilities_intake",
+        "focusa_browser_diagnostics_intake",
+        "focusa_evidence_capture"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-troubleshooting",
+        "skill:focusa-browser-uiai"
+      ],
+      "runbook_refs": [
+        "runbook:diagnostics_hygiene"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_browser_workflow_plan.md",
+      "spec_refs": [
+        "docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md"
+      ],
+      "ontology": {
+        "action": "browser.workflow_plan",
+        "objects": [
+          "BrowserSession",
+          "WorkpointRecord",
+          "EvidenceRef"
+        ],
+        "core_surface": "Spec141 governed UIAI and WebMCP workflow graph"
+      },
+      "evidence_requirements": [],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_browser_workflow_plan"
+      ],
+      "prompt": {
+        "snippet": "Build the governed UIAI/WebMCP sequence for one browser operation before action. Returns health, read/source, diagnostics, snapshot refs, mutation confirmation, bound execution, evidence intake, Workpoint linkage, and session cleanup steps.",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:ea35839582e88832b01766d7e07c04b2cd821c8418ec306cf3aba78b5b64ea68"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -6280,7 +7567,11 @@
       "examples": [
         {
           "description": "Write a typed, append-only Call Stack Design for a feature before implementation. Returns the standard Focusa call stack scaffold.",
-          "arguments": "focusa call-stack design",
+          "arguments": {
+            "mission": "example",
+            "entry_name": "focusa_workpoint_resume"
+          },
+          "human_invocation": "focusa call-stack design",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_call_stack_design.md"
         }
       ],
@@ -6363,7 +7654,7 @@
         "snippet": "Use when designing a new feature or refactor that will be implemented by an AI agent. The design is a typed artifact, not free-form prose.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2f5037e0589455ab0b0848b1285f268358cc947a11226400048dcd71b5f11a02"
+      "descriptor_digest": "sha256:70f2f0c5060395cdcda7b10d80e21c5cd63e705747a4eccbeb4da82189d2b474"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -6710,7 +8001,8 @@
       "examples": [
         {
           "description": "Verify a Call Stack Design against bounded implementation surfaces and report drift without mutating Focus State.",
-          "arguments": "focusa call-stack verify",
+          "arguments": {},
+          "human_invocation": "focusa call-stack verify",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_call_stack_verify.md"
         }
       ],
@@ -6791,7 +8083,7 @@
         "snippet": "Use after focusa_call_stack_design or before implementation review to detect design-vs-code drift without mutating Focus State.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a1dba0e4112202a65e2e8d1c664fb141f6ec83a1e4fe6f8d92c427f3bd9be452"
+      "descriptor_digest": "sha256:7527d053bb4d4c1736354ad2f6d28c78a751fc15cdb3d360dd918294168e7b42"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -7103,7 +8395,10 @@
       "examples": [
         {
           "description": "Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture — NOT self-imposed tasks. Max 200 chars.",
-          "arguments": "focusa focus update --constraint",
+          "arguments": {
+            "constraint": "example"
+          },
+          "human_invocation": "focusa focus update --constraint",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_constraint.md"
         }
       ],
@@ -7192,7 +8487,7 @@
           "Example INVALID: 'Need to fix the scratchpad path' (self-imposed task)"
         ]
       },
-      "descriptor_digest": "sha256:483b775160b80f5291ed0d44df6e5fb60c7b80350971a1c34acbcbf5aadf0fed"
+      "descriptor_digest": "sha256:0608c0f5d3e727641eb7d706bdc4cecf2c2a087054396c2c3ce9555f79708de6"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -7512,7 +8807,8 @@
       "examples": [
         {
           "description": "Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Never mutates state.",
-          "arguments": "focusa context-cognition view",
+          "arguments": {},
+          "human_invocation": "focusa context-cognition view",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition.md"
         }
       ],
@@ -7594,7 +8890,7 @@
         "snippet": "Use when an operator or agent needs a structured, bounded view of the current project context before making decisions. The packet is advisory and never overrides Workpoint or Trajectory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d5814907fee905c8395b7b7a53cb7d83fc970179129d2748e707ac6321425c94"
+      "descriptor_digest": "sha256:1f0b3227996b3d49f98fc220f6e500ec82b55d38cea39724c888193c08979c6d"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -7957,7 +9253,8 @@
       "examples": [
         {
           "description": "Spec 100 Phase 3 — token-budgeted context selection. Ranks candidates by workpoint target + evidence overlap and selects the highest-scoring subset under a token budget.",
-          "arguments": "focusa context-cognition curate",
+          "arguments": {},
+          "human_invocation": "focusa context-cognition curate",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_curate.md"
         }
       ],
@@ -8039,7 +9336,7 @@
         "snippet": "Use when the agent or operator has a candidate list (files, docs, diffs, evidence) and needs a token-budgeted selection that maximizes relevance to a target (workpoint next_slice, mission, or query).",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:322d5b9f8c998688c56a5a8f73813faf5ac4c189e75f97a9d0bc5ba0d1deca81"
+      "descriptor_digest": "sha256:12cb82efda06bfa998a6b36969030ec99a3f44afc6a37cbca2b979c8e418bb19"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -8429,7 +9726,8 @@
       "examples": [
         {
           "description": "Spec 100 Phase 4 — run a curator eval case, compute precision/recall/F1, append to curator-eval-ledger JSONL.",
-          "arguments": "focusa context-cognition curate-eval",
+          "arguments": {},
+          "human_invocation": "focusa context-cognition curate-eval",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md"
         }
       ],
@@ -8513,7 +9811,7 @@
         "snippet": "Use when measuring whether the curator's selection matches an operator's expected selection. Captures the result as a focusa_metacog_capture lesson and a focusa_predict_record prediction.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e58a3dc34e7a553a26225bbecb30c0ef7caeaeba698370c3a4d9bfc93079771f"
+      "descriptor_digest": "sha256:018155e866364a5e200a3f9770c1aa7b7d0341d90250082dbe55051d0ba20527"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -8864,7 +10162,11 @@
       "examples": [
         {
           "description": "Spec 100 Phase 5 — submit a Cognition Optimizer artifact and get the promote/rollback decision per §15 promotion rule.",
-          "arguments": "focusa context-cognition curate-optimize",
+          "arguments": {
+            "prompt_artifact_ref": "example",
+            "eval_score": 0
+          },
+          "human_invocation": "focusa context-cognition curate-optimize",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_curate_optimize.md"
         }
       ],
@@ -8948,7 +10250,7 @@
         "snippet": "Use after focusa_context_cognition_curate_eval when the operator has a candidate prompt/module artifact and wants the curator's promotion/rollback decision.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a71037c46b8c6e1ceaebd5a57a6574beb3cb0767623904ffe0e665e344667414"
+      "descriptor_digest": "sha256:7a685042cf483354bbfd964ce52209f7d7884d288c3f6e85776b579be7569b78"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -9264,7 +10566,8 @@
       "examples": [
         {
           "description": "Spec 100 Phase 5 — list Cognition Optimizer artifacts (versioned JSONL) for a project+module.",
-          "arguments": "focusa context-cognition optimizer artifacts",
+          "arguments": {},
+          "human_invocation": "focusa context-cognition optimizer artifacts",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_optimizer_artifacts.md"
         }
       ],
@@ -9335,7 +10638,7 @@
         "snippet": "Use when checking which Cognition Optimizer artifact is currently promoted for a project, or when reviewing the artifact history for rollback decisions.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:0fbbce10aa20d4339d78a908f81c22b51291bcad47f5d3f1b8b4c5be5cab473f"
+      "descriptor_digest": "sha256:49c3ea1c1710a1f19665b79ebbcdd7de54bee87852059052803021b02ca9a6ca"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -9646,7 +10949,8 @@
       "examples": [
         {
           "description": "Map Spec 100 ContextCognitionPacket surfaces to proof commands (curl + focusa + audits).",
-          "arguments": "focusa context-cognition proof",
+          "arguments": {},
+          "human_invocation": "focusa context-cognition proof",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_proof.md"
         }
       ],
@@ -9727,7 +11031,7 @@
         "snippet": "Use when an operator wants a one-shot proof bundle for the context cognition packet: curl health, project identity, trajectory, workpoint; focusa CLI; node audit scripts.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2a232e65c5f9ce4c28ee95de33dcc67e3f94e44e73e92087e93affc66aff9728"
+      "descriptor_digest": "sha256:8fa45b5097da48d9033c9c8a0ff5ac726029cc5cc8dfea4c13404a0ccb0cddf6"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -10038,7 +11342,8 @@
       "examples": [
         {
           "description": "Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menubar).",
-          "arguments": "focusa context-cognition render",
+          "arguments": {},
+          "human_invocation": "focusa context-cognition render",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_render.md"
         }
       ],
@@ -10114,7 +11419,7 @@
         "snippet": "Use when an operator or agent needs a human-readable view of the context cognition packet without parsing JSON.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:f7ca101cf760269175faadee096fd674cea4a50e977819643b86fdd7c77521a2"
+      "descriptor_digest": "sha256:33e72ed295853a325e3aeca78c9c634c25dd086f250b02d6fd4c6e72fcbb742b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -10422,7 +11727,10 @@
       "examples": [
         {
           "description": "Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars).",
-          "arguments": "focusa focus update --current-focus",
+          "arguments": {
+            "focus": "example"
+          },
+          "human_invocation": "focusa focus update --current-focus",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_current_focus.md"
         }
       ],
@@ -10502,7 +11810,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d7fef45b2c76ee86b22914364fea4d57d8a3128fddc13e4f873db859dfd4d97e"
+      "descriptor_digest": "sha256:f3c95d18abbcb07cb0a2bae03bfd4f727f095c5b200c64ab2455963c04af05cd"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -10814,7 +12122,10 @@
       "examples": [
         {
           "description": "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=160 chars) — architectural choices only, not task lists.",
-          "arguments": "focusa focus update --decision",
+          "arguments": {
+            "decision": "example"
+          },
+          "human_invocation": "focusa focus update --decision",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_decide.md"
         }
       ],
@@ -10902,7 +12213,7 @@
           "Example INVALID: 'Fix all pi-extension spec gaps in priority order...' (task list, not decision)"
         ]
       },
-      "descriptor_digest": "sha256:4adbc6d6948c5c36ff0ca3844aa52657894a371b089bfbbf7d3dae45dbd0e934"
+      "descriptor_digest": "sha256:4d09cf2e06a3fda046221b510eb13b2ddc8740225fc3b5cd0ed97b4ed8f0fac5"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -11222,7 +12533,10 @@
       "examples": [
         {
           "description": "Mac menubar OAuth-like device pairing (focusa-ui0y). Run on the VPS side; returns the long-lived token.",
-          "arguments": "focusa device pair-complete",
+          "arguments": {
+            "code": "example"
+          },
+          "human_invocation": "focusa device pair-complete",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_complete.md"
         }
       ],
@@ -11300,7 +12614,7 @@
         "snippet": "Use on the VPS side to complete a pending pairing initiated by focusa_device_pair_start. Returns the long-lived token that the Mac app will use for subsequent calls.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:de59354f4fea2ff19da39fb696b983a8c5d5202b4c9a91a2d6230d604c9a487a"
+      "descriptor_digest": "sha256:0de1119449d31f6dfcdc8782bd44ef0dd0baf4833640c638e5e79f97bb0cada9"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -11611,7 +12925,8 @@
       "examples": [
         {
           "description": "Mac menubar OAuth-like device pairing (focusa-ui0y). List paired devices for a host (append-only JSONL ledger).",
-          "arguments": "focusa device pair-list",
+          "arguments": {},
+          "human_invocation": "focusa device pair-list",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_list.md"
         }
       ],
@@ -11685,7 +13000,7 @@
         "snippet": "Use to see which devices are currently paired with this Focusa daemon, and which have been revoked.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:58fde7b8044be313b58f867904d82b7434f29ea6d09a6f7457998c47d2c973e6"
+      "descriptor_digest": "sha256:a7f094b89d780b5b3f35ff205a9ad57b542c55e5e53763a4175de06e8a0d6e0a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -12006,7 +13321,8 @@
       "examples": [
         {
           "description": "Mac menubar OAuth-like device pairing with QR handoff (focusa-ui0y, Mode B). Same as pair_start but surfaces pair_url for QR rendering (Telegram/Discord-style).",
-          "arguments": "focusa device pair-qr",
+          "arguments": {},
+          "human_invocation": "focusa device pair-qr",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_qr.md"
         }
       ],
@@ -12085,7 +13401,7 @@
         "snippet": "Use when the operator wants the Mac to display a QR for phone-based pairing. Requires FOCUSA_PAIRING_URL set on the VPS to a public URL, otherwise pair_url falls back to daemon_base_url (local-only).",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:710747ed4579af7cb7af1dfc4d62e965cfb70e39e06a8af7d368584c22b7e01c"
+      "descriptor_digest": "sha256:a41104bbdcacf24f805ff6ffb623a1b5fcbd27aaf0b3ac39370f7ff41045779e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -12405,7 +13721,10 @@
       "examples": [
         {
           "description": "Mac menubar OAuth-like device pairing (focusa-ui0y). Revoke a paired device; appends revoked=true to ledger.",
-          "arguments": "focusa device pair-revoke",
+          "arguments": {
+            "device_id": "example"
+          },
+          "human_invocation": "focusa device pair-revoke",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_revoke.md"
         }
       ],
@@ -12476,7 +13795,7 @@
         "snippet": "Use to remove a paired device (lost laptop, rotation, security incident). The device will need to re-pair.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:76f87d4d8948c70f31234be741dc91d2773acf2d70f2e0e4cca055505d1120af"
+      "descriptor_digest": "sha256:f9b9fe3dcd8f5ac60410c139e6a6f88daff2da2518e0e8408d2bbcab40178854"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -12798,7 +14117,8 @@
       "examples": [
         {
           "description": "Mac menubar OAuth-like device pairing (focusa-ui0y). Generate an 8-char code + pair_url for VPS-side completion via CLI, QR+phone, or QR+VPS browser.",
-          "arguments": "focusa device pair-start",
+          "arguments": {},
+          "human_invocation": "focusa device pair-start",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_start.md"
         }
       ],
@@ -12882,7 +14202,7 @@
         "snippet": "Use when the operator wants to connect the Focusa Mac menubar app to a remote Focusa daemon. Generates a pairing code; the operator runs the corresponding focusa device pair-complete on the VPS to mint a token.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a8743bebbd6b509e7d2cbbbf26bbb04a1d772e224e5f3a4293278466ebdf5422"
+      "descriptor_digest": "sha256:71349cd5a326c39de2fce33f7e8589b84ae0520761e81a5fd13838ba59ae66a3"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -13191,7 +14511,8 @@
       "examples": [
         {
           "description": "Mac menubar OAuth-like device pairing (focusa-ui0y). Check pairing status by code or device_id.",
-          "arguments": "focusa device pair-status",
+          "arguments": {},
+          "human_invocation": "focusa device pair-status",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_status.md"
         }
       ],
@@ -13266,7 +14587,7 @@
         "snippet": "Use to poll whether a focusa_device_pair_start code has been completed by the VPS, or to look up the long-lived token for a known device_id.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:801dc3199fd89f4ebec4a451c6dfca8038dac2ccbdbce287fef8a5799a72972e"
+      "descriptor_digest": "sha256:961b35b9d8faad4f9a9657929df1c1938ed90a355b83669851282d75aa9f6ea1"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -13566,7 +14887,8 @@
       "examples": [
         {
           "description": "Spec105 — read compact continuation/doability digest.",
-          "arguments": "focusa dxux digest",
+          "arguments": {},
+          "human_invocation": "focusa dxux digest",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_dxux_digest.md"
         }
       ],
@@ -13646,7 +14968,7 @@
         "snippet": "Use before compaction/resume handoff to get status, authority, why, exact next action, evidence refs, and rehydrate refs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:3d2e377095a4c744dec0c8e141689e69e029dcc9c03ad7ae1a755af7ee074182"
+      "descriptor_digest": "sha256:c4637e3f49dd7b4ad221b224ea083295b35fc2780cb610e6fa886e5b83ca14ea"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -13956,7 +15278,10 @@
       "examples": [
         {
           "description": "Spec105 — explain a failure and return recovery commands.",
-          "arguments": "focusa explain <failure>",
+          "arguments": {
+            "failure": "example"
+          },
+          "human_invocation": "focusa explain <failure>",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_dxux_explain.md"
         }
       ],
@@ -14035,7 +15360,7 @@
         "snippet": "Use after CI, scope, daemon, or stale-state failures to get recovery commands.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c3db2a1bc3ee910cd0eaeded84d32161423d7985e6912b3a74ff47da0c9fab86"
+      "descriptor_digest": "sha256:eb5c6759ab0f05cb4a09c04927592b7cae98a4602d05b95bdf4501a14b589dbc"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -14335,7 +15660,8 @@
       "examples": [
         {
           "description": "Spec105 — read implementation report for DXUX-001..012.",
-          "arguments": "focusa dxux report",
+          "arguments": {},
+          "human_invocation": "focusa dxux report",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_dxux_report.md"
         }
       ],
@@ -14415,7 +15741,7 @@
         "snippet": "Use to verify Spec105 reliability, continuation, recovery, evidence, and drift UX surfaces.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:ecf3b753bf8ffb9c06e2d7abccbc7ffd161d95b47b0a2ab85a685d56597920e2"
+      "descriptor_digest": "sha256:08e112dbb8f730e5f0dcaf665372f9ff2e2ce796e46ba5565924e46d2625c973"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -14725,7 +16051,10 @@
       "examples": [
         {
           "description": "Spec105 — read one DXUX requirement by id.",
-          "arguments": "focusa dxux requirement <id>",
+          "arguments": {
+            "id": "example"
+          },
+          "human_invocation": "focusa dxux requirement <id>",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_dxux_requirement.md"
         }
       ],
@@ -14804,7 +16133,7 @@
         "snippet": "Use to inspect a requirement such as DXUX-004 or DXUX-012.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:896772669f5ff2e6672593bdcd7d8eeb308699fa5deee5199621b1fbf0a59637"
+      "descriptor_digest": "sha256:1aedf2384cb88cbe4544d581f70eb2f4f4dd846021b5d94f60bb76b5f603a145"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -15142,7 +16471,12 @@
       "examples": [
         {
           "description": "Capture a bounded evidence ref/result and optionally link it to the active Workpoint.",
-          "arguments": "focusa workpoint evidence-link",
+          "arguments": {
+            "target_ref": "example",
+            "result": "example",
+            "evidence_ref": "example"
+          },
+          "human_invocation": "focusa workpoint evidence-link",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_evidence_capture.md"
         }
       ],
@@ -15224,7 +16558,7 @@
         "snippet": "Use after tests, stress runs, or proof collection to keep handles instead of transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d81ad9a5afafe04bf3370eab5633b9275b1d0f22aa393100a1966c46ec8c573c"
+      "descriptor_digest": "sha256:bd281f1144543f8a5f0dc2be599caf4af447e6cd7ba8ade2e12be7dbeec9032e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -15536,7 +16870,10 @@
       "examples": [
         {
           "description": "Record a specific failure with diagnosis in Focus State. Must identify WHAT failed and WHY (or suspected why). Max 300 chars.",
-          "arguments": "focusa focus update --failure",
+          "arguments": {
+            "failure": "example"
+          },
+          "human_invocation": "focusa focus update --failure",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_failure.md"
         }
       ],
@@ -15622,7 +16959,7 @@
           "recovery = what was done to fix or work around (optional)."
         ]
       },
-      "descriptor_digest": "sha256:85a86801160d2e3514ab69e03a8a40df35cdb9ad13759cb4ba1b52c612d1012b"
+      "descriptor_digest": "sha256:5178ad0514b54b5c26dcfd1cd271325b2c68b7fd49511d90514e2e1cf4529945"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -15953,7 +17290,8 @@
       "examples": [
         {
           "description": "Read append-only HLT change history with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6.",
-          "arguments": "focusa hlt history",
+          "arguments": {},
+          "human_invocation": "focusa hlt history",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_hlt_history.md"
         }
       ],
@@ -16033,7 +17371,7 @@
         "snippet": "Use when reconstructing trajectory wording, checking previous-valid fallback, or verifying exact HLT history across sessions.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:4fe1fbd3eeb5e1a7a4192227416ae37e5ad1da24de10fc1e9660bed97bb88baa"
+      "descriptor_digest": "sha256:3b1038e0597cc884856c22ea05790978f9d5f836b1b7d103ce2b4771d55eb70b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -16341,7 +17679,10 @@
       "examples": [
         {
           "description": "Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars).",
-          "arguments": "focusa focus update --intent",
+          "arguments": {
+            "intent": "example"
+          },
+          "human_invocation": "focusa focus update --intent",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_intent.md"
         }
       ],
@@ -16421,7 +17762,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:aa7a00a40bd4f3e2bbdd66c6373cb5df3eefbab7f3755a67444858225f87f781"
+      "descriptor_digest": "sha256:a914e04746a394e56186b05b022e17d2d646892d4d5323698d5ef828f4356a6b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -16730,7 +18071,8 @@
       "examples": [
         {
           "description": "Extract decision/constraint/risk signals and reflection trigger from lineage tree for metacognitive compounding.",
-          "arguments": "focusa lineage extract",
+          "arguments": {},
+          "human_invocation": "focusa lineage extract",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_li_tree_extract.md"
         }
       ],
@@ -16810,7 +18152,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:61e2e504e8da22733efa578f038ca6d5b3fcf5a1822a0067e9df7be8f4cbf61b"
+      "descriptor_digest": "sha256:fbd6d72c228dac99c4612b9b73fc8e9a3a9e8df634159c293ec2d67becdeb82c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -17123,7 +18465,8 @@
       "examples": [
         {
           "description": "Fetch Focusa lineage tree for /tree-aware reasoning and LI addon workflows.",
-          "arguments": "focusa lineage tree",
+          "arguments": {},
+          "human_invocation": "focusa lineage tree",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_lineage_tree.md"
         }
       ],
@@ -17203,7 +18546,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:3ef9b01a39b8be58fd0eb3cb045c4a9880d5870fb8a9fa156171d999f615025f"
+      "descriptor_digest": "sha256:51dedbf20ae10c2b1874ac241e09201c4ff630458f4b46fe017d1c6388c9c775"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -17543,7 +18886,11 @@
       "examples": [
         {
           "description": "Store a reusable learning signal so future reasoning can retrieve it instead of rediscovering the same lesson.",
-          "arguments": "focusa metacognition capture",
+          "arguments": {
+            "kind": "example",
+            "content": "example"
+          },
+          "human_invocation": "focusa metacognition capture",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_capture.md"
         }
       ],
@@ -17624,7 +18971,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d836d5c7538c0dcb573ac2ba85eadcc7da182a525785006c0439d3da247e8d51"
+      "descriptor_digest": "sha256:385aeeb8003cbfb8bd389d7bd7176ab8e046ee0711d0d6c3024bb57c4b2e7753"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -17959,7 +19306,10 @@
       "examples": [
         {
           "description": "Diagnose signal quality and retrieval usefulness in one move. Best safe diagnostic tool when deciding whether more capture or reflection work is needed.",
-          "arguments": "focusa metacognition doctor",
+          "arguments": {
+            "current_ask": "example"
+          },
+          "human_invocation": "focusa metacognition doctor",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_doctor.md"
         }
       ],
@@ -18038,7 +19388,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:ae98472ee287763192415302d381d63991a92e58ac1600206a8b949565ec867b"
+      "descriptor_digest": "sha256:a02d16810471607ca082a3b3b5e1e04c685d210bed412865943b61c190afcf2c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -18359,7 +19709,10 @@
       "examples": [
         {
           "description": "Judge whether an adjustment improved results and whether the learning should be promoted.",
-          "arguments": "focusa metacognition evaluate",
+          "arguments": {
+            "adjustment_id": "example"
+          },
+          "human_invocation": "focusa metacognition evaluate",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md"
         }
       ],
@@ -18440,7 +19793,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:32b75e78dabe23d02c53711abf4516c41f27fc60a8a954e4e9c4ed484afa16a4"
+      "descriptor_digest": "sha256:6acdd64b2561b6ce03812c721a7367df94b58c4dfb2f1c1c1da670befb8d4d17"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -18866,7 +20219,11 @@
       "examples": [
         {
           "description": "Run capture -> retrieve -> reflect -> adjust -> evaluate in one move. Best composite tool when you want learning workflow compression instead of manual chaining.",
-          "arguments": "focusa metacognition loop run",
+          "arguments": {
+            "current_ask": "example",
+            "turn_range": "example"
+          },
+          "human_invocation": "focusa metacognition loop run",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_loop_run.md"
         }
       ],
@@ -18947,7 +20304,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2fcf6e27c3f6c6b2b49b64ec333c603edde36b572629b7918e309e400c2224d6"
+      "descriptor_digest": "sha256:f0d368c48e903c86a62c1c7b1d6010c675f996ebc121aea1728482c7c815a893"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -19268,7 +20625,10 @@
       "examples": [
         {
           "description": "Turn a reflection into a tracked adjustment artifact that can later be evaluated for real improvement.",
-          "arguments": "focusa metacognition adjust",
+          "arguments": {
+            "reflection_id": "example"
+          },
+          "human_invocation": "focusa metacognition adjust",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_plan_adjust.md"
         }
       ],
@@ -19349,7 +20709,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:6303ddf81f14fba0fe3b46b93ae1edea2adf47e712361c4fc1ef767e73d2e46e"
+      "descriptor_digest": "sha256:aa7e6aaa46a4cdb71792a73e3dd4566ee5c07e8c690a31a8c64cad6ef1851b15"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -19656,7 +21016,8 @@
       "examples": [
         {
           "description": "Best safe helper for finding recent adjustment ids before evaluation or promotion decisions.",
-          "arguments": "focusa metacognition recent-adjustments",
+          "arguments": {},
+          "human_invocation": "focusa metacognition recent-adjustments",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_recent_adjustments.md"
         }
       ],
@@ -19735,7 +21096,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:178dfa77a1616a990b8e40300617a1a373803706a87c1b05ed124ee692476af2"
+      "descriptor_digest": "sha256:987a54e0fe96ff2bdfe2fee4a2f009b6897d14d26e364197727c33e359315613"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -20042,7 +21403,8 @@
       "examples": [
         {
           "description": "Best safe helper for finding recent reflection ids and update sets before adjust or promote work.",
-          "arguments": "focusa metacognition recent-reflections",
+          "arguments": {},
+          "human_invocation": "focusa metacognition recent-reflections",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_recent_reflections.md"
         }
       ],
@@ -20121,7 +21483,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:15222b1710d1cdcccd1182074322a78f6d046e9af8e460002ba7327d8b85e33e"
+      "descriptor_digest": "sha256:d86f43402703bfbf9758f28d6fb148a95c41b140e88af57d7f4b917fad8818d1"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -20442,7 +21804,10 @@
       "examples": [
         {
           "description": "Generate reusable hypotheses and strategy updates from recent turns when you need learning from past outcomes.",
-          "arguments": "focusa metacognition reflect",
+          "arguments": {
+            "turn_range": "example"
+          },
+          "human_invocation": "focusa metacognition reflect",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_reflect.md"
         }
       ],
@@ -20523,7 +21888,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b55d0a8f994f98bf8ad42c88cd8f1592bd482cd52efa6794e7ee08a688a5114b"
+      "descriptor_digest": "sha256:673cd7e1b75f9dabd16bf4022f4aea6de1f72b1d67198e010edb9744bd211716"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -20849,7 +22214,10 @@
       "examples": [
         {
           "description": "Best safe search tool for past learning signals relevant to the current ask. Use this before planning or reflection.",
-          "arguments": "focusa metacognition retrieve",
+          "arguments": {
+            "current_ask": "example"
+          },
+          "human_invocation": "focusa metacognition retrieve",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_retrieve.md"
         }
       ],
@@ -20928,7 +22296,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:14f50a095f537c9f9084c04a1e84e5baed654e45de31c8b5ad6b4e62b7125d63"
+      "descriptor_digest": "sha256:c0eea74663669c78ae8bdb5e0e492be6eccd5aeabb8dd8ab7b9babed8dce974d"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -21236,7 +22604,10 @@
       "examples": [
         {
           "description": "Record what you plan to do next (max 160 chars).",
-          "arguments": "focusa focus update --next-step",
+          "arguments": {
+            "step": "example"
+          },
+          "human_invocation": "focusa focus update --next-step",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_next_step.md"
         }
       ],
@@ -21316,7 +22687,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:68772d77c8ab9f71cd13fcfa2a940711e3b842e745ec5c973a37cbc46817f5a7"
+      "descriptor_digest": "sha256:f0c533f6b6d882611e1ad578b6fdd17692dfffa241a210de0a71d2f6147245ab"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -21624,7 +22995,10 @@
       "examples": [
         {
           "description": "Miscellaneous note (max 180 chars). Bounded at 20, oldest decay first.",
-          "arguments": "focusa focus update --note",
+          "arguments": {
+            "note": "example"
+          },
+          "human_invocation": "focusa focus update --note",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_note.md"
         }
       ],
@@ -21704,7 +23078,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:8304974ee6eafb124d0cdeb4d4515c8f04aa5eb8251ac579236f15f7c419afc3"
+      "descriptor_digest": "sha256:d2bfcf71d4210cc88acc6ffc60ac3d6f71dd8aa69fdd1b3c13e1ff4314de9c9c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -22012,7 +23386,10 @@
       "examples": [
         {
           "description": "Record an open question that needs to be answered (max 180 chars).",
-          "arguments": "focusa focus update --open-question",
+          "arguments": {
+            "question": "example"
+          },
+          "human_invocation": "focusa focus update --open-question",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_open_question.md"
         }
       ],
@@ -22092,7 +23469,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:508082ce6a5b17317d13c0565b1fb803bb51434dec2bede071643807e9c3db81"
+      "descriptor_digest": "sha256:338d385effeb3ddb79746802c17e1a5d7f0df8f0e92e40a6983710c2c65ee3f5"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -22421,7 +23798,11 @@
       "examples": [
         {
           "description": "Evaluate a Focusa prediction against an actual outcome and optional score; required before final task completion when relevant predictions exist.",
-          "arguments": "focusa predict evaluate",
+          "arguments": {
+            "prediction_id": "example",
+            "actual_outcome": "example"
+          },
+          "human_invocation": "focusa predict evaluate",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_evaluate.md"
         }
       ],
@@ -22503,7 +23884,7 @@
         "snippet": "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:37107331b5816cad10270ebaea84ff527c22853eb66bedbc971667edfdd44059"
+      "descriptor_digest": "sha256:251b3504f0a2d05ad1d8f5f095b75dd11508fccbff9ea29af4b9ce5717c3f39b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -22816,7 +24197,8 @@
       "examples": [
         {
           "description": "List recent bounded Focusa prediction records.",
-          "arguments": "focusa predict recent",
+          "arguments": {},
+          "human_invocation": "focusa predict recent",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_recent.md"
         }
       ],
@@ -22896,7 +24278,7 @@
         "snippet": "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b3132aaaa8658f495a3a249ddd321f46e6de26eab1f32d09597ff81cb397533d"
+      "descriptor_digest": "sha256:310a5510549063230d3787eb4b8ea5b9dc3a12d52ee90e1b34df6c638a5fc7a1"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -23242,7 +24624,14 @@
       "examples": [
         {
           "description": "Record a bounded, inspectable Focusa prediction; core at task start, trajectory review, compaction review, and end-of-task reports.",
-          "arguments": "focusa predict record",
+          "arguments": {
+            "prediction_type": "example",
+            "predicted_outcome": "example",
+            "confidence": 0,
+            "recommended_action": "example",
+            "why": "example"
+          },
+          "human_invocation": "focusa predict record",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_record.md"
         }
       ],
@@ -23324,7 +24713,7 @@
         "snippet": "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2bdb53bf4bbb8568d751136c53d49fd642def45487d6c107a1f11559204c0da6"
+      "descriptor_digest": "sha256:a54c5710550bbcf1d318ff608c9c29210e7e4784e683ad0692527b241a93ae03"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -23633,7 +25022,8 @@
       "examples": [
         {
           "description": "Report Focusa prediction accuracy/calibration stats for compaction cards, trajectory reviews, and work reports.",
-          "arguments": "focusa predict stats",
+          "arguments": {},
+          "human_invocation": "focusa predict stats",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_stats.md"
         }
       ],
@@ -23713,7 +25103,7 @@
         "snippet": "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:7dbed63b22a87b9dc98ea32a8818fe9d1c775431529b8cd8a470c2e3fbf2300c"
+      "descriptor_digest": "sha256:000d0bd114be94e17732bdb150e42da7b1f48645db1717988b3534fa6be8651a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -24045,7 +25435,8 @@
       "examples": [
         {
           "description": "Build a scoped agent bootstrap packet without writing it.",
-          "arguments": "focusa preload build",
+          "arguments": {},
+          "human_invocation": "focusa preload build",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_build.md"
         }
       ],
@@ -24121,7 +25512,7 @@
         "snippet": "Build Preload Packet through the scoped Spec 111 preload API.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a815dde090350da898b10e629a0c74e9d29438280f0bc7f1a44331396b414a01"
+      "descriptor_digest": "sha256:45a70143c1801d51a71498e76dd23ff33f9270b1f9dd2d74c55a54e7114aa137"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -24453,7 +25844,8 @@
       "examples": [
         {
           "description": "Diagnose bootstrap delivery readiness and recovery steps.",
-          "arguments": "focusa preload doctor",
+          "arguments": {},
+          "human_invocation": "focusa preload doctor",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_doctor.md"
         }
       ],
@@ -24529,7 +25921,7 @@
         "snippet": "Doctor Preload Scope through the scoped Spec 111 preload API.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:32b3b6582a3f08378f31d65e256a1d2dbd1011e5859ceea46313f5dcb890a509"
+      "descriptor_digest": "sha256:e01d3b12b170a74c3ae599f41790f0b5ab527833388684deb43014058a881b3f"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -24829,7 +26221,8 @@
       "examples": [
         {
           "description": "List bounded agent bootstrap profiles.",
-          "arguments": "focusa preload profiles",
+          "arguments": {},
+          "human_invocation": "focusa preload profiles",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_profiles.md"
         }
       ],
@@ -24905,7 +26298,7 @@
         "snippet": "List bounded Spec 111 agent bootstrap profiles.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:4df612b5017ee68602f57946f4eb814b2252f83481c2a24f020a36e4f0c8812b"
+      "descriptor_digest": "sha256:ab556e5afadabbe8b4f9271fd5e024a671796c801c6ab7b33804dbc218e826cb"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -25236,7 +26629,10 @@
       "examples": [
         {
           "description": "Commit an idempotent bootstrap delivery receipt.",
-          "arguments": "focusa preload receipt-commit",
+          "arguments": {
+            "idempotency_key": "example"
+          },
+          "human_invocation": "focusa preload receipt-commit",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_receipt_commit.md"
         }
       ],
@@ -25314,7 +26710,7 @@
         "snippet": "Commit an idempotent Spec 111 bootstrap delivery receipt.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:3ab36ccccaae342d160cd6d659d3d95b6c993e5706b96fd98fb8b42e6ee943f9"
+      "descriptor_digest": "sha256:9698c13c435f4c2d8b1ac83320f4b616d76909bde23a686005b0e359d953ebdb"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -25636,7 +27032,8 @@
       "examples": [
         {
           "description": "Preview a bootstrap delivery receipt without committing it.",
-          "arguments": "focusa preload receipt-preview",
+          "arguments": {},
+          "human_invocation": "focusa preload receipt-preview",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_receipt_preview.md"
         }
       ],
@@ -25712,7 +27109,7 @@
         "snippet": "Preview a Spec 111 bootstrap delivery receipt without committing it.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:5ee357683026644ab98322d19b1b00a6be92ae2ec7a1f5f5d2629dc1b63f7e02"
+      "descriptor_digest": "sha256:3456fbfbad63c2f7d5da503ca8e7b8eef5a5097311c91495dcdf9386d06d1bc0"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -26044,7 +27441,8 @@
       "examples": [
         {
           "description": "Render a scoped agent bootstrap packet.",
-          "arguments": "focusa preload render",
+          "arguments": {},
+          "human_invocation": "focusa preload render",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_render.md"
         }
       ],
@@ -26120,7 +27518,7 @@
         "snippet": "Render Preload Packet through the scoped Spec 111 preload API.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:1c4785d8f01ec2f5c12e95d014960fee2c998a65520671cfe0f96376527aecf0"
+      "descriptor_digest": "sha256:dad3c3f9e2084623766598c8c443d7d8ffbe1a49c628f9c587fc5d35094b7dd2"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -26452,7 +27850,8 @@
       "examples": [
         {
           "description": "Verify bootstrap packet scope and integrity.",
-          "arguments": "focusa preload verify",
+          "arguments": {},
+          "human_invocation": "focusa preload verify",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_verify.md"
         }
       ],
@@ -26528,7 +27927,7 @@
         "snippet": "Verify Preload Packet through the scoped Spec 111 preload API.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:106da256f6407a2184925d8dfaa6146e9acea034bb0bddad3caf44142b409462"
+      "descriptor_digest": "sha256:671082b98ffb6ed57ad6759b31c33b3abc70ec27473d8056ac0fad344311eb68"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -26868,7 +28267,11 @@
       "examples": [
         {
           "description": "Write an agent bootstrap packet to an allowlisted target.",
-          "arguments": "focusa preload write",
+          "arguments": {
+            "target": "example",
+            "idempotency_key": "example"
+          },
+          "human_invocation": "focusa preload write",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_write.md"
         }
       ],
@@ -26946,7 +28349,7 @@
         "snippet": "Write a Spec 111 preload packet to an allowlisted target with an idempotency key.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:6e5837bea1f8810da2e3138a794228c7cbe0ed20d76200e643a38172bee948a7"
+      "descriptor_digest": "sha256:c1f6411efbbcaa27fea851ad432b7df44610ef0ce10070ee223a608c2b407508"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -27287,7 +28690,8 @@
       "examples": [
         {
           "description": "Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals for bootstrap/re-bootstrap.",
-          "arguments": "focusa project card",
+          "arguments": {},
+          "human_invocation": "focusa project card",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_card.md"
         }
       ],
@@ -27376,7 +28780,7 @@
         "snippet": "Use at bootstrap/re-bootstrap, project reviews, and next-step evaluation before refreshing trajectory hierarchy.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:79938e1f6cb5cb91c96aef4fb831a08a8e8540822a330db31b3818988fc2a7ee"
+      "descriptor_digest": "sha256:7e9cf6a87edb40f22bf30d9740638d5b6b5597157f661f7a25d86a6db0e571b6"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -27714,7 +29118,11 @@
       "examples": [
         {
           "description": "Attach a verified result to a project-card algorithm_run_id so project-card learning weights and future bootstrap/sequence planning can improve.",
-          "arguments": "focusa project card-outcome",
+          "arguments": {
+            "algorithm_run_id": "example",
+            "actual_outcome": "example"
+          },
+          "human_invocation": "focusa project card-outcome",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_card_outcome.md"
         }
       ],
@@ -27798,7 +29206,7 @@
         "snippet": "Use after a project-card-guided action is verified, so future bootstrap/sequence planning learns from the result.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e923e7321a634c6d1c6c4728519fa01784ee0363190c7d6e6e9e97f9eab238e2"
+      "descriptor_digest": "sha256:0ae2780401554a0a537a69eab44dd021aebb242df05c663f5cc27b5618c82eb8"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -28135,7 +29543,8 @@
       "examples": [
         {
           "description": "Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator project signals before trusting project-bound context.",
-          "arguments": "focusa project identity",
+          "arguments": {},
+          "human_invocation": "focusa project identity",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_identity.md"
         }
       ],
@@ -28219,7 +29628,7 @@
         "snippet": "Use before trusting cross-project Workpoints, Trajectory packets, or project-sensitive context.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:cb5c78dbe547a3e0f0451b7f5be4030a0c646c6e0567ccc64462c2c08cb49cc5"
+      "descriptor_digest": "sha256:b10fafd60acb259c9eff1501ea1099136b480c7194db07376a760cc162db81ba"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -28568,7 +29977,8 @@
       "examples": [
         {
           "description": "Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state.",
-          "arguments": "focusa project verify",
+          "arguments": {},
+          "human_invocation": "focusa project verify",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_verify.md"
         }
       ],
@@ -28647,7 +30057,7 @@
         "snippet": "Use when project folder or session identity is ambiguous before accepting a Workpoint/Trajectory packet as canonical.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:9b77e88ffde08bbebe0ef7545f861a5cf7f974040517a00a29bed9aa06f11731"
+      "descriptor_digest": "sha256:d38ddf2d0fd398f26b9b6e93ebca6016357911931ddebc04688985f15f3baab6"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -28955,7 +30365,10 @@
       "examples": [
         {
           "description": "Record a completed result, output, or reference (max 180 chars).",
-          "arguments": "focusa focus update --recent-result",
+          "arguments": {
+            "result": "example"
+          },
+          "human_invocation": "focusa focus update --recent-result",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_recent_result.md"
         }
       ],
@@ -29035,7 +30448,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d41cc5859c3f5d88c6fc7f867cffd4c3f26439cf9fc84f4e797bf377989aa48f"
+      "descriptor_digest": "sha256:04248bd05413871112aa42e0a78bdae9247267363cca89a1f23b471ad102492b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -29353,7 +30766,8 @@
       "examples": [
         {
           "description": "Read bounded Spec97 Reflex Primitive summaries by family/query from the read-only registry; advisory routing metadata only, never mutation authority.",
-          "arguments": "focusa_reflex_primitives { ... }",
+          "arguments": {},
+          "human_invocation": "focusa_reflex_primitives { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_reflex_primitives.md"
         }
       ],
@@ -29434,7 +30848,7 @@
         "snippet": "List bounded Spec97 Reflex Primitive summaries by family/query; read-only routing metadata, never mutation authority.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:05a37a40ee61d9ac0efcb558132015b8a1b96e18dafa4f543cbbe207cb9324dd"
+      "descriptor_digest": "sha256:2887a3ec45f969df8529d6e3423cb60588b9e689f75e8dcd58b1b1eba4f964df"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -29814,7 +31228,8 @@
       "examples": [
         {
           "description": "Read or control Focusa ResourceMode, including activating or deactivating LowMem mode when resources are constrained.",
-          "arguments": "focusa resource mode",
+          "arguments": {},
+          "human_invocation": "focusa resource mode",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_resource_mode.md"
         }
       ],
@@ -29897,7 +31312,7 @@
         "snippet": "Use when resources are low, daemon hot paths risk timeouts, or operator says Activate/Deactivate LowMem mode.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:76d22735c0199dfcc3e2240766f5800b41fde2ad83d9b17cebc6f65c037eb89c"
+      "descriptor_digest": "sha256:592ea9f2b2663ad838219595cced953aadf9ff5ebf72191e6614b9afd1e19235"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -30192,7 +31607,10 @@
       "examples": [
         {
           "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-          "arguments": "focusa_scratch { ... }",
+          "arguments": {
+            "note": "example"
+          },
+          "human_invocation": "focusa_scratch { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_scratch.md"
         }
       ],
@@ -30278,7 +31696,7 @@
           "Run: ls /tmp/pi-scratch/ | cat /tmp/pi-scratch/turn-NNNN/notes.txt"
         ]
       },
-      "descriptor_digest": "sha256:601bc374319f455695c6d9646a8accf52eaaff9a0b49173a5386ea99dfd89327"
+      "descriptor_digest": "sha256:3c8dc1366f199288a377a14fb9b529ed618a7e8c09cb72b31249ced0c2ffa3b3"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -30865,7 +32283,10 @@
       "examples": [
         {
           "description": "Save, continue, or Spec130-roll over a long Focusa/Pi work session with explicit source_scope/target_scope or target_continuity_id, source/target session ids, checkpoint/packet refs, and rollover action.",
-          "arguments": "focusa project session-transfer",
+          "arguments": {
+            "action": "example"
+          },
+          "human_invocation": "focusa project session-transfer",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_session_transfer.md"
         }
       ],
@@ -30950,7 +32371,7 @@
         "snippet": "Use when operator wants to save, continue, or roll over a long Focusa/Pi session with explicit source/target scope.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:923c917497de3c0a550ebe16f19f461007dde14ff8a6589d4ff61b2dd9df87bd"
+      "descriptor_digest": "sha256:ba53bcb661060fc23bef01bed5a8c75c2922d42ab5a15a788e41e9341b2d76b4"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -31336,7 +32757,8 @@
       "examples": [
         {
           "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-          "arguments": "tmux list-sessions",
+          "arguments": {},
+          "human_invocation": "tmux list-sessions",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
         }
       ],
@@ -31419,7 +32841,7 @@
         "snippet": "Use only when an operator explicitly asks to manage legacy background tmux SilentSessions. Treat all output as non-canonical runtime observation; prefer daemon-native Spec133 APIs when available.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d7b6f5a697c2dced7e5bf57ebcb1e30a2d4fec829238d8a065ca8c73a65b5b44"
+      "descriptor_digest": "sha256:cc5070d4611a41b9d6b21cf348311d2029a489ed22f91bca8a845f3315e3117a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -31729,7 +33151,10 @@
       "examples": [
         {
           "description": "Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed /focus/update.",
-          "arguments": "focusa_state_hygiene_apply { ... }",
+          "arguments": {
+            "approved": false
+          },
+          "human_invocation": "focusa_state_hygiene_apply { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_state_hygiene_apply.md"
         }
       ],
@@ -31810,7 +33235,7 @@
         "snippet": "Diagnose first; apply hygiene only with explicit approved=true and never silently delete state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b16c1e17cf987b7b384aa3b9585e805dc4c130d95120760e1f721cc74bedac92"
+      "descriptor_digest": "sha256:b3a4f42fa80b5b07b9edcaf750e09c87254b076b61ec3d05e7dc7d3a1282cfd7"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -32094,7 +33519,8 @@
       "examples": [
         {
           "description": "Diagnose stale or duplicate Focus State signals without mutating state.",
-          "arguments": "focusa_state_hygiene_doctor { ... }",
+          "arguments": {},
+          "human_invocation": "focusa_state_hygiene_doctor { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_state_hygiene_doctor.md"
         }
       ],
@@ -32173,7 +33599,7 @@
         "snippet": "Diagnose first; apply hygiene only with explicit approved=true and never silently delete state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:12240f23d103058cc686a37a3f0fae85ddd580cfec6255dd3f2f51018dfa23b6"
+      "descriptor_digest": "sha256:4d555c4f7c298e2e6e10de7a59cbb470cf5bd6071d7604c0e113ab21b25d4f60"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -32462,7 +33888,8 @@
       "examples": [
         {
           "description": "Create a proposal-style hygiene plan; does not mutate Focus State.",
-          "arguments": "focusa_state_hygiene_plan { ... }",
+          "arguments": {},
+          "human_invocation": "focusa_state_hygiene_plan { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_state_hygiene_plan.md"
         }
       ],
@@ -32541,7 +33968,805 @@
         "snippet": "Diagnose first; apply hygiene only with explicit approved=true and never silently delete state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:4a6f75da7bbcd4bda0b006c3b90018501296b9f3c596e7b437e01e9eec90e2a6"
+      "descriptor_digest": "sha256:b569aa92de713270233891c2371bdf2a219d08867d5052f0799623278aa3f88d"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
+      "capability_id": "focusa.tool.bundle",
+      "tool_names": {
+        "pi": "focusa_tool_bundle",
+        "mcp": "focusa.tool.bundle",
+        "openai": "focusa_tool_bundle",
+        "cli": [
+          "focusa help all --json"
+        ],
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/agent/tool-bundles"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "Focusa Tool Bundle",
+      "summary": "Load one bounded capability family with schemas deferred by default.",
+      "description": "Load a bounded family bundle of capability metadata and optionally strict schemas. Use after search or graph traversal when one workflow needs several related tools; avoid broad all-tool prompt injection. Use it when Load one bounded capability family with schemas deferred by default. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "traversal",
+      "namespace": "focusa.traversal",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "family"
+        ],
+        "properties": {
+          "family": {
+            "description": "Exact Focusa tool family.",
+            "type": "string"
+          },
+          "include_schemas": {
+            "default": false,
+            "type": "boolean"
+          },
+          "limit": {
+            "minimum": 1,
+            "maximum": 50,
+            "default": 25,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "read",
+        "route_family": "agent"
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/agent/tool-bundles",
+          "scope": {
+            "kind": "read",
+            "route_family": "agent"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "side_effects": [
+        "read_state",
+        "read_state"
+      ],
+      "confirmation": {
+        "required": false,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": true,
+        "key_recommended": false
+      },
+      "reversibility": {
+        "reversible": true,
+        "compensation": []
+      },
+      "cost_hint": {
+        "class": "local_bounded"
+      },
+      "latency_hint": {
+        "class": "hot_or_bounded"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "Load one bounded capability family with schemas deferred by default.",
+          "arguments": {
+            "family": "example"
+          },
+          "human_invocation": "focusa help all --json",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_bundle.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "full payloads by default"
+        },
+        {
+          "description": "unbounded history/tree/ontology reads"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_tool_describe",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_tool_graph",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_tool_search",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_tool_describe",
+        "focusa_tool_graph",
+        "focusa_tool_search"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-tool-discovery"
+      ],
+      "runbook_refs": [
+        "runbook:traversal"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_tool_bundle.md",
+      "spec_refs": [
+        "docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md"
+      ],
+      "ontology": {
+        "action": "tool.bundle",
+        "objects": [
+          "AgentCapabilityDescriptor"
+        ],
+        "core_surface": "Spec141 token-budgeted capability family loading"
+      },
+      "evidence_requirements": [],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_tool_bundle"
+      ],
+      "prompt": {
+        "snippet": "Load a bounded family bundle of capability metadata and optionally strict schemas. Use after search or graph traversal when one workflow needs several related tools; avoid broad all-tool prompt injection.",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:6244e75a28b2ccaa9c1a93a777b8470c3d460625e8ba0aa4e2ec86e81307198c"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
+      "capability_id": "focusa.tool.describe",
+      "tool_names": {
+        "pi": "focusa_tool_describe",
+        "mcp": "focusa.tool.describe",
+        "openai": "focusa_tool_describe",
+        "cli": [
+          "focusa help all --json"
+        ],
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/agent/tools/{name}"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "Focusa Tool Describe",
+      "summary": "Cold-load one complete capability contract including strict schemas and recovery.",
+      "description": "Cold-load one complete runtime Focusa tool definition after search. Returns strict input/output schemas, operational guidance, authority, side effects, failures, recovery, dependencies, skills, docs, and protocol bindings without loading unrelated tools. Use it when Cold-load one complete capability contract including strict schemas and recovery. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "traversal",
+      "namespace": "focusa.traversal",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "description": "Exact Focusa Pi tool name returned by focusa_tool_search.",
+            "type": "string"
+          },
+          "include_schemas": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "read",
+        "route_family": "agent"
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/agent/tools/{name}",
+          "scope": {
+            "kind": "read",
+            "route_family": "agent"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "side_effects": [
+        "read_state",
+        "read_state"
+      ],
+      "confirmation": {
+        "required": false,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": true,
+        "key_recommended": false
+      },
+      "reversibility": {
+        "reversible": true,
+        "compensation": []
+      },
+      "cost_hint": {
+        "class": "local_bounded"
+      },
+      "latency_hint": {
+        "class": "hot_or_bounded"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "Cold-load one complete capability contract including strict schemas and recovery.",
+          "arguments": {
+            "name": "focusa_workpoint_resume"
+          },
+          "human_invocation": "focusa help all --json",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_describe.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "full payloads by default"
+        },
+        {
+          "description": "unbounded history/tree/ontology reads"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_tool_graph",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_agent_card",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_tool_search",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_tool_graph",
+        "focusa_agent_card",
+        "focusa_tool_search"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-tool-discovery"
+      ],
+      "runbook_refs": [
+        "runbook:traversal"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_tool_describe.md",
+      "spec_refs": [
+        "docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md"
+      ],
+      "ontology": {
+        "action": "tool.describe",
+        "objects": [
+          "AgentCapabilityDescriptor"
+        ],
+        "core_surface": "Spec141 progressive agent capability discovery"
+      },
+      "evidence_requirements": [],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_tool_describe"
+      ],
+      "prompt": {
+        "snippet": "Cold-load one complete runtime Focusa tool definition after search. Returns strict input/output schemas, operational guidance, authority, side effects, failures, recovery, dependencies, skills, docs, and protocol bindings without loading un",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:7219831d31cd8fd6b6f7c851f9f5edcc8a1777a0c4e7d4833f3bdff36c5ce8c8"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -32867,7 +35092,8 @@
       "examples": [
         {
           "description": "Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action.",
-          "arguments": "focusa_tool_doctor { ... }",
+          "arguments": {},
+          "human_invocation": "focusa_tool_doctor { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_doctor.md"
         }
       ],
@@ -32948,7 +35174,814 @@
         "snippet": "Use first when Focusa tools seem blocked, degraded, stale, or confusing.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:0221aedcbd1fea409b94ce84744d316ed6b5371655f26ef0cca10d244ef2bf0b"
+      "descriptor_digest": "sha256:49031605b8e6fe7d3d19afc88e7e257597a27ecd7ef40b1dccd88cd6c1558c39"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
+      "capability_id": "focusa.tool.graph",
+      "tool_names": {
+        "pi": "focusa_tool_graph",
+        "mcp": "focusa.tool.graph",
+        "openai": "focusa_tool_graph",
+        "cli": [
+          "focusa help all --json"
+        ],
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/agent/tool-graph"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "Focusa Tool Graph",
+      "summary": "Traverse bounded capability dependencies and likely-next workflow edges.",
+      "description": "Traverse the bounded capability dependency and likely-next graph from one tool or family. Use it to plan a valid workflow sequence without loading the complete registry or inventing dependencies. Use it when Traverse bounded capability dependencies and likely-next workflow edges. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "traversal",
+      "namespace": "focusa.traversal",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "anchor"
+        ],
+        "properties": {
+          "anchor": {
+            "description": "Exact tool name or family.",
+            "type": "string"
+          },
+          "depth": {
+            "minimum": 1,
+            "maximum": 4,
+            "default": 2,
+            "type": "integer"
+          },
+          "limit": {
+            "minimum": 1,
+            "maximum": 100,
+            "default": 40,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "read",
+        "route_family": "ontology"
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/agent/tool-graph",
+          "scope": {
+            "kind": "read",
+            "route_family": "ontology"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "side_effects": [
+        "read_state",
+        "read_state"
+      ],
+      "confirmation": {
+        "required": false,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": true,
+        "key_recommended": false
+      },
+      "reversibility": {
+        "reversible": true,
+        "compensation": []
+      },
+      "cost_hint": {
+        "class": "local_bounded"
+      },
+      "latency_hint": {
+        "class": "hot_or_bounded"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "Traverse bounded capability dependencies and likely-next workflow edges.",
+          "arguments": {
+            "anchor": "example"
+          },
+          "human_invocation": "focusa help all --json",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_graph.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "full payloads by default"
+        },
+        {
+          "description": "unbounded history/tree/ontology reads"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_tool_describe",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_tool_bundle",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_tool_search",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_tool_describe",
+        "focusa_tool_bundle",
+        "focusa_tool_search"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-tool-discovery"
+      ],
+      "runbook_refs": [
+        "runbook:traversal"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_tool_graph.md",
+      "spec_refs": [
+        "docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md"
+      ],
+      "ontology": {
+        "action": "tool.graph",
+        "objects": [
+          "AgentCapabilityDescriptor",
+          "ToolChoreographyGraph"
+        ],
+        "core_surface": "Spec141 dependency-aware agent workflow planning"
+      },
+      "evidence_requirements": [],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_tool_graph"
+      ],
+      "prompt": {
+        "snippet": "Traverse the bounded capability dependency and likely-next graph from one tool or family. Use it to plan a valid workflow sequence without loading the complete registry or inventing dependencies.",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:38c43418d2932cac0e303fcf3437036efb77d645f62437690eea687bd4f1394f"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
+      "capability_id": "focusa.tool.search",
+      "tool_names": {
+        "pi": "focusa_tool_search",
+        "mcp": "focusa.tool.search",
+        "openai": "focusa_tool_search",
+        "cli": [
+          "focusa help all --json"
+        ],
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/agent/tools"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "Focusa Tool Search",
+      "summary": "Search bounded capability metadata before cold-loading full schemas.",
+      "description": "Search the bounded Focusa capability catalog before loading full schemas. Returns ranked metadata, scope, side-effect, skill, documentation, and discovery refs so agents can select the narrowest tool under token budget. Use it when Search bounded capability metadata before cold-loading full schemas. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "traversal",
+      "namespace": "focusa.traversal",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "properties": {
+          "query": {
+            "description": "Capability, action, object, failure, or workflow search text.",
+            "type": "string"
+          },
+          "family": {
+            "description": "Optional exact Focusa tool family filter.",
+            "type": "string"
+          },
+          "limit": {
+            "minimum": 1,
+            "maximum": 50,
+            "default": 10,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "read",
+        "route_family": "agent"
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/agent/tools",
+          "scope": {
+            "kind": "read",
+            "route_family": "agent"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "side_effects": [
+        "read_state",
+        "read_state"
+      ],
+      "confirmation": {
+        "required": false,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": true,
+        "key_recommended": false
+      },
+      "reversibility": {
+        "reversible": true,
+        "compensation": []
+      },
+      "cost_hint": {
+        "class": "local_bounded"
+      },
+      "latency_hint": {
+        "class": "hot_or_bounded"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "Search bounded capability metadata before cold-loading full schemas.",
+          "arguments": {
+            "query": "workpoint resume"
+          },
+          "human_invocation": "focusa help all --json",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_search.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "full payloads by default"
+        },
+        {
+          "description": "unbounded history/tree/ontology reads"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_tool_describe",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_tool_bundle",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_tool_graph",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_tool_describe",
+        "focusa_tool_bundle",
+        "focusa_tool_graph"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-tool-discovery"
+      ],
+      "runbook_refs": [
+        "runbook:traversal"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_tool_search.md",
+      "spec_refs": [
+        "docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md"
+      ],
+      "ontology": {
+        "action": "tool.search",
+        "objects": [
+          "AgentCapabilityDescriptor"
+        ],
+        "core_surface": "Spec141 progressive agent capability discovery"
+      },
+      "evidence_requirements": [],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_tool_search"
+      ],
+      "prompt": {
+        "snippet": "Search the bounded Focusa capability catalog before loading full schemas. Returns ranked metadata, scope, side-effect, skill, documentation, and discovery refs so agents can select the narrowest tool under token budget.",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:6d06aaafdbf64c8f2fa17a2d2fc965a0e2e4cfb898b8d8564874f016008d417b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -33274,7 +36307,8 @@
       "examples": [
         {
           "description": "Assess project current state against desired Trajectory end state and return gaps/recommended action; task-boundary reviews should cross-check predictions and metacog lessons.",
-          "arguments": "focusa trajectory assess",
+          "arguments": {},
+          "human_invocation": "focusa trajectory assess",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_assess.md"
         }
       ],
@@ -33356,7 +36390,7 @@
         "snippet": "Use after trajectory view/define_goal or after verification evidence changes current state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:176fd0f802a8089e19fd5ff0b9e470291ce354c69c9ada96f7f5f72226233211"
+      "descriptor_digest": "sha256:c8fad58603fae51983c6e476fb795d676b8d3ad898f8c0d5c34b95508b8f5ecc"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -33679,7 +36713,8 @@
       "examples": [
         {
           "description": "Create an advisory Trajectory checkpoint packet before compaction/model switch; pair with Workpoint checkpoint for canonical continuation.",
-          "arguments": "focusa trajectory checkpoint",
+          "arguments": {},
+          "human_invocation": "focusa trajectory checkpoint",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_checkpoint.md"
         }
       ],
@@ -33763,7 +36798,7 @@
         "snippet": "Use before compaction/model switch alongside focusa_workpoint_checkpoint; this does not replace Workpoint.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:7b0cd839974326a2b70e1285ba5133936ba2d2948284eaac9fbe0f21f59d0e97"
+      "descriptor_digest": "sha256:b0d0f05ea5ea6a848188e3a5de7d86a82111df39d7061604155529037a63a984"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -34164,7 +37199,11 @@
       "examples": [
         {
           "description": "Create an advisory per-project Trajectory goal candidate, including HLT/MLG/STG/Waypoints, without changing task or execution authority.",
-          "arguments": "focusa trajectory define-goal",
+          "arguments": {
+            "long_term_goal": "example",
+            "desired_end_state": "example"
+          },
+          "human_invocation": "focusa trajectory define-goal",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_define_goal.md"
         }
       ],
@@ -34248,7 +37287,7 @@
         "snippet": "Use when the project trajectory is unclear or operator provides/changes the project goal.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:436636243de9a61de54ad04dd24713f0e4a7a3d290953f9d0d579de601141608"
+      "descriptor_digest": "sha256:1c36c2db854c7dbab97ccc1aea74a4a9f37a47c3ec0e1f89f0b8db2b9a20bb0b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -34575,7 +37614,8 @@
       "examples": [
         {
           "description": "Propose an advisory Workpoint candidate from the active per-project Trajectory gap; does not promote or execute it.",
-          "arguments": "focusa trajectory propose-workpoint",
+          "arguments": {},
+          "human_invocation": "focusa trajectory propose-workpoint",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md"
         }
       ],
@@ -34659,7 +37699,7 @@
         "snippet": "Use after trajectory assess says propose_workpoint; pass candidate to focusa_workpoint_checkpoint only if accepted.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:db13daca5fcd1bd56635d23c87d74e89d9fa5464a30de1467b0e022029f5db50"
+      "descriptor_digest": "sha256:4cf10b7cb709a8b9c1f3b8e5416b8d2bf311d0ed356bb7cd1a8cd4c6fa867eca"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -34987,7 +38027,8 @@
       "examples": [
         {
           "description": "Resume per-project Trajectory orientation plus Workpoint handoff context after compaction/model switch/session resume, including prediction/metacog review prompts.",
-          "arguments": "focusa trajectory resume",
+          "arguments": {},
+          "human_invocation": "focusa trajectory resume",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_resume.md"
         }
       ],
@@ -35069,7 +38110,7 @@
         "snippet": "Use after compaction/resume before choosing action; inject with Workpoint resume.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:5588377e2309b0f86154ba379be44d57aec417eeaced092d25fae6e3e1be167b"
+      "descriptor_digest": "sha256:f407f9d5d53e129434506d45277dbe106d3d085f2a7f216ce2c3a8bcb7e8eb45"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -35401,7 +38442,8 @@
       "examples": [
         {
           "description": "Read the per-project Trajectory Intelligence view before acting: project identity, goal/state/gap/evidence/drift, next Workpoint candidate, and learning-loop context for task closure.",
-          "arguments": "focusa trajectory view",
+          "arguments": {},
+          "human_invocation": "focusa trajectory view",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_view.md"
         }
       ],
@@ -35483,7 +38525,7 @@
         "snippet": "Use first on project start/resume or when goal/state/next action is unclear; Trajectory is advisory and per-project.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b8c6757f623445d7149a0c329581a0c6c9a18adb895137133cfed6034d2033c4"
+      "descriptor_digest": "sha256:1349e91c69c5abc3930167faac51bdc4e86d4320f90f89ff8b1371cd8d972598"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -35931,7 +38973,10 @@
       "examples": [
         {
           "description": "Read-only surgical traversal across large Focusa surfaces using bounded selectors, cursors, field projection, tags, and cold full-payload guards.",
-          "arguments": "focusa_traverse { ... }",
+          "arguments": {
+            "surface": "example"
+          },
+          "human_invocation": "focusa_traverse { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_traverse.md"
         }
       ],
@@ -36014,7 +39059,7 @@
         "snippet": "Use bounded traversal/search with explicit limits; opt into large payloads only when needed.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:830c55d21185f58275b0f2ff2e0a1bb6fd65dc8d2860a6288c065c8b40084da9"
+      "descriptor_digest": "sha256:fcece7431d6a7dae27897dba541a95329b387ba4c7191937eeb63f992bb00bea"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -36333,7 +39378,11 @@
       "examples": [
         {
           "description": "Best safe compare tool for snapshots. Use this instead of guessing what changed across checkpoints.",
-          "arguments": "focusa state snapshot diff",
+          "arguments": {
+            "from_snapshot_id": "example",
+            "to_snapshot_id": "example"
+          },
+          "human_invocation": "focusa state snapshot diff",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_diff_context.md"
         }
       ],
@@ -36413,7 +39462,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:aa687fd92b1ef86af0522336c39a80795e20172af31f759248ba1bff5af0c794"
+      "descriptor_digest": "sha256:49e9a45cbbcbb6b693d4e2125138ee8f968b73d5125716e74c1dab9cbf8d726f"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -36720,7 +39769,8 @@
       "examples": [
         {
           "description": "Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work.",
-          "arguments": "focusa lineage head",
+          "arguments": {},
+          "human_invocation": "focusa lineage head",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_head.md"
         }
       ],
@@ -36800,7 +39850,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:8dbcc84e0338abd19d7edaa924f1d914951f944888c2fb2c9ff9d2f1fd7aa34f"
+      "descriptor_digest": "sha256:957f2a47c229a8038f1bb0a6c281d29a9fc1a8d4a5d2c5dc33b193881293c338"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -37111,7 +40161,10 @@
       "examples": [
         {
           "description": "Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns.",
-          "arguments": "focusa lineage path",
+          "arguments": {
+            "clt_node_id": "example"
+          },
+          "human_invocation": "focusa lineage path",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_path.md"
         }
       ],
@@ -37191,7 +40244,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:ede5db2761ce960474dfd033942e237bebde4682f10c0e3b104c7151772f19c5"
+      "descriptor_digest": "sha256:e921e8af9ec64d697d6851fc568f5fbdcb528775bb6d698e54da586a0a8f24e0"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -37498,7 +40551,8 @@
       "examples": [
         {
           "description": "Best safe helper for finding recent snapshot ids. Use this before diff or restore when you do not already know the right snapshot id.",
-          "arguments": "focusa state snapshot recent",
+          "arguments": {},
+          "human_invocation": "focusa state snapshot recent",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_recent_snapshots.md"
         }
       ],
@@ -37578,7 +40632,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:06ef321be8fc8d4068ef57bafb35a40ab072c3f3e7e08b94c57aea12c6858383"
+      "descriptor_digest": "sha256:ba041d3b1fc70bdd5b3d389de510c354228091f8da861a1b4c286473fa96f232"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -37906,7 +40960,10 @@
       "examples": [
         {
           "description": "Restore a saved checkpoint when you need rollback or exact/merge recovery. State-changing tool.",
-          "arguments": "focusa state snapshot restore",
+          "arguments": {
+            "snapshot_id": "example"
+          },
+          "human_invocation": "focusa state snapshot restore",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_restore_state.md"
         }
       ],
@@ -37986,7 +41043,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e43ba4a97c485097a910a98a9540215e28fe13d9ed959fa4657a272a28cd66ac"
+      "descriptor_digest": "sha256:194200c263291a36d8668defbea0e5bf239fc3edbadfc388241b0496a198f780"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -38320,7 +41377,8 @@
       "examples": [
         {
           "description": "Create a fresh snapshot and compare it to the latest prior snapshot in one move. Best tool when you want checkpoint + diff without manual id hunting.",
-          "arguments": "focusa state snapshot compare-latest",
+          "arguments": {},
+          "human_invocation": "focusa state snapshot compare-latest",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_snapshot_compare_latest.md"
         }
       ],
@@ -38400,7 +41458,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:1031abbd0259b1b362399df12542e80fdb487b48628b858034f04c66ef88ea81"
+      "descriptor_digest": "sha256:74807444e3ca52329465fb5000dfc916818754e0b73292933e883b252c7b5dc4"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -38712,7 +41770,8 @@
       "examples": [
         {
           "description": "Create a recoverable checkpoint before risky work or comparisons. Best write tool for saving current state with a reason.",
-          "arguments": "focusa state snapshot create",
+          "arguments": {},
+          "human_invocation": "focusa state snapshot create",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_snapshot_state.md"
         }
       ],
@@ -38792,7 +41851,7 @@
         "snippet": "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e261d8554f343bbe21b5f4c509df94d7080274b252c119c2daffd1b21dd1d936"
+      "descriptor_digest": "sha256:53fd3ec0a162879b68e3a84f7049996b1c135470193435811ebf249284a34e1d"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -39116,7 +42175,8 @@
       "examples": [
         {
           "description": "Read compact bootstrap, post-compaction, recovery, and brevity guidance.",
-          "arguments": "focusa utility card",
+          "arguments": {},
+          "human_invocation": "focusa utility card",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_utility_card.md"
         }
       ],
@@ -39201,7 +42261,7 @@
         "snippet": "Use at startup/resume for exact Focusa scope, recovery, and brevity rules.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d10cc2b6e8308873c0c3b11301a1926038ee92c2fdf7e1316a25d933b125d2b2"
+      "descriptor_digest": "sha256:c399fc607c7e5e9ba7dd55dffbfe40e07d503b8736b0c2007ca22eb834835709"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -39505,7 +42565,8 @@
       "examples": [
         {
           "description": "Create a manual continuous-loop checkpoint.",
-          "arguments": "focusa_work_loop_checkpoint { ... }",
+          "arguments": {},
+          "human_invocation": "focusa_work_loop_checkpoint { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_work_loop_checkpoint.md"
         }
       ],
@@ -39586,7 +42647,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b1c4531baa46eb34b24fffd3865dd0306ecd4d1366e878219d26f814399d2de8"
+      "descriptor_digest": "sha256:c3e146ea5f4abb7193aabe79759354b6126028f51fa28426eeb1495660e31160"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -39921,7 +42982,10 @@
       "examples": [
         {
           "description": "Update continuation decision context (current ask/scope/steering).",
-          "arguments": "focusa_work_loop_context { ... }",
+          "arguments": {
+            "current_ask": "example"
+          },
+          "human_invocation": "focusa_work_loop_context { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_work_loop_context.md"
         }
       ],
@@ -40002,7 +43066,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:77914adcdb36bd708465323c90ed23ae3f8c19c6304f77f962740c0cea6f2020"
+      "descriptor_digest": "sha256:df9b65d155b08daf54255f7825cad745e8d09dfa556ebc2ff712a0ea4e6f67db"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -40390,7 +43454,10 @@
       "examples": [
         {
           "description": "Control continuous work loop: on, pause, resume, stop.",
-          "arguments": "focusa_work_loop_control { ... }",
+          "arguments": {
+            "action": "on"
+          },
+          "human_invocation": "focusa_work_loop_control { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_work_loop_control.md"
         }
       ],
@@ -40471,7 +43538,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e6b781785a709e631095fb96f0fc324dec1de9310d63335d0ca0160cefb54175"
+      "descriptor_digest": "sha256:daafbec36326d8fc18a1ba681421c5847e0f2cfe8db6e19c658d0d7274ced9c2"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -40775,7 +43842,8 @@
       "examples": [
         {
           "description": "Ask daemon to defer blocked work and select next ready work item.",
-          "arguments": "focusa_work_loop_select_next { ... }",
+          "arguments": {},
+          "human_invocation": "focusa_work_loop_select_next { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_work_loop_select_next.md"
         }
       ],
@@ -40856,7 +43924,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c216c3e3275f9a2cc1560af317d56d5d17a8ac5d6bdf6d3e44d0392eee820494"
+      "descriptor_digest": "sha256:e67deac89a3e482f0dcc2544bc5070c1208d0a3f3f77e5cbd46c813c0b04504c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -41155,7 +44223,8 @@
       "examples": [
         {
           "description": "Get current continuous work-loop state and budgets.",
-          "arguments": "focusa_work_loop_status { ... }",
+          "arguments": {},
+          "human_invocation": "focusa_work_loop_status { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_work_loop_status.md"
         }
       ],
@@ -41234,7 +44303,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:3912f6bec3a871bf337b73f0ec276ba6abe681c37fe7ff3d3d5360efe0f1e4c8"
+      "descriptor_digest": "sha256:b5d39927dc1a4f5a6d68143d497de3844b6e8b3885a53861c39b46098c711ab9"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -41533,7 +44602,8 @@
       "examples": [
         {
           "description": "Read current work-loop writer ownership and mutation preflight guidance without mutating state.",
-          "arguments": "focusa_work_loop_writer_status { ... }",
+          "arguments": {},
+          "human_invocation": "focusa_work_loop_writer_status { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_work_loop_writer_status.md"
         }
       ],
@@ -41612,7 +44682,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:20b902c71998b2f16d32453b7608fa237704e110bf6d1c8bb8d332dd50463136"
+      "descriptor_digest": "sha256:b867a95c56cdcda58c5bf33e60aa7684a6b3937f378531709b3268702e66fbbc"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -41989,7 +45059,11 @@
       "examples": [
         {
           "description": "Create a typed Focusa Workpoint checkpoint before compaction, resume, context overflow, model switch, or risky continuation. Use this instead of trusting raw transcript memory; Focusa becomes the canonical continuation source and returns an explicit next-step hint.",
-          "arguments": "focusa workpoint checkpoint",
+          "arguments": {
+            "mission": "example",
+            "next_action": "example"
+          },
+          "human_invocation": "focusa workpoint checkpoint",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_workpoint_checkpoint.md"
         }
       ],
@@ -42076,7 +45150,7 @@
           "If canonical=false, treat as degraded fallback and reconcile when Focusa is healthy."
         ]
       },
-      "descriptor_digest": "sha256:b1d8c7cd3b63cbd602d160507b9d034e4c2639410633b63b0b77dce8b53dc829"
+      "descriptor_digest": "sha256:58967fd9bfaf244edd059e56bae48e0af08f5a7f5ddf20a6e6ddf84ff413cf60"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -42413,7 +45487,11 @@
       "examples": [
         {
           "description": "Attach a stable evidence reference or verification result to the active canonical Workpoint.",
-          "arguments": "focusa workpoint evidence-link",
+          "arguments": {
+            "target_ref": "example",
+            "result": "example"
+          },
+          "human_invocation": "focusa workpoint evidence-link",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_workpoint_link_evidence.md"
         }
       ],
@@ -42495,7 +45573,7 @@
         "snippet": "Link proof/evidence to active Workpoint instead of keeping it only in transcript.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b35e688802e85a8444f94fdbacac128de19b2df3daed52d6120eacc6dfc68f30"
+      "descriptor_digest": "sha256:a86c6abece8bce34db40fb569249c1d7e0fe5cc56b4c8975c029c8d8bce7145e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -42820,7 +45898,8 @@
       "examples": [
         {
           "description": "Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action.",
-          "arguments": "focusa workpoint resume",
+          "arguments": {},
+          "human_invocation": "focusa workpoint resume",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_workpoint_resume.md"
         }
       ],
@@ -42904,8 +45983,8 @@
           "If canonical=false, state degraded status and avoid treating it as canonical truth."
         ]
       },
-      "descriptor_digest": "sha256:dca10a953bf07314bc061f59486f981775d2989d9e25b188efb55a32d692e10f"
+      "descriptor_digest": "sha256:ab9c9bbe2ed5cd1be3c2be60126fbc6114de34d72116a188fdd0b734de5b3e68"
     }
   ],
-  "registry_digest": "sha256:fd7c0977731a2ef943e569b79b99749af2634053786d8e9f0472c593fdeb7d9a"
+  "registry_digest": "sha256:b9793d0eb515d53b607c447453c8c9ecc49eaf67327757cbe91eae5742f604bb"
 }
