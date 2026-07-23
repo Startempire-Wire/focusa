@@ -456,6 +456,7 @@ mod tests {
                 work_item_ref: packet.work_item_ref.clone(),
                 workspace_ref: packet.workspace.workspace_ref.clone(),
                 path_intents: vec![PathBuf::from("src")],
+                mutation_mode: focusa_core::silent_session::WriterMutationMode::IsolatedWorktree,
                 writer_role: "primary".into(),
                 owner_actor_instance_ref: actor_instance_ref.into(),
                 fencing_token: 9,

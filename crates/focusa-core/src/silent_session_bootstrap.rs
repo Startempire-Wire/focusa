@@ -661,6 +661,7 @@ mod tests {
             work_item_ref: packet.work_item_ref.clone(),
             workspace_ref: packet.workspace.workspace_ref.clone(),
             path_intents: vec![PathBuf::from("crates/focusa-core")],
+            mutation_mode: crate::silent_session::WriterMutationMode::IsolatedWorktree,
             writer_role: "primary".into(),
             owner_actor_instance_ref: actor_instance_ref.clone(),
             fencing_token: 11,

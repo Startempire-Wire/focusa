@@ -848,3 +848,41 @@ fn silent_session_principals_approvals_and_runner_keys_survive_restart_and_repla
     );
     assert!(persistence.put_silent_session_approval(&approval).is_err());
 }
+
+#[test]
+fn silent_session_writer_lease_registry_survives_restart_and_rejects_stale_cas() {
+    let dir = temp_dir();
+    let mut config = FocusaConfig::default();
+    config.data_dir = dir.to_string_lossy().to_string();
+    {
+        let persistence = SqlitePersistence::new(&config).unwrap();
+        let (revision, mut registry) = persistence
+            .load_silent_session_writer_lease_registry()
+            .unwrap();
+        assert_eq!(revision, 0);
+        registry.next_fencing_token = 42;
+        assert_eq!(
+            persistence
+                .persist_silent_session_writer_lease_registry_cas(revision, &registry)
+                .unwrap(),
+            1
+        );
+        assert!(
+            persistence
+                .persist_silent_session_writer_lease_registry_cas(0, &registry)
+                .is_err()
+        );
+    }
+    let persistence = SqlitePersistence::new(&config).unwrap();
+    let (revision, registry) = persistence
+        .load_silent_session_writer_lease_registry()
+        .unwrap();
+    assert_eq!(revision, 1);
+    assert_eq!(
+        registry,
+        crate::silent_session_writer::WriterLeaseRegistry {
+            next_fencing_token: 42,
+            ..crate::silent_session_writer::WriterLeaseRegistry::default()
+        }
+    );
+}

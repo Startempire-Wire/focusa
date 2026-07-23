@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::fmt;
-use std::path::PathBuf;
+use std::path::{Component, PathBuf};
 use uuid::{Uuid, Version};
 
 pub const SILENT_SESSION_SCHEMA: &str = "focusa.silent_session.v1";
@@ -499,6 +499,16 @@ pub struct SilentSessionCheckpoint {
     pub body: SilentSessionCheckpointBody,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum WriterMutationMode {
+    ReadOnlyShared,
+    #[default]
+    ExclusiveExisting,
+    IsolatedWorktree,
+    ExplicitShared,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SilentSessionLease {
     pub schema: String,
@@ -510,6 +520,8 @@ pub struct SilentSessionLease {
     pub work_item_ref: Option<String>,
     pub workspace_ref: String,
     pub path_intents: Vec<PathBuf>,
+    #[serde(default)]
+    pub mutation_mode: WriterMutationMode,
     pub writer_role: String,
     pub owner_actor_instance_ref: String,
     pub fencing_token: u64,
@@ -704,7 +716,19 @@ impl SilentSessionLease {
         {
             return Err(SilentSessionInvariantError::ScopeMutation);
         }
-        if self.fencing_token == 0
+        if self.workspace_ref.trim().is_empty()
+            || self.writer_role.trim().is_empty()
+            || self.owner_actor_instance_ref.trim().is_empty()
+            || self.path_intents.iter().any(|path| {
+                path.as_os_str().is_empty()
+                    || path.components().any(|component| {
+                        matches!(
+                            component,
+                            Component::ParentDir | Component::RootDir | Component::Prefix(_)
+                        )
+                    })
+            })
+            || self.fencing_token == 0
             || self.heartbeat_at < self.acquired_at
             || self.expires_at <= self.heartbeat_at
         {
@@ -1028,6 +1052,7 @@ mod tests {
             work_item_ref: session.work_item_ref.clone(),
             workspace_ref: "workspace:test".into(),
             path_intents: vec![],
+            mutation_mode: WriterMutationMode::ExclusiveExisting,
             writer_role: "implementer".into(),
             owner_actor_instance_ref: "actor:pi".into(),
             fencing_token: 1,

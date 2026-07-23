@@ -14,6 +14,7 @@ use crate::silent_session::{
 };
 use crate::silent_session_authorization::{SilentSessionApproval, SilentSessionPrincipal};
 use crate::silent_session_config::redacted_config_hash;
+use crate::silent_session_writer::WriterLeaseRegistry;
 use crate::sync::{CrdtEvent, VectorClock};
 use crate::types::{
     CallStackDesign, CognitionOptimizerArtifact, CuratorEvalRun, DeviceRecord, EventLogEntry,
@@ -359,6 +360,12 @@ impl SqlitePersistence {
               verifying_key_base64 TEXT NOT NULL,
               os_user TEXT NOT NULL,
               project_identity_ref TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS silent_session_writer_lease_registry (
+              singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+              revision INTEGER NOT NULL,
+              registry_json TEXT NOT NULL,
               updated_at TEXT NOT NULL
             );
 
@@ -2360,6 +2367,68 @@ impl SqlitePersistence {
         conn.query_row(
             "SELECT verifying_key_base64, os_user, project_identity_ref FROM silent_session_runner_identities WHERE runner_id=?1",
             [runner_id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?))).optional().map_err(Into::into)
+    }
+
+    pub fn load_silent_session_writer_lease_registry(
+        &self,
+    ) -> anyhow::Result<(u64, WriterLeaseRegistry)> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let stored = conn
+            .query_row(
+                "SELECT revision, registry_json FROM silent_session_writer_lease_registry WHERE singleton=1",
+                [],
+                |row| Ok((row.get::<_, u64>(0)?, row.get::<_, String>(1)?)),
+            )
+            .optional()?;
+        match stored {
+            Some((revision, json)) => {
+                let registry: WriterLeaseRegistry = serde_json::from_str(&json)?;
+                registry.validate()?;
+                Ok((revision, registry))
+            }
+            None => Ok((0, WriterLeaseRegistry::default())),
+        }
+    }
+
+    pub fn persist_silent_session_writer_lease_registry_cas(
+        &self,
+        expected_revision: u64,
+        registry: &WriterLeaseRegistry,
+    ) -> anyhow::Result<u64> {
+        registry.validate()?;
+        let json = serde_json::to_string(registry)?;
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let tx = conn.transaction()?;
+        let current = tx
+            .query_row(
+                "SELECT revision FROM silent_session_writer_lease_registry WHERE singleton=1",
+                [],
+                |row| row.get::<_, u64>(0),
+            )
+            .optional()?
+            .unwrap_or(0);
+        anyhow::ensure!(
+            current == expected_revision,
+            "silent-session writer lease registry CAS conflict"
+        );
+        let next = current
+            .checked_add(1)
+            .ok_or_else(|| anyhow::anyhow!("writer lease registry revision exhausted"))?;
+        tx.execute(
+            r#"INSERT INTO silent_session_writer_lease_registry(singleton, revision, registry_json, updated_at)
+               VALUES (1,?1,?2,?3)
+               ON CONFLICT(singleton) DO UPDATE SET revision=excluded.revision,
+                 registry_json=excluded.registry_json, updated_at=excluded.updated_at"#,
+            params![next, json, Utc::now().to_rfc3339()],
+        )?;
+        tx.commit()?;
+        Ok(next)
     }
 
     /// Atomically append a Spec 133 event and advance its session projection.

@@ -64,6 +64,7 @@ pub mod silent_session_reducer;
 pub mod silent_session_resources;
 pub mod silent_session_retry;
 pub mod silent_session_stream;
+pub mod silent_session_writer;
 pub mod silent_sessions;
 pub mod skills;
 pub mod sync;

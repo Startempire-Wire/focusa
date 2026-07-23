@@ -465,6 +465,7 @@ mod tests {
             work_item_ref: None,
             workspace_ref: action.workspace_ref.clone(),
             path_intents: vec![],
+            mutation_mode: crate::silent_session::WriterMutationMode::ExclusiveExisting,
             writer_role: "primary".into(),
             owner_actor_instance_ref: principal.actor_instance_ref.clone(),
             fencing_token: 7,
