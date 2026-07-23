@@ -1,4 +1,5 @@
 //! Spec133 retention/export HTTP authority.
+#![allow(clippy::result_large_err)] // Canonical Axum helpers intentionally return the typed API envelope.
 
 use std::sync::Arc;
 
