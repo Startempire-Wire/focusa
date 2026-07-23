@@ -6,8 +6,6 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 
 ## `focusa.state.current`
 
-
-
 - Method/path: `GET /v1/state/current`
 - Family: `state`
 - Input schema: `focusa.state_current.request.v1`

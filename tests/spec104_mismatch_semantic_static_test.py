@@ -10,8 +10,7 @@ Verifies scope mismatch semantics across all surfaces:
 
 Spec104 DOC-03 proof: mismatch test covers all surfaces.
 """
-import os
-import re
+
 import sys
 from pathlib import Path
 

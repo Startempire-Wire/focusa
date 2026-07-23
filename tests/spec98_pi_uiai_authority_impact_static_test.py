@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Spec98 / focusa-877z.14 Pi + UIAI authority impact worksheet coverage test."""
+
 from pathlib import Path
 import sys
 import yaml
@@ -109,13 +110,25 @@ def main() -> None:
     if missing_flows:
         fail(f"worksheet missing diagnostics/evidence flows: {sorted(missing_flows)}")
 
-    registry_entries = "\n".join(data["tool_contract_registry_entries"].get("required_entries", []))
-    for expected in ["apps/pi-extension/src/tool-contracts.ts", "docs/current/focusa-tool-contracts.json", "focusa_browser_diagnostics_intake", "focusa_tool_doctor"]:
+    registry_entries = "\n".join(
+        data["tool_contract_registry_entries"].get("required_entries", [])
+    )
+    for expected in [
+        "apps/pi-extension/src/tool-contracts.ts",
+        "docs/current/focusa-tool-contracts.json",
+        "focusa_browser_diagnostics_intake",
+        "focusa_tool_doctor",
+    ]:
         if expected not in registry_entries:
             fail(f"registry entries missing {expected}")
 
     proof_text = yaml.safe_dump(data.get("reliability_proof_matrix", {}))
-    for expected in ["tests/spec98_runtime_bleed_crdt_regression_suite.sh", "npm --prefix apps/pi-extension run check", "UIAI scripts/check-tool-parity.sh", "UIAI browser diagnostics smoke"]:
+    for expected in [
+        "tests/spec98_runtime_bleed_crdt_regression_suite.sh",
+        "npm --prefix apps/pi-extension run check",
+        "UIAI scripts/check-tool-parity.sh",
+        "UIAI browser diagnostics smoke",
+    ]:
         if expected not in proof_text:
             fail(f"reliability proof matrix missing {expected}")
 
@@ -125,7 +138,11 @@ def main() -> None:
             fail(f"worksheet missing required phrase: {phrase}")
 
     spec98_text = SPEC98.read_text()
-    for phrase in ["Pi agent tools and UIAI browser integration gate", "ResearchDiagnosticsPacket", "focusa_scope"]:
+    for phrase in [
+        "Pi agent tools and UIAI browser integration gate",
+        "ResearchDiagnosticsPacket",
+        "focusa_scope",
+    ]:
         if phrase not in spec98_text:
             fail(f"Spec98 missing expected section phrase: {phrase}")
 

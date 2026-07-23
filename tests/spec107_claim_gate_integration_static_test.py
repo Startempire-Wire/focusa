@@ -1,21 +1,26 @@
 #!/usr/bin/env python3
 """Spec107 claim gate integration static audit — focusa-4jo5.4."""
+
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+
 def fail(msg: str) -> None:
     print(f"FAIL: {msg}")
     sys.exit(1)
+
 
 def run(cmd: list[str], cwd: Path = ROOT) -> str:
     r = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, timeout=60)
     return r.stdout + r.stderr
 
+
 def read(rel: str) -> str:
     return (ROOT / rel).read_text()
+
 
 def main() -> None:
     # 1. claim_gate module exists
@@ -88,7 +93,9 @@ def main() -> None:
         fail("commands/mod.rs missing: pub mod claim;")
 
     # 6. Run the claim gate tests
-    result = run(["cargo", "test", "--package", "focusa-core", "--lib", "--", "claim_gate"])
+    result = run(
+        ["cargo", "test", "--package", "focusa-core", "--lib", "--", "claim_gate"]
+    )
     if "test result: ok" not in result and "10 passed" not in result:
         fail(f"claim_gate tests did not pass:\n{result[-500:]}")
 
@@ -99,10 +106,13 @@ def main() -> None:
 
     print("PASS: Spec107 claim gate integration static audit")
     print(f"  claim_gate.rs: {len(src.splitlines())} lines")
-    print(f"  claim CLI: ClaimArgs, GateDecision (allow/block), evidence classes")
-    print(f"  tests: 10 unit tests in focusa-core (actual/partial/surrogate/blocked/missing)")
-    print(f"  CLI: focusa claim --work-item-id <id> --claim 'Evidence citations: ...'")
-    print(f"  enforce_bd_closure_evidence.sh: existing pre-push gate")
+    print("  claim CLI: ClaimArgs, GateDecision (allow/block), evidence classes")
+    print(
+        "  tests: 10 unit tests in focusa-core (actual/partial/surrogate/blocked/missing)"
+    )
+    print("  CLI: focusa claim --work-item-id <id> --claim 'Evidence citations: ...'")
+    print("  enforce_bd_closure_evidence.sh: existing pre-push gate")
+
 
 if __name__ == "__main__":
     main()

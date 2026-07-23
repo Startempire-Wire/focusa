@@ -40,7 +40,9 @@ def p95_nearest_rank(values: list[float]) -> float:
 
 def run_reflection_gate(rows: list[dict[str, Any]]) -> dict[str, Any]:
     baseline = [float(r["latency_ms"]) for r in rows if r.get("mode") == "baseline"]
-    treatment = [float(r["latency_ms"]) for r in rows if r.get("mode") == "with_metacog"]
+    treatment = [
+        float(r["latency_ms"]) for r in rows if r.get("mode") == "with_metacog"
+    ]
 
     baseline_ok = len(baseline) >= SAMPLE_FLOOR
     treatment_ok = len(treatment) >= SAMPLE_FLOOR
@@ -55,7 +57,9 @@ def run_reflection_gate(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
     p95_baseline = p95_nearest_rank(baseline)
     p95_treatment = p95_nearest_rank(treatment)
-    added_ratio = 0.0 if p95_baseline == 0 else (p95_treatment - p95_baseline) / p95_baseline
+    added_ratio = (
+        0.0 if p95_baseline == 0 else (p95_treatment - p95_baseline) / p95_baseline
+    )
     return {
         "gate_id": "D3.1-latency",
         "decision": "pass" if added_ratio <= 0.12 else "fail",
@@ -80,7 +84,11 @@ def run_restore_compaction_gate(rows: list[dict[str, Any]]) -> dict[str, Any]:
         if r.get("operation") == "compaction" and r.get("profile") == "branch"
     ]
 
-    if len(restore) < SAMPLE_FLOOR or len(prebranch) < SAMPLE_FLOOR or len(branch) < SAMPLE_FLOOR:
+    if (
+        len(restore) < SAMPLE_FLOOR
+        or len(prebranch) < SAMPLE_FLOOR
+        or len(branch) < SAMPLE_FLOOR
+    ):
         return {
             "gate_id": "D3.2-restore-compaction",
             "decision": "insufficient_sample",

@@ -6,8 +6,6 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 
 ## `focusa.evidence.capture`
 
-
-
 - Method/path: `POST /v1/evidence/capture`
 - Family: `evidence`
 - Input schema: `focusa.evidence_capture.request.v1`

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """C1 real Markdown/code/PDF Context ingestion, incremental update, health, and restart proof."""
+
 from __future__ import annotations
 
 import base64
@@ -25,7 +26,9 @@ ATTACHMENT = "attachment:c1-context"
 
 def request(method: str, url: str, payload=None, expected=200):
     data = None if payload is None else json.dumps(payload).encode()
-    req = urllib.request.Request(url, data=data, method=method, headers={"Content-Type": "application/json"})
+    req = urllib.request.Request(
+        url, data=data, method=method, headers={"Content-Type": "application/json"}
+    )
     try:
         with urllib.request.urlopen(req, timeout=240) as response:
             body = json.loads(response.read())
@@ -55,7 +58,9 @@ def start_daemon(data_dir: Path, port: int, docling_url: str | None):
     else:
         env.pop("FOCUSA_DOCLING_BASE_URL", None)
     log = open(data_dir / "daemon.log", "ab")
-    process = subprocess.Popen([str(BINARY)], cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT)
+    process = subprocess.Popen(
+        [str(BINARY)], cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT
+    )
     wait_health(f"http://127.0.0.1:{port}")
     return process, log
 
@@ -86,15 +91,23 @@ def minimal_pdf(text: str) -> bytes:
         offsets.append(len(out))
         out.extend(f"{index} 0 obj\n".encode() + obj + b"\nendobj\n")
     xref = len(out)
-    out.extend(f"xref\n0 {len(objects)+1}\n0000000000 65535 f \n".encode())
+    out.extend(f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode())
     for offset in offsets[1:]:
         out.extend(f"{offset:010d} 00000 n \n".encode())
-    out.extend(f"trailer\n<< /Size {len(objects)+1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode())
+    out.extend(
+        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode()
+    )
     return bytes(out)
 
 
 def scope_query():
-    return urllib.parse.urlencode({"project_root": PROJECT, "continuity_id": CONTINUITY, "attachment_id": ATTACHMENT})
+    return urllib.parse.urlencode(
+        {
+            "project_root": PROJECT,
+            "continuity_id": CONTINUITY,
+            "attachment_id": ATTACHMENT,
+        }
+    )
 
 
 def ingest_request(base: str, payload: dict):
@@ -105,8 +118,12 @@ def ingest_request(base: str, payload: dict):
             observed = error.args[0] if error.args else None
             if not isinstance(observed, tuple) or observed[0] != 409:
                 raise
-            payload["expected_state_version"] = request("GET", f"{base}/v1/context/sources?{scope_query()}")["state_version"]
-    raise AssertionError("Context ingestion did not settle after bounded writer-conflict retries")
+            payload["expected_state_version"] = request(
+                "GET", f"{base}/v1/context/sources?{scope_query()}"
+            )["state_version"]
+    raise AssertionError(
+        "Context ingestion did not settle after bounded writer-conflict retries"
+    )
 
 
 def ingest_payload(version: int, **overrides):
@@ -143,37 +160,50 @@ def main():
 
         markdown_payload = ingest_payload(version)
         markdown = ingest_request(base, markdown_payload)
-        assert markdown["canonical"] and markdown["source"]["adapter_id"] == "focusa.local_text.v1"
+        assert (
+            markdown["canonical"]
+            and markdown["source"]["adapter_id"] == "focusa.local_text.v1"
+        )
         assert markdown["source"]["health"]["status"] == "healthy"
         assert markdown["source"]["revision"] == 1
         version = markdown["state_version"]
         replay = ingest_request(base, markdown_payload)
         assert replay["replayed"] and replay["tool_result"]["status"] == "no_op"
-        version = request("GET", f"{base}/v1/context/sources?{scope_query()}")["state_version"]
+        version = request("GET", f"{base}/v1/context/sources?{scope_query()}")[
+            "state_version"
+        ]
 
-        code = ingest_request(base, ingest_payload(
-            version,
-            idempotency_key="c1-code-r1",
-            source_kind="code",
-            source_locator="src/lib.rs",
-            source_revision="git:2222222",
-            title="Core source",
-            mime_type="text/x-rust",
-            content="pub fn mission() -> &'static str { \"ready\" }",
-        ))
+        code = ingest_request(
+            base,
+            ingest_payload(
+                version,
+                idempotency_key="c1-code-r1",
+                source_kind="code",
+                source_locator="src/lib.rs",
+                source_revision="git:2222222",
+                title="Core source",
+                mime_type="text/x-rust",
+                content='pub fn mission() -> &\'static str { "ready" }',
+            ),
+        )
         assert code["source"]["revision"] == 1
         code_source_id = code["source"]["source_id"]
-        version = request("GET", f"{base}/v1/context/sources?{scope_query()}")["state_version"]
-        updated = ingest_request(base, ingest_payload(
-            version,
-            idempotency_key="c1-code-r2",
-            source_kind="code",
-            source_locator="src/lib.rs",
-            source_revision="git:3333333",
-            title="Core source",
-            mime_type="text/x-rust",
-            content="pub fn mission() -> &'static str { \"resumed\" }",
-        ))
+        version = request("GET", f"{base}/v1/context/sources?{scope_query()}")[
+            "state_version"
+        ]
+        updated = ingest_request(
+            base,
+            ingest_payload(
+                version,
+                idempotency_key="c1-code-r2",
+                source_kind="code",
+                source_locator="src/lib.rs",
+                source_revision="git:3333333",
+                title="Core source",
+                mime_type="text/x-rust",
+                content='pub fn mission() -> &\'static str { "resumed" }',
+            ),
+        )
         assert updated["source"]["source_id"] == code_source_id
         assert updated["source"]["revision"] == 2
         version = updated["state_version"]
@@ -183,47 +213,73 @@ def main():
         version = listed["state_version"]
         adapter_health = request("GET", f"{base}/v1/context/adapters/docling/health")
         if docling_url:
-            assert adapter_health["configured"] and adapter_health["status"] == "healthy", adapter_health
+            assert (
+                adapter_health["configured"] and adapter_health["status"] == "healthy"
+            ), adapter_health
             pdf = minimal_pdf("Mission Canvas PDF Context")
-            converted = ingest_request(base, ingest_payload(
-                version,
-                idempotency_key="c1-pdf-r1",
-                source_kind="pdf",
-                source_locator="mission-context.pdf",
-                source_revision="sha256:pdf-r1",
-                title="Mission PDF Context",
-                mime_type="application/pdf",
-                content=None,
-                content_base64=base64.b64encode(pdf).decode(),
-            ))
+            converted = ingest_request(
+                base,
+                ingest_payload(
+                    version,
+                    idempotency_key="c1-pdf-r1",
+                    source_kind="pdf",
+                    source_locator="mission-context.pdf",
+                    source_revision="sha256:pdf-r1",
+                    title="Mission PDF Context",
+                    mime_type="application/pdf",
+                    content=None,
+                    content_base64=base64.b64encode(pdf).decode(),
+                ),
+            )
             assert converted["source"]["adapter_id"] == "docling-serve.v1"
             assert converted["source"]["ingestion_status"] == "completed"
             assert converted["source"]["content"].strip()
-            assert any(x.startswith("docling_status=") for x in converted["source"]["extraction_diagnostics"])
+            assert any(
+                x.startswith("docling_status=")
+                for x in converted["source"]["extraction_diagnostics"]
+            )
             version = converted["state_version"]
         else:
-            assert not adapter_health["configured"] and adapter_health["status"] == "offline"
-            failed = request("POST", f"{base}/v1/context/sources/ingest", ingest_payload(
-                version,
-                idempotency_key="c1-pdf-offline",
-                source_kind="pdf",
-                source_locator="mission-context.pdf",
-                source_revision="sha256:pdf-offline",
-                title="Mission PDF Context",
-                mime_type="application/pdf",
-                content=None,
-                content_base64=base64.b64encode(minimal_pdf("Offline PDF")).decode(),
-            ), expected=503)
-            assert failed["status"] == "offline" and "FOCUSA_DOCLING_BASE_URL" in failed["summary"]
+            assert (
+                not adapter_health["configured"]
+                and adapter_health["status"] == "offline"
+            )
+            failed = request(
+                "POST",
+                f"{base}/v1/context/sources/ingest",
+                ingest_payload(
+                    version,
+                    idempotency_key="c1-pdf-offline",
+                    source_kind="pdf",
+                    source_locator="mission-context.pdf",
+                    source_revision="sha256:pdf-offline",
+                    title="Mission PDF Context",
+                    mime_type="application/pdf",
+                    content=None,
+                    content_base64=base64.b64encode(
+                        minimal_pdf("Offline PDF")
+                    ).decode(),
+                ),
+                expected=503,
+            )
+            assert (
+                failed["status"] == "offline"
+                and "FOCUSA_DOCLING_BASE_URL" in failed["summary"]
+            )
 
         stop(process, log)
         process, log = start_daemon(data_dir, port, docling_url)
         resumed = request("GET", f"{base}/v1/context/sources?{scope_query()}")
         expected_count = 3 if docling_url else 2
         assert len(resumed["sources"]) == expected_count
-        assert any(source["source_id"] == code_source_id and source["revision"] == 2 for source in resumed["sources"])
+        assert any(
+            source["source_id"] == code_source_id and source["revision"] == 2
+            for source in resumed["sources"]
+        )
         assert resumed["state_version"] >= version
-        print(f"Spec 135 C1 Context ingestion E2E: PASS (sources={expected_count}, docling={'real' if docling_url else 'offline fail-closed'}, restart=resumed)")
+        print(
+            f"Spec 135 C1 Context ingestion E2E: PASS (sources={expected_count}, docling={'real' if docling_url else 'offline fail-closed'}, restart=resumed)"
+        )
     finally:
         if process.poll() is None:
             stop(process, log)

@@ -8,8 +8,8 @@ Verifies that:
 
 Spec104 BEN-03 proof: every public claim links to typed run/proof snapshot.
 """
+
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -41,7 +41,7 @@ def main() -> int:
 
     # Check first line is valid JSON
     try:
-        first = json.loads(lines[0])
+        json.loads(lines[0])
     except json.JSONDecodeError as e:
         fail(f"first audit line not valid JSON: {e}")
     ok("audit lines are valid JSON")

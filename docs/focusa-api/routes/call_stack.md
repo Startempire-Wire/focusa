@@ -6,8 +6,6 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 
 ## `focusa.call_stack.design`
 
-
-
 - Method/path: `POST /v1/call-stack/design`
 - Family: `call_stack`
 - Input schema: `focusa.call_stack_design.request.v1`
@@ -39,8 +37,6 @@ Failure classes: `focusa.operation_error.v1`.
 Use the structured error recovery field, preserve the original scope and idempotency key when retry-safe, and run the indicated doctor/verify capability before any authority-sensitive retry.
 
 ## `focusa.call_stack.verify`
-
-
 
 - Method/path: `POST /v1/call-stack/verify`
 - Family: `call_stack`

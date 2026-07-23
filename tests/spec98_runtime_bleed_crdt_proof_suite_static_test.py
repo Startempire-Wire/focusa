@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Spec98 Phase H: proof-suite manifest/runner honesty guard."""
+
 from pathlib import Path
 import sys
 import yaml
@@ -23,7 +24,12 @@ def main() -> None:
     if data.get("status") != "proof_suite_defined":
         fail(".26 status must be proof_suite_defined")
     groups = data.get("proof_groups") or {}
-    for group in ["project_scope_and_bleed", "partition_contracts", "crdt_foundation", "build_gates"]:
+    for group in [
+        "project_scope_and_bleed",
+        "partition_contracts",
+        "crdt_foundation",
+        "build_gates",
+    ]:
         if group not in groups:
             fail(f"proof group missing {group}")
         if not groups[group].get("commands"):
@@ -74,13 +80,23 @@ def main() -> None:
     ]:
         if needle not in sync:
             fail(f"sync route missing CRDT production surface: {needle}")
-    for needle in ["CREATE TABLE IF NOT EXISTS crdt_events", "idx_crdt_events_scope", "append_crdt_event"]:
+    for needle in [
+        "CREATE TABLE IF NOT EXISTS crdt_events",
+        "idx_crdt_events_scope",
+        "append_crdt_event",
+    ]:
         if needle not in persistence:
             fail(f"SQLite persistence missing durable CRDT support: {needle}")
-    for forbidden_gap in ["active_writer is legacy-global", "remain pending", "Known gaps retained"]:
+    for forbidden_gap in [
+        "active_writer is legacy-global",
+        "remain pending",
+        "Known gaps retained",
+    ]:
         if forbidden_gap in runner:
             fail(f"runner still prints deferred gap: {forbidden_gap}")
-    print("✓ PASS: Spec98 runtime bleed/CRDT proof suite contract and runner are honest")
+    print(
+        "✓ PASS: Spec98 runtime bleed/CRDT proof suite contract and runner are honest"
+    )
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Generate explicit Spec141 eligibility classification for every Axum route path."""
+
 from __future__ import annotations
 
 import argparse
@@ -8,7 +9,9 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "docs/contracts/spec141/generated-capability-v2/route-classification.json"
+OUTPUT = (
+    ROOT / "docs/contracts/spec141/generated-capability-v2/route-classification.json"
+)
 
 
 def main() -> int:
@@ -24,7 +27,10 @@ def main() -> int:
             paths.setdefault(path, set()).add(str(source.relative_to(ROOT)))
 
     registry = json.loads(
-        (ROOT / "docs/contracts/spec135/generated-contract-v1/operation-registry.json").read_text()
+        (
+            ROOT
+            / "docs/contracts/spec135/generated-contract-v1/operation-registry.json"
+        ).read_text()
     )
     agent_paths = {item["path"] for item in registry["operations"]}
     spec141_agent_paths = {
@@ -45,7 +51,14 @@ def main() -> int:
         "/v1/browser/webmcp/intake",
         "/v1/browser/workflow/plan",
     }
-    public_health = {"/health", "/v1/health", "/ready", "/v1/ready", "/version", "/v1/version"}
+    public_health = {
+        "/health",
+        "/v1/health",
+        "/ready",
+        "/v1/ready",
+        "/version",
+        "/v1/version",
+    }
 
     classifications = []
     for path in sorted(paths):
@@ -55,10 +68,16 @@ def main() -> int:
         elif path in public_health:
             classification = "public_health"
             rationale = "Bounded public liveness/readiness/version probe."
-        elif any(token in path for token in ("/pair", "/device/", "/oauth", "/license/activate")):
+        elif any(
+            token in path
+            for token in ("/pair", "/device/", "/oauth", "/license/activate")
+        ):
             classification = "public_pairing"
             rationale = "Pairing/auth/license bootstrap surface; governed by its own token and expiry checks."
-        elif any(token in path for token in ("/internal", "/debug", "/metrics", "/events/raw", "/admin/")):
+        elif any(
+            token in path
+            for token in ("/internal", "/debug", "/metrics", "/events/raw", "/admin/")
+        ):
             classification = "internal"
             rationale = "Runtime/operator diagnostic surface not projected as an agent capability."
         elif any(token in path for token in ("/deprecated", "/legacy")):
@@ -74,7 +93,9 @@ def main() -> int:
                 "rationale": rationale,
                 "sources": sorted(paths[path]),
                 "operation_refs": sorted(
-                    item["operation_id"] for item in registry["operations"] if item["path"] == path
+                    item["operation_id"]
+                    for item in registry["operations"]
+                    if item["path"] == path
                 ),
             }
         )
@@ -104,7 +125,16 @@ def main() -> int:
     else:
         OUTPUT.parent.mkdir(parents=True, exist_ok=True)
         OUTPUT.write_text(body)
-    print(json.dumps({"status": "passed", "mode": "check" if args.check else "write", "routes": len(classifications), "counts": counts}))
+    print(
+        json.dumps(
+            {
+                "status": "passed",
+                "mode": "check" if args.check else "write",
+                "routes": len(classifications),
+                "counts": counts,
+            }
+        )
+    )
     return 0
 
 

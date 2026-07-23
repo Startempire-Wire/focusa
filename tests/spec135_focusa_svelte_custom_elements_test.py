@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Validate F10 trusted Focusa Svelte Custom Elements and A2UI registration."""
+
 from __future__ import annotations
 
 import json
@@ -16,21 +17,53 @@ component = (ELEMENTS / "src/TrustedComponent.svelte").read_text()
 renderer = (RENDERER / "src/index.ts").read_text()
 catalog_source = (RENDERER / "src/focusa-catalog.ts").read_text()
 renderer_test = (RENDERER / "tests/renderer.test.mjs").read_text()
-contract = json.loads((ROOT / "docs/contracts/spec135/generated-contract-v1/a2ui-catalog.json").read_text())
-capability_source = (ROOT / "crates/focusa-api/src/routes/agent_capabilities.rs").read_text()
-capability_fixture = json.loads((ROOT / "docs/contracts/spec135/generated-contract-v1/ui-capability-snapshot.fixture.json").read_text())
+contract = json.loads(
+    (
+        ROOT / "docs/contracts/spec135/generated-contract-v1/a2ui-catalog.json"
+    ).read_text()
+)
+capability_source = (
+    ROOT / "crates/focusa-api/src/routes/agent_capabilities.rs"
+).read_text()
+capability_fixture = json.loads(
+    (
+        ROOT
+        / "docs/contracts/spec135/generated-contract-v1/ui-capability-snapshot.fixture.json"
+    ).read_text()
+)
 
 required = {
-    "FocusaStageShell", "FocusaProgressStepper", "FocusaPrimaryAction",
-    "FocusaNextStepCard", "FocusaSourceConnectorCard", "FocusaDropzone",
-    "FocusaImportScopePreview", "FocusaContextSummary", "FocusaContextClaimReview",
-    "FocusaContradictionCard", "FocusaRoleSeed", "FocusaRoleDraft", "FocusaRedline",
-    "FocusaGroundingSources", "FocusaQuestionCard", "FocusaRecommendationCard",
-    "FocusaAnswerInput", "FocusaInterviewBranchProgress", "FocusaReadinessMeter",
-    "FocusaSpecSectionStatus", "FocusaObjectionCard", "FocusaApprovalCard",
-    "FocusaTaskPlan", "FocusaDependencyGraph", "FocusaProviderCapabilityCard",
-    "FocusaWorkpointLaunch", "FocusaEvidenceSummary", "FocusaReceiptCard",
-    "FocusaRecoveryCard", "FocusaAdvancedDetails", "FocusaHelpPopover",
+    "FocusaStageShell",
+    "FocusaProgressStepper",
+    "FocusaPrimaryAction",
+    "FocusaNextStepCard",
+    "FocusaSourceConnectorCard",
+    "FocusaDropzone",
+    "FocusaImportScopePreview",
+    "FocusaContextSummary",
+    "FocusaContextClaimReview",
+    "FocusaContradictionCard",
+    "FocusaRoleSeed",
+    "FocusaRoleDraft",
+    "FocusaRedline",
+    "FocusaGroundingSources",
+    "FocusaQuestionCard",
+    "FocusaRecommendationCard",
+    "FocusaAnswerInput",
+    "FocusaInterviewBranchProgress",
+    "FocusaReadinessMeter",
+    "FocusaSpecSectionStatus",
+    "FocusaObjectionCard",
+    "FocusaApprovalCard",
+    "FocusaTaskPlan",
+    "FocusaDependencyGraph",
+    "FocusaProviderCapabilityCard",
+    "FocusaWorkpointLaunch",
+    "FocusaEvidenceSummary",
+    "FocusaReceiptCard",
+    "FocusaRecoveryCard",
+    "FocusaAdvancedDetails",
+    "FocusaHelpPopover",
 }
 assert len(manifest) == 31
 assert {item["name"] for item in manifest} == required
@@ -45,28 +78,47 @@ assert 'customElement="${component.tag}"' in generator
 assert "src/generated/" in (ELEMENTS / ".gitignore").read_text()
 
 for marker in (
-    'role={kind === "recovery" ? "alert" : undefined}', 'role="progressbar"',
-    'aria-live="polite"', 'aria-busy={busy}', 'class="primary"',
-    "prefers-reduced-motion", "prefers-contrast", "@container",
-    "data-terminal-fallback", "Advanced details", "focusa-action",
+    'role={kind === "recovery" ? "alert" : undefined}',
+    'role="progressbar"',
+    'aria-live="polite"',
+    "aria-busy={busy}",
+    'class="primary"',
+    "prefers-reduced-motion",
+    "prefers-contrast",
+    "@container",
+    "data-terminal-fallback",
+    "Advanced details",
+    "focusa-action",
 ):
     assert marker in component
 for forbidden in ("fetch(", "localStorage", "sessionStorage", "permission", "reducer"):
     assert forbidden not in component
 
 for marker in (
-    "new Catalog<LitComponentApi>", "...basicCatalog.components.values()",
-    "...focusaA2uiComponents", "A2uiController", "ActionSchema",
+    "new Catalog<LitComponentApi>",
+    "...basicCatalog.components.values()",
+    "...focusaA2uiComponents",
+    "A2uiController",
+    "ActionSchema",
 ):
     assert marker in catalog_source
 for marker in (
-    "allowedActionNames", "dispatchAction", "#renderUnsupported",
-    "FocusaRecoveryCard", "No action was executed", "#withRecoveryFallback",
+    "allowedActionNames",
+    "dispatchAction",
+    "#renderUnsupported",
+    "FocusaRecoveryCard",
+    "No action was executed",
+    "#withRecoveryFallback",
 ):
     assert marker in renderer
-assert "unknown components and actions fail closed with explicit recovery" in renderer_test
+assert (
+    "unknown components and actions fail closed with explicit recovery" in renderer_test
+)
 
-inline = {item["catalogId"]: item for item in contract["capabilities"]["v0.9"]["inlineCatalogs"]}
+inline = {
+    item["catalogId"]: item
+    for item in contract["capabilities"]["v0.9"]["inlineCatalogs"]
+}
 focusa = inline["https://focusa.dev/a2ui/v0_9/catalog.json"]
 component_names = set(focusa["components"])
 assert required <= component_names
@@ -76,4 +128,6 @@ assert contract["package_lock"]["@focusa/elements"] == "0.9.120-dev"
 assert "focusa-svelte-elements-0.9.120-dev" in capability_source
 assert "focusa-svelte-elements-0.9.120-dev" in capability_fixture["client_capabilities"]
 
-print("Spec 135 F10 Svelte Custom Elements: PASS (31 trusted elements, A2UI catalog, recovery/accessibility)")
+print(
+    "Spec 135 F10 Svelte Custom Elements: PASS (31 trusted elements, A2UI catalog, recovery/accessibility)"
+)

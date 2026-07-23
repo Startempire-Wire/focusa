@@ -9,6 +9,7 @@ Expected JSON is a subset of the classifier payload. The test enforces exact
 matches for listed fields and requires all core self-heal failure classes to be
 covered by fixtures.
 """
+
 from __future__ import annotations
 
 import json
@@ -52,9 +53,13 @@ def main() -> int:
     seen_classes: set[str] = set()
     failures: list[str] = []
     for expected_path in expected_files:
-        log_path = expected_path.with_name(expected_path.name.removesuffix(".expected.json") + ".log")
+        log_path = expected_path.with_name(
+            expected_path.name.removesuffix(".expected.json") + ".log"
+        )
         if not log_path.exists():
-            failures.append(f"{expected_path.name}: missing log fixture {log_path.name}")
+            failures.append(
+                f"{expected_path.name}: missing log fixture {log_path.name}"
+            )
             continue
         expected = json.loads(expected_path.read_text())
         actual = classify(log_path)

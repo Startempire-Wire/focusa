@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Spec98 / focusa-877z.8.8 headless diagnostics intake fallback guard."""
+
 from pathlib import Path
 import json
 import subprocess
@@ -36,7 +37,13 @@ def main() -> None:
         if term not in text:
             fail(f"script missing term: {term}")
     doc = DOC.read_text()
-    for term in ["No modal/select/input UI", "proposal-only", "scope_verification_required", "focusa_evidence_capture", "verified project_root + continuity_id"]:
+    for term in [
+        "No modal/select/input UI",
+        "proposal-only",
+        "scope_verification_required",
+        "focusa_evidence_capture",
+        "verified project_root + continuity_id",
+    ]:
         if term not in doc:
             fail(f"doc missing term: {term}")
 
@@ -52,18 +59,44 @@ def main() -> None:
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as tmp:
         json.dump(packet, tmp)
         tmp_path = tmp.name
-    ready = subprocess.run([str(SCRIPT), tmp_path, "--json"], cwd=ROOT, capture_output=True, text=True)
-    if ready.returncode != 0 or '"status": "ready"' not in ready.stdout or '"canonical": false' not in ready.stdout:
-        fail(f"ready packet did not render expected fallback JSON: {ready.stderr}\n{ready.stdout}")
+    ready = subprocess.run(
+        [str(SCRIPT), tmp_path, "--json"], cwd=ROOT, capture_output=True, text=True
+    )
+    if (
+        ready.returncode != 0
+        or '"status": "ready"' not in ready.stdout
+        or '"canonical": false' not in ready.stdout
+    ):
+        fail(
+            f"ready packet did not render expected fallback JSON: {ready.stderr}\n{ready.stdout}"
+        )
 
-    missing = subprocess.run([str(SCRIPT), "--json"], input=json.dumps({"target_ref": "missing-scope"}), cwd=ROOT, capture_output=True, text=True)
-    if missing.returncode == 0 or "scope_verification_required" not in missing.stdout or "focusa_project_identity" not in missing.stdout:
+    missing = subprocess.run(
+        [str(SCRIPT), "--json"],
+        input=json.dumps({"target_ref": "missing-scope"}),
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+    if (
+        missing.returncode == 0
+        or "scope_verification_required" not in missing.stdout
+        or "focusa_project_identity" not in missing.stdout
+    ):
         fail("missing-scope packet did not fail closed with scope verification command")
 
-    if "tests/spec98_headless_diagnostics_intake_fallback_static_test.py" not in SUITE.read_text():
+    if (
+        "tests/spec98_headless_diagnostics_intake_fallback_static_test.py"
+        not in SUITE.read_text()
+    ):
         fail("Spec98 suite does not run headless diagnostics fallback guard")
-    if "tests/spec98_headless_diagnostics_intake_fallback_static_test.py" not in PROOF_SUITE.read_text():
-        fail("proof suite static contract does not include headless diagnostics fallback guard")
+    if (
+        "tests/spec98_headless_diagnostics_intake_fallback_static_test.py"
+        not in PROOF_SUITE.read_text()
+    ):
+        fail(
+            "proof suite static contract does not include headless diagnostics fallback guard"
+        )
     print("✓ PASS: Spec98 headless diagnostics intake fallback ok")
 
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Generate Spec141 progressive-disclosure skills, runbooks, and coverage proof."""
+
 from __future__ import annotations
 
 import argparse
@@ -63,7 +64,7 @@ Stable evidence or receipt refs must support any completion claim.
 
 def runbook_body(skill: dict) -> str:
     tools = skill["tools"]
-    return f'''# {skill["name"].replace("-", " ").title()} Runbook
+    return f"""# {skill["name"].replace("-", " ").title()} Runbook
 
 ## Preconditions
 
@@ -101,7 +102,7 @@ def runbook_body(skill: dict) -> str:
 ## Cross-harness mapping
 
 Resolve equivalent Pi, MCP, OpenAI, CLI, and REST bindings through Agent Capability Descriptor V2; semantics and authority must remain identical.
-'''
+"""
 
 
 def write_or_check(path: Path, body: str, check: bool) -> bool:
@@ -125,25 +126,35 @@ def main() -> int:
         runbook = runbook_body(skill)
         for base in (ROOT_SKILLS, PACKAGED_SKILLS):
             skill_path = base / skill["name"] / "SKILL.md"
-            runbook_path = base / skill["name"] / "references" / f"01-{skill['name']}-runbook.md"
+            runbook_path = (
+                base / skill["name"] / "references" / f"01-{skill['name']}-runbook.md"
+            )
             if write_or_check(skill_path, body, args.check):
                 drift.append(str(skill_path.relative_to(ROOT)))
             if write_or_check(runbook_path, runbook, args.check):
                 drift.append(str(runbook_path.relative_to(ROOT)))
-        generated.append({
-            "name": skill["name"],
-            "tools": skill["tools"],
-            "runbook": f".pi/skills/{skill['name']}/references/01-{skill['name']}-runbook.md",
-            "sha256": hashlib.sha256(body.encode()).hexdigest(),
-        })
+        generated.append(
+            {
+                "name": skill["name"],
+                "tools": skill["tools"],
+                "runbook": f".pi/skills/{skill['name']}/references/01-{skill['name']}-runbook.md",
+                "sha256": hashlib.sha256(body.encode()).hexdigest(),
+            }
+        )
 
     root_names = sorted(path.parent.name for path in ROOT_SKILLS.glob("*/SKILL.md"))
-    packaged_names = sorted(path.parent.name for path in PACKAGED_SKILLS.glob("*/SKILL.md"))
+    packaged_names = sorted(
+        path.parent.name for path in PACKAGED_SKILLS.glob("*/SKILL.md")
+    )
     parity_drift = []
     for name in sorted(set(root_names) | set(packaged_names)):
         root_path = ROOT_SKILLS / name / "SKILL.md"
         package_path = PACKAGED_SKILLS / name / "SKILL.md"
-        if not root_path.exists() or not package_path.exists() or root_path.read_bytes() != package_path.read_bytes():
+        if (
+            not root_path.exists()
+            or not package_path.exists()
+            or root_path.read_bytes() != package_path.read_bytes()
+        ):
             parity_drift.append(name)
     evidence = {
         "schema": "focusa.agent_skill_runbook_coverage.v1",
@@ -167,8 +178,18 @@ def main() -> int:
         "## Generated coverage",
         "",
     ]
-    md.extend(f"- `{item['name']}` → `{item['runbook']}` → {len(item['tools'])} declared tools" for item in generated)
-    md.extend(["", "## Parity drift", "", *(f"- `{name}`" for name in parity_drift or ["none"])])
+    md.extend(
+        f"- `{item['name']}` → `{item['runbook']}` → {len(item['tools'])} declared tools"
+        for item in generated
+    )
+    md.extend(
+        [
+            "",
+            "## Parity drift",
+            "",
+            *(f"- `{name}`" for name in parity_drift or ["none"]),
+        ]
+    )
     md_body = "\n".join(md).strip() + "\n"
     if write_or_check(EVIDENCE_JSON, evidence_body, args.check):
         drift.append(str(EVIDENCE_JSON.relative_to(ROOT)))
@@ -177,7 +198,16 @@ def main() -> int:
     if args.check and drift:
         print(json.dumps({"status": "failed", "drift": drift}))
         return 1
-    print(json.dumps({"status": "passed", "mode": "check" if args.check else "write", "skills": len(generated), "root_packaged_parity": not parity_drift}))
+    print(
+        json.dumps(
+            {
+                "status": "passed",
+                "mode": "check" if args.check else "write",
+                "skills": len(generated),
+                "root_packaged_parity": not parity_drift,
+            }
+        )
+    )
     return 0
 
 

@@ -6,7 +6,7 @@ Authority: `docs/evidence/141-focusa-latest-spec-public-doc-alignment.json`
 Public docs now distinguish implemented-with-active-hardening direction from final release closure. Nothing below claims Spec141 behavioral conformance is complete.
 
 | Spec | Public direction | Status |
-|---|---|---|
+| --- | --- | --- |
 | 135b | CRIST genesis, context, roles, interviews, specs, tasks | implemented with active hardening |
 | 135c | UIAI rich artifacts, live refresh, research bridge | implemented with active hardening |
 | 135d | ordered implementation, reuse, performance, no deferral | governance active |

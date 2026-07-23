@@ -38,6 +38,7 @@ This docs index describes the current development snapshot. Focusa is implemente
 Agents in Focusa are **not models**.
 
 An agent defines:
+
 - behavioral defaults
 - policy constraints
 - learning permissions
@@ -46,6 +47,7 @@ An agent defines:
 The constitution defines **how the agent reasons when uncertain**.
 
 Constitutions:
+
 - do not change at runtime
 - are versioned
 - are human-ratified
@@ -58,6 +60,7 @@ Constitutions:
 CS is a **design-time assistant**, not a runtime system.
 
 It:
+
 - analyzes UXP, UFI, ARI, and task outcomes
 - detects normative tensions
 - proposes draft constitution updates
@@ -71,12 +74,14 @@ This allows agents to improve **without identity drift**.
 ## Interfaces
 
 ### CLI (Primary)
+
 - Inspect focus, autonomy, and trust
 - Review constitution diffs
 - Activate / rollback constitutions
 - Control agents explicitly
 
 ### Menubar GUI
+
 - Current audit: [`current/TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md`](current/TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md)
 - Up-to-speed spec: [`current/TAURI_MENUBAR_UP_TO_SPEED_SPEC.md`](current/TAURI_MENUBAR_UP_TO_SPEED_SPEC.md)
 - Target role: compact runtime cockpit for project identity, trajectory, canonical Workpoints, evidence, predictions, metacognition, lineage, work-loop readiness, and health.
@@ -98,6 +103,7 @@ This allows agents to improve **without identity drift**.
 ## Why This Matters
 
 Focusa enables AI systems that can:
+
 - run for days or weeks
 - improve over time
 - adapt to users
@@ -107,7 +113,6 @@ Focusa enables AI systems that can:
 This is **institutional intelligence**, not novelty AI.
 
 ---
-
 
 ## Current-build references
 
@@ -259,7 +264,9 @@ Focusa extracts, structures, and persists meaning *outside* the model so that co
 Focusa models cognition explicitly using human-readable components:
 
 ### Focus State
+
 The system’s current **state of mind**:
+
 - what it is doing
 - why it is doing it
 - what has been decided
@@ -270,6 +277,7 @@ This state is injected into every model invocation and survives context compacti
 ---
 
 ### Focus Stack
+
 A hierarchical structure that models **nested attention**.
 
 - Exactly one active Focus Frame at a time
@@ -281,6 +289,7 @@ This replaces linear chat history with intentional structure.
 ---
 
 ### Intuition Engine
+
 The **subconscious** layer.
 
 - Runs asynchronously
@@ -293,6 +302,7 @@ Its only role is to form intuition.
 ---
 
 ### Focus Gate
+
 The **conscious filter**.
 
 - Receives signals from the Intuition Engine
@@ -303,6 +313,7 @@ The **conscious filter**.
 ---
 
 ### Reference Store
+
 Externalized, lossless memory.
 
 - Holds large artifacts (diffs, logs, outputs)
@@ -313,6 +324,7 @@ Externalized, lossless memory.
 ---
 
 ### Expression Engine
+
 The system’s **voice**.
 
 - Converts Focus State into language
@@ -324,7 +336,7 @@ The system’s **voice**.
 
 ## Canonical Cognitive Flow
 
-```
+```text
 Intuition Engine
       ↓
   Focus Gate
@@ -348,6 +360,7 @@ When a harness or model compacts context:
 - Meaning is not
 
 Because:
+
 - Intent lives in Focus State
 - Artifacts live in Reference Store
 - Decisions are anchored
@@ -373,17 +386,21 @@ Focusa is invisible unless you inspect it.
 ## Interfaces
 
 ### CLI
+
 Primary control surface:
+
 - Manage Focus Stack
 - Inspect Focus Gate candidates
 - Interact with Reference Store
 - Debug events and state
 
 ### Local API
+
 - JSON over HTTP
 - Used by CLI, GUI, adapters
 
 ### GUI / TUI
+
 - TUI crate exists as a runtime surface.
 - Menubar/Tauri material in older docs is design direction unless a current release note or evidence file says it is shipped in the active snapshot.
 

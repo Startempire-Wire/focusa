@@ -11,16 +11,13 @@ const base = {
 };
 
 test("known resumed session and verified project rehydrate without onboarding", () => {
-  assert.equal(
-    classifyPiSessionProject({ ...base, reason: "resume" }),
-    "resumed_session_resumed_project",
-  );
+  assert.equal(classifyPiSessionProject({ ...base, reason: "resume" }), "resumed_session_resumed_project");
 });
 
 test("missing marker with same-root durable state is recoverable before prompting", () => {
   assert.equal(
     classifyPiSessionProject({ ...base, reason: "resume", markerExists: false }),
-    "resumed_session_recoverable_project",
+    "resumed_session_recoverable_project"
   );
 });
 
@@ -32,19 +29,16 @@ test("new session in a known verified project does not repeat project onboarding
       persistedStateFound: false,
       persistedProjectRoot: undefined,
     }),
-    "new_session_existing_project",
+    "new_session_existing_project"
   );
 });
 
 test("project mismatch fails closed and fork metadata preserves continuation", () => {
   assert.equal(
     classifyPiSessionProject({ ...base, reason: "resume", currentProjectRoot: "/projects/other" }),
-    "session_project_mismatch",
+    "session_project_mismatch"
   );
-  assert.equal(
-    classifyPiSessionProject({ ...base, reason: "fork" }),
-    "forked_compacted_continuation",
-  );
+  assert.equal(classifyPiSessionProject({ ...base, reason: "fork" }), "forked_compacted_continuation");
 });
 
 test("Pi 0.81 lifecycle consumes classification instead of obsolete post-switch events", () => {
@@ -55,7 +49,7 @@ test("Pi 0.81 lifecycle consumes classification instead of obsolete post-switch 
   assert.ok(
     source.indexOf('sessionProjectClassification === "new_session_new_project"') <
       source.indexOf('queueUnboundProjectNag(pi, ctx, "new_session_new_project")'),
-    "onboarding advisory must route only after session/project classification",
+    "onboarding advisory must route only after session/project classification"
   );
   assert.doesNotMatch(source, /pi\.on\("session_switch"/);
   assert.doesNotMatch(source, /pi\.on\("session_fork"/);

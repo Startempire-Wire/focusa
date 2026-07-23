@@ -6,8 +6,6 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 
 ## `focusa.project.identity`
 
-
-
 - Method/path: `GET /v1/project/identity`
 - Family: `project`
 - Input schema: `focusa.project_identity.request.v1`
@@ -39,8 +37,6 @@ Failure classes: `focusa.operation_error.v1`.
 Use the structured error recovery field, preserve the original scope and idempotency key when retry-safe, and run the indicated doctor/verify capability before any authority-sensitive retry.
 
 ## `focusa.project.verify`
-
-
 
 - Method/path: `GET /v1/project/verify`
 - Family: `project`

@@ -53,14 +53,14 @@ Generated: `2026-07-23T17:32:19.584901+00:00`
 
 ## External benchmark sources
 
-- https://www.anthropic.com/engineering/advanced-tool-use
-- https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools
-- https://platform.openai.com/docs/guides/function-calling
-- https://modelcontextprotocol.io/specification/2025-11-25/server/tools
-- https://modelcontextprotocol.io/specification/2025-11-25/basic/utilities/tasks
-- https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation
-- https://agentskills.io/specification
-- https://a2a-protocol.org/latest/specification/
-- https://webmachinelearning.github.io/webmcp/
-- https://github.com/open-telemetry/semantic-conventions-genai
-- https://llmstxt.org/
+- <https://www.anthropic.com/engineering/advanced-tool-use>
+- <https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools>
+- <https://platform.openai.com/docs/guides/function-calling>
+- <https://modelcontextprotocol.io/specification/2025-11-25/server/tools>
+- <https://modelcontextprotocol.io/specification/2025-11-25/basic/utilities/tasks>
+- <https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation>
+- <https://agentskills.io/specification>
+- <https://a2a-protocol.org/latest/specification/>
+- <https://webmachinelearning.github.io/webmcp/>
+- <https://github.com/open-telemetry/semantic-conventions-genai>
+- <https://llmstxt.org/>

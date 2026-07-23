@@ -29,14 +29,20 @@ def main() -> None:
     forms = payload.get("forms", {})
     contracts = payload.get("contracts", [])
 
-    forms_ok = int(forms.get("valid", 0)) >= 50 and int(forms.get("novel_context", 0)) >= 20
+    forms_ok = (
+        int(forms.get("valid", 0)) >= 50 and int(forms.get("novel_context", 0)) >= 20
+    )
     if len(contracts) < 6:
         decision = "insufficient_data"
         pass_count = 0
     else:
         pass_count = sum(1 for c in contracts if c.get("status") == "pass")
-        failed_turn = next((c for c in contracts if c.get("contract_id") == "failed_turn_ratio"), None)
-        critical_regression = bool(failed_turn and float(failed_turn.get("relative_delta", 0.0)) > 0.05)
+        failed_turn = next(
+            (c for c in contracts if c.get("contract_id") == "failed_turn_ratio"), None
+        )
+        critical_regression = bool(
+            failed_turn and float(failed_turn.get("relative_delta", 0.0)) > 0.05
+        )
 
         sample_ok = all(bool(c.get("sample_size_ok", False)) for c in contracts)
         if not forms_ok or not sample_ok:

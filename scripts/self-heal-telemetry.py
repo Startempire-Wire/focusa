@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Report self-heal health telemetry from release-proof audit JSONL."""
+
 from __future__ import annotations
 
 import argparse
@@ -69,11 +70,16 @@ def build_payload(rows: list[dict], stale_hours: float) -> dict:
     failures = overlay_classifier_backfills(rows)
     heals = [row for row in rows if row.get("event") == "self_heal"]
     healed_ids = {row.get("derived_from") for row in heals if row.get("derived_from")}
-    class_counts = Counter(row.get("failure_class") or "unclassified" for row in failures)
+    class_counts = Counter(
+        row.get("failure_class") or "unclassified" for row in failures
+    )
     retry_counts = Counter(row.get("retry_policy") or "unknown" for row in failures)
-    repeated_classes = {cls: count for cls, count in sorted(class_counts.items()) if count > 1}
+    repeated_classes = {
+        cls: count for cls, count in sorted(class_counts.items()) if count > 1
+    }
     repair_needed = [
-        row for row in failures
+        row
+        for row in failures
         if row.get("retry_policy") == "hard_failure_no_rerun"
         or row.get("deterministic") is True
     ]
@@ -84,7 +90,9 @@ def build_payload(rows: list[dict], stale_hours: float) -> dict:
         if row.get("id") not in healed_ids and ts and ts < cutoff:
             stale_unhealed.append(row)
     heal_times = [ts for ts in (parse_ts(row.get("ts", "")) for row in heals) if ts]
-    latest_heal_ts = max(heal_times).isoformat().replace("+00:00", "Z") if heal_times else ""
+    latest_heal_ts = (
+        max(heal_times).isoformat().replace("+00:00", "Z") if heal_times else ""
+    )
     status = "ok"
     if stale_unhealed:
         status = "stale_unhealed_failures"
@@ -106,7 +114,9 @@ def build_payload(rows: list[dict], stale_hours: float) -> dict:
 
 def render_human(payload: dict) -> str:
     out = [f"self-heal telemetry: {payload['status']}"]
-    out.append(f"failures={payload['failure_count']} self_heals={payload['self_heal_count']}")
+    out.append(
+        f"failures={payload['failure_count']} self_heals={payload['self_heal_count']}"
+    )
     out.append("class_counts:")
     for cls, count in payload["class_counts"].items():
         out.append(f"  - {cls}: {count}")
@@ -117,8 +127,13 @@ def render_human(payload: dict) -> str:
         out.append("repeated_classes:")
         for cls, count in payload["repeated_classes"].items():
             out.append(f"  - {cls}: {count}")
-    out.append("open_repair_needed: " + (", ".join(payload["open_repair_needed"]) or "none"))
-    out.append("stale_unhealed_failures: " + (", ".join(payload["stale_unhealed_failures"]) or "none"))
+    out.append(
+        "open_repair_needed: " + (", ".join(payload["open_repair_needed"]) or "none")
+    )
+    out.append(
+        "stale_unhealed_failures: "
+        + (", ".join(payload["stale_unhealed_failures"]) or "none")
+    )
     out.append("latest_heal_ts: " + (payload["latest_heal_ts"] or "none"))
     return "\n".join(out)
 

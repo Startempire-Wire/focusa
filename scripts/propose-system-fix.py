@@ -6,6 +6,7 @@ a failure class crosses the de-dup threshold and only when the row references a
 concrete deliverable that exists in the same checkout. One-off/passive failures
 produce a result JSON but no audit mutation, preventing noisy audit commits.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -124,24 +125,50 @@ def group_failures(rows: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]
         if row.get("event") == "failure":
             grouped[failure_class(row)].append(row)
     for bucket in grouped.values():
-        bucket.sort(key=lambda row: parse_ts(row.get("ts")) or datetime.min.replace(tzinfo=timezone.utc))
+        bucket.sort(
+            key=lambda row: parse_ts(row.get("ts"))
+            or datetime.min.replace(tzinfo=timezone.utc)
+        )
     return grouped
 
 
-def existing_self_heals(rows: list[dict[str, Any]]) -> tuple[set[str], dict[str, list[dict[str, Any]]]]:
-    derived = {row.get("derived_from") for row in rows if row.get("event") == "self_heal" and row.get("derived_from")}
+def existing_self_heals(
+    rows: list[dict[str, Any]],
+) -> tuple[set[str], dict[str, list[dict[str, Any]]]]:
+    derived = {
+        row.get("derived_from")
+        for row in rows
+        if row.get("event") == "self_heal" and row.get("derived_from")
+    }
     by_class: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         if row.get("event") == "self_heal":
-            by_class[row.get("failure_class") or row.get("category") or "unknown"].append(row)
+            by_class[
+                row.get("failure_class") or row.get("category") or "unknown"
+            ].append(row)
     for bucket in by_class.values():
-        bucket.sort(key=lambda row: parse_ts(row.get("ts")) or datetime.min.replace(tzinfo=timezone.utc))
+        bucket.sort(
+            key=lambda row: parse_ts(row.get("ts"))
+            or datetime.min.replace(tzinfo=timezone.utc)
+        )
     return derived, by_class
 
 
 def intervention_rate(rows: list[dict[str, Any]], cutoff: datetime) -> dict[str, Any]:
-    failures = [row for row in rows if row.get("event") == "failure" and (parse_ts(row.get("ts")) or datetime.min.replace(tzinfo=timezone.utc)) >= cutoff]
-    manual = [row for row in failures if str(row.get("fix", "")).lower() in {"open", "manual", "operator", "manual_intervention"} or "manual" in str(row.get("fix", "")).lower()]
+    failures = [
+        row
+        for row in rows
+        if row.get("event") == "failure"
+        and (parse_ts(row.get("ts")) or datetime.min.replace(tzinfo=timezone.utc))
+        >= cutoff
+    ]
+    manual = [
+        row
+        for row in failures
+        if str(row.get("fix", "")).lower()
+        in {"open", "manual", "operator", "manual_intervention"}
+        or "manual" in str(row.get("fix", "")).lower()
+    ]
     pct = 0.0 if not failures else round((len(manual) / len(failures)) * 100.0, 2)
     return {
         "ts": now_iso(),
@@ -179,14 +206,18 @@ def build_self_heal_row(
         "root_cause": failure.get("root_cause", "open"),
         "fix": "Immediate occurrence remains visible; system-level deliverable prevents class recurrence.",
         "guard": None if deliverable is None else deliverable["change_summary"],
-        "test": None if deliverable is None else f"Verify deliverable ref exists and class {cls} is not passively mirrored.",
+        "test": None
+        if deliverable is None
+        else f"Verify deliverable ref exists and class {cls} is not passively mirrored.",
         "linked_run": failure.get("linked_run", "open"),
         "auto_generated": False,
         "fail_count_30d": fail_count_30d,
         "fail_count_7d": fail_count_7d,
         "deliverable": deliverable,
         "before": {
-            "manual_intervention_rate_pct": rate_before["operator_intervention_rate_pct"],
+            "manual_intervention_rate_pct": rate_before[
+                "operator_intervention_rate_pct"
+            ],
             "failure_class_repro_count": fail_count_30d,
         },
         "after": {
@@ -209,7 +240,9 @@ def append_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
 
 def write_result(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
 def parse_args() -> argparse.Namespace:
@@ -242,29 +275,51 @@ def main() -> int:
     output_rows: list[dict[str, Any]] = []
     decisions: list[dict[str, Any]] = []
     for cls, failures in sorted(grouped.items()):
-        recent_7d = [row for row in failures if (parse_ts(row.get("ts")) or datetime.min.replace(tzinfo=timezone.utc)) >= cutoff_7d]
-        recent_30d = [row for row in failures if (parse_ts(row.get("ts")) or datetime.min.replace(tzinfo=timezone.utc)) >= cutoff_30d]
+        recent_7d = [
+            row
+            for row in failures
+            if (parse_ts(row.get("ts")) or datetime.min.replace(tzinfo=timezone.utc))
+            >= cutoff_7d
+        ]
+        recent_30d = [
+            row
+            for row in failures
+            if (parse_ts(row.get("ts")) or datetime.min.replace(tzinfo=timezone.utc))
+            >= cutoff_30d
+        ]
         if len(recent_7d) < args.threshold:
-            decisions.append({"failure_class": cls, "action": "log_only", "count_7d": len(recent_7d)})
+            decisions.append(
+                {"failure_class": cls, "action": "log_only", "count_7d": len(recent_7d)}
+            )
             continue
         latest = recent_7d[-1]
         latest_id = latest.get("id")
         if latest_id and latest_id in healed_ids:
-            decisions.append({"failure_class": cls, "action": "suppressed_duplicate", "derived_from": latest_id})
+            decisions.append(
+                {
+                    "failure_class": cls,
+                    "action": "suppressed_duplicate",
+                    "derived_from": latest_id,
+                }
+            )
             continue
         previous = heals_by_class.get(cls, [])
         escalation = len(previous)
         deliverable = KNOWN_DELIVERABLES.get(cls)
         if deliverable is not None and not validate_deliverable(repo_root, deliverable):
             deliverable = None
-        row = build_self_heal_row(latest, len(recent_30d), len(recent_7d), deliverable, escalation, rate)
+        row = build_self_heal_row(
+            latest, len(recent_30d), len(recent_7d), deliverable, escalation, rate
+        )
         output_rows.append(row)
-        decisions.append({
-            "failure_class": cls,
-            "action": "self_heal" if deliverable else "operator_review_required",
-            "deliverable": deliverable,
-            "derived_from": latest_id,
-        })
+        decisions.append(
+            {
+                "failure_class": cls,
+                "action": "self_heal" if deliverable else "operator_review_required",
+                "deliverable": deliverable,
+                "derived_from": latest_id,
+            }
+        )
 
     wrote_deliverable = any(row.get("deliverable") for row in output_rows)
     result = {

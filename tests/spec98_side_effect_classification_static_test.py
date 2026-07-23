@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Spec98 / focusa-877z.8.13 side-effect classification guard."""
+
 from pathlib import Path
 import json
 import sys
@@ -53,7 +54,14 @@ def main() -> None:
             if block.get(field) in (None, "", []):
                 fail(f"side-effect class {cls} missing {field}")
     expected = plan.get("expected_side_effects") or {}
-    for key in ["stricter_envelopes", "degraded_legacy_packets", "scoped_evidence_handles", "ui_packet_capture_rendering", "headless_schema_first", "side_effect_lint"]:
+    for key in [
+        "stricter_envelopes",
+        "degraded_legacy_packets",
+        "scoped_evidence_handles",
+        "ui_packet_capture_rendering",
+        "headless_schema_first",
+        "side_effect_lint",
+    ]:
         block = expected.get(key) or {}
         for field in ["positive", "risk", "mitigation"]:
             if block.get(field) in (None, "", []):
@@ -69,21 +77,46 @@ def main() -> None:
     if not entries:
         fail("generated authority registry empty")
     for entry in entries:
-        if not entry.get("mutation_class") or not entry.get("side_effects") or not entry.get("proof_commands"):
-            fail(f"registry entry lacks side-effect/mutation/proof declaration: {entry.get('worksheet_id')}")
+        if (
+            not entry.get("mutation_class")
+            or not entry.get("side_effects")
+            or not entry.get("proof_commands")
+        ):
+            fail(
+                f"registry entry lacks side-effect/mutation/proof declaration: {entry.get('worksheet_id')}"
+            )
 
-    contracts = json.loads(TOOL_CONTRACTS.read_text())
     contract_text = TOOL_CONTRACTS.read_text()
-    for profile in ["read_only", "read_state", "advisory_projection", "evidence_link", "write_state", "process_control", "control_state", "write_prediction"]:
+    for profile in [
+        "read_only",
+        "read_state",
+        "advisory_projection",
+        "evidence_link",
+        "write_state",
+        "process_control",
+        "control_state",
+        "write_prediction",
+    ]:
         if profile not in contract_text:
             fail(f"tool contracts missing representative side_effect_profile {profile}")
-    if "side_effects" not in SHARED.read_text() or "external_io" not in SHARED.read_text():
+    if (
+        "side_effects" not in SHARED.read_text()
+        or "external_io" not in SHARED.read_text()
+    ):
         fail("shared tool-result envelope docs do not expose side_effects/external_io")
 
-    if "tests/spec98_side_effect_classification_static_test.py" not in SUITE.read_text():
+    if (
+        "tests/spec98_side_effect_classification_static_test.py"
+        not in SUITE.read_text()
+    ):
         fail("Spec98 suite does not run side-effect classification guard")
-    if "tests/spec98_side_effect_classification_static_test.py" not in PROOF_SUITE.read_text():
-        fail("proof suite static contract does not include side-effect classification guard")
+    if (
+        "tests/spec98_side_effect_classification_static_test.py"
+        not in PROOF_SUITE.read_text()
+    ):
+        fail(
+            "proof suite static contract does not include side-effect classification guard"
+        )
     print("✓ PASS: Spec98 side-effect classification guard ok")
 
 

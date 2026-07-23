@@ -10,6 +10,7 @@ scripts/create-dev-release-tag.sh. It updates Rust workspace CLI/API/TUI/core,
 root lockfile package entries, the menubar package/Tauri metadata, and the
 operator-visible Settings version.
 """
+
 from __future__ import annotations
 
 import json
@@ -71,13 +72,17 @@ def replace_key_value_version(path: str, version: str) -> None:
 def replace_display_version(path: str, version: str) -> None:
     file_path = ROOT / path
     text = file_path.read_text()
-    next_text, count = re.subn(r"Focusa v" + OLD_VERSION_RE.pattern, f"Focusa v{version}", text)
+    next_text, count = re.subn(
+        r"Focusa v" + OLD_VERSION_RE.pattern, f"Focusa v{version}", text
+    )
     if count < 1:
         raise SystemExit(f"Expected Focusa display version in {path}")
     file_path.write_text(next_text)
 
 
-def replace_lock_package_versions(path: str, package_names: set[str], version: str) -> None:
+def replace_lock_package_versions(
+    path: str, package_names: set[str], version: str
+) -> None:
     """Update only named [[package]] lockfile entries.
 
     This avoids the old unsafe behavior that replaced the first `version = ...`
@@ -129,7 +134,9 @@ def main() -> int:
     replace_json_version("apps/menubar/package-lock.json", version)
     replace_json_version("apps/menubar/src-tauri/tauri.conf.json", version)
     replace_key_value_version("apps/menubar/src-tauri/Cargo.toml", version)
-    replace_lock_package_versions("apps/menubar/src-tauri/Cargo.lock", MENUBAR_RUST_PACKAGES, version)
+    replace_lock_package_versions(
+        "apps/menubar/src-tauri/Cargo.lock", MENUBAR_RUST_PACKAGES, version
+    )
     replace_display_version("apps/menubar/src/lib/components/Settings.svelte", version)
 
     print(f"Stamped Focusa version {version}")

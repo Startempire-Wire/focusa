@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """F12: real canonical Context commit, idempotency, event, restart, exact resume."""
+
 from __future__ import annotations
 
 import json
@@ -109,15 +110,23 @@ with tempfile.TemporaryDirectory(prefix="focusa-f12-e2e-") as data_dir:
         assert committed is not None, "Context commit remained writer-conflicted"
         replayed = post_json(f"{base}/v1/context/sources/commit?{query}", body)
         after = get_json(f"{base}/v1/context/sources?{query}")
-        events = get_json(f"{base}/v1/events/recent?limit=20&event_type=ContextSourceCommitted")
+        events = get_json(
+            f"{base}/v1/events/recent?limit=20&event_type=ContextSourceCommitted"
+        )
 
         assert committed["canonical"] is True and committed["replayed"] is False
         assert committed["tool_result"]["schema"] == "focusa.tool_result.v1"
         assert committed["tool_result"]["status"] == "completed"
         assert committed["evidence_ref"].startswith("evidence:context-source:")
         assert committed["receipt_ref"].startswith("receipt:context-source:")
-        assert committed["source"]["receipt"]["after_state_version"] == committed["state_version"]
-        assert replayed["replayed"] is True and replayed["tool_result"]["status"] == "no_op"
+        assert (
+            committed["source"]["receipt"]["after_state_version"]
+            == committed["state_version"]
+        )
+        assert (
+            replayed["replayed"] is True
+            and replayed["tool_result"]["status"] == "no_op"
+        )
         assert len(after["sources"]) == 1
         assert len(events["events"]) == 1
 
@@ -126,9 +135,16 @@ with tempfile.TemporaryDirectory(prefix="focusa-f12-e2e-") as data_dir:
         resumed = get_json(f"{base}/v1/context/sources?{query}")
         assert len(resumed["sources"]) == 1
         assert resumed["sources"][0]["source_id"] == committed["source"]["source_id"]
-        assert resumed["sources"][0]["receipt"]["receipt_ref"] == committed["receipt_ref"]
-        assert resumed["sources"][0]["evidence"]["evidence_ref"] == committed["evidence_ref"]
+        assert (
+            resumed["sources"][0]["receipt"]["receipt_ref"] == committed["receipt_ref"]
+        )
+        assert (
+            resumed["sources"][0]["evidence"]["evidence_ref"]
+            == committed["evidence_ref"]
+        )
     finally:
         stop()
 
-print("Spec 135 F12 Context source E2E: PASS (canonical commit, idempotency, event, restart/resume, Evidence/Receipt)")
+print(
+    "Spec 135 F12 Context source E2E: PASS (canonical commit, idempotency, event, restart/resume, Evidence/Receipt)"
+)

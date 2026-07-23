@@ -641,8 +641,11 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
             if automatic && !apply.plan.policy.auto_apply_allowed {
                 apply.consent.effective = false;
                 apply.plan.apply_allowed = false;
-                apply.blocked_reason.push("automatic_apply_not_authorized_by_policy".into());
-                apply.blocked_reason
+                apply
+                    .blocked_reason
+                    .push("automatic_apply_not_authorized_by_policy".into());
+                apply
+                    .blocked_reason
                     .extend(apply.plan.policy.auto_apply_blocked_until.clone());
                 apply.recovery_hint = "Enable an entitled automatic policy or run a separately authorized manual apply.".into();
             }
@@ -1889,10 +1892,19 @@ async fn execute_verified_apply_locked(
             })?;
         }
         for part in plan.parts.iter().filter(|part| {
-            matches!(part.action, "would_update_package" | "would_install_package")
+            matches!(
+                part.action,
+                "would_update_package" | "would_install_package"
+            )
         }) {
-            let url = part.download_url.as_deref().context("Pi extension asset URL missing")?;
-            let expected = part.expected_sha256.as_deref().context("Pi extension checksum missing")?;
+            let url = part
+                .download_url
+                .as_deref()
+                .context("Pi extension asset URL missing")?;
+            let expected = part
+                .expected_sha256
+                .as_deref()
+                .context("Pi extension checksum missing")?;
             let archive = stage.join(format!("{}-{}.tar.gz", part.part, plan.latest.tag));
             let bytes = reqwest::get(url).await?.error_for_status()?.bytes().await?;
             if format!("{:x}", Sha256::digest(&bytes)) != expected {
@@ -1900,7 +1912,11 @@ async fn execute_verified_apply_locked(
             }
             std::fs::write(&archive, &bytes)?;
             std::fs::File::open(&archive)?.sync_all()?;
-            let package_json = PathBuf::from(part.target_path.as_deref().context("Pi extension package path missing")?);
+            let package_json = PathBuf::from(
+                part.target_path
+                    .as_deref()
+                    .context("Pi extension package path missing")?,
+            );
             let extension_root = package_json
                 .parent()
                 .and_then(Path::parent)
@@ -2194,7 +2210,12 @@ fn path_is_git_managed(path: &str) -> bool {
         candidate.parent().unwrap_or(candidate)
     };
     std::process::Command::new("git")
-        .args(["-C", cwd.to_string_lossy().as_ref(), "rev-parse", "--is-inside-work-tree"])
+        .args([
+            "-C",
+            cwd.to_string_lossy().as_ref(),
+            "rev-parse",
+            "--is-inside-work-tree",
+        ])
         .output()
         .map(|output| output.status.success())
         .unwrap_or(false)
@@ -2426,7 +2447,11 @@ fn build_latest_from_release(
         sha256: None,
     });
     let installer_name = format!("focusa-installer-{tag}.sh");
-    if let Some(installer) = release.assets.iter().find(|asset| asset.name == installer_name) {
+    if let Some(installer) = release
+        .assets
+        .iter()
+        .find(|asset| asset.name == installer_name)
+    {
         assets.push(ReleaseAssetRef {
             part: "installer",
             name: installer_name,
@@ -2726,11 +2751,19 @@ fn refresh_update_policy_authority(policy: &mut UpdatePolicy) {
             .unwrap_or(false);
     match load_license_status() {
         Ok(status) => {
-            policy.license_level = if dev_override { "dev_mode".into() } else { status.tier };
+            policy.license_level = if dev_override {
+                "dev_mode".into()
+            } else {
+                status.tier
+            };
             policy.refresh_auto_apply_authority(&status.features, dev_override);
         }
         Err(_) => {
-            policy.license_level = if dev_override { "dev_mode".into() } else { "evaluation".into() };
+            policy.license_level = if dev_override {
+                "dev_mode".into()
+            } else {
+                "evaluation".into()
+            };
             policy.refresh_auto_apply_authority(&[], dev_override);
         }
     }
@@ -2966,7 +2999,12 @@ fn inspect_installer(latest: &str) -> InstalledPart {
         .unwrap_or_else(|| PathBuf::from("/usr/local/lib/focusa/install-focusa.sh"));
     let exists = expected.is_file();
     let version = exists
-        .then(|| std::process::Command::new(&expected).arg("--version").output().ok())
+        .then(|| {
+            std::process::Command::new(&expected)
+                .arg("--version")
+                .output()
+                .ok()
+        })
         .flatten()
         .filter(|output| output.status.success())
         .map(|output| normalize_version(&String::from_utf8_lossy(&output.stdout)))

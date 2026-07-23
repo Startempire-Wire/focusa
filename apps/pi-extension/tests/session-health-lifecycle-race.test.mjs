@@ -8,7 +8,9 @@ test("shutdown invalidates an in-flight health callback before it can re-arm", a
   const guard = new LifecycleGenerationGuard();
   const token = guard.begin();
   let resolveCheck;
-  const check = new Promise((resolve) => { resolveCheck = resolve; });
+  const check = new Promise((resolve) => {
+    resolveCheck = resolve;
+  });
   let staleContextReads = 0;
   let rearms = 0;
 

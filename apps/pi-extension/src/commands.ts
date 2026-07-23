@@ -245,13 +245,14 @@ export function registerCommands(pi: ExtensionAPI) {
       const otaStatus = await focusaFetch("/update/policy").catch(() => null);
       const effectiveOta = otaStatus?.policy || {};
       let otaEnabled = effectiveOta.enabled === true;
-      let otaProfile = effectiveOta.dev_mode_override === true
-        ? "dev_auto_all"
-        : effectiveOta.mode === "automatic" && effectiveOta.channel === "stable"
-          ? "stable_auto_all"
-          : effectiveOta.mode === "prompt"
-            ? "stable_prompt"
-            : "notify";
+      let otaProfile =
+        effectiveOta.dev_mode_override === true
+          ? "dev_auto_all"
+          : effectiveOta.mode === "automatic" && effectiveOta.channel === "stable"
+            ? "stable_auto_all"
+            : effectiveOta.mode === "prompt"
+              ? "stable_prompt"
+              : "notify";
       const otaPartsAll = {
         cli: true,
         daemon: true,
@@ -270,23 +271,26 @@ export function registerCommands(pi: ExtensionAPI) {
             parts: otaPartsAll,
             dev_mode: profile === "dev_auto_all",
             channel: profile === "dev_auto_all" ? "dev" : "stable",
-            mode: profile === "dev_auto_all" || profile === "stable_auto_all"
-              ? "automatic"
-              : profile === "stable_prompt" ? "prompt" : "notify",
+            mode:
+              profile === "dev_auto_all" || profile === "stable_auto_all"
+                ? "automatic"
+                : profile === "stable_prompt"
+                  ? "prompt"
+                  : "notify",
           }),
         });
-        const schedulerEnabled = otaEnabled
-          && (profile === "dev_auto_all" || profile === "stable_auto_all");
-        const scheduler = result?.status === "completed"
-          ? await focusaFetch("/update/scheduler", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                enabled: schedulerEnabled,
-                channel: profile === "dev_auto_all" ? "dev" : "stable",
-              }),
-            })
-          : null;
+        const schedulerEnabled = otaEnabled && (profile === "dev_auto_all" || profile === "stable_auto_all");
+        const scheduler =
+          result?.status === "completed"
+            ? await focusaFetch("/update/scheduler", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  enabled: schedulerEnabled,
+                  channel: profile === "dev_auto_all" ? "dev" : "stable",
+                }),
+              })
+            : null;
         const allowed = result?.policy?.auto_apply_allowed === true;
         const blockers = Array.isArray(result?.policy?.auto_apply_blocked_until)
           ? result.policy.auto_apply_blocked_until.join(", ")

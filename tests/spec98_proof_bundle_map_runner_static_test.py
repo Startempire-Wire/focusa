@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Spec98 / focusa-877z.8.6 proof bundle map runner guard."""
+
 from pathlib import Path
 import subprocess
 import sys
@@ -33,27 +34,45 @@ def main() -> None:
             fail(f"runner missing term: {term}")
 
     doc = DOC.read_text()
-    for term in ["scripts/focusa-proof-bundle", "api_routes", "policy_profiles.registry", "--changed-path", "Failure rule"]:
+    for term in [
+        "scripts/focusa-proof-bundle",
+        "api_routes",
+        "policy_profiles.registry",
+        "--changed-path",
+        "Failure rule",
+    ]:
         if term not in doc:
             fail(f"doc missing term: {term}")
 
     for command in [
         [str(RUNNER), "api_routes", "--json"],
         [str(RUNNER), "policy_profiles.registry", "--json"],
-        [str(RUNNER), "--changed-path", "crates/focusa-api/src/routes/workpoint.rs", "--json"],
+        [
+            str(RUNNER),
+            "--changed-path",
+            "crates/focusa-api/src/routes/workpoint.rs",
+            "--json",
+        ],
     ]:
         result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
         if result.returncode != 0 or '"status": "ok"' not in result.stdout:
             fail(f"runner command failed: {' '.join(command)}\n{result.stderr}")
 
-    missing = subprocess.run([str(RUNNER), "missing.surface"], cwd=ROOT, capture_output=True, text=True)
+    missing = subprocess.run(
+        [str(RUNNER), "missing.surface"], cwd=ROOT, capture_output=True, text=True
+    )
     if missing.returncode == 0 or "missing proof mapping" not in missing.stderr:
         fail("runner does not fail closed for missing target")
 
     if "tests/spec98_proof_bundle_map_runner_static_test.py" not in SUITE.read_text():
         fail("Spec98 suite does not run proof bundle map runner guard")
-    if "tests/spec98_proof_bundle_map_runner_static_test.py" not in PROOF_SUITE.read_text():
-        fail("proof suite static contract does not include proof bundle map runner guard")
+    if (
+        "tests/spec98_proof_bundle_map_runner_static_test.py"
+        not in PROOF_SUITE.read_text()
+    ):
+        fail(
+            "proof suite static contract does not include proof bundle map runner guard"
+        )
 
     print("✓ PASS: Spec98 proof bundle map runner ok")
 

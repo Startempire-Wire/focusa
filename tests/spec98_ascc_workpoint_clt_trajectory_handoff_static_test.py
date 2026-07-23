@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Spec98 focusa-877z.9: ASCC/Workpoint/CLT/Trajectory handoff separation guard."""
+
 from pathlib import Path
 import sys
 import yaml
 import re
 
 ROOT = Path(__file__).resolve().parents[1]
-CONTRACT = ROOT / "docs/worksheets/focusa-877z.9-ascc-workpoint-clt-trajectory-handoff-contract.yaml"
+CONTRACT = (
+    ROOT
+    / "docs/worksheets/focusa-877z.9-ascc-workpoint-clt-trajectory-handoff-contract.yaml"
+)
 TYPES = ROOT / "crates/focusa-core/src/types.rs"
 TRAJECTORY = ROOT / "crates/focusa-api/src/routes/trajectory.rs"
 WORKPOINT = ROOT / "crates/focusa-api/src/routes/workpoint.rs"
@@ -20,7 +24,10 @@ def fail(message: str) -> None:
 
 def main() -> None:
     data = yaml.safe_load(CONTRACT.read_text())
-    if data.get("schema_version") != "focusa.ascc_workpoint_clt_trajectory_handoff_contract.v1":
+    if (
+        data.get("schema_version")
+        != "focusa.ascc_workpoint_clt_trajectory_handoff_contract.v1"
+    ):
         fail("unexpected .9 contract schema")
     if data.get("status") != "separate_system_handoff_route_defined":
         fail("unexpected .9 contract status")
@@ -43,7 +50,9 @@ def main() -> None:
     ]:
         if variant not in enum_body:
             fail(f"HandoffSystemRole missing {variant}")
-    const_body = types[const_start:types.find("pub const FOCUSA_STATE_PLANE_CONTRACT", const_start)]
+    const_body = types[
+        const_start : types.find("pub const FOCUSA_STATE_PLANE_CONTRACT", const_start)
+    ]
     for system in ["ascc", "workpoint", "clt", "trajectory_ladder"]:
         pattern = re.compile(rf"\(\s*\"{system}\"\s*,\s*HandoffSystemRole::")
         if not pattern.search(const_body):
@@ -58,10 +67,17 @@ def main() -> None:
     ]:
         if phrase not in trajectory:
             fail(f"trajectory route missing handoff guard phrase {phrase}")
-    if '"next_tools": ["focusa_workpoint_resume", "focusa_active_object_resolve"]' not in trajectory:
-        fail("trajectory resume must route through Workpoint resume for canonical continuation")
+    if (
+        '"next_tools": ["focusa_workpoint_resume", "focusa_active_object_resolve"]'
+        not in trajectory
+    ):
+        fail(
+            "trajectory resume must route through Workpoint resume for canonical continuation"
+        )
     if '"advisory_only": true' not in trajectory:
-        fail("trajectory payloads must expose advisory_only=true where candidates/checkpoints are not authority")
+        fail(
+            "trajectory payloads must expose advisory_only=true where candidates/checkpoints are not authority"
+        )
     if '"must_not_merge_sessions"' not in trajectory:
         fail("trajectory similarity grouping must forbid authority merging")
 
@@ -75,7 +91,9 @@ def main() -> None:
     if "Workpoint event summary" not in replay:
         fail("replay must remain history/corroboration, not next-action packet")
 
-    print("✓ PASS: ASCC, Workpoint, CLT, and Trajectory Ladder handoff roles remain separate")
+    print(
+        "✓ PASS: ASCC, Workpoint, CLT, and Trajectory Ladder handoff roles remain separate"
+    )
 
 
 if __name__ == "__main__":

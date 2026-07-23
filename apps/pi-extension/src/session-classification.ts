@@ -19,7 +19,9 @@ export interface PiSessionProjectClassificationInput {
 }
 
 function normalizedRoot(value: string | undefined): string {
-  const root = String(value || "").trim().replace(/\/+$/, "");
+  const root = String(value || "")
+    .trim()
+    .replace(/\/+$/, "");
   return root === "" ? "" : root;
 }
 
@@ -36,9 +38,7 @@ export function classifyPiSessionProject(
     return "forked_compacted_continuation";
   }
   if (input.persistedStateFound) {
-    return input.markerExists
-      ? "resumed_session_resumed_project"
-      : "resumed_session_recoverable_project";
+    return input.markerExists ? "resumed_session_resumed_project" : "resumed_session_recoverable_project";
   }
   return input.markerExists ? "new_session_existing_project" : "new_session_new_project";
 }

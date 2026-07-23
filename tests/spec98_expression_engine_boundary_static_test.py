@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Spec98 focusa-877z.5: Expression Engine deterministic-renderer boundary guard."""
+
 from pathlib import Path
 import sys
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-CONTRACT = ROOT / "docs/worksheets/focusa-877z.5-expression-engine-boundary-contract.yaml"
+CONTRACT = (
+    ROOT / "docs/worksheets/focusa-877z.5-expression-engine-boundary-contract.yaml"
+)
 EXPR_DIR = ROOT / "crates/focusa-core/src/expression"
 EXPR_MOD = EXPR_DIR / "mod.rs"
 ENGINE = EXPR_DIR / "engine.rs"
@@ -34,8 +37,13 @@ def main() -> None:
             fail(f"expression module missing invariant: {invariant}")
 
     engine = ENGINE.read_text()
-    if "pub struct AssemblyInput" not in engine or "pub fn assemble_from(input: AssemblyInput<'_>)" not in engine:
-        fail("Expression Engine must expose prepared-input AssemblyInput + assemble_from API")
+    if (
+        "pub struct AssemblyInput" not in engine
+        or "pub fn assemble_from(input: AssemblyInput<'_>)" not in engine
+    ):
+        fail(
+            "Expression Engine must expose prepared-input AssemblyInput + assemble_from API"
+        )
     if "All inputs needed for prompt assembly, gathered by the caller." not in engine:
         fail("AssemblyInput must document caller-prepared inputs")
 
@@ -61,11 +69,15 @@ def main() -> None:
         text = path.read_text()
         for needle in forbidden_needles:
             if needle in text:
-                fail(f"Expression Engine file {path.name} contains forbidden side-effect/adaptive surface: {needle}")
+                fail(
+                    f"Expression Engine file {path.name} contains forbidden side-effect/adaptive surface: {needle}"
+                )
 
     openai = OPENAI.read_text()
     if "Adapter-side adaptive slice planner." not in openai:
-        fail("build_operator_first_slice must be labeled adapter-side adaptive planning")
+        fail(
+            "build_operator_first_slice must be labeled adapter-side adaptive planning"
+        )
     if "it is not the\n/// Expression Engine" not in openai:
         fail("adapter adaptive planner must explicitly not be the Expression Engine")
 
@@ -74,9 +86,13 @@ def main() -> None:
         if stage not in proxy:
             fail(f"proxy orchestration must keep explicit stage label: {stage}")
     if "Action::ResolveSemanticContradictions" not in proxy:
-        fail("proxy memory maintenance must remain reducer/action-routed outside Expression Engine")
+        fail(
+            "proxy memory maintenance must remain reducer/action-routed outside Expression Engine"
+        )
 
-    print("✓ PASS: Expression Engine is deterministic prepared-input renderer; retrieval/memory/adaptive planning stay outside")
+    print(
+        "✓ PASS: Expression Engine is deterministic prepared-input renderer; retrieval/memory/adaptive planning stay outside"
+    )
 
 
 if __name__ == "__main__":

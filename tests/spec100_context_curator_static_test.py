@@ -11,6 +11,7 @@ Verifies that:
 - Token budget selection keeps highest-scored items
 - Exclusion reasons are bounded strings (low_score / over_budget)
 """
+
 import json
 import re
 import sys
@@ -45,7 +46,9 @@ def main() -> None:
             fail(f"context_cognition.rs missing marker: {marker}")
 
     # Curator unit tests
-    test_block = re.search(r"#\[cfg\(test\)\]\s*mod tests\s*\{([\s\S]*?)\n\}", route_src)
+    test_block = re.search(
+        r"#\[cfg\(test\)\]\s*mod tests\s*\{([\s\S]*?)\n\}", route_src
+    )
     if not test_block:
         fail("context_cognition.rs missing tests module")
     body = test_block.group(1)
@@ -81,22 +84,35 @@ def main() -> None:
     contracts_src = (ROOT / "apps/pi-extension/src/tool-contracts.ts").read_text()
     if '"focusa_context_cognition_curate"' not in contracts_src:
         fail("tool-contracts.ts missing focusa_context_cognition_curate contract")
-    ntt = re.search(r'const TOOL_NEXT_TOOLS: Record<string, string\[]> = ([\s\S]*?)\n\};', contracts_src)
+    ntt = re.search(
+        r"const TOOL_NEXT_TOOLS: Record<string, string\[]> = ([\s\S]*?)\n\};",
+        contracts_src,
+    )
     if not ntt or '"focusa_context_cognition_curate"' not in ntt.group(1):
         fail("TOOL_NEXT_TOOLS missing curate entry")
 
     # JSON registry
-    registry = json.loads((ROOT / "docs/current/focusa-tool-contracts.json").read_text())
-    if not any(c.get("name") == "focusa_context_cognition_curate" for c in registry.get("contracts", [])):
+    registry = json.loads(
+        (ROOT / "docs/current/focusa-tool-contracts.json").read_text()
+    )
+    if not any(
+        c.get("name") == "focusa_context_cognition_curate"
+        for c in registry.get("contracts", [])
+    ):
         fail("focusa-tool-contracts.json missing focusa_context_cognition_curate")
     if registry.get("tool_count", 0) < 69:
         fail(f"tool_count expected >= 69, got {registry.get('tool_count')}")
 
     # Choreography
-    choreo = json.loads((ROOT / "docs/current/focusa-tool-choreography.json").read_text())
+    choreo = json.loads(
+        (ROOT / "docs/current/focusa-tool-choreography.json").read_text()
+    )
     if choreo.get("tool_count", 0) < 69:
         fail(f"choreography tool_count expected >= 69, got {choreo.get('tool_count')}")
-    if not any(e.get("from") == "focusa_context_cognition_curate" for e in choreo.get("edges", [])):
+    if not any(
+        e.get("from") == "focusa_context_cognition_curate"
+        for e in choreo.get("edges", [])
+    ):
         fail("choreography missing edge from focusa_context_cognition_curate")
 
     # Doc page
@@ -116,7 +132,9 @@ def main() -> None:
     if "`focusa_context_cognition_curate`" not in readme:
         fail("README missing focusa_context_cognition_curate tool row")
 
-    print(f"✓ PASS: focusa_context_cognition_curate (Spec 100 P3 Curator) wired across core, api, cli, pi, contract, choreo, doc, audit; tool_count={registry.get('tool_count')}")
+    print(
+        f"✓ PASS: focusa_context_cognition_curate (Spec 100 P3 Curator) wired across core, api, cli, pi, contract, choreo, doc, audit; tool_count={registry.get('tool_count')}"
+    )
 
 
 if __name__ == "__main__":

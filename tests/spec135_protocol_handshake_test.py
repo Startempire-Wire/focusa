@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Validate scope-exact capabilities and fail-closed protocol/version handshake."""
+
 from __future__ import annotations
 
 import json
@@ -18,10 +19,22 @@ go = (ROOT / "packages/generated/spec135/go/client.gen.go").read_text()
 
 assert lock["schema"] == "focusa.compatibility_lock.v1"
 for field in (
-    "focusa_runtime", "focusa_api", "operation_registry", "tool_result", "event_stream",
-    "a2ui_protocol", "a2ui_catalog", "ag_ui_adapter", "pi_runtime", "uiai_engine",
-    "uiai_focusa_client", "docling", "embedding_profile", "domain_pack_versions",
-    "minimum_reader_versions", "minimum_writer_versions",
+    "focusa_runtime",
+    "focusa_api",
+    "operation_registry",
+    "tool_result",
+    "event_stream",
+    "a2ui_protocol",
+    "a2ui_catalog",
+    "ag_ui_adapter",
+    "pi_runtime",
+    "uiai_engine",
+    "uiai_focusa_client",
+    "docling",
+    "embedding_profile",
+    "domain_pack_versions",
+    "minimum_reader_versions",
+    "minimum_writer_versions",
 ):
     assert field in lock
 required_versions = {
@@ -45,7 +58,10 @@ assert blocked["failure_class"] == "stale_runtime_registry"
 assert blocked["raw"]["compatible"] is False
 assert blocked["raw"]["safe_state_retained"] is True
 assert blocked["raw"]["mismatches"]
-assert all({"component", "required", "actual", "upgrade_action"} <= item.keys() for item in blocked["raw"]["mismatches"])
+assert all(
+    {"component", "required", "actual", "upgrade_action"} <= item.keys()
+    for item in blocked["raw"]["mismatches"]
+)
 
 assert capabilities["schema"] == "focusa.ui_capability_snapshot.v1"
 assert capabilities["scope_validated"] is True
@@ -60,12 +76,22 @@ for path, operation_id, method in (
     ("/v1/agent/handshake", "focusa.protocol.handshake", "post"),
 ):
     assert openapi["paths"][path][method]["operationId"] == operation_id
-handshake_parameters = {(item["name"], item["in"], item["required"]) for item in openapi["paths"]["/v1/agent/handshake"]["post"]["parameters"]}
-assert {("project_root", "query", True), ("continuity_id", "query", True)} <= handshake_parameters
+handshake_parameters = {
+    (item["name"], item["in"], item["required"])
+    for item in openapi["paths"]["/v1/agent/handshake"]["post"]["parameters"]
+}
+assert {
+    ("project_root", "query", True),
+    ("continuity_id", "query", True),
+} <= handshake_parameters
 
 for marker in (
-    "projection_scope_error", "PermissionContext", "permissions.allows(\"project:read\")",
-    "handshake_mismatches", "safe_state_retained", "FailureClass::StaleRuntimeRegistry",
+    "projection_scope_error",
+    "PermissionContext",
+    'permissions.allows("project:read")',
+    "handshake_mismatches",
+    "safe_state_retained",
+    "FailureClass::StaleRuntimeRegistry",
 ):
     assert marker in source
 assert 'operations["focusa.protocol.handshake"]' in ts
@@ -73,4 +99,6 @@ assert 'operations["focusa.compatibility_lock.read"]' in ts
 assert "func (c *Client) FocusaProtocolHandshake(" in go
 assert "func (c *Client) FocusaCompatibilityLockRead(" in go
 
-print("Spec 135 protocol handshake: PASS (scope exact, permission projected, incompatible clients fail closed)")
+print(
+    "Spec 135 protocol handshake: PASS (scope exact, permission projected, incompatible clients fail closed)"
+)

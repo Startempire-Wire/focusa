@@ -19,7 +19,12 @@ BASE_PORT = int(os.environ.get("FOCUSA_STRICT_E2E_PORT", "18950"))
 
 def request(base, method, path, body=None, timeout=15, allow_error=False):
     data = None if body is None else json.dumps(body).encode()
-    req = urllib.request.Request(base + path, data=data, method=method, headers={"content-type": "application/json"})
+    req = urllib.request.Request(
+        base + path,
+        data=data,
+        method=method,
+        headers={"content-type": "application/json"},
+    )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as response:
             raw = response.read()
@@ -58,11 +63,17 @@ class StrictSpecProductE2E(unittest.TestCase):
         self.project.mkdir()
         (self.project / ".beads").mkdir()
         self.data.mkdir()
-        (self.project / ".focusa-project.json").write_text(json.dumps({
-            "schema": "focusa.project.v1", "project_id": "strict-e2e",
-            "canonical_name": "Strict E2E", "project_root": str(self.project),
-            "workspace_kind": "strict-e2e",
-        }))
+        (self.project / ".focusa-project.json").write_text(
+            json.dumps(
+                {
+                    "schema": "focusa.project.v1",
+                    "project_id": "strict-e2e",
+                    "canonical_name": "Strict E2E",
+                    "project_root": str(self.project),
+                    "workspace_kind": "strict-e2e",
+                }
+            )
+        )
         self.continuity = f"strict-e2e-{time.time_ns()}"
         self.proc = self.start_daemon()
 
@@ -72,16 +83,24 @@ class StrictSpecProductE2E(unittest.TestCase):
 
     def start_daemon(self):
         env = os.environ.copy()
-        env.update({
-            "FOCUSA_BIND": f"127.0.0.1:{self.port}",
-            "FOCUSA_DATA_DIR": str(self.data),
-            "FOCUSA_INSTALL_PREFIX": str(self.root / "install"),
-            "FOCUSA_CONFIG_DIR": str(self.root / "config"),
-            "FOCUSA_SOURCE_ROOT": str(self.project),
-            "FOCUSA_ENV_FILE": str(self.root / "config" / "focusa.env"),
-            "FOCUSA_AGENT_EXTENSION_PATH": str(self.root / "extensions"),
-        })
-        proc = subprocess.Popen([DAEMON], env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        env.update(
+            {
+                "FOCUSA_BIND": f"127.0.0.1:{self.port}",
+                "FOCUSA_DATA_DIR": str(self.data),
+                "FOCUSA_INSTALL_PREFIX": str(self.root / "install"),
+                "FOCUSA_CONFIG_DIR": str(self.root / "config"),
+                "FOCUSA_SOURCE_ROOT": str(self.project),
+                "FOCUSA_ENV_FILE": str(self.root / "config" / "focusa.env"),
+                "FOCUSA_AGENT_EXTENSION_PATH": str(self.root / "extensions"),
+            }
+        )
+        proc = subprocess.Popen(
+            [DAEMON],
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
         for _ in range(150):
             try:
                 if request(self.base, "GET", "/v1/health", timeout=1)[0] == 200:
@@ -109,48 +128,90 @@ class StrictSpecProductE2E(unittest.TestCase):
         self.proc = self.start_daemon()
 
     def create_canonical_context(self):
-        _, checkpoint = request(self.base, "POST", "/v1/workpoint/checkpoint", {
-            "project_root": str(self.project), "continuity_id": self.continuity,
-            "mission": "Strict spec comparison", "current_action": "strict_e2e",
-            "next_slice": "Prove canonical cross-surface state", "canonical": True,
-        })
+        _, checkpoint = request(
+            self.base,
+            "POST",
+            "/v1/workpoint/checkpoint",
+            {
+                "project_root": str(self.project),
+                "continuity_id": self.continuity,
+                "mission": "Strict spec comparison",
+                "current_action": "strict_e2e",
+                "next_slice": "Prove canonical cross-surface state",
+                "canonical": True,
+            },
+        )
         workpoint_id = checkpoint["workpoint_id"]
-        _, trajectory = request(self.base, "POST", "/v1/trajectory/define-goal", {
-            "project_root": str(self.project), "continuity_id": self.continuity,
-            "long_term_goal": "Prove strict cross-surface specification behavior",
-            "desired_end_state": "All authoritative surfaces agree after restart",
-            "current_state": "Fresh compiled daemon", "mid_level_goal": "Exercise strict E2E",
-            "short_term_goal": "Verify five specification boundaries",
-            "waypoints": ["context", "evidence", "compaction", "pairing", "inventory"],
-            "goal_source": "operator", "operator_confirmed": True,
-        })
+        _, trajectory = request(
+            self.base,
+            "POST",
+            "/v1/trajectory/define-goal",
+            {
+                "project_root": str(self.project),
+                "continuity_id": self.continuity,
+                "long_term_goal": "Prove strict cross-surface specification behavior",
+                "desired_end_state": "All authoritative surfaces agree after restart",
+                "current_state": "Fresh compiled daemon",
+                "mid_level_goal": "Exercise strict E2E",
+                "short_term_goal": "Verify five specification boundaries",
+                "waypoints": [
+                    "context",
+                    "evidence",
+                    "compaction",
+                    "pairing",
+                    "inventory",
+                ],
+                "goal_source": "operator",
+                "operator_confirmed": True,
+            },
+        )
         return workpoint_id, trajectory["trajectory_id"]
 
     # Spec 100/130: Context Cognition must resolve canonical authority already created in the same scope.
     def test_1_context_cognition_resolves_canonical_workpoint_and_trajectory(self):
         workpoint_id, trajectory_id = self.create_canonical_context()
-        query = urllib.parse.urlencode({"project_root": str(self.project), "continuity_id": self.continuity})
+        query = urllib.parse.urlencode(
+            {"project_root": str(self.project), "continuity_id": self.continuity}
+        )
         status, cognition = request(self.base, "GET", f"/v1/context-cognition?{query}")
         self.assertEqual(status, 200)
         packet = cognition.get("packet", cognition)
         self.assertEqual(packet.get("scope_status"), "matched", cognition)
-        self.assertEqual(packet.get("scope", {}).get("workpoint_id"), workpoint_id, cognition)
-        self.assertEqual(packet.get("scope", {}).get("trajectory_id"), trajectory_id, cognition)
+        self.assertEqual(
+            packet.get("scope", {}).get("workpoint_id"), workpoint_id, cognition
+        )
+        self.assertEqual(
+            packet.get("scope", {}).get("trajectory_id"), trajectory_id, cognition
+        )
 
     # Spec 96/130: linked evidence must remain in the canonical resume packet after process restart.
     def test_2_workpoint_evidence_survives_restart(self):
         workpoint_id, _ = self.create_canonical_context()
         evidence_ref = "strict-e2e:evidence-survives-restart"
-        status, linked = request(self.base, "POST", "/v1/workpoint/evidence/link", {
-            "workpoint_id": workpoint_id, "target_ref": "strict-spec-product-e2e",
-            "result": "durable evidence proof", "evidence_ref": evidence_ref,
-        })
+        status, linked = request(
+            self.base,
+            "POST",
+            "/v1/workpoint/evidence/link",
+            {
+                "workpoint_id": workpoint_id,
+                "target_ref": "strict-spec-product-e2e",
+                "result": "durable evidence proof",
+                "evidence_ref": evidence_ref,
+            },
+        )
         self.assertEqual(status, 200, linked)
         self.restart_daemon()
-        status, resumed = request(self.base, "POST", "/v1/workpoint/resume", {
-            "project_root": str(self.project), "continuity_id": self.continuity,
-            "workpoint_id": workpoint_id, "mode": "full_json",
-        })
+        status, resumed = request(
+            self.base,
+            "POST",
+            "/v1/workpoint/resume",
+            {
+                "project_root": str(self.project),
+                "continuity_id": self.continuity,
+                "workpoint_id": workpoint_id,
+                "mode": "full_json",
+            },
+        )
         self.assertEqual(status, 200)
         self.assertTrue(contains(resumed, evidence_ref), resumed)
         self.assertTrue(contains(resumed, "durable evidence proof"), resumed)
@@ -158,33 +219,66 @@ class StrictSpecProductE2E(unittest.TestCase):
     # Spec 130: packet durability is part of replay, not an in-process cache illusion.
     def test_3_compaction_packet_survives_restart_and_replays(self):
         self.create_canonical_context()
-        status, packet = request(self.base, "POST", "/v1/compaction/build", {
-            "resume_source": "before_compaction", "project_root": str(self.project),
-            "continuity_id": self.continuity, "session_id": "strict-e2e-session",
-            "current_ask": "Persist this packet", "rehydrate_refs": ["strict-e2e:packet"],
-        })
+        status, packet = request(
+            self.base,
+            "POST",
+            "/v1/compaction/build",
+            {
+                "resume_source": "before_compaction",
+                "project_root": str(self.project),
+                "continuity_id": self.continuity,
+                "session_id": "strict-e2e-session",
+                "current_ask": "Persist this packet",
+                "rehydrate_refs": ["strict-e2e:packet"],
+            },
+        )
         self.assertEqual(status, 200)
         packet_id = packet["packet_id"]
         self.restart_daemon()
-        status, restored = request(self.base, "GET", f"/v1/compaction/packet/{packet_id}", allow_error=True)
+        status, restored = request(
+            self.base, "GET", f"/v1/compaction/packet/{packet_id}", allow_error=True
+        )
         self.assertEqual(status, 200, restored)
         self.assertTrue(contains(restored, packet_id), restored)
-        status, replayed = request(self.base, "POST", "/v1/compaction/replay", {"packet_id": packet_id}, allow_error=True)
+        status, replayed = request(
+            self.base,
+            "POST",
+            "/v1/compaction/replay",
+            {"packet_id": packet_id},
+            allow_error=True,
+        )
         self.assertEqual(status, 200, replayed)
         self.assertTrue(contains(replayed, packet_id), replayed)
 
     # Device pairing security contract: unsafe runtime paths cannot become durable host labels.
     def test_4_device_pairing_rejects_unsafe_host_scope(self):
-        _, pairing = request(self.base, "POST", "/v1/device/pair/start", {
-            "device_name": "Strict E2E Mac", "platform": "macos",
-            "daemon_base_url": self.base, "scopes": ["read", "write"],
-        })
-        status, rejected = request(self.base, "POST", "/v1/device/pair/complete", {
-            "code": pairing["code"], "host": "/home/example/.cargo",
-            "operator_id": "strict-e2e", "completed_by": "strict-e2e",
-        }, allow_error=True)
+        _, pairing = request(
+            self.base,
+            "POST",
+            "/v1/device/pair/start",
+            {
+                "device_name": "Strict E2E Mac",
+                "platform": "macos",
+                "daemon_base_url": self.base,
+                "scopes": ["read", "write"],
+            },
+        )
+        status, rejected = request(
+            self.base,
+            "POST",
+            "/v1/device/pair/complete",
+            {
+                "code": pairing["code"],
+                "host": "/home/example/.cargo",
+                "operator_id": "strict-e2e",
+                "completed_by": "strict-e2e",
+            },
+            allow_error=True,
+        )
         self.assertEqual(status, 422, rejected)
-        self.assertIn(rejected.get("failure_class"), {"scope_mismatch", "unsafe_host"}, rejected)
+        self.assertIn(
+            rejected.get("failure_class"), {"scope_mismatch", "unsafe_host"}, rejected
+        )
 
     # Spec 128 inventory table: every managed/protected surface must be visible, not only binaries.
     def test_5_update_inventory_covers_every_spec128_part(self):
@@ -192,23 +286,62 @@ class StrictSpecProductE2E(unittest.TestCase):
         self.assertEqual(status, 200)
         actual = {item.get("part") for item in inventory.get("parts", [])}
         expected = {
-            "daemon", "cli", "tui", "service_definition", "service_overrides",
-            "runtime_home", "env", "license_files", "source_checkout",
-            "release_assets", "desktop_app", "agent_extension", "public_installer",
+            "daemon",
+            "cli",
+            "tui",
+            "service_definition",
+            "service_overrides",
+            "runtime_home",
+            "env",
+            "license_files",
+            "source_checkout",
+            "release_assets",
+            "desktop_app",
+            "agent_extension",
+            "public_installer",
         }
-        self.assertFalse(expected - actual, {"missing": sorted(expected - actual), "actual": sorted(str(x) for x in actual)})
+        self.assertFalse(
+            expected - actual,
+            {
+                "missing": sorted(expected - actual),
+                "actual": sorted(str(x) for x in actual),
+            },
+        )
         resolution = inventory.get("inventory_resolution", {})
-        self.assertEqual(Path(resolution.get("running_executable", "")).resolve(), Path(DAEMON).resolve(), resolution)
-        self.assertEqual(resolution.get("install_prefix"), str(self.root / "install"), resolution)
-        self.assertEqual(resolution.get("config_home"), str(self.root / "config"), resolution)
+        self.assertEqual(
+            Path(resolution.get("running_executable", "")).resolve(),
+            Path(DAEMON).resolve(),
+            resolution,
+        )
+        self.assertEqual(
+            resolution.get("install_prefix"), str(self.root / "install"), resolution
+        )
+        self.assertEqual(
+            resolution.get("config_home"), str(self.root / "config"), resolution
+        )
         self.assertEqual(resolution.get("data_home"), str(self.data), resolution)
         self.assertEqual(resolution.get("source_root"), str(self.project), resolution)
         self.assertFalse(resolution.get("hashes_included"), resolution)
-        self.assertTrue(all(resolution.get("environment_overrides", {}).get(key) for key in (
-            "install_prefix", "config_dir", "data_dir", "source_root", "agent_extension"
-        )), resolution)
+        self.assertTrue(
+            all(
+                resolution.get("environment_overrides", {}).get(key)
+                for key in (
+                    "install_prefix",
+                    "config_dir",
+                    "data_dir",
+                    "source_root",
+                    "agent_extension",
+                )
+            ),
+            resolution,
+        )
         serialized = json.dumps(inventory)
-        for forbidden in ("operator-vps", "focusa-build-ovh", "KH platform", "OVH runner"):
+        for forbidden in (
+            "operator-vps",
+            "focusa-build-ovh",
+            "KH platform",
+            "OVH runner",
+        ):
             self.assertNotIn(forbidden, serialized)
 
 

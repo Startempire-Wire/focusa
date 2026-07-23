@@ -71,7 +71,9 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     : {};
   const projectSummary = projectIdentity.project_summary || {};
   const activeWorktreeRoot = normalizeProjectRoot(
-    projectIdentity.active_worktree_root || projectIdentity.working_context?.active_worktree_root || getSessionCwd()
+    projectIdentity.active_worktree_root ||
+      projectIdentity.working_context?.active_worktree_root ||
+      getSessionCwd()
   );
   const workingSubpathId = line(
     projectIdentity.working_context?.working_subpath?.working_subpath_id || "primary"

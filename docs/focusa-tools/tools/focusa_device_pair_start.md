@@ -12,7 +12,7 @@ Mac menubar OAuth-like device pairing (Spec focusa-ui0y). Generate an 8-char pai
 
 - `device_name` (optional; string): Human-readable device name (e.g. 'operator-macbook-pro'). Defaults to 'operator-device'.
 - `platform` (optional; string): Platform string. Default: 'macos'.
-- `daemon_base_url` (optional; string): Daemon base URL the device will reconnect to. Default: 'http://127.0.0.1:8787'.
+- `daemon_base_url` (optional; string): Daemon base URL the device will reconnect to. Default: '<http://127.0.0.1:8787>'.
 - `scopes` (optional; array): OAuth-like scopes. Default: ['read', 'write'].
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_device_pair_start`.

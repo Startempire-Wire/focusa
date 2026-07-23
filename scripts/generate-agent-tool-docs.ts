@@ -10,17 +10,9 @@ const registry = JSON.parse(readFileSync(registryPath, "utf8"));
 const check = process.argv.includes("--check");
 let drift = 0;
 
-const contextGuidance: Record<string, string[]> = {
-  focusa_evidence_capture: [
-    "- Trajectory-aware evidence includes proof alignment metadata for `trajectory_id`, HLT, MLG, and STG while Workpoint authority remains canonical.",
-  ],
-  focusa_traverse: [
-    "- Bounded evidence/ECS/references projections include trajectory alignment without requesting full payloads.",
-  ],
-  focusa_metacog_capture: [
-    "- Hot-index tags preserve HLT/MLG/STG alignment within the exact `project_root + continuity_id` scope.",
-  ],
-};
+function markdownText(value: string): string {
+  return value.replace(/https?:\/\/[A-Za-z0-9._~:/?#\[\]@!$&()*+,;=%-]+/g, (url) => `<${url}>`);
+}
 
 function inline(value: unknown): string {
   if (value === null || value === undefined) return "none";
@@ -37,7 +29,7 @@ for (const descriptor of registry.descriptors) {
         const type = schema.type || (variants ? variants.map((item: any) => item.type || item.const).filter(Boolean).join(" | ") : "structured");
         const requirement = required.has(name) ? "required" : "optional";
         const constraints = [schema.minimum !== undefined ? `min=${schema.minimum}` : null, schema.maximum !== undefined ? `max=${schema.maximum}` : null, schema.default !== undefined ? `default=${inline(schema.default)}` : null].filter(Boolean).join(", ");
-        return `- \`${name}\` (${requirement}; ${type}${constraints ? `; ${constraints}` : ""}): ${schema.description || "See the strict descriptor schema."}`;
+        return `- \`${name}\` (${requirement}; ${type}${constraints ? `; ${constraints}` : ""}): ${markdownText(schema.description || "See the strict descriptor schema.")}`;
       })
     : ["- No arguments."];
   const example = descriptor.examples?.[0] || {};
@@ -54,7 +46,6 @@ for (const descriptor of registry.descriptors) {
   const routes = descriptor.tool_names?.rest?.length
     ? descriptor.tool_names.rest.map((route: any) => `\`${route.method} ${route.path}\``).join(", ")
     : "Pi-local only";
-  const guidance = contextGuidance[descriptor.tool_names.pi] || [];
   const lines = [
     `# \`${descriptor.tool_names.pi}\``,
     "",
@@ -66,7 +57,6 @@ for (const descriptor of registry.descriptors) {
     `- Capability family: \`${descriptor.family}\`; namespace: \`${descriptor.namespace}\`.`,
     `- Load this full contract after metadata search when exact invocation or recovery semantics are needed.`,
     "",
-    ...(guidance.length ? ["## Context and alignment", "", ...guidance, ""] : []),
     "## Parameters and strict input schema",
     "",
     ...parameterLines,

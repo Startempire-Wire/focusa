@@ -62,6 +62,7 @@ def main() -> int:
     ts = os.environ.get("TS", "")
     if not ts:
         from datetime import datetime, timezone
+
         ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     rid = f"fail-{ts.replace(':', '').replace('-', '')}-{run_id}"
     entry = {
@@ -71,7 +72,8 @@ def main() -> int:
         "subsystem": "ci",
         "scope": workflow,
         "category": "ci_workflow_failure",
-        "symptom": classification.get("plain_language_error") or f"{workflow} run {run_id} concluded failure",
+        "symptom": classification.get("plain_language_error")
+        or f"{workflow} run {run_id} concluded failure",
         "root_cause": classification.get("likely_root_cause") or "see workflow logs",
         "fix": classification.get("remediation_template") or "see auto-heal synthesis",
         "guard": "scripts/classify-ci-failure.py + auto-heal-audit.py",
@@ -84,16 +86,20 @@ def main() -> int:
         "log_url": log_url,
     }
     if classification:
-        entry.update({
-            "classification_schema": classification.get("schema", ""),
-            "failure_class": classification.get("failure_class", ""),
-            "retry_policy": classification.get("retry_policy", ""),
-            "deterministic": classification.get("deterministic"),
-            "safe_to_rerun_unchanged": classification.get("safe_to_rerun_unchanged"),
-            "source_refs": classification.get("source_refs", []),
-            "remediation_template": classification.get("remediation_template", ""),
-            "classifier_signals": classification.get("signals", []),
-        })
+        entry.update(
+            {
+                "classification_schema": classification.get("schema", ""),
+                "failure_class": classification.get("failure_class", ""),
+                "retry_policy": classification.get("retry_policy", ""),
+                "deterministic": classification.get("deterministic"),
+                "safe_to_rerun_unchanged": classification.get(
+                    "safe_to_rerun_unchanged"
+                ),
+                "source_refs": classification.get("source_refs", []),
+                "remediation_template": classification.get("remediation_template", ""),
+                "classifier_signals": classification.get("signals", []),
+            }
+        )
     AUDIT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with AUDIT_PATH.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(entry, separators=(",", ":")) + "\n")

@@ -8,7 +8,7 @@ Verifies that:
 
 Spec104 DOC-05 proof: live scope-conflict path matches documented blocked envelope.
 """
-import re
+
 import sys
 from pathlib import Path
 

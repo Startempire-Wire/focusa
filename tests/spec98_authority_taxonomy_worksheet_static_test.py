@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Spec98 / focusa-877z.8 authority taxonomy worksheet coverage test."""
+
 from pathlib import Path
 import sys
 import yaml
@@ -28,9 +29,11 @@ REQUIRED_IDS = {
     "work_loop.status_and_writer",
 }
 
+
 def fail(msg: str) -> None:
     print(f"✗ FAIL: {msg}")
     sys.exit(1)
+
 
 def main() -> None:
     if not WORKSHEET.exists():
@@ -45,7 +48,15 @@ def main() -> None:
         fail(f"missing worksheet ids: {missing}")
     for item in items:
         item_id = item.get("id")
-        for field in ["authority_class", "default_profile", "mutation_class", "scope_fields", "affected_surfaces", "proof_commands", "compact_render_required_text"]:
+        for field in [
+            "authority_class",
+            "default_profile",
+            "mutation_class",
+            "scope_fields",
+            "affected_surfaces",
+            "proof_commands",
+            "compact_render_required_text",
+        ]:
             if field not in item or item.get(field) in (None, "", []):
                 fail(f"{item_id} missing required field {field}")
     if "resolved_defaults" not in data:
@@ -53,6 +64,7 @@ def main() -> None:
     if "implementation_readiness_criteria" not in data:
         fail("implementation_readiness_criteria missing")
     print(f"✓ PASS: worksheet coverage ok ({len(items)} items)")
+
 
 if __name__ == "__main__":
     main()

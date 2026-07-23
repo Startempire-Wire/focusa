@@ -6,8 +6,6 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 
 ## `focusa.bloatgaurd.report`
 
-
-
 - Method/path: `GET /v1/bloatgaurd/report`
 - Family: `bloatgaurd`
 - Input schema: `focusa.bloatgaurd_report.request.v1`

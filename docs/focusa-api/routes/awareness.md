@@ -6,8 +6,6 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 
 ## `focusa.awareness.packet`
 
-
-
 - Method/path: `POST /v1/awareness/packet`
 - Family: `awareness`
 - Input schema: `focusa.awareness_packet.request.v1`

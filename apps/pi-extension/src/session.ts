@@ -7,10 +7,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { existsSync } from "fs";
 import { join } from "path";
-import {
-  classifyPiSessionProject,
-  persistedProjectRootFromState,
-} from "./session-classification.js";
+import { classifyPiSessionProject, persistedProjectRootFromState } from "./session-classification.js";
 import { DaemonRecoveryGate } from "./daemon-recovery-gate.js";
 import {
   getAttachmentRuntime,
@@ -1167,86 +1164,89 @@ export function registerSession(pi: ExtensionAPI) {
       getAttachmentRuntime().healthInterval = setTimeout(() => {
         if (!healthLifecycleIsCurrent()) return;
         void (async () => {
-        refreshNativeSessionPressure(ctx, "health_tick");
-        await checkFocusa();
-        if (!healthLifecycleIsCurrent()) return;
-        const recovery = daemonRecovery.observe(
-          getAttachmentRuntime().focusaAvailable,
-          getAttachmentRuntime().healthFailCount,
-        );
-
-        if (recovery.enteredOutage) {
-          // Confirmed outage (not single blip) — preserve tool availability, enter holdover, and kickstart daemon.
-          ctx.ui.setStatus("focusa", "🛟 Focusa holdover · restarting");
-          if (recovery.notifyOutage) {
-            ctx.ui.notify(
-              `Focusa daemon unavailable (${getAttachmentRuntime().healthFailCount} checks) — holdover active; bounded daemon recovery started without restarting session`,
-              "warning"
-            );
-          }
-          if (sseAbort) {
-            sseAbort.abort();
-            sseAbort = null;
-          }
-          if (recovery.kickstart) await kickstartFocusaDaemon("session_health_check");
-        } else if (!getAttachmentRuntime().focusaAvailable && recovery.outage) {
-          ctx.ui.setStatus("focusa", "🛟 Focusa holdover · retrying");
-          if (recovery.notifyOutage) {
-            ctx.ui.notify(
-              `Focusa daemon remains unavailable — holdover preserved; the next recovery attempt is cooldown-bounded`,
-              "warning"
-            );
-          }
-          if (recovery.kickstart) await kickstartFocusaDaemon("session_health_retry");
-        } else if (getAttachmentRuntime().focusaAvailable && recovery.outage) {
-          ctx.ui.setStatus(
-            "focusa",
-            `🛟 Focusa holdover · verifying recovery ${recovery.recoveryHealthyChecks}/3`
+          refreshNativeSessionPressure(ctx, "health_tick");
+          await checkFocusa();
+          if (!healthLifecycleIsCurrent()) return;
+          const recovery = daemonRecovery.observe(
+            getAttachmentRuntime().focusaAvailable,
+            getAttachmentRuntime().healthFailCount
           );
-        } else if (recovery.stableRecovered) {
-          // Came back stably — reconnect SSE and reconcile holdover state; tools were never disabled.
-          ctx.ui.setStatus("focusa", getAttachmentRuntime().wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
-          ctx.ui.notify("Focusa daemon stably reconnected — holdover reconciled; session preserved", "info");
-          await ensureFocusaSession(ctx);
-          await ensureActiveFrame(ctx);
-          connectSSE();
 
-          // §11/§25.7: Soft resync — reconcile local shadow with Focusa on reconnect
-          if (getAttachmentRuntime().activeFrameId) {
-            // Push any local shadow accumulated during outage
-            if (
-              getAttachmentRuntime().localDecisions.length ||
-              getAttachmentRuntime().localConstraints.length ||
-              getAttachmentRuntime().localFailures.length
-            ) {
-              await pushDelta({
-                decisions: getAttachmentRuntime().localDecisions.slice(-10),
-                constraints: getAttachmentRuntime().localConstraints.slice(-10),
-                failures: getAttachmentRuntime().localFailures.slice(-5),
-                notes: ["Reconciled after Focusa outage"],
-              }).catch(() => null);
-            }
-            // Fetch fresh state + recent candidates
-            const data = await getFocusState();
-            if (data?.fs) {
+          if (recovery.enteredOutage) {
+            // Confirmed outage (not single blip) — preserve tool availability, enter holdover, and kickstart daemon.
+            ctx.ui.setStatus("focusa", "🛟 Focusa holdover · restarting");
+            if (recovery.notifyOutage) {
               ctx.ui.notify(
-                `Resync complete — ${data.fs.decisions?.length || 0} decisions, ${data.fs.constraints?.length || 0} constraints`,
-                "info"
+                `Focusa daemon unavailable (${getAttachmentRuntime().healthFailCount} checks) — holdover active; bounded daemon recovery started without restarting session`,
+                "warning"
               );
             }
-            // Fetch recent Focus Gate candidates
-            focusaFetch("/focus-gate/candidates?limit=5")
-              .then((r: any) => {
-                if (r?.candidates?.length) {
-                  ctx.ui.notify(`Focus Gate: ${r.candidates.length} pending candidates`, "info");
-                }
-              })
-              .catch(() => {});
-          }
-        }
+            if (sseAbort) {
+              sseAbort.abort();
+              sseAbort = null;
+            }
+            if (recovery.kickstart) await kickstartFocusaDaemon("session_health_check");
+          } else if (!getAttachmentRuntime().focusaAvailable && recovery.outage) {
+            ctx.ui.setStatus("focusa", "🛟 Focusa holdover · retrying");
+            if (recovery.notifyOutage) {
+              ctx.ui.notify(
+                `Focusa daemon remains unavailable — holdover preserved; the next recovery attempt is cooldown-bounded`,
+                "warning"
+              );
+            }
+            if (recovery.kickstart) await kickstartFocusaDaemon("session_health_retry");
+          } else if (getAttachmentRuntime().focusaAvailable && recovery.outage) {
+            ctx.ui.setStatus(
+              "focusa",
+              `🛟 Focusa holdover · verifying recovery ${recovery.recoveryHealthyChecks}/3`
+            );
+          } else if (recovery.stableRecovered) {
+            // Came back stably — reconnect SSE and reconcile holdover state; tools were never disabled.
+            ctx.ui.setStatus("focusa", getAttachmentRuntime().wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
+            ctx.ui.notify(
+              "Focusa daemon stably reconnected — holdover reconciled; session preserved",
+              "info"
+            );
+            await ensureFocusaSession(ctx);
+            await ensureActiveFrame(ctx);
+            connectSSE();
 
-        // Schedule next check with (possibly updated) backoff interval
-        scheduleHealthCheck();
+            // §11/§25.7: Soft resync — reconcile local shadow with Focusa on reconnect
+            if (getAttachmentRuntime().activeFrameId) {
+              // Push any local shadow accumulated during outage
+              if (
+                getAttachmentRuntime().localDecisions.length ||
+                getAttachmentRuntime().localConstraints.length ||
+                getAttachmentRuntime().localFailures.length
+              ) {
+                await pushDelta({
+                  decisions: getAttachmentRuntime().localDecisions.slice(-10),
+                  constraints: getAttachmentRuntime().localConstraints.slice(-10),
+                  failures: getAttachmentRuntime().localFailures.slice(-5),
+                  notes: ["Reconciled after Focusa outage"],
+                }).catch(() => null);
+              }
+              // Fetch fresh state + recent candidates
+              const data = await getFocusState();
+              if (data?.fs) {
+                ctx.ui.notify(
+                  `Resync complete — ${data.fs.decisions?.length || 0} decisions, ${data.fs.constraints?.length || 0} constraints`,
+                  "info"
+                );
+              }
+              // Fetch recent Focus Gate candidates
+              focusaFetch("/focus-gate/candidates?limit=5")
+                .then((r: any) => {
+                  if (r?.candidates?.length) {
+                    ctx.ui.notify(`Focus Gate: ${r.candidates.length} pending candidates`, "info");
+                  }
+                })
+                .catch(() => {});
+            }
+          }
+
+          // Schedule next check with (possibly updated) backoff interval
+          scheduleHealthCheck();
         })().catch(() => {
           if (healthLifecycleIsCurrent()) scheduleHealthCheck();
         });

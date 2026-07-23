@@ -5,6 +5,7 @@ This script emits a compact process snapshot and can optionally run a target
 command while preserving its exit code. It is used as a CI gate wrapper so unknown
 process failures leave actionable evidence.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -47,7 +48,9 @@ def parse_args() -> argparse.Namespace:
         "--command",
         help="Optional command to execute under process health monitoring.",
     )
-    parser.add_argument("--snapshot-only", action="store_true", help="Only emit snapshot")
+    parser.add_argument(
+        "--snapshot-only", action="store_true", help="Only emit snapshot"
+    )
     return parser.parse_args()
 
 

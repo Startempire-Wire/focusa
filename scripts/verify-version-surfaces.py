@@ -5,6 +5,7 @@ Usage:
   scripts/verify-version-surfaces.py v0.9.41-dev
   scripts/verify-version-surfaces.py 0.9.41-dev
 """
+
 from __future__ import annotations
 
 import json
@@ -65,7 +66,11 @@ def read_lock_versions(path: str, package_names: set[str]) -> dict[str, str]:
             current_name = name_match.group(1)
             continue
         version_match = LOCK_VERSION_RE.match(line)
-        if version_match and current_name in package_names and current_name not in versions:
+        if (
+            version_match
+            and current_name in package_names
+            and current_name not in versions
+        ):
             versions[current_name] = version_match.group(1)
     missing = package_names - versions.keys()
     if missing:
@@ -80,16 +85,43 @@ def main() -> int:
 
     checks: list[tuple[str, str]] = [
         ("Cargo.toml", read_toml_version("Cargo.toml")),
-        ("apps/pi-extension/package.json", read_json_version("apps/pi-extension/package.json")),
-        ("apps/pi-extension/package-lock.json", read_json_version("apps/pi-extension/package-lock.json")),
+        (
+            "apps/pi-extension/package.json",
+            read_json_version("apps/pi-extension/package.json"),
+        ),
+        (
+            "apps/pi-extension/package-lock.json",
+            read_json_version("apps/pi-extension/package-lock.json"),
+        ),
         ("apps/menubar/package.json", read_json_version("apps/menubar/package.json")),
-        ("apps/menubar/src-tauri/tauri.conf.json", read_json_version("apps/menubar/src-tauri/tauri.conf.json")),
-        ("apps/menubar/src-tauri/Cargo.toml", read_toml_version("apps/menubar/src-tauri/Cargo.toml")),
-        ("apps/menubar/src/lib/components/Settings.svelte", read_settings_version("apps/menubar/src/lib/components/Settings.svelte")),
+        (
+            "apps/menubar/src-tauri/tauri.conf.json",
+            read_json_version("apps/menubar/src-tauri/tauri.conf.json"),
+        ),
+        (
+            "apps/menubar/src-tauri/Cargo.toml",
+            read_toml_version("apps/menubar/src-tauri/Cargo.toml"),
+        ),
+        (
+            "apps/menubar/src/lib/components/Settings.svelte",
+            read_settings_version("apps/menubar/src/lib/components/Settings.svelte"),
+        ),
     ]
 
-    checks.extend((f"Cargo.lock::{name}", version) for name, version in sorted(read_lock_versions("Cargo.lock", ROOT_RUST_PACKAGES).items()))
-    checks.extend((f"apps/menubar/src-tauri/Cargo.lock::{name}", version) for name, version in sorted(read_lock_versions("apps/menubar/src-tauri/Cargo.lock", MENUBAR_RUST_PACKAGES).items()))
+    checks.extend(
+        (f"Cargo.lock::{name}", version)
+        for name, version in sorted(
+            read_lock_versions("Cargo.lock", ROOT_RUST_PACKAGES).items()
+        )
+    )
+    checks.extend(
+        (f"apps/menubar/src-tauri/Cargo.lock::{name}", version)
+        for name, version in sorted(
+            read_lock_versions(
+                "apps/menubar/src-tauri/Cargo.lock", MENUBAR_RUST_PACKAGES
+            ).items()
+        )
+    )
 
     mismatches = [(label, actual) for label, actual in checks if actual != expected]
     if mismatches:

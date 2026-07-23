@@ -5,6 +5,7 @@ This is intentionally lightweight and dependency-free enough for CI/static guard
 It catches workflow-file failures GitHub otherwise reports opaquely as
 "No jobs were run" / "workflow file issue" before any job logs exist.
 """
+
 from __future__ import annotations
 
 import sys
@@ -54,7 +55,9 @@ def validate(path: Path) -> list[str]:
 
 
 def main(argv: list[str]) -> int:
-    paths = [Path(a) for a in argv[1:]] or sorted(Path(".github/workflows").glob("*.yml"))
+    paths = [Path(a) for a in argv[1:]] or sorted(
+        Path(".github/workflows").glob("*.yml")
+    )
     all_errors: list[str] = []
     for path in paths:
         all_errors.extend(validate(path))

@@ -6,8 +6,6 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 
 ## `focusa.trajectory.assess`
 
-
-
 - Method/path: `POST /v1/trajectory/assess`
 - Family: `trajectory`
 - Input schema: `focusa.trajectory_assess.request.v1`
@@ -39,8 +37,6 @@ Failure classes: `focusa.operation_error.v1`.
 Use the structured error recovery field, preserve the original scope and idempotency key when retry-safe, and run the indicated doctor/verify capability before any authority-sensitive retry.
 
 ## `focusa.trajectory.checkpoint`
-
-
 
 - Method/path: `POST /v1/trajectory/checkpoint`
 - Family: `trajectory`
@@ -74,8 +70,6 @@ Use the structured error recovery field, preserve the original scope and idempot
 
 ## `focusa.trajectory.define_goal`
 
-
-
 - Method/path: `POST /v1/trajectory/define-goal`
 - Family: `trajectory`
 - Input schema: `focusa.trajectory_define_goal.request.v1`
@@ -107,8 +101,6 @@ Failure classes: `focusa.operation_error.v1`.
 Use the structured error recovery field, preserve the original scope and idempotency key when retry-safe, and run the indicated doctor/verify capability before any authority-sensitive retry.
 
 ## `focusa.trajectory.propose_workpoint`
-
-
 
 - Method/path: `POST /v1/trajectory/propose-workpoint`
 - Family: `trajectory`
@@ -142,8 +134,6 @@ Use the structured error recovery field, preserve the original scope and idempot
 
 ## `focusa.trajectory.resume`
 
-
-
 - Method/path: `POST /v1/trajectory/resume`
 - Family: `trajectory`
 - Input schema: `focusa.trajectory_resume.request.v1`
@@ -175,8 +165,6 @@ Failure classes: `focusa.operation_error.v1`.
 Use the structured error recovery field, preserve the original scope and idempotency key when retry-safe, and run the indicated doctor/verify capability before any authority-sensitive retry.
 
 ## `focusa.trajectory.view`
-
-
 
 - Method/path: `GET /v1/trajectory/view`
 - Family: `trajectory`

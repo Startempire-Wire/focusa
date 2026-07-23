@@ -223,7 +223,8 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   {
     name: "focusa_agent_card",
     label: "Focusa Agent Card",
-    purpose: "Read compact cross-harness interfaces, auth, capabilities, families, and discovery entry points.",
+    purpose:
+      "Read compact cross-harness interfaces, auth, capabilities, families, and discovery entry points.",
     family: "awareness",
     ontology_action: "agent.card",
     ontology_objects: ["AgentCard", "AgentCapabilityDescriptor"],
@@ -256,7 +257,8 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     side_effect_profile: "write_browser_capability_evidence",
     parity_status: "full",
     exemptions: [],
-    live_check: "Spec141 bounded manifest, duplicate/schema rejection, session/origin binding, and mutation governance fixtures",
+    live_check:
+      "Spec141 bounded manifest, duplicate/schema rejection, session/origin binding, and mutation governance fixtures",
     scope_requirement: { kind: "write", route_family: "browser" },
     authority_requirement: { kind: "advisory_only" },
   },

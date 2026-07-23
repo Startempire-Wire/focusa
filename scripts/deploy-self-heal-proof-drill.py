@@ -8,6 +8,7 @@ Proves deploy-path self-heal behavior without installing/restarting anything:
 - audit summary renders remediation
 - optional live /v1/health read-only check remains ok
 """
+
 from __future__ import annotations
 
 import argparse
@@ -60,34 +61,44 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
 
-    audit_path = Path(tempfile.mkdtemp(prefix="focusa-deploy-heal-drill-")) / "audit.jsonl"
-    deploy_payload = run_json([
-        sys.executable,
-        str(DECISION_DRILL),
-        "--fixture",
-        "deploy_health_failure",
-        "--audit",
-        str(audit_path),
-        "--json",
-    ])
-    deterministic_payload = run_json([
-        sys.executable,
-        str(DECISION_DRILL),
-        "--fixture",
-        "auto_heal_process_error",
-        "--audit",
-        str(audit_path),
-        "--json",
-    ])
+    audit_path = (
+        Path(tempfile.mkdtemp(prefix="focusa-deploy-heal-drill-")) / "audit.jsonl"
+    )
+    deploy_payload = run_json(
+        [
+            sys.executable,
+            str(DECISION_DRILL),
+            "--fixture",
+            "deploy_health_failure",
+            "--audit",
+            str(audit_path),
+            "--json",
+        ]
+    )
+    deterministic_payload = run_json(
+        [
+            sys.executable,
+            str(DECISION_DRILL),
+            "--fixture",
+            "auto_heal_process_error",
+            "--audit",
+            str(audit_path),
+            "--json",
+        ]
+    )
 
     deploy_case = case_by_fixture(deploy_payload, "deploy_health_failure")
-    deterministic_case = case_by_fixture(deterministic_payload, "auto_heal_process_error")
+    deterministic_case = case_by_fixture(
+        deterministic_payload, "auto_heal_process_error"
+    )
     if deploy_case["decision"]["decision"] != "rerun_once_allowed":
         raise SystemExit(f"deploy health decision mismatch: {deploy_case['decision']}")
     if not deploy_case["decision"]["rerun_allowed"]:
         raise SystemExit("deploy health failure did not allow one bounded rerun")
     if deterministic_case["decision"]["decision"] != "repair_required_no_rerun":
-        raise SystemExit(f"deterministic decision mismatch: {deterministic_case['decision']}")
+        raise SystemExit(
+            f"deterministic decision mismatch: {deterministic_case['decision']}"
+        )
     if deterministic_case["decision"]["rerun_allowed"]:
         raise SystemExit("deterministic failure unexpectedly allowed rerun")
 
@@ -107,11 +118,15 @@ def main(argv: list[str]) -> int:
         if needle not in summary:
             raise SystemExit(f"audit summary missing {needle!r}")
 
-    rows = [json.loads(raw) for raw in audit_path.read_text().splitlines() if raw.strip()]
+    rows = [
+        json.loads(raw) for raw in audit_path.read_text().splitlines() if raw.strip()
+    ]
     failure_rows = [row for row in rows if row.get("event") == "failure"]
     heal_rows = [row for row in rows if row.get("event") == "self_heal"]
     if len(failure_rows) != 2:
-        raise SystemExit(f"expected 2 failure rows from fixture drill, got {len(failure_rows)}")
+        raise SystemExit(
+            f"expected 2 failure rows from fixture drill, got {len(failure_rows)}"
+        )
     # Proactive mode may emit zero self_heal rows for single failures.
     if len(heal_rows) > len(failure_rows):
         raise SystemExit(
@@ -136,7 +151,9 @@ def main(argv: list[str]) -> int:
     else:
         print("Deploy self-heal proof drill: PASS")
         print(f"deploy_health_failure -> {deploy_case['decision']['decision']}")
-        print(f"auto_heal_process_error -> {deterministic_case['decision']['decision']}")
+        print(
+            f"auto_heal_process_error -> {deterministic_case['decision']['decision']}"
+        )
         print(f"failure_rows={len(failure_rows)} self_heal_rows={len(heal_rows)}")
         if health.get("checked"):
             print(f"health ok version={health.get('version')} url={health.get('url')}")

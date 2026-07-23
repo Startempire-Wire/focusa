@@ -5,7 +5,6 @@ import json
 import os
 import signal
 import subprocess
-import sys
 import tempfile
 import time
 import urllib.parse
@@ -90,11 +89,15 @@ with tempfile.TemporaryDirectory(prefix="focusa-real-e2e-") as root:
     (project / ".beads").mkdir()
     data_dir.mkdir()
     (project / ".focusa-project.json").write_text(
-        json.dumps({
-            "schema": "focusa.project.v1", "project_id": "real-e2e",
-            "canonical_name": "Real E2E", "project_root": str(project),
-            "workspace_kind": "real-e2e",
-        })
+        json.dumps(
+            {
+                "schema": "focusa.project.v1",
+                "project_id": "real-e2e",
+                "canonical_name": "Real E2E",
+                "project_root": str(project),
+                "workspace_kind": "real-e2e",
+            }
+        )
     )
     continuity = f"real-e2e-{time.time_ns()}"
     quoted_root = urllib.parse.quote(str(project), safe="")
@@ -151,8 +154,12 @@ with tempfile.TemporaryDirectory(prefix="focusa-real-e2e-") as root:
             "GET",
             f"/v1/context-cognition?project_root={quoted_root}&continuity_id={quoted_cont}",
         )
-        assert status == 200 and contains_value(cognition, "focusa.context_cognition_packet.v1"), cognition
-        assert contains_value(cognition, continuity) and contains_value(cognition, str(project)), cognition
+        assert status == 200 and contains_value(
+            cognition, "focusa.context_cognition_packet.v1"
+        ), cognition
+        assert contains_value(cognition, continuity) and contains_value(
+            cognition, str(project)
+        ), cognition
 
         status, packet = request(
             "POST",
@@ -168,8 +175,13 @@ with tempfile.TemporaryDirectory(prefix="focusa-real-e2e-") as root:
                 "rehydrate_refs": ["real-e2e:phase-1"],
             },
         )
-        assert status == 200 and packet.get("schema_version") == "focusa.compaction_mission_packet.v1", packet
-        assert packet.get("trajectory", {}).get("hlt_status") == "canonical_explicit", packet
+        assert (
+            status == 200
+            and packet.get("schema_version") == "focusa.compaction_mission_packet.v1"
+        ), packet
+        assert packet.get("trajectory", {}).get("hlt_status") == "canonical_explicit", (
+            packet
+        )
         assert packet.get("workpoint", {}).get("action_authority") is True, packet
         packet_id = packet["packet_id"]
         status, inspected = request("GET", f"/v1/compaction/inspect/{packet_id}")
@@ -185,7 +197,9 @@ with tempfile.TemporaryDirectory(prefix="focusa-real-e2e-") as root:
                 "scopes": ["read", "write"],
             },
         )
-        assert status == 200 and pairing.get("code") and pairing.get("device_id"), pairing
+        assert status == 200 and pairing.get("code") and pairing.get("device_id"), (
+            pairing
+        )
         status, completed = request(
             "POST",
             "/v1/device/pair/complete",
@@ -200,19 +214,31 @@ with tempfile.TemporaryDirectory(prefix="focusa-real-e2e-") as root:
         status, paired_status = request(
             "GET", f"/v1/device/pair/status?code={urllib.parse.quote(pairing['code'])}"
         )
-        assert status == 200 and paired_status.get("status") == "completed", paired_status
+        assert status == 200 and paired_status.get("status") == "completed", (
+            paired_status
+        )
 
         status, inventory = request("GET", "/v1/update/status")
-        assert status == 200 and inventory.get("schema") == "focusa.update_inventory.v1", inventory
-        assert inventory.get("continuous_currency", {}).get("enabled") is True, inventory
+        assert (
+            status == 200 and inventory.get("schema") == "focusa.update_inventory.v1"
+        ), inventory
+        assert inventory.get("continuous_currency", {}).get("enabled") is True, (
+            inventory
+        )
         status, update_plan = request("GET", "/v1/update/plan")
-        assert status == 200 and update_plan.get("schema") == "focusa.update_plan.v1", update_plan
+        assert status == 200 and update_plan.get("schema") == "focusa.update_plan.v1", (
+            update_plan
+        )
 
         cli_env = os.environ.copy()
         cli_env["FOCUSA_API_URL"] = BASE
         cli_env["FOCUSA_BASE_URL"] = BASE
         cli = subprocess.run(
-            [CLI, "--json", "status"], env=cli_env, text=True, capture_output=True, timeout=20
+            [CLI, "--json", "status"],
+            env=cli_env,
+            text=True,
+            capture_output=True,
+            timeout=20,
         )
         assert cli.returncode == 0, cli.stdout + cli.stderr
         cli_payload = json.loads(cli.stdout)
@@ -240,12 +266,30 @@ with tempfile.TemporaryDirectory(prefix="focusa-real-e2e-") as root:
             f"/v1/trajectory/view?project_root={quoted_root}&continuity_id={quoted_cont}&mode=summary",
         )
         assert status == 200 and trajectory.get("canonical") is True, trajectory
-        assert contains_value(trajectory, "Ship a verified real E2E journey"), trajectory
+        assert contains_value(trajectory, "Ship a verified real E2E journey"), (
+            trajectory
+        )
     finally:
         stop_daemon(daemon)
 
-print(json.dumps({
-    "schema": "focusa.real_product_e2e.v1",
-    "status": "pass",
-    "surfaces": ["daemon", "cli", "http", "trajectory", "workpoint", "evidence", "context-cognition", "compaction", "device-pairing", "update", "restart-persistence"],
-}))
+print(
+    json.dumps(
+        {
+            "schema": "focusa.real_product_e2e.v1",
+            "status": "pass",
+            "surfaces": [
+                "daemon",
+                "cli",
+                "http",
+                "trajectory",
+                "workpoint",
+                "evidence",
+                "context-cognition",
+                "compaction",
+                "device-pairing",
+                "update",
+                "restart-persistence",
+            ],
+        }
+    )
+)

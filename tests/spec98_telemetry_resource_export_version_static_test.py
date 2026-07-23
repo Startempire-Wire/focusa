@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Spec98 focusa-877z.10: telemetry/resource/export do not advance cognition version."""
+
 from pathlib import Path
 import re
 import sys
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-CONTRACT = ROOT / "docs/worksheets/focusa-877z.10-telemetry-resource-export-cognition-version-contract.yaml"
+CONTRACT = (
+    ROOT
+    / "docs/worksheets/focusa-877z.10-telemetry-resource-export-cognition-version-contract.yaml"
+)
 SERVER = ROOT / "crates/focusa-api/src/server.rs"
 TELEMETRY = ROOT / "crates/focusa-api/src/routes/telemetry.rs"
 CAP_EXTRA = ROOT / "crates/focusa-api/src/routes/capabilities_extra.rs"
@@ -34,15 +38,20 @@ def fn_body(source: str, name: str) -> str:
         elif source[i] == "}":
             depth -= 1
             if depth == 0:
-                return source[start:i+1]
+                return source[start : i + 1]
     fail(f"unterminated function {name}")
 
 
 def main() -> None:
     contract = yaml.safe_load(CONTRACT.read_text())
-    if contract.get("schema_version") != "focusa.telemetry_resource_export_cognition_version_contract.v1":
+    if (
+        contract.get("schema_version")
+        != "focusa.telemetry_resource_export_cognition_version_contract.v1"
+    ):
         fail("unexpected .10 contract schema")
-    if "must not advance canonical FocusaState.version" not in contract.get("normative_rule", ""):
+    if "must not advance canonical FocusaState.version" not in contract.get(
+        "normative_rule", ""
+    ):
         fail("contract must state no canonical version advancement")
 
     types = TYPES.read_text()
@@ -56,10 +65,14 @@ def main() -> None:
 
     server = SERVER.read_text()
     prune = fn_body(server, "prune_pressure_sensitive_state")
-    if re.search(r"focusa\.version\s*=|focusa\.version\.saturating_add|version\s*\+=", prune):
+    if re.search(
+        r"focusa\.version\s*=|focusa\.version\.saturating_add|version\s*\+=", prune
+    ):
         fail("pressure-sensitive pruning must not modify FocusaState.version")
     if "state.mark_external_mutation()" not in prune:
-        fail("pressure-sensitive pruning should still mark external mutation when pruned")
+        fail(
+            "pressure-sensitive pruning should still mark external mutation when pruned"
+        )
     for field in [
         "focusa.telemetry.trace_events",
         "focusa.telemetry.tool_calls",
@@ -83,11 +96,19 @@ def main() -> None:
         body = fn_body(telemetry, name)
         if "state.mark_external_mutation()" not in body:
             fail(f"{name} should mark external mutation for daemon/UI wakeup")
-        if re.search(r"focusa\.version\s*=|focusa\.version\.saturating_add|version\s*\+=", body):
+        if re.search(
+            r"focusa\.version\s*=|focusa\.version\.saturating_add|version\s*\+=", body
+        ):
             fail(f"{name} must not modify FocusaState.version")
 
     cap_extra = CAP_EXTRA.read_text()
-    for name in ["contribute_status", "contribute_policy", "contribute_queue", "export_history", "export_manifest"]:
+    for name in [
+        "contribute_status",
+        "contribute_policy",
+        "contribute_queue",
+        "export_history",
+        "export_manifest",
+    ]:
         body = fn_body(cap_extra, name)
         if "state.focusa.read().await" in body or name.startswith("export_"):
             pass
@@ -96,7 +117,9 @@ def main() -> None:
         if "state.focusa.write().await" in body or "mark_external_mutation" in body:
             fail(f"{name} must not mutate state or mark cognition freshness")
 
-    print("✓ PASS: telemetry/resource pruning/export queues do not advance canonical cognition version")
+    print(
+        "✓ PASS: telemetry/resource pruning/export queues do not advance canonical cognition version"
+    )
 
 
 if __name__ == "__main__":

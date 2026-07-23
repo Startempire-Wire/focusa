@@ -727,13 +727,17 @@ export function registerAutoCompaction(
         if (retryableFailure) {
           rolloverRequired = true;
           failedEpoch.state = "rollover_required";
-          persist("rollover_required", {
-            reason: "provider_transport_retry_exhausted",
-            attempts: failedAttempts,
-            primary_error: message,
-            recovery_command: "/focusa-rollover execute",
-            canonical_checkpoint_preserved: true,
-          }, failedEpoch);
+          persist(
+            "rollover_required",
+            {
+              reason: "provider_transport_retry_exhausted",
+              attempts: failedAttempts,
+              primary_error: message,
+              recovery_command: "/focusa-rollover execute",
+              canonical_checkpoint_preserved: true,
+            },
+            failedEpoch
+          );
         }
         setActiveEpoch(undefined);
         notifyOnce(

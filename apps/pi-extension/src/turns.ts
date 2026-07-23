@@ -1977,8 +1977,7 @@ export function registerTurns(pi: ExtensionAPI) {
     const lifecycleSessionId = String(
       ctx?.sessionManager?.getSessionId?.() || getAttachmentRuntime().sessionFrameKey || "no-session"
     );
-    const lifecycleAdvisory =
-      getAttachmentRuntime().pendingLifecycleAdvisories[lifecycleSessionId];
+    const lifecycleAdvisory = getAttachmentRuntime().pendingLifecycleAdvisories[lifecycleSessionId];
     if (lifecycleAdvisory) {
       text += `\n\n[Focusa deferred lifecycle advisory]\n${lifecycleAdvisory.text}`;
       delete getAttachmentRuntime().pendingLifecycleAdvisories[lifecycleSessionId];

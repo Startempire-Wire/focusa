@@ -6,8 +6,6 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 
 ## `focusa.resource_mode`
 
-
-
 - Method/path: `GET /v1/resource/mode`
 - Family: `resource`
 - Input schema: `focusa.resource_mode.request.v1`

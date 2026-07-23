@@ -8,7 +8,6 @@ import base64
 import datetime as dt
 import hashlib
 import json
-import os
 import pathlib
 import shutil
 import stat
@@ -104,7 +103,10 @@ def active_key(metadata: dict[str, Any]) -> dict[str, Any]:
     if key["signing_algorithm"] != "ed25519":
         raise ValueError("active release key must use ed25519")
     raw = base64.b64decode(key["public_key_base64"], validate=True)
-    if len(raw) != 32 or hashlib.sha256(raw).hexdigest() != key["public_key_fingerprint"]:
+    if (
+        len(raw) != 32
+        or hashlib.sha256(raw).hexdigest() != key["public_key_fingerprint"]
+    ):
         raise ValueError("trusted public key fingerprint mismatch")
     return key
 
@@ -145,7 +147,9 @@ def main() -> int:
         format=serialization.PublicFormat.Raw,
     )
     if base64.b64encode(public_raw).decode("ascii") != key["public_key_base64"]:
-        raise ValueError("private signing key does not match trusted public key metadata")
+        raise ValueError(
+            "private signing key does not match trusted public key metadata"
+        )
     try:
         assets = sorted(
             path
@@ -159,7 +163,9 @@ def main() -> int:
             raise ValueError("no release assets found")
 
         checksums = args.dist / "SHA256SUMS.txt"
-        checksums.write_text("".join(f"{sha256(path)}  {path.name}\n" for path in assets))
+        checksums.write_text(
+            "".join(f"{sha256(path)}  {path.name}\n" for path in assets)
+        )
 
         manifest_assets: dict[str, Any] = {}
         subjects = []
@@ -175,13 +181,26 @@ def main() -> int:
                 "signature": {
                     "algorithm": "ed25519",
                     "key_id": key["key_id"],
-                    "signature": base64.b64encode(signature.read_bytes()).decode("ascii"),
+                    "signature": base64.b64encode(signature.read_bytes()).decode(
+                        "ascii"
+                    ),
                     "certificate_sha256": None,
                 },
             }
-            subjects.append({"name": asset.name, "sha256": digest, "size_bytes": asset.stat().st_size})
+            subjects.append(
+                {
+                    "name": asset.name,
+                    "sha256": digest,
+                    "size_bytes": asset.stat().st_size,
+                }
+            )
 
-        published_at = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        published_at = (
+            dt.datetime.now(dt.timezone.utc)
+            .replace(microsecond=0)
+            .isoformat()
+            .replace("+00:00", "Z")
+        )
         provenance = {
             "schema": "focusa.release_provenance.v1",
             "tag": args.tag,
@@ -249,7 +268,12 @@ def main() -> int:
         manifest_path = args.dist / "release-manifest.json"
         write_json(manifest_path, manifest)
 
-        for metadata_path in (checksums, provenance_path, manifest_path, trusted_output):
+        for metadata_path in (
+            checksums,
+            provenance_path,
+            manifest_path,
+            trusted_output,
+        ):
             sign_and_verify(metadata_path, loaded_private_key, public_key)
 
         result = {

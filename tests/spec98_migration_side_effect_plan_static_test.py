@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Spec98 / focusa-877z.18 migration backcompat + side-effect proof plan guard."""
+
 from pathlib import Path
 import sys
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKSHEET = ROOT / "docs/worksheets/focusa-877z.18-migration-side-effect-proof-plan.yaml"
+WORKSHEET = (
+    ROOT / "docs/worksheets/focusa-877z.18-migration-side-effect-proof-plan.yaml"
+)
 SPEC98 = ROOT / "docs/98-project-root-crdt-reconciliation-foundation-spec.md"
 TAXONOMY = ROOT / "docs/worksheets/focusa-877z.8-authority-taxonomy.yaml"
 SUITE = ROOT / "tests/spec98_runtime_bleed_crdt_regression_suite.sh"
@@ -30,7 +33,15 @@ REQUIRED_SIDE_EFFECTS = {
     "external_io",
     "destructive_or_service_control",
 }
-REQUIRED_PROOF_SURFACES = {"daemon_core", "api_routes", "cli", "pi_extension", "uiai_external", "menubar", "proof_suite"}
+REQUIRED_PROOF_SURFACES = {
+    "daemon_core",
+    "api_routes",
+    "cli",
+    "pi_extension",
+    "uiai_external",
+    "menubar",
+    "proof_suite",
+}
 REQUIRED_EXPECTED_SIDE_EFFECTS = {
     "stricter_envelopes",
     "degraded_legacy_packets",
@@ -60,7 +71,14 @@ def main() -> None:
     if missing_migration:
         fail(f"missing migration items: {sorted(missing_migration)}")
     for item_id, item in migration.items():
-        for field in ["legacy_shape", "read_behavior", "authority_status", "migration_warning", "promotion_path", "proof_requirements"]:
+        for field in [
+            "legacy_shape",
+            "read_behavior",
+            "authority_status",
+            "migration_warning",
+            "promotion_path",
+            "proof_requirements",
+        ]:
             if field not in item or item.get(field) in (None, "", []):
                 fail(f"migration item {item_id} missing {field}")
 
@@ -112,17 +130,29 @@ def main() -> None:
             fail(f"worksheet missing required phrase: {phrase}")
 
     spec98_text = SPEC98.read_text()
-    for phrase in ["Expected side effect", "Migration of old packets/snapshots", "Side-effect classification tests", "Proof bundle map runner"]:
+    for phrase in [
+        "Expected side effect",
+        "Migration of old packets/snapshots",
+        "Side-effect classification tests",
+        "Proof bundle map runner",
+    ]:
         if phrase not in spec98_text:
             fail(f"Spec98 missing supporting phrase: {phrase}")
 
     taxonomy = yaml.safe_load(TAXONOMY.read_text())
     ids = {item.get("id") for item in taxonomy.get("items") or []}
-    for required in ["side_effects.classification", "reference_store.evidence_handles", "uiai.research_diagnostics_packet"]:
+    for required in [
+        "side_effects.classification",
+        "reference_store.evidence_handles",
+        "uiai.research_diagnostics_packet",
+    ]:
         if required not in ids:
             fail(f"authority taxonomy missing related item: {required}")
 
-    if "tests/spec98_migration_side_effect_plan_static_test.py" not in SUITE.read_text():
+    if (
+        "tests/spec98_migration_side_effect_plan_static_test.py"
+        not in SUITE.read_text()
+    ):
         fail("Spec98 regression suite does not run migration/side-effect plan guard")
 
     print("✓ PASS: Spec98 migration/backcompat and side-effect proof plan ok")

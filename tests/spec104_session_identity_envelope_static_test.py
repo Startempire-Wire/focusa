@@ -10,6 +10,7 @@ Verifies that:
 
 Spec104 DOC-02 proof: test fails if packets omit typed scope/authority.
 """
+
 import re
 import sys
 from pathlib import Path

@@ -6,8 +6,6 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 
 ## `focusa.prediction.evaluate`
 
-
-
 - Method/path: `POST /v1/predictions/evaluate`
 - Family: `prediction`
 - Input schema: `focusa.prediction_evaluate.request.v1`
@@ -40,8 +38,6 @@ Use the structured error recovery field, preserve the original scope and idempot
 
 ## `focusa.prediction.recent`
 
-
-
 - Method/path: `GET /v1/predictions/recent`
 - Family: `prediction`
 - Input schema: `focusa.prediction_recent.request.v1`
@@ -73,8 +69,6 @@ Failure classes: `focusa.operation_error.v1`.
 Use the structured error recovery field, preserve the original scope and idempotency key when retry-safe, and run the indicated doctor/verify capability before any authority-sensitive retry.
 
 ## `focusa.prediction.record`
-
-
 
 - Method/path: `POST /v1/predictions/record`
 - Family: `prediction`

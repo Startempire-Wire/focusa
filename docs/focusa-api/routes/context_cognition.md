@@ -6,8 +6,6 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 
 ## `focusa.context_cognition.curate`
 
-
-
 - Method/path: `POST /v1/context-cognition/curate`
 - Family: `context_cognition`
 - Input schema: `focusa.context_cognition_curate.request.v1`
@@ -39,8 +37,6 @@ Failure classes: `focusa.operation_error.v1`.
 Use the structured error recovery field, preserve the original scope and idempotency key when retry-safe, and run the indicated doctor/verify capability before any authority-sensitive retry.
 
 ## `focusa.context_cognition.packet`
-
-
 
 - Method/path: `GET /v1/context-cognition/packet`
 - Family: `context_cognition`

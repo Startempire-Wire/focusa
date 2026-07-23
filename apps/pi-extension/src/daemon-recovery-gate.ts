@@ -22,7 +22,7 @@ export class DaemonRecoveryGate {
     offlineWarnThreshold = 2,
     recoveryHealthyThreshold = 3,
     outageNoticeCooldownMs = 5 * 60_000,
-    kickstartCooldownMs = 60_000,
+    kickstartCooldownMs = 60_000
   ) {
     this.offlineWarnThreshold = offlineWarnThreshold;
     this.recoveryHealthyThreshold = recoveryHealthyThreshold;

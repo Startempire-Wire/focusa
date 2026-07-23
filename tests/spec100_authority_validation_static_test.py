@@ -10,6 +10,7 @@ Verifies that:
   `canonical_mutation_allowed=false`.
 - The default recommended_packet_use includes `do_not_drift` items.
 """
+
 import re
 import sys
 from pathlib import Path
@@ -59,7 +60,9 @@ def main() -> None:
         fail("recommended_packet_use.do_not_drift missing transcript_tail entry")
 
     # Test cases (in #[cfg(test)] mod tests) must cover the three failure classes
-    test_block = re.search(r"#\[cfg\(test\)\]\s*mod tests\s*\{([\s\S]*?)\n\}", route_src)
+    test_block = re.search(
+        r"#\[cfg\(test\)\]\s*mod tests\s*\{([\s\S]*?)\n\}", route_src
+    )
     if not test_block:
         fail("context_cognition.rs missing #[cfg(test)] mod tests")
     body = test_block.group(1)
@@ -82,7 +85,9 @@ def main() -> None:
         if fc not in doc_src:
             fail(f"tool doc missing recovery note for {fc}")
 
-    print("✓ PASS: focusa_context_cognition authority + failure_class + blocklist + tests + doc all wired")
+    print(
+        "✓ PASS: focusa_context_cognition authority + failure_class + blocklist + tests + doc all wired"
+    )
 
 
 if __name__ == "__main__":

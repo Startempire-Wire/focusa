@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Guard: uiai_health is infrastructure telemetry, never project-scope authority."""
+
 from pathlib import Path
 import sys
 
@@ -34,7 +35,9 @@ def main() -> None:
         "ProjectIdentity plus Workpoint/Trajectory scope",
     ]:
         require(IMPACT, needle, "Pi/UIAI impact worksheet")
-    print("✓ PASS: uiai_health remains infra-only and cannot become project-scope authority")
+    print(
+        "✓ PASS: uiai_health remains infra-only and cannot become project-scope authority"
+    )
 
 
 if __name__ == "__main__":

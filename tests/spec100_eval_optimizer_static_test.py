@@ -13,6 +13,7 @@ Verifies CQRS shape for the eval-ledger + artifact-ledger pair:
 - Tool contracts, choreo edges, doc pages
 - CQRS read/write separation is explicit (GET vs POST)
 """
+
 import json
 import re
 import sys
@@ -34,13 +35,13 @@ def main() -> None:
 
     # Routes (CQRS read/write split)
     for marker in [
-        "/v1/context-cognition/curate/eval",          # write side
+        "/v1/context-cognition/curate/eval",  # write side
         "post(curate_eval)",
-        "/v1/context-cognition/curate/eval/runs",     # read side
+        "/v1/context-cognition/curate/eval/runs",  # read side
         "get(curate_eval_runs)",
         "/v1/context-cognition/optimizer/artifacts",  # read side
         "get(optimizer_artifacts)",
-        "/v1/context-cognition/curate/optimize",      # write side
+        "/v1/context-cognition/curate/optimize",  # write side
         "post(curate_optimize)",
         # Types
         "CuratorEvalRun",
@@ -66,13 +67,25 @@ def main() -> None:
             fail(f"context_cognition.rs missing marker: {marker}")
 
     # CQRS-shape: GET routes for reads, POST routes for writes
-    if not re.search(r'"/v1/context-cognition/curate/eval/runs"\s*,\s*axum::routing::get\(curate_eval_runs\)', route_src):
+    if not re.search(
+        r'"/v1/context-cognition/curate/eval/runs"\s*,\s*axum::routing::get\(curate_eval_runs\)',
+        route_src,
+    ):
         fail("curate/eval/runs must be GET (read side)")
-    if not re.search(r'"/v1/context-cognition/optimizer/artifacts"\s*,\s*axum::routing::get\(optimizer_artifacts\)', route_src):
+    if not re.search(
+        r'"/v1/context-cognition/optimizer/artifacts"\s*,\s*axum::routing::get\(optimizer_artifacts\)',
+        route_src,
+    ):
         fail("optimizer/artifacts must be GET (read side)")
-    if not re.search(r'"/v1/context-cognition/curate/eval"\s*,\s*axum::routing::post\(curate_eval\)', route_src):
+    if not re.search(
+        r'"/v1/context-cognition/curate/eval"\s*,\s*axum::routing::post\(curate_eval\)',
+        route_src,
+    ):
         fail("curate/eval must be POST (write side)")
-    if not re.search(r'"/v1/context-cognition/curate/optimize"\s*,\s*axum::routing::post\(curate_optimize\)', route_src):
+    if not re.search(
+        r'"/v1/context-cognition/curate/optimize"\s*,\s*axum::routing::post\(curate_optimize\)',
+        route_src,
+    ):
         fail("curate/optimize must be POST (write side)")
 
     # Persistence (HLT-pattern ledgers)
@@ -86,7 +99,9 @@ def main() -> None:
         if marker not in types_src:
             fail(f"types.rs missing struct: {marker}")
 
-    persistence_src = (ROOT / "crates/focusa-core/src/runtime/persistence_sqlite.rs").read_text()
+    persistence_src = (
+        ROOT / "crates/focusa-core/src/runtime/persistence_sqlite.rs"
+    ).read_text()
     for marker in [
         "curator_eval_ledger_dir_for_project",
         "cognition_optimizer_artifacts_dir_for_project",
@@ -137,7 +152,10 @@ def main() -> None:
     ]:
         if f'"{tool}"' not in contracts_src:
             fail(f"tool-contracts.ts missing contract: {tool}")
-    ntt = re.search(r'const TOOL_NEXT_TOOLS: Record<string, string\[]> = ([\s\S]*?)\n\};', contracts_src)
+    ntt = re.search(
+        r"const TOOL_NEXT_TOOLS: Record<string, string\[]> = ([\s\S]*?)\n\};",
+        contracts_src,
+    )
     if not ntt:
         fail("TOOL_NEXT_TOOLS not found")
     next_tools = ntt.group(1)
@@ -150,7 +168,9 @@ def main() -> None:
             fail(f"TOOL_NEXT_TOOLS missing entry: {tool}")
 
     # JSON registry
-    registry = json.loads((ROOT / "docs/current/focusa-tool-contracts.json").read_text())
+    registry = json.loads(
+        (ROOT / "docs/current/focusa-tool-contracts.json").read_text()
+    )
     for tool in [
         "focusa_context_cognition_curate_eval",
         "focusa_context_cognition_curate_optimize",
@@ -162,7 +182,9 @@ def main() -> None:
         fail(f"tool_count expected >= 72, got {registry.get('tool_count')}")
 
     # Choreography
-    choreo = json.loads((ROOT / "docs/current/focusa-tool-choreography.json").read_text())
+    choreo = json.loads(
+        (ROOT / "docs/current/focusa-tool-choreography.json").read_text()
+    )
     if choreo.get("tool_count", 0) < 72:
         fail(f"choreography tool_count expected >= 72, got {choreo.get('tool_count')}")
     for tool in [
@@ -204,7 +226,9 @@ def main() -> None:
     if "15.1 CQRS framing" not in spec:
         fail("docs/100-context-cognition-spec.md missing §15.1 CQRS framing")
 
-    print(f"✓ PASS: focusa_context_cognition_curate_eval + curate_optimize + optimizer_artifacts (Spec 100 P4+P5) wired across core, api, cli, pi, contract, choreo, doc; CQRS read/write split; tool_count={registry.get('tool_count')}")
+    print(
+        f"✓ PASS: focusa_context_cognition_curate_eval + curate_optimize + optimizer_artifacts (Spec 100 P4+P5) wired across core, api, cli, pi, contract, choreo, doc; CQRS read/write split; tool_count={registry.get('tool_count')}"
+    )
 
 
 if __name__ == "__main__":

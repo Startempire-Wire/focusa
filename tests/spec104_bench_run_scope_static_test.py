@@ -8,8 +8,8 @@ Verifies that:
 
 Spec104 BEN-01/BEN-02 proof: ON/OFF runs from clean starts produce isolated results.
 """
+
 import json
-import re
 import sys
 from pathlib import Path
 

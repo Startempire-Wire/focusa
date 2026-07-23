@@ -6,8 +6,6 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 
 ## `focusa.work_loop.control`
 
-
-
 - Method/path: `POST /v1/work-loop/control`
 - Family: `work_loop`
 - Input schema: `focusa.work_loop_control.request.v1`
@@ -39,8 +37,6 @@ Failure classes: `focusa.operation_error.v1`.
 Use the structured error recovery field, preserve the original scope and idempotency key when retry-safe, and run the indicated doctor/verify capability before any authority-sensitive retry.
 
 ## `focusa.work_loop.status`
-
-
 
 - Method/path: `GET /v1/work-loop/status`
 - Family: `work_loop`

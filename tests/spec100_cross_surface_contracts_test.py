@@ -8,6 +8,7 @@ are wired across core (types), api (routes), cli (subcommand), pi extension
 Also verifies that the audit classify-4xx-as-probe_validation_expected fix is
 present so the audit no longer flags required-param routes as daemon_unavailable.
 """
+
 import json
 import re
 import sys
@@ -38,8 +39,8 @@ def main() -> None:
     # CLI
     cli_cmd = (ROOT / "crates/focusa-cli/src/commands/context_cognition.rs").read_text()
     for marker in [
-        'ContextCognitionCmd::Render',
-        'ContextCognitionCmd::Proof',
+        "ContextCognitionCmd::Render",
+        "ContextCognitionCmd::Proof",
         "build_query",
     ]:
         if marker not in cli_cmd:
@@ -53,9 +54,15 @@ def main() -> None:
     ]:
         if f'name: "{tool}"' not in tools_src:
             fail(f"Pi extension missing tool: {tool}")
-        if "/v1/context-cognition/render" not in tools_src and tool == "focusa_context_cognition_render":
+        if (
+            "/v1/context-cognition/render" not in tools_src
+            and tool == "focusa_context_cognition_render"
+        ):
             fail("Pi extension render tool missing route")
-        if "/v1/context-cognition/proof" not in tools_src and tool == "focusa_context_cognition_proof":
+        if (
+            "/v1/context-cognition/proof" not in tools_src
+            and tool == "focusa_context_cognition_proof"
+        ):
             fail("Pi extension proof tool missing route")
 
     # Contracts
@@ -63,7 +70,10 @@ def main() -> None:
     for tool in ["focusa_context_cognition_render", "focusa_context_cognition_proof"]:
         if f'"{tool}"' not in contracts_src:
             fail(f"tool-contracts.ts missing contract: {tool}")
-    ntt = re.search(r'const TOOL_NEXT_TOOLS: Record<string, string\[]> = ([\s\S]*?)\n\};', contracts_src)
+    ntt = re.search(
+        r"const TOOL_NEXT_TOOLS: Record<string, string\[]> = ([\s\S]*?)\n\};",
+        contracts_src,
+    )
     if not ntt:
         fail("TOOL_NEXT_TOOLS not found")
     next_tools = ntt.group(1)
@@ -73,7 +83,9 @@ def main() -> None:
         fail("TOOL_NEXT_TOOLS missing proof entry")
 
     # JSON registry
-    registry = json.loads((ROOT / "docs/current/focusa-tool-contracts.json").read_text())
+    registry = json.loads(
+        (ROOT / "docs/current/focusa-tool-contracts.json").read_text()
+    )
     for tool in ["focusa_context_cognition_render", "focusa_context_cognition_proof"]:
         if not any(c.get("name") == tool for c in registry.get("contracts", [])):
             fail(f"focusa-tool-contracts.json missing: {tool}")
@@ -81,7 +93,9 @@ def main() -> None:
         fail(f"tool_count expected >= 68, got {registry.get('tool_count')}")
 
     # Choreography
-    choreo = json.loads((ROOT / "docs/current/focusa-tool-choreography.json").read_text())
+    choreo = json.loads(
+        (ROOT / "docs/current/focusa-tool-choreography.json").read_text()
+    )
     if choreo.get("tool_count", 0) < 68:
         fail(f"choreography tool_count expected >= 68, got {choreo.get('tool_count')}")
     for tool in ["focusa_context_cognition_render", "focusa_context_cognition_proof"]:
@@ -115,7 +129,9 @@ def main() -> None:
         if f"`{tool}`" not in readme:
             fail(f"README missing tool row: {tool}")
 
-    print(f"✓ PASS: focusa_context_cognition cross-surface contracts (render+proof) wired across core, api, cli, pi, menubar, doc, audit; tool_count={registry.get('tool_count')}")
+    print(
+        f"✓ PASS: focusa_context_cognition cross-surface contracts (render+proof) wired across core, api, cli, pi, menubar, doc, audit; tool_count={registry.get('tool_count')}"
+    )
 
 
 if __name__ == "__main__":

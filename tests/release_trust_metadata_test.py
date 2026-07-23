@@ -31,11 +31,13 @@ def main() -> int:
         trusted_keys = root / "trusted.json"
 
         private = Ed25519PrivateKey.generate()
-        private_key.write_bytes(private.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption(),
-        ))
+        private_key.write_bytes(
+            private.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+        )
         private_key.chmod(0o600)
         public = private.public_key()
         public_raw = public.public_bytes(
@@ -43,18 +45,26 @@ def main() -> int:
             format=serialization.PublicFormat.Raw,
         )
         fingerprint = hashlib.sha256(public_raw).hexdigest()
-        trusted_keys.write_text(json.dumps({
-            "schema": "focusa.trusted_release_keys.v1",
-            "keys": [{
-                "key_id": "focusa-test-release-key",
-                "signing_algorithm": "ed25519",
-                "public_key_fingerprint": fingerprint,
-                "public_key_base64": base64.b64encode(public_raw).decode("ascii"),
-                "valid_from": "2026-07-15T00:00:00Z",
-                "valid_until": None,
-                "revoked_at": None,
-            }],
-        }))
+        trusted_keys.write_text(
+            json.dumps(
+                {
+                    "schema": "focusa.trusted_release_keys.v1",
+                    "keys": [
+                        {
+                            "key_id": "focusa-test-release-key",
+                            "signing_algorithm": "ed25519",
+                            "public_key_fingerprint": fingerprint,
+                            "public_key_base64": base64.b64encode(public_raw).decode(
+                                "ascii"
+                            ),
+                            "valid_from": "2026-07-15T00:00:00Z",
+                            "valid_until": None,
+                            "revoked_at": None,
+                        }
+                    ],
+                }
+            )
+        )
 
         assets = [
             dist / "focusa-v0.9.95-dev-x86_64-unknown-linux-musl",
@@ -64,14 +74,22 @@ def main() -> int:
         assets[1].write_bytes(b"macos-fixture")
 
         result = run(
-            "python3", str(SCRIPT),
-            "--dist", str(dist),
-            "--tag", "v0.9.95-dev",
-            "--commit", "a" * 40,
-            "--repo", "Startempire-Wire/focusa",
-            "--run-url", "https://github.com/Startempire-Wire/focusa/actions/runs/1",
-            "--private-key", str(private_key),
-            "--trusted-keys", str(trusted_keys),
+            "python3",
+            str(SCRIPT),
+            "--dist",
+            str(dist),
+            "--tag",
+            "v0.9.95-dev",
+            "--commit",
+            "a" * 40,
+            "--repo",
+            "Startempire-Wire/focusa",
+            "--run-url",
+            "https://github.com/Startempire-Wire/focusa/actions/runs/1",
+            "--private-key",
+            str(private_key),
+            "--trusted-keys",
+            str(trusted_keys),
         )
         summary = json.loads(result.stdout)
         assert summary["status"] == "completed"
@@ -109,7 +127,9 @@ def main() -> int:
         else:
             raise AssertionError("tampered asset unexpectedly verified")
 
-    print("PASS: release assets, checksums, manifest, provenance, and trust metadata are detached-signed and tamper-evident")
+    print(
+        "PASS: release assets, checksums, manifest, provenance, and trust metadata are detached-signed and tamper-evident"
+    )
     return 0
 
 

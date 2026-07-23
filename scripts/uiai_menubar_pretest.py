@@ -17,6 +17,7 @@ Exit codes:
     2 = preview server not reachable
     3 = one or more menubar checks failed
 """
+
 import argparse
 import json
 import os
@@ -68,12 +69,16 @@ def close_session(sid: str) -> None:
 
 
 def eval_js(sid: str, js: str) -> str:
-    res = uiai_post(f"/api/session/{sid}/eval_async", {"js": f"return ({js})", "timeout_ms": 5000})
+    res = uiai_post(
+        f"/api/session/{sid}/eval_async", {"js": f"return ({js})", "timeout_ms": 5000}
+    )
     return res.get("result", "")
 
 
 def snapshot(sid: str) -> dict:
-    res = uiai_post(f"/api/session/{sid}/snapshot", {"interactive": True, "compact": True})
+    res = uiai_post(
+        f"/api/session/{sid}/snapshot", {"interactive": True, "compact": True}
+    )
     return res.get("tree", "")
 
 
@@ -89,11 +94,30 @@ def diagnostics(sid: str) -> list:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", default=DEFAULT_URL)
-    ap.add_argument("--tab", default="workpoint", choices=["focus", "now", "path", "workpoint", "proof", "loop", "gate", "sync", "pair", "settings"])
-    ap.add_argument("--action", default="re-render", choices=["checkpoint", "re-render", "link-evidence"])
+    ap.add_argument(
+        "--tab",
+        default="workpoint",
+        choices=[
+            "focus",
+            "now",
+            "path",
+            "workpoint",
+            "proof",
+            "loop",
+            "gate",
+            "sync",
+            "pair",
+            "settings",
+        ],
+    )
+    ap.add_argument(
+        "--action",
+        default="re-render",
+        choices=["checkpoint", "re-render", "link-evidence"],
+    )
     args = ap.parse_args()
 
-    print(f"=== UIAI menubar pre-test ===")
+    print("=== UIAI menubar pre-test ===")
     print(f"  url={args.url}")
     print(f"  tab={args.tab} action={args.action}")
     print()
@@ -119,7 +143,7 @@ def main() -> int:
         print(f"✗ could not open UIAI session (capacity?): {e}")
         return 1
     if not sid:
-        print(f"✗ UIAI returned no session id")
+        print("✗ UIAI returned no session id")
         return 1
     print(f"✓ session={sid}")
 
@@ -136,9 +160,16 @@ def main() -> int:
 
         # 5. Switch to the requested tab
         tab_refs = {
-            "focus": "@e1", "now": "@e2", "path": "@e3", "workpoint": "@e4",
-            "proof": "@e5", "loop": "@e6", "gate": "@e7", "sync": "@e8",
-            "pair": "@e9", "settings": "@e10",
+            "focus": "@e1",
+            "now": "@e2",
+            "path": "@e3",
+            "workpoint": "@e4",
+            "proof": "@e5",
+            "loop": "@e6",
+            "gate": "@e7",
+            "sync": "@e8",
+            "pair": "@e9",
+            "settings": "@e10",
         }
         ref = tab_refs[args.tab]
         click_ref(sid, ref)
@@ -151,16 +182,26 @@ def main() -> int:
                 if label not in tree:
                     failures.append(f"Workpoint action bar missing button: {label}")
             if "Checkpoint" in tree and "Re-render" in tree and "Link evidence" in tree:
-                print(f"✓ Workpoint action bar: 3 buttons present")
+                print("✓ Workpoint action bar: 3 buttons present")
 
         # 6. Exercise the requested action
         if args.tab == "workpoint":
-            action_refs = {"checkpoint": "@e11", "re-render": "@e12", "link-evidence": "@e13"}
+            action_refs = {
+                "checkpoint": "@e11",
+                "re-render": "@e12",
+                "link-evidence": "@e13",
+            }
             action_ref = action_refs[args.action]
-            before_perf = eval_js(sid, "performance.getEntriesByType('resource').filter(r => r.name.includes('/v1/')).length")
+            before_perf = eval_js(
+                sid,
+                "performance.getEntriesByType('resource').filter(r => r.name.includes('/v1/')).length",
+            )
             click_ref(sid, action_ref)
             time.sleep(1.0)
-            after_perf = eval_js(sid, "performance.getEntriesByType('resource').filter(r => r.name.includes('/v1/')).length")
+            after_perf = eval_js(
+                sid,
+                "performance.getEntriesByType('resource').filter(r => r.name.includes('/v1/')).length",
+            )
             print(f"  perf entries: {before_perf} → {after_perf}")
             if int(after_perf) <= int(before_perf):
                 failures.append(f"action {args.action} did not produce a /v1/ request")
@@ -172,7 +213,7 @@ def main() -> int:
         if toast_present != "true":
             failures.append("ToastContainer not in DOM (.toast-stack missing)")
         else:
-            print(f"✓ ToastContainer present in DOM")
+            print("✓ ToastContainer present in DOM")
 
         # 8. Verify no console errors / exceptions
         diag = diagnostics(sid)

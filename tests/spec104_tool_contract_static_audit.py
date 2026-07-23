@@ -8,7 +8,7 @@ Verifies that:
 
 Spec104 DOC-04 proof: static contract audit blocks missing fields.
 """
-import json
+
 import re
 import sys
 from pathlib import Path
@@ -64,8 +64,17 @@ def main() -> int:
 
     # Scope requirement kinds are valid. Dynamic preload factory kinds are
     # checked by TypeScript's FocusaScopeRequirement return type.
-    valid_kinds = {"none", "read", "write", "control", "public:health", "public:pairing"}
-    pattern = re.compile(r'["\']?scope_requirement["\']?\s*:\s*\{\s*["\']?kind["\']?\s*:\s*"([^"]+)"')
+    valid_kinds = {
+        "none",
+        "read",
+        "write",
+        "control",
+        "public:health",
+        "public:pairing",
+    }
+    pattern = re.compile(
+        r'["\']?scope_requirement["\']?\s*:\s*\{\s*["\']?kind["\']?\s*:\s*"([^"]+)"'
+    )
     kinds = pattern.findall(tc_src)
     invalid = [k for k in kinds if k not in valid_kinds]
     if invalid:

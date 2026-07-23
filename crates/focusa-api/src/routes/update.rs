@@ -190,9 +190,20 @@ async fn update_scheduler_set(Json(body): Json<UpdateSchedulerSetBody>) -> Json<
     let cli = std::env::var_os("FOCUSA_CLI_PATH")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("/usr/local/bin/focusa"));
-    let action = if body.enabled { "--install" } else { "--uninstall" };
+    let action = if body.enabled {
+        "--install"
+    } else {
+        "--uninstall"
+    };
     match Command::new(&cli)
-        .args(["update", "scheduler", action, "--channel", &body.channel, "--json"])
+        .args([
+            "update",
+            "scheduler",
+            action,
+            "--channel",
+            &body.channel,
+            "--json",
+        ])
         .output()
         .await
     {
@@ -244,11 +255,19 @@ fn refresh_update_policy_authority(policy: &mut UpdatePolicy) {
             .unwrap_or(false);
     match load_license_status() {
         Ok(status) => {
-            policy.license_level = if dev_override { "dev_mode".into() } else { status.tier };
+            policy.license_level = if dev_override {
+                "dev_mode".into()
+            } else {
+                status.tier
+            };
             policy.refresh_auto_apply_authority(&status.features, dev_override);
         }
         Err(_) => {
-            policy.license_level = if dev_override { "dev_mode".into() } else { "evaluation".into() };
+            policy.license_level = if dev_override {
+                "dev_mode".into()
+            } else {
+                "evaluation".into()
+            };
             policy.refresh_auto_apply_authority(&[], dev_override);
         }
     }
@@ -773,11 +792,10 @@ fn build_notifications_envelope(inventory: Value) -> Value {
         .iter()
         .filter_map(Value::as_str)
         .collect::<Vec<_>>();
-    let pi_restart = std::fs::read_to_string(
-        update_state_root().join("pi-extension-restart-required.json"),
-    )
-    .ok()
-    .and_then(|raw| serde_json::from_str::<Value>(&raw).ok());
+    let pi_restart =
+        std::fs::read_to_string(update_state_root().join("pi-extension-restart-required.json"))
+            .ok()
+            .and_then(|raw| serde_json::from_str::<Value>(&raw).ok());
     let severity = if !stale_names.is_empty() || pi_restart.is_some() {
         "warning"
     } else {
@@ -786,7 +804,10 @@ fn build_notifications_envelope(inventory: Value) -> Value {
     let body = if let Some(restart) = &pi_restart {
         format!(
             "Focusa Pi extension {} was updated; restart or /reload Pi to activate it.",
-            restart.get("version").and_then(Value::as_str).unwrap_or("unknown")
+            restart
+                .get("version")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown")
         )
     } else if stale_names.is_empty() {
         "Focusa surfaces are current or unknown; no update warning is required.".to_string()

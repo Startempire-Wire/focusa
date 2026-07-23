@@ -2477,16 +2477,14 @@ async fn use_project(
 ) -> Json<Value> {
     let root = body.project_root;
     match store_selected_project(root.trim(), body.selected_by, body.note) {
-        Ok(payload) => {
-            Json(json!({
-                "status":"ok",
-                "schema":"focusa.project_selection.v2",
-                "selected":payload,
-                "canonical_parent_root":root,
-                "active_worktree_root":body.active_worktree_root.unwrap_or_else(|| root.clone()),
-                "working_subpath_id":body.working_subpath_id.unwrap_or_else(|| "primary".to_string())
-            }))
-        }
+        Ok(payload) => Json(json!({
+            "status":"ok",
+            "schema":"focusa.project_selection.v2",
+            "selected":payload,
+            "canonical_parent_root":root,
+            "active_worktree_root":body.active_worktree_root.unwrap_or_else(|| root.clone()),
+            "working_subpath_id":body.working_subpath_id.unwrap_or_else(|| "primary".to_string())
+        })),
         Err(reason) => {
             Json(json!({"status":"blocked","failure_class":"invalid_selection","reason":reason}))
         }

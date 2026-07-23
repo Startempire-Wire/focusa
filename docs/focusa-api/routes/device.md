@@ -6,8 +6,6 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 
 ## `focusa.device_pair.start`
 
-
-
 - Method/path: `POST /v1/device/pair/start`
 - Family: `device`
 - Input schema: `focusa.device_pair_start.request.v1`
@@ -39,8 +37,6 @@ Failure classes: `focusa.operation_error.v1`.
 Use the structured error recovery field, preserve the original scope and idempotency key when retry-safe, and run the indicated doctor/verify capability before any authority-sensitive retry.
 
 ## `focusa.device_pair.status`
-
-
 
 - Method/path: `GET /v1/device/pair/status`
 - Family: `device`

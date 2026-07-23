@@ -5,6 +5,7 @@ The old auto-heal implementation was a passive audit mirror. Keep this filename
 for existing workflow callers, but route behavior to propose-system-fix.py so
 self-heal only writes thresholded system-fix rows and avoids noisy commits.
 """
+
 from __future__ import annotations
 
 import subprocess

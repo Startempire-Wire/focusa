@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import base64
-import hashlib
 import json
 import pathlib
 import subprocess
@@ -50,7 +49,9 @@ def main() -> int:
                     "trust": {
                         "key_id": "test-key",
                         "signing_algorithm": "ed25519",
-                        "public_key_fingerprint": hashlib.sha256(public_raw).hexdigest(),
+                        "public_key_fingerprint": hashlib.sha256(
+                            public_raw
+                        ).hexdigest(),
                         "public_key_base64": base64.b64encode(public_raw).decode(),
                         "revoked_at": None,
                     },
@@ -137,7 +138,9 @@ def main() -> int:
         assert failed.returncode != 0
         assert "checksum does not match" in failed.stderr
 
-    print("PASS: deploy-success metadata is release-bound, detached-signed, and tamper-evident")
+    print(
+        "PASS: deploy-success metadata is release-bound, detached-signed, and tamper-evident"
+    )
     return 0
 
 

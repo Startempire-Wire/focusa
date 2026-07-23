@@ -5,6 +5,7 @@ Preserves audit immutability: never rewrites historical `failure` rows.  `--appl
 appends one `addition` row per failure that lacks classifier metadata; readers can
 overlay those rows by `derived_from`.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -41,7 +42,17 @@ def load_rows(path: Path) -> list[dict]:
 
 def row_text(row: dict) -> str:
     parts = []
-    for key in ("category", "subsystem", "scope", "symptom", "root_cause", "fix", "guard", "test", "log_url"):
+    for key in (
+        "category",
+        "subsystem",
+        "scope",
+        "symptom",
+        "root_cause",
+        "fix",
+        "guard",
+        "test",
+        "log_url",
+    ):
         value = row.get(key)
         if value:
             parts.append(str(value))
@@ -59,7 +70,11 @@ def existing_backfills(rows: list[dict]) -> set[str]:
 
 
 def has_classifier(row: dict) -> bool:
-    return bool(row.get("classifier_schema") or row.get("failure_class") or row.get("retry_policy"))
+    return bool(
+        row.get("classifier_schema")
+        or row.get("failure_class")
+        or row.get("retry_policy")
+    )
 
 
 def source_refs(row: dict) -> list[str]:
@@ -71,7 +86,9 @@ def source_refs(row: dict) -> list[str]:
     refs: list[str] = []
     for key in ("scope", "guard", "test"):
         item = row.get(key)
-        if isinstance(item, str) and ("/" in item or item.endswith((".py", ".rs", ".yml", ".sh"))):
+        if isinstance(item, str) and (
+            "/" in item or item.endswith((".py", ".rs", ".yml", ".sh"))
+        ):
             refs.append(item)
     return list(dict.fromkeys(refs))[:5]
 
@@ -92,7 +109,9 @@ def infer(row: dict) -> dict:
         safe = False
         remediation = "Patch clippy violations; do not rerun unchanged CI."
         signals.append("clippy")
-    elif re.search(r"\b(test|tests)\b", text) and ("fail" in text or "panicked" in text):
+    elif re.search(r"\b(test|tests)\b", text) and (
+        "fail" in text or "panicked" in text
+    ):
         cls = "ci_test_failure"
         retry = "hard_failure_no_rerun"
         deterministic = True
@@ -106,14 +125,30 @@ def infer(row: dict) -> dict:
         safe = False
         remediation = "Patch Rust API/build drift; do not rerun unchanged CI."
         signals.append("rust_compile")
-    elif "deploy_health" in text or "/v1/health" in text or "health" in text and "deploy" in text:
+    elif (
+        "deploy_health" in text
+        or "/v1/health" in text
+        or "health" in text
+        and "deploy" in text
+    ):
         cls = "deploy_health_failure"
         retry = "rerun_once"
         deterministic = False
         safe = True
         remediation = "Retry deploy once; if repeated, inspect daemon journal and deploy health logs."
         signals.append("deploy_health")
-    elif any(token in text for token in ("github", "network", "timeout", "5xx", "artifact", "upload", "rate limit")):
+    elif any(
+        token in text
+        for token in (
+            "github",
+            "network",
+            "timeout",
+            "5xx",
+            "artifact",
+            "upload",
+            "rate limit",
+        )
+    ):
         cls = "transient_github_or_network_failure"
         retry = "rerun_once"
         deterministic = False
@@ -212,7 +247,9 @@ def main(argv: list[str]) -> int:
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:
-        print(f"audit classifier backfill: {payload['mode']} candidates={len(additions)} appended={payload['append_count']}")
+        print(
+            f"audit classifier backfill: {payload['mode']} candidates={len(additions)} appended={payload['append_count']}"
+        )
         for cls, count in sorted(payload["failure_classes"].items()):
             print(f"  - {cls}: {count}")
     return 0

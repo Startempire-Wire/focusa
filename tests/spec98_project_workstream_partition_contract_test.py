@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Spec98/99 Phase B: ProjectRootKey + WorkstreamKey partition contract validation."""
+
 from pathlib import Path
 import sys
 import yaml
@@ -42,7 +43,12 @@ def main() -> None:
     if session.get("authority_role") != "correlation_only":
         fail("SessionKey must be correlation_only")
     partitions = require(data, "state_partitions", "root")
-    for name in ["project_registry", "workstream_state", "project_timeline", "runtime_session_cache"]:
+    for name in [
+        "project_registry",
+        "workstream_state",
+        "project_timeline",
+        "runtime_session_cache",
+    ]:
         require(partitions, name, "state_partitions")
     if partitions["workstream_state"].get("key") != "ProjectRootKey + WorkstreamKey":
         fail("workstream_state must be keyed by ProjectRootKey + WorkstreamKey")
@@ -56,7 +62,12 @@ def main() -> None:
     for surface in ["daemon", "api", "cli", "pi_extension", "menubar", "uiai"]:
         require(surfaces, surface, "surface_requirements")
     proofs = set(require(data, "proof_requirements", "root"))
-    for proof in ["two-project bleed test", "same-root multi-session timeline test", "ambiguous cwd degradation test", "session_id_not_authority test"]:
+    for proof in [
+        "two-project bleed test",
+        "same-root multi-session timeline test",
+        "ambiguous cwd degradation test",
+        "session_id_not_authority test",
+    ]:
         if proof not in proofs:
             fail(f"proof_requirements missing {proof}")
     print("✓ PASS: ProjectRootKey/WorkstreamKey partition contract is valid")

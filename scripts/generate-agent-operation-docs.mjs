@@ -65,7 +65,7 @@ for (const [docRef, operations] of [...groups.entries()].sort()) {
       '',
     );
   }
-  const body = `${lines.join('\n').trimEnd()}\n`;
+  const body = `${lines.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()}\n`;
   const outputPath = path.join(root, docRef);
   const current = fs.existsSync(outputPath) ? fs.readFileSync(outputPath, 'utf8') : null;
   if (current !== body) {

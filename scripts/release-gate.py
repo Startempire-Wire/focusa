@@ -5,6 +5,7 @@ Goal: CI can run often, but full tag/build/deploy should wait until there is
 significant app/runtime/release-system delta, a scheduled release window, or an
 explicit operator override with a reason.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -141,7 +142,13 @@ def capped_score(scored: list[ScoredPath]) -> tuple[int, dict[str, int]]:
 def release_window_status(now: datetime) -> tuple[bool, str]:
     tz = ZoneInfo("America/Los_Angeles")
     local = now.astimezone(tz)
-    windows = tuple(w.strip() for w in os.environ.get("FOCUSA_RELEASE_WINDOWS_PT", ",".join(DEFAULT_WINDOWS_PT)).split(",") if w.strip())
+    windows = tuple(
+        w.strip()
+        for w in os.environ.get(
+            "FOCUSA_RELEASE_WINDOWS_PT", ",".join(DEFAULT_WINDOWS_PT)
+        ).split(",")
+        if w.strip()
+    )
     best = None
     for window in windows:
         hour, minute = [int(part) for part in window.split(":", 1)]
@@ -150,19 +157,28 @@ def release_window_status(now: datetime) -> tuple[bool, str]:
         if best is None or delta < best[0]:
             best = (delta, window)
     if best and best[0] <= WINDOW_TOLERANCE_MINUTES:
-        return True, f"inside scheduled release window {best[1]} PT (+/- {WINDOW_TOLERANCE_MINUTES}m)"
+        return (
+            True,
+            f"inside scheduled release window {best[1]} PT (+/- {WINDOW_TOLERANCE_MINUTES}m)",
+        )
     return False, f"outside scheduled release windows {', '.join(windows)} PT"
 
 
-def evaluate(paths: list[str], since_tag: str | None, now: datetime) -> dict[str, object]:
+def evaluate(
+    paths: list[str], since_tag: str | None, now: datetime
+) -> dict[str, object]:
     scored = [score_path(p) for p in paths]
     total, by_category = capped_score(scored)
     last_time = tag_time(since_tag)
     age_hours = None
     if last_time:
-        age_hours = max(0.0, (now - last_time.astimezone(timezone.utc)).total_seconds() / 3600)
+        age_hours = max(
+            0.0, (now - last_time.astimezone(timezone.utc)).total_seconds() / 3600
+        )
     in_window, window_reason = release_window_status(now)
-    has_critical = any(item.category == "critical_security_install_signing_checksum" for item in scored)
+    has_critical = any(
+        item.category == "critical_security_install_signing_checksum" for item in scored
+    )
 
     allowed_reason = None
     if has_critical and total >= 10:
@@ -180,7 +196,7 @@ def evaluate(paths: list[str], since_tag: str | None, now: datetime) -> dict[str
         plain_error = (
             "Blocked: not enough significant app delta since last release. "
             "Batch more app/runtime/release-system changes, wait for a release window, "
-            "or use --force-release --release-reason \"...\"."
+            'or use --force-release --release-reason "...".'
         )
 
     return {
@@ -207,7 +223,9 @@ def evaluate(paths: list[str], since_tag: str | None, now: datetime) -> dict[str
 
 
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(description="Gate expensive Focusa release builds by significant delta.")
+    parser = argparse.ArgumentParser(
+        description="Gate expensive Focusa release builds by significant delta."
+    )
     parser.add_argument("--json", action="store_true", help="emit JSON only")
     parser.add_argument("--since-tag", help="override base tag")
     args = parser.parse_args(argv)
@@ -219,7 +237,9 @@ def main(argv: list[str]) -> int:
         print(json.dumps(result, indent=2, sort_keys=True))
     else:
         print(f"release_gate_allowed={str(result['allowed']).lower()}")
-        print(f"score={result['score']} changed_paths={result['changed_path_count']} since_tag={result['since_tag']}")
+        print(
+            f"score={result['score']} changed_paths={result['changed_path_count']} since_tag={result['since_tag']}"
+        )
         print(f"release_window={result['release_window']['reason']}")
         if result["allowed"]:
             print(f"reason={result['allowed_reason']}")

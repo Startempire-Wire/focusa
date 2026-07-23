@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Spec98 / focusa-877z.8.5 policy profile registry + override audit guard."""
+
 from pathlib import Path
 import json
 import sys
@@ -11,7 +12,15 @@ WORKSHEET = ROOT / "docs/worksheets/focusa-877z.17-policy-profiles-defaults.yaml
 TAXONOMY = ROOT / "docs/worksheets/focusa-877z.8-authority-taxonomy.yaml"
 SUITE = ROOT / "tests/spec98_runtime_bleed_crdt_regression_suite.sh"
 
-REQUIRED_PROFILES = {"safe_default", "builder", "audit_strict", "lowmem", "browser_debug", "headless_ci", "demo_noncanonical"}
+REQUIRED_PROFILES = {
+    "safe_default",
+    "builder",
+    "audit_strict",
+    "lowmem",
+    "browser_debug",
+    "headless_ci",
+    "demo_noncanonical",
+}
 REQUIRED_OVERRIDE_FIELDS = {
     "profile_id",
     "override_source",
@@ -58,13 +67,25 @@ def main() -> None:
         fail("registry profile ids drift from worksheet")
 
     for profile_id, profile in profiles.items():
-        for field in ["intended_use", "default_classification", "override_allowed", "enforcement"]:
+        for field in [
+            "intended_use",
+            "default_classification",
+            "override_allowed",
+            "enforcement",
+        ]:
             if profile.get(field) in (None, "", []):
                 fail(f"profile {profile_id} missing {field}")
-        if profile.get("override_allowed") is True and not profile.get("override_requirement"):
+        if profile.get("override_allowed") is True and not profile.get(
+            "override_requirement"
+        ):
             fail(f"profile {profile_id} allows override without requirement")
-        if profile.get("override_allowed") is False and "override_requirement" in profile:
-            fail(f"profile {profile_id} should not advertise override requirement when overrides are forbidden")
+        if (
+            profile.get("override_allowed") is False
+            and "override_requirement" in profile
+        ):
+            fail(
+                f"profile {profile_id} should not advertise override requirement when overrides are forbidden"
+            )
 
     audit = registry.get("override_audit_schema") or {}
     fields = set(audit.get("required_fields") or [])
@@ -74,13 +95,17 @@ def main() -> None:
     forbidden = set(audit.get("forbidden_override_effects") or [])
     missing_forbidden = REQUIRED_FORBIDDEN - forbidden
     if missing_forbidden:
-        fail(f"override audit schema missing forbidden effects: {sorted(missing_forbidden)}")
+        fail(
+            f"override audit schema missing forbidden effects: {sorted(missing_forbidden)}"
+        )
 
     template = audit.get("audit_record_template") or {}
     template_missing = REQUIRED_OVERRIDE_FIELDS - set(template)
     if template_missing:
         fail(f"audit record template missing fields: {sorted(template_missing)}")
-    if not template.get("rollback_or_default_restore_path") or "safe_default" not in template.get("rollback_or_default_restore_path", ""):
+    if not template.get(
+        "rollback_or_default_restore_path"
+    ) or "safe_default" not in template.get("rollback_or_default_restore_path", ""):
         fail("audit template rollback path must name safe_default")
     if not template.get("proof_command_or_manual_acceptance_gate"):
         fail("audit template must include proof command or manual acceptance gate")
@@ -99,7 +124,10 @@ def main() -> None:
     taxonomy_profiles = set((taxonomy.get("default_profiles") or {}).keys())
     if REQUIRED_PROFILES - taxonomy_profiles:
         fail("taxonomy default_profiles missing registry ids")
-    if not any((item.get("id") == "policy_profiles.registry" and item.get("proof_commands")) for item in taxonomy.get("items") or []):
+    if not any(
+        (item.get("id") == "policy_profiles.registry" and item.get("proof_commands"))
+        for item in taxonomy.get("items") or []
+    ):
         fail("taxonomy policy_profiles.registry item lacks proof_commands")
 
     for command in [
@@ -110,7 +138,10 @@ def main() -> None:
         if command not in registry_text:
             fail(f"registry proof_commands missing {command}")
 
-    if "tests/spec98_policy_profile_registry_impl_static_test.py" not in SUITE.read_text():
+    if (
+        "tests/spec98_policy_profile_registry_impl_static_test.py"
+        not in SUITE.read_text()
+    ):
         fail("Spec98 suite does not run policy profile registry implementation guard")
 
     print("✓ PASS: Spec98 policy profile registry and override audit ok")

@@ -6,8 +6,6 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 
 ## `focusa.dxux.report`
 
-
-
 - Method/path: `GET /v1/dxux/report`
 - Family: `dxux`
 - Input schema: `focusa.dxux_report.request.v1`

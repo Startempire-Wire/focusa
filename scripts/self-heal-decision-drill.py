@@ -5,6 +5,7 @@ This is a dry-run proof harness: it uses classifier fixtures to exercise the
 same classifier/audit/summary path as release self-heal, but writes only to a
 temporary audit ledger unless --audit is explicitly supplied.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -60,7 +61,10 @@ def decision_for(classification: dict) -> dict:
 
 
 def fixture_names(selected: str) -> list[str]:
-    names = sorted(path.name.removesuffix(".expected.json") for path in FIXTURES.glob("*.expected.json"))
+    names = sorted(
+        path.name.removesuffix(".expected.json")
+        for path in FIXTURES.glob("*.expected.json")
+    )
     if selected == "all":
         return names
     if selected not in names:
@@ -84,7 +88,13 @@ def record_failure(audit_path: Path, fixture_name: str, log_path: Path) -> None:
             "TS": "2026-07-05T00:00:00Z",
         }
     )
-    subprocess.run([sys.executable, str(RECORDER)], cwd=ROOT, env=env, check=True, stdout=subprocess.DEVNULL)
+    subprocess.run(
+        [sys.executable, str(RECORDER)],
+        cwd=ROOT,
+        env=env,
+        check=True,
+        stdout=subprocess.DEVNULL,
+    )
 
 
 def load_jsonl(path: Path) -> list[dict]:
@@ -112,11 +122,17 @@ def run_summary(audit_path: Path) -> str:
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fixture", default="all", help="Fixture name or 'all'")
-    parser.add_argument("--audit", help="Optional audit JSONL output path; defaults to temp file")
+    parser.add_argument(
+        "--audit", help="Optional audit JSONL output path; defaults to temp file"
+    )
     parser.add_argument("--json", action="store_true", help="Emit JSON drill report")
     args = parser.parse_args(argv)
 
-    audit_path = Path(args.audit) if args.audit else Path(tempfile.mkdtemp(prefix="focusa-self-heal-drill-")) / "audit.jsonl"
+    audit_path = (
+        Path(args.audit)
+        if args.audit
+        else Path(tempfile.mkdtemp(prefix="focusa-self-heal-drill-")) / "audit.jsonl"
+    )
     names = fixture_names(args.fixture)
     cases: list[dict] = []
     for name in names:
@@ -124,14 +140,30 @@ def main(argv: list[str]) -> int:
         expected_path = FIXTURES / f"{name}.expected.json"
         expected = json.loads(expected_path.read_text())
         classification = classify(log_path)
-        for key in ("failure_class", "retry_policy", "deterministic", "source_refs", "signals", "remediation_template"):
+        for key in (
+            "failure_class",
+            "retry_policy",
+            "deterministic",
+            "source_refs",
+            "signals",
+            "remediation_template",
+        ):
             if classification.get(key) != expected.get(key):
-                raise SystemExit(f"{name}: classifier {key} drifted: {classification.get(key)!r} != {expected.get(key)!r}")
+                raise SystemExit(
+                    f"{name}: classifier {key} drifted: {classification.get(key)!r} != {expected.get(key)!r}"
+                )
         decision = decision_for(classification)
         record_failure(audit_path, name, log_path)
-        cases.append({"fixture": name, "classification": classification, "decision": decision})
+        cases.append(
+            {"fixture": name, "classification": classification, "decision": decision}
+        )
 
-    subprocess.run([sys.executable, str(AUTO_HEAL), str(audit_path)], cwd=ROOT, check=True, stdout=subprocess.DEVNULL)
+    subprocess.run(
+        [sys.executable, str(AUTO_HEAL), str(audit_path)],
+        cwd=ROOT,
+        check=True,
+        stdout=subprocess.DEVNULL,
+    )
     rows = load_jsonl(audit_path)
     failures = [row for row in rows if row.get("event") == "failure"]
     heals = [row for row in rows if row.get("event") == "self_heal"]

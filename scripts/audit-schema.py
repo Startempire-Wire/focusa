@@ -203,7 +203,9 @@ def _row_kind(row: dict[str, Any]) -> str | None:
     return None
 
 
-def _validate_required(row: dict[str, Any], required: set[str], path: str, ln: int) -> list[str]:
+def _validate_required(
+    row: dict[str, Any], required: set[str], path: str, ln: int
+) -> list[str]:
     missing = sorted(required - set(row.keys()))
     if missing:
         return [f"{path}:{ln}: missing fields {missing}"]
@@ -223,26 +225,36 @@ def validate(path: str) -> int:
         if kind == "failure":
             errors.extend(_validate_required(row, REQUIRED_FAILURE, path, ln))
             if row.get("category") not in VALID_CATEGORIES:
-                errors.append(f"{path}:{ln}: category '{row.get('category')}' not in canonical set")
+                errors.append(
+                    f"{path}:{ln}: category '{row.get('category')}' not in canonical set"
+                )
         elif kind == "addition":
             errors.extend(_validate_required(row, REQUIRED_ADDITION, path, ln))
         elif kind == "self_heal":
             if "fail_count_30d" not in row and row.get("auto_generated") is True:
-                errors.extend(_validate_required(row, REQUIRED_LEGACY_SELF_HEAL, path, ln))
+                errors.extend(
+                    _validate_required(row, REQUIRED_LEGACY_SELF_HEAL, path, ln)
+                )
             else:
                 errors.extend(_validate_required(row, REQUIRED_SELF_HEAL, path, ln))
                 deliverable = row.get("deliverable")
                 if deliverable is not None:
                     if not isinstance(deliverable, dict):
-                        errors.append(f"{path}:{ln}: self_heal deliverable must be object or null")
+                        errors.append(
+                            f"{path}:{ln}: self_heal deliverable must be object or null"
+                        )
                     else:
                         for key in ("type", "ref", "change_summary"):
                             if not deliverable.get(key):
-                                errors.append(f"{path}:{ln}: self_heal deliverable missing {key}")
+                                errors.append(
+                                    f"{path}:{ln}: self_heal deliverable missing {key}"
+                                )
         elif kind == "intervention_rate":
             errors.extend(_validate_required(row, REQUIRED_INTERVENTION_RATE, path, ln))
         if row.get("subsystem") and row["subsystem"] not in VALID_SUBSYSTEMS:
-            errors.append(f"{path}:{ln}: subsystem '{row['subsystem']}' not in canonical set")
+            errors.append(
+                f"{path}:{ln}: subsystem '{row['subsystem']}' not in canonical set"
+            )
         rid = row.get("id")
         if rid is not None:
             if rid in seen_ids:
@@ -400,7 +412,8 @@ def spec104_audit(path: str) -> int:
     """Run Spec 104 static surface audit and record results as audit addition rows."""
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     try:
-        from tests.spec104_deep_focusa_surface_sweep import static_audit, results as sweep_results, warnings
+        from tests.spec104_deep_focusa_surface_sweep import static_audit, warnings
+
         static_audit()
     except Exception as e:
         print(f"Spec104 static audit execution failed: {e}")
@@ -410,7 +423,9 @@ def spec104_audit(path: str) -> int:
     missing_routes = sum(1 for w in warnings if w["kind"] == "uncatalogued_route")
     missing_cmds = sum(1 for w in warnings if w["kind"] == "uncatalogued_cli_command")
 
-    addition_id = f"add-spec104-static-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}"
+    addition_id = (
+        f"add-spec104-static-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}"
+    )
     addition_row = {
         "id": addition_id,
         "ts": f"{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}",
@@ -439,7 +454,9 @@ def spec104_audit(path: str) -> int:
             f.write(json.dumps(row, sort_keys=True) + "\n")
 
     print(f"Spec104 audit recorded: {addition_id}")
-    print(f"  new_globals={new_globals} missing_routes={missing_routes} missing_cmds={missing_cmds}")
+    print(
+        f"  new_globals={new_globals} missing_routes={missing_routes} missing_cmds={missing_cmds}"
+    )
     if new_globals > 0:
         print(f"WARNING: {new_globals} new authority-bearing singleton(s) detected!")
         return 1
@@ -447,7 +464,9 @@ def spec104_audit(path: str) -> int:
 
 
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     sub = parser.add_subparsers(dest="cmd", required=True)
     p_val = sub.add_parser("validate", help="validate rows against canonical schema")
     p_val.add_argument("path")
@@ -455,7 +474,9 @@ def main(argv: list[str]) -> int:
     p_mig.add_argument("path")
     p_st = sub.add_parser("stats", help="print row counts")
     p_st.add_argument("path")
-    p_s104 = sub.add_parser("spec104", help="run Spec104 static audit and record in audit.jsonl")
+    p_s104 = sub.add_parser(
+        "spec104", help="run Spec104 static audit and record in audit.jsonl"
+    )
     p_s104.add_argument("path", nargs="?", default="release-proof/audit/audit.jsonl")
     args = parser.parse_args(argv)
     if args.cmd == "validate":

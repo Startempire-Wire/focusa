@@ -6,8 +6,6 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 
 ## `focusa.license.validate`
 
-
-
 - Method/path: `POST /v1/license/validate`
 - Family: `license`
 - Input schema: `focusa.license_validate.request.v1`

@@ -6,8 +6,6 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 
 ## `focusa.health.check`
 
-
-
 - Method/path: `GET /v1/health`
 - Family: `health`
 - Input schema: `focusa.health.request.v1`

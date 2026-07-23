@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """focusa-4jo5 utility-card/bootstrap static audit."""
+
 import json
 import sys
 from pathlib import Path
@@ -18,17 +19,55 @@ def read(rel: str) -> str:
 
 def main() -> None:
     core = read("crates/focusa-core/src/utility_card.rs")
-    for token in ["UtilityCard", "utility_card", "authority_boundary", "usefulness_bar", "bootstrap_card", "post_compaction_card", "exact_next_actions", "do_not_drift", "evidence_policy", "brevity_rules", "proof_commands"]:
+    for token in [
+        "UtilityCard",
+        "utility_card",
+        "authority_boundary",
+        "usefulness_bar",
+        "bootstrap_card",
+        "post_compaction_card",
+        "exact_next_actions",
+        "do_not_drift",
+        "evidence_policy",
+        "brevity_rules",
+        "proof_commands",
+    ]:
         if token not in core:
             fail(f"core missing {token}")
 
-    api = read("crates/focusa-api/src/routes/utility.rs") + read("crates/focusa-api/src/routes/agent_reminder.rs") + read("crates/focusa-api/src/routes/mod.rs") + read("crates/focusa-api/src/server.rs")
-    for token in ["/v1/utility/card", "/v1/utility/bootstrap", "/v1/utility/post-compaction", "authority_boundary", "exact_next_actions", "utility_card", "routes::utility::router()", "pub mod utility"]:
+    api = (
+        read("crates/focusa-api/src/routes/utility.rs")
+        + read("crates/focusa-api/src/routes/agent_reminder.rs")
+        + read("crates/focusa-api/src/routes/mod.rs")
+        + read("crates/focusa-api/src/server.rs")
+    )
+    for token in [
+        "/v1/utility/card",
+        "/v1/utility/bootstrap",
+        "/v1/utility/post-compaction",
+        "authority_boundary",
+        "exact_next_actions",
+        "utility_card",
+        "routes::utility::router()",
+        "pub mod utility",
+    ]:
         if token not in api:
             fail(f"api missing {token}")
 
-    cli = read("crates/focusa-cli/src/main.rs") + read("crates/focusa-cli/src/commands/utility.rs") + read("crates/focusa-cli/src/commands/mod.rs")
-    for token in ["Utility", "UtilityCmd", "focusa utility card", "PostCompaction", "authority_boundary", "exact_next_actions", "/v1/utility/card"]:
+    cli = (
+        read("crates/focusa-cli/src/main.rs")
+        + read("crates/focusa-cli/src/commands/utility.rs")
+        + read("crates/focusa-cli/src/commands/mod.rs")
+    )
+    for token in [
+        "Utility",
+        "UtilityCmd",
+        "focusa utility card",
+        "PostCompaction",
+        "authority_boundary",
+        "exact_next_actions",
+        "/v1/utility/card",
+    ]:
         if token not in cli:
             fail(f"cli missing {token}")
 
@@ -51,7 +90,9 @@ def main() -> None:
     if not (ROOT / "docs/focusa-tools/tools/focusa_utility_card.md").exists():
         fail("missing utility card doc")
 
-    print("✓ PASS: utility/bootstrap/post-compaction card wired across core/api/cli/pi-contracts/docs")
+    print(
+        "✓ PASS: utility/bootstrap/post-compaction card wired across core/api/cli/pi-contracts/docs"
+    )
 
 
 if __name__ == "__main__":

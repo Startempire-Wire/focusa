@@ -6,8 +6,6 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 
 ## `focusa.tool_doctor`
 
-
-
 - Method/path: `GET /v1/tool-doctor`
 - Family: `diagnostics`
 - Input schema: `focusa.tool_doctor.request.v1`

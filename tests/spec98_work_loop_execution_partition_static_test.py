@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Spec98/99 Phase C: Work-loop execution state exposes work-item/writer partition contract."""
+
 from pathlib import Path
 import re
 import sys
@@ -31,7 +32,7 @@ def function_body(text: str, name: str) -> str:
         elif text[i] == "}":
             depth -= 1
             if depth == 0:
-                return text[brace + 1:i]
+                return text[brace + 1 : i]
     fail(f"function body unterminated: {name}")
     return ""
 
@@ -48,7 +49,7 @@ def main() -> None:
             fail(f"partition_keys missing {key}")
 
     text = WORK_LOOP.read_text()
-    if "const WRITER_HEADER: &str = \"x-focusa-writer-id\";" not in text:
+    if 'const WRITER_HEADER: &str = "x-focusa-writer-id";' not in text:
         fail("writer header constant missing")
     if "fn work_loop_execution_partition_payload" not in text:
         fail("execution partition payload helper missing")
@@ -63,10 +64,20 @@ def main() -> None:
     ]:
         if required not in helper:
             fail(f"execution partition payload missing {required}")
-    if not re.search(r"wl\s*\.current_task\s*\.as_ref\(\)\s*\.map\(\|task\|\s*task\.work_item_id\.clone\(\)\)", helper):
-        fail("execution partition must derive WorkItemKey from current_task.work_item_id")
-    if "legacy_active_writer_global\": true" in helper or "pending_route_scope" in helper:
-        fail("execution partition must not retain legacy global writer or pending route scope")
+    if not re.search(
+        r"wl\s*\.current_task\s*\.as_ref\(\)\s*\.map\(\|task\|\s*task\.work_item_id\.clone\(\)\)",
+        helper,
+    ):
+        fail(
+            "execution partition must derive WorkItemKey from current_task.work_item_id"
+        )
+    if (
+        'legacy_active_writer_global": true' in helper
+        or "pending_route_scope" in helper
+    ):
+        fail(
+            "execution partition must not retain legacy global writer or pending route scope"
+        )
 
     for route in ["health", "status", "status_deep"]:
         body = function_body(text, route)
@@ -87,7 +98,11 @@ def main() -> None:
     if "pub active_writer: Arc<TokioRwLock<Option<String>>>" in server:
         fail("legacy daemon-global active_writer storage must be removed")
     proofs = set(data.get("proof_requirements") or [])
-    for proof in ["static Work-loop contract validation", "static status renders execution_partition", "static writer claim functions remain mutation gates"]:
+    for proof in [
+        "static Work-loop contract validation",
+        "static status renders execution_partition",
+        "static writer claim functions remain mutation gates",
+    ]:
         if proof not in proofs:
             fail(f"contract missing proof requirement: {proof}")
     print("✓ PASS: Work-loop execution partition contract/status guard is present")

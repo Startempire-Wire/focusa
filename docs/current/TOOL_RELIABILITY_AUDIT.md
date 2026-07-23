@@ -21,7 +21,7 @@ This audit is read-only for daemon/API probes. It validates every registered too
 ## Confirmed failurepoints from this session
 
 | Failurepoint | Evidence | Repair path |
-|---|---|---|
+| --- | --- | --- |
 | daemon OOM/restart | kernel log: `OOM killed process ... focusa-daemon ... anon-rss≈1072644kB`; systemd restarted daemon | add memory caps, bounded hot routes, cached last-known-good fallbacks, and memory-pressure diagnostics |
 | full/cold routes can hang | `/v1/telemetry/memory` timed out under pressure | keep hot readiness separate from telemetry/deep diagnostics; make cold routes bounded/degraded |
 | stale frame writes | daemon reducer logged `FocusStateUpdated for <old frame> but active is <new frame>` | refresh Pi frame identity before Focus State writes; recover stale frame and retry once |
@@ -60,7 +60,6 @@ Focusa operating principle: **low memory = still reliable; high memory = opportu
 - If daemon RSS/store pressure is high, tools should return `resource_exhausted` with recovery guidance rather than bare `null`/`unknown`.
 - `focusa_scratch` is last-resort fallback; preferred recovery is cached project-bound Focusa summaries plus clear failure classes.
 
-
 ## Latest all-tools implementation/spec audit
 
 - Contracts: passed (`tools=62`, `contracts=62`).
@@ -69,6 +68,5 @@ Focusa operating principle: **low memory = still reliable; high memory = opportu
 - Live probes: hot/safe endpoints and Spec97 reflex dogfood passed with no failures in the safe suite; stale runtime registry can appear until daemon rebuild/restart reloads embedded registry.
 - Safe audit skips cold `GET /v1/lineage/tree` by default for low-memory reliability; set `FOCUSA_AUDIT_INCLUDE_COLD_GET=1` for explicit cold-route probing.
 - Evidence: `/tmp/focusa-tool-implementation-spec-audit.json`, `/tmp/focusa-tool-suite-safe-audit-final.json`, `/tmp/focusa-cli-parity-smoke.log`, `/tmp/focusa-tool-contracts-live-smoke.json`, `/tmp/focusa-tool-stress-smoke.log`.
-
 
 - Evidence capture/link wrappers degrade instead of dead-ending when trajectory clarity is temporarily unavailable from hot/cold timeout or resource pressure: they tell the model why linking is blocked, preserve the proof handle in the response, mark it `proof_preserved_not_linked`, and route to Workpoint checkpoint/resume before retry.

@@ -13,7 +13,9 @@ def load(name):
 
 
 def main():
-    capabilities = (R / "crates/focusa-api/src/routes/agent_capabilities.rs").read_text()
+    capabilities = (
+        R / "crates/focusa-api/src/routes/agent_capabilities.rs"
+    ).read_text()
     route = (R / "crates/focusa-api/src/routes/mission_canvas_surfaces.rs").read_text()
     types = (R / "crates/focusa-core/src/types.rs").read_text()
     reducer = (R / "crates/focusa-core/src/reducer.rs").read_text()
@@ -65,8 +67,14 @@ def main():
     actions = load("ui-action-bindings.fixture.json")
     action_ids = {row["action_id"] for row in actions["bindings"]}
     assert set(operations).issubset(action_ids)
-    assert "surface_binding_list" in (R / "packages/generated/spec135/typescript/schema.d.ts").read_text()
-    assert "MissionCanvasSurfaceBinding" in (R / "packages/generated/spec135/go/client.gen.go").read_text()
+    assert (
+        "surface_binding_list"
+        in (R / "packages/generated/spec135/typescript/schema.d.ts").read_text()
+    )
+    assert (
+        "MissionCanvasSurfaceBinding"
+        in (R / "packages/generated/spec135/go/client.gen.go").read_text()
+    )
     print("Spec 135 M4 exact attachment-scoped Work Surface binding lint: PASS")
 
 

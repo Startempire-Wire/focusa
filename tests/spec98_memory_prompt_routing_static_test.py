@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Spec98 focusa-877z.2: memory maintenance and prompt-state routing guard."""
+
 from pathlib import Path
 import sys
 import yaml
@@ -22,7 +23,10 @@ def main() -> None:
     data = yaml.safe_load(CONTRACT.read_text())
     if data.get("schema_version") != "focusa.memory_prompt_routing_contract.v1":
         fail("unexpected .2 contract schema")
-    if data.get("status") != "semantic_cleanup_event_routed_and_prompt_buffers_runtime_action_routed":
+    if (
+        data.get("status")
+        != "semantic_cleanup_event_routed_and_prompt_buffers_runtime_action_routed"
+    ):
         fail("unexpected .2 contract status")
 
     types = TYPES.read_text()
@@ -46,10 +50,15 @@ def main() -> None:
         fail("reducer must handle SemanticMemoryContradictionsResolved")
     if "resolve_contradictions(&mut state.memory)" not in reducer:
         fail("semantic contradiction cleanup must be reducer-backed")
-    if "semantic::resolve_contradictions" in proxy or "resolve_contradictions(&mut focusa.memory)" in proxy:
+    if (
+        "semantic::resolve_contradictions" in proxy
+        or "resolve_contradictions(&mut focusa.memory)" in proxy
+    ):
         fail("proxy.rs must not directly mutate semantic memory contradiction cleanup")
     if "Action::ResolveSemanticContradictions" not in proxy:
-        fail("proxy.rs must dispatch semantic cleanup through Action::ResolveSemanticContradictions")
+        fail(
+            "proxy.rs must dispatch semantic cleanup through Action::ResolveSemanticContradictions"
+        )
 
     for route_name, text in [("turn.rs", turn), ("proxy.rs", proxy)]:
         if "Action::UpdateActiveTurnRuntime" not in text:
@@ -58,7 +67,9 @@ def main() -> None:
             if forbidden in text:
                 fail(f"{route_name} directly mutates prompt buffer: {forbidden}")
 
-    print("✓ PASS: memory maintenance is reducer-routed and prompt buffers remain runtime action-routed")
+    print(
+        "✓ PASS: memory maintenance is reducer-routed and prompt buffers remain runtime action-routed"
+    )
 
 
 if __name__ == "__main__":

@@ -3112,7 +3112,9 @@ export async function buildFocusaSessionIdentity(
     projectIdentity?.canonical_parent_root || projectIdentity?.project_root || projectRoot
   );
   const activeWorktreeRoot = normalizeProjectRoot(
-    projectIdentity?.active_worktree_root || projectIdentity?.working_context?.active_worktree_root || cwdForIdentity
+    projectIdentity?.active_worktree_root ||
+      projectIdentity?.working_context?.active_worktree_root ||
+      cwdForIdentity
   );
   const workingSubpath = projectIdentity?.working_context?.working_subpath || null;
   const workingSubpathId = String(workingSubpath?.working_subpath_id || "primary").trim();

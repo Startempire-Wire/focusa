@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Spec98 / focusa-877z.16 visual workflow exact-handle and scope semantics guard."""
+
 from pathlib import Path
 import sys
 
@@ -25,8 +26,16 @@ def main() -> None:
     commands = COMMANDS.read_text()
     runtime = RUNTIME.read_text()
 
-    body = visual[visual.find("struct StoreVisualEvidenceBody"):visual.find("impl StoreVisualEvidenceBody")]
-    for needle in ["project_root: Option<String>", "continuity_id: Option<String>", "workpoint_id: Option<String>"]:
+    body = visual[
+        visual.find("struct StoreVisualEvidenceBody") : visual.find(
+            "impl StoreVisualEvidenceBody"
+        )
+    ]
+    for needle in [
+        "project_root: Option<String>",
+        "continuity_id: Option<String>",
+        "workpoint_id: Option<String>",
+    ]:
         require(body, needle, "visual store body scope field")
 
     for needle in [
@@ -46,10 +55,18 @@ def main() -> None:
     if ".find(|h| h.label ==" in visual:
         fail("visual route must not poll newly-created handles by label")
 
-    payload = commands[commands.find("struct VisualEvidencePayload"):commands.find("impl VisualEvidencePayload")]
+    payload = commands[
+        commands.find("struct VisualEvidencePayload") : commands.find(
+            "impl VisualEvidencePayload"
+        )
+    ]
     for needle in ["project_root: Option<String>", "continuity_id: Option<String>"]:
         require(payload, needle, "visual command payload scope field")
-    command_dispatch = commands[commands.find('"visual.register_reference_artifacts"'):commands.find('"instances.connect"')]
+    command_dispatch = commands[
+        commands.find('"visual.register_reference_artifacts"') : commands.find(
+            '"instances.connect"'
+        )
+    ]
     for needle in ["project_root: p.project_root", "continuity_id: p.continuity_id"]:
         require(command_dispatch, needle, "visual command scope dispatch")
 
@@ -63,7 +80,11 @@ def main() -> None:
     ]:
         require(runtime, needle, "runtime visual exact/scope assertion")
 
-    require(SUITE.read_text(), "tests/spec98_visual_workflow_exact_scope_static_test.py", "Spec98 suite wiring")
+    require(
+        SUITE.read_text(),
+        "tests/spec98_visual_workflow_exact_scope_static_test.py",
+        "Spec98 suite wiring",
+    )
     print("✓ PASS: Spec98 visual workflow exact-handle/scope contract ok")
 
 

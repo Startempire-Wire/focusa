@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Spec98 / focusa-877z.15 UIAI packet capture + headless parity contract guard."""
+
 from pathlib import Path
 import sys
 import yaml
@@ -45,7 +46,13 @@ REQUIRED_COLUMNS = {
 }
 REQUIRED_PARITY_SURFACES = {"pi_tui", "pi_rpc_json", "mcp", "http", "cli"}
 REQUIRED_RENDER_TERMS = {"scope=", "scope_source=", "capture=", "tool=", "next="}
-REQUIRED_HANDOFF_TERMS = {"capture_status", "scope_source", "summary_line", "proposal_only", "HTTP/MCP/CLI/Pi parity"}
+REQUIRED_HANDOFF_TERMS = {
+    "capture_status",
+    "scope_source",
+    "summary_line",
+    "proposal_only",
+    "HTTP/MCP/CLI/Pi parity",
+}
 
 
 def fail(msg: str) -> None:
@@ -67,7 +74,9 @@ def main() -> None:
     if missing_capture:
         fail(f"missing capture statuses: {sorted(missing_capture)}")
     for status, block in (data.get("packet_status_semantics") or {}).items():
-        if not block.get("render_text") or "capture=" not in block.get("render_text", ""):
+        if not block.get("render_text") or "capture=" not in block.get(
+            "render_text", ""
+        ):
             fail(f"capture status {status} lacks capture= render text")
         if "focusa_authority" not in block:
             fail(f"capture status {status} lacks focusa_authority")
@@ -77,7 +86,9 @@ def main() -> None:
     if missing_sources:
         fail(f"missing scope sources: {sorted(missing_sources)}")
     for source, block in (data.get("scope_source_semantics") or {}).items():
-        if not block.get("render_text") or "scope_source=" not in block.get("render_text", ""):
+        if not block.get("render_text") or "scope_source=" not in block.get(
+            "render_text", ""
+        ):
             fail(f"scope source {source} lacks scope_source= render text")
         if not block.get("capture_policy"):
             fail(f"scope source {source} lacks capture_policy")
@@ -97,13 +108,20 @@ def main() -> None:
         if term not in first_line:
             fail(f"first line template missing {term}")
 
-    parity_surfaces = set((data.get("headless_parity_contract") or {}).get("surfaces", {}).keys())
+    parity_surfaces = set(
+        (data.get("headless_parity_contract") or {}).get("surfaces", {}).keys()
+    )
     missing_surfaces = REQUIRED_PARITY_SURFACES - parity_surfaces
     if missing_surfaces:
         fail(f"missing headless parity surfaces: {sorted(missing_surfaces)}")
 
     proof_text = yaml.safe_dump(data.get("proof_matrix") or {})
-    for expected in ["tests/spec98_uiai_packet_capture_headless_static_test.py", "npm --prefix apps/pi-extension run check", "scripts/check-focusa-packet-drift.sh", "bun test ./.pi/extensions/uiai-engine.packet-builder.test.ts"]:
+    for expected in [
+        "tests/spec98_uiai_packet_capture_headless_static_test.py",
+        "npm --prefix apps/pi-extension run check",
+        "scripts/check-focusa-packet-drift.sh",
+        "bun test ./.pi/extensions/uiai-engine.packet-builder.test.ts",
+    ]:
         if expected not in proof_text:
             fail(f"proof matrix missing {expected}")
 
@@ -113,21 +131,40 @@ def main() -> None:
             fail(f"handoff requirements missing {term}")
 
     worksheet_text = WORKSHEET.read_text()
-    for phrase in ["scope_status=present", "not Focusa scope verification", "preview-only", "UIAI local demo defaults", "Focusa verification required before canonical capture"]:
+    for phrase in [
+        "scope_status=present",
+        "not Focusa scope verification",
+        "preview-only",
+        "UIAI local demo defaults",
+        "Focusa verification required before canonical capture",
+    ]:
         if phrase not in worksheet_text:
             fail(f"worksheet missing required phrase: {phrase}")
 
     for path, phrases in {
-        IMPACT: ["proposal_only_until_focusa_capture_or_link_succeeds", "headless fallback must be explicit"],
-        SPEC98: ["Packet renderers should display", "proposal_only", "not_canonical_until_captured"],
-        AUDIT: ["packet_status_semantics", "proposal-only until Focusa capture/link succeeds"],
+        IMPACT: [
+            "proposal_only_until_focusa_capture_or_link_succeeds",
+            "headless fallback must be explicit",
+        ],
+        SPEC98: [
+            "Packet renderers should display",
+            "proposal_only",
+            "not_canonical_until_captured",
+        ],
+        AUDIT: [
+            "packet_status_semantics",
+            "proposal-only until Focusa capture/link succeeds",
+        ],
     }.items():
         text = path.read_text()
         for phrase in phrases:
             if phrase not in text:
                 fail(f"{path.name} missing supporting phrase: {phrase}")
 
-    if "tests/spec98_uiai_packet_capture_headless_static_test.py" not in SUITE.read_text():
+    if (
+        "tests/spec98_uiai_packet_capture_headless_static_test.py"
+        not in SUITE.read_text()
+    ):
         fail("Spec98 regression suite does not run UIAI packet capture/headless guard")
 
     print("✓ PASS: Spec98 UIAI packet capture/headless parity contract ok")

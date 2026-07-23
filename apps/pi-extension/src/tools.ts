@@ -6304,7 +6304,9 @@ export function registerTools(pi: ExtensionAPI) {
         Type.String({ description: "Source WorkingSubpath id; defaults to active context or primary." })
       ),
       target_working_subpath_id: Type.Optional(
-        Type.String({ description: "Explicit target WorkingSubpath id for auditable cross-worktree transfer." })
+        Type.String({
+          description: "Explicit target WorkingSubpath id for auditable cross-worktree transfer.",
+        })
       ),
       target_continuity_id: Type.Optional(
         Type.String({
@@ -6434,9 +6436,7 @@ export function registerTools(pi: ExtensionAPI) {
       const sourceWorkingSubpathId = String(
         p.source_working_subpath_id || process.env.FOCUSA_WORKING_SUBPATH_ID || "primary"
       ).trim();
-      const targetWorkingSubpathId = String(
-        p.target_working_subpath_id || sourceWorkingSubpathId
-      ).trim();
+      const targetWorkingSubpathId = String(p.target_working_subpath_id || sourceWorkingSubpathId).trim();
       const sourceScope = buildProjectWorkstreamKey(
         projectRoot,
         sourceContinuityId,
@@ -14549,15 +14549,13 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     }),
     async execute(_id, params) {
       const p = params as any;
-      const query = String(p.query || "").trim().toLowerCase();
+      const query = String(p.query || "")
+        .trim()
+        .toLowerCase();
       const terms = query.split(/\s+/).filter(Boolean);
       const limit = Math.max(1, Math.min(50, Number(p.limit || 10)));
-      const affordances = new Map(
-        buildFocusaToolAffordanceCatalog().map((item) => [item.name, item])
-      );
-      const results = FOCUSA_TOOL_CONTRACTS.filter(
-        (contract) => !p.family || contract.family === p.family
-      )
+      const affordances = new Map(buildFocusaToolAffordanceCatalog().map((item) => [item.name, item]));
+      const results = FOCUSA_TOOL_CONTRACTS.filter((contract) => !p.family || contract.family === p.family)
         .map((contract) => {
           const affordance = affordances.get(contract.name);
           const haystack = [
@@ -14597,10 +14595,12 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
         content: [
           {
             type: "text",
-            text: `tool search → ${results.length} ranked result(s): ${results
-              .slice(0, 5)
-              .map((item) => item.name)
-              .join(", ") || "none"}`,
+            text: `tool search → ${results.length} ranked result(s): ${
+              results
+                .slice(0, 5)
+                .map((item) => item.name)
+                .join(", ") || "none"
+            }`,
           },
         ],
         details: {
@@ -14830,7 +14830,9 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     parameters: Type.Object({
       session_id: Type.String({ description: "Exact active UIAI browser session identifier." }),
       origin: Type.String({ description: "Absolute http(s) page origin bound to these capabilities." }),
-      source: Type.Optional(Type.Union([Type.Literal("webmcp"), Type.Literal("uiai"), Type.Literal("page_manifest")])),
+      source: Type.Optional(
+        Type.Union([Type.Literal("webmcp"), Type.Literal("uiai"), Type.Literal("page_manifest")])
+      ),
       trusted_origin: Type.Optional(Type.Boolean({ default: false })),
       tools: Type.Array(
         Type.Object({

@@ -4,6 +4,7 @@
 Default mode reports gaps without failing so it can bootstrap remediation.
 Use --strict to fail while release-gating findings remain.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -21,7 +22,14 @@ def text(path: str) -> str:
     return (ROOT / path).read_text()
 
 
-def finding(code: str, severity: str, surface: str, message: str, evidence: dict, remediation: str) -> dict:
+def finding(
+    code: str,
+    severity: str,
+    surface: str,
+    message: str,
+    evidence: dict,
+    remediation: str,
+) -> dict:
     return {
         "code": code,
         "severity": severity,
@@ -45,41 +53,83 @@ def main() -> int:
     contract_names = {item["name"] for item in contracts}
     capability_dir = ROOT / "docs/contracts/spec141/generated-capability-v2"
     capability_path = capability_dir / "agent-capability-descriptors.json"
-    capability_registry = json.loads(capability_path.read_text()) if capability_path.exists() else {"descriptors": []}
+    capability_registry = (
+        json.loads(capability_path.read_text())
+        if capability_path.exists()
+        else {"descriptors": []}
+    )
     capability_descriptors = capability_registry.get("descriptors", [])
     agent_card_path = capability_dir / "agent-card.json"
-    agent_card = json.loads(agent_card_path.read_text()) if agent_card_path.exists() else None
+    agent_card = (
+        json.loads(agent_card_path.read_text()) if agent_card_path.exists() else None
+    )
     mcp_projection_path = capability_dir / "mcp-tools.json"
-    mcp_projection = json.loads(mcp_projection_path.read_text()) if mcp_projection_path.exists() else {"tools": []}
+    mcp_projection = (
+        json.loads(mcp_projection_path.read_text())
+        if mcp_projection_path.exists()
+        else {"tools": []}
+    )
     cli_projection_path = capability_dir / "cli-commands.json"
-    cli_projection = json.loads(cli_projection_path.read_text()) if cli_projection_path.exists() else {"commands": []}
+    cli_projection = (
+        json.loads(cli_projection_path.read_text())
+        if cli_projection_path.exists()
+        else {"commands": []}
+    )
     skill_coverage_path = ROOT / "docs/evidence/141-focusa-skill-runbook-coverage.json"
-    skill_coverage = json.loads(skill_coverage_path.read_text()) if skill_coverage_path.exists() else {}
-    public_alignment_path = ROOT / "docs/evidence/141-focusa-latest-spec-public-doc-alignment.json"
-    public_alignment = json.loads(public_alignment_path.read_text()) if public_alignment_path.exists() else {}
+    skill_coverage = (
+        json.loads(skill_coverage_path.read_text())
+        if skill_coverage_path.exists()
+        else {}
+    )
+    public_alignment_path = (
+        ROOT / "docs/evidence/141-focusa-latest-spec-public-doc-alignment.json"
+    )
+    public_alignment = (
+        json.loads(public_alignment_path.read_text())
+        if public_alignment_path.exists()
+        else {}
+    )
     conformance_path = ROOT / "docs/evidence/141-focusa-agent-conformance-result.json"
-    conformance = json.loads(conformance_path.read_text()) if conformance_path.exists() else {}
+    conformance = (
+        json.loads(conformance_path.read_text()) if conformance_path.exists() else {}
+    )
     tool_docs = list((ROOT / "docs/focusa-tools/tools").glob("*.md"))
     tools_src = text("apps/pi-extension/src/tools.ts")
     contract_src = text("apps/pi-extension/src/tool-contracts.ts")
     mcp_src = text("crates/focusa-api/src/routes/mcp.rs")
     cli_help_src = text("crates/focusa-cli/src/commands/help.rs")
     cli_main_src = text("crates/focusa-cli/src/main.rs")
-    rust_api_src = "\n".join(p.read_text(errors="replace") for p in (ROOT / "crates/focusa-api/src").rglob("*.rs"))
+    rust_api_src = "\n".join(
+        p.read_text(errors="replace")
+        for p in (ROOT / "crates/focusa-api/src").rglob("*.rs")
+    )
 
     operation_registry = json.loads(
         text("docs/contracts/spec135/generated-contract-v1/operation-registry.json")
     )
-    openapi = json.loads(text("docs/contracts/spec135/generated-contract-v1/openapi-3.0.3.json"))
+    openapi = json.loads(
+        text("docs/contracts/spec135/generated-contract-v1/openapi-3.0.3.json")
+    )
     operations = operation_registry["operations"]
 
     route_paths = set(re.findall(r'\.route\(\s*"([^"]+)"', rust_api_src, re.S))
-    operation_paths = {item["path"] for item in operations}
     route_classification_path = capability_dir / "route-classification.json"
-    route_classification = json.loads(route_classification_path.read_text()) if route_classification_path.exists() else {"routes": []}
-    classified_route_paths = {item.get("path") for item in route_classification.get("routes", []) if item.get("path")}
+    route_classification = (
+        json.loads(route_classification_path.read_text())
+        if route_classification_path.exists()
+        else {"routes": []}
+    )
+    classified_route_paths = {
+        item.get("path")
+        for item in route_classification.get("routes", [])
+        if item.get("path")
+    }
     missing_operation_docs = sorted(
-        {item["docs_ref"] for item in operations if not (ROOT / item["docs_ref"]).exists()}
+        {
+            item["docs_ref"]
+            for item in operations
+            if not (ROOT / item["docs_ref"]).exists()
+        }
     )
 
     schema_refs = {
@@ -92,16 +142,30 @@ def main() -> int:
     normalized_schema_refs = {value.replace(".", "_") for value in schema_refs}
 
     generic_when = sum(
-        "when its specific Focusa state or workflow surface is the narrowest tool" in p.read_text()
+        "when its specific Focusa state or workflow surface is the narrowest tool"
+        in p.read_text()
         for p in tool_docs
     )
-    docs_with_examples = sum(bool(re.search(r"^## Example(?: usage)?$", p.read_text(), re.M | re.I)) for p in tool_docs)
+    docs_with_examples = sum(
+        bool(re.search(r"^## Example(?: usage)?$", p.read_text(), re.M | re.I))
+        for p in tool_docs
+    )
     docs_with_input = sum(
-        bool(re.search(r"Input schema|Parameters|Required arguments", p.read_text(), re.I))
+        bool(
+            re.search(
+                r"Input schema|Parameters|Required arguments", p.read_text(), re.I
+            )
+        )
         for p in tool_docs
     )
     docs_with_dependency = sum(
-        bool(re.search(r"^## (Dependencies?|Prerequisites?|Sequence|Workflow)", p.read_text(), re.M | re.I))
+        bool(
+            re.search(
+                r"^## (Dependencies?|Prerequisites?|Sequence|Workflow)",
+                p.read_text(),
+                re.M | re.I,
+            )
+        )
         for p in tool_docs
     )
 
@@ -120,11 +184,21 @@ def main() -> int:
         check=False,
     )
 
-    inventory_match = re.search(r"fn inventory_lines\(\).*?vec!\[(.*?)\n\s*\]", cli_help_src, re.S)
-    cli_inventory_count = len(re.findall(r'^\s*"focusa ', inventory_match.group(1), re.M)) if inventory_match else 0
+    inventory_match = re.search(
+        r"fn inventory_lines\(\).*?vec!\[(.*?)\n\s*\]", cli_help_src, re.S
+    )
+    cli_inventory_count = (
+        len(re.findall(r'^\s*"focusa ', inventory_match.group(1), re.M))
+        if inventory_match
+        else 0
+    )
     commands_match = re.search(r"enum Commands \{(.*?)\n\}", cli_main_src, re.S)
     cli_top_commands = (
-        len(re.findall(r"^\s{4}(?:#\[[^\n]+\]\s*)*([A-Z]\w*)", commands_match.group(1), re.M))
+        len(
+            re.findall(
+                r"^\s{4}(?:#\[[^\n]+\]\s*)*([A-Z]\w*)", commands_match.group(1), re.M
+            )
+        )
         if commands_match
         else 0
     )
@@ -136,10 +210,20 @@ def main() -> int:
     }
     expected_mcp_tools = sum(bool(item.get("api_routes")) for item in contracts)
     generated_cli_commands = cli_projection.get("commands", [])
-    typebox_properties = len(re.findall(r"Type\.(?:String|Boolean|Number|Integer|Array|Object|Union|Optional)\(", tools_src))
+    typebox_properties = len(
+        re.findall(
+            r"Type\.(?:String|Boolean|Number|Integer|Array|Object|Union|Optional)\(",
+            tools_src,
+        )
+    )
     parameter_descriptions = len(re.findall(r"description\s*:", tools_src))
     strict_objects = len(re.findall(r"additionalProperties\s*:\s*false", tools_src))
-    output_schemas = len(re.findall(r"outputSchema|output_schema|resultSchema|result_schema", tools_src + contract_src))
+    output_schemas = len(
+        re.findall(
+            r"outputSchema|output_schema|resultSchema|result_schema",
+            tools_src + contract_src,
+        )
+    )
     next_tool_overrides = 0
     if "const TOOL_NEXT_TOOLS:" in contract_src:
         block = contract_src.split("const TOOL_NEXT_TOOLS:", 1)[1].split("\n};", 1)[0]
@@ -158,12 +242,14 @@ def main() -> int:
         "cost_hint",
         "latency_hint",
     }
-    absent_contract_fields = sorted({
-        field
-        for descriptor in capability_descriptors
-        for field in required_agent_fields
-        if field not in descriptor
-    })
+    absent_contract_fields = sorted(
+        {
+            field
+            for descriptor in capability_descriptors
+            for field in required_agent_fields
+            if field not in descriptor
+        }
+    )
     if not capability_descriptors:
         absent_contract_fields = sorted(required_agent_fields)
     strict_descriptor_inputs = sum(
@@ -171,7 +257,9 @@ def main() -> int:
         and item.get("input_schema", {}).get("additionalProperties") is False
         for item in capability_descriptors
     )
-    typed_descriptor_outputs = sum(bool(item.get("output_schema")) for item in capability_descriptors)
+    typed_descriptor_outputs = sum(
+        bool(item.get("output_schema")) for item in capability_descriptors
+    )
 
     stale_count_docs = []
     for path in [
@@ -181,15 +269,24 @@ def main() -> int:
         "docs/current/TOOL_RELIABILITY_AUDIT.md",
     ]:
         body = text(path)
-        stated = [int(v) for v in re.findall(r"\b(\d{2,3})\s+(?:registered\s+)?(?:Focusa\s+)?tools?\b", body, re.I)]
+        stated = [
+            int(v)
+            for v in re.findall(
+                r"\b(\d{2,3})\s+(?:registered\s+)?(?:Focusa\s+)?tools?\b", body, re.I
+            )
+        ]
         if stated and any(value != len(contracts) for value in stated):
-            stale_count_docs.append({"path": path, "stated_counts": sorted(set(stated))})
+            stale_count_docs.append(
+                {"path": path, "stated_counts": sorted(set(stated))}
+            )
 
     metrics = {
         "pi_registered_tools": len(contract_names),
         "tool_contracts": len(contracts),
         "per_tool_docs": len(tool_docs),
-        "tool_families": dict(sorted(Counter(item["family"] for item in contracts).items())),
+        "tool_families": dict(
+            sorted(Counter(item["family"] for item in contracts).items())
+        ),
         "contract_json_validator_passed": validator.returncode == 0,
         "capability_descriptor_generator_passed": descriptor_generator.returncode == 0,
         "capability_descriptors_v2": len(capability_descriptors),
@@ -217,10 +314,16 @@ def main() -> int:
         "classified_api_route_paths": len(classified_route_paths),
         "unclassified_api_route_paths": len(route_paths - classified_route_paths),
         "operation_schema_refs": len(schema_refs),
-        "materialized_openapi_schema_refs": len(normalized_schema_refs & openapi_schema_names),
+        "materialized_openapi_schema_refs": len(
+            normalized_schema_refs & openapi_schema_names
+        ),
         "missing_operation_docs_refs": len(missing_operation_docs),
-        "tool_contracts_without_api_route": sum(not item["api_routes"] for item in contracts),
-        "tool_contracts_without_cli_command": sum(not item["cli_commands"] for item in contracts),
+        "tool_contracts_without_api_route": sum(
+            not item["api_routes"] for item in contracts
+        ),
+        "tool_contracts_without_cli_command": sum(
+            not item["cli_commands"] for item in contracts
+        ),
         "installed_root_skills": skill_coverage.get("installed_root_skill_count", 0),
         "packaged_skills": skill_coverage.get("packaged_skill_count", 0),
         "skill_root_packaged_parity": skill_coverage.get("root_packaged_parity", False),
@@ -231,134 +334,271 @@ def main() -> int:
 
     findings = []
     if validator.returncode:
-        findings.append(finding(
-            "AF-TOOL-001", "critical", "tool_contract_registry",
-            "Generated JSON contract registry has drifted from the TypeScript authority.",
-            {"validator_stderr": validator.stderr.strip(), "tools": len(contracts)},
-            "Generate all projections from one canonical descriptor and fail CI on drift.",
-        ))
+        findings.append(
+            finding(
+                "AF-TOOL-001",
+                "critical",
+                "tool_contract_registry",
+                "Generated JSON contract registry has drifted from the TypeScript authority.",
+                {"validator_stderr": validator.stderr.strip(), "tools": len(contracts)},
+                "Generate all projections from one canonical descriptor and fail CI on drift.",
+            )
+        )
     if absent_contract_fields or len(capability_descriptors) != len(contracts):
-        findings.append(finding(
-            "AF-TOOL-002", "critical", "tool_contract_registry",
-            "Agent Capability Descriptor V2 is incomplete or omits invocation/composition fields.",
-            {"absent_fields": absent_contract_fields, "descriptors": len(capability_descriptors), "tools": len(contracts)},
-            "Publish strict input/output/error schemas, examples, dependencies, skill refs, versions, deprecation, and budget hints per tool.",
-        ))
+        findings.append(
+            finding(
+                "AF-TOOL-002",
+                "critical",
+                "tool_contract_registry",
+                "Agent Capability Descriptor V2 is incomplete or omits invocation/composition fields.",
+                {
+                    "absent_fields": absent_contract_fields,
+                    "descriptors": len(capability_descriptors),
+                    "tools": len(contracts),
+                },
+                "Publish strict input/output/error schemas, examples, dependencies, skill refs, versions, deprecation, and budget hints per tool.",
+            )
+        )
     if typed_descriptor_outputs < len(contracts):
-        findings.append(finding(
-            "AF-TOOL-003", "critical", "pi_tools",
-            "Not every Pi capability exposes a generated output schema.",
-            {"tools": len(contracts), "output_schemas": typed_descriptor_outputs},
-            "Add structured output schemas and validate tool_result_v1 details for every tool.",
-        ))
+        findings.append(
+            finding(
+                "AF-TOOL-003",
+                "critical",
+                "pi_tools",
+                "Not every Pi capability exposes a generated output schema.",
+                {"tools": len(contracts), "output_schemas": typed_descriptor_outputs},
+                "Add structured output schemas and validate tool_result_v1 details for every tool.",
+            )
+        )
     if strict_descriptor_inputs < len(contracts):
-        findings.append(finding(
-            "AF-TOOL-004", "high", "pi_tools",
-            "Not every generated Pi input object schema explicitly rejects unknown properties.",
-            {"tools": len(contracts), "strict_objects": strict_descriptor_inputs},
-            "Generate strict schemas with additionalProperties=false and conditional requirement tests.",
-        ))
-    if len(mcp_names) < expected_mcp_tools or "call_rest_tool" not in mcp_src or "listChanged" not in mcp_src:
-        findings.append(finding(
-            "AF-TOOL-005", "critical", "mcp",
-            "MCP does not expose the complete callable generated catalog with scoped invocation.",
-            {"mcp_tools": len(mcp_names), "expected_callable_tools": expected_mcp_tools},
-            "Generate paginated MCP tools/list and tools/call from the canonical registry, including outputSchema, structuredContent, annotations, scoped REST authority, and listChanged.",
-        ))
+        findings.append(
+            finding(
+                "AF-TOOL-004",
+                "high",
+                "pi_tools",
+                "Not every generated Pi input object schema explicitly rejects unknown properties.",
+                {"tools": len(contracts), "strict_objects": strict_descriptor_inputs},
+                "Generate strict schemas with additionalProperties=false and conditional requirement tests.",
+            )
+        )
+    if (
+        len(mcp_names) < expected_mcp_tools
+        or "call_rest_tool" not in mcp_src
+        or "listChanged" not in mcp_src
+    ):
+        findings.append(
+            finding(
+                "AF-TOOL-005",
+                "critical",
+                "mcp",
+                "MCP does not expose the complete callable generated catalog with scoped invocation.",
+                {
+                    "mcp_tools": len(mcp_names),
+                    "expected_callable_tools": expected_mcp_tools,
+                },
+                "Generate paginated MCP tools/list and tools/call from the canonical registry, including outputSchema, structuredContent, annotations, scoped REST authority, and listChanged.",
+            )
+        )
     if route_paths != classified_route_paths:
-        findings.append(finding(
-            "AF-TOOL-006", "high", "rest_openapi",
-            "The route classification projection is missing or drifted from the Axum route inventory.",
-            {"api_routes": len(route_paths), "classified_routes": len(classified_route_paths), "unclassified": sorted(route_paths - classified_route_paths), "stale": sorted(classified_route_paths - route_paths)},
-            "Classify every route; fully contract agent-eligible routes and explicitly mark internal/operator-only routes.",
-        ))
+        findings.append(
+            finding(
+                "AF-TOOL-006",
+                "high",
+                "rest_openapi",
+                "The route classification projection is missing or drifted from the Axum route inventory.",
+                {
+                    "api_routes": len(route_paths),
+                    "classified_routes": len(classified_route_paths),
+                    "unclassified": sorted(route_paths - classified_route_paths),
+                    "stale": sorted(classified_route_paths - route_paths),
+                },
+                "Classify every route; fully contract agent-eligible routes and explicitly mark internal/operator-only routes.",
+            )
+        )
     if missing_operation_docs:
-        findings.append(finding(
-            "AF-TOOL-007", "critical", "operation_docs",
-            "Every operation family docs_ref currently points to a missing document.",
-            {"missing_count": len(missing_operation_docs), "refs": missing_operation_docs},
-            "Materialize and validate every operation docs_ref from the canonical descriptor.",
-        ))
-    if generic_when or docs_with_input < len(tool_docs) or docs_with_dependency < len(tool_docs):
-        findings.append(finding(
-            "AF-TOOL-008", "critical", "tool_docs",
-            "Per-tool documentation is structurally present but frequently generic and incomplete for deep agent operation.",
-            {
-                "docs": len(tool_docs),
-                "generic": generic_when,
-                "with_examples": docs_with_examples,
-                "with_input_schema": docs_with_input,
-                "with_dependencies": docs_with_dependency,
-            },
-            "Generate specific parameter tables, positive/negative examples, failure recovery, prerequisites, dependency chains, and workflow position for every tool.",
-        ))
-    if cli_inventory_count < cli_top_commands and len(generated_cli_commands) < len(contracts):
-        findings.append(finding(
-            "AF-TOOL-009", "high", "cli",
-            "Machine-readable CLI help lacks an exhaustive generated agent command schema.",
-            {"top_level_commands": cli_top_commands, "help_inventory": cli_inventory_count, "generated_agent_commands": len(generated_cli_commands)},
-            "Generate JSON command schemas, flags, defaults, examples, effects, and migration metadata from capability/Clap authority.",
-        ))
+        findings.append(
+            finding(
+                "AF-TOOL-007",
+                "critical",
+                "operation_docs",
+                "Every operation family docs_ref currently points to a missing document.",
+                {
+                    "missing_count": len(missing_operation_docs),
+                    "refs": missing_operation_docs,
+                },
+                "Materialize and validate every operation docs_ref from the canonical descriptor.",
+            )
+        )
+    if (
+        generic_when
+        or docs_with_input < len(tool_docs)
+        or docs_with_dependency < len(tool_docs)
+    ):
+        findings.append(
+            finding(
+                "AF-TOOL-008",
+                "critical",
+                "tool_docs",
+                "Per-tool documentation is structurally present but frequently generic and incomplete for deep agent operation.",
+                {
+                    "docs": len(tool_docs),
+                    "generic": generic_when,
+                    "with_examples": docs_with_examples,
+                    "with_input_schema": docs_with_input,
+                    "with_dependencies": docs_with_dependency,
+                },
+                "Generate specific parameter tables, positive/negative examples, failure recovery, prerequisites, dependency chains, and workflow position for every tool.",
+            )
+        )
+    if cli_inventory_count < cli_top_commands and len(generated_cli_commands) < len(
+        contracts
+    ):
+        findings.append(
+            finding(
+                "AF-TOOL-009",
+                "high",
+                "cli",
+                "Machine-readable CLI help lacks an exhaustive generated agent command schema.",
+                {
+                    "top_level_commands": cli_top_commands,
+                    "help_inventory": cli_inventory_count,
+                    "generated_agent_commands": len(generated_cli_commands),
+                },
+                "Generate JSON command schemas, flags, defaults, examples, effects, and migration metadata from capability/Clap authority.",
+            )
+        )
     if stale_count_docs:
-        findings.append(finding(
-            "AF-TOOL-010", "high", "internal_docs",
-            "Canonical/current audit documents contain stale tool totals.",
-            {"current_tools": len(contracts), "documents": stale_count_docs},
-            "Replace hand-maintained totals with generated values and freshness checks.",
-        ))
-    discovery_tools = {"focusa_tool_search", "focusa_tool_describe", "focusa_tool_graph", "focusa_tool_bundle", "focusa_agent_card"}
+        findings.append(
+            finding(
+                "AF-TOOL-010",
+                "high",
+                "internal_docs",
+                "Canonical/current audit documents contain stale tool totals.",
+                {"current_tools": len(contracts), "documents": stale_count_docs},
+                "Replace hand-maintained totals with generated values and freshness checks.",
+            )
+        )
+    discovery_tools = {
+        "focusa_tool_search",
+        "focusa_tool_describe",
+        "focusa_tool_graph",
+        "focusa_tool_bundle",
+        "focusa_agent_card",
+    }
     if not discovery_tools.issubset(contract_names):
-        findings.append(finding(
-            "AF-TOOL-011", "high", "progressive_discovery",
-            "Focusa lacks one or more dedicated search/describe/graph/bundle/card surfaces for cold-loading schemas.",
-            {"missing_tools": sorted(discovery_tools - contract_names), "generic_affordances": generic_when, "total_tools": len(contracts)},
-            "Add tool search, describe, dependency graph, namespaced bundles, digest/listChanged, and token-budgeted deferred schema loading.",
-        ))
-    if not agent_card or len(capability_descriptors) != len(contracts) or descriptor_generator.returncode:
-        findings.append(finding(
-            "AF-TOOL-012", "critical", "cross_harness_interop",
-            "No current generated Agent Card/capability manifest projects equivalent Pi, MCP, OpenAI, CLI, REST, skill, and browser affordances.",
-            {"pi_tools": len(contracts), "capability_descriptors": len(capability_descriptors), "agent_card": bool(agent_card), "generator_passed": descriptor_generator.returncode == 0},
-            "Generate a signed/versioned Focusa Agent Capability Manifest with protocol bindings, auth, skills, examples, compatibility, and conformance refs.",
-        ))
-    browser_tools = {"focusa_browser_capabilities_intake", "focusa_browser_workflow_plan", "focusa_browser_diagnostics_intake"}
+        findings.append(
+            finding(
+                "AF-TOOL-011",
+                "high",
+                "progressive_discovery",
+                "Focusa lacks one or more dedicated search/describe/graph/bundle/card surfaces for cold-loading schemas.",
+                {
+                    "missing_tools": sorted(discovery_tools - contract_names),
+                    "generic_affordances": generic_when,
+                    "total_tools": len(contracts),
+                },
+                "Add tool search, describe, dependency graph, namespaced bundles, digest/listChanged, and token-budgeted deferred schema loading.",
+            )
+        )
+    if (
+        not agent_card
+        or len(capability_descriptors) != len(contracts)
+        or descriptor_generator.returncode
+    ):
+        findings.append(
+            finding(
+                "AF-TOOL-012",
+                "critical",
+                "cross_harness_interop",
+                "No current generated Agent Card/capability manifest projects equivalent Pi, MCP, OpenAI, CLI, REST, skill, and browser affordances.",
+                {
+                    "pi_tools": len(contracts),
+                    "capability_descriptors": len(capability_descriptors),
+                    "agent_card": bool(agent_card),
+                    "generator_passed": descriptor_generator.returncode == 0,
+                },
+                "Generate a signed/versioned Focusa Agent Capability Manifest with protocol bindings, auth, skills, examples, compatibility, and conformance refs.",
+            )
+        )
+    browser_tools = {
+        "focusa_browser_capabilities_intake",
+        "focusa_browser_workflow_plan",
+        "focusa_browser_diagnostics_intake",
+    }
     browser_interop_source = ROOT / "crates/focusa-api/src/routes/browser_interop.rs"
-    if not browser_tools.issubset(contract_names) or not browser_interop_source.exists():
-        findings.append(finding(
-            "AF-TOOL-013", "high", "browser_interop",
-            "Focusa lacks a complete machine-readable WebMCP/UIAI capability bridge or browser workflow dependency graph.",
-            {"missing_tools": sorted(browser_tools - contract_names), "browser_interop_route_module": browser_interop_source.exists()},
-            "Add UIAI/WebMCP capability discovery, session-isolated browser operation descriptors, evidence contracts, and browser-to-Workpoint workflow graphs.",
-        ))
-    if conformance.get("status") != "passed" or len(conformance.get("agent_levels", [])) < 7:
-        findings.append(finding(
-            "AF-TOOL-014", "high", "agent_evaluation",
-            "Weak-to-strong cross-harness agent conformance evidence is missing or incomplete.",
-            {"status": conformance.get("status"), "agent_levels": conformance.get("agent_levels", [])},
-            "Add dumb-agent conformance fixtures, golden workflow tasks, invalid-call repair tests, token-cost budgets, and cross-harness behavioral parity evaluation.",
-        ))
-    if not skill_coverage.get("root_packaged_parity") or skill_coverage.get("installed_root_skill_count", 0) < 21:
-        findings.append(finding(
-            "AF-TOOL-015", "high", "skills_runbooks",
-            "Skill/runbook domain coverage or root/package parity is incomplete.",
-            {"coverage": skill_coverage},
-            "Generate progressive skills, dependency-aware runbooks, and exact root/package parity proof.",
-        ))
-    if public_alignment.get("spec_count") != 15 or not public_alignment.get("integrity", {}).get("spec_paths_resolve"):
-        findings.append(finding(
-            "AF-TOOL-016", "high", "public_docs",
-            "Rolling latest-15-spec public documentation alignment is incomplete.",
-            {"alignment": public_alignment},
-            "Reconcile README, docs index, llms.txt, shipped/planned truth, and latest-spec direction.",
-        ))
+    if (
+        not browser_tools.issubset(contract_names)
+        or not browser_interop_source.exists()
+    ):
+        findings.append(
+            finding(
+                "AF-TOOL-013",
+                "high",
+                "browser_interop",
+                "Focusa lacks a complete machine-readable WebMCP/UIAI capability bridge or browser workflow dependency graph.",
+                {
+                    "missing_tools": sorted(browser_tools - contract_names),
+                    "browser_interop_route_module": browser_interop_source.exists(),
+                },
+                "Add UIAI/WebMCP capability discovery, session-isolated browser operation descriptors, evidence contracts, and browser-to-Workpoint workflow graphs.",
+            )
+        )
+    if (
+        conformance.get("status") != "passed"
+        or len(conformance.get("agent_levels", [])) < 7
+    ):
+        findings.append(
+            finding(
+                "AF-TOOL-014",
+                "high",
+                "agent_evaluation",
+                "Weak-to-strong cross-harness agent conformance evidence is missing or incomplete.",
+                {
+                    "status": conformance.get("status"),
+                    "agent_levels": conformance.get("agent_levels", []),
+                },
+                "Add dumb-agent conformance fixtures, golden workflow tasks, invalid-call repair tests, token-cost budgets, and cross-harness behavioral parity evaluation.",
+            )
+        )
+    if (
+        not skill_coverage.get("root_packaged_parity")
+        or skill_coverage.get("installed_root_skill_count", 0) < 21
+    ):
+        findings.append(
+            finding(
+                "AF-TOOL-015",
+                "high",
+                "skills_runbooks",
+                "Skill/runbook domain coverage or root/package parity is incomplete.",
+                {"coverage": skill_coverage},
+                "Generate progressive skills, dependency-aware runbooks, and exact root/package parity proof.",
+            )
+        )
+    if public_alignment.get("spec_count") != 15 or not public_alignment.get(
+        "integrity", {}
+    ).get("spec_paths_resolve"):
+        findings.append(
+            finding(
+                "AF-TOOL-016",
+                "high",
+                "public_docs",
+                "Rolling latest-15-spec public documentation alignment is incomplete.",
+                {"alignment": public_alignment},
+                "Reconcile README, docs index, llms.txt, shipped/planned truth, and latest-spec direction.",
+            )
+        )
 
-    severity_counts = dict(sorted(Counter(item["severity"] for item in findings).items()))
+    severity_counts = dict(
+        sorted(Counter(item["severity"] for item in findings).items())
+    )
     report = {
         "schema": "focusa.agent_first_tool_audit.v1",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "project_root": str(ROOT),
         "status": "gaps_found" if findings else "pass",
-        "release_gate": "fail" if any(item["severity"] in {"critical", "high"} for item in findings) else "pass",
+        "release_gate": "fail"
+        if any(item["severity"] in {"critical", "high"} for item in findings)
+        else "pass",
         "metrics": metrics,
         "severity_counts": severity_counts,
         "findings": findings,
@@ -398,18 +638,20 @@ def main() -> int:
         lines.extend(f"- **{key}:** `{value}`" for key, value in metrics.items())
         lines.extend(["", "## Findings", ""])
         for item in findings:
-            lines.extend([
-                f"### {item['code']} — {item['severity'].upper()} — {item['surface']}",
-                "",
-                item["message"],
-                "",
-                f"**Remediation:** {item['remediation']}",
-                "",
-                "```json",
-                json.dumps(item["evidence"], indent=2),
-                "```",
-                "",
-            ])
+            lines.extend(
+                [
+                    f"### {item['code']} — {item['severity'].upper()} — {item['surface']}",
+                    "",
+                    item["message"],
+                    "",
+                    f"**Remediation:** {item['remediation']}",
+                    "",
+                    "```json",
+                    json.dumps(item["evidence"], indent=2),
+                    "```",
+                    "",
+                ]
+            )
         lines.extend(["## External benchmark sources", ""])
         lines.extend(f"- {ref}" for ref in report["external_benchmark_refs"])
         Path(args.markdown_path).write_text("\n".join(lines) + "\n")

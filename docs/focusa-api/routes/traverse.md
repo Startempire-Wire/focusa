@@ -6,8 +6,6 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 
 ## `focusa.traverse`
 
-
-
 - Method/path: `POST /v1/traverse`
 - Family: `traverse`
 - Input schema: `focusa.traverse.request.v1`

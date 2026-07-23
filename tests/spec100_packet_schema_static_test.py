@@ -12,6 +12,7 @@ Verifies that:
   next-tools is present.
 - The tool doc page exists and references Spec 100.
 """
+
 import json
 import re
 import sys
@@ -94,12 +95,15 @@ def main() -> None:
 
     # CLI subcommand wired.
     cli_main = (ROOT / "crates/focusa-cli/src/main.rs").read_text()
-    if "ContextCognition(commands::context_cognition::ContextCognitionCmd)" not in cli_main:
+    if (
+        "ContextCognition(commands::context_cognition::ContextCognitionCmd)"
+        not in cli_main
+    ):
         fail("CLI main.rs missing ContextCognition subcommand")
     cli_cmd = (ROOT / "crates/focusa-cli/src/commands/context_cognition.rs").read_text()
-    if 'pub enum ContextCognitionCmd' not in cli_cmd:
+    if "pub enum ContextCognitionCmd" not in cli_cmd:
         fail("context_cognition.rs missing enum")
-    if 'View' not in cli_cmd:
+    if "View" not in cli_cmd:
         fail("context_cognition.rs missing View subcommand")
 
     # Pi extension tool + contract + choreo + doc.
@@ -111,22 +115,29 @@ def main() -> None:
     if '"focusa_context_cognition"' not in contracts_src:
         fail("tool-contracts.ts missing focusa_context_cognition contract")
     if "focusa_context_cognition" not in re.search(
-        r'const TOOL_NEXT_TOOLS: Record<string, string\[\]> = ([\s\S]*?)\n\};', contracts_src
+        r"const TOOL_NEXT_TOOLS: Record<string, string\[\]> = ([\s\S]*?)\n\};",
+        contracts_src,
     ).group(1):
         fail("TOOL_NEXT_TOOLS missing focusa_context_cognition")
 
-    registry = json.loads((ROOT / "docs/current/focusa-tool-contracts.json").read_text())
-    if not any(c.get("name") == "focusa_context_cognition" for c in registry.get("contracts", [])):
+    registry = json.loads(
+        (ROOT / "docs/current/focusa-tool-contracts.json").read_text()
+    )
+    if not any(
+        c.get("name") == "focusa_context_cognition"
+        for c in registry.get("contracts", [])
+    ):
         fail("focusa-tool-contracts.json missing focusa_context_cognition")
     if registry.get("tool_count", 0) < 66:
         fail(f"tool_count expected >= 66, got {registry.get('tool_count')}")
 
-    choreo = json.loads((ROOT / "docs/current/focusa-tool-choreography.json").read_text())
+    choreo = json.loads(
+        (ROOT / "docs/current/focusa-tool-choreography.json").read_text()
+    )
     if choreo.get("tool_count", 0) < 66:
         fail(f"choreography tool_count expected >= 66, got {choreo.get('tool_count')}")
     if not any(
-        e.get("from") == "focusa_context_cognition"
-        for e in choreo.get("edges", [])
+        e.get("from") == "focusa_context_cognition" for e in choreo.get("edges", [])
     ):
         fail("choreography missing edge from focusa_context_cognition")
 
@@ -140,7 +151,9 @@ def main() -> None:
     if "Spec 100" not in doc_src:
         fail("doc missing Spec 100 reference")
 
-    print(f"✓ PASS: focusa_context_cognition schema + route + CLI + Pi + contract + doc all wired (tool_count={registry.get('tool_count')})")
+    print(
+        f"✓ PASS: focusa_context_cognition schema + route + CLI + Pi + contract + doc all wired (tool_count={registry.get('tool_count')})"
+    )
 
 
 if __name__ == "__main__":

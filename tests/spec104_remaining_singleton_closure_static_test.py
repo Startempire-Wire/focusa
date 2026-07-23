@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Spec104 remaining singleton closure static proof (non-building)."""
+
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,7 +25,7 @@ for symbol in [
     "RESPONSE_SIZE_SAMPLES",
 ]:
     idx = bounded.index(f"static {symbol}")
-    decl = bounded[idx:idx + 180]
+    decl = bounded[idx : idx + 180]
     assert "BTreeMap<String" in decl
 assert bounded.count("host_runtime_scope_key()") >= 10
 

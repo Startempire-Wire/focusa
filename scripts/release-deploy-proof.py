@@ -56,8 +56,14 @@ def main() -> int:
         raise ValueError("canonical release tag and 40-character commit are required")
     if not args.run_url.startswith("https://github.com/"):
         raise ValueError("deploy proof run URL must be a GitHub Actions URL")
-    if not args.asset.is_file() or not args.manifest.is_file() or not args.manifest_signature.is_file():
-        raise ValueError("deployed asset, release manifest, and manifest signature must exist")
+    if (
+        not args.asset.is_file()
+        or not args.manifest.is_file()
+        or not args.manifest_signature.is_file()
+    ):
+        raise ValueError(
+            "deployed asset, release manifest, and manifest signature must exist"
+        )
 
     private_key = load_private_key(args.private_key)
     public_key = private_key.public_key()
@@ -81,13 +87,17 @@ def main() -> int:
         or trust.get("signing_algorithm") != "ed25519"
         or trust.get("revoked_at") is not None
     ):
-        raise ValueError("release manifest trust root does not match active signing key")
+        raise ValueError(
+            "release manifest trust root does not match active signing key"
+        )
     manifest_asset = manifest.get("assets", {}).get(args.asset.name)
     if not isinstance(manifest_asset, dict):
         raise ValueError("deployed daemon asset is absent from release manifest")
     asset_sha256 = sha256(args.asset)
     if manifest_asset.get("sha256") != asset_sha256:
-        raise ValueError("deployed daemon asset checksum does not match release manifest")
+        raise ValueError(
+            "deployed daemon asset checksum does not match release manifest"
+        )
 
     payload = {
         "schema": SCHEMA,
@@ -102,7 +112,10 @@ def main() -> int:
         "asset_name": args.asset.name,
         "asset_sha256": asset_sha256,
         "release_manifest_sha256": sha256(args.manifest),
-        "deployed_at": dt.datetime.now(dt.UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "deployed_at": dt.datetime.now(dt.UTC)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z"),
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     encoded = write_json(args.output, payload)

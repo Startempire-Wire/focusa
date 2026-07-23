@@ -2,8 +2,8 @@
 
 use crate::api_client::ApiClient;
 use crate::commands::scope::ensure_project_root_scope_safe;
-use focusa_core::working_subpath::resolve_git_working_context;
 use clap::Subcommand;
+use focusa_core::working_subpath::resolve_git_working_context;
 use serde_json::{Value, json};
 
 #[derive(Subcommand)]

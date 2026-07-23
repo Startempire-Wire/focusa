@@ -5,6 +5,7 @@ Read-only operator triage helper for `release-proof/audit/audit.jsonl`.
 Shows failure_class, retry_policy, source_refs, remediation, run id, and URL
 without opening raw JSONL.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -63,10 +64,14 @@ def overlay_classifier_backfills(rows: Iterable[dict]) -> list[dict]:
     return failures
 
 
-def recent_failures(rows: Iterable[dict], failure_class: str | None, limit: int) -> list[dict]:
+def recent_failures(
+    rows: Iterable[dict], failure_class: str | None, limit: int
+) -> list[dict]:
     failures = overlay_classifier_backfills(rows)
     if failure_class:
-        failures = [row for row in failures if row.get("failure_class") == failure_class]
+        failures = [
+            row for row in failures if row.get("failure_class") == failure_class
+        ]
     failures.sort(key=lambda row: row.get("ts", ""), reverse=True)
     return failures[:limit]
 
@@ -91,7 +96,12 @@ def summarize(rows: list[dict]) -> dict:
         counts[cls] = counts.get(cls, 0) + 1
         retry = row.get("retry_policy") or "unknown"
         retry_counts[retry] = retry_counts.get(retry, 0) + 1
-    return {"count": len(rows), "failure_classes": counts, "retry_policies": retry_counts, "failures": rows}
+    return {
+        "count": len(rows),
+        "failure_classes": counts,
+        "retry_policies": retry_counts,
+        "failures": rows,
+    }
 
 
 def render_human(payload: dict) -> str:
@@ -132,7 +142,9 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--audit", default=DEFAULT_AUDIT)
     parser.add_argument("--class", dest="failure_class", help="Filter by failure_class")
     parser.add_argument("--limit", type=int, default=10)
-    parser.add_argument("--json", action="store_true", help="Emit JSON instead of human text")
+    parser.add_argument(
+        "--json", action="store_true", help="Emit JSON instead of human text"
+    )
     args = parser.parse_args(argv)
 
     rows = recent_failures(load_rows(Path(args.audit)), args.failure_class, args.limit)

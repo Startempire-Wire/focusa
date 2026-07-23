@@ -5,6 +5,7 @@ Reads a GitHub Actions failed log and emits either JSON (default) or shell-safe
 KEY=value lines (--format env).  Auto Heal, Watchdog, Audit, and agents should
 consume this one taxonomy instead of duplicating regex decisions.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -14,7 +15,9 @@ from pathlib import Path
 from typing import Iterable
 
 ANSI_RE = re.compile(r"(?:\x1b|\^\[)\[[0-9;]*[A-Za-z]")
-TS_PREFIX_RE = re.compile(r"^(?P<job>[^\t]+)\t[^\t]+\t\d{4}-\d{2}-\d{2}T[^ ]+Z\s*(?P<body>.*)$")
+TS_PREFIX_RE = re.compile(
+    r"^(?P<job>[^\t]+)\t[^\t]+\t\d{4}-\d{2}-\d{2}T[^ ]+Z\s*(?P<body>.*)$"
+)
 RUST_REF_RE = re.compile(r"-->\s+([^\s:]+\.rs):(\d+):(\d+)")
 ERROR_CODE_RE = re.compile(r"error\[(E\d+)\]")
 
@@ -79,13 +82,20 @@ def classify(text: str) -> dict:
 
     if "positional arguments in format string" in lowered:
         signals.append("rust_format_arg_mismatch")
-    if "this function takes" in lowered and "arguments but" in lowered and "were supplied" in lowered:
+    if (
+        "this function takes" in lowered
+        and "arguments but" in lowered
+        and "were supplied" in lowered
+    ):
         signals.append("rust_api_signature_mismatch")
     if codes:
         signals.extend(f"rust_error_{code.lower()}" for code in codes)
 
     if signals:
-        if "rust_format_arg_mismatch" in signals and "rust_api_signature_mismatch" in signals:
+        if (
+            "rust_format_arg_mismatch" in signals
+            and "rust_api_signature_mismatch" in signals
+        ):
             failure_class = "rust_compile_api_drift"
             remediation = "Sync changed API surfaces: fix format! placeholders/arguments and update stale callsites or tests."
         elif "rust_format_arg_mismatch" in signals:
@@ -93,10 +103,14 @@ def classify(text: str) -> dict:
             remediation = "Sync format! placeholders with argument list at the reported source refs."
         elif "rust_api_signature_mismatch" in signals:
             failure_class = "rust_compile_api_signature_drift"
-            remediation = "Update stale callsites/tests to match the changed function signature."
+            remediation = (
+                "Update stale callsites/tests to match the changed function signature."
+            )
         else:
             failure_class = "rust_compile_failure"
-            remediation = "Patch deterministic Rust compiler errors at reported source refs."
+            remediation = (
+                "Patch deterministic Rust compiler errors at reported source refs."
+            )
         return result(
             failure_class=failure_class,
             retry_policy=HARD,
@@ -108,7 +122,10 @@ def classify(text: str) -> dict:
             signals=signals,
         )
 
-    if re.search(r"cargo clippy|clippy::|needless_borrow|derivable_impls|private_interfaces", clean):
+    if re.search(
+        r"cargo clippy|clippy::|needless_borrow|derivable_impls|private_interfaces",
+        clean,
+    ):
         return result(
             "ci_clippy_failure",
             HARD,
@@ -120,7 +137,10 @@ def classify(text: str) -> dict:
             ["clippy"],
         )
 
-    if re.search(r"test result: FAILED|panicked at|assertion `left == right` failed|thread '.*' panicked", clean):
+    if re.search(
+        r"test result: FAILED|panicked at|assertion `left == right` failed|thread '.*' panicked",
+        clean,
+    ):
         return result(
             "ci_test_failure",
             HARD,
@@ -132,7 +152,10 @@ def classify(text: str) -> dict:
             ["test_failure"],
         )
 
-    if re.search(r"release deploy automation static test|static proof|workflow name missing|static guard", lowered):
+    if re.search(
+        r"release deploy automation static test|static proof|workflow name missing|static guard",
+        lowered,
+    ):
         return result(
             "release_static_proof_failure",
             HARD,
@@ -156,7 +179,11 @@ def classify(text: str) -> dict:
             ["deploy_health"],
         )
 
-    if re.search(r"Killed|oom|out of memory|No space left on device|runner.*lost|The operation was canceled", clean, re.I):
+    if re.search(
+        r"Killed|oom|out of memory|No space left on device|runner.*lost|The operation was canceled",
+        clean,
+        re.I,
+    ):
         return result(
             "runner_resource_failure",
             RERUN,
@@ -168,7 +195,10 @@ def classify(text: str) -> dict:
             ["runner_resource"],
         )
 
-    if re.search(r"failed to determine base repo|not a git repository|gh run rerun|gh workflow run", lowered):
+    if re.search(
+        r"failed to determine base repo|not a git repository|gh run rerun|gh workflow run",
+        lowered,
+    ):
         return result(
             "auto_heal_process_error",
             HARD,
@@ -180,7 +210,11 @@ def classify(text: str) -> dict:
             ["self_heal_process"],
         )
 
-    if re.search(r"HTTP 5\d\d|connection reset|timed out|TLS|rate limit|upload.*failed|artifact.*failed", clean, re.I):
+    if re.search(
+        r"HTTP 5\d\d|connection reset|timed out|TLS|rate limit|upload.*failed|artifact.*failed",
+        clean,
+        re.I,
+    ):
         return result(
             "transient_github_or_network_failure",
             RERUN,
@@ -241,7 +275,7 @@ def emit_env(payload: dict) -> None:
         value = payload[key]
         if isinstance(value, bool):
             value = "true" if value else "false"
-        print(f"{key}={str(value).replace(chr(10), " ")}")
+        print(f"{key}={str(value).replace(chr(10), ' ')}")
     print(f"source_refs={','.join(payload['source_refs'])}")
     print(f"signals={','.join(payload['signals'])}")
 
