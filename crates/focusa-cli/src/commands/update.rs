@@ -117,7 +117,7 @@ pub struct UpdateRollbackArgs {
     #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
     pub dry_run: bool,
 
-    /// Explicit operator consent for future rollback. Still blocked in this scaffold.
+    /// Explicit operator consent required with --dry-run=false for verified rollback.
     #[arg(long)]
     pub yes: bool,
 }
@@ -1383,7 +1383,7 @@ fn build_rollback_envelope(args: UpdateRollbackArgs) -> UpdateRollbackEnvelope {
         dry_run: args.dry_run,
         consent_yes: args.yes,
         blocked_reason: vec![
-            "rollback_executor_not_enabled_in_spec128_08_scaffold".to_string(),
+            "dry_run_default_no_mutation".to_string(),
             "snapshot_integrity_verification_required".to_string(),
             "admin_confirmation_required".to_string(),
         ],
@@ -1406,7 +1406,7 @@ fn build_rollback_envelope(args: UpdateRollbackArgs) -> UpdateRollbackEnvelope {
             overwrite_license: false,
             preserve: build_safety_plan().preserves,
         },
-        recovery_hint: "No rollback was executed. Inspect update history/journal and rerun with future rollback gates when implemented.".to_string(),
+        recovery_hint: "No rollback was executed in dry-run mode. Inspect update history/journal, then rerun with --dry-run=false --yes.".to_string(),
     }
 }
 
@@ -2316,12 +2316,12 @@ fn print_plan_human(plan: &UpdatePlanEnvelope) {
 
 async fn resolve_latest(channel: &str, override_value: Option<&str>) -> LatestVersion {
     if let Some(v) = override_value.filter(|s| !s.trim().is_empty()) {
-        return placeholder_latest(normalize_version(v), "--latest-version");
+        return unresolved_latest(normalize_version(v), "--latest-version");
     }
     for env_key in ["FOCUSA_LATEST_VERSION", "FOCUSA_UPDATE_LATEST_TAG"] {
         if let Ok(v) = std::env::var(env_key) {
             if !v.trim().is_empty() {
-                return placeholder_latest(normalize_version(&v), env_key);
+                return unresolved_latest(normalize_version(&v), env_key);
             }
         }
     }
@@ -2334,7 +2334,7 @@ async fn resolve_latest(channel: &str, override_value: Option<&str>) -> LatestVe
     match resolve_latest_github(channel, pinned.as_deref(), &skipped).await {
         Ok(latest) => latest,
         Err(error) => {
-            let mut latest = placeholder_latest(
+            let mut latest = unresolved_latest(
                 env!("CARGO_PKG_VERSION").into(),
                 "current_cli_package_version",
             );
@@ -2347,7 +2347,7 @@ async fn resolve_latest(channel: &str, override_value: Option<&str>) -> LatestVe
     }
 }
 
-fn placeholder_latest(version: String, source: &str) -> LatestVersion {
+fn unresolved_latest(version: String, source: &str) -> LatestVersion {
     let tag = if version.starts_with('v') {
         version.clone()
     } else {
@@ -2360,7 +2360,7 @@ fn placeholder_latest(version: String, source: &str) -> LatestVersion {
         github_repo: github_repo(),
         target_triple: target_triple(),
         release_manifest_required: true,
-        eligibility_status: "placeholder_until_manifest_resolver",
+        eligibility_status: "unresolved_fail_closed",
         trust: ReleaseTrustSummary {
             release_resolved: false,
             complete_asset_set: false,

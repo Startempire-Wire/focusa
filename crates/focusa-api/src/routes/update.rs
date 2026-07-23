@@ -610,7 +610,7 @@ async fn build_update_inventory(command: &'static str, query: UpdateQuery) -> Va
             "version": latest.version,
             "source": latest.source,
             "release_manifest_required": true,
-            "eligibility_status": "placeholder_until_manifest_resolver"
+            "eligibility_status": "unresolved_fail_closed"
         },
         "policy": policy_summary_json(),
         "license": license_summary_json(),
@@ -691,10 +691,9 @@ fn build_update_plan(inventory: Value) -> Value {
             && p.get("restart_required").and_then(Value::as_bool) == Some(true)
     });
     let blockers = vec![
-        "release_manifest_signature_verification_not_wired_to_plan",
-        "update_locking_not_implemented",
-        "atomic_install_not_implemented",
-        "rollback_apply_not_implemented",
+        "trusted_apply_requires_focusa_update_cli",
+        "self_replacement_is_not_daemon_api_authority",
+        "rollback_execution_requires_focusa_update_cli",
     ];
     json!({
         "schema": "focusa.update_plan.v1",
@@ -774,7 +773,7 @@ fn build_scheduler_envelope(channel: String) -> Value {
         "maintenance": {"respected": true, "default_window": "02:00-05:00 local time", "user_override_path": update_state_root().join("maintenance-window.json").display().to_string()},
         "automatic_apply": {
             "allowed": false,
-            "reason": "auto apply remains disabled until manifest/signature/lock/rollback/apply gates are implemented",
+            "reason": "daemon API is planning authority only; trusted apply executes through the transactional focusa update CLI",
             "requires": ["trusted_release_manifest", "update_lock_acquired", "rollback_snapshot_ready", "policy_allows_automatic_apply", "daemon_restart_policy_approved"]
         },
         "notifications": notification_routes_json(),
@@ -895,11 +894,11 @@ fn build_rollback_envelope(body: UpdateRollbackBody) -> Value {
         "part": body.part,
         "dry_run": body.dry_run,
         "consent_yes": body.yes,
-        "blocked_reason": ["rollback_executor_not_enabled_in_spec128_08_scaffold", "snapshot_integrity_verification_required", "admin_confirmation_required"],
+        "blocked_reason": ["rollback_execution_requires_focusa_update_cli", "snapshot_integrity_verification_required", "admin_confirmation_required"],
         "restore_order": restore_order,
         "proof_required": ["snapshot_sha256_verified", "same_filesystem_atomic_rename_available", "post_rollback_version_matches_snapshot", "no_data_env_license_overwrite", "history_event_written"],
         "data_safety": {"overwrite_data": false, "overwrite_env": false, "overwrite_license": false, "preserve": build_safety_plan_json().pointer("/preserves").cloned().unwrap_or_else(|| json!([]))},
-        "recovery_hint": "No rollback was executed. Inspect update history/journal and rerun with future rollback gates when implemented."
+        "recovery_hint": "No rollback was executed by the planning API. Inspect update history/journal, then use focusa update rollback with explicit admin confirmation."
     })
 }
 
@@ -940,7 +939,7 @@ fn build_admin_envelope(body: UpdateAdminBody) -> Value {
         "policy_patch_preview": {"pin_version": body.pin_version, "unpin": body.unpin, "skip_version": body.skip_version, "pause": body.pause, "resume": body.resume, "trusted_dev_force_latest": body.trusted_dev_force_latest},
         "force_check_preview": body.force_check,
         "trusted_dev_force_latest_allowed": body.trusted_dev_force_latest && dev_mode,
-        "blocked_reason": ["admin_control_write_executor_not_enabled_in_spec128_08_scaffold", "dry_run_preview_only"]
+        "blocked_reason": ["admin_mutation_requires_focusa_update_cli", "dry_run_preview_only"]
     })
 }
 
@@ -955,7 +954,7 @@ fn build_apply_envelope(plan: Value, dry_run: bool, yes: bool, allow_apply: bool
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
-    blocked_reason.push("apply_executor_not_enabled_in_spec128_07_scaffold".into());
+    blocked_reason.push("trusted_apply_requires_focusa_update_cli".into());
     if dry_run {
         blocked_reason.push("dry_run_requested".into());
     }
@@ -988,7 +987,7 @@ fn build_apply_envelope(plan: Value, dry_run: bool, yes: bool, allow_apply: bool
             "yes": yes,
             "allow_apply": allow_apply,
             "effective": yes && allow_apply && !dry_run,
-            "note": "consent is recorded only; this scaffold does not mutate binaries"
+            "note": "daemon API records planning consent only; transactional binary mutation requires focusa update apply"
         },
         "plan": plan,
         "execution_order": ["cli", "tui", "daemon_last", "restart_daemon_only_if_changed_and_allowed"],
