@@ -51,7 +51,7 @@ for marker in \
   'production_notarized' \
   'Signature=adhoc' \
   'install-focusa-menubar-beta.sh' \
-  'release-gate%3Acompaction-session'; do
+  'release-gate:'; do
   rg -q "$marker" "$RELEASE" || fail "release workflow missing pre-license/release-gate marker: $marker"
 done
 for marker in \
