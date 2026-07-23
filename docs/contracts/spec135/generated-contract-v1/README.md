@@ -110,6 +110,11 @@ Pi and Mission Canvas: active Bead/Workpoint/proof/next-action visibility,
 keyboard and mouse reachability, narrow layouts, wide detail, and ASCII
 fallback without duplicating canonical state.
 
+`spec135-m3-mission-surfaces-proof.json` defines the durable multiplexed
+Mission Canvas hierarchy: stable Work Surface, tab, pane, instance, session,
+and attachment identity; bounded canonical refs; and independent view/session
+lifecycle with restart recovery.
+
 `spec135-alpha4-work-rail-proof.json` composes the approved task, exact-scoped
 Workpoint, Work Rail, linked Evidence, provider reconciliation, verified
 closure, responsive projection, and closure Receipt into the Alpha 4 gate.

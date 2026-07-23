@@ -3073,6 +3073,360 @@
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.metacog_retrieve.response.v1"
       },
+      "focusa_mission_canvas_surface_list_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "attachment_id": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "work_surface_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "type": "object"
+      },
+      "focusa_mission_canvas_surface_list_v1": {
+        "properties": {
+          "schema": {
+            "const": "focusa.mission_canvas_surface_list.v1"
+          },
+          "state_version": {
+            "type": "integer"
+          },
+          "surfaces": {
+            "items": {
+              "properties": {
+                "attachment_id": {
+                  "type": "string"
+                },
+                "canonical_state_refs": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "continuity_id": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "idempotency_key": {
+                  "type": "string"
+                },
+                "instance_id": {
+                  "type": "string"
+                },
+                "mission_ref": {
+                  "type": "string"
+                },
+                "pane_id": {
+                  "type": "string"
+                },
+                "pinned": {
+                  "type": "boolean"
+                },
+                "project_root": {
+                  "type": "string"
+                },
+                "session_id": {
+                  "type": "string"
+                },
+                "state_revision": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "status": {
+                  "enum": [
+                    "active",
+                    "suspended",
+                    "view_closed"
+                  ]
+                },
+                "surface_kind": {
+                  "type": "string"
+                },
+                "tab_index": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "unread": {
+                  "type": "boolean"
+                },
+                "updated_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "work_surface_id": {
+                  "type": "string"
+                },
+                "workpoint_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "work_surface_id",
+                "state_revision",
+                "project_root",
+                "continuity_id",
+                "attachment_id",
+                "instance_id",
+                "mission_ref",
+                "title",
+                "surface_kind",
+                "status",
+                "pane_id",
+                "tab_index",
+                "pinned",
+                "unread",
+                "canonical_state_refs",
+                "idempotency_key",
+                "created_at",
+                "updated_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "schema",
+          "state_version",
+          "surfaces"
+        ],
+        "type": "object"
+      },
+      "focusa_mission_canvas_surface_mutation_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "create",
+              "arrange",
+              "suspend",
+              "resume",
+              "close_view"
+            ]
+          },
+          "attachment_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "canonical_state_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "continuity_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "expected_state_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "expected_surface_revision": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "idempotency_key": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "instance_id": {
+            "type": "string"
+          },
+          "mission_ref": {
+            "type": "string"
+          },
+          "pane_id": {
+            "type": "string"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "project_root": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "surface_kind": {
+            "type": "string"
+          },
+          "tab_index": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "unread": {
+            "type": "boolean"
+          },
+          "work_surface_id": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "attachment_id",
+          "idempotency_key",
+          "expected_state_version",
+          "expected_surface_revision",
+          "action"
+        ],
+        "type": "object"
+      },
+      "focusa_mission_canvas_surface_mutation_result_v1": {
+        "properties": {
+          "evidence_ref": {
+            "type": "string"
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "schema": {
+            "const": "focusa.mission_canvas_surface_mutation_result.v1"
+          },
+          "state_version": {
+            "type": "integer"
+          },
+          "surface": {
+            "properties": {
+              "attachment_id": {
+                "type": "string"
+              },
+              "canonical_state_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "continuity_id": {
+                "type": "string"
+              },
+              "created_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "idempotency_key": {
+                "type": "string"
+              },
+              "instance_id": {
+                "type": "string"
+              },
+              "mission_ref": {
+                "type": "string"
+              },
+              "pane_id": {
+                "type": "string"
+              },
+              "pinned": {
+                "type": "boolean"
+              },
+              "project_root": {
+                "type": "string"
+              },
+              "session_id": {
+                "type": "string"
+              },
+              "state_revision": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "status": {
+                "enum": [
+                  "active",
+                  "suspended",
+                  "view_closed"
+                ]
+              },
+              "surface_kind": {
+                "type": "string"
+              },
+              "tab_index": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "title": {
+                "type": "string"
+              },
+              "unread": {
+                "type": "boolean"
+              },
+              "updated_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "work_surface_id": {
+                "type": "string"
+              },
+              "workpoint_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "work_surface_id",
+              "state_revision",
+              "project_root",
+              "continuity_id",
+              "attachment_id",
+              "instance_id",
+              "mission_ref",
+              "title",
+              "surface_kind",
+              "status",
+              "pane_id",
+              "tab_index",
+              "pinned",
+              "unread",
+              "canonical_state_refs",
+              "idempotency_key",
+              "created_at",
+              "updated_at"
+            ],
+            "type": "object"
+          },
+          "tool_result": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "schema",
+          "state_version",
+          "replayed",
+          "surface",
+          "evidence_ref",
+          "receipt_ref",
+          "tool_result"
+        ],
+        "type": "object"
+      },
       "focusa_operation_registry_request_v1": {
         "additionalProperties": true,
         "description": "Generated contract for Focusa schema focusa.operation_registry.request.v1",
@@ -13491,6 +13845,213 @@
         ],
         "x-focusa-sensitive": "scoped_mutation",
         "x-focusa-subsystem": "metacognition"
+      }
+    },
+    "/v1/mission-canvas/surfaces": {
+      "get": {
+        "description": "List Mission Canvas Work Surface Revisions",
+        "operationId": "focusa.mission_canvas.surface.list",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_mission_canvas_surface_list_v1"
+                }
+              }
+            },
+            "description": "List Scoped Work Rail Revisions response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "List Mission Canvas Work Surface Revisions",
+        "tags": [
+          "mission_canvas"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "mission_canvas",
+          "materialization_mode": "canonical_projection_read",
+          "requires_preview_token": false,
+          "side_effect_profile": "read_mission_canvas_surfaces",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "mission_canvas"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.mission_canvas.surface.list",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "mission_canvas:read"
+        ],
+        "x-focusa-plain-label": "List Mission Canvas Work Surface Revisions",
+        "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "mission_canvas"
+      }
+    },
+    "/v1/mission-canvas/surfaces/mutate": {
+      "post": {
+        "description": "Create, Arrange, Suspend, Resume, or Close Work Surface",
+        "operationId": "focusa.mission_canvas.surface.mutate",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_mission_canvas_surface_mutation_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_mission_canvas_surface_mutation_result_v1"
+                }
+              }
+            },
+            "description": "Bind, Activate, Verify, or Close Work Rail Row response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Create, Arrange, Suspend, Resume, or Close Work Surface",
+        "tags": [
+          "mission_canvas"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "mission_canvas",
+          "materialization_mode": "canonical_projection_event",
+          "requires_preview_token": true,
+          "side_effect_profile": "append_mission_canvas_surface_revision",
+          "supports_side_effect_policy": [
+            "dry_run",
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "mission_canvas"
+        ],
+        "x-focusa-concurrency": true,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.mission_canvas.surface.mutate",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "preview",
+        "x-focusa-permissions": [
+          "mission_canvas:write"
+        ],
+        "x-focusa-plain-label": "Create, Arrange, Suspend, Resume, or Close Work Surface",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "mission_canvas"
       }
     },
     "/v1/predictions/evaluate": {

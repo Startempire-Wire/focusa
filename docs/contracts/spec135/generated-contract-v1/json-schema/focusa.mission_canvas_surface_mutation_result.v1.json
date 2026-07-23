@@ -1,0 +1,132 @@
+{
+  "$id": "/v1/agent/schemas/focusa.mission_canvas_surface_mutation_result.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "evidence_ref": {
+      "type": "string"
+    },
+    "receipt_ref": {
+      "type": "string"
+    },
+    "replayed": {
+      "type": "boolean"
+    },
+    "schema": {
+      "const": "focusa.mission_canvas_surface_mutation_result.v1"
+    },
+    "state_version": {
+      "type": "integer"
+    },
+    "surface": {
+      "properties": {
+        "attachment_id": {
+          "type": "string"
+        },
+        "canonical_state_refs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "continuity_id": {
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "instance_id": {
+          "type": "string"
+        },
+        "mission_ref": {
+          "type": "string"
+        },
+        "pane_id": {
+          "type": "string"
+        },
+        "pinned": {
+          "type": "boolean"
+        },
+        "project_root": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "state_revision": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "active",
+            "suspended",
+            "view_closed"
+          ]
+        },
+        "surface_kind": {
+          "type": "string"
+        },
+        "tab_index": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "unread": {
+          "type": "boolean"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "work_surface_id": {
+          "type": "string"
+        },
+        "workpoint_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "work_surface_id",
+        "state_revision",
+        "project_root",
+        "continuity_id",
+        "attachment_id",
+        "instance_id",
+        "mission_ref",
+        "title",
+        "surface_kind",
+        "status",
+        "pane_id",
+        "tab_index",
+        "pinned",
+        "unread",
+        "canonical_state_refs",
+        "idempotency_key",
+        "created_at",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "tool_result": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema",
+    "state_version",
+    "replayed",
+    "surface",
+    "evidence_ref",
+    "receipt_ref",
+    "tool_result"
+  ],
+  "title": "focusa.mission_canvas_surface_mutation_result.v1",
+  "type": "object",
+  "x-focusa-schema-id": "focusa.mission_canvas_surface_mutation_result.v1"
+}

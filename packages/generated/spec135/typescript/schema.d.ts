@@ -764,6 +764,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/mission-canvas/surfaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Mission Canvas Work Surface Revisions
+         * @description List Mission Canvas Work Surface Revisions
+         */
+        get: operations["focusa.mission_canvas.surface.list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/mission-canvas/surfaces/mutate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create, Arrange, Suspend, Resume, or Close Work Surface
+         * @description Create, Arrange, Suspend, Resume, or Close Work Surface
+         */
+        post: operations["focusa.mission_canvas.surface.mutate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/predictions/evaluate": {
         parameters: {
             query?: never;
@@ -2558,6 +2598,98 @@ export interface components {
          */
         focusa_metacog_retrieve_response_v1: {
             [key: string]: unknown;
+        };
+        focusa_mission_canvas_surface_list_request_v1: {
+            attachment_id: string;
+            continuity_id: string;
+            project_root: string;
+            work_surface_id?: string;
+        };
+        focusa_mission_canvas_surface_list_v1: {
+            /** @constant */
+            schema: "focusa.mission_canvas_surface_list.v1";
+            state_version: number;
+            surfaces: {
+                attachment_id: string;
+                canonical_state_refs: string[];
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                idempotency_key: string;
+                instance_id: string;
+                mission_ref: string;
+                pane_id: string;
+                pinned: boolean;
+                project_root: string;
+                session_id?: string;
+                state_revision: number;
+                /** @enum {unknown} */
+                status: "active" | "suspended" | "view_closed";
+                surface_kind: string;
+                tab_index: number;
+                title: string;
+                unread: boolean;
+                /** Format: date-time */
+                updated_at: string;
+                work_surface_id: string;
+                workpoint_id?: string;
+            }[];
+        };
+        focusa_mission_canvas_surface_mutation_request_v1: {
+            /** @enum {unknown} */
+            action: "create" | "arrange" | "suspend" | "resume" | "close_view";
+            attachment_id: string;
+            canonical_state_refs?: string[];
+            continuity_id: string;
+            expected_state_version: number;
+            expected_surface_revision: number;
+            idempotency_key: string;
+            instance_id?: string;
+            mission_ref?: string;
+            pane_id?: string;
+            pinned?: boolean;
+            project_root: string;
+            session_id?: string;
+            surface_kind?: string;
+            tab_index?: number;
+            title?: string;
+            unread?: boolean;
+            work_surface_id?: string;
+            workpoint_id?: string;
+        };
+        focusa_mission_canvas_surface_mutation_result_v1: {
+            evidence_ref: string;
+            receipt_ref: string;
+            replayed: boolean;
+            /** @constant */
+            schema: "focusa.mission_canvas_surface_mutation_result.v1";
+            state_version: number;
+            surface: {
+                attachment_id: string;
+                canonical_state_refs: string[];
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                idempotency_key: string;
+                instance_id: string;
+                mission_ref: string;
+                pane_id: string;
+                pinned: boolean;
+                project_root: string;
+                session_id?: string;
+                state_revision: number;
+                /** @enum {unknown} */
+                status: "active" | "suspended" | "view_closed";
+                surface_kind: string;
+                tab_index: number;
+                title: string;
+                unread: boolean;
+                /** Format: date-time */
+                updated_at: string;
+                work_surface_id: string;
+                workpoint_id?: string;
+            };
+            tool_result: Record<string, never>;
         };
         /**
          * focusa.operation_registry.request.v1
@@ -5744,6 +5876,82 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_metacog_retrieve_response_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.mission_canvas.surface.list": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List Scoped Work Rail Revisions response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_mission_canvas_surface_list_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.mission_canvas.surface.mutate": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_mission_canvas_surface_mutation_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Bind, Activate, Verify, or Close Work Rail Row response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_mission_canvas_surface_mutation_result_v1"];
                 };
             };
             /** @description Standard error envelope */

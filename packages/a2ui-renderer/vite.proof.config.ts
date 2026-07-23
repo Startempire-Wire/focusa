@@ -24,6 +24,7 @@ export default defineConfig({
         taskPlan: resolve(import.meta.dirname, "proof/task-plan.html"),
         taskMaterialization: resolve(import.meta.dirname, "proof/task-materialization.html"),
         workRail: resolve(import.meta.dirname, "proof/work-rail.html"),
+        missionSurfaces: resolve(import.meta.dirname, "proof/mission-surfaces.html"),
       },
     },
   },
