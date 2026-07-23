@@ -4261,10 +4261,16 @@ async fn session_transfer(
         .unwrap_or_else(|| "Continue from session-transfer packet".to_string());
     let transfer_id = uuid::Uuid::now_v7().to_string();
     let transfers_path = project_session_transfers_path(&source_scope.root_scope);
-    let latest_prior = recent_jsonl_values(transfers_path.clone(), 256)
-        .into_iter()
+    let recent_transfers = recent_jsonl_values(transfers_path.clone(), 256);
+    let latest_prior = recent_transfers
+        .iter()
         .rev()
         .find(|record| {
+            if record.get("schema").and_then(Value::as_str)
+                != Some("focusa.project_session_transfer.v2")
+            {
+                return false;
+            }
             let source_matches = record
                 .pointer("/source_scope/root_scope/root_path")
                 .and_then(Value::as_str)
@@ -4293,6 +4299,7 @@ async fn session_transfer(
                     == source_working_subpath_id.as_str();
             source_matches || target_matches
         })
+        .cloned()
         .unwrap_or(Value::Null);
     let preload_target = body.preload_target.as_deref().unwrap_or("cursor");
     let preload_mode = body.preload_mode.as_deref().unwrap_or("session_transfer");
@@ -4370,26 +4377,48 @@ async fn session_transfer(
                     .target_session_id
                     .as_deref()
                     .is_some_and(|value| !value.trim().is_empty());
-            let receipt = json!({
-                "schema": "focusa.project_session_transition_receipt.v1",
-                "receipt_id": Uuid::now_v7().to_string(),
-                "transfer_id": prior.get("transfer_id"),
-                "source_scope": prior.get("source_scope"),
-                "target_scope": prior.get("target_scope"),
-                "target_session_id": body.target_session_id,
-                "target_workpoint_id": body.target_workpoint_id,
-                "target_resume_canonical": body.target_resume_canonical,
-                "status": if verified { "target_resume_verified" } else { "target_resume_degraded" },
-                "verified_at": Utc::now().to_rfc3339(),
-                "evidence_refs": body.evidence_refs,
-            });
-            append_project_session_transfer(&source_scope.root_scope, &receipt);
-            prior["transition_receipt"] = receipt;
-            prior["transition"]["status"] = json!(if verified {
+            let expected_status = if verified {
                 "target_resume_verified"
             } else {
                 "target_resume_degraded"
+            };
+            let existing_receipt = recent_transfers.iter().rev().find(|receipt| {
+                receipt.get("schema").and_then(Value::as_str)
+                    == Some("focusa.project_session_transition_receipt.v1")
+                    && receipt.get("transfer_id") == prior.get("transfer_id")
+                    && receipt.get("target_session_id").and_then(Value::as_str)
+                        == body.target_session_id.as_deref()
+                    && receipt.get("target_workpoint_id").and_then(Value::as_str)
+                        == body.target_workpoint_id.as_deref()
+                    && receipt
+                        .get("target_resume_canonical")
+                        .and_then(Value::as_bool)
+                        == body.target_resume_canonical
+                    && receipt.get("status").and_then(Value::as_str) == Some(expected_status)
             });
+            let receipt = if let Some(existing) = existing_receipt {
+                let mut replay = existing.clone();
+                replay["idempotent_replay"] = json!(true);
+                replay
+            } else {
+                let receipt = json!({
+                    "schema": "focusa.project_session_transition_receipt.v1",
+                    "receipt_id": Uuid::now_v7().to_string(),
+                    "transfer_id": prior.get("transfer_id"),
+                    "source_scope": prior.get("source_scope"),
+                    "target_scope": prior.get("target_scope"),
+                    "target_session_id": body.target_session_id,
+                    "target_workpoint_id": body.target_workpoint_id,
+                    "target_resume_canonical": body.target_resume_canonical,
+                    "status": expected_status,
+                    "verified_at": Utc::now().to_rfc3339(),
+                    "evidence_refs": body.evidence_refs,
+                });
+                append_project_session_transfer(&source_scope.root_scope, &receipt);
+                receipt
+            };
+            prior["transition_receipt"] = receipt;
+            prior["transition"]["status"] = json!(expected_status);
         }
         prior
     } else {

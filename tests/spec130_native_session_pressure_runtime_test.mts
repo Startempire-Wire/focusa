@@ -8,6 +8,7 @@ import {
   mkdtempSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
   rmSync,
   statSync,
   truncateSync,
@@ -171,6 +172,54 @@ try {
   );
   assert(existsSync(migrated.manifest_path!), "migration manifest missing");
   assert(readFileSync(migrationSource).equals(sourceBefore), "source bytes changed after migration");
+
+  const faultSteps = [
+    "after_prepare",
+    "after_archive_write",
+    "after_archive_checksum",
+    "after_archive_seal",
+    "after_recovery_write",
+    "after_recovery_checksum",
+    "after_source_verify",
+    "after_manifest_write",
+    "after_manifest_commit",
+  ] as const;
+  for (const step of faultSteps) {
+    const faultOutput = join(root, `fault-${step}`);
+    let fault = "";
+    try {
+      await migrateNativeSessionBounded({
+        source_path: migrationSource,
+        output_dir: faultOutput,
+        scope,
+        mode: "execute",
+        recovery_max_bytes: 64 * 1024,
+        entry_max_bytes: 16 * 1024,
+        fault_injection_step: step,
+      });
+    } catch (error) {
+      fault = error instanceof Error ? error.message : String(error);
+    }
+    assert(fault === `native_session_migration_fault:${step}`, `wrong ${step} failure`);
+    assert(readFileSync(migrationSource).equals(sourceBefore), `${step} mutated source session`);
+    assert(
+      !existsSync(faultOutput) || readdirSync(faultOutput).length === 0,
+      `${step} left committed or temporary migration files`
+    );
+
+    const retried = await migrateNativeSessionBounded({
+      source_path: migrationSource,
+      output_dir: faultOutput,
+      scope,
+      mode: "execute",
+      recovery_max_bytes: 64 * 1024,
+      entry_max_bytes: 16 * 1024,
+    });
+    assert(retried.integrity.source_unchanged, `${step} retry lost source integrity`);
+    assert(retried.integrity.archive_matches_source, `${step} retry lost archive integrity`);
+    assert(retried.integrity.recovery_within_budget, `${step} retry exceeded recovery budget`);
+    rmSync(faultOutput, { recursive: true, force: true });
+  }
 
   const rollbackOutput = join(root, "rollback-output");
   const rollbackPlan = await migrateNativeSessionBounded({

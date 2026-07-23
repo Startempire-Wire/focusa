@@ -116,6 +116,14 @@ for index in "${!adapters[@]}"; do
   target_workpoint="$(jq -er --arg target "${target_continuity}" --arg source_wp "${source_workpoint}" '
     select(.status == "completed" and .canonical == true and .target_continuity_id == $target and (.source_workpoint_id|tostring) == $source_wp) | .target_workpoint_id
   ' <<<"${materialized}")"
+  materialized_replay="$(curl -fsS -X POST "${BASE_URL}/v1/workpoint/rollover/target-materialize" \
+    -H "x-scope-project-root: ${PROJECT_ROOT}" \
+    -H "x-scope-continuity-id: ${source_continuity}" \
+    -H 'content-type: application/json' -d "${materialize_body}")"
+  jq -e --arg target_wp "${target_workpoint}" '
+    .status == "completed" and .canonical == true and .status_hint == "idempotent_replay" and
+    (.target_workpoint_id|tostring) == $target_wp
+  ' <<<"${materialized_replay}" >/dev/null
 
   resume_body="$(jq -n --arg root "${PROJECT_ROOT}" --arg continuity "${target_continuity}" --arg session "${target_session}" --arg workpoint "${target_workpoint}" '{project_root:$root,continuity_id:$continuity,session_id:$session,workpoint_id:$workpoint,mode:"operator_summary",current_ask:"Continue cross-agent handoff proof"}')"
   resumed="$(curl -fsS -X POST "${BASE_URL}/v1/workpoint/resume" \
@@ -141,6 +149,15 @@ for index in "${!adapters[@]}"; do
   receipt="$(jq -er --arg target "${target_continuity}" --arg target_wp "${target_workpoint}" '
     select(.transfer.transition.status == "target_resume_verified" and .transfer.target_scope.continuity_id == $target and (.transfer.transition_receipt.target_workpoint_id|tostring) == $target_wp and .transfer.transition_receipt.target_resume_canonical == true) | .transfer.transition_receipt.receipt_id
   ' <<<"${verified}")"
+  verified_replay="$(curl -fsS -X POST "${BASE_URL}/v1/project/session-transfer" \
+    -H "x-scope-project-root: ${PROJECT_ROOT}" \
+    -H "x-scope-continuity-id: ${source_continuity}" \
+    -H 'content-type: application/json' -d "${verify_body}")"
+  jq -e --arg receipt "${receipt}" '
+    .transfer.transition.status == "target_resume_verified" and
+    .transfer.transition_receipt.receipt_id == $receipt and
+    .transfer.transition_receipt.idempotent_replay == true
+  ' <<<"${verified_replay}" >/dev/null
 
   receipts+=("${receipt}")
   lineage+=("${target_workpoint}")
