@@ -280,7 +280,7 @@ impl RunnerState {
         );
         let workspace = canonical_owned_directory(&expected.workspace, self.owner_uid)?;
         ensure!(
-            workspace == PathBuf::from(&expected.workspace),
+            workspace.as_os_str() == std::ffi::OsStr::new(&expected.workspace),
             "adoption workspace is not canonical"
         );
         ensure!(
