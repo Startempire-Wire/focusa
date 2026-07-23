@@ -1106,7 +1106,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     live_check:
       "contract_static plus daemon route conformance; mutations require exact target, durable approval and idempotency",
     scope_requirement: { kind: "read", route_family: "auto" },
-    authority_requirement: { kind: "mutation_authority" },
+    authority_requirement: { kind: "canonical", path: "daemon:/v1/silent-sessions" },
   },
   {
     name: "focusa_tool_doctor",

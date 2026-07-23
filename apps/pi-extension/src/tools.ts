@@ -83,6 +83,27 @@ function ensureScratchDir(): void {
   }
 }
 
+function projectRootPermissionPosture(projectRoot: string): Record<string, unknown> {
+  const { statSync } = require("fs") as typeof import("fs");
+  const { userInfo } = require("os") as typeof import("os");
+  const current = userInfo();
+  const metadata = statSync(projectRoot);
+  const homeOwner = projectRoot.match(/^\/home\/([^/]+)(?:\/|$)/)?.[1] || null;
+  const owner = metadata.uid === current.uid ? current.username : homeOwner || `uid:${metadata.uid}`;
+  const crossUserHome = homeOwner != null && owner !== current.username;
+  return {
+    project_root: projectRoot,
+    root_owner: { user: owner, uid: metadata.uid },
+    current_user: current.username,
+    root_owned_by_current_user: metadata.uid === current.uid,
+    root_user_home: homeOwner != null,
+    posture: crossUserHome ? "cross_user_home_use_as_owner" : "same_user_or_non_home_root",
+    guidance: crossUserHome
+      ? `Run repo/file mutations via as-user ${owner}; avoid root-owned files under ${projectRoot}.`
+      : "Project root ownership matches current user or is outside /home user space.",
+  };
+}
+
 function appendScratchpadLine(note: string, tag?: string): { saved: boolean; turn: number } {
   const turn = getTurnCount();
   const dir = scratchDir(turn);

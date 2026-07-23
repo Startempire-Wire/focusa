@@ -1,6 +1,6 @@
 {
   "schema": "focusa.mcp_tool_projection.v2",
-  "registry_digest": "sha256:9db6e128c917c53d3225ef9bf7541f652c0a5b6b984fcecfc45c2e175078cae6",
+  "registry_digest": "sha256:f15078162dc7b0f7a595abcb5ae4302f9af85f7b8de0b0ef0762cdde661215b8",
   "tools": [
     {
       "name": "focusa.active.object.resolve",
@@ -17499,7 +17499,8 @@
           }
         ],
         "authority": {
-          "kind": "mutation_authority"
+          "kind": "canonical",
+          "path": "daemon:/v1/silent-sessions"
         }
       }
     },

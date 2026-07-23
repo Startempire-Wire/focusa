@@ -32798,7 +32798,8 @@
         "route_family": "auto"
       },
       "authority": {
-        "kind": "mutation_authority"
+        "kind": "canonical",
+        "path": "daemon:/v1/silent-sessions"
       },
       "permissions": [
         {
@@ -33019,7 +33020,7 @@
         "snippet": "Use as a thin daemon API client. Supply exact session_id/run_id/generation and durable approval/idempotency fields for mutations; the daemon remains canonical authority.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:4aafc5b3c5a6db1fbb49b6eeea05d701199c4582efff013e8bd28fe73be7bf45"
+      "descriptor_digest": "sha256:25211f3637fcd5f4fd15eee821df0f17448238a87bd0657c0b03b6631a0945e8"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -46164,5 +46165,5 @@
       "descriptor_digest": "sha256:ab9c9bbe2ed5cd1be3c2be60126fbc6114de34d72116a188fdd0b734de5b3e68"
     }
   ],
-  "registry_digest": "sha256:9db6e128c917c53d3225ef9bf7541f652c0a5b6b984fcecfc45c2e175078cae6"
+  "registry_digest": "sha256:f15078162dc7b0f7a595abcb5ae4302f9af85f7b8de0b0ef0762cdde661215b8"
 }
