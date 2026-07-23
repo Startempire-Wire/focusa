@@ -1,7 +1,11 @@
 //! Spec 119 receipt projections and governed closure for Silent Sessions.
 //! This module never owns a ledger; it emits requests for the existing event chain.
 
-use crate::silent_session::{SilentSessionId, SilentSessionRunId, WorkpointBinding};
+use crate::silent_session::{
+    CompletionDecision, SilentSessionId, SilentSessionLifecycleState, SilentSessionRunId,
+    WorkpointBinding,
+};
+use crate::silent_session_completion::CompletionEvaluationOutcome;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -170,6 +174,73 @@ pub fn project_receipt(
     };
     receipt.validate()?;
     Ok(receipt)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkSessionOutcome {
+    Completed,
+    Blocked,
+    Failed,
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn project_work_session_outcome_receipt(
+    completion: &CompletionEvaluationOutcome,
+    session_id: SilentSessionId,
+    run_id: SilentSessionRunId,
+    project_identity_ref: impl Into<String>,
+    continuity_id: impl Into<String>,
+    workpoint_ref: WorkpointBinding,
+    work_item_ref: Option<String>,
+    evidence_refs: Vec<String>,
+    event_cursor: impl Into<String>,
+    created_at: DateTime<Utc>,
+) -> Result<SilentSessionReceiptProjection, SilentSessionReceiptError> {
+    if completion.evaluation.session_id != session_id || completion.evaluation.run_id != run_id {
+        return Err(SilentSessionReceiptError::CompletionScopeMismatch);
+    }
+    let outcome = match (
+        &completion.evaluation.decision,
+        &completion.next_lifecycle_state,
+    ) {
+        (CompletionDecision::Completed, SilentSessionLifecycleState::Completed)
+            if completion.receipt_commit_ref.is_some() =>
+        {
+            WorkSessionOutcome::Completed
+        }
+        (CompletionDecision::Blocked, SilentSessionLifecycleState::Blocked) => {
+            WorkSessionOutcome::Blocked
+        }
+        (CompletionDecision::Failed, SilentSessionLifecycleState::Failed) => {
+            WorkSessionOutcome::Failed
+        }
+        _ => return Err(SilentSessionReceiptError::CompletionNotFinal),
+    };
+    project_receipt(
+        ReceiptType::WorkSession,
+        session_id,
+        run_id,
+        project_identity_ref,
+        continuity_id,
+        workpoint_ref,
+        work_item_ref,
+        format!(
+            "completion-evaluation:{}",
+            completion.evaluation.evaluation_id
+        ),
+        evidence_refs,
+        event_cursor,
+        json!({
+            "outcome": outcome,
+            "completion_decision": completion.evaluation.decision,
+            "reason": completion.reason,
+            "missing_evidence": completion.missing_evidence,
+            "process_exit_is_completion": false,
+            "receipt_commit_ref": completion.receipt_commit_ref,
+        }),
+        created_at,
+    )
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -411,6 +482,10 @@ pub enum SilentSessionReceiptError {
     InvalidEventChainBinding,
     #[error("receipt serialization failed")]
     Serialization,
+    #[error("completion evaluation belongs to another session/run")]
+    CompletionScopeMismatch,
+    #[error("work-session outcome receipt requires a final completed/blocked/failed decision")]
+    CompletionNotFinal,
     #[error("closure proposal identity is invalid")]
     InvalidClosureProposal,
     #[error("closure transition skipped or reordered a governed stage")]
@@ -478,6 +553,110 @@ mod tests {
             assert!(!append.creates_new_ledger);
             assert_eq!(append.payload["execution_mode"], "silent_session");
         }
+    }
+
+    fn completion_outcome(
+        session_id: SilentSessionId,
+        run_id: SilentSessionRunId,
+        decision: CompletionDecision,
+        lifecycle: SilentSessionLifecycleState,
+        receipt_commit_ref: Option<String>,
+    ) -> CompletionEvaluationOutcome {
+        CompletionEvaluationOutcome {
+            evaluation: crate::silent_session::SilentSessionCompletionEvaluation {
+                schema: crate::silent_session::SILENT_SESSION_COMPLETION_SCHEMA.into(),
+                evaluation_id: crate::silent_session::SilentSessionCompletionEvaluationId::new(),
+                session_id,
+                run_id,
+                evaluated_at: Utc::now(),
+                process_result: json!({"exit_status": 0}),
+                workpoint_status: "refreshed".into(),
+                work_item_acceptance: std::collections::BTreeMap::from([(
+                    "criterion".into(),
+                    true,
+                )]),
+                evidence_classes: vec!["tests".into()],
+                test_results: vec![json!({"exit_code": 0})],
+                diff_refs: vec!["diff:1".into()],
+                commit_refs: vec!["aaaaaaaa".into()],
+                unresolved_blockers: vec![],
+                adversarial_verifier_verdict: Some("passed".into()),
+                receipt_ready: true,
+                decision,
+            },
+            next_lifecycle_state: lifecycle,
+            reason: None,
+            missing_evidence: std::collections::BTreeSet::new(),
+            receipt_commit_ref,
+        }
+    }
+
+    #[test]
+    fn work_session_receipts_cover_completed_blocked_failed_but_not_process_exit_alone() {
+        for (decision, lifecycle, commit, expected) in [
+            (
+                CompletionDecision::Completed,
+                SilentSessionLifecycleState::Completed,
+                Some("receipt:committed".into()),
+                "completed",
+            ),
+            (
+                CompletionDecision::Blocked,
+                SilentSessionLifecycleState::Blocked,
+                None,
+                "blocked",
+            ),
+            (
+                CompletionDecision::Failed,
+                SilentSessionLifecycleState::Failed,
+                None,
+                "failed",
+            ),
+        ] {
+            let session_id = SilentSessionId::new();
+            let run_id = SilentSessionRunId::new();
+            let outcome = completion_outcome(session_id, run_id, decision, lifecycle, commit);
+            let receipt = project_work_session_outcome_receipt(
+                &outcome,
+                session_id,
+                run_id,
+                "project:focusa",
+                "continuity:test",
+                workpoint(),
+                Some("focusa-a6yq6.7.7".into()),
+                vec!["evidence:completion".into()],
+                "cursor:outcome",
+                Utc::now(),
+            )
+            .unwrap();
+            assert_eq!(receipt.payload["outcome"], expected);
+            assert_eq!(receipt.payload["process_exit_is_completion"], false);
+        }
+
+        let session_id = SilentSessionId::new();
+        let run_id = SilentSessionRunId::new();
+        let exited_only = completion_outcome(
+            session_id,
+            run_id,
+            CompletionDecision::Incomplete,
+            SilentSessionLifecycleState::Completing,
+            None,
+        );
+        assert_eq!(
+            project_work_session_outcome_receipt(
+                &exited_only,
+                session_id,
+                run_id,
+                "project:focusa",
+                "continuity:test",
+                workpoint(),
+                Some("focusa-a6yq6.7.7".into()),
+                vec!["evidence:process-exit".into()],
+                "cursor:exit",
+                Utc::now(),
+            ),
+            Err(SilentSessionReceiptError::CompletionNotFinal)
+        );
     }
 
     fn proposal() -> ClosureProposal {
