@@ -21,7 +21,10 @@ assert_fail() {
 }
 
 assert_pass $'fix: preserve compaction continuity\n\nBeads: focusa-im74e'
+assert_pass 'proof(spec135): close verified Mission Canvas gate'
+assert_pass 'merge: synchronize concurrent implementation lane'
 assert_pass 'Merge pull request #123 from example/branch'
+assert_pass "Merge remote-tracking branch 'origin/feature-spec135-mission-canvas' into feature/spec-135-mission-canvas"
 assert_fail $'Beads: focusa-im74e\n\nfix: hidden real subject'
 assert_fail 'focusa-im74e'
 assert_fail 'WIP'
