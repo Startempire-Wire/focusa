@@ -172,12 +172,12 @@ require_in "$SPEC_I" 'uiai.focusa_ui_eval_scenario.v1'
 require_in "$SPEC_I" 'uiai.focusa_ui_eval_result.v1'
 pass "browser proof, renderer, stream, runtime, contract, and accessibility ownership are guarded"
 
-PLAYWRIGHT_CONFIGS="$(find "$ROOT_DIR" -type f \( -name 'playwright.config.*' -o -name '.playwright.*' \) -print)"
+PLAYWRIGHT_CONFIGS="$(find "$ROOT_DIR" -path '*/node_modules' -prune -o -type f \( -name 'playwright.config.*' -o -name '.playwright.*' \) -print)"
 [[ -z "$PLAYWRIGHT_CONFIGS" ]] || { printf '%s\n' "$PLAYWRIGHT_CONFIGS" >&2; fail "Playwright configuration exists in Focusa"; }
 
 MANIFEST_FILES=()
 while IFS= read -r -d '' file; do MANIFEST_FILES+=("$file"); done < <(
-  find "$ROOT_DIR" -type f \( \
+  find "$ROOT_DIR" -path '*/node_modules' -prune -o -type f \( \
     -name 'package.json' -o -name 'pnpm-lock.yaml' -o -name 'package-lock.json' -o \
     -name 'yarn.lock' -o -name 'bun.lock' -o -name 'bun.lockb' -o \
     -name 'pyproject.toml' -o -name 'requirements*.txt' \
@@ -187,7 +187,7 @@ if ((${#MANIFEST_FILES[@]})) && rg -n "(@playwright/test|playwright-core|(^|[\"'
   fail "Playwright dependency exists in Focusa package or lock files"
 fi
 
-if rg -n --glob '!*.md' --glob '!spec135i_real_time_generated_ui_static_test.sh' \
+if rg -n --glob '!*.md' --glob '!**/node_modules/**' --glob '!spec135i_real_time_generated_ui_static_test.sh' \
   --glob '!spec135_delivery_contract_regression_static_test.sh' \
   "(from[[:space:]]+[\"'][^\"']*playwright|require\\([\"']playwright|@playwright/test)" \
   "$ROOT_DIR/apps" "$ROOT_DIR/packages" "$ROOT_DIR/crates" "$ROOT_DIR/scripts" "$ROOT_DIR/tests" 2>/dev/null; then
