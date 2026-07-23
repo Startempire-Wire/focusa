@@ -1202,9 +1202,9 @@
         "pi",
         "typescript"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "role_interview",
       "dependencies": [
         "SPEC135-F12",
@@ -1266,9 +1266,9 @@
         "pi",
         "typescript"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "role_interview",
       "dependencies": [
         "SPEC135-RI1"
@@ -1330,9 +1330,9 @@
         "pi",
         "typescript"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "role_interview",
       "dependencies": [
         "SPEC135-RI2",
@@ -1461,9 +1461,9 @@
         "tui",
         "typescript"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "spec_tasks",
       "dependencies": [
         "SPEC135-RI3",
@@ -1529,9 +1529,9 @@
         "tui",
         "typescript"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "spec_tasks",
       "dependencies": [
         "SPEC135-ST1",
@@ -1597,9 +1597,9 @@
         "tui",
         "typescript"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "spec_tasks",
       "dependencies": [
         "SPEC135-ST2"
@@ -1663,9 +1663,9 @@
         "tui",
         "typescript"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "spec_tasks",
       "dependencies": [
         "SPEC135-ST3",
@@ -1734,9 +1734,9 @@
         "pwa",
         "tui"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "mission_canvas",
       "dependencies": [
         "SPEC135-F12"
@@ -1802,9 +1802,9 @@
         "pwa",
         "tui"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "mission_canvas",
       "dependencies": [
         "SPEC135-M1",
@@ -1869,9 +1869,9 @@
         "pwa",
         "tui"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "mission_canvas",
       "dependencies": [
         "SPEC135-M1"
@@ -1935,9 +1935,9 @@
         "pwa",
         "tui"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "mission_canvas",
       "dependencies": [
         "SPEC135-M3"
@@ -2210,9 +2210,9 @@
         "pwa",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "uiai_uxp",
       "dependencies": [
         "SPEC135-F11",
@@ -2276,9 +2276,9 @@
         "pwa",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "uiai_uxp",
       "dependencies": [
         "SPEC135-U1",
@@ -3015,9 +3015,9 @@
         "typescript",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "providers_connectors",
       "dependencies": [
         "SPEC135-F3",
@@ -3686,9 +3686,9 @@
         "tui",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "alpha",
       "dependencies": [
         "SPEC135-C3",
@@ -3755,9 +3755,9 @@
         "tui",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "alpha",
       "dependencies": [
         "SPEC135-ALPHA1",
@@ -3823,9 +3823,9 @@
         "tui",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "alpha",
       "dependencies": [
         "SPEC135-ALPHA2",
@@ -3891,9 +3891,9 @@
         "tui",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "alpha",
       "dependencies": [
         "SPEC135-ALPHA3",

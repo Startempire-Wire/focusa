@@ -10,6 +10,10 @@
     {
       "if": { "properties": { "action": { "const": "unbind" } } },
       "then": { "required": ["binding_id"] }
+    },
+    {
+      "if": { "properties": { "binding_kind": { "const": "browser_context" } }, "required": ["binding_kind"] },
+      "then": { "required": ["browser_isolation_class", "authentication_sharing", "retention_policy"] }
     }
   ],
   "properties": {
@@ -20,6 +24,12 @@
     "binding_kind": {
       "enum": ["session", "browser_context", "browser_target", "file", "operation", "evidence", "action"]
     },
+    "browser_isolation_class": {
+      "enum": ["shared_authenticated", "isolated_authenticated", "ephemeral_isolated", "read_only_observer", "capture_worker"],
+      "type": "string"
+    },
+    "authentication_sharing": { "enum": ["shared_explicit", "isolated"], "type": "string" },
+    "retention_policy": { "enum": ["persistent", "dispose_on_close", "manual"], "type": "string" },
     "continuity_id": { "minLength": 1, "type": "string" },
     "expected_binding_revision": { "minimum": 0, "type": "integer" },
     "expected_state_version": { "minimum": 0, "type": "integer" },

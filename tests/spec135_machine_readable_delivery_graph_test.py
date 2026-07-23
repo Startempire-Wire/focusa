@@ -53,7 +53,16 @@ for row in requirements:
 
 assert {"SPEC135-F0", "SPEC135-F1", "SPEC135-F12", "SPEC135-ALPHA1", "SPEC135-ALPHA8", "SPEC135-Z5"} <= ids
 assert next(r for r in requirements if r["requirement_id"] == "SPEC135-F0")["closure_status"] == "verified"
-for completed in ("SPEC135-F0", "SPEC135-F1", "SPEC135-F2", "SPEC135-F3", "SPEC135-F4", "SPEC135-F5", "SPEC135-F6", "SPEC135-F7", "SPEC135-F8", "SPEC135-F9", "SPEC135-F10", "SPEC135-F11", "SPEC135-F12"):
+verified_requirements = {
+    *(f"SPEC135-F{i}" for i in range(13)),
+    "SPEC135-C1", "SPEC135-C2", "SPEC135-C3",
+    "SPEC135-RI1", "SPEC135-RI2", "SPEC135-RI3",
+    "SPEC135-P1", "SPEC135-ST1", "SPEC135-ST2", "SPEC135-ST3", "SPEC135-ST4",
+    "SPEC135-M1", "SPEC135-M2", "SPEC135-M3", "SPEC135-M4",
+    "SPEC135-U1", "SPEC135-U2",
+    "SPEC135-ALPHA1", "SPEC135-ALPHA2", "SPEC135-ALPHA3", "SPEC135-ALPHA4",
+}
+for completed in verified_requirements:
     row = next(r for r in requirements if r["requirement_id"] == completed)
     assert row["current_status"] == "verified"
     assert row["closure_status"] == "verified"
@@ -99,6 +108,16 @@ assert framework["adoption_order"][-1] == "custom only after failing conformance
 assert proof["schema"] == "focusa.spec135.proof_matrix.v1"
 assert {r["requirement_id"] for r in proof["requirements"]} == ids
 assert all(r["tests"] and r["evidence_requirements"] and r["receipt_requirements"] for r in proof["requirements"])
+
+ledger_by_id = {r["requirement_id"]: r for r in requirements}
+dag_by_id = {r["requirement_id"]: r for r in dag["nodes"]}
+proof_by_id = {r["requirement_id"]: r for r in proof["requirements"]}
+for requirement_id in ids:
+    ledger_row = ledger_by_id[requirement_id]
+    assert dag_by_id[requirement_id]["status"] == ledger_row["current_status"]
+    assert proof_by_id[requirement_id]["closure_status"] == ledger_row["closure_status"]
+    expected_closure = "verified" if ledger_row["current_status"] == "verified" else "open"
+    assert ledger_row["closure_status"] == expected_closure
 assert "permanent onboarding-to-exact-resume traversal" in proof["global_closure_gates"]
 
 print(f"Spec 135 machine-readable delivery graph: PASS ({len(ids)} requirements, {len(dag['edges'])} edges)")

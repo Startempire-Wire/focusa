@@ -84,6 +84,138 @@ func (e FocusaCompatibilityLockV1Schema) Valid() bool {
 	}
 }
 
+// Defines values for FocusaMissionCanvasSurfaceBindingListV1BindingsAuthenticationSharing.
+const (
+	FocusaMissionCanvasSurfaceBindingListV1BindingsAuthenticationSharingIsolated       FocusaMissionCanvasSurfaceBindingListV1BindingsAuthenticationSharing = "isolated"
+	FocusaMissionCanvasSurfaceBindingListV1BindingsAuthenticationSharingSharedExplicit FocusaMissionCanvasSurfaceBindingListV1BindingsAuthenticationSharing = "shared_explicit"
+)
+
+// Valid indicates whether the value is a known member of the FocusaMissionCanvasSurfaceBindingListV1BindingsAuthenticationSharing enum.
+func (e FocusaMissionCanvasSurfaceBindingListV1BindingsAuthenticationSharing) Valid() bool {
+	switch e {
+	case FocusaMissionCanvasSurfaceBindingListV1BindingsAuthenticationSharingIsolated:
+		return true
+	case FocusaMissionCanvasSurfaceBindingListV1BindingsAuthenticationSharingSharedExplicit:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClass.
+const (
+	FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClassCaptureWorker         FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClass = "capture_worker"
+	FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClassEphemeralIsolated     FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClass = "ephemeral_isolated"
+	FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClassIsolatedAuthenticated FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClass = "isolated_authenticated"
+	FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClassReadOnlyObserver      FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClass = "read_only_observer"
+	FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClassSharedAuthenticated   FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClass = "shared_authenticated"
+)
+
+// Valid indicates whether the value is a known member of the FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClass enum.
+func (e FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClass) Valid() bool {
+	switch e {
+	case FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClassCaptureWorker:
+		return true
+	case FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClassEphemeralIsolated:
+		return true
+	case FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClassIsolatedAuthenticated:
+		return true
+	case FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClassReadOnlyObserver:
+		return true
+	case FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClassSharedAuthenticated:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FocusaMissionCanvasSurfaceBindingListV1BindingsRetentionPolicy.
+const (
+	FocusaMissionCanvasSurfaceBindingListV1BindingsRetentionPolicyDisposeOnClose FocusaMissionCanvasSurfaceBindingListV1BindingsRetentionPolicy = "dispose_on_close"
+	FocusaMissionCanvasSurfaceBindingListV1BindingsRetentionPolicyManual         FocusaMissionCanvasSurfaceBindingListV1BindingsRetentionPolicy = "manual"
+	FocusaMissionCanvasSurfaceBindingListV1BindingsRetentionPolicyPersistent     FocusaMissionCanvasSurfaceBindingListV1BindingsRetentionPolicy = "persistent"
+)
+
+// Valid indicates whether the value is a known member of the FocusaMissionCanvasSurfaceBindingListV1BindingsRetentionPolicy enum.
+func (e FocusaMissionCanvasSurfaceBindingListV1BindingsRetentionPolicy) Valid() bool {
+	switch e {
+	case FocusaMissionCanvasSurfaceBindingListV1BindingsRetentionPolicyDisposeOnClose:
+		return true
+	case FocusaMissionCanvasSurfaceBindingListV1BindingsRetentionPolicyManual:
+		return true
+	case FocusaMissionCanvasSurfaceBindingListV1BindingsRetentionPolicyPersistent:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FocusaMissionCanvasSurfaceBindingMutationResultV1BindingAuthenticationSharing.
+const (
+	FocusaMissionCanvasSurfaceBindingMutationResultV1BindingAuthenticationSharingIsolated       FocusaMissionCanvasSurfaceBindingMutationResultV1BindingAuthenticationSharing = "isolated"
+	FocusaMissionCanvasSurfaceBindingMutationResultV1BindingAuthenticationSharingSharedExplicit FocusaMissionCanvasSurfaceBindingMutationResultV1BindingAuthenticationSharing = "shared_explicit"
+)
+
+// Valid indicates whether the value is a known member of the FocusaMissionCanvasSurfaceBindingMutationResultV1BindingAuthenticationSharing enum.
+func (e FocusaMissionCanvasSurfaceBindingMutationResultV1BindingAuthenticationSharing) Valid() bool {
+	switch e {
+	case FocusaMissionCanvasSurfaceBindingMutationResultV1BindingAuthenticationSharingIsolated:
+		return true
+	case FocusaMissionCanvasSurfaceBindingMutationResultV1BindingAuthenticationSharingSharedExplicit:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClass.
+const (
+	FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClassCaptureWorker         FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClass = "capture_worker"
+	FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClassEphemeralIsolated     FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClass = "ephemeral_isolated"
+	FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClassIsolatedAuthenticated FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClass = "isolated_authenticated"
+	FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClassReadOnlyObserver      FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClass = "read_only_observer"
+	FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClassSharedAuthenticated   FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClass = "shared_authenticated"
+)
+
+// Valid indicates whether the value is a known member of the FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClass enum.
+func (e FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClass) Valid() bool {
+	switch e {
+	case FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClassCaptureWorker:
+		return true
+	case FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClassEphemeralIsolated:
+		return true
+	case FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClassIsolatedAuthenticated:
+		return true
+	case FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClassReadOnlyObserver:
+		return true
+	case FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClassSharedAuthenticated:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FocusaMissionCanvasSurfaceBindingMutationResultV1BindingRetentionPolicy.
+const (
+	FocusaMissionCanvasSurfaceBindingMutationResultV1BindingRetentionPolicyDisposeOnClose FocusaMissionCanvasSurfaceBindingMutationResultV1BindingRetentionPolicy = "dispose_on_close"
+	FocusaMissionCanvasSurfaceBindingMutationResultV1BindingRetentionPolicyManual         FocusaMissionCanvasSurfaceBindingMutationResultV1BindingRetentionPolicy = "manual"
+	FocusaMissionCanvasSurfaceBindingMutationResultV1BindingRetentionPolicyPersistent     FocusaMissionCanvasSurfaceBindingMutationResultV1BindingRetentionPolicy = "persistent"
+)
+
+// Valid indicates whether the value is a known member of the FocusaMissionCanvasSurfaceBindingMutationResultV1BindingRetentionPolicy enum.
+func (e FocusaMissionCanvasSurfaceBindingMutationResultV1BindingRetentionPolicy) Valid() bool {
+	switch e {
+	case FocusaMissionCanvasSurfaceBindingMutationResultV1BindingRetentionPolicyDisposeOnClose:
+		return true
+	case FocusaMissionCanvasSurfaceBindingMutationResultV1BindingRetentionPolicyManual:
+		return true
+	case FocusaMissionCanvasSurfaceBindingMutationResultV1BindingRetentionPolicyPersistent:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for FocusaProtocolHandshakeResponseV1Compatible.
 const (
 	True FocusaProtocolHandshakeResponseV1Compatible = true
@@ -954,23 +1086,35 @@ type FocusaMetacogRetrieveResponseV1 map[string]interface{}
 // FocusaMissionCanvasSurfaceBindingListV1 defines model for focusa_mission_canvas_surface_binding_list_v1.
 type FocusaMissionCanvasSurfaceBindingListV1 struct {
 	Bindings []struct {
-		AccessMode     string      `json:"access_mode"`
-		Active         bool        `json:"active"`
-		AttachmentId   string      `json:"attachment_id"`
-		BindingId      string      `json:"binding_id"`
-		BindingKind    interface{} `json:"binding_kind"`
-		ContinuityId   string      `json:"continuity_id"`
-		CreatedAt      time.Time   `json:"created_at"`
-		IdempotencyKey string      `json:"idempotency_key"`
-		ProjectRoot    string      `json:"project_root"`
-		StateRevision  int         `json:"state_revision"`
-		TargetRef      string      `json:"target_ref"`
-		UpdatedAt      time.Time   `json:"updated_at"`
-		WorkSurfaceId  string      `json:"work_surface_id"`
+		AccessMode            string                                                                `json:"access_mode"`
+		Active                bool                                                                  `json:"active"`
+		AttachmentId          string                                                                `json:"attachment_id"`
+		AuthenticationSharing *FocusaMissionCanvasSurfaceBindingListV1BindingsAuthenticationSharing `json:"authentication_sharing,omitempty"`
+		BindingId             string                                                                `json:"binding_id"`
+		BindingKind           interface{}                                                           `json:"binding_kind"`
+		BrowserIsolationClass *FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClass `json:"browser_isolation_class,omitempty"`
+		ContinuityId          string                                                                `json:"continuity_id"`
+		CreatedAt             time.Time                                                             `json:"created_at"`
+		IdempotencyKey        string                                                                `json:"idempotency_key"`
+		ProjectRoot           string                                                                `json:"project_root"`
+		RetentionPolicy       *FocusaMissionCanvasSurfaceBindingListV1BindingsRetentionPolicy       `json:"retention_policy,omitempty"`
+		StateRevision         int                                                                   `json:"state_revision"`
+		TargetRef             string                                                                `json:"target_ref"`
+		UpdatedAt             time.Time                                                             `json:"updated_at"`
+		WorkSurfaceId         string                                                                `json:"work_surface_id"`
 	} `json:"bindings"`
 	Schema       interface{} `json:"schema"`
 	StateVersion int         `json:"state_version"`
 }
+
+// FocusaMissionCanvasSurfaceBindingListV1BindingsAuthenticationSharing defines model for FocusaMissionCanvasSurfaceBindingListV1.Bindings.AuthenticationSharing.
+type FocusaMissionCanvasSurfaceBindingListV1BindingsAuthenticationSharing string
+
+// FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClass defines model for FocusaMissionCanvasSurfaceBindingListV1.Bindings.BrowserIsolationClass.
+type FocusaMissionCanvasSurfaceBindingListV1BindingsBrowserIsolationClass string
+
+// FocusaMissionCanvasSurfaceBindingListV1BindingsRetentionPolicy defines model for FocusaMissionCanvasSurfaceBindingListV1.Bindings.RetentionPolicy.
+type FocusaMissionCanvasSurfaceBindingListV1BindingsRetentionPolicy string
 
 // FocusaMissionCanvasSurfaceBindingMutationRequestV1 defines model for focusa_mission_canvas_surface_binding_mutation_request_v1.
 type FocusaMissionCanvasSurfaceBindingMutationRequestV1 = interface{}
@@ -978,19 +1122,22 @@ type FocusaMissionCanvasSurfaceBindingMutationRequestV1 = interface{}
 // FocusaMissionCanvasSurfaceBindingMutationResultV1 defines model for focusa_mission_canvas_surface_binding_mutation_result_v1.
 type FocusaMissionCanvasSurfaceBindingMutationResultV1 struct {
 	Binding struct {
-		AccessMode     string      `json:"access_mode"`
-		Active         bool        `json:"active"`
-		AttachmentId   string      `json:"attachment_id"`
-		BindingId      string      `json:"binding_id"`
-		BindingKind    interface{} `json:"binding_kind"`
-		ContinuityId   string      `json:"continuity_id"`
-		CreatedAt      time.Time   `json:"created_at"`
-		IdempotencyKey string      `json:"idempotency_key"`
-		ProjectRoot    string      `json:"project_root"`
-		StateRevision  int         `json:"state_revision"`
-		TargetRef      string      `json:"target_ref"`
-		UpdatedAt      time.Time   `json:"updated_at"`
-		WorkSurfaceId  string      `json:"work_surface_id"`
+		AccessMode            string                                                                         `json:"access_mode"`
+		Active                bool                                                                           `json:"active"`
+		AttachmentId          string                                                                         `json:"attachment_id"`
+		AuthenticationSharing *FocusaMissionCanvasSurfaceBindingMutationResultV1BindingAuthenticationSharing `json:"authentication_sharing,omitempty"`
+		BindingId             string                                                                         `json:"binding_id"`
+		BindingKind           interface{}                                                                    `json:"binding_kind"`
+		BrowserIsolationClass *FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClass `json:"browser_isolation_class,omitempty"`
+		ContinuityId          string                                                                         `json:"continuity_id"`
+		CreatedAt             time.Time                                                                      `json:"created_at"`
+		IdempotencyKey        string                                                                         `json:"idempotency_key"`
+		ProjectRoot           string                                                                         `json:"project_root"`
+		RetentionPolicy       *FocusaMissionCanvasSurfaceBindingMutationResultV1BindingRetentionPolicy       `json:"retention_policy,omitempty"`
+		StateRevision         int                                                                            `json:"state_revision"`
+		TargetRef             string                                                                         `json:"target_ref"`
+		UpdatedAt             time.Time                                                                      `json:"updated_at"`
+		WorkSurfaceId         string                                                                         `json:"work_surface_id"`
 	} `json:"binding"`
 	EvidenceRef  string      `json:"evidence_ref"`
 	ReceiptRef   string      `json:"receipt_ref"`
@@ -1001,6 +1148,15 @@ type FocusaMissionCanvasSurfaceBindingMutationResultV1 struct {
 	// ToolResult Canonical Focusa success, failure, retry, and recovery envelope
 	ToolResult FocusaToolResultV1 `json:"tool_result"`
 }
+
+// FocusaMissionCanvasSurfaceBindingMutationResultV1BindingAuthenticationSharing defines model for FocusaMissionCanvasSurfaceBindingMutationResultV1.Binding.AuthenticationSharing.
+type FocusaMissionCanvasSurfaceBindingMutationResultV1BindingAuthenticationSharing string
+
+// FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClass defines model for FocusaMissionCanvasSurfaceBindingMutationResultV1.Binding.BrowserIsolationClass.
+type FocusaMissionCanvasSurfaceBindingMutationResultV1BindingBrowserIsolationClass string
+
+// FocusaMissionCanvasSurfaceBindingMutationResultV1BindingRetentionPolicy defines model for FocusaMissionCanvasSurfaceBindingMutationResultV1.Binding.RetentionPolicy.
+type FocusaMissionCanvasSurfaceBindingMutationResultV1BindingRetentionPolicy string
 
 // FocusaMissionCanvasSurfaceListV1 defines model for focusa_mission_canvas_surface_list_v1.
 type FocusaMissionCanvasSurfaceListV1 struct {
