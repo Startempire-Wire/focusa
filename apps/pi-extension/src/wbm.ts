@@ -1,7 +1,7 @@
 // Wirebot Mode — /wbm command (7 subcommands) + inbound/outbound
 // Spec: §29 (full WBM), §29 --no-catalogue flag, §29 objectives.yaml, §29 LLM extraction
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { getAttachmentRuntime, focusaFetch, wbExec, extractText } from "./state.js";
 
 // ── Inbound: Fetch Wirebot context for before_agent_start injection (§29) ────

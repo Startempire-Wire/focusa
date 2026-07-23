@@ -44,6 +44,7 @@ struct SecondaryLoopClosureReplayEvidence {
 use crate::reducer::{self, ReducerError};
 use crate::reference::store::ReferenceStore;
 use crate::runtime::events::create_entry;
+use crate::runtime::persistence_actor::PersistenceActor;
 use crate::runtime::persistence_sqlite::SqlitePersistence as Persistence;
 use crate::types::*;
 use crate::workers::{executor, priority_queue};
@@ -115,6 +116,8 @@ pub struct Daemon {
     external_mutation_epoch: Arc<AtomicU64>,
     observed_external_mutation_epoch: u64,
     persistence: Persistence,
+    /// Shared bounded single-writer used by daemon and API routes.
+    persistence_actor: Option<PersistenceActor>,
     ecs: ReferenceStore,
     intuition: IntuitionEngine,
     /// ASCC checkpoints per frame (G1-07-ascc).
@@ -191,6 +194,7 @@ impl Daemon {
             observed_external_mutation_epoch: external_mutation_epoch.load(Ordering::Acquire),
             external_mutation_epoch,
             persistence,
+            persistence_actor: None,
             ecs,
             intuition,
             signal_rx,
@@ -214,9 +218,40 @@ impl Daemon {
         self.persistence.clone()
     }
 
+    /// Attach the process-wide bounded persistence actor before the event loop starts.
+    pub fn attach_persistence_actor(&mut self, actor: PersistenceActor) {
+        self.persistence_actor = Some(actor);
+    }
+
     /// Attach an in-process event bus (used for SSE).
     pub fn attach_event_bus(&mut self, bus: crate::runtime::event_bus::EventBus) {
         self.event_bus = Some(bus);
+    }
+
+    async fn persist_reducer_batch(
+        &self,
+        entries: Vec<EventLogEntry>,
+        checkpoint: bool,
+    ) -> anyhow::Result<()> {
+        if let Some(actor) = &self.persistence_actor {
+            if checkpoint {
+                actor.persist_checkpoint(entries, self.state.clone()).await
+            } else {
+                actor.persist_ordinary(entries, self.state.clone()).await
+            }
+        } else {
+            // Test/embedded fallback preserves ordering while staying off Tokio workers.
+            let persistence = self.persistence.clone();
+            let state = self.state.clone();
+            tokio::task::spawn_blocking(move || {
+                for entry in &entries {
+                    persistence.append_event(entry)?;
+                }
+                persistence.save_state(&state)
+            })
+            .await
+            .map_err(|error| anyhow::anyhow!("persistence worker join failed: {error}"))?
+        }
     }
 
     /// Run the main event loop. Blocks until the channel is closed.
@@ -388,7 +423,7 @@ impl Daemon {
 
         // Channel closed — flush final state.
         tracing::info!("Focusa daemon shutting down");
-        self.persistence.save_state(&self.state)?;
+        self.persist_reducer_batch(Vec::new(), true).await?;
         Ok(())
     }
 
@@ -397,6 +432,19 @@ impl Daemon {
         let write_serial_lock = Arc::clone(&self.write_serial_lock);
         let _write_guard = write_serial_lock.lock().await;
         self.reconcile_external_state().await;
+
+        // Recovery/checkpoint boundaries acknowledge durable persistence; ordinary
+        // events enqueue and may coalesce while preserving event-log ordering.
+        let persistence_checkpoint = matches!(
+            &action,
+            Action::CloseSession { .. }
+                | Action::CheckpointFrame { .. }
+                | Action::CompactContext { .. }
+                | Action::CheckpointContinuousLoop { .. }
+                | Action::StopContinuousWork { .. }
+                | Action::StoreArtifact { .. }
+                | Action::UpdateCheckpointDelta { .. }
+        );
 
         // Track whether this action touches the focus stack (for observe_stack).
         let is_stack_action = matches!(
@@ -422,21 +470,18 @@ impl Daemon {
                 Ok(result) => {
                     self.state = result.new_state;
 
-                    // Persist each emitted event to the log.
-                    for emitted in &result.emitted_events {
-                        let mut entry = create_entry(emitted.clone(), SignalOrigin::Daemon, None);
-                        entry.instance_id = self.current_instance_id;
-                        entry.thread_id = self.current_thread_id;
-                        entry.session_id = self.state.session.as_ref().map(|s| s.session_id);
-
-                        if let Err(e) = self.persistence.append_event(&entry) {
-                            tracing::error!("Failed to persist event: {}", e);
-                        } else if let Ok(json) = serde_json::to_string(&entry)
-                            && let Some(bus) = &self.event_bus
-                        {
-                            bus.publish(json);
-                        }
-                    }
+                    let mut persistence_entries = result
+                        .emitted_events
+                        .iter()
+                        .map(|emitted| {
+                            let mut entry =
+                                create_entry(emitted.clone(), SignalOrigin::Daemon, None);
+                            entry.instance_id = self.current_instance_id;
+                            entry.thread_id = self.current_thread_id;
+                            entry.session_id = self.state.session.as_ref().map(|s| s.session_id);
+                            entry
+                        })
+                        .collect::<Vec<_>>();
 
                     // Intuition: observe turn completions for signals.
                     let secondary_boundary_reason = Self::secondary_loop_boundary_reason(
@@ -780,7 +825,7 @@ Return:
                                     crate::types::SignalOrigin::Daemon,
                                     None,
                                 );
-                                let _ = self.persistence.append_event(&entry);
+                                persistence_entries.push(entry);
                                 tracing::warn!(
                                     ais = self.state.rfm.ais_score,
                                     level = ?self.state.rfm.level,
@@ -1127,7 +1172,7 @@ Return ONLY valid JSON:
                                         self.state = result.new_state;
                                         let entry =
                                             create_entry(reg_event, SignalOrigin::Daemon, None);
-                                        let _ = self.persistence.append_event(&entry);
+                                        persistence_entries.push(entry);
                                     }
                                 }
                                 Err(e) => {
@@ -1336,9 +1381,22 @@ Return ONLY valid JSON:
                     // Telemetry: record each event.
                     self.state.telemetry.total_events += 1;
 
-                    // Save state snapshot (after all mutations so CLT + telemetry are captured).
-                    if let Err(e) = self.persistence.save_state(&self.state) {
-                        tracing::error!("Failed to save state snapshot: {}", e);
+                    // Save after all mutations so CLT + telemetry are captured.
+                    // SQLite serialization/write runs only in the bounded persistence actor.
+                    if let Err(error) = self
+                        .persist_reducer_batch(persistence_entries.clone(), persistence_checkpoint)
+                        .await
+                    {
+                        tracing::error!(%error, "persistence actor rejected reducer batch");
+                        if persistence_checkpoint {
+                            return Err(error);
+                        }
+                    } else if let Some(bus) = &self.event_bus {
+                        for entry in &persistence_entries {
+                            if let Ok(json) = serde_json::to_string(entry) {
+                                bus.publish(json);
+                            }
+                        }
                     }
 
                     // Sync to shared handle so the API sees all updates.
@@ -1346,7 +1404,7 @@ Return ONLY valid JSON:
                 }
                 Err(e) => {
                     tracing::error!("Reducer error: {}", e);
-                    self.handle_reducer_error(e)?;
+                    self.handle_reducer_error(e).await?;
                 }
             }
         }
@@ -1383,27 +1441,31 @@ Return ONLY valid JSON:
             ) {
                 Ok(result) => {
                     self.state = result.new_state;
-                    for emitted in &result.emitted_events {
-                        let mut entry = create_entry(emitted.clone(), SignalOrigin::Daemon, None);
-                        entry.instance_id = self.current_instance_id;
-                        entry.thread_id = self.current_thread_id;
-                        entry.session_id = self.state.session.as_ref().map(|s| s.session_id);
-
-                        if let Err(e) = self.persistence.append_event(&entry) {
-                            tracing::error!("Failed to persist intuition signal: {}", e);
-                        } else if let Ok(json) = serde_json::to_string(&entry)
-                            && let Some(bus) = &self.event_bus
-                        {
-                            bus.publish(json);
-                        }
-                    }
+                    let entries = result
+                        .emitted_events
+                        .iter()
+                        .map(|emitted| {
+                            let mut entry =
+                                create_entry(emitted.clone(), SignalOrigin::Daemon, None);
+                            entry.instance_id = self.current_instance_id;
+                            entry.thread_id = self.current_thread_id;
+                            entry.session_id = self.state.session.as_ref().map(|s| s.session_id);
+                            entry
+                        })
+                        .collect::<Vec<_>>();
 
                     // Same post-reduction bookkeeping as process_action.
                     self.track_clt_event(&event);
                     self.state.telemetry.total_events += 1;
 
-                    if let Err(e) = self.persistence.save_state(&self.state) {
-                        tracing::error!("Failed to save state after intuition signal: {}", e);
+                    if let Err(error) = self.persist_reducer_batch(entries.clone(), false).await {
+                        tracing::error!(%error, "persistence actor rejected intuition signal");
+                    } else if let Some(bus) = &self.event_bus {
+                        for entry in entries {
+                            if let Ok(json) = serde_json::to_string(&entry) {
+                                bus.publish(json);
+                            }
+                        }
                     }
                     self.sync_shared_state().await;
                 }
@@ -3301,7 +3363,7 @@ Return:
                             anyhow::anyhow!("no active frame available for checkpoint ({})", reason)
                         })?;
                 self.update_checkpoint(target_frame);
-                self.persistence.save_state(&self.state)?;
+                self.persist_reducer_batch(Vec::new(), true).await?;
                 self.sync_shared_state().await;
                 Ok(vec![])
             }
@@ -3325,7 +3387,7 @@ Return:
                     )
                     .await;
                 }
-                self.persistence.save_state(&self.state)?;
+                self.persist_reducer_batch(Vec::new(), true).await?;
                 self.sync_shared_state().await;
                 Ok(vec![])
             }
@@ -3372,7 +3434,7 @@ Return:
                 }
                 // Proposals don't produce reducer events — they live in PRE state.
                 // Persist so proposals survive a daemon restart.
-                self.persistence.save_state(&self.state)?;
+                self.persist_reducer_batch(Vec::new(), true).await?;
                 self.sync_shared_state().await;
                 Ok(vec![])
             }
@@ -3925,7 +3987,8 @@ Return:
                         spec_conformant,
                         trace_id: quality_trace_id.clone(),
                     },
-                )?;
+                )
+                .await?;
                 let replay_closure_evidence = self
                     .secondary_loop_closure_replay_evidence(task_run_id, work_item_id.as_deref());
                 if let Some(current_task) = self.state.work_loop.current_task.as_ref() {
@@ -4672,7 +4735,7 @@ Return:
                 if let Some(event) =
                     crate::memory::procedural::reinforce(&mut self.state.memory, &rule_id)
                 {
-                    self.persistence.save_state(&self.state)?;
+                    self.persist_reducer_batch(Vec::new(), true).await?;
                     self.sync_shared_state().await;
                     Ok(vec![event])
                 } else {
@@ -4693,9 +4756,9 @@ Return:
                     &mut self.state.focus_gate,
                     self.config.gate_decay_factor,
                 );
-                self.persistence.save_state(&self.state)?;
+                self.persist_reducer_batch(Vec::new(), false).await?;
                 self.sync_shared_state().await;
-                self.expire_stale_turn();
+                self.expire_stale_turn().await;
                 Ok(vec![decay_event])
             }
 
@@ -4725,14 +4788,14 @@ Return:
         }
     }
 
-    fn expire_stale_turn(&mut self) {
+    async fn expire_stale_turn(&mut self) {
         if let Some(turn) = &self.state.active_turn {
             let age = Utc::now() - turn.started_at;
             if age.num_seconds() > ACTIVE_TURN_TTL_SECS {
                 tracing::warn!(turn_id = %turn.turn_id, age_secs = age.num_seconds(), "Expiring stale active_turn");
                 self.state.active_turn = None;
-                if let Err(e) = self.persistence.save_state(&self.state) {
-                    tracing::error!("Failed to save state after expiring active_turn: {}", e);
+                if let Err(error) = self.persist_reducer_batch(Vec::new(), false).await {
+                    tracing::error!(%error, "persistence actor rejected stale-turn expiry");
                 }
             }
         }
@@ -4846,7 +4909,7 @@ Return:
         *shared = self.state.clone();
     }
 
-    fn persist_observability_event(&self, event: FocusaEvent) -> anyhow::Result<()> {
+    async fn persist_observability_event(&self, event: FocusaEvent) -> anyhow::Result<()> {
         let mut entry = create_entry(event, SignalOrigin::Daemon, None);
         entry.instance_id = self.current_instance_id;
         entry.thread_id = self.current_thread_id;
@@ -4855,7 +4918,8 @@ Return:
             .session
             .as_ref()
             .map(|session| session.session_id);
-        self.persistence.append_event(&entry)?;
+        self.persist_reducer_batch(vec![entry.clone()], true)
+            .await?;
         if let Ok(json) = serde_json::to_string(&entry)
             && let Some(bus) = &self.event_bus
         {
@@ -4865,11 +4929,12 @@ Return:
     }
 
     /// Handle reducer errors — log an InvariantViolation event.
-    fn handle_reducer_error(&mut self, error: ReducerError) -> anyhow::Result<()> {
+    async fn handle_reducer_error(&mut self, error: ReducerError) -> anyhow::Result<()> {
         self.persist_observability_event(FocusaEvent::InvariantViolation {
             invariant: "reducer".into(),
             details: error.to_string(),
         })
+        .await
     }
 
     async fn handle_worker_job(&mut self, job: WorkerJob) -> anyhow::Result<()> {
@@ -5160,8 +5225,8 @@ Return:
                             tracing::info!(rule_id, text = %text.chars().take(80).collect::<String>(), "Procedural rule created from worker suggestion");
                         }
                     }
-                    if let Err(e) = self.persistence.save_state(&self.state) {
-                        tracing::error!("Failed to save state after rule creation: {}", e);
+                    if let Err(error) = self.persist_reducer_batch(Vec::new(), false).await {
+                        tracing::error!(%error, "persistence actor rejected rule creation");
                     }
                     self.sync_shared_state().await;
                 }
@@ -6128,6 +6193,7 @@ mod tests {
                 spec_conformant: false,
                 trace_id: "trace-baseline".to_string(),
             })
+            .await
             .expect("persist baseline replay evidence");
         daemon
             .persist_observability_event(FocusaEvent::ContinuousSecondaryLoopOutcomeRecorded {
@@ -6138,6 +6204,7 @@ mod tests {
                 spec_conformant: true,
                 trace_id: "trace-improved".to_string(),
             })
+            .await
             .expect("persist promoted replay evidence");
 
         let evidence = daemon

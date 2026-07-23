@@ -4,7 +4,7 @@
 import { AsyncLocalStorage } from "async_hooks";
 import { appendFileSync, existsSync, readFileSync } from "fs";
 import { dirname, join, resolve } from "path";
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { DEFAULT_DAEMON_RESTART_COMMAND, type FocusaConfig } from "./config.js";
 import type { NativeSessionPressureV1 } from "./session-pressure.js";
 import { buildProjectWorkstreamKey, type AttachmentKey } from "./scoped-state.js";
@@ -280,6 +280,31 @@ function createAttachmentRuntime() {
     projectSwitchLedger: [] as PiProjectThreadObservation[],
     lastCurrentAskScopeTelemetryKey: "",
     vitalInfoPrompted: {} as Record<string, number>,
+    // Non-triggering lifecycle advisories are injected into the next user-turn
+    // tail; they never start an agent run or race an operator prompt.
+    pendingLifecycleAdvisories: {} as Record<
+      string,
+      { key: string; text: string; reason: string; createdAt: number }
+    >,
+    sessionProjectClassification: "unknown" as
+      | "unknown"
+      | "new_session_new_project"
+      | "new_session_existing_project"
+      | "resumed_session_resumed_project"
+      | "resumed_session_recoverable_project"
+      | "session_project_mismatch"
+      | "forked_compacted_continuation",
+    piSessionProjectRegistry: {} as Record<
+      string,
+      {
+        project_root: string;
+        continuity_id: string;
+        latest_workpoint_id?: string;
+        classification: string;
+        last_seen_at: number;
+        provenance: string;
+      }
+    >,
     // First-turn guard: only inject behavioral directive once per session, not on every before_agent_start
     seenFirstBeforeAgentStart: false,
     // ECS handle registry: kind -> id -> { content, stored_at }
@@ -3126,6 +3151,10 @@ export async function buildFocusaSessionIdentity(
     process_id: process.pid,
     started_at: new Date(getAttachmentRuntime().sessionStartTime).toISOString(),
     resume_source: resumeSource,
+    session_project_classification: getAttachmentRuntime().sessionProjectClassification,
+    session_project_registry_record: sessionId
+      ? getAttachmentRuntime().piSessionProjectRegistry[sessionId]
+      : undefined,
     canonical_scope: safe && !resolution.requiresOperatorConfirmation,
     scope_failure: safe
       ? resolution.requiresOperatorConfirmation
@@ -3831,6 +3860,13 @@ function buildPersistedRecoveryState(): Record<string, any> {
       PROJECT_SWITCH_LEDGER_MAX_OBSERVATIONS
     ),
     vitalInfoPrompted: boundedVitalInfoPrompted(getAttachmentRuntime().vitalInfoPrompted),
+    pendingLifecycleAdvisories: Object.fromEntries(
+      Object.entries(getAttachmentRuntime().pendingLifecycleAdvisories).slice(-8)
+    ),
+    sessionProjectClassification: getAttachmentRuntime().sessionProjectClassification,
+    piSessionProjectRegistry: Object.fromEntries(
+      Object.entries(getAttachmentRuntime().piSessionProjectRegistry).slice(-64)
+    ),
     lastCompactResumeKey: getAttachmentRuntime().lastCompactResumeKey,
     lastCompactResumeAt: getAttachmentRuntime().lastCompactResumeAt,
     turnCount: getTurnCount(),

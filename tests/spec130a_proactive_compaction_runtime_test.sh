@@ -18,8 +18,50 @@ import {
   proactiveCompactionDecision,
   registerAutoCompaction,
 } from "./build/auto-compaction.js";
+import { classifyPiSessionProject } from "./build/session-classification.js";
 const duplicateModule = await import("./build/auto-compaction.js?duplicate-install");
 const thirdModule = await import("./build/auto-compaction.js?third-install");
+
+assert.equal(
+  classifyPiSessionProject({
+    reason: "resume",
+    currentProjectRoot: "/tmp/project",
+    markerExists: true,
+    persistedStateFound: true,
+    persistedProjectRoot: "/tmp/project",
+  }),
+  "resumed_session_resumed_project",
+);
+assert.equal(
+  classifyPiSessionProject({
+    reason: "resume",
+    currentProjectRoot: "/tmp/project",
+    markerExists: false,
+    persistedStateFound: true,
+    persistedProjectRoot: "/tmp/project",
+  }),
+  "resumed_session_recoverable_project",
+);
+assert.equal(
+  classifyPiSessionProject({
+    reason: "resume",
+    currentProjectRoot: "/tmp/other",
+    markerExists: true,
+    persistedStateFound: true,
+    persistedProjectRoot: "/tmp/project",
+  }),
+  "session_project_mismatch",
+);
+assert.equal(
+  classifyPiSessionProject({
+    reason: "fork",
+    currentProjectRoot: "/tmp/project",
+    markerExists: true,
+    persistedStateFound: true,
+    persistedProjectRoot: "/tmp/project",
+  }),
+  "forked_compacted_continuation",
+);
 
 const usage = { tokens: 190_000, contextWindow: 200_000, percent: 95 };
 const message = (id, chars) => ({

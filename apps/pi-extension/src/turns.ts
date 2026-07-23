@@ -5,7 +5,7 @@
 //        §36.6 (injection layering), §36.7 (budget), §37.3 (widget), §37.8 (model),
 //        §30 (metacognitive indicators)
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
 import type { PiGoverningPriorKind } from "./state.js";
@@ -1972,6 +1972,26 @@ export function registerTurns(pi: ExtensionAPI) {
       }
     }
 
+    // Lifecycle guidance is non-triggering: session hooks queue one idempotent
+    // advisory, and the next real operator turn receives it in the cache-safe tail.
+    const lifecycleSessionId = String(
+      ctx?.sessionManager?.getSessionId?.() || getAttachmentRuntime().sessionFrameKey || "no-session"
+    );
+    const lifecycleAdvisory =
+      getAttachmentRuntime().pendingLifecycleAdvisories[lifecycleSessionId];
+    if (lifecycleAdvisory) {
+      text += `\n\n[Focusa deferred lifecycle advisory]\n${lifecycleAdvisory.text}`;
+      delete getAttachmentRuntime().pendingLifecycleAdvisories[lifecycleSessionId];
+      persistState();
+      queueTraceTelemetry({
+        event_type: "pi_lifecycle_advisory_delivered_in_next_turn",
+        session_id: lifecycleSessionId,
+        idempotency_key: lifecycleAdvisory.key,
+        reason: lifecycleAdvisory.reason,
+        outcome: "delivered",
+      });
+    }
+
     // Cache-safe layout: preserve historical ordering and append volatile Focusa state
     // only to the newest user turn so the system/history prefix remains reusable.
     return {
@@ -2397,7 +2417,9 @@ export function registerTurns(pi: ExtensionAPI) {
     const workRailWidget = workRailSnapshotFromPacket(getActiveWorkpointPacket());
     workRailWidget.badges = w;
     const asciiWorkRail = process.env.FOCUSA_ASCII_UI === "1" || process.env.TERM === "dumb";
-    if (ctx.mode === "tui") {
+    // Pi ExtensionContext exposes hasUI, not a runtime mode discriminator.
+    // Keep widgets out of print/RPC surfaces while remaining compatible across Pi builds.
+    if (ctx.hasUI) {
       ctx.ui.setWidget("focusa", (_tui, theme) => ({
         render(width: number) {
           return renderWorkRailWidget(

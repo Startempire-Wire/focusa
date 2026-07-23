@@ -14,6 +14,7 @@ pub mod event_bus;
 pub mod events;
 pub mod interview_strategy;
 pub mod persistence;
+pub mod persistence_actor;
 pub mod persistence_sqlite;
 
 #[cfg(test)]

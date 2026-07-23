@@ -638,7 +638,7 @@ async fn materialize_focus_event(
             thread_id: None,
             is_observation: false,
         };
-        if let Err(error) = state.persistence.append_event(&entry) {
+        if let Err(error) = state.append_events_checkpoint(vec![entry.clone()]).await {
             tracing::error!(error = %error, correlation_id, "failed to persist focus event");
             return Err(focus_persistence_failed(error));
         } else if let Ok(serialized) = serde_json::to_string(&entry) {

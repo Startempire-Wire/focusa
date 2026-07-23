@@ -508,7 +508,7 @@ async fn start_session(
             thread_id: None,
             is_observation: false,
         };
-        if let Err(error) = state.persistence.append_event(&entry) {
+        if let Err(error) = state.append_events_checkpoint(vec![entry.clone()]).await {
             tracing::warn!(error = %error, "failed to persist session start event");
         } else if let Ok(serialized) = serde_json::to_string(&entry) {
             let _ = state.events_tx.send(serialized);
@@ -632,7 +632,7 @@ async fn close_session(
             thread_id: None,
             is_observation: false,
         };
-        if let Err(error) = state.persistence.append_event(&entry) {
+        if let Err(error) = state.append_events_checkpoint(vec![entry.clone()]).await {
             tracing::warn!(error = %error, "failed to persist session close event");
         } else if let Ok(serialized) = serde_json::to_string(&entry) {
             let _ = state.events_tx.send(serialized);

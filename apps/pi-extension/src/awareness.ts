@@ -37,10 +37,15 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
   const mission = line(scopedPacket?.mission);
   const next = line(scopedPacket?.next_slice);
   const projectRoot = normalizeProjectRoot(scopedPacket?.project_root || getSessionCwd());
-  const continuityId = scopedPacket ? line(scopedPacket?.continuity_id) : line(getContinuityId());
+  const safeScope = !!projectRoot && isProjectRootAuthoritySafe(projectRoot);
+  // Unsafe/broad cwd cannot inherit remembered continuity from another project.
+  const continuityId = safeScope
+    ? scopedPacket
+      ? line(scopedPacket?.continuity_id)
+      : line(getContinuityId())
+    : "";
   const status = getFocusaAvailable() ? "available" : "offline/degraded";
   const prefix = mode === "visible" ? "# Focusa Utility Card" : "## Focusa Utility Card";
-  const safeScope = !!projectRoot && isProjectRootAuthoritySafe(projectRoot);
   const resolution = getLastProjectRootResolution();
   const confidence = resolution
     ? ` confidence=${Math.round(resolution.confidenceScore * 100)}% source=${resolution.source}`

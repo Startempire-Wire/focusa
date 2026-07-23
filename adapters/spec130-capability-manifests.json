@@ -6,7 +6,7 @@
       "adapter": "pi",
       "manifest_version": 1,
       "measured_at": "2026-07-15",
-      "measured_against": "Pi 0.64.0 and Focusa 0.9.94-dev",
+      "measured_against": "Pi 0.81.1 and Focusa 0.9.120-dev",
       "tier": "tier_b",
       "supports_compaction_hook": true,
       "supports_bounded_custom_entry": true,

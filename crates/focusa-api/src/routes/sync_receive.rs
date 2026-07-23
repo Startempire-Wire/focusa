@@ -155,7 +155,7 @@ pub async fn receive_impl(
         };
 
         // Persist observation
-        if let Err(e) = state.persistence.append_event(&entry) {
+        if let Err(e) = state.append_events_checkpoint(vec![entry.clone()]).await {
             tracing::warn!("Failed to persist observation: {}", e);
             skipped += 1;
             continue;

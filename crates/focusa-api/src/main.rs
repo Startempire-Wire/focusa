@@ -266,8 +266,11 @@ async fn main() -> anyhow::Result<()> {
     let command_tx = daemon.command_sender();
     let events_tx_for_api = events_tx.clone();
 
-    // Clone persistence for API server (sync routes need direct DB access).
+    // One bounded persistence actor serves daemon and direct API writers.
     let persistence = daemon.persistence();
+    let persistence_actor =
+        focusa_core::runtime::persistence_actor::PersistenceActor::start(persistence.clone());
+    daemon.attach_persistence_actor(persistence_actor.clone());
 
     // V2: rehydrate PairingStore state from SQLite at startup so the in-memory
     // maps (connect_sessions, tokens) are not empty after a daemon restart.
@@ -295,7 +298,7 @@ async fn main() -> anyhow::Result<()> {
             command_tx,
             events_tx_for_api,
             config,
-            persistence,
+            (persistence, persistence_actor),
             write_serial_lock,
             external_mutation_epoch,
         )

@@ -694,7 +694,7 @@ async fn materialize_compact_action(
     let threshold = if force || tier == "micro" { 1 } else { 1000 };
     let _summarized =
         focusa_core::clt::compact_if_needed(&mut current.clt, session_id, threshold, 50).await;
-    let _ = state.persistence.save_state(&current);
+    let _ = state.persist_checkpoint(current.clone()).await;
     *state.focusa.write().await = current;
     state.mark_external_mutation();
     Ok(())

@@ -2,7 +2,7 @@
 // Spec: §20 (tier), §21 (micro-compact), §25.7 (non-canonical), §33.1 (ASCC),
 //        §33.10 (customInstructions), §35.6 (files), §38.1 (trim)
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { requestCoordinatedCompaction } from "./auto-compaction.js";
 import { buildProjectWorkstreamKey, scopedQueryParams, type WorkstreamKey } from "./scoped-state.js";
 import {

@@ -818,7 +818,7 @@ async fn dispatch_event(
             thread_id: None,
             is_observation: false,
         };
-        if let Err(error) = state.persistence.append_event(&entry) {
+        if let Err(error) = state.append_events_checkpoint(vec![entry.clone()]).await {
             return Err(trajectory_persistence_failed(error));
         } else if let Ok(serialized) = serde_json::to_string(&entry) {
             let _ = state.events_tx.send(serialized);

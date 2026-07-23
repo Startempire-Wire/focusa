@@ -156,6 +156,40 @@ const marker = "[Focusa Focus Slice — minimal applicable context]";
 
 {
   const monitor = new CacheSafetyMonitor();
+  const sessionKey = "ten-turn-cache-hit-proof";
+  monitor.captureSystemPrompt(sessionKey, "stable-system");
+  const ratios = [];
+  for (let turn = 0; turn < 10; turn += 1) {
+    monitor.captureRequest(
+      sessionKey,
+      [
+        { role: "user", content: "stable historical ask" },
+        { role: "assistant", content: "stable historical answer" },
+        { role: "user", content: `new ask ${turn}` },
+      ],
+      `${marker}\nturn=${turn}`,
+    );
+    const inputTokens = 15_000 + turn * 150;
+    const cacheReadTokens = 90_000 + turn * 1_000;
+    ratios.push(cacheReadTokens / (inputTokens + cacheReadTokens));
+    const observation = monitor.observeUsage({
+      sessionKey,
+      provider: "openai-codex",
+      model: "gpt-5.6-sol",
+      inputTokens,
+      cacheReadTokens,
+      cacheWriteTokens: 0,
+      layoutMode: "cache_safe_tail",
+      observedAt: 10_000 + turn * 1_000,
+    });
+    assert.equal(observation.cacheSafeDegraded, false);
+  }
+  assert.equal(ratios.length, 10);
+  assert.equal(ratios.every((ratio) => ratio >= 0.82), true);
+}
+
+{
+  const monitor = new CacheSafetyMonitor();
   const sessionKey = "changed-prefix";
   monitor.captureSystemPrompt(sessionKey, "system-a");
   monitor.captureRequest(sessionKey, [{ role: "user", content: "one" }], `${marker}\none`);

@@ -7,11 +7,11 @@ import {
   type ContextUsage,
   type ExtensionAPI,
   type ExtensionContext,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 
 import type { FocusaConfig } from "./config.js";
 
-declare module "@mariozechner/pi-coding-agent" {
+declare module "@earendil-works/pi-coding-agent" {
   interface ExtensionAPI {
     on(
       event: "agent_settled",
@@ -396,6 +396,9 @@ export function registerAutoCompaction(
     return false;
   }
 
+  // Spec130A §16 permits one linked retry per pressure crossing. Provider
+  // WebSocket/network failures are retryable, but never through an unbounded
+  // request loop or an additional summarizer call.
   const maxTransientRetries = 1;
   const registrationId = randomUUID();
   processLease.generation += 1;
@@ -623,14 +626,13 @@ export function registerAutoCompaction(
           failedEpoch.exactEligibility?.eligible === false ? failedEpoch.exactEligibility : undefined;
         const failureClass = compactionFailureClass(message, exactRejection);
         const retryableFailure = isRetryableCompactionError(message);
-        const terminalTransportFailure = failureClass === "primary_transport" && !retryableFailure;
         if (ctx.hasUI) ctx.ui.setStatus("focusa-auto-compaction", undefined);
         persist(
           exactRejection ? "eligibility_rejected" : "attempt_failed",
           {
             primary_error: message,
             failure_class: failureClass,
-            terminal: (exactRejection?.terminal ?? isTerminalNoopError(message)) || terminalTransportFailure,
+            terminal: exactRejection?.terminal ?? isTerminalNoopError(message),
             eligibility: exactRejection,
             duration_ms: Date.now() - failedEpoch.startedAt,
           },
@@ -655,25 +657,11 @@ export function registerAutoCompaction(
           return;
         }
 
-        if (terminalTransportFailure) {
-          terminalNoopContextKey = failedEpoch.contextKey;
-          consecutiveTransientFailures = 0;
-          setActiveEpoch(undefined);
-          notifyOnce(
-            ctx,
-            `transport-failed:${terminalNoopContextKey}:${message}`,
-            `Focusa stopped proactive compaction after a provider transport failure; automatic retry is suppressed for unchanged context: ${message}`,
-            "warning"
-          );
-          const failedRequest = activeRequest;
-          activeRequest = undefined;
-          failedRequest?.onError?.(error);
-          return;
-        }
-
         if (retryableFailure && consecutiveTransientFailures < maxTransientRetries) {
           consecutiveTransientFailures += 1;
-          const retryDelay = getPolicy().cooldownMs * 2 ** (consecutiveTransientFailures - 1);
+          // Spec130A's retry budget is 60s; a smaller explicit test/operator
+          // cooldown remains valid, but ordinary policy cannot postpone recovery longer.
+          const retryDelay = Math.min(getPolicy().cooldownMs, 60_000);
           const priorEpochId = failedEpoch.epochId;
           persist(
             "retry_scheduled",
@@ -963,5 +951,9 @@ function isTransientCompactionError(message: string): boolean {
 }
 
 function isRetryableCompactionError(message: string): boolean {
-  return /rate.?limit|429|502|503|504|service unavailable|bad gateway|gateway timeout/i.test(message);
+  // Any error classified as provider transport is retried with the bounded
+  // exponential-backoff budget above. Treating WebSocket/network failures as
+  // terminal strands an unchanged, already-over-limit context forever because
+  // the next run cannot reach compaction. Never narrow this to HTTP status codes.
+  return isTransientCompactionError(message);
 }

@@ -10,7 +10,7 @@ require() { rg -q "$2" "$1" || fail "missing $2 in $1"; }
 require "$PROJECT" 'source_scope: Option<WorkstreamKey>'
 require "$PROJECT" 'target_scope: Option<WorkstreamKey>'
 require "$PROJECT" 'target_continuity_id: Option<String>'
-require "$PROJECT" 'focusa\.project_session_transfer\.v2'
+require "$PROJECT" 'focusa\.project_session_transfer_response\.v2'
 require "$PROJECT" 'target_attachment_pending'
 require "$PROJECT" 'requires_target_resume_verification'
 require "$PROJECT" 'focusa\.project_session_transition_receipt\.v1'

@@ -2870,8 +2870,9 @@ async fn set_decision_context(
         thread_id: None,
         is_observation: false,
     };
-    let _ = state.persistence.append_event(&entry);
-    let _ = state.persistence.save_state(&new_state);
+    let _ = state
+        .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
+        .await;
     if let Ok(serialized) = serde_json::to_string(&entry) {
         let _ = state.events_tx.send(serialized);
     }
@@ -3303,8 +3304,9 @@ async fn attach_session(
         thread_id: None,
         is_observation: false,
     };
-    let _ = state.persistence.append_event(&entry);
-    let _ = state.persistence.save_state(&new_state);
+    let _ = state
+        .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
+        .await;
     if let Ok(serialized) = serde_json::to_string(&entry) {
         let _ = state.events_tx.send(serialized);
     }
@@ -3364,8 +3366,9 @@ async fn abort_session(
         thread_id: None,
         is_observation: false,
     };
-    let _ = state.persistence.append_event(&entry);
-    let _ = state.persistence.save_state(&new_state);
+    let _ = state
+        .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
+        .await;
     if let Ok(serialized) = serde_json::to_string(&entry) {
         let _ = state.events_tx.send(serialized);
     }
@@ -3468,8 +3471,9 @@ async fn set_pause_flags(
         thread_id: None,
         is_observation: false,
     };
-    let _ = state.persistence.append_event(&entry);
-    let _ = state.persistence.save_state(&new_state);
+    let _ = state
+        .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
+        .await;
     if let Ok(serialized) = serde_json::to_string(&entry) {
         let _ = state.events_tx.send(serialized);
     }

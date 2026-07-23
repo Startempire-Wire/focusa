@@ -2570,16 +2570,18 @@ Tier D — observe-only:
   no reliable injection/transfer; durable work is blocked or explicitly degraded.
 ```
 
-### 45.2 Pi 0.64.0 verified boundary
+### 45.2 Pi 0.81.1 verified boundary
 
 The tested Pi SDK provides:
 
 ```text
 - pi.appendEntry() for custom persistence,
-- session_before_compact/session_compact hooks,
-- read-only sessionManager in ordinary extension contexts,
+- session_start reasons plus session_before_switch/session_before_fork,
+- session_before_compact/session_compact hooks with manual/threshold/overflow reason,
+- session_shutdown reasons for quit/reload/new/resume/fork,
+- read-only sessionManager and stable getSessionId() in ordinary extension contexts,
 - ctx.compact() in ordinary extension contexts,
-- newSession()/switchSession()/fork() only in ExtensionCommandContext,
+- typed newSession()/fork() with transactional withSession only in ExtensionCommandContext,
 - RPC newSession/compact operations.
 ```
 
@@ -2593,6 +2595,21 @@ Therefore:
 - /focusa-rollover may implement Tier B through ExtensionCommandContext;
 - oversized startup recovery must run before Pi loads the JSONL.
 ```
+
+### 45.3 Pi session/project classification boundary
+
+Pi 0.81 emits `session_start` for startup, reload, new, resume, and fork transitions; it does not emit the legacy post-transition `session_switch` or `session_fork` events. The adapter must use `sessionManager.getSessionId()` plus verified project evidence and persisted Focusa anchors to classify:
+
+```text
+new_session_new_project
+new_session_existing_project
+resumed_session_resumed_project
+resumed_session_recoverable_project
+session_project_mismatch
+forked_compacted_continuation
+```
+
+A stable Pi UUID is temporal evidence, not project authority. Matching root evidence may rehydrate non-blockingly; a missing marker with matching durable root evidence is recoverable; a root mismatch must fail closed before importing Workpoint, Trajectory, decisions, or evidence. Lifecycle guidance is queued as an idempotent advisory in the next real operator-turn tail and must never call `sendUserMessage()` from session hooks.
 
 Claude, Codex, OpenCode, and future adapters must publish equivalent measured
 capabilities rather than inheriting Pi assumptions.

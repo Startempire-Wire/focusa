@@ -697,6 +697,8 @@ or an equivalent bounded single-writer mechanism.
 
 Hard-pressure recovery records receive priority over ordinary background snapshot work.
 
+Implementation boundary (2026-07-23): daemon and direct API writers share one bounded `PersistenceActor`. It appends every event in order, coalesces ordinary whole-state snapshots to the latest state, uses `spawn_blocking` for serialization/SQLite/filesystem work, and acknowledges checkpoint/recovery mutations only after durable commit. `/v1/health` exposes queue depth/max, coalescing, saturation/failure counts, write latency, snapshot bytes, and WAL bytes. Direct `save_state`/`append_event` calls are forbidden on Tokio route/daemon hot paths.
+
 ---
 
 ## 8. Content-addressed tool and history artifacts
@@ -877,6 +879,8 @@ become a receipt
 6. use deterministic bounded fallback when supported;
 7. require rollover or stop before emergency exhaustion.
 ```
+
+A provider `WebSocket`, network, socket, timeout, connection-reset, temporary-service, or retryable HTTP failure is `primary_transport`. It receives at most one linked retry after the initiating epoch settles, with a maximum 60-second cooldown and a fresh live-context/idle/ownership check. It must never set the unchanged context as terminal or suppress all future recovery. Non-transport eligibility/no-op results remain terminal for that exact context epoch. No retry may add a second summarizer call or obscure the primary error.
 
 ---
 

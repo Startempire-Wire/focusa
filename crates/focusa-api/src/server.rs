@@ -14,6 +14,7 @@ use crate::scoped_store::ScopedCrdtLedger;
 use axum::middleware as axum_mw;
 use axum::{Router, extract::DefaultBodyLimit};
 use focusa_core::prediction::PredictionValue;
+use focusa_core::runtime::persistence_actor::PersistenceActor;
 use focusa_core::runtime::persistence_sqlite::SqlitePersistence;
 use focusa_core::scoped_state::WorkstreamKey;
 use tower_http::services::ServeDir;
@@ -21,8 +22,8 @@ use tower_http::services::ServeDir;
 /// Vendored static files directory (e.g. jsQR for offline PWA /scan pages).
 const STATIC_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/static");
 use focusa_core::types::{
-    Action, FocusStackState, FocusaConfig, FocusaState, WorkLoopPolicy, WorkLoopPolicyOverrides,
-    WorkLoopPreset, WorkLoopStatus,
+    Action, EventLogEntry, FocusStackState, FocusaConfig, FocusaState, WorkLoopPolicy,
+    WorkLoopPolicyOverrides, WorkLoopPreset, WorkLoopStatus,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
@@ -231,6 +232,8 @@ pub struct AppState {
     pub config: FocusaConfig,
     /// Direct persistence access for sync routes.
     pub persistence: SqlitePersistence,
+    /// Process-wide bounded single-writer for state snapshots and checkpoint acks.
+    pub persistence_actor: Option<PersistenceActor>,
     /// Serializes canonical state writers across daemon actions and sync API routes.
     pub write_serial_lock: Arc<Mutex<()>>,
     /// In-memory command write-model state for /v1/commands/* endpoints.
@@ -266,6 +269,46 @@ pub struct AppState {
 impl AppState {
     pub fn mark_external_mutation(&self) -> u64 {
         self.external_mutation_epoch.fetch_add(1, Ordering::AcqRel) + 1
+    }
+
+    pub async fn persist_checkpoint(&self, state: FocusaState) -> anyhow::Result<()> {
+        self.persist_events_checkpoint(Vec::new(), state).await
+    }
+
+    pub async fn persist_events_checkpoint(
+        &self,
+        events: Vec<EventLogEntry>,
+        state: FocusaState,
+    ) -> anyhow::Result<()> {
+        if let Some(actor) = &self.persistence_actor {
+            actor.persist_checkpoint(events, state).await
+        } else {
+            let persistence = self.persistence.clone();
+            tokio::task::spawn_blocking(move || {
+                for event in &events {
+                    persistence.append_event(event)?;
+                }
+                persistence.save_state(&state)
+            })
+            .await
+            .map_err(|error| anyhow::anyhow!("persistence worker join failed: {error}"))?
+        }
+    }
+
+    pub async fn append_events_checkpoint(&self, events: Vec<EventLogEntry>) -> anyhow::Result<()> {
+        if let Some(actor) = &self.persistence_actor {
+            actor.append_events_checkpoint(events).await
+        } else {
+            let persistence = self.persistence.clone();
+            tokio::task::spawn_blocking(move || {
+                for event in &events {
+                    persistence.append_event(event)?;
+                }
+                Ok(())
+            })
+            .await
+            .map_err(|error| anyhow::anyhow!("persistence worker join failed: {error}"))?
+        }
     }
 }
 
@@ -999,11 +1042,12 @@ pub async fn run(
     command_tx: mpsc::Sender<Action>,
     events_tx: broadcast::Sender<String>,
     config: FocusaConfig,
-    persistence: SqlitePersistence,
+    persistence_runtime: (SqlitePersistence, PersistenceActor),
     write_serial_lock: Arc<Mutex<()>>,
     external_mutation_epoch: Arc<AtomicU64>,
 ) -> anyhow::Result<()> {
     let bind_addr = config.api_bind.clone();
+    let (persistence, persistence_actor) = persistence_runtime;
 
     let broadcaster = EventBroadcaster::new();
     let prediction_store = Arc::new(ScopedCrdtLedger::new(
@@ -1019,6 +1063,7 @@ pub async fn run(
         event_broadcaster: broadcaster,
         config,
         persistence,
+        persistence_actor: Some(persistence_actor),
         write_serial_lock,
         command_store: Arc::new(RwLock::new(HashMap::new())),
         token_store: Arc::new(RwLock::new(focusa_core::permissions::TokenStore::new())),

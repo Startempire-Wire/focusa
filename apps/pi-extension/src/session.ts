@@ -4,9 +4,13 @@
 //        §35.8 (session display ownership), §37.9 (Context Core), §37.10 (cross-surface SSE),
 //        §38.3 (health toggle)
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { existsSync } from "fs";
 import { join } from "path";
+import {
+  classifyPiSessionProject,
+  persistedProjectRootFromState,
+} from "./session-classification.js";
 import {
   getAttachmentRuntime,
   focusaFetch,
@@ -119,6 +123,31 @@ function markerExistsAtCwd(cwd: string): boolean {
   }
 }
 
+function deferLifecycleAdvisory(ctx: any, key: string, text: string, reason: string): void {
+  const sessionId = String(
+    ctx?.sessionManager?.getSessionId?.() || getAttachmentRuntime().sessionFrameKey || "no-session"
+  );
+  getAttachmentRuntime().pendingLifecycleAdvisories[sessionId] = {
+    key,
+    text,
+    reason,
+    createdAt: Date.now(),
+  };
+  persistState();
+  if (ctx?.hasUI) {
+    ctx.ui.notify(`${text.split("\n")[0]} Details will be attached to your next prompt.`, "warning");
+  }
+  focusaPost("/telemetry/trace", {
+    event_type: "pi_lifecycle_advisory_deferred_to_next_turn",
+    payload: {
+      session_id: sessionId,
+      idempotency_key: key,
+      reason,
+      outcome: "deferred_to_next_turn",
+    },
+  });
+}
+
 function queueUnboundProjectNag(pi: ExtensionAPI, ctx: any, reason: string): void {
   if (pi.getFlag("--nag-suppress")) return;
   const cwd = normalizeProjectRoot(ctx?.cwd || process.cwd());
@@ -142,16 +171,11 @@ function queueUnboundProjectNag(pi: ExtensionAPI, ctx: any, reason: string): voi
   });
   if (!ctx?.hasUI) {
     focusaPost("/telemetry/trace", {
-      event_type: "pi_unbound_project_nag_skipped_headless",
+      event_type: "pi_unbound_project_nag_deferred_headless",
       payload: { reason, cwd, session_id: getAttachmentRuntime().sessionFrameKey },
     });
-    return;
   }
-  try {
-    void Promise.resolve(pi.sendUserMessage(prompt, { deliverAs: "followUp" } as any)).catch(() => {});
-  } catch {
-    /* best effort */
-  }
+  deferLifecycleAdvisory(ctx, key, prompt, reason);
 }
 
 function vitalPromptSurfaceEnabled(surface: string): boolean {
@@ -282,7 +306,7 @@ async function promptForConfirmedProjectRoot(
 }
 
 function queueProjectIdentityBootstrapTurn(
-  pi: ExtensionAPI,
+  _pi: ExtensionAPI,
   ctx: any,
   proposedRoot: string,
   reason: string
@@ -302,23 +326,11 @@ function queueProjectIdentityBootstrapTurn(
     "If multiple plausible project folders remain after inference, ask the operator directly in chat which project folder to bind.",
     "Do not show modal/select/input UI. Do not perform durable project-aware writes until identity is verified.",
   ].join("\n");
-  const hasInteractiveUi = Boolean(ctx?.hasUI);
-  if (!hasInteractiveUi) {
-    focusaPost("/telemetry/trace", {
-      event_type: "pi_vital_project_root_send_user_message_skipped_headless",
-      payload: { reason, project_root: proposedRoot, session_id: getAttachmentRuntime().sessionFrameKey },
-    });
-    return;
-  }
   focusaPost("/telemetry/trace", {
-    event_type: "pi_vital_project_root_send_user_message",
+    event_type: "pi_vital_project_root_advisory_deferred",
     payload: { reason, project_root: proposedRoot, session_id: getAttachmentRuntime().sessionFrameKey },
   });
-  try {
-    void Promise.resolve(pi.sendUserMessage(prompt, { deliverAs: "followUp" } as any)).catch(() => {});
-  } catch {
-    /* best effort */
-  }
+  deferLifecycleAdvisory(ctx, key, prompt, reason);
 }
 
 type TrajectoryGoalDraft = {
@@ -897,7 +909,10 @@ export function registerSession(pi: ExtensionAPI) {
     getAttachmentRuntime().pi = pi;
     getAttachmentRuntime().uiCtx = ctx.ui; // §93: SSE handler needs ctx.ui for high-priority agent alerts
     getAttachmentRuntime().sessionStartTime = Date.now();
-    const eventSessionId = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
+    // Pi 0.81 SessionStartEvent carries a reason, not a synthetic sessionId.
+    // sessionManager.getSessionId() is the stable temporal identity boundary.
+    const eventSessionId = String(ctx.sessionManager.getSessionId());
+    const sessionStartReason = event.reason;
     getAttachmentRuntime().sessionFrameKey = eventSessionId;
     getAttachmentRuntime().sessionCwd = adoptPiProjectRoot(ctx.cwd);
     resetPiSessionScopedState("session_start");
@@ -919,17 +934,32 @@ export function registerSession(pi: ExtensionAPI) {
     // CRITICAL §33.5: Never restore activeFrameId from previous sessions — that
     // points to Wirebot/TEP frames and pollutes Pi sessions with stale Wirebot
     // state. Pi ALWAYS gets its own FRESH frame. Only WBM mode may reuse frames.
-    const entries = (event as any).entries || (ctx as any).sessionManager?.getEntries?.() || [];
+    const entries = ctx.sessionManager.getEntries();
     refreshNativeSessionPressure(ctx, "session_start", entries);
+    let persistedStateFound = false;
+    let persistedProjectRoot = "";
+    let projectMismatchDetected = false;
     for (let i = entries.length - 1; i >= 0; i--) {
       const e = entries[i];
       if (
+        e.type === "custom" &&
         (e.customType === "focusa-wbm-state" || e.customType === "focusa-state") &&
-        e.data &&
-        String(e.data.sessionId || "") === eventSessionId
+        e.data
       ) {
         const d = loadPersistedRecoveryState(e.data);
         if (!d) continue;
+        const candidateProjectRoot = persistedProjectRootFromState(d);
+        const currentProjectRoot = normalizeProjectRoot(ctx.cwd);
+        if (
+          candidateProjectRoot &&
+          currentProjectRoot &&
+          normalizeProjectRoot(candidateProjectRoot) !== currentProjectRoot
+        ) {
+          projectMismatchDetected = true;
+          continue;
+        }
+        persistedStateFound = true;
+        persistedProjectRoot = candidateProjectRoot || currentProjectRoot;
         // §33.5 + §33.7: restore resumable session metadata and safe local shadow,
         // but do not blindly reuse stale frame identity outside WBM mode.
         getAttachmentRuntime().localDecisions = d.decisions || [];
@@ -978,6 +1008,12 @@ export function registerSession(pi: ExtensionAPI) {
         if (Array.isArray(d.projectSwitchLedger))
           getAttachmentRuntime().projectSwitchLedger = d.projectSwitchLedger.slice(0, 12);
         if (d.vitalInfoPrompted) getAttachmentRuntime().vitalInfoPrompted = d.vitalInfoPrompted;
+        if (d.pendingLifecycleAdvisories)
+          getAttachmentRuntime().pendingLifecycleAdvisories = d.pendingLifecycleAdvisories;
+        if (d.sessionProjectClassification)
+          getAttachmentRuntime().sessionProjectClassification = d.sessionProjectClassification;
+        if (d.piSessionProjectRegistry)
+          getAttachmentRuntime().piSessionProjectRegistry = d.piSessionProjectRegistry;
         adoptPersistedContinuityForSession(
           d,
           eventSessionId,
@@ -989,6 +1025,45 @@ export function registerSession(pi: ExtensionAPI) {
         break;
       }
     }
+
+    const sessionProjectClassification = projectMismatchDetected
+      ? "session_project_mismatch"
+      : classifyPiSessionProject({
+          reason: sessionStartReason,
+          currentProjectRoot: normalizeProjectRoot(ctx.cwd),
+          markerExists: markerExistsAtCwd(ctx.cwd),
+          persistedStateFound,
+          persistedProjectRoot,
+          explicitContinuationMetadata: sessionStartReason === "fork",
+        });
+    getAttachmentRuntime().sessionProjectClassification = sessionProjectClassification;
+    const classifiedRoot = normalizeProjectRoot(ctx.cwd);
+    getAttachmentRuntime().piSessionProjectRegistry[eventSessionId] = {
+      project_root: classifiedRoot,
+      continuity_id: ensureContinuityId(classifiedRoot),
+      latest_workpoint_id: getActiveWorkpointPacket()?.workpoint_id,
+      classification: sessionProjectClassification,
+      last_seen_at: Date.now(),
+      provenance: persistedStateFound ? "native_focusa_anchor" : "pi_session_start_plus_project_evidence",
+    };
+    if (sessionProjectClassification === "resumed_session_recoverable_project") {
+      // Missing marker on a verified same-root resume is repaired in runtime
+      // without blocking the operator with onboarding/continue UI.
+      confirmPiProjectRoot(classifiedRoot);
+    }
+    focusaPost("/telemetry/trace", {
+      event_type: "pi_session_project_classified",
+      payload: {
+        session_id: eventSessionId,
+        reason: sessionStartReason,
+        classification: sessionProjectClassification,
+        project_root: classifiedRoot,
+        persisted_state_found: persistedStateFound,
+        marker_exists: markerExistsAtCwd(ctx.cwd),
+      },
+    });
+    persistState();
+
     // §33.5: Always NULL out activeFrameId — force-push fresh Pi frame.
     // This prevents Wirebot/TEP frame state from leaking into Pi sessions.
     // WBM mode may override this via --wbm flag above.
@@ -1001,6 +1076,14 @@ export function registerSession(pi: ExtensionAPI) {
     }
 
     const detectedProjectRoot = adoptPiProjectRoot(ctx.cwd);
+    if (sessionProjectClassification === "session_project_mismatch") {
+      queueProjectIdentityBootstrapTurn(pi, ctx, detectedProjectRoot, "session_project_mismatch");
+      focusaPost("/telemetry/trace", {
+        event_type: "pi_session_project_mismatch_blocked",
+        payload: { session_id: eventSessionId, project_root: detectedProjectRoot },
+      });
+      return;
+    }
     const projectRoot = await promptForConfirmedProjectRoot(ctx, detectedProjectRoot, "session_start");
     if (!projectRoot) {
       focusaPost("/telemetry/trace", {
@@ -1221,117 +1304,6 @@ export function registerSession(pi: ExtensionAPI) {
     }
   });
 
-  // ── session_switch (§37.7) ────────────────────────────────────────────────
-  pi.on("session_switch", async (event, ctx) => {
-    const eventSessionId = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
-    getAttachmentRuntime().sessionFrameKey = eventSessionId;
-    getAttachmentRuntime().sessionCwd = adoptPiProjectRoot(ctx.cwd);
-    resetPiSessionScopedState("session_switch");
-    syncRuntimeFieldsToScopeStore();
-
-    const switchEntries = (event as any).entries || (ctx as any).sessionManager?.getEntries?.() || [];
-    refreshNativeSessionPressure(ctx, "session_switch", switchEntries);
-    getAttachmentRuntime().forkSuggested = false;
-    for (let i = switchEntries.length - 1; i >= 0; i--) {
-      if (
-        (switchEntries[i].customType === "focusa-wbm-state" ||
-          switchEntries[i].customType === "focusa-state") &&
-        switchEntries[i].data &&
-        String(switchEntries[i].data.sessionId || "") === eventSessionId
-      ) {
-        const d = loadPersistedRecoveryState(switchEntries[i].data);
-        if (!d) continue;
-        getAttachmentRuntime().localDecisions = d.decisions || [];
-        getAttachmentRuntime().localConstraints = d.constraints || [];
-        getAttachmentRuntime().localFailures = d.failures || [];
-        setTurnCount(d.turnCount || 0);
-        getAttachmentRuntime().wbmEnabled = d.wbmEnabled || false;
-        getAttachmentRuntime().wbmNoCatalogue = d.wbmNoCatalogue || false;
-        setTotalCompactions(d.totalCompactions || 0);
-        getAttachmentRuntime().lastCompactResumeKey = d.lastCompactResumeKey || "";
-        getAttachmentRuntime().lastCompactResumeAt = d.lastCompactResumeAt || 0;
-        getAttachmentRuntime().activeFrameTitle = d.frameTitle || "";
-        getAttachmentRuntime().activeFrameGoal = d.frameGoal || "";
-        seedCurrentAskFromPersistedState(ctx, d);
-        getAttachmentRuntime().lastFocusSnapshot = {
-          decisions: d.authoritativeDecisions || [],
-          constraints: d.authoritativeConstraints || [],
-          failures: d.authoritativeFailures || [],
-          intent: d.intent || "",
-          currentFocus: d.currentFocus || "",
-        };
-        if (d.projectRootResolution) setLastProjectRootResolution(d.projectRootResolution);
-        if (d.lastProjectIdentity) {
-          const pi = d.lastProjectIdentity;
-          const piRoot = pi.project_root ? normalizeProjectRoot(pi.project_root) : "";
-          const cwdRoot = normalizeProjectRoot(ctx.cwd);
-          setLastProjectIdentity(piRoot && piRoot === cwdRoot ? pi : null);
-        }
-        if (d.lastTrajectoryClarity) {
-          const c = d.lastTrajectoryClarity;
-          const cRoot = c.project_root ? adoptPiProjectRoot(c.project_root) : "";
-          const cwdRoot = adoptPiProjectRoot(ctx.cwd);
-          setLastTrajectoryClarity(
-            (!cRoot || cRoot === cwdRoot) &&
-              (!c.session_id ||
-                c.session_id === eventSessionId ||
-                c.fallback_prior_project_trajectory === true)
-              ? c
-              : null
-          );
-        }
-        if (d.lastProjectVerify) setLastProjectVerify(d.lastProjectVerify);
-        if (d.latestReportSummary?.handle) setLatestReportSummary(d.latestReportSummary);
-        if (d.toolOutputPressure?.recapRequired)
-          getAttachmentRuntime().toolOutputPressure = d.toolOutputPressure;
-        if (Array.isArray(d.projectSwitchLedger))
-          getAttachmentRuntime().projectSwitchLedger = d.projectSwitchLedger.slice(0, 12);
-        if (d.vitalInfoPrompted) getAttachmentRuntime().vitalInfoPrompted = d.vitalInfoPrompted;
-        adoptPersistedContinuityForSession(
-          d,
-          eventSessionId,
-          adoptPiProjectRoot(ctx.cwd, d.activeWorkpointPacket)
-        );
-        break;
-      }
-    }
-
-    if (!getAttachmentRuntime().wbmEnabled) getAttachmentRuntime().activeFrameId = null;
-    syncRuntimeFieldsToScopeStore();
-    if (getAttachmentRuntime().focusaAvailable) {
-      const detectedProjectRoot = adoptPiProjectRoot(ctx.cwd);
-      const projectRoot = await promptForConfirmedProjectRoot(ctx, detectedProjectRoot, "session_switch");
-      if (!projectRoot) {
-        focusaPost("/telemetry/trace", {
-          event_type: "pi_session_switch_bind_blocked_unconfirmed_project_root",
-          payload: {
-            project_root: detectedProjectRoot,
-            summary: projectRootConfirmationSummary(detectedProjectRoot),
-            session_id: eventSessionId,
-            prompt_mode: getAttachmentRuntime().cfg?.vitalInfoPromptMode || "prompt",
-          },
-        });
-        queueProjectIdentityBootstrapTurn(pi, ctx, detectedProjectRoot, "session_switch");
-        return;
-      }
-      await promptForProjectVerifyIfNeeded(ctx, projectRoot, "session_resume");
-      await ensureFocusaSession({ ...ctx, cwd: projectRoot });
-      await ensureActiveFrame({ ...ctx, cwd: projectRoot }, eventSessionId || "unknown");
-      await refreshSessionWorkpointPacket("session_switch");
-      await refreshTrajectoryClarityLifecycle("session_resume", projectRoot);
-      await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_resume");
-      if (!getActiveWorkpointPacket()) {
-        const prompted = await promptForWorkpointIfNeeded(ctx, projectRoot, "session_resume");
-        if (!prompted) {
-          await ensureLowConfidenceWorkpoint("session_resume");
-          await refreshSessionWorkpointPacket("session_switch_low_confidence");
-        }
-        await refreshTrajectoryClarityLifecycle("session_resume_low_confidence", projectRoot);
-        await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_resume_low_confidence");
-      }
-    }
-  });
-
   // ── session_before_fork (§36.5) ───────────────────────────────────────────
   pi.on("session_before_fork", async (_event, _ctx) => {
     if (getAttachmentRuntime().focusaAvailable) {
@@ -1372,26 +1344,6 @@ export function registerSession(pi: ExtensionAPI) {
         continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
         turn_id: `pi-turn-${getTurnCount()}`,
         delta: { meta: { event: "fork", timestamp: Date.now() } },
-      });
-    }
-  });
-
-  // ── session_fork (§36.5) ──────────────────────────────────────────────────
-  pi.on("session_fork", async (_event, _ctx) => {
-    // §36.5: Take Focusa snapshot of branch point before fork diverges
-    if (getAttachmentRuntime().focusaAvailable && getAttachmentRuntime().activeFrameId) {
-      focusaPost("/focus/update", {
-        frame_id: getAttachmentRuntime().activeFrameId,
-        project_root: normalizeProjectRoot(getSessionCwd() || process.cwd()),
-        continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
-        turn_id: `pi-turn-${getTurnCount()}`,
-        delta: {
-          meta: {
-            event: "fork",
-            turn_count: getTurnCount(),
-            decisions_count: getAttachmentRuntime().localDecisions.length,
-          },
-        },
       });
     }
   });

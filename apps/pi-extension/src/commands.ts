@@ -2,9 +2,9 @@
 // Spec: §10.3 — Commands registry, §34.2E (explain-decision), §34.2F (lineage)
 // Plus: §33.5 isolation commands: /focusa-on, /focusa-off, /focusa-reset
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { getSettingsListTheme } from "@mariozechner/pi-coding-agent";
-import { Container, Text, type SettingItem, SettingsList } from "@mariozechner/pi-tui";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { getSettingsListTheme } from "@earendil-works/pi-coding-agent";
+import { Container, Text, type SettingItem, SettingsList } from "@earendil-works/pi-tui";
 import {
   getAttachmentRuntime,
   focusaFetch,
@@ -30,16 +30,6 @@ import { buildProjectWorkstreamKey, type WorkstreamKey } from "./scoped-state.js
 import { measureNativeSessionPressure, migrateNativeSessionBounded } from "./session-pressure.js";
 import { prepareCompactionRollover } from "./compaction.js";
 import { dirname, resolve } from "path";
-
-type RolloverReplacementContext = {
-  ui: { notify(message: string, level: "info" | "warning" | "error"): void };
-};
-
-type RolloverNewSession = (options: {
-  parentSession?: string;
-  setup?: (sessionManager: { appendMessage?: (message: any) => void }) => Promise<void>;
-  withSession?: (ctx: RolloverReplacementContext) => Promise<void>;
-}) => Promise<{ cancelled?: boolean }>;
 
 function nonEmptyLines(items: any[] | undefined): string[] {
   return (items || []).map((v) => String(v || "").trim()).filter(Boolean);
@@ -897,8 +887,9 @@ export function registerCommands(pi: ExtensionAPI) {
           compactionPacketRef,
           manifestPath: manifest.manifest_path || manifest.migration_id,
         });
-        const newSessionWithReplacement = ctx.newSession as unknown as RolloverNewSession;
-        const newSessionResult = await newSessionWithReplacement({
+        // Pi 0.81+ exposes typed transactional replacement on ExtensionCommandContext.
+        // Never cast an ordinary event context into this authority boundary.
+        const newSessionResult = await ctx.newSession({
           parentSession: sourceSessionId,
           setup: async (sessionManager: { appendMessage?: (message: any) => void }) => {
             sessionManager.appendMessage?.({

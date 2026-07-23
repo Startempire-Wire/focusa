@@ -30,17 +30,16 @@ test("agent_settled is the extension-owned compaction boundary", () => {
   assert.match(handlerBody("agent_settled"), /maybeCompact\(ctx\)/);
 });
 
-test("provider transport failures are terminal for unchanged context", () => {
+test("provider transport failures retain bounded recovery for unchanged context", () => {
   assert.match(source, /websocket\|network\|socket\|timeout/);
-  assert.match(source, /terminalTransportFailure/);
-  assert.match(source, /automatic retry is suppressed for unchanged context/);
-  assert.match(source, /terminalNoopContextKey = failedEpoch\.contextKey/);
+  assert.match(source, /return isTransientCompactionError\(message\)/);
+  assert.doesNotMatch(source, /automatic retry is suppressed for unchanged context/);
+  assert.doesNotMatch(source, /terminalTransportFailure/);
 });
 
-test("rate limits and temporary server failures retain one bounded linked retry", () => {
+test("transient provider failures retain the Spec130A one-retry budget", () => {
   assert.match(source, /maxTransientRetries\s*=\s*1/);
-  assert.match(source, /rate\.\?limit\|429\|502\|503\|504/);
-  assert.match(source, /getPolicy\(\)\.cooldownMs \* 2 \*\*/);
+  assert.match(source, /Math\.min\(getPolicy\(\)\.cooldownMs, 60_000\)/);
   assert.match(source, /consecutiveTransientFailures \+ 1,\n\s+priorEpochId/);
   assert.match(source, /live_context_no_longer_requires_action/);
   assert.match(source, /context_epoch_changed/);
@@ -107,7 +106,7 @@ test("one process-wide first-owner coordinator suppresses duplicate registration
   assert.match(source, /if \(processLease\.owner\)/);
   assert.match(source, /duplicate extension suppressed/);
   assert.match(source, /Remove the duplicate Focusa installation and reload Pi/);
-  assert.match(source, /return false;\n  }\n\n  const maxTransientRetries/);
+  assert.match(source, /return false;[\s\S]{0,400}const maxTransientRetries/);
   assert.match(indexSource, /if \(!ownsCompactionCoordinator\) return/);
   assert.match(source, /nativeCompactionCallCount >= 1/);
   assert.match(source, /nativeCompactionCallCount \+= 1/);

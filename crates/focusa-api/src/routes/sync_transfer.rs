@@ -171,7 +171,7 @@ pub async fn transfer_impl(
             is_observation: false, // CRITICAL: Must mutate state!
         };
 
-        if let Err(e) = state.persistence.append_event(&entry) {
+        if let Err(e) = state.append_events_checkpoint(vec![entry.clone()]).await {
             tracing::warn!("Failed to persist transfer event: {}", e);
             rejected += 1;
             continue;

@@ -1504,7 +1504,7 @@ async fn materialize_workpoint_events(
                 thread_id: None,
                 is_observation: false,
             };
-            if let Err(error) = state.persistence.append_event(&entry) {
+            if let Err(error) = state.append_events_checkpoint(vec![entry.clone()]).await {
                 tracing::error!(error = %error, correlation_id, "failed to persist workpoint event");
                 return Err(workpoint_persistence_failed(error));
             } else if let Ok(serialized) = serde_json::to_string(&entry) {
@@ -1517,7 +1517,7 @@ async fn materialize_workpoint_events(
     // through the daemon action loop. Persist the resulting canonical state
     // before publishing it in memory, otherwise checkpoints disappear after
     // a daemon restart even though the request returned canonical=true.
-    state.persistence.save_state(&current).map_err(|error| {
+    state.persist_checkpoint(current.clone()).await.map_err(|error| {
         tracing::error!(error = %error, correlation_id, "failed to persist canonical workpoint state");
         workpoint_persistence_failed(error)
     })?;
@@ -3313,10 +3313,11 @@ async fn link_evidence(
         return Err(rejection);
     }
     let explicit_workpoint_id = req.workpoint_id;
-    let expected_working_subpath_id = session_identity_working_subpath_id(req.session_identity.as_ref())
-        .or_else(|| clean_resume_scope_value(req.working_subpath_id.as_deref()))
-        .or_else(|| clean_resume_scope_value(_scope.working_subpath_id.as_deref()))
-        .unwrap_or_else(|| "primary".to_string());
+    let expected_working_subpath_id =
+        session_identity_working_subpath_id(req.session_identity.as_ref())
+            .or_else(|| clean_resume_scope_value(req.working_subpath_id.as_deref()))
+            .or_else(|| clean_resume_scope_value(_scope.working_subpath_id.as_deref()))
+            .unwrap_or_else(|| "primary".to_string());
     let record = if let Some(workpoint_id) = explicit_workpoint_id {
         let visible = {
             let focusa = state.focusa.read().await;

@@ -3,7 +3,7 @@
 // Wires all modules: config, tools, commands, wbm, compaction, session, turns
 // Plus: provider registration (§33.6), shortcuts (§37.4), flags (§37.5), renderer (§37.6)
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { createRequire } from "module";
 import {
   attachmentRuntimeRegistry,
@@ -244,7 +244,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
 
     // ── §37.6: Custom message renderer for persisted Focusa state entries ───
     const renderFocusaState = (message: any, _options: any, theme: any) => {
-      const { Text } = require("@mariozechner/pi-tui");
+      const { Text } = require("@earendil-works/pi-tui");
       const d = (message as any).details;
       if (!d) return undefined;
       const decisions = d.authoritativeDecisions || d.decisions || [];

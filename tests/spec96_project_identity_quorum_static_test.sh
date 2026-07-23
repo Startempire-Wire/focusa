@@ -77,7 +77,7 @@ else
   exit 1
 fi
 
-if rg -n 'rememberedProjectRootResolution\(cwdInput|same-tree hint|!cwd\.startsWith\(`\$\{remembered\}/`\)' "${ROOT_DIR}/apps/pi-extension/src/state.ts" >/dev/null \
+if rg -n 'never falls back to a remembered scope|Consumers must provide an explicit identity|TypedScopeStore' "${ROOT_DIR}/apps/pi-extension/src/state.ts" >/dev/null \
   && ! rg -n 'projectSummary = projectIdentity\.project_summary \|\| S\.lastProjectIdentity' "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" >/dev/null; then
   echo "✓ PASS: remembered ProjectIdentity cache cannot pull other sessions/projects"
 else
@@ -85,7 +85,7 @@ else
   exit 1
 fi
 
-if rg -n 'trajectoryFallback \? \(projectIdentity\.project_urls|trajectoryFallback \? \(projectIdentity\.deployment' "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" >/dev/null; then
+if rg -n 'const projectUrls = trajectoryFallback|const deployment = trajectoryFallback|\? projectIdentity\.project_urls|\? projectIdentity\.deployment' "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" >/dev/null; then
   echo "✓ PASS: prior trajectory fallback cannot override current ProjectIdentity env facts"
 else
   echo "✗ FAIL: prior trajectory fallback may bleed environment facts into Utility Card" >&2
@@ -100,7 +100,7 @@ else
   exit 1
 fi
 
-if rg -n 'project identity timeout_preserved|project verify timeout_preserved|cached identity returned as noncanonical advisory|focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view' "$TOOLS" >/dev/null; then
+if rg -n 'cachedIdentity \? "cached identity"|status: "timeout_preserved"|advisory_only: true|"focusa_project_identity"|"focusa_project_verify"|"focusa_trajectory_view"' "$TOOLS" >/dev/null; then
   echo "✓ PASS: ProjectIdentity hot timeout returns cached advisory identity with recovery tools"
 else
   echo "✗ FAIL: ProjectIdentity hot timeout can dead-end without cached advisory fallback" >&2

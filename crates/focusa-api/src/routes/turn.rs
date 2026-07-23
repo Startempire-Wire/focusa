@@ -87,7 +87,7 @@ async fn materialize_turn_event(
             thread_id: None,
             is_observation: false,
         };
-        if let Err(error) = state.persistence.append_event(&entry) {
+        if let Err(error) = state.append_events_checkpoint(vec![entry.clone()]).await {
             tracing::error!(error = %error, correlation_id, "failed to persist turn event");
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -634,6 +634,7 @@ mod tests {
             event_broadcaster: crate::routes::sse::EventBroadcaster::new(),
             config: cfg.clone(),
             persistence: persistence.clone(),
+            persistence_actor: None,
             write_serial_lock: Arc::new(Mutex::new(())),
             command_store: Arc::new(RwLock::new(HashMap::new())),
             token_store: Arc::new(RwLock::new(focusa_core::permissions::TokenStore::new())),

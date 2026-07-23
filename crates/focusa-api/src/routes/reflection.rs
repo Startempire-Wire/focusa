@@ -1290,6 +1290,7 @@ mod tests {
             event_broadcaster: crate::routes::sse::EventBroadcaster::new(),
             config: cfg.clone(),
             persistence,
+            persistence_actor: None,
             write_serial_lock: Arc::new(Mutex::new(())),
             command_store: Arc::new(RwLock::new(HashMap::new())),
             token_store: Arc::new(RwLock::new(focusa_core::permissions::TokenStore::new())),
