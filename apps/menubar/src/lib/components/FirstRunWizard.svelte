@@ -19,7 +19,7 @@
   // Spec: docs/55-focusa-self-host-architecture.md §6.2, doc 53 §2.0.
 
   import { onMount } from 'svelte';
-  import { getApiUrl } from '$lib/api';
+  import { DEFAULT_API_URL, getApiUrl } from '$lib/api';
   import QRCode from './QRCode.svelte';
   import Settings from './Settings.svelte';
   import {
@@ -148,7 +148,7 @@
     discoveryAttempts = [];
 
     // 1. Out-of-box local Focusa installation. No SaaS or remote host is required.
-    for (const url of ['http://127.0.0.1:8787', 'http://localhost:8787']) {
+    for (const url of [DEFAULT_API_URL]) {
       discoveryAttempts.push(`local: ${url}`);
       if (await probeUrl(url)) {
         discoveredUrl = url;

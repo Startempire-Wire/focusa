@@ -34,7 +34,8 @@ assert {
 wizard = (
     ROOT / "apps/menubar/src/lib/components/FirstRunWizard.svelte"
 ).read_text()
-local_probe = wizard.index("discoveryAttempts.push(`local: ${url}`)")
+assert "DEFAULT_API_URL" in wizard
+local_probe = wizard.index("for (const url of [DEFAULT_API_URL])")
 tailscale_probe = wizard.index("const tailscaleHosts")
 bonjour_probe = wizard.index("focusa_discover_via_bonjour")
 assert local_probe < tailscale_probe < bonjour_probe
