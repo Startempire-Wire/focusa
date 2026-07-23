@@ -38,9 +38,9 @@ pub enum SilentCmd {
     Profile(ProfileCmd),
     #[command(subcommand)]
     Preset(PresetCmd),
-    Checkpoints(SessionArgs),
-    Evidence(SessionArgs),
-    Receipt(SessionArgs),
+    Checkpoints(ExactSessionArgs),
+    Evidence(ExactSessionArgs),
+    Receipt(ExactSessionArgs),
     Export(ExportArgs),
     Hold(HoldArgs),
     Delete(DeleteArgs),
@@ -73,15 +73,31 @@ pub struct SessionArgs {
 }
 
 #[derive(Args, Debug, Clone)]
+pub struct ExactSessionArgs {
+    /// Exact durable Silent Session id.
+    pub session_id: String,
+    #[arg(long)]
+    pub run_id: String,
+    #[arg(long)]
+    pub generation: u64,
+}
+
+#[derive(Args, Debug, Clone)]
 pub struct SessionMutationArgs {
     /// Exact durable Silent Session id.
     pub session_id: String,
+    /// Exact current run id; never inferred by the CLI.
+    #[arg(long)]
+    pub run_id: String,
+    /// Exact current run generation; stale generations are rejected.
+    #[arg(long)]
+    pub generation: u64,
+    /// Explicit daemon approval id for the intended mutation.
+    #[arg(long)]
+    pub approval_id: String,
     /// Idempotency key for mutation replay safety.
     #[arg(long)]
     pub idempotency_key: String,
-    /// Human/operator reason recorded with the mutation.
-    #[arg(long)]
-    pub reason: Option<String>,
 }
 
 #[derive(Args, Debug)]
@@ -123,6 +139,10 @@ pub struct ListArgs {
 pub struct WatchArgs {
     pub session_id: String,
     #[arg(long)]
+    pub run_id: String,
+    #[arg(long)]
+    pub generation: u64,
+    #[arg(long)]
     pub cursor: Option<String>,
     #[arg(long, default_value_t = false)]
     pub follow: bool,
@@ -139,6 +159,10 @@ pub struct WatchArgs {
 pub struct OutputArgs {
     pub session_id: String,
     #[arg(long)]
+    pub run_id: String,
+    #[arg(long)]
+    pub generation: u64,
+    #[arg(long)]
     pub cursor: Option<String>,
     #[arg(long, default_value_t = 200)]
     pub limit: usize,
@@ -149,6 +173,12 @@ pub struct OutputArgs {
 #[derive(Args, Debug)]
 pub struct InputArgs {
     pub session_id: String,
+    #[arg(long)]
+    pub run_id: String,
+    #[arg(long)]
+    pub generation: u64,
+    #[arg(long)]
+    pub approval_id: String,
     /// Foreground input or steering text; never interpreted as a shell command by this CLI.
     #[arg(long)]
     pub text: String,
@@ -159,6 +189,12 @@ pub struct InputArgs {
 #[derive(Args, Debug)]
 pub struct KeyArgs {
     pub session_id: String,
+    #[arg(long)]
+    pub run_id: String,
+    #[arg(long)]
+    pub generation: u64,
+    #[arg(long)]
+    pub approval_id: String,
     /// Named key, e.g. Enter, Escape, ArrowUp, Ctrl-C.
     #[arg(long = "key", required = true)]
     pub keys: Vec<String>,
@@ -169,6 +205,12 @@ pub struct KeyArgs {
 #[derive(Args, Debug)]
 pub struct ConfigSessionArgs {
     pub session_id: String,
+    #[arg(long)]
+    pub run_id: String,
+    #[arg(long)]
+    pub generation: u64,
+    #[arg(long)]
+    pub approval_id: Option<String>,
     #[arg(long)]
     pub config_file: PathBuf,
     #[arg(long)]
@@ -181,7 +223,13 @@ pub struct ConfigSessionArgs {
 pub struct RollbackArgs {
     pub session_id: String,
     #[arg(long)]
-    pub revision: u64,
+    pub run_id: String,
+    #[arg(long)]
+    pub generation: u64,
+    #[arg(long)]
+    pub approval_id: String,
+    #[arg(long)]
+    pub revision: String,
     #[arg(long)]
     pub idempotency_key: String,
 }
@@ -189,6 +237,10 @@ pub struct RollbackArgs {
 #[derive(Args, Debug)]
 pub struct ExportArgs {
     pub session_id: String,
+    #[arg(long)]
+    pub run_id: String,
+    #[arg(long)]
+    pub generation: u64,
     #[arg(long, default_value = "json")]
     pub format: String,
     #[arg(long)]
@@ -201,6 +253,10 @@ pub struct ExportArgs {
 pub struct HoldArgs {
     pub session_id: String,
     #[arg(long)]
+    pub run_id: String,
+    #[arg(long)]
+    pub generation: u64,
+    #[arg(long)]
     pub reason: String,
     #[arg(long)]
     pub expires_at: Option<String>,
@@ -212,6 +268,10 @@ pub struct HoldArgs {
 pub struct DeleteArgs {
     pub session_id: String,
     #[arg(long)]
+    pub run_id: String,
+    #[arg(long)]
+    pub generation: u64,
+    #[arg(long)]
     pub reason: String,
     #[arg(long)]
     pub idempotency_key: String,
@@ -220,6 +280,10 @@ pub struct DeleteArgs {
 #[derive(Args, Debug)]
 pub struct PurgeArgs {
     pub session_id: String,
+    #[arg(long)]
+    pub run_id: String,
+    #[arg(long)]
+    pub generation: u64,
     /// Preview is the default; commit requires both this flag and daemon authorization.
     #[arg(long, default_value_t = false)]
     pub commit: bool,
@@ -258,16 +322,35 @@ fn config_session_body(args: &ConfigSessionArgs) -> Result<Value> {
         layers_file: args.layers_file.clone(),
     };
     let mut body = config_body(&input)?;
+    body["run_id"] = Value::String(args.run_id.clone());
+    body["generation"] = json!(args.generation);
+    if let Some(approval_id) = &args.approval_id {
+        body["approval_id"] = Value::String(approval_id.clone());
+    }
     if let Some(key) = &args.idempotency_key {
         body["idempotency_key"] = Value::String(key.clone());
     }
     Ok(body)
 }
 
+fn config_apply_body(args: &ConfigSessionArgs) -> Result<Value> {
+    anyhow::ensure!(
+        args.approval_id.is_some(),
+        "--approval-id is required for config apply"
+    );
+    anyhow::ensure!(
+        args.idempotency_key.is_some(),
+        "--idempotency-key is required for config apply"
+    );
+    config_session_body(args)
+}
+
 fn mutation_body(args: &SessionMutationArgs) -> Value {
     json!({
+        "run_id": args.run_id,
+        "generation": args.generation,
+        "approval_id": args.approval_id,
         "idempotency_key": args.idempotency_key,
-        "reason": args.reason,
     })
 }
 
@@ -396,22 +479,22 @@ async fn execute(client: &ApiClient, command: SilentCmd, json_output: bool) -> R
             let mut cursor = args.cursor;
             let mut responses = Vec::new();
             for index in 0..polls {
-                let suffix = query(&[("cursor", cursor.clone()), ("limit", Some(args.limit.clamp(1, 500).to_string()))]);
+                let suffix = query(&[("run_id", Some(args.run_id.clone())), ("generation", Some(args.generation.to_string())), ("cursor", cursor.clone()), ("follow", Some("false".into())), ("limit", Some(args.limit.clamp(1, 500).to_string()))]);
                 let value = client.get(&format!("/silent-sessions/{}/events{suffix}", args.session_id)).await?;
-                cursor = value.get("next_cursor").and_then(Value::as_str).map(str::to_string).or(cursor);
+                cursor = value.pointer("/data/next_cursor").and_then(Value::as_str).map(str::to_string).or(cursor);
                 responses.push(value);
                 if index + 1 < polls { tokio::time::sleep(Duration::from_millis(args.interval_ms.max(50))).await; }
             }
             ("watch", json!({"status":"completed","cursor":cursor,"polls":responses.len(),"events":responses}))
         }
         SilentCmd::Output(args) => {
-            let suffix = query(&[("cursor", args.cursor), ("limit", Some(args.limit.clamp(1, 1000).to_string())), ("stream", args.stream)]);
+            let suffix = query(&[("run_id", Some(args.run_id)), ("generation", Some(args.generation.to_string())), ("cursor", args.cursor), ("follow", Some("false".into())), ("limit", Some(args.limit.clamp(1, 1000).to_string())), ("channel", args.stream)]);
             ("output", client.get(&format!("/silent-sessions/{}/output{suffix}", args.session_id)).await?)
         }
-        SilentCmd::Send(args) => ("send", client.post(&format!("/silent-sessions/{}/input", args.session_id), &json!({"text":args.text,"idempotency_key":args.idempotency_key})).await?),
-        SilentCmd::Steer(args) => ("steer", client.post(&format!("/silent-sessions/{}/steer", args.session_id), &json!({"text":args.text,"idempotency_key":args.idempotency_key})).await?),
-        SilentCmd::FollowUp(args) => ("follow-up", client.post(&format!("/silent-sessions/{}/follow-up", args.session_id), &json!({"text":args.text,"idempotency_key":args.idempotency_key})).await?),
-        SilentCmd::Key(args) => ("key", client.post(&format!("/silent-sessions/{}/keys", args.session_id), &json!({"keys":args.keys,"idempotency_key":args.idempotency_key})).await?),
+        SilentCmd::Send(args) => ("send", client.post(&format!("/silent-sessions/{}/input", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"approval_id":args.approval_id,"idempotency_key":args.idempotency_key,"text":args.text})).await?),
+        SilentCmd::Steer(args) => ("steer", client.post(&format!("/silent-sessions/{}/steer", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"approval_id":args.approval_id,"idempotency_key":args.idempotency_key,"instruction":args.text})).await?),
+        SilentCmd::FollowUp(args) => ("follow-up", client.post(&format!("/silent-sessions/{}/follow-up", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"approval_id":args.approval_id,"idempotency_key":args.idempotency_key,"prompt":args.text})).await?),
+        SilentCmd::Key(args) => ("key", client.post(&format!("/silent-sessions/{}/keys", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"approval_id":args.approval_id,"idempotency_key":args.idempotency_key,"keys":args.keys})).await?),
         SilentCmd::Pause(args) => ("pause", client.post(&format!("/silent-sessions/{}/pause", args.session_id), &mutation_body(&args)).await?),
         SilentCmd::Resume(args) => ("resume", client.post(&format!("/silent-sessions/{}/resume", args.session_id), &mutation_body(&args)).await?),
         SilentCmd::Interrupt(args) => ("interrupt", client.post(&format!("/silent-sessions/{}/interrupt", args.session_id), &mutation_body(&args)).await?),
@@ -421,22 +504,22 @@ async fn execute(client: &ApiClient, command: SilentCmd, json_output: bool) -> R
         SilentCmd::Config(command) => match command {
             ConfigCmd::Resolve(args) => ("config resolve", client.post("/silent-sessions/config/resolve", &config_body(&args)?).await?),
             ConfigCmd::Diff(args) => ("config diff", client.post(&format!("/silent-sessions/{}/config/preview", args.session_id), &config_session_body(&args)?).await?),
-            ConfigCmd::Apply(args) => ("config apply", client.post(&format!("/silent-sessions/{}/config/revisions", args.session_id), &config_session_body(&args)?).await?),
-            ConfigCmd::Rollback(args) => ("config rollback", client.post(&format!("/silent-sessions/{}/config/rollback", args.session_id), &json!({"revision":args.revision,"idempotency_key":args.idempotency_key})).await?),
+            ConfigCmd::Apply(args) => ("config apply", client.post(&format!("/silent-sessions/{}/config/revisions", args.session_id), &config_apply_body(&args)?).await?),
+            ConfigCmd::Rollback(args) => ("config rollback", client.post(&format!("/silent-sessions/{}/config/rollback", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"approval_id":args.approval_id,"target_revision_id":args.revision,"idempotency_key":args.idempotency_key})).await?),
         },
         SilentCmd::Profile(ProfileCmd::List) => ("profile list", client.get("/silent-sessions/profiles").await?),
         SilentCmd::Preset(PresetCmd::List) => ("preset list", client.get("/silent-sessions/presets").await?),
-        SilentCmd::Checkpoints(args) => ("checkpoints", client.get(&format!("/silent-sessions/{}/checkpoints", args.session_id)).await?),
-        SilentCmd::Evidence(args) => ("evidence", client.get(&format!("/silent-sessions/{}/artifacts", args.session_id)).await?),
-        SilentCmd::Receipt(args) => ("receipt", client.get(&format!("/silent-sessions/{}/receipts", args.session_id)).await?),
-        SilentCmd::Export(args) => ("export", client.post(&format!("/silent-sessions/{}/export", args.session_id), &json!({"format":args.format,"include_output":args.include_output,"idempotency_key":args.idempotency_key})).await?),
-        SilentCmd::Hold(args) => ("hold", client.post(&format!("/silent-sessions/{}/evidence-hold", args.session_id), &json!({"reason":args.reason,"expires_at":args.expires_at,"idempotency_key":args.idempotency_key})).await?),
-        SilentCmd::Delete(args) => ("delete", delete(client, &format!("/silent-sessions/{}", args.session_id), &json!({"reason":args.reason,"idempotency_key":args.idempotency_key})).await?),
-        SilentCmd::Purge(args) => ("purge", client.post(&format!("/silent-sessions/{}/purge", args.session_id), &json!({"commit":args.commit,"reason":args.reason,"idempotency_key":args.idempotency_key})).await?),
+        SilentCmd::Checkpoints(args) => ("checkpoints", client.get(&format!("/silent-sessions/{}/checkpoints?run_id={}&generation={}", args.session_id, args.run_id, args.generation)).await?),
+        SilentCmd::Evidence(args) => ("evidence", client.get(&format!("/silent-sessions/{}/artifacts?run_id={}&generation={}", args.session_id, args.run_id, args.generation)).await?),
+        SilentCmd::Receipt(args) => ("receipt", client.get(&format!("/silent-sessions/{}/receipts?run_id={}&generation={}", args.session_id, args.run_id, args.generation)).await?),
+        SilentCmd::Export(args) => ("export", client.post(&format!("/silent-sessions/{}/export", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"format":args.format,"include_output":args.include_output,"idempotency_key":args.idempotency_key})).await?),
+        SilentCmd::Hold(args) => ("hold", client.post(&format!("/silent-sessions/{}/evidence-hold", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"reason":args.reason,"expires_at":args.expires_at,"idempotency_key":args.idempotency_key})).await?),
+        SilentCmd::Delete(args) => ("delete", delete(client, &format!("/silent-sessions/{}", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"reason":args.reason,"idempotency_key":args.idempotency_key})).await?),
+        SilentCmd::Purge(args) => ("purge", client.post(&format!("/silent-sessions/{}/purge", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"commit":args.commit,"reason":args.reason,"idempotency_key":args.idempotency_key})).await?),
         SilentCmd::Doctor(args) => {
             let capabilities = client.get("/silent-sessions/capabilities").await?;
             let session = match args.session_id {
-                Some(id) => Some(client.get(&format!("/silent-sessions/{id}/status")).await?),
+                Some(id) => Some(client.get(&format!("/silent-sessions/{id}")).await?),
                 None => None,
             };
             ("doctor", json!({"status":"completed","deep":args.deep,"capabilities":capabilities,"session":session,"checks":{"daemon":true,"catalog":true},"next_tools":["focusa_tool_doctor"]}))

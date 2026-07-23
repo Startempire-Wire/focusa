@@ -72,12 +72,16 @@ pub enum SilentSessionAction {
     Adopt,
     ForceKill,
     ReadRawForensics,
+    Export,
+    EvidenceHold,
+    Delete,
+    Purge,
 }
 
 impl SilentSessionAction {
     pub fn required_scope(self) -> SilentSessionRouteScope {
         match self {
-            Self::List | Self::Show => SilentSessionRouteScope::Read,
+            Self::List | Self::Show | Self::Export => SilentSessionRouteScope::Read,
             Self::FollowStream => SilentSessionRouteScope::Stream,
             Self::Create | Self::Preflight | Self::Start => SilentSessionRouteScope::Create,
             Self::SendInput
@@ -89,7 +93,9 @@ impl SilentSessionAction {
             Self::PreviewConfig | Self::ReviseConfig | Self::RollbackConfig => {
                 SilentSessionRouteScope::Config
             }
-            Self::Adopt | Self::ForceKill => SilentSessionRouteScope::Admin,
+            Self::Adopt | Self::ForceKill | Self::EvidenceHold | Self::Delete | Self::Purge => {
+                SilentSessionRouteScope::Admin
+            }
             Self::ReadRawForensics => SilentSessionRouteScope::Forensics,
         }
     }
@@ -359,6 +365,9 @@ fn role_allows(role: SilentSessionRole, action: SilentSessionAction) -> bool {
             SilentSessionAction::Adopt
                 | SilentSessionAction::ForceKill
                 | SilentSessionAction::ReadRawForensics
+                | SilentSessionAction::EvidenceHold
+                | SilentSessionAction::Delete
+                | SilentSessionAction::Purge
         ),
         SilentSessionRole::Administrator => true,
         SilentSessionRole::Runner => false,

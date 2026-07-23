@@ -11,7 +11,7 @@ use focusa_core::silent_sessions::{
     AuthorizationTarget, AuthorizedProjection, ContextAuthorityVerdict, RunGeneration,
     SilentSession, SilentSessionAction, SilentSessionAuthorizationRequest, SilentSessionId,
     SilentSessionRole, SilentSessionRouteScope, SilentSessionRunId, VerifiedAuthorityFacts,
-    authorize_silent_session_action, list_sessions, load_run, load_session,
+    authorize_silent_session_action, list_sessions, load_retention_record, load_run, load_session,
     save_authorization_principal,
 };
 use serde::Deserialize;
@@ -39,7 +39,10 @@ pub fn router() -> Router<Arc<AppState>> {
             "/v1/silent-sessions",
             get(list).post(super::silent_sessions_create::create),
         )
-        .route("/v1/silent-sessions/{session_id}", get(show))
+        .route(
+            "/v1/silent-sessions/{session_id}",
+            get(show).delete(super::silent_sessions_retention::ordinary_delete),
+        )
         .route("/v1/silent-sessions/{session_id}/status", get(status))
         .route(
             "/v1/silent-sessions/{session_id}/start",
@@ -82,6 +85,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .merge(super::silent_sessions_config_read::router())
         .merge(super::silent_sessions_config_mutation::router())
         .merge(super::silent_sessions_capabilities::router())
+        .merge(super::silent_sessions_retention::router())
 }
 
 async fn list(State(state): State<Arc<AppState>>, headers: HeaderMap) -> ApiResponse {
@@ -143,6 +147,23 @@ async fn show(
             return disclose_principal_side_effect(persistence_failure(error), &principal);
         }
     };
+    match load_retention_record(&state.persistence, session_id) {
+        Ok(Some(record)) if record.deleted_at.is_some() => {
+            return disclose_principal_side_effect(
+                failure(
+                    StatusCode::NOT_FOUND,
+                    "not_found",
+                    "ordinary_delete_hidden",
+                    "The Silent Session is no longer present in ordinary views.",
+                ),
+                &principal,
+            );
+        }
+        Ok(_) => {}
+        Err(error) => {
+            return disclose_principal_side_effect(persistence_failure(error), &principal);
+        }
+    }
     match authorized_projection(&principal, &session, SilentSessionAction::Show) {
         Some(data) => success_with_principal("found", data, &principal),
         None => disclose_principal_side_effect(
@@ -190,6 +211,23 @@ async fn status(
             return disclose_principal_side_effect(persistence_failure(error), &principal);
         }
     };
+    match load_retention_record(&state.persistence, session_id) {
+        Ok(Some(record)) if record.deleted_at.is_some() => {
+            return disclose_principal_side_effect(
+                failure(
+                    StatusCode::NOT_FOUND,
+                    "not_found",
+                    "ordinary_delete_hidden",
+                    "The Silent Session is no longer present in ordinary views.",
+                ),
+                &principal,
+            );
+        }
+        Ok(_) => {}
+        Err(error) => {
+            return disclose_principal_side_effect(persistence_failure(error), &principal);
+        }
+    }
     let run = match load_run(&state.persistence, query.run_id) {
         Ok(Some(run)) => run,
         Ok(None) => {
@@ -355,7 +393,7 @@ pub(super) fn authorized_projection(
     }
 }
 
-fn success_with_principal(
+pub(super) fn success_with_principal(
     status: &str,
     data: Value,
     principal: &ApiRequestPrincipal,

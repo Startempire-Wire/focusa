@@ -10,7 +10,7 @@ use crate::runtime::persistence_sqlite::SqlitePersistence;
 
 use super::{SilentSession, SilentSessionConfigRevision, SilentSessionEvent, SilentSessionRun};
 
-pub const SILENT_SESSION_DB_SCHEMA_VERSION: i64 = 3;
+pub const SILENT_SESSION_DB_SCHEMA_VERSION: i64 = 4;
 
 const SCHEMA_SQL: &str = r#"
 CREATE TABLE IF NOT EXISTS silent_session_schema_meta (
@@ -197,6 +197,25 @@ CREATE TABLE IF NOT EXISTS silent_session_runner_nonces (
   expires_at TEXT NOT NULL,
   consumed_at TEXT NOT NULL,
   PRIMARY KEY(runner_principal_id,nonce)
+);
+CREATE TABLE IF NOT EXISTS silent_session_retention (
+  session_id TEXT PRIMARY KEY REFERENCES silent_sessions(silent_session_id) ON DELETE CASCADE,
+  evidence_hold INTEGER NOT NULL DEFAULT 0,
+  hold_reason TEXT,
+  hold_expires_at TEXT,
+  deleted_at TEXT,
+  delete_reason TEXT,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS silent_session_retention_operations (
+  session_id TEXT NOT NULL,
+  action TEXT NOT NULL,
+  idempotency_key TEXT NOT NULL,
+  principal_id TEXT NOT NULL,
+  request_hash TEXT NOT NULL,
+  response_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY(session_id,action,principal_id,idempotency_key)
 );
 "#;
 
@@ -573,7 +592,7 @@ fn enum_json<T: Serialize>(value: T) -> anyhow::Result<String> {
 }
 
 fn verify_schema(connection: &rusqlite::Connection) -> anyhow::Result<()> {
-    const REQUIRED_TABLES: [&str; 14] = [
+    const REQUIRED_TABLES: [&str; 16] = [
         "silent_sessions",
         "silent_session_runs",
         "silent_session_config_revisions",
@@ -588,6 +607,8 @@ fn verify_schema(connection: &rusqlite::Connection) -> anyhow::Result<()> {
         "silent_session_approvals",
         "silent_session_control_audits",
         "silent_session_runner_nonces",
+        "silent_session_retention",
+        "silent_session_retention_operations",
     ];
     for table in REQUIRED_TABLES {
         let exists: i64 = connection.query_row(

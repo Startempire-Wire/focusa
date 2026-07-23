@@ -1,6 +1,7 @@
 use std::{convert::Infallible, path::PathBuf, sync::Arc, time::Duration};
 
 use axum::{
+    Json,
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     response::{
@@ -35,14 +36,32 @@ use super::{
 pub(super) struct StreamQuery {
     pub run_id: SilentSessionRunId,
     pub generation: RunGeneration,
+    pub cursor: Option<String>,
+    #[serde(default = "default_follow")]
+    pub follow: bool,
+    #[serde(default = "default_page_limit")]
+    pub limit: usize,
 }
 
 #[derive(Debug, Deserialize)]
 pub(super) struct OutputQuery {
     pub run_id: SilentSessionRunId,
     pub generation: RunGeneration,
+    pub cursor: Option<String>,
+    #[serde(default = "default_follow")]
+    pub follow: bool,
+    #[serde(default = "default_page_limit")]
+    pub limit: usize,
     #[serde(default = "default_output_channel")]
     pub channel: OutputChannel,
+}
+
+fn default_follow() -> bool {
+    true
+}
+
+fn default_page_limit() -> usize {
+    200
 }
 
 pub(super) async fn events(
@@ -81,9 +100,10 @@ pub(super) async fn events(
     if let Err(response) = authorize_stream(&principal, &session) {
         return after(*response, &principal).into_response();
     }
-    let last_event_id = headers
+    let header_cursor = headers
         .get("last-event-id")
         .and_then(|value| value.to_str().ok());
+    let last_event_id = query.cursor.as_deref().or(header_cursor);
     let resume_after = match resume_sequence(last_event_id, query.run_id) {
         Ok(sequence) => sequence,
         Err(error) => {
@@ -97,6 +117,27 @@ pub(super) async fn events(
             return after(response, &principal).into_response();
         }
     };
+    if !query.follow {
+        let events = match load_session_events(&state.persistence, session_id) {
+            Ok(events) => events,
+            Err(error) => return after(persistence_failure(error), &principal).into_response(),
+        };
+        let selected = events
+            .into_iter()
+            .filter(|event| event.run_id == Some(query.run_id) && event.sequence > resume_after)
+            .take(query.limit.clamp(1, 1_000))
+            .collect::<Vec<_>>();
+        let next_cursor = selected.last().and_then(|event| {
+            StreamCursor::new(query.run_id, event.sequence)
+                .encode()
+                .ok()
+        });
+        let envelope = SilentSessionApiEnvelope::canonical(
+            "event_page",
+            json!({"events": selected, "next_cursor": next_cursor}),
+        );
+        return (StatusCode::OK, Json(envelope)).into_response();
+    }
     let stream_state = state.clone();
     let run_id = query.run_id;
     let generation = query.generation;
@@ -208,9 +249,10 @@ pub(super) async fn output(
     if let Err(response) = authorize_stream(&principal, &session) {
         return after(*response, &principal).into_response();
     }
-    let last_event_id = headers
+    let header_cursor = headers
         .get("last-event-id")
         .and_then(|value| value.to_str().ok());
+    let last_event_id = query.cursor.as_deref().or(header_cursor);
     if let Err(error) = resume_sequence(last_event_id, query.run_id) {
         let mut response = failure(
             StatusCode::BAD_REQUEST,
@@ -235,6 +277,23 @@ pub(super) async fn output(
         Ok(store) => store,
         Err(error) => return after(persistence_failure(error), &principal).into_response(),
     };
+    if !query.follow {
+        let (events, next_cursor) = match store.read_after(
+            session_id,
+            query.run_id,
+            query.channel,
+            last_event_id,
+            query.limit.clamp(1, 1_000),
+        ) {
+            Ok(page) => page,
+            Err(error) => return after(persistence_failure(error), &principal).into_response(),
+        };
+        let envelope = SilentSessionApiEnvelope::canonical(
+            "output_page",
+            json!({"output": events, "next_cursor": next_cursor, "channel": query.channel}),
+        );
+        return (StatusCode::OK, Json(envelope)).into_response();
+    }
     let run_id = query.run_id;
     let generation = query.generation;
     let channel = query.channel;

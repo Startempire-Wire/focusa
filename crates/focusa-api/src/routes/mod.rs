@@ -72,6 +72,7 @@ pub mod silent_sessions_lifecycle;
 pub mod silent_sessions_observe;
 pub mod silent_sessions_projection;
 pub mod silent_sessions_restart;
+pub mod silent_sessions_retention;
 pub mod skills;
 pub mod snapshots;
 pub mod spec_workbench;

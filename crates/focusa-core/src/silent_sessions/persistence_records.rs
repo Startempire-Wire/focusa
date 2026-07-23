@@ -29,7 +29,7 @@ pub fn load_session(
 pub fn list_sessions(persistence: &SqlitePersistence) -> anyhow::Result<Vec<SilentSession>> {
     persistence.with_connection_mut(|connection| {
         let mut statement = connection.prepare(
-            "SELECT snapshot_json FROM silent_sessions ORDER BY updated_at DESC, silent_session_id",
+            "SELECT s.snapshot_json FROM silent_sessions s LEFT JOIN silent_session_retention r ON r.session_id=s.silent_session_id WHERE r.deleted_at IS NULL ORDER BY s.updated_at DESC, s.silent_session_id",
         )?;
         let rows = statement.query_map([], |row| row.get::<_, String>(0))?;
         rows.map(|row| {
