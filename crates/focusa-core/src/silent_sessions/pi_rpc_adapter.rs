@@ -102,7 +102,7 @@ impl AgentBootstrapBarrier {
 #[serde(tag = "method", content = "params", rename_all = "snake_case")]
 pub enum PiRpcRequest {
     Bootstrap {
-        barrier: AgentBootstrapBarrier,
+        barrier: Box<AgentBootstrapBarrier>,
     },
     Prompt {
         run: HarnessRunRef,
@@ -173,7 +173,7 @@ impl<T: PiRpcTransport> GovernedPiRpcAdapter<T> {
     pub fn bootstrap(&mut self, now: DateTime<Utc>) -> anyhow::Result<PiRpcResponse> {
         self.barrier.verify(now)?;
         let response = self.transport.call(PiRpcRequest::Bootstrap {
-            barrier: self.barrier.clone(),
+            barrier: Box::new(self.barrier.clone()),
         })?;
         anyhow::ensure!(response.ok, "Pi rejected AgentBootstrap packet");
         self.bootstrapped = true;

@@ -56,9 +56,7 @@ pub async fn send_runner_request(
     request
         .validate_binding()
         .map_err(RunnerClientError::Other)?;
-    if !consume_runner_nonce(persistence, &request.command, Utc::now())
-        .map_err(anyhow::Error::from)?
-    {
+    if !consume_runner_nonce(persistence, &request.command, Utc::now())? {
         return Err(RunnerClientError::Replay);
     }
     let exchange = async {

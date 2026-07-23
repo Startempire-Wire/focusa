@@ -56,7 +56,7 @@ pub enum RunnerSignal {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "operation", rename_all = "snake_case")]
 pub enum RunnerOperation {
-    Launch { spec: RunnerLaunchSpec },
+    Launch { spec: Box<RunnerLaunchSpec> },
     Signal { signal: RunnerSignal },
     Query,
     Heartbeat,
