@@ -6,6 +6,7 @@
 pub mod authorization;
 pub mod authorization_persistence;
 pub mod capability_catalog;
+pub mod cognitive_governance;
 pub mod completion_artifacts;
 pub mod concurrency_governance;
 pub mod config;
@@ -41,6 +42,7 @@ pub mod types;
 pub use authorization::*;
 pub use authorization_persistence::*;
 pub use capability_catalog::*;
+pub use cognitive_governance::*;
 pub use completion_artifacts::*;
 pub use concurrency_governance::*;
 pub use config::*;
