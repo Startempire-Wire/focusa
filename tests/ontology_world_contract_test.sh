@@ -45,7 +45,7 @@ echo ""
 
 log_info "Seed bounded working world"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FIXTURE_PARENT="${REPO_ROOT}/.tmp"
+FIXTURE_PARENT="${TMPDIR:-/tmp}"
 mkdir -p "${FIXTURE_PARENT}"
 WORKSPACE_ROOT="${FIXTURE_PARENT}/focusa-ontology-workspace-$(date +%s%N)"
 mkdir -p "${WORKSPACE_ROOT}/.git" "${WORKSPACE_ROOT}/.beads" "${WORKSPACE_ROOT}/src/routes" "${WORKSPACE_ROOT}/tests" "${WORKSPACE_ROOT}/migrations"
@@ -94,17 +94,23 @@ if [ "$workspace_ready" = "1" ]; then
 else
   log_info "Workspace session metadata not yet visible; waiting on world projection instead"
 fi
-curl -sS -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" -d "{\"title\":\"${FRAME_TITLE}\",\"goal\":\"${FRAME_GOAL}\",\"beads_issue_id\":\"ontology-001\",\"project_root\":\"${WORKSPACE_ROOT}\",\"continuity_id\":\"ontology-world\"}" >/dev/null
 frame_id=""
-for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-  frame_id=$(curl -sS "${BASE_URL}/v1/focus/stack" | jq -r --arg title "$FRAME_TITLE" '.stack.frames | map(select(.title == $title)) | last | .id // empty')
+last_push_response=""
+for _ in $(seq 1 30); do
+  last_push_response=$(curl -sS -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" -d "{\"title\":\"${FRAME_TITLE}\",\"goal\":\"${FRAME_GOAL}\",\"beads_issue_id\":\"ontology-001\",\"project_root\":\"${WORKSPACE_ROOT}\",\"continuity_id\":\"ontology-world\"}")
+  frame_id=$(echo "$last_push_response" | jq -r '.frame_id // empty')
+  if [ -z "$frame_id" ]; then
+    frame_id=$(curl -sS "${BASE_URL}/v1/focus/stack" | jq -r --arg title "$FRAME_TITLE" '.stack.frames | map(select(.title == $title)) | last | .id // empty')
+  fi
   if [ -n "$frame_id" ] && [ "$frame_id" != "null" ]; then
     break
   fi
   sleep 0.2
 done
-curl -sS -X POST "${BASE_URL}/v1/ascc/update-delta" -H "Content-Type: application/json" \
-  -d "{\"frame_id\":\"${frame_id}\",\"delta\":{\"decisions\":[\"Use bounded ontology world projection\"],\"constraints\":[\"No unbounded ontology blob\"],\"failures\":[\"Software world gap under test\"],\"recent_results\":[\"Projection route added\"]}}" >/dev/null
+if [ -z "$frame_id" ] || [ "$frame_id" = "null" ]; then
+  log_fail "Focus frame did not materialize: ${last_push_response}"
+  exit 1
+fi
 curl -sS -X POST "${BASE_URL}/v1/ecs/store" -H "Content-Type: application/json" \
   -d '{"kind":"text","label":"ontology-artifact","content":"artifact for ontology world contract","surface":"test"}' >/dev/null
 WORKPOINT=$(curl -sS -X POST "${BASE_URL}/v1/workpoint/checkpoint" -H "Content-Type: application/json" \
@@ -122,7 +128,9 @@ curl -sS -X POST "${BASE_URL}/v1/work-loop/checkpoint" -H "Content-Type: applica
 curl -sS -X POST "${BASE_URL}/v1/work-loop/context" -H "Content-Type: application/json" -H "x-focusa-writer-id: ${ACTIVE_WRITER}" \
   -d "{\"current_ask\":\"${ASK_TEXT}\",\"ask_kind\":\"verification\",\"scope_kind\":\"fresh_question\",\"carryover_policy\":\"strict\",\"excluded_context_reason\":\"exclude unrelated history\",\"excluded_context_labels\":[\"legacy\",\"unrelated\"],\"source_turn_id\":\"test-turn-ontology-world\"}" >/dev/null
 seeded=0
-for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60; do
+for _ in $(seq 1 60); do
+  curl -sS -X POST "${BASE_URL}/v1/ascc/update-delta" -H "Content-Type: application/json" \
+    -d "{\"frame_id\":\"${frame_id}\",\"delta\":{\"decisions\":[\"Use bounded ontology world projection\"],\"constraints\":[\"No unbounded ontology blob\"],\"failures\":[\"Software world gap under test\"],\"recent_results\":[\"Projection route added\"]}}" >/dev/null
   if curl -sS "${BASE_URL}/v1/ascc/frame/${frame_id}" | jq -e '.focus_state.decisions | index("Use bounded ontology world projection")' >/dev/null 2>&1; then
     seeded=1
     break

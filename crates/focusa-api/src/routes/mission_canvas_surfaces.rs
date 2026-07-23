@@ -315,6 +315,7 @@ pub async fn mutate(
             status: MissionCanvasSurfaceStatus::Active,
             pane_id: r
                 .pane_id
+                .clone()
                 .filter(|x| !x.trim().is_empty())
                 .unwrap_or_else(|| "primary".into()),
             tab_index: r.tab_index.unwrap_or(0),

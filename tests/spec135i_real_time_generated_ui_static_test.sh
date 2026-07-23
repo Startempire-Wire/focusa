@@ -70,7 +70,7 @@ if rg -n 'playwright_flow_ref|OpenAPI 3\.1|make Svelte renderer primary|Playwrig
   fail "stale Spec 135I implementation decision remains"
 fi
 
-PLAYWRIGHT_CONFIGS="$(find "$ROOT_DIR" -type f \( -name 'playwright.config.*' -o -name '.playwright.*' \) -print)"
+PLAYWRIGHT_CONFIGS="$(find "$ROOT_DIR" -path '*/node_modules' -prune -o -type f \( -name 'playwright.config.*' -o -name '.playwright.*' \) -print)"
 if [[ -n "$PLAYWRIGHT_CONFIGS" ]]; then
   printf '%s\n' "$PLAYWRIGHT_CONFIGS" >&2
   fail "Playwright configuration exists in Focusa"
@@ -78,7 +78,7 @@ fi
 
 MANIFEST_FILES=()
 while IFS= read -r -d '' file; do MANIFEST_FILES+=("$file"); done < <(
-  find "$ROOT_DIR" -type f \( \
+  find "$ROOT_DIR" -path '*/node_modules' -prune -o -type f \( \
     -name 'package.json' -o \
     -name 'pnpm-lock.yaml' -o \
     -name 'package-lock.json' -o \
@@ -93,7 +93,7 @@ if ((${#MANIFEST_FILES[@]})) && rg -n "(@playwright/test|playwright-core|(^|[\"'
   fail "Playwright dependency exists in Focusa package or lock files"
 fi
 
-if rg -n --glob '!*.md' --glob '!spec135i_real_time_generated_ui_static_test.sh' \
+if rg -n --glob '!*.md' --glob '!**/node_modules/**' --glob '!spec135i_real_time_generated_ui_static_test.sh' \
   --glob '!spec135_delivery_contract_regression_static_test.sh' \
   "(from[[:space:]]+[\"'][^\"']*playwright|require\\([\"']playwright|@playwright/test)" \
   "$ROOT_DIR/apps" "$ROOT_DIR/packages" "$ROOT_DIR/crates" "$ROOT_DIR/scripts" "$ROOT_DIR/tests" 2>/dev/null; then
