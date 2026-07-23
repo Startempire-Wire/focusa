@@ -149,4 +149,18 @@ Mac:   TypeScript check + ESLint + 28 Node tests + Spec130A runtime gate PASS
 Mac:   explicit APPLE_SIGNING_IDENTITY=- Tauri bundle strict codesign verification PASS
 ```
 
-The Spec130A runtime harness now proves a two-attempt transport failure produces `rollover_required` with reason `provider_transport_retry_exhausted`, `recovery_command=/focusa-rollover`, `canonical_checkpoint_preserved=true`, and `attempts=2`.
+The Spec130A runtime harness now proves a two-attempt transport failure produces `rollover_required` with reason `provider_transport_retry_exhausted`, `recovery_command=/focusa-rollover execute`, `canonical_checkpoint_preserved=true`, and `attempts=2`.
+
+### Operator-trace reconciliation — 2026-07-23
+
+The operator supplied a live Mac trace showing the old installed runtime at 137% context repeatedly producing Codex context overflow, WebSocket summarization failures, unchanged-context retry suppression, and ordinary prompts that could not reach the model. The same trace showed repeated daemon outage/reconnect episodes and kickstart warning churn.
+
+Repairs added after this trace:
+
+- transport retry exhaustion arms a persistent rollover-required state;
+- after that state reaches 95% context, the Pi `input` event handles ordinary prompts locally instead of issuing another provider request, while extension commands remain routable;
+- the local response gives the exact `/focusa-rollover execute` command and states that the blocked prompt must be resent;
+- daemon health uses a tested `DaemonRecoveryGate`: two failures enter holdover, kickstarts are limited to once per 60 seconds, warnings to once per five minutes, and three consecutive healthy probes are required before SSE/reconciliation and one stable reconnect notice;
+- a failed probe during probation resets the healthy count without leaving holdover.
+
+Linux and Mac both pass TypeScript, ESLint, 29 Node tests, and the Spec130A runtime harness with these repairs. Issues #11 and #14 remain reopened until installed-runtime Mac proof is collected; the release-gate label blocks release.

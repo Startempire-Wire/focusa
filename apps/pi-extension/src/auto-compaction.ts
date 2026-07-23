@@ -419,6 +419,7 @@ export function registerAutoCompaction(
   let activeEpoch: ActiveEpoch | undefined;
   let activeRequest: CoordinatedCompactionRequest | undefined;
   let terminalNoopContextKey: string | undefined;
+  let rolloverRequired = false;
   let lastNoticeKey: string | undefined;
 
   const setActiveEpoch = (epoch: ActiveEpoch | undefined): void => {
@@ -592,6 +593,7 @@ export function registerAutoCompaction(
         setActiveEpoch(undefined);
         consecutiveTransientFailures = 0;
         terminalNoopContextKey = undefined;
+        rolloverRequired = false;
         lastNoticeKey = undefined;
         notifyOnce(
           ctx,
@@ -720,15 +722,16 @@ export function registerAutoCompaction(
         const failedAttempts = consecutiveTransientFailures + 1;
         consecutiveTransientFailures = 0;
         const recoveryInstruction = retryableFailure
-          ? ". Canonical checkpoint authority is preserved. Retry /compact after transport recovery; if hard context pressure remains, run /focusa-rollover before continuing."
+          ? ". Canonical checkpoint authority is preserved. Retry /compact after transport recovery; if hard context pressure remains, run /focusa-rollover execute before continuing."
           : ".";
         if (retryableFailure) {
+          rolloverRequired = true;
           failedEpoch.state = "rollover_required";
           persist("rollover_required", {
             reason: "provider_transport_retry_exhausted",
             attempts: failedAttempts,
             primary_error: message,
-            recovery_command: "/focusa-rollover",
+            recovery_command: "/focusa-rollover execute",
             canonical_checkpoint_preserved: true,
           }, failedEpoch);
         }
@@ -882,6 +885,27 @@ export function registerAutoCompaction(
     maybeCompact(ctx);
   });
 
+  pi.on("input", async (event, ctx) => {
+    if (!ownsRegistrationLease() || !rolloverRequired) return { action: "continue" as const };
+    const usage = ctx.getContextUsage();
+    const percent = proactiveCompactionDecision(usage, getPolicy()).percent ?? 0;
+    if (percent < 95) return { action: "continue" as const };
+    persist("input_blocked_rollover_required", {
+      context_percent: percent,
+      recovery_command: "/focusa-rollover execute",
+      input_preserved: false,
+      reason: "provider_transport_retry_exhausted_at_hard_pressure",
+    });
+    if (ctx.hasUI) {
+      ctx.ui.setStatus("focusa-auto-compaction", "⛔ rollover required");
+      ctx.ui.notify(
+        `Focusa held this prompt instead of sending another over-limit model request (${percent.toFixed(1)}%). Run /focusa-rollover execute; then resend the held prompt in the new session.`,
+        "error"
+      );
+    }
+    return { action: "handled" as const };
+  });
+
   pi.on("session_compact", async () => {
     // The public ctx.compact callback owns an active process epoch. Native/manual
     // completion may reset observation state only when no Focusa call is active.
@@ -893,6 +917,7 @@ export function registerAutoCompaction(
     setActiveEpoch(undefined);
     consecutiveTransientFailures = 0;
     terminalNoopContextKey = undefined;
+    rolloverRequired = false;
     lastNoticeKey = undefined;
   });
 
@@ -908,6 +933,7 @@ export function registerAutoCompaction(
     setActiveEpoch(undefined);
     consecutiveTransientFailures = 0;
     terminalNoopContextKey = undefined;
+    rolloverRequired = false;
     lastNoticeKey = undefined;
     if (retryTimer) clearTimeout(retryTimer);
     retryTimer = undefined;
@@ -922,6 +948,7 @@ export function registerAutoCompaction(
     clearProcessRetry();
     setActiveEpoch(undefined);
     inFlight = false;
+    rolloverRequired = false;
     if (!processLease.inFlightEpochId) {
       processLease.attemptOwnerId = undefined;
       processLease.request = undefined;

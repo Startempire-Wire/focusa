@@ -308,9 +308,24 @@ assert.equal(exhausted.compactCalls.length, 2);
 exhausted.compactCalls[1].onError(new Error("Summarization failed: WebSocket error"));
 const rollover = exhausted.events.find((entry) => entry.data.kind === "rollover_required");
 assert.equal(rollover.data.reason, "provider_transport_retry_exhausted");
-assert.equal(rollover.data.recovery_command, "/focusa-rollover");
+assert.equal(rollover.data.recovery_command, "/focusa-rollover execute");
 assert.equal(rollover.data.canonical_checkpoint_preserved, true);
 assert.equal(rollover.data.attempts, 2);
+exhausted.ctx.getContextUsage = () => ({
+  tokens: 137_000,
+  contextWindow: 100_000,
+  percent: 137,
+});
+const heldInput = await exhausted.handlers.get("input")(
+  { type: "input", text: "keep working", source: "interactive" },
+  exhausted.ctx,
+);
+assert.deepEqual(heldInput, { action: "handled" });
+const blockedInput = exhausted.events.find(
+  (entry) => entry.data.kind === "input_blocked_rollover_required",
+);
+assert.equal(blockedInput.data.recovery_command, "/focusa-rollover execute");
+assert.equal(blockedInput.data.context_percent, 137);
 await exhausted.handlers.get("session_shutdown")({ type: "session_shutdown" }, exhausted.ctx);
 
 console.log(

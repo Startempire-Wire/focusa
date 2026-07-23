@@ -11,6 +11,7 @@ import {
   classifyPiSessionProject,
   persistedProjectRootFromState,
 } from "./session-classification.js";
+import { DaemonRecoveryGate } from "./daemon-recovery-gate.js";
 import {
   getAttachmentRuntime,
   focusaFetch,
@@ -1156,10 +1157,8 @@ export function registerSession(pi: ExtensionAPI) {
       }, footerRefreshMs);
     }
 
-    // Debounce transient health blips to reduce false "offline" warnings.
-    // Require consecutive failures before disabling tools.
-    const offlineWarnThreshold = 2;
-    let outageMode = false;
+    // Flapping remains in holdover until a bounded recovery probation passes.
+    const daemonRecovery = new DaemonRecoveryGate();
 
     // §38.3 + §11: Health check with exponential backoff via recursive setTimeout
     function scheduleHealthCheck() {
@@ -1171,35 +1170,43 @@ export function registerSession(pi: ExtensionAPI) {
         refreshNativeSessionPressure(ctx, "health_tick");
         await checkFocusa();
         if (!healthLifecycleIsCurrent()) return;
+        const recovery = daemonRecovery.observe(
+          getAttachmentRuntime().focusaAvailable,
+          getAttachmentRuntime().healthFailCount,
+        );
 
-        if (
-          !getAttachmentRuntime().focusaAvailable &&
-          !outageMode &&
-          getAttachmentRuntime().healthFailCount >= offlineWarnThreshold
-        ) {
+        if (recovery.enteredOutage) {
           // Confirmed outage (not single blip) — preserve tool availability, enter holdover, and kickstart daemon.
           ctx.ui.setStatus("focusa", "🛟 Focusa holdover · restarting");
-          ctx.ui.notify(
-            `Focusa daemon unavailable (${getAttachmentRuntime().healthFailCount} checks) — holdover active; kickstarting daemon without restarting session`,
-            "warning"
-          );
+          if (recovery.notifyOutage) {
+            ctx.ui.notify(
+              `Focusa daemon unavailable (${getAttachmentRuntime().healthFailCount} checks) — holdover active; bounded daemon recovery started without restarting session`,
+              "warning"
+            );
+          }
           if (sseAbort) {
             sseAbort.abort();
             sseAbort = null;
           }
-          outageMode = true;
-          const recovered = await kickstartFocusaDaemon("session_health_check");
-          if (recovered) {
-            await checkFocusa();
-            ctx.ui.notify("Focusa daemon kickstarted — session preserved", "info");
-          }
-        } else if (!getAttachmentRuntime().focusaAvailable && outageMode) {
+          if (recovery.kickstart) await kickstartFocusaDaemon("session_health_check");
+        } else if (!getAttachmentRuntime().focusaAvailable && recovery.outage) {
           ctx.ui.setStatus("focusa", "🛟 Focusa holdover · retrying");
-          await kickstartFocusaDaemon("session_health_retry");
-        } else if (getAttachmentRuntime().focusaAvailable && outageMode) {
-          // Came back — reconnect SSE and reconcile holdover state; tools were never disabled.
+          if (recovery.notifyOutage) {
+            ctx.ui.notify(
+              `Focusa daemon remains unavailable — holdover preserved; the next recovery attempt is cooldown-bounded`,
+              "warning"
+            );
+          }
+          if (recovery.kickstart) await kickstartFocusaDaemon("session_health_retry");
+        } else if (getAttachmentRuntime().focusaAvailable && recovery.outage) {
+          ctx.ui.setStatus(
+            "focusa",
+            `🛟 Focusa holdover · verifying recovery ${recovery.recoveryHealthyChecks}/3`
+          );
+        } else if (recovery.stableRecovered) {
+          // Came back stably — reconnect SSE and reconcile holdover state; tools were never disabled.
           ctx.ui.setStatus("focusa", getAttachmentRuntime().wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
-          ctx.ui.notify("Focusa daemon reconnected — holdover reconciled; session preserved", "info");
+          ctx.ui.notify("Focusa daemon stably reconnected — holdover reconciled; session preserved", "info");
           await ensureFocusaSession(ctx);
           await ensureActiveFrame(ctx);
           connectSSE();
@@ -1236,7 +1243,6 @@ export function registerSession(pi: ExtensionAPI) {
               })
               .catch(() => {});
           }
-          outageMode = false;
         }
 
         // Schedule next check with (possibly updated) backoff interval

@@ -41,9 +41,12 @@ When health checks fail during a Pi session, the Focusa extension now:
 - enters `Focusa holdover` status,
 - keeps tools available instead of disabling them,
 - uses local shadow/holdover state until daemon returns,
-- runs the configured kickstart command,
-- probes health rapidly,
-- reconnects SSE and reconciles local state after recovery,
+- runs the configured kickstart command at most once per 60-second session cooldown,
+- emits at most one outage warning per five-minute flapping window,
+- probes health with exponential backoff,
+- requires three consecutive healthy probes before declaring stable recovery,
+- reconnects SSE and reconciles local state only after that recovery probation,
+- avoids intermediate “kickstarted” notices that can become false positives,
 - does not require restarting the Pi session.
 
 Default kickstart command:
