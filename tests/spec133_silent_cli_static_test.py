@@ -5,9 +5,12 @@ ROOT = Path(__file__).resolve().parents[1]
 MAIN = (ROOT / "crates/focusa-cli/src/main.rs").read_text()
 MOD = (ROOT / "crates/focusa-cli/src/commands/mod.rs").read_text()
 CLI = (ROOT / "crates/focusa-cli/src/commands/silent.rs").read_text()
+CLI_RENDER = (ROOT / "crates/focusa-cli/src/commands/silent_render.rs").read_text()
+CLI_SURFACE = CLI + CLI_RENDER
 API_ROUTES = (ROOT / "crates/focusa-api/src/routes/silent_sessions.rs").read_text()
 API_OBSERVE = (ROOT / "crates/focusa-api/src/routes/silent_sessions_observe.rs").read_text()
 API_RETENTION = (ROOT / "crates/focusa-api/src/routes/silent_sessions_retention.rs").read_text()
+API_RETENTION_EXPORT = (ROOT / "crates/focusa-api/src/routes/silent_sessions_retention_export.rs").read_text()
 CORE_RETENTION = (ROOT / "crates/focusa-core/src/silent_sessions/retention.rs").read_text()
 DB_SCHEMA = (ROOT / "crates/focusa-core/src/silent_sessions/persistence_sqlite.rs").read_text()
 
@@ -76,15 +79,15 @@ required_routes = [
 for route in required_routes:
     assert route in CLI, route
 
-assert 'const CLI_SCHEMA: &str = "focusa.silent_cli.v1"' in CLI
-assert '"process_status"' in CLI
-assert '"completion_status"' in CLI
-assert '"side_effects"' in CLI
-assert '"session_id"' in CLI
-assert '"run_id"' in CLI
-assert "fn redact(" in CLI
+assert 'const CLI_SCHEMA: &str = "focusa.silent_cli.v1"' in CLI_RENDER
+assert '"process_status"' in CLI_SURFACE
+assert '"completion_status"' in CLI_SURFACE
+assert '"side_effects"' in CLI_SURFACE
+assert '"session_id"' in CLI_SURFACE
+assert '"run_id"' in CLI_SURFACE
+assert "fn redact(" in CLI_RENDER
 for marker in ["secret", "token", "credential", "authorization", "api_key"]:
-    assert f'"{marker}"' in CLI
+    assert f'"{marker}"' in CLI_RENDER
 assert "max_polls" in CLI and ".clamp(1, 10_000)" in CLI
 assert "inspect_side_effects_first" in CLI
 assert "idempotency_key" in CLI
@@ -102,7 +105,7 @@ assert "load_retention_operation" in API_RETENTION
 assert "principal_id" in API_RETENTION
 assert "ordinary_delete_session" in CORE_RETENTION
 assert "export_session_bundle" in CORE_RETENTION
-assert "export_output" in API_RETENTION and "SecureStreamStore" in API_RETENTION
+assert "export_output" in API_RETENTION and "SecureStreamStore" in API_RETENTION_EXPORT
 assert "body.include_output" in API_RETENTION
 assert "guard_exact_target" in API_RETENTION
 assert "hold_expires_at" in CORE_RETENTION and "parse_from_rfc3339" in CORE_RETENTION

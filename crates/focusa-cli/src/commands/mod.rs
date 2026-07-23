@@ -62,6 +62,7 @@ pub mod scope_resolver;
 pub mod service;
 pub mod setup;
 pub mod silent;
+mod silent_render;
 pub mod skills;
 pub mod telemetry;
 pub mod threads;
