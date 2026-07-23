@@ -2484,17 +2484,6 @@ pub enum MissionCanvasBindingKind {
     Action,
 }
 
-/// Browser storage/permission isolation posture owned by an exact Focusa attachment.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum MissionCanvasBrowserIsolationClass {
-    SharedAuthenticated,
-    IsolatedAuthenticated,
-    EphemeralIsolated,
-    ReadOnlyObserver,
-    CaptureWorker,
-}
-
 /// Exact attachment-scoped binding from a Work Surface to an external/canonical target.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MissionCanvasSurfaceBindingRecord {
@@ -2507,12 +2496,6 @@ pub struct MissionCanvasSurfaceBindingRecord {
     pub binding_kind: MissionCanvasBindingKind,
     pub target_ref: String,
     pub access_mode: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub browser_isolation_class: Option<MissionCanvasBrowserIsolationClass>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub authentication_sharing: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub retention_policy: Option<String>,
     pub active: bool,
     pub idempotency_key: String,
     pub created_at: DateTime<Utc>,

@@ -9,9 +9,8 @@ use chrono::Utc;
 use focusa_core::{
     tool_result::{FailureClass, ToolResultV1, ToolStatus},
     types::{
-        Action, FocusaEvent, MissionCanvasBindingKind, MissionCanvasBrowserIsolationClass,
-        MissionCanvasSurfaceBindingRecord, MissionCanvasSurfaceStatus,
-        MissionCanvasWorkSurfaceRecord,
+        Action, FocusaEvent, MissionCanvasBindingKind, MissionCanvasSurfaceBindingRecord,
+        MissionCanvasSurfaceStatus, MissionCanvasWorkSurfaceRecord,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -433,12 +432,6 @@ pub struct BindingRequest {
     target_ref: Option<String>,
     #[serde(default)]
     access_mode: Option<String>,
-    #[serde(default)]
-    browser_isolation_class: Option<MissionCanvasBrowserIsolationClass>,
-    #[serde(default)]
-    authentication_sharing: Option<String>,
-    #[serde(default)]
-    retention_policy: Option<String>,
 }
 #[derive(Debug, Serialize)]
 pub struct BindingList {
@@ -674,138 +667,6 @@ pub async fn mutate_binding(
                         "read, write, or invoke access_mode required",
                     )
                 })?;
-            let (browser_isolation_class, authentication_sharing, retention_policy) = if kind
-                == MissionCanvasBindingKind::BrowserContext
-            {
-                let owns_session = snapshot
-                    .mission_canvas_surface_bindings
-                    .iter()
-                    .any(|binding| {
-                        binding.active
-                            && binding.binding_kind == MissionCanvasBindingKind::Session
-                            && binding.project_root == r.project_root
-                            && binding.continuity_id == r.continuity_id
-                            && binding.attachment_id == r.attachment_id
-                            && binding.work_surface_id == r.work_surface_id
-                    });
-                if !owns_session {
-                    return Err(binding_fail(
-                        StatusCode::UNPROCESSABLE_ENTITY,
-                        ToolStatus::ValidationRejected,
-                        FailureClass::ScopeMismatch,
-                        "Browser context requires an active UIAI session binding in the exact Work Surface attachment scope",
-                    ));
-                }
-                let isolation = r.browser_isolation_class.ok_or_else(|| {
-                    binding_fail(
-                        StatusCode::UNPROCESSABLE_ENTITY,
-                        ToolStatus::ValidationRejected,
-                        FailureClass::ValidationRejected,
-                        "browser_isolation_class required for browser contexts",
-                    )
-                })?;
-                let expected_sharing =
-                    if isolation == MissionCanvasBrowserIsolationClass::SharedAuthenticated {
-                        "shared_explicit"
-                    } else {
-                        "isolated"
-                    };
-                let sharing = r
-                    .authentication_sharing
-                    .filter(|value| value == expected_sharing)
-                    .ok_or_else(|| {
-                        binding_fail(
-                            StatusCode::UNPROCESSABLE_ENTITY,
-                            ToolStatus::ValidationRejected,
-                            FailureClass::PermissionDenied,
-                            format!(
-                                "browser context requires authentication_sharing={expected_sharing}"
-                            ),
-                        )
-                    })?;
-                let retention = r
-                        .retention_policy
-                        .filter(|value| {
-                            matches!(
-                                value.as_str(),
-                                "persistent" | "dispose_on_close" | "manual"
-                            )
-                        })
-                        .ok_or_else(|| {
-                            binding_fail(
-                                StatusCode::UNPROCESSABLE_ENTITY,
-                                ToolStatus::ValidationRejected,
-                                FailureClass::ValidationRejected,
-                                "browser context retention_policy must be persistent, dispose_on_close, or manual",
-                            )
-                        })?;
-                if let Some(existing) = snapshot
-                    .mission_canvas_surface_bindings
-                    .iter()
-                    .filter(|binding| binding.active)
-                    .find(|binding| {
-                        binding.binding_kind == MissionCanvasBindingKind::BrowserContext
-                            && binding.target_ref == target
-                            && (binding.project_root != r.project_root
-                                || binding.continuity_id != r.continuity_id
-                                || binding.attachment_id != r.attachment_id
-                                || binding.work_surface_id != r.work_surface_id)
-                    })
-                {
-                    let cross_project = existing.project_root != r.project_root
-                        || existing.continuity_id != r.continuity_id;
-                    let explicitly_shared = !cross_project
-                        && isolation == MissionCanvasBrowserIsolationClass::SharedAuthenticated
-                        && existing.browser_isolation_class
-                            == Some(MissionCanvasBrowserIsolationClass::SharedAuthenticated)
-                        && existing.authentication_sharing.as_deref() == Some("shared_explicit");
-                    if !explicitly_shared {
-                        return Err(binding_fail(
-                            StatusCode::CONFLICT,
-                            ToolStatus::ValidationRejected,
-                            FailureClass::ScopeMismatch,
-                            "Browser context reuse denied: exact attachment ownership or explicit same-project shared authentication is required",
-                        ));
-                    }
-                }
-                (Some(isolation), Some(sharing), Some(retention))
-            } else {
-                if kind == MissionCanvasBindingKind::BrowserTarget {
-                    let owns_context =
-                        snapshot
-                            .mission_canvas_surface_bindings
-                            .iter()
-                            .any(|binding| {
-                                binding.active
-                                    && binding.binding_kind
-                                        == MissionCanvasBindingKind::BrowserContext
-                                    && binding.project_root == r.project_root
-                                    && binding.continuity_id == r.continuity_id
-                                    && binding.attachment_id == r.attachment_id
-                                    && binding.work_surface_id == r.work_surface_id
-                            });
-                    if !owns_context {
-                        return Err(binding_fail(
-                            StatusCode::UNPROCESSABLE_ENTITY,
-                            ToolStatus::ValidationRejected,
-                            FailureClass::ScopeMismatch,
-                            "Browser target requires an active browser context owned by the exact Work Surface attachment",
-                        ));
-                    }
-                }
-                if r.browser_isolation_class.is_some()
-                    || r.authentication_sharing.is_some()
-                    || r.retention_policy.is_some()
-                {
-                    return Err(binding_fail(
-                        StatusCode::UNPROCESSABLE_ENTITY,
-                        ToolStatus::ValidationRejected,
-                        FailureClass::ValidationRejected,
-                        "browser isolation metadata is valid only for browser_context bindings",
-                    ));
-                }
-                (None, None, None)
-            };
             MissionCanvasSurfaceBindingRecord {
                 binding_id: r.binding_id.unwrap_or_else(|| {
                     stable(&[
@@ -824,9 +685,6 @@ pub async fn mutate_binding(
                 binding_kind: kind,
                 target_ref: target,
                 access_mode: mode,
-                browser_isolation_class,
-                authentication_sharing,
-                retention_policy,
                 active: true,
                 idempotency_key: r.idempotency_key.clone(),
                 created_at: now,

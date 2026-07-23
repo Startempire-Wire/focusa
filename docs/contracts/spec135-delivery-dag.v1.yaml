@@ -1136,73 +1136,73 @@
       "bead_id": "focusa-mc-f1",
       "lane": "foundation",
       "requirement_id": "SPEC135-F1",
-      "status": "verified"
+      "status": "partial"
     },
     {
       "bead_id": "focusa-mc-f2",
       "lane": "foundation",
       "requirement_id": "SPEC135-F2",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-f3",
       "lane": "foundation",
       "requirement_id": "SPEC135-F3",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-f4",
       "lane": "foundation",
       "requirement_id": "SPEC135-F4",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-f5",
       "lane": "foundation",
       "requirement_id": "SPEC135-F5",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-f6",
       "lane": "foundation",
       "requirement_id": "SPEC135-F6",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-f7",
       "lane": "foundation",
       "requirement_id": "SPEC135-F7",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-f8",
       "lane": "foundation",
       "requirement_id": "SPEC135-F8",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-f9",
       "lane": "foundation",
       "requirement_id": "SPEC135-F9",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-f10",
       "lane": "foundation",
       "requirement_id": "SPEC135-F10",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-f11",
       "lane": "foundation",
       "requirement_id": "SPEC135-F11",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-f12",
       "lane": "foundation",
       "requirement_id": "SPEC135-F12",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-c1",
@@ -1232,19 +1232,19 @@
       "bead_id": "focusa-mc-ri1",
       "lane": "role_interview",
       "requirement_id": "SPEC135-RI1",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-ri2",
       "lane": "role_interview",
       "requirement_id": "SPEC135-RI2",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-ri3",
       "lane": "role_interview",
       "requirement_id": "SPEC135-RI3",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-ri4",
@@ -1256,49 +1256,49 @@
       "bead_id": "focusa-mc-st1",
       "lane": "spec_tasks",
       "requirement_id": "SPEC135-ST1",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-st2",
       "lane": "spec_tasks",
       "requirement_id": "SPEC135-ST2",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-st3",
       "lane": "spec_tasks",
       "requirement_id": "SPEC135-ST3",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-st4",
       "lane": "spec_tasks",
       "requirement_id": "SPEC135-ST4",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-m1",
       "lane": "mission_canvas",
       "requirement_id": "SPEC135-M1",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-m2",
       "lane": "mission_canvas",
       "requirement_id": "SPEC135-M2",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-m3",
       "lane": "mission_canvas",
       "requirement_id": "SPEC135-M3",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-m4",
       "lane": "mission_canvas",
       "requirement_id": "SPEC135-M4",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-m5",
@@ -1322,13 +1322,13 @@
       "bead_id": "focusa-mc-u1",
       "lane": "uiai_uxp",
       "requirement_id": "SPEC135-U1",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-u2",
       "lane": "uiai_uxp",
       "requirement_id": "SPEC135-U2",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-u3",
@@ -1394,7 +1394,7 @@
       "bead_id": "focusa-mc-p1",
       "lane": "providers_connectors",
       "requirement_id": "SPEC135-P1",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-p2",
@@ -1460,25 +1460,25 @@
       "bead_id": "focusa-mc-alpha1",
       "lane": "alpha",
       "requirement_id": "SPEC135-ALPHA1",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-alpha2",
       "lane": "alpha",
       "requirement_id": "SPEC135-ALPHA2",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-alpha3",
       "lane": "alpha",
       "requirement_id": "SPEC135-ALPHA3",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-alpha4",
       "lane": "alpha",
       "requirement_id": "SPEC135-ALPHA4",
-      "status": "verified"
+      "status": "missing"
     },
     {
       "bead_id": "focusa-mc-alpha5",

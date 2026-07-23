@@ -2666,12 +2666,6 @@ export interface components {
                 /** Format: date-time */
                 updated_at: string;
                 work_surface_id: string;
-                /** @enum {string} */
-                browser_isolation_class?: "shared_authenticated" | "isolated_authenticated" | "ephemeral_isolated" | "read_only_observer" | "capture_worker";
-                /** @enum {string} */
-                authentication_sharing?: "shared_explicit" | "isolated";
-                /** @enum {string} */
-                retention_policy?: "persistent" | "dispose_on_close" | "manual";
             }[];
             /** @constant */
             schema: "focusa.mission_canvas_surface_binding_list.v1";
@@ -2693,13 +2687,7 @@ export interface components {
             project_root: string;
             target_ref?: string;
             work_surface_id: string;
-            /** @enum {string} */
-            browser_isolation_class?: "shared_authenticated" | "isolated_authenticated" | "ephemeral_isolated" | "read_only_observer" | "capture_worker";
-            /** @enum {string} */
-            authentication_sharing?: "shared_explicit" | "isolated";
-            /** @enum {string} */
-            retention_policy?: "persistent" | "dispose_on_close" | "manual";
-        } & (unknown & unknown & unknown);
+        } & (unknown & unknown);
         /** focusa.mission_canvas_surface_binding_mutation_result.v1 */
         focusa_mission_canvas_surface_binding_mutation_result_v1: {
             binding: {
@@ -2719,12 +2707,6 @@ export interface components {
                 /** Format: date-time */
                 updated_at: string;
                 work_surface_id: string;
-                /** @enum {string} */
-                browser_isolation_class?: "shared_authenticated" | "isolated_authenticated" | "ephemeral_isolated" | "read_only_observer" | "capture_worker";
-                /** @enum {string} */
-                authentication_sharing?: "shared_explicit" | "isolated";
-                /** @enum {string} */
-                retention_policy?: "persistent" | "dispose_on_close" | "manual";
             };
             evidence_ref: string;
             receipt_ref: string;

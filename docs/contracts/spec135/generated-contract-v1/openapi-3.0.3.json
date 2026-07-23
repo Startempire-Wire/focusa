@@ -3162,31 +3162,6 @@
                 },
                 "work_surface_id": {
                   "type": "string"
-                },
-                "browser_isolation_class": {
-                  "enum": [
-                    "shared_authenticated",
-                    "isolated_authenticated",
-                    "ephemeral_isolated",
-                    "read_only_observer",
-                    "capture_worker"
-                  ],
-                  "type": "string"
-                },
-                "authentication_sharing": {
-                  "enum": [
-                    "shared_explicit",
-                    "isolated"
-                  ],
-                  "type": "string"
-                },
-                "retention_policy": {
-                  "enum": [
-                    "persistent",
-                    "dispose_on_close",
-                    "manual"
-                  ],
-                  "type": "string"
                 }
               },
               "required": [
@@ -3256,25 +3231,6 @@
                 "binding_id"
               ]
             }
-          },
-          {
-            "if": {
-              "properties": {
-                "binding_kind": {
-                  "const": "browser_context"
-                }
-              },
-              "required": [
-                "binding_kind"
-              ]
-            },
-            "then": {
-              "required": [
-                "browser_isolation_class",
-                "authentication_sharing",
-                "retention_policy"
-              ]
-            }
           }
         ],
         "properties": {
@@ -3333,31 +3289,6 @@
           },
           "work_surface_id": {
             "minLength": 1,
-            "type": "string"
-          },
-          "browser_isolation_class": {
-            "enum": [
-              "shared_authenticated",
-              "isolated_authenticated",
-              "ephemeral_isolated",
-              "read_only_observer",
-              "capture_worker"
-            ],
-            "type": "string"
-          },
-          "authentication_sharing": {
-            "enum": [
-              "shared_explicit",
-              "isolated"
-            ],
-            "type": "string"
-          },
-          "retention_policy": {
-            "enum": [
-              "persistent",
-              "dispose_on_close",
-              "manual"
-            ],
             "type": "string"
           }
         },
@@ -3428,31 +3359,6 @@
                 "type": "string"
               },
               "work_surface_id": {
-                "type": "string"
-              },
-              "browser_isolation_class": {
-                "enum": [
-                  "shared_authenticated",
-                  "isolated_authenticated",
-                  "ephemeral_isolated",
-                  "read_only_observer",
-                  "capture_worker"
-                ],
-                "type": "string"
-              },
-              "authentication_sharing": {
-                "enum": [
-                  "shared_explicit",
-                  "isolated"
-                ],
-                "type": "string"
-              },
-              "retention_policy": {
-                "enum": [
-                  "persistent",
-                  "dispose_on_close",
-                  "manual"
-                ],
                 "type": "string"
               }
             },
