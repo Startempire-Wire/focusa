@@ -17,6 +17,8 @@ pub mod persistence_records;
 pub mod persistence_sqlite;
 pub mod persistence_usage;
 pub mod retention;
+pub mod runner_client;
+pub mod runner_protocol;
 pub mod runner_security;
 mod secure_fs;
 pub mod state_machine;
@@ -40,6 +42,8 @@ pub use persistence_records::*;
 pub use persistence_sqlite::*;
 pub use persistence_usage::*;
 pub use retention::*;
+pub use runner_client::*;
+pub use runner_protocol::*;
 pub use runner_security::*;
 pub use state_machine::*;
 pub use stream_codec::*;
@@ -58,6 +62,8 @@ mod config_revision_test;
 mod legacy_import_test;
 #[cfg(test)]
 mod persistence_sqlite_test;
+#[cfg(test)]
+mod runner_protocol_test;
 #[cfg(test)]
 mod runner_security_test;
 #[cfg(test)]

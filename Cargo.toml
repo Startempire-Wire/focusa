@@ -8,6 +8,7 @@ members = [
     "crates/focusa-tui",
     "crates/focusa-terminal-ui",
     "crates/focusa-bench",
+    "crates/focusa-session-runner",
 ]
 exclude = [
     "apps/menubar/src-tauri",
@@ -41,7 +42,7 @@ unused_variables = "allow"
 
 [workspace.dependencies]
 # Async runtime
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time", "process", "fs", "net"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time", "process", "fs", "net", "io-util", "signal"] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }

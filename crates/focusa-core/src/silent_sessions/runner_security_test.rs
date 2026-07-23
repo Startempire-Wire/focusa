@@ -135,3 +135,34 @@ fn control_audit_preserves_facts_and_redacts_all_secret_classes() {
             .contains(&"private_key_material".into())
     );
 }
+
+#[test]
+fn runner_command_rejects_payload_substitution_before_nonce_consumption() {
+    let runner = RunnerIdentity {
+        principal_id: "runner:payload-proof".into(),
+        os_user: "wirebot".into(),
+        socket_scope: "uid:1000/session:payload-proof".into(),
+    };
+    let now = Utc::now();
+    let key = b"test-only-runner-authentication-key";
+    let command = AuthenticatedRunnerCommand::issue(
+        RunnerCommandClaims {
+            session_id: SilentSessionId::new(),
+            run_id: SilentSessionRunId::new(),
+            runner: runner.clone(),
+            action_digest: "action:digest".into(),
+            nonce: "nonce:payload-proof".into(),
+            issued_at: now,
+            expires_at: now + Duration::seconds(30),
+        },
+        b"original-payload",
+        key,
+    )
+    .unwrap();
+    let mut consumed = BTreeSet::new();
+    assert_eq!(
+        command.authenticate_payload(&runner, now, key, &mut consumed, b"substituted-payload",),
+        Err(RunnerAuthenticationError::PayloadMismatch)
+    );
+    assert!(consumed.is_empty());
+}

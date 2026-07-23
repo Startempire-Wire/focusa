@@ -54,6 +54,8 @@ pub enum RunnerAuthenticationError {
     Replay,
     #[error("runner command authentication tag mismatch")]
     InvalidTag,
+    #[error("runner command payload hash does not match")]
+    PayloadMismatch,
     #[error("runner command key must not be empty")]
     EmptyKey,
 }
@@ -83,6 +85,20 @@ impl AuthenticatedRunnerCommand {
         };
         command.auth_tag = hmac_sha256_hex(key, &command.signing_bytes());
         Ok(command)
+    }
+
+    pub fn authenticate_payload(
+        &self,
+        runner: &RunnerIdentity,
+        now: DateTime<Utc>,
+        key: &[u8],
+        consumed_nonces: &mut BTreeSet<String>,
+        payload: &[u8],
+    ) -> Result<(), RunnerAuthenticationError> {
+        if self.payload_hash != hex::encode(Sha256::digest(payload)) {
+            return Err(RunnerAuthenticationError::PayloadMismatch);
+        }
+        self.authenticate(runner, now, key, consumed_nonces)
     }
 
     pub fn authenticate(
