@@ -13,7 +13,7 @@ pass() {
   echo "✓ PASS: $*"
 }
 
-rg -n 'Functional Dogfood Release|What this release proves|Commits since previous tag|Release workflow plus attached assets|macOS artifacts' "$WORKFLOW" >/dev/null \
+rg -n 'Functional Dogfood Release|What this release proves|Complete commit audit|Release workflow plus attached assets|macOS artifacts' "$WORKFLOW" >/dev/null \
   || fail "release workflow notes missing current functional dogfood proof language"
 pass "release workflow notes use current functional dogfood proof language"
 
@@ -23,8 +23,22 @@ if rg -n '38 routes|96 unit tests|Cognitive Governance Framework|Full spec: 67|~
 fi
 pass "release workflow notes avoid stale fixed-count/generic claims"
 
-rg -n 'COMMITS=\$\(git log --oneline.*\$\{PREV_TAG\}\.\.\$\{TAG\}|\$\{COMMITS\}' "$WORKFLOW" >/dev/null \
-  || fail "release workflow notes missing tag-delta commit section"
-pass "release workflow notes include tag-delta commit section"
+for marker in \
+  '### Features added' \
+  '### Fixes shipped' \
+  '### Issues resolved' \
+  '### Other changes' \
+  '### Full changelog' \
+  '### Complete commit audit' \
+  'gh issue list' \
+  'closedAt > $previous'; do
+  rg -F "$marker" "$WORKFLOW" >/dev/null || fail "release workflow notes missing durable changelog marker: $marker"
+done
+pass "release workflow notes include features, fixes, resolved issues, compare link, and complete commit audit"
+
+if rg -n 'git log .*head -[0-9]+' "$WORKFLOW" >/dev/null; then
+  fail "release workflow truncates commit history"
+fi
+pass "release workflow does not truncate tag-delta commit history"
 
 echo "Release notes workflow static test: PASS"

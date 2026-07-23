@@ -78,14 +78,53 @@ jobs:
         id: notes
         run: |
           TAG="${{ github.ref_name }}"
-          # Get commits since last tag (or all if first tag)
+          # Build a complete, durable changelog from the exact tag delta.
           PREV_TAG=$(git tag --sort=-version:refname | grep -v "^${TAG}$" | head -1 || echo "")
           if [ -n "$PREV_TAG" ]; then
-            COMMITS=$(git log --oneline "${PREV_TAG}..${TAG}" --no-merges | head -50)
+            RANGE="${PREV_TAG}..${TAG}"
+            COMPARE_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/${PREV_TAG}...${TAG}"
+            PREV_PUBLISHED=$(gh release view "$PREV_TAG" --repo "$GITHUB_REPOSITORY" --json publishedAt --jq '.publishedAt' 2>/dev/null || echo "1970-01-01T00:00:00Z")
           else
-            COMMITS=$(git log --oneline --no-merges | head -50)
+            RANGE="${TAG}"
+            COMPARE_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commits/${TAG}"
+            PREV_PUBLISHED="1970-01-01T00:00:00Z"
           fi
-          
+
+          FEATURES=""
+          FIXES=""
+          OTHER=""
+          COMMITS=""
+          while IFS=$'\t' read -r SHA SUBJECT; do
+            [ -n "$SHA" ] || continue
+            LINE="- [\`${SHA:0:8}\`](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${SHA}) ${SUBJECT}"
+            COMMITS+="${LINE}"$'\n'
+            case "$SUBJECT" in
+              feat:*|feat\(*\):*|feat!:*|feat\(*\)!:*) FEATURES+="${LINE}"$'\n' ;;
+              fix:*|fix\(*\):*|fix!:*|fix\(*\)!:*|perf:*|perf\(*\):*|security:*|security\(*\):*) FIXES+="${LINE}"$'\n' ;;
+              *) OTHER+="${LINE}"$'\n' ;;
+            esac
+          done < <(git log "$RANGE" --no-merges --format=$'%H\t%s')
+
+          FEATURES=${FEATURES:-"- None recorded in this tag delta."}
+          FIXES=${FIXES:-"- None recorded in this tag delta."}
+          OTHER=${OTHER:-"- None recorded in this tag delta."}
+          COMMITS=${COMMITS:-"- No commits recorded."}
+
+          PREV_DAY="${PREV_PUBLISHED%%T*}"
+          RESOLVED_ISSUES=$(gh issue list \
+            --repo "$GITHUB_REPOSITORY" \
+            --state closed \
+            --limit 500 \
+            --search "closed:>=${PREV_DAY}" \
+            --json number,title,url,closedAt \
+            | jq -r --arg previous "$PREV_PUBLISHED" '
+                [.[] | select(.closedAt > $previous)]
+                | sort_by(.number)
+                | .[]
+                | "- [" + .title + "](" + .url + ") (#" + (.number|tostring) + ")"
+              ')
+          RESOLVED_ISSUES=${RESOLVED_ISSUES:-"- None recorded since the previous published release."}
+
           # Write current, non-stale notes to file (heredoc avoids escaping issues).
           # Keep this release page functional and evidence-oriented; avoid fixed route/test counts.
           cat > /tmp/release-notes.md << NOTES_EOF
@@ -97,7 +136,22 @@ jobs:
           - **Functional snapshot** — this tag passed the Release workflow gate: workspace tests and clippy before artifacts.
           - **Dogfood-driven quality** — release notes are generated from the actual tag delta, not stale static claims.
           - **macOS artifacts** — CLI, daemon, TUI, and Tauri menubar app assets are built by GitHub Actions.
-          - **Public traceability** — commits since the prior tag are included below for auditability.
+          - **Public traceability** — features, fixes, resolved issues, and every commit since the prior tag are recorded below.
+
+          ### Features added
+          ${FEATURES}
+
+          ### Fixes shipped
+          ${FIXES}
+
+          ### Issues resolved
+          ${RESOLVED_ISSUES}
+
+          ### Other changes
+          ${OTHER}
+
+          ### Full changelog
+          [Compare ${PREV_TAG:-repository start}…${TAG}](${COMPARE_URL})
 
           ### Downloads
           | Platform | Asset | Description |
@@ -134,10 +188,8 @@ jobs:
           ./focusa-${TAG}-<your-platform> status
           \`\`\`
 
-          ### Commits since previous tag
-          \`\`\`
+          ### Complete commit audit
           ${COMMITS}
-          \`\`\`
 
           ---
           Local-first. Source-available. Functional proof is the GitHub Release workflow plus attached assets for this tag.
