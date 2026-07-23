@@ -332,11 +332,11 @@ fn platform_config_home() -> PathBuf {
     }
     #[cfg(target_os = "windows")]
     {
-        return env_path("APPDATA", PathBuf::from(".")).join("Focusa");
+        env_path("APPDATA", PathBuf::from(".")).join("Focusa")
     }
     #[cfg(target_os = "macos")]
     {
-        return env_path("HOME", PathBuf::from(".")).join("Library/Application Support/Focusa");
+        env_path("HOME", PathBuf::from(".")).join("Library/Application Support/Focusa")
     }
     #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     {
@@ -431,7 +431,7 @@ fn platform_service_paths() -> (Option<PathBuf>, Option<PathBuf>, &'static str) 
     {
         let candidate = env_path("HOME", PathBuf::from("."))
             .join("Library/LaunchAgents/com.focusa.daemon.plist");
-        return (candidate.exists().then_some(candidate), None, "launchd");
+        (candidate.exists().then_some(candidate), None, "launchd")
     }
     #[cfg(target_os = "windows")]
     {
@@ -449,17 +449,17 @@ fn discover_desktop_app() -> Option<PathBuf> {
     }
     #[cfg(target_os = "macos")]
     {
-        return first_existing([
+        first_existing([
             env_path("HOME", PathBuf::from(".")).join("Applications/Focusa.app"),
             PathBuf::from("/Applications/Focusa.app"),
-        ]);
+        ])
     }
     #[cfg(target_os = "windows")]
     {
-        return first_existing([
+        first_existing([
             env_path("LOCALAPPDATA", PathBuf::from(".")).join("Focusa/Focusa.exe"),
             env_path("PROGRAMFILES", PathBuf::from(".")).join("Focusa/Focusa.exe"),
-        ]);
+        ])
     }
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
