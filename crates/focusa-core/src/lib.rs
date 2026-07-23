@@ -57,6 +57,7 @@ pub mod silent_session_authorization;
 pub mod silent_session_bootstrap;
 pub mod silent_session_config;
 pub mod silent_session_failure;
+pub mod silent_session_integration;
 pub mod silent_session_launch;
 pub mod silent_session_protocol;
 pub mod silent_session_recovery;
