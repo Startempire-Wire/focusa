@@ -63,6 +63,7 @@ pub mod silent_session_continuation;
 pub mod silent_session_failure;
 pub mod silent_session_integration;
 pub mod silent_session_launch;
+pub mod silent_session_notifications;
 pub mod silent_session_protocol;
 pub mod silent_session_receipts;
 pub mod silent_session_reconstruction;
