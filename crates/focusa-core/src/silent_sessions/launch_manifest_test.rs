@@ -78,20 +78,20 @@ fn typed_manifest_preserves_shell_symbols_without_shell_composition() {
 
 #[test]
 fn required_lowmem_and_trust_fail_closed_before_spawn() {
-    let mut manifest = manifest();
-    manifest.resource_mode.resolved = false;
+    let mut lowmem_manifest = manifest();
+    lowmem_manifest.resource_mode.resolved = false;
     assert!(
-        manifest
+        lowmem_manifest
             .validate()
             .unwrap_err()
             .to_string()
             .contains("ResourceMode")
     );
 
-    let mut manifest = manifest();
-    manifest.argv.retain(|argument| argument != "-a");
+    let mut trust_manifest = manifest();
+    trust_manifest.argv.retain(|argument| argument != "-a");
     assert!(
-        manifest
+        trust_manifest
             .validate()
             .unwrap_err()
             .to_string()
