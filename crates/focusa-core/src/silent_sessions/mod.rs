@@ -11,6 +11,7 @@ pub mod config;
 pub mod config_resolution;
 pub mod config_revision;
 pub mod event_protocol;
+pub mod harness_adapter;
 pub mod identity;
 pub mod launch_manifest;
 pub mod legacy_import;
@@ -37,6 +38,7 @@ pub use config::*;
 pub use config_resolution::*;
 pub use config_revision::*;
 pub use event_protocol::*;
+pub use harness_adapter::*;
 pub use identity::*;
 pub use launch_manifest::*;
 pub use legacy_import::*;
@@ -60,6 +62,8 @@ mod authorization_test;
 mod config_resolution_test;
 #[cfg(test)]
 mod config_revision_test;
+#[cfg(test)]
+mod harness_adapter_test;
 #[cfg(test)]
 mod launch_manifest_test;
 #[cfg(test)]
