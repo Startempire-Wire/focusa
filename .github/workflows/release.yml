@@ -7,6 +7,7 @@ permissions:
   id-token: write
   actions: write
   issues: read
+  pull-requests: read
 
 jobs:
   # Durable release boundary: any open issue with a release-gate:* label blocks a tag.
@@ -33,6 +34,40 @@ jobs:
             exit 1
           fi
           echo "open_issue_release_gate=passed"
+
+  pull-request-release-gate:
+    name: Pull request inclusion gate
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Require clean PR queue and tag inclusion
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          open_prs=$(gh pr list --repo "$REPOSITORY" --state open --limit 500 --json number,title,url)
+          if [ "$(jq 'length' <<<"$open_prs")" -ne 0 ]; then
+            echo "::error::Release blocked by open pull requests: $open_prs"
+            exit 1
+          fi
+          previous=$(git tag --sort=-version:refname | grep -v "^${TAG}$" | head -1 || true)
+          since=$(if [ -n "$previous" ]; then git log -1 --format=%cI "$previous"; else echo '1970-01-01T00:00:00Z'; fi)
+          gh pr list --repo "$REPOSITORY" --state merged --limit 500 \
+            --search "merged:>=${since%%T*}" --json number,mergeCommit,mergedAt \
+            | jq -r --arg since "$since" '.[] | select(.mergedAt > $since) | [.number,.mergeCommit.oid] | @tsv' \
+            | while IFS=$'\t' read -r number commit; do
+                [ -n "$commit" ] || { echo "::error::PR #$number has no merge commit"; exit 1; }
+                git merge-base --is-ancestor "$commit" "$TAG" || {
+                  echo "::error::PR #$number merge $commit is absent from tag $TAG"
+                  exit 1
+                }
+              done
+          echo "pull_request_release_gate=passed"
 
   # Gate: tests + clippy must pass
   rust-check:
@@ -69,7 +104,7 @@ jobs:
   create-release:
     name: Create Release
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
-    needs: [rust-check, open-issue-release-gate]
+    needs: [rust-check, open-issue-release-gate, pull-request-release-gate]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -93,6 +128,7 @@ jobs:
             PREV_PUBLISHED="1970-01-01T00:00:00Z"
           fi
 
+          BREAKING=""
           FEATURES=""
           FIXES=""
           OTHER=""
@@ -101,6 +137,7 @@ jobs:
             [ -n "$SHA" ] || continue
             LINE="- [\`${SHA:0:8}\`](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${SHA}) ${SUBJECT}"
             COMMITS+="${LINE}"$'\n'
+            case "$SUBJECT" in *!:*) BREAKING+="${LINE}"$'\n' ;; esac
             case "$SUBJECT" in
               feat:*|feat\(*\):*|feat!:*|feat\(*\)!:*) FEATURES+="${LINE}"$'\n' ;;
               fix:*|fix\(*\):*|fix!:*|fix\(*\)!:*|perf:*|perf\(*\):*|security:*|security\(*\):*) FIXES+="${LINE}"$'\n' ;;
@@ -108,6 +145,7 @@ jobs:
             esac
           done < <(git log "$RANGE" --no-merges --format=$'%H\t%s')
 
+          BREAKING=${BREAKING:-"- None recorded in this tag delta."}
           FEATURES=${FEATURES:-"- None recorded in this tag delta."}
           FIXES=${FIXES:-"- None recorded in this tag delta."}
           OTHER=${OTHER:-"- None recorded in this tag delta."}
@@ -127,6 +165,21 @@ jobs:
                 | "- [" + .title + "](" + .url + ") (#" + (.number|tostring) + ")"
               ')
           RESOLVED_ISSUES=${RESOLVED_ISSUES:-"- None recorded since the previous published release."}
+          MERGED_PRS=$(gh pr list \
+            --repo "$GITHUB_REPOSITORY" --state merged --limit 500 \
+            --search "merged:>=${PREV_DAY}" \
+            --json number,title,url,mergedAt,author \
+            | jq -r --arg previous "$PREV_PUBLISHED" '
+                [.[] | select(.mergedAt > $previous)] | sort_by(.number) | .[]
+                | "- [" + .title + "](" + .url + ") (#" + (.number|tostring) + ") — @" + .author.login
+              ')
+          MERGED_PRS=${MERGED_PRS:-"- None recorded since the previous published release."}
+          CONTRIBUTORS=$(git log "$RANGE" --format='%aN' | sort -fu | sed 's/^/- /')
+          CONTRIBUTORS=${CONTRIBUTORS:-"- None recorded."}
+          KNOWN_ISSUES=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 500 \
+            --label "release-note:known-issue" --json number,title,url \
+            | jq -r '.[] | "- [" + .title + "](" + .url + ") (#" + (.number|tostring) + ")')
+          KNOWN_ISSUES=${KNOWN_ISSUES:-"- None declared."}
 
           # Write current, non-stale notes to file (heredoc avoids escaping issues).
           # Keep this release page functional and evidence-oriented; avoid fixed route/test counts.
@@ -135,11 +188,16 @@ jobs:
 
           Focusa is a local-first cognitive runtime for agent continuity, scope authority, evidence, recovery, trajectory, and tool governance.
 
+          **Release delta:** ${PREV_TAG:-repository start} → ${TAG}
+
           ### What this release proves
           - **Functional snapshot** — this tag passed the Release workflow gate: workspace tests and clippy before artifacts.
           - **Dogfood-driven quality** — release notes are generated from the actual tag delta, not stale static claims.
           - **macOS artifacts** — CLI, daemon, TUI, and Tauri menubar app assets are built by GitHub Actions.
           - **Public traceability** — features, fixes, resolved issues, and every commit since the prior tag are recorded below.
+
+          ### Breaking changes
+          ${BREAKING}
 
           ### Features added
           ${FEATURES}
@@ -147,14 +205,29 @@ jobs:
           ### Fixes shipped
           ${FIXES}
 
+          ### Merged pull requests
+          ${MERGED_PRS}
+
           ### Issues resolved
           ${RESOLVED_ISSUES}
+
+          ### Contributors
+          ${CONTRIBUTORS}
+
+          ### Known issues
+          ${KNOWN_ISSUES}
 
           ### Other changes
           ${OTHER}
 
           ### Full changelog
           [Compare ${PREV_TAG:-repository start}…${TAG}](${COMPARE_URL})
+
+          ### Upgrade, rollback, and integrity
+          - Upgrade with the signed release assets or the documented `focusa update` flow.
+          - Review `SHA256SUMS`, signature/provenance assets, and the release manifest before installation.
+          - Roll back with `focusa update rollback --dry-run=false --yes` after reviewing the rollback plan.
+          - User data, environment configuration, license state, and recovery journals are preserved by update policy.
 
           ### Downloads
           | Platform | Asset | Description |
