@@ -11,7 +11,7 @@ use serde_json::{Map, Value, json};
 
 use crate::api_client::ApiClient;
 
-use super::silent_render::print_result;
+use super::silent_render::{CLI_SCHEMA, print_result};
 
 #[derive(Subcommand, Debug)]
 pub enum SilentCmd {

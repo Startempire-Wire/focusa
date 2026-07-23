@@ -3,7 +3,7 @@
 use anyhow::Result;
 use serde_json::{Value, json};
 
-const CLI_SCHEMA: &str = "focusa.silent_cli.v1";
+pub(super) const CLI_SCHEMA: &str = "focusa.silent_cli.v1";
 
 fn redact(value: &mut Value) {
     match value {

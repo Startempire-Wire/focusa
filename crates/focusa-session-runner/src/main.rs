@@ -3,7 +3,7 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
-    os::unix::fs::PermissionsExt,
+    os::unix::fs::{MetadataExt, PermissionsExt},
     path::PathBuf,
 };
 
