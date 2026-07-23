@@ -108,6 +108,9 @@ assert_grep 'python3 scripts/release-gate.py' scripts/create-dev-release-tag.sh 
 assert_grep 'CI_TIMEOUT_SECS=1200' scripts/create-dev-release-tag.sh 'release helper wait cap must be 20 minutes, not 1 hour+'
 assert_grep 'headBranch' scripts/create-dev-release-tag.sh 'release helper must track tag Release run, not main branch validation run'
 assert_grep 'wait_for_workflow "Release" "$HEAD_SHA" "${TAG}"' scripts/create-dev-release-tag.sh 'release helper must wait for tag-specific Release run'
+assert_grep 'apps/pi-extension/package.json apps/pi-extension/package-lock.json' scripts/create-dev-release-tag.sh 'release helper must commit and dry-run-revert stamped Pi extension versions'
+[[ "$(grep -o 'apps/pi-extension/package.json apps/pi-extension/package-lock.json' scripts/create-dev-release-tag.sh | wc -l)" -ge 2 ]] \
+  || fail 'Pi extension version surfaces must appear in both commit and dry-run rollback sets'
 assert_grep 'timeout-minutes: 12' .github/workflows/release.yml 'Release macOS/Tauri job timeout must stay bounded'
 assert_grep 'timeout-minutes: 15' .github/workflows/release.yml 'Release Windows/cross-target job timeout must be enough but bounded'
 assert_grep 'Release workflow validation' .github/workflows/release.yml 'release workflow needs unconditional validation step to avoid No jobs were run'

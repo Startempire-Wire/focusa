@@ -217,7 +217,8 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   git checkout -- Cargo.toml Cargo.lock \
     apps/menubar/package.json apps/menubar/package-lock.json \
     apps/menubar/src-tauri/Cargo.toml apps/menubar/src-tauri/Cargo.lock \
-    apps/menubar/src-tauri/tauri.conf.json apps/menubar/src/lib/components/Settings.svelte
+    apps/menubar/src-tauri/tauri.conf.json apps/menubar/src/lib/components/Settings.svelte \
+    apps/pi-extension/package.json apps/pi-extension/package-lock.json
   echo "Dry run complete; reverted stamped files."
   exit 0
 fi
@@ -226,7 +227,8 @@ if [[ -n "$(git status --porcelain)" ]]; then
   git add Cargo.toml Cargo.lock \
     apps/menubar/package.json apps/menubar/package-lock.json \
     apps/menubar/src-tauri/Cargo.toml apps/menubar/src-tauri/Cargo.lock \
-    apps/menubar/src-tauri/tauri.conf.json apps/menubar/src/lib/components/Settings.svelte
+    apps/menubar/src-tauri/tauri.conf.json apps/menubar/src/lib/components/Settings.svelte \
+    apps/pi-extension/package.json apps/pi-extension/package-lock.json
   git commit -m "chore: stamp menubar ${VERSION}"
 fi
 
