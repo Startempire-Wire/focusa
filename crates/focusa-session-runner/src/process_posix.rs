@@ -7,8 +7,9 @@
 
 use crate::identity::{IdentityError, OsIdentity, VerifiedExecutionContext};
 use crate::protocol::{
-    ActiveRunRecord, AdoptionDecision, AdoptionExpectation, AdoptionRejection, ProcessTreeIdentity,
-    ProtocolError, RunnerHeartbeat,
+    ActiveRunRecord, AdoptionDecision, AdoptionExpectation, AdoptionRejection,
+    OrphanReconciliationDecision, OrphanReconciliationRequest, ProcessTreeIdentity, ProtocolError,
+    RunnerHeartbeat,
 };
 use chrono::{DateTime, Utc};
 use focusa_core::silent_session::{SilentSessionId, SilentSessionRunId};
@@ -394,6 +395,17 @@ impl PosixProcessSupervisor {
         owned.record.heartbeat_at = observed_at;
         expectation
             .evaluate(&owned.record)
+            .map_err(SupervisorError::Protocol)
+    }
+
+    pub fn reconcile_orphan(
+        &mut self,
+        request: &OrphanReconciliationRequest,
+        observed_at: DateTime<Utc>,
+    ) -> Result<OrphanReconciliationDecision, SupervisorError> {
+        let adoption = self.evaluate_adoption(&request.expectation, observed_at)?;
+        request
+            .reconcile(adoption)
             .map_err(SupervisorError::Protocol)
     }
 
@@ -1090,6 +1102,44 @@ mod tests {
             .expect("adoption evaluation should run");
         assert!(decision.accepted);
         assert!(decision.signed_runner_record_ref.is_some());
+        let reconciliation = supervisor
+            .reconcile_orphan(
+                &OrphanReconciliationRequest {
+                    expectation: expectation.clone(),
+                    expected_stream_cursor: "stream:runner-test:7".into(),
+                },
+                heartbeat_at,
+            )
+            .expect("known process should reconcile");
+        assert_eq!(
+            reconciliation.status,
+            crate::protocol::OrphanReconciliationStatus::AdoptedRecovering
+        );
+        assert_eq!(
+            reconciliation.restored_stream_cursor.as_deref(),
+            Some("stream:runner-test:7")
+        );
+
+        let mut unknown_process = expectation.clone();
+        unknown_process.run_id = SilentSessionRunId::new();
+        let reconciliation = supervisor
+            .reconcile_orphan(
+                &OrphanReconciliationRequest {
+                    expectation: unknown_process,
+                    expected_stream_cursor: "stream:unknown".into(),
+                },
+                heartbeat_at,
+            )
+            .expect("unknown process should produce a typed rejection");
+        assert_eq!(
+            reconciliation.adoption.rejection,
+            Some(AdoptionRejection::ProcessNotOwned)
+        );
+        assert_eq!(
+            reconciliation.status,
+            crate::protocol::OrphanReconciliationStatus::RejectedOrphaned
+        );
+        assert!(reconciliation.restored_stream_cursor.is_none());
 
         let mut wrong_workspace = expectation;
         wrong_workspace.workspace_root = project.root.clone();

@@ -20,7 +20,10 @@ use crate::process_posix::{
     SupervisorError,
 };
 #[cfg(unix)]
-use crate::protocol::{ActiveRunRecord, AdoptionDecision, AdoptionExpectation};
+use crate::protocol::{
+    ActiveRunRecord, AdoptionDecision, AdoptionExpectation, OrphanReconciliationDecision,
+    OrphanReconciliationRequest,
+};
 #[cfg(unix)]
 use chrono::{DateTime, Utc};
 #[cfg(unix)]
@@ -329,6 +332,14 @@ impl DirectProcessBackend {
         observed_at: DateTime<Utc>,
     ) -> Result<AdoptionDecision, SupervisorError> {
         self.supervisor.evaluate_adoption(expectation, observed_at)
+    }
+
+    pub fn reconcile_orphan(
+        &mut self,
+        request: &OrphanReconciliationRequest,
+        observed_at: DateTime<Utc>,
+    ) -> Result<OrphanReconciliationDecision, SupervisorError> {
+        self.supervisor.reconcile_orphan(request, observed_at)
     }
 
     pub fn hard_pause(

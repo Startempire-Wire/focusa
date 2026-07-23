@@ -7,7 +7,9 @@
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use chrono::{DateTime, Duration, Utc};
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
-use focusa_core::silent_session::{SilentSessionId, SilentSessionRunId};
+use focusa_core::silent_session::{
+    SilentSessionId, SilentSessionLifecycleState, SilentSessionRunId,
+};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
@@ -164,6 +166,64 @@ pub struct AdoptionDecision {
     pub signed_runner_record_ref: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OrphanReconciliationRequest {
+    pub expectation: AdoptionExpectation,
+    pub expected_stream_cursor: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OrphanReconciliationStatus {
+    AdoptedRecovering,
+    RejectedOrphaned,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OrphanReconciliationDecision {
+    pub status: OrphanReconciliationStatus,
+    pub lifecycle_state: SilentSessionLifecycleState,
+    pub adoption: AdoptionDecision,
+    pub restored_stream_cursor: Option<String>,
+}
+
+impl OrphanReconciliationRequest {
+    pub fn reconcile(
+        &self,
+        adoption: AdoptionDecision,
+    ) -> Result<OrphanReconciliationDecision, ProtocolError> {
+        if self.expected_stream_cursor.trim().is_empty()
+            || adoption.runner_id != self.expectation.runner_id
+            || adoption.session_id != self.expectation.session_id
+            || adoption.run_id != self.expectation.run_id
+            || adoption.generation != self.expectation.generation
+        {
+            return Err(ProtocolError::InvalidFrame);
+        }
+        let accepted = adoption.accepted
+            && adoption.rejection.is_none()
+            && adoption.signed_runner_record_ref.is_some();
+        Ok(OrphanReconciliationDecision {
+            status: if accepted {
+                OrphanReconciliationStatus::AdoptedRecovering
+            } else {
+                OrphanReconciliationStatus::RejectedOrphaned
+            },
+            lifecycle_state: if accepted {
+                SilentSessionLifecycleState::Recovering
+            } else {
+                SilentSessionLifecycleState::Orphaned
+            },
+            adoption,
+            restored_stream_cursor: if accepted {
+                Some(self.expected_stream_cursor.clone())
+            } else {
+                None
+            },
+        })
+    }
+}
+
 impl AdoptionExpectation {
     pub fn rejected(&self, rejection: AdoptionRejection) -> AdoptionDecision {
         AdoptionDecision {
@@ -247,6 +307,8 @@ pub enum RunnerProtocolMessage {
     Heartbeat(RunnerHeartbeat),
     AdoptionQuery(AdoptionExpectation),
     AdoptionDecision(AdoptionDecision),
+    OrphanReconciliationQuery(OrphanReconciliationRequest),
+    OrphanReconciliationDecision(OrphanReconciliationDecision),
 }
 
 impl RunnerProtocolMessage {
@@ -283,6 +345,15 @@ impl RunnerProtocolMessage {
             }
             Self::AdoptionDecision(decision) => {
                 sender.kind == ProtocolActorKind::Runner && decision.runner_id == sender.actor_id
+            }
+            Self::OrphanReconciliationQuery(request) => {
+                sender.kind == ProtocolActorKind::Daemon
+                    && request.expectation.daemon_id == sender.actor_id
+                    && request.expectation.runner_id == receiver_id
+            }
+            Self::OrphanReconciliationDecision(decision) => {
+                sender.kind == ProtocolActorKind::Runner
+                    && decision.adoption.runner_id == sender.actor_id
             }
         }
     }
@@ -748,6 +819,24 @@ mod tests {
             .expect("record hashing should succeed");
         assert!(accepted.accepted);
         assert!(accepted.signed_runner_record_ref.is_some());
+        let reconciliation = OrphanReconciliationRequest {
+            expectation: expectation.clone(),
+            expected_stream_cursor: "stream:42".into(),
+        }
+        .reconcile(accepted)
+        .expect("accepted adoption should reconcile");
+        assert_eq!(
+            reconciliation.status,
+            OrphanReconciliationStatus::AdoptedRecovering
+        );
+        assert_eq!(
+            reconciliation.lifecycle_state,
+            SilentSessionLifecycleState::Recovering
+        );
+        assert_eq!(
+            reconciliation.restored_stream_cursor.as_deref(),
+            Some("stream:42")
+        );
 
         let mut wrong_workspace = record.clone();
         wrong_workspace.workspace_root = PathBuf::from("/projects/other");
@@ -759,6 +848,21 @@ mod tests {
             Some(AdoptionRejection::WorkspaceMismatch)
         );
         assert!(rejected.signed_runner_record_ref.is_none());
+        let reconciliation = OrphanReconciliationRequest {
+            expectation: expectation.clone(),
+            expected_stream_cursor: "stream:42".into(),
+        }
+        .reconcile(rejected)
+        .expect("rejected adoption should reconcile as orphaned");
+        assert_eq!(
+            reconciliation.status,
+            OrphanReconciliationStatus::RejectedOrphaned
+        );
+        assert_eq!(
+            reconciliation.lifecycle_state,
+            SilentSessionLifecycleState::Orphaned
+        );
+        assert!(reconciliation.restored_stream_cursor.is_none());
 
         let mut reused_pid = record;
         reused_pid.process_tree.process_instance_id = "process:reused".into();
@@ -802,10 +906,29 @@ mod tests {
                 RunnerProtocolMessage::AdoptionQuery(query.clone()),
             )
             .expect("daemon query should sign");
+        let reconciliation_query = OrphanReconciliationRequest {
+            expectation: query.clone(),
+            expected_stream_cursor: "stream:reconnect:9".into(),
+        };
+        let reconciliation_frame = signer
+            .sign(
+                "runner:alice",
+                "nonce:reconcile",
+                now,
+                now + Duration::seconds(30),
+                RunnerProtocolMessage::OrphanReconciliationQuery(reconciliation_query.clone()),
+            )
+            .expect("daemon reconciliation query should sign");
         let mut verifier = ProtocolVerifier::new(daemon, "runner:alice", signer.verifying_key());
         assert_eq!(
             verifier.verify(&frame, now),
             Ok(RunnerProtocolMessage::AdoptionQuery(query))
+        );
+        assert_eq!(
+            verifier.verify(&reconciliation_frame, now),
+            Ok(RunnerProtocolMessage::OrphanReconciliationQuery(
+                reconciliation_query
+            ))
         );
     }
 }

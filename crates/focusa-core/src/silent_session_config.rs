@@ -316,6 +316,11 @@ fn validate_config(config: &SilentSessionConfig) -> ConfigValidationResult {
     if config.output.chunk_max_bytes == 0 {
         errors.push("chunk_max_bytes must be positive".into());
     }
+    if let Err(error) =
+        crate::silent_session_retry::validate_retry_budgets(&config.supervision.retry_budgets)
+    {
+        errors.push(format!("invalid typed retry budgets: {error}"));
+    }
     if config.model.allowed_fallbacks.is_empty()
         && matches!(
             config.model.fallback_policy,
@@ -489,6 +494,7 @@ mod tests {
                 max_process_restarts: 1,
                 max_transport_retries: 2,
                 retry_backoff_ms: 100,
+                retry_budgets: crate::silent_session_retry::default_retry_budgets(),
                 soft_pause_timeout_ms: 1000,
                 graceful_stop_timeout_ms: 1000,
                 checkpoint_interval_seconds: 60,
@@ -591,6 +597,27 @@ mod tests {
             immutable.mutation_classes["/identity/continuity_id"],
             ConfigMutationClass::Immutable
         );
+    }
+
+    #[test]
+    fn typed_retry_budget_config_requires_every_independent_class() {
+        let mut incomplete = config();
+        incomplete
+            .supervision
+            .retry_budgets
+            .remove(&crate::silent_session_retry::RetryClass::WorkItem);
+        assert!(
+            SilentSessionConfigManager::new(SilentSessionId::new(), incomplete, vec![]).is_err()
+        );
+
+        let mut invalid = config();
+        invalid
+            .supervision
+            .retry_budgets
+            .get_mut(&crate::silent_session_retry::RetryClass::Provider)
+            .unwrap()
+            .max_retries = 0;
+        assert!(SilentSessionConfigManager::new(SilentSessionId::new(), invalid, vec![]).is_err());
     }
 
     #[test]

@@ -60,6 +60,7 @@ fn session_config(kind: HarnessKind, adapter_version: &str) -> SilentSessionConf
             max_process_restarts: 0,
             max_transport_retries: 2,
             retry_backoff_ms: 100,
+            retry_budgets: focusa_core::silent_session_retry::default_retry_budgets(),
             soft_pause_timeout_ms: 1000,
             graceful_stop_timeout_ms: 1000,
             checkpoint_interval_seconds: 60,

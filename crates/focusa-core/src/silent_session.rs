@@ -1,6 +1,7 @@
 //! Spec 133 canonical daemon-native Silent Session domain types.
 //! Backend handles (tmux names, PIDs, panes, terminal ids) are observations only.
 
+use crate::silent_session_retry::{RetryBudgetPolicy, RetryClass, default_retry_budgets};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -334,6 +335,8 @@ pub struct SupervisionConfig {
     pub max_process_restarts: u32,
     pub max_transport_retries: u32,
     pub retry_backoff_ms: u64,
+    #[serde(default = "default_retry_budgets")]
+    pub retry_budgets: BTreeMap<RetryClass, RetryBudgetPolicy>,
     pub soft_pause_timeout_ms: u64,
     pub graceful_stop_timeout_ms: u64,
     pub checkpoint_interval_seconds: u64,
@@ -786,6 +789,7 @@ mod tests {
                 max_process_restarts: 2,
                 max_transport_retries: 3,
                 retry_backoff_ms: 1000,
+                retry_budgets: default_retry_budgets(),
                 soft_pause_timeout_ms: 5000,
                 graceful_stop_timeout_ms: 5000,
                 checkpoint_interval_seconds: 30,
