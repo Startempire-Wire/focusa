@@ -59,9 +59,9 @@ jobs:
       - name: Web build
         working-directory: apps/menubar
         run: npm run build
-      - name: Tauri package proof
+      - name: Tauri package proof (non-release; updater signing proven separately)
         working-directory: apps/menubar
-        run: npm run tauri build -- --bundles app
+        run: npm run tauri build -- --bundles app --config '{"bundle":{"createUpdaterArtifacts":false}}'
       - name: Validate macOS bundle
         run: |
           set -euo pipefail

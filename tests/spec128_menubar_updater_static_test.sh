@@ -11,6 +11,7 @@ UPDATER="$ROOT/apps/menubar/src/lib/updater.ts"
 LAYOUT="$ROOT/apps/menubar/src/routes/+layout.svelte"
 SETTINGS="$ROOT/apps/menubar/src/lib/components/Settings.svelte"
 RELEASE="$ROOT/.github/workflows/release.yml"
+CI="$ROOT/.github/workflows/ci.yml"
 SIGNING_PROOF="$ROOT/.github/workflows/tauri-updater-signing-proof.yml"
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
@@ -35,6 +36,7 @@ rg -q 'APPLE_CERTIFICATE_BASE64 APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTIT
 if rg -q 'UNNOTARIZED-PREVIEW' "$RELEASE"; then fail "release still allows unnotarized updater artifacts"; fi
 rg -q 'tauri signer sign' "$SIGNING_PROOF" || fail "secret-backed updater signing proof missing"
 rg -q 'minisign -Vm' "$SIGNING_PROOF" || fail "updater public-key verification missing"
+rg -q 'createUpdaterArtifacts.*false' "$CI" || fail "non-release CI must not require private updater signing material"
 
 if rg -n 'BEGIN (OPENSSH |RSA |EC )?PRIVATE KEY|untrusted comment: encrypted secret key' "$ROOT/apps" "$ROOT/.github" --glob '!package-lock.json'; then
   fail "private signing material found in tracked surfaces"
