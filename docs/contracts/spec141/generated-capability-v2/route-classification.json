@@ -2,9 +2,9 @@
   "schema": "focusa.agent_route_classification.v1",
   "route_count": 452,
   "classification_counts": {
-    "agent_eligible": 82,
+    "agent_eligible": 84,
     "internal": 6,
-    "operator_only": 358,
+    "operator_only": 356,
     "public_pairing": 6
   },
   "allowed_classifications": [
@@ -2058,21 +2058,25 @@
     },
     {
       "path": "/v1/mission-canvas/surface-bindings",
-      "classification": "operator_only",
-      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/mission_canvas_surfaces.rs"
       ],
-      "operation_refs": []
+      "operation_refs": [
+        "focusa.mission_canvas.surface_binding.list"
+      ]
     },
     {
       "path": "/v1/mission-canvas/surface-bindings/mutate",
-      "classification": "operator_only",
-      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/mission_canvas_surfaces.rs"
       ],
-      "operation_refs": []
+      "operation_refs": [
+        "focusa.mission_canvas.surface_binding.mutate"
+      ]
     },
     {
       "path": "/v1/mission-canvas/surfaces",

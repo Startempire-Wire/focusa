@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent-First Tool Surface Audit
 
-Generated: `2026-07-23T17:22:40.906564+00:00`
+Generated: `2026-07-23T17:32:19.584901+00:00`
 
 **Status:** `pass`
 **Release gate:** `pass`
@@ -33,12 +33,12 @@ Generated: `2026-07-23T17:22:40.906564+00:00`
 - **cli_machine_help_inventory_entries:** `14`
 - **cli_generated_agent_commands:** `115`
 - **api_route_paths:** `452`
-- **agent_operation_registry_entries:** `81`
-- **agent_operation_openapi_paths:** `81`
+- **agent_operation_registry_entries:** `83`
+- **agent_operation_openapi_paths:** `83`
 - **classified_api_route_paths:** `452`
 - **unclassified_api_route_paths:** `0`
-- **operation_schema_refs:** `159`
-- **materialized_openapi_schema_refs:** `159`
+- **operation_schema_refs:** `163`
+- **materialized_openapi_schema_refs:** `163`
 - **missing_operation_docs_refs:** `0`
 - **tool_contracts_without_api_route:** `4`
 - **tool_contracts_without_cli_command:** `15`
