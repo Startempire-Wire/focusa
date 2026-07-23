@@ -26,8 +26,9 @@ use tracing::{error, info};
 mod security;
 
 use security::{
-    append_nonce, canonical_owned_directory, current_user, load_nonces, prepare_launch_manifest,
-    prepare_socket, process_group_exists, read_secret, send_process_group_signal,
+    append_nonce, canonical_owned_directory, controlled_stop, current_user, load_nonces,
+    prepare_launch_manifest, prepare_socket, process_group_exists, read_secret,
+    send_process_group_signal,
 };
 
 const MAX_REQUEST_BYTES: usize = 1024 * 1024;
@@ -212,13 +213,22 @@ impl RunnerState {
             process.state != RunnerProcessState::Exited,
             "process tree already exited"
         );
-        send_process_group_signal(process.identity.process_group_id, signal).await?;
+        if signal == RunnerSignal::Cancel {
+            let receipt = controlled_stop(
+                process.identity.process_group_id,
+                &focusa_core::silent_sessions::ControlledStopPolicy::default(),
+            )
+            .await?;
+            receipt.verify_complete()?;
+            process.state = RunnerProcessState::Exited;
+        } else {
+            send_process_group_signal(process.identity.process_group_id, signal).await?;
+        }
         process.state = match signal {
             RunnerSignal::Pause => RunnerProcessState::Paused,
             RunnerSignal::Resume => RunnerProcessState::Running,
-            RunnerSignal::Interrupt | RunnerSignal::Cancel | RunnerSignal::ForceKill => {
-                RunnerProcessState::Running
-            }
+            RunnerSignal::Cancel => RunnerProcessState::Exited,
+            RunnerSignal::Interrupt | RunnerSignal::ForceKill => RunnerProcessState::Running,
         };
         let projection = process.projection();
         Ok(self.response(request, "signal_delivered", Some(projection), None))

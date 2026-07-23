@@ -12,8 +12,8 @@ use std::{
 
 use anyhow::{Context, Result, ensure};
 use focusa_core::silent_sessions::{
-    LaunchManifest, MissionDelivery, ProcessBackend, RunnerSignal, StdioMode,
-    validate_environment_name,
+    ControlledStopPolicy, ControlledStopReceipt, LaunchManifest, MissionDelivery, ProcessBackend,
+    RunnerSignal, StdioMode, TerminationStage, validate_environment_name,
 };
 use sha2::{Digest, Sha256};
 use tokio::process::Command;
@@ -320,6 +320,75 @@ pub(crate) fn process_group_exists(process_group_id: i32) -> Result<bool> {
         .args(["-0", "--", &format!("-{process_group_id}")])
         .status()?;
     Ok(status.success())
+}
+
+pub(crate) async fn controlled_stop(
+    process_group_id: i32,
+    policy: &ControlledStopPolicy,
+) -> Result<ControlledStopReceipt> {
+    let mut receipt = ControlledStopReceipt {
+        process_group_id,
+        stages: Vec::new(),
+        tree_terminated: false,
+        child_leak_verified: false,
+    };
+    receipt.record(
+        TerminationStage::HarnessAbortRequested,
+        "adapter abort requested",
+    );
+    tokio::time::sleep(std::time::Duration::from_millis(
+        policy.harness_abort_grace_ms,
+    ))
+    .await;
+    receipt.record(
+        TerminationStage::HarnessGraceExpired,
+        "escalating to process group",
+    );
+    send_process_group_signal(process_group_id, RunnerSignal::Cancel).await?;
+    receipt.record(
+        TerminationStage::ProcessGroupTermRequested,
+        "SIGTERM delivered",
+    );
+    let deadline = tokio::time::Instant::now()
+        + std::time::Duration::from_millis(policy.process_group_grace_ms);
+    while tokio::time::Instant::now() < deadline {
+        if !process_group_exists(process_group_id)? {
+            receipt.tree_terminated = true;
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+    if !receipt.tree_terminated {
+        receipt.record(
+            TerminationStage::ProcessGroupGraceExpired,
+            "SIGTERM grace expired",
+        );
+        send_process_group_signal(process_group_id, RunnerSignal::ForceKill).await?;
+        receipt.record(
+            TerminationStage::ProcessGroupKillRequested,
+            "SIGKILL delivered",
+        );
+    }
+    for _ in 0..policy.leak_check_attempts {
+        if !process_group_exists(process_group_id)? {
+            receipt.tree_terminated = true;
+            receipt.child_leak_verified = true;
+            receipt.record(
+                TerminationStage::ChildLeakCheckPassed,
+                "owned process group absent",
+            );
+            return Ok(receipt);
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(
+            policy.leak_check_interval_ms,
+        ))
+        .await;
+    }
+    receipt.record(
+        TerminationStage::ChildLeakDetected,
+        "owned process group remains alive",
+    );
+    Ok(receipt)
 }
 
 pub(crate) async fn send_process_group_signal(
