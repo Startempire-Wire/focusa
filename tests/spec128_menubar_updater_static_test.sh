@@ -32,7 +32,7 @@ rg -q 'Check for update|Install and relaunch|SIGNED UPDATES' "$SETTINGS" || fail
 rg -q 'secrets\.TAURI_SIGNING_PRIVATE_KEY' "$RELEASE" || fail "release private-key secret wiring missing"
 rg -q 'secrets\.TAURI_SIGNING_PRIVATE_KEY_PASSWORD' "$RELEASE" || fail "release key-password secret wiring missing"
 rg -q 'uploadUpdaterJson: true' "$RELEASE" || fail "release updater JSON upload missing"
-rg -q 'APPLE_CERTIFICATE_BASE64 APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_API_KEY_ID APPLE_API_KEY_P8' "$RELEASE" || fail "mandatory Apple signing/notarization preflight missing"
+rg -q 'APPLE_CERTIFICATE_BASE64 APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_API_KEY_ID APPLE_API_ISSUER_ID APPLE_API_KEY_P8 APPLE_TEAM_ID' "$RELEASE" || fail "mandatory Apple signing/notarization preflight missing"
 if rg -q 'UNNOTARIZED-PREVIEW' "$RELEASE"; then fail "release still allows unnotarized updater artifacts"; fi
 rg -q 'tauri signer sign' "$SIGNING_PROOF" || fail "secret-backed updater signing proof missing"
 rg -q 'minisign -Vm' "$SIGNING_PROOF" || fail "updater public-key verification missing"
