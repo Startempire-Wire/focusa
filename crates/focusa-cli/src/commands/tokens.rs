@@ -87,20 +87,18 @@ pub async fn run(cmd: TokensCmd, json_mode: bool) -> anyhow::Result<()> {
             let resp = api.get("/v1/tokens/list").await?;
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
-            } else {
-                if let Some(tokens) = resp["tokens"].as_array() {
-                    if tokens.is_empty() {
-                        println!("No active tokens");
-                    } else {
-                        for t in tokens {
-                            println!(
-                                "  {} [{}] created={} expires={}",
-                                t["token_id"].as_str().unwrap_or("?"),
-                                t["token_type"].as_str().unwrap_or("?"),
-                                t["created_at"].as_str().unwrap_or("?"),
-                                t["expires_at"].as_str().unwrap_or("never"),
-                            );
-                        }
+            } else if let Some(tokens) = resp["tokens"].as_array() {
+                if tokens.is_empty() {
+                    println!("No active tokens");
+                } else {
+                    for t in tokens {
+                        println!(
+                            "  {} [{}] created={} expires={}",
+                            t["token_id"].as_str().unwrap_or("?"),
+                            t["token_type"].as_str().unwrap_or("?"),
+                            t["created_at"].as_str().unwrap_or("?"),
+                            t["expires_at"].as_str().unwrap_or("never"),
+                        );
                     }
                 }
             }
