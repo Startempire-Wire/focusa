@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:b9793d0eb515d53b607c447453c8c9ecc49eaf67327757cbe91eae5742f604bb",
+  "registry_digest": "sha256:9db6e128c917c53d3225ef9bf7541f652c0a5b6b984fcecfc45c2e175078cae6",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -4143,14 +4143,13 @@
       "deprecation": null
     },
     {
-      "command": "tmux list-sessions",
+      "command": "focusa silent",
       "capability_id": "focusa.silent.sessions",
-      "summary": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
+      "summary": "Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility.",
       "input_schema": {
         "type": "object",
         "properties": {
           "action": {
-            "description": "SilentSession action. list is default; kill/send/start/interrupt/restart require approved=true.",
             "anyOf": [
               {
                 "const": "list",
@@ -4187,991 +4186,101 @@
               {
                 "const": "restart",
                 "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "const": "pause",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "config",
+                "type": "string"
+              },
+              {
+                "const": "receipt",
+                "type": "string"
+              },
+              {
+                "const": "capabilities",
+                "type": "string"
               }
             ]
           },
-          "session_name": {
-            "description": "SilentSession name or suffix. Names are normalized under focusa-silent-* prefix.",
+          "session_id": {
+            "description": "Exact durable Silent Session id.",
             "type": "string"
           },
-          "root_dir": {
-            "description": "Working directory for a new SilentSession; defaults to current Pi cwd.",
+          "session_name": {
+            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Exact current run id.",
+            "type": "string"
+          },
+          "generation": {
+            "minimum": 1,
+            "description": "Exact current run generation.",
+            "type": "integer"
+          },
+          "approval_id": {
+            "description": "Durable daemon approval id for mutations.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Mutation replay key.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Input or steering text.",
             "type": "string"
           },
           "command": {
-            "description": "Custom shell command for start or input line for send. Omit for default Focusa-governed Pi autopilot command.",
+            "description": "Legacy alias for text; never executed as a shell command.",
             "type": "string"
-          },
-          "model": {
-            "description": "LLM model identifier. Required when using the default start command because implicit fallback is disabled.",
-            "type": "string"
-          },
-          "timeout_seconds": {
-            "minimum": 30,
-            "maximum": 3600,
-            "description": "Runtime timeout in seconds for the default start command.",
-            "type": "integer"
-          },
-          "mission": {
-            "description": "Mission prompt for default start command.",
-            "type": "string"
-          },
-          "work_item_id": {
-            "description": "Optional bead/work item id to anchor the SilentSession.",
-            "type": "string"
-          },
-          "lowmem": {
-            "description": "Activate LowMem at start; default true.",
-            "type": "boolean"
-          },
-          "lines": {
-            "description": "Tail lines for durable output; default 80, max 400.",
-            "type": "number"
           },
           "cursor": {
-            "description": "Byte cursor returned by a prior tail/follow call.",
+            "description": "Opaque event/output cursor.",
             "type": "string"
           },
+          "channel": {
+            "description": "Output channel; defaults to stdout.",
+            "type": "string"
+          },
+          "config": {
+            "description": "Typed preflight/config request body."
+          },
           "approved": {
-            "description": "Required true for start/send/kill because those mutate background process state.",
+            "description": "Legacy compatibility hint only; never grants authority.",
             "type": "boolean"
           },
           "force": {
-            "description": "Required true with approved=true to kill a SilentSession.",
+            "description": "Legacy compatibility hint only; daemon policy decides force.",
             "type": "boolean"
           }
         },
         "additionalProperties": false
       },
       "side_effects": [
-        "process_control",
-        "process_control"
+        "daemon_api_control",
+        "daemon_api_control"
       ],
       "examples": [
         {
-          "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
+          "description": "Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility.",
           "arguments": {},
-          "human_invocation": "tmux list-sessions",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
-        }
-      ],
-      "deprecation": null
-    },
-    {
-      "command": "tmux new-session",
-      "capability_id": "focusa.silent.sessions",
-      "summary": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "action": {
-            "description": "SilentSession action. list is default; kill/send/start/interrupt/restart require approved=true.",
-            "anyOf": [
-              {
-                "const": "list",
-                "type": "string"
-              },
-              {
-                "const": "start",
-                "type": "string"
-              },
-              {
-                "const": "reopen",
-                "type": "string"
-              },
-              {
-                "const": "tail",
-                "type": "string"
-              },
-              {
-                "const": "send",
-                "type": "string"
-              },
-              {
-                "const": "kill",
-                "type": "string"
-              },
-              {
-                "const": "health",
-                "type": "string"
-              },
-              {
-                "const": "interrupt",
-                "type": "string"
-              },
-              {
-                "const": "restart",
-                "type": "string"
-              }
-            ]
-          },
-          "session_name": {
-            "description": "SilentSession name or suffix. Names are normalized under focusa-silent-* prefix.",
-            "type": "string"
-          },
-          "root_dir": {
-            "description": "Working directory for a new SilentSession; defaults to current Pi cwd.",
-            "type": "string"
-          },
-          "command": {
-            "description": "Custom shell command for start or input line for send. Omit for default Focusa-governed Pi autopilot command.",
-            "type": "string"
-          },
-          "model": {
-            "description": "LLM model identifier. Required when using the default start command because implicit fallback is disabled.",
-            "type": "string"
-          },
-          "timeout_seconds": {
-            "minimum": 30,
-            "maximum": 3600,
-            "description": "Runtime timeout in seconds for the default start command.",
-            "type": "integer"
-          },
-          "mission": {
-            "description": "Mission prompt for default start command.",
-            "type": "string"
-          },
-          "work_item_id": {
-            "description": "Optional bead/work item id to anchor the SilentSession.",
-            "type": "string"
-          },
-          "lowmem": {
-            "description": "Activate LowMem at start; default true.",
-            "type": "boolean"
-          },
-          "lines": {
-            "description": "Tail lines for durable output; default 80, max 400.",
-            "type": "number"
-          },
-          "cursor": {
-            "description": "Byte cursor returned by a prior tail/follow call.",
-            "type": "string"
-          },
-          "approved": {
-            "description": "Required true for start/send/kill because those mutate background process state.",
-            "type": "boolean"
-          },
-          "force": {
-            "description": "Required true with approved=true to kill a SilentSession.",
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "side_effects": [
-        "process_control",
-        "process_control"
-      ],
-      "examples": [
-        {
-          "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-          "arguments": {},
-          "human_invocation": "tmux list-sessions",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
-        }
-      ],
-      "deprecation": null
-    },
-    {
-      "command": "tmux attach-session",
-      "capability_id": "focusa.silent.sessions",
-      "summary": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "action": {
-            "description": "SilentSession action. list is default; kill/send/start/interrupt/restart require approved=true.",
-            "anyOf": [
-              {
-                "const": "list",
-                "type": "string"
-              },
-              {
-                "const": "start",
-                "type": "string"
-              },
-              {
-                "const": "reopen",
-                "type": "string"
-              },
-              {
-                "const": "tail",
-                "type": "string"
-              },
-              {
-                "const": "send",
-                "type": "string"
-              },
-              {
-                "const": "kill",
-                "type": "string"
-              },
-              {
-                "const": "health",
-                "type": "string"
-              },
-              {
-                "const": "interrupt",
-                "type": "string"
-              },
-              {
-                "const": "restart",
-                "type": "string"
-              }
-            ]
-          },
-          "session_name": {
-            "description": "SilentSession name or suffix. Names are normalized under focusa-silent-* prefix.",
-            "type": "string"
-          },
-          "root_dir": {
-            "description": "Working directory for a new SilentSession; defaults to current Pi cwd.",
-            "type": "string"
-          },
-          "command": {
-            "description": "Custom shell command for start or input line for send. Omit for default Focusa-governed Pi autopilot command.",
-            "type": "string"
-          },
-          "model": {
-            "description": "LLM model identifier. Required when using the default start command because implicit fallback is disabled.",
-            "type": "string"
-          },
-          "timeout_seconds": {
-            "minimum": 30,
-            "maximum": 3600,
-            "description": "Runtime timeout in seconds for the default start command.",
-            "type": "integer"
-          },
-          "mission": {
-            "description": "Mission prompt for default start command.",
-            "type": "string"
-          },
-          "work_item_id": {
-            "description": "Optional bead/work item id to anchor the SilentSession.",
-            "type": "string"
-          },
-          "lowmem": {
-            "description": "Activate LowMem at start; default true.",
-            "type": "boolean"
-          },
-          "lines": {
-            "description": "Tail lines for durable output; default 80, max 400.",
-            "type": "number"
-          },
-          "cursor": {
-            "description": "Byte cursor returned by a prior tail/follow call.",
-            "type": "string"
-          },
-          "approved": {
-            "description": "Required true for start/send/kill because those mutate background process state.",
-            "type": "boolean"
-          },
-          "force": {
-            "description": "Required true with approved=true to kill a SilentSession.",
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "side_effects": [
-        "process_control",
-        "process_control"
-      ],
-      "examples": [
-        {
-          "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-          "arguments": {},
-          "human_invocation": "tmux list-sessions",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
-        }
-      ],
-      "deprecation": null
-    },
-    {
-      "command": "tmux capture-pane",
-      "capability_id": "focusa.silent.sessions",
-      "summary": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "action": {
-            "description": "SilentSession action. list is default; kill/send/start/interrupt/restart require approved=true.",
-            "anyOf": [
-              {
-                "const": "list",
-                "type": "string"
-              },
-              {
-                "const": "start",
-                "type": "string"
-              },
-              {
-                "const": "reopen",
-                "type": "string"
-              },
-              {
-                "const": "tail",
-                "type": "string"
-              },
-              {
-                "const": "send",
-                "type": "string"
-              },
-              {
-                "const": "kill",
-                "type": "string"
-              },
-              {
-                "const": "health",
-                "type": "string"
-              },
-              {
-                "const": "interrupt",
-                "type": "string"
-              },
-              {
-                "const": "restart",
-                "type": "string"
-              }
-            ]
-          },
-          "session_name": {
-            "description": "SilentSession name or suffix. Names are normalized under focusa-silent-* prefix.",
-            "type": "string"
-          },
-          "root_dir": {
-            "description": "Working directory for a new SilentSession; defaults to current Pi cwd.",
-            "type": "string"
-          },
-          "command": {
-            "description": "Custom shell command for start or input line for send. Omit for default Focusa-governed Pi autopilot command.",
-            "type": "string"
-          },
-          "model": {
-            "description": "LLM model identifier. Required when using the default start command because implicit fallback is disabled.",
-            "type": "string"
-          },
-          "timeout_seconds": {
-            "minimum": 30,
-            "maximum": 3600,
-            "description": "Runtime timeout in seconds for the default start command.",
-            "type": "integer"
-          },
-          "mission": {
-            "description": "Mission prompt for default start command.",
-            "type": "string"
-          },
-          "work_item_id": {
-            "description": "Optional bead/work item id to anchor the SilentSession.",
-            "type": "string"
-          },
-          "lowmem": {
-            "description": "Activate LowMem at start; default true.",
-            "type": "boolean"
-          },
-          "lines": {
-            "description": "Tail lines for durable output; default 80, max 400.",
-            "type": "number"
-          },
-          "cursor": {
-            "description": "Byte cursor returned by a prior tail/follow call.",
-            "type": "string"
-          },
-          "approved": {
-            "description": "Required true for start/send/kill because those mutate background process state.",
-            "type": "boolean"
-          },
-          "force": {
-            "description": "Required true with approved=true to kill a SilentSession.",
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "side_effects": [
-        "process_control",
-        "process_control"
-      ],
-      "examples": [
-        {
-          "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-          "arguments": {},
-          "human_invocation": "tmux list-sessions",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
-        }
-      ],
-      "deprecation": null
-    },
-    {
-      "command": "tmux list-panes",
-      "capability_id": "focusa.silent.sessions",
-      "summary": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "action": {
-            "description": "SilentSession action. list is default; kill/send/start/interrupt/restart require approved=true.",
-            "anyOf": [
-              {
-                "const": "list",
-                "type": "string"
-              },
-              {
-                "const": "start",
-                "type": "string"
-              },
-              {
-                "const": "reopen",
-                "type": "string"
-              },
-              {
-                "const": "tail",
-                "type": "string"
-              },
-              {
-                "const": "send",
-                "type": "string"
-              },
-              {
-                "const": "kill",
-                "type": "string"
-              },
-              {
-                "const": "health",
-                "type": "string"
-              },
-              {
-                "const": "interrupt",
-                "type": "string"
-              },
-              {
-                "const": "restart",
-                "type": "string"
-              }
-            ]
-          },
-          "session_name": {
-            "description": "SilentSession name or suffix. Names are normalized under focusa-silent-* prefix.",
-            "type": "string"
-          },
-          "root_dir": {
-            "description": "Working directory for a new SilentSession; defaults to current Pi cwd.",
-            "type": "string"
-          },
-          "command": {
-            "description": "Custom shell command for start or input line for send. Omit for default Focusa-governed Pi autopilot command.",
-            "type": "string"
-          },
-          "model": {
-            "description": "LLM model identifier. Required when using the default start command because implicit fallback is disabled.",
-            "type": "string"
-          },
-          "timeout_seconds": {
-            "minimum": 30,
-            "maximum": 3600,
-            "description": "Runtime timeout in seconds for the default start command.",
-            "type": "integer"
-          },
-          "mission": {
-            "description": "Mission prompt for default start command.",
-            "type": "string"
-          },
-          "work_item_id": {
-            "description": "Optional bead/work item id to anchor the SilentSession.",
-            "type": "string"
-          },
-          "lowmem": {
-            "description": "Activate LowMem at start; default true.",
-            "type": "boolean"
-          },
-          "lines": {
-            "description": "Tail lines for durable output; default 80, max 400.",
-            "type": "number"
-          },
-          "cursor": {
-            "description": "Byte cursor returned by a prior tail/follow call.",
-            "type": "string"
-          },
-          "approved": {
-            "description": "Required true for start/send/kill because those mutate background process state.",
-            "type": "boolean"
-          },
-          "force": {
-            "description": "Required true with approved=true to kill a SilentSession.",
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "side_effects": [
-        "process_control",
-        "process_control"
-      ],
-      "examples": [
-        {
-          "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-          "arguments": {},
-          "human_invocation": "tmux list-sessions",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
-        }
-      ],
-      "deprecation": null
-    },
-    {
-      "command": "tmux pipe-pane",
-      "capability_id": "focusa.silent.sessions",
-      "summary": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "action": {
-            "description": "SilentSession action. list is default; kill/send/start/interrupt/restart require approved=true.",
-            "anyOf": [
-              {
-                "const": "list",
-                "type": "string"
-              },
-              {
-                "const": "start",
-                "type": "string"
-              },
-              {
-                "const": "reopen",
-                "type": "string"
-              },
-              {
-                "const": "tail",
-                "type": "string"
-              },
-              {
-                "const": "send",
-                "type": "string"
-              },
-              {
-                "const": "kill",
-                "type": "string"
-              },
-              {
-                "const": "health",
-                "type": "string"
-              },
-              {
-                "const": "interrupt",
-                "type": "string"
-              },
-              {
-                "const": "restart",
-                "type": "string"
-              }
-            ]
-          },
-          "session_name": {
-            "description": "SilentSession name or suffix. Names are normalized under focusa-silent-* prefix.",
-            "type": "string"
-          },
-          "root_dir": {
-            "description": "Working directory for a new SilentSession; defaults to current Pi cwd.",
-            "type": "string"
-          },
-          "command": {
-            "description": "Custom shell command for start or input line for send. Omit for default Focusa-governed Pi autopilot command.",
-            "type": "string"
-          },
-          "model": {
-            "description": "LLM model identifier. Required when using the default start command because implicit fallback is disabled.",
-            "type": "string"
-          },
-          "timeout_seconds": {
-            "minimum": 30,
-            "maximum": 3600,
-            "description": "Runtime timeout in seconds for the default start command.",
-            "type": "integer"
-          },
-          "mission": {
-            "description": "Mission prompt for default start command.",
-            "type": "string"
-          },
-          "work_item_id": {
-            "description": "Optional bead/work item id to anchor the SilentSession.",
-            "type": "string"
-          },
-          "lowmem": {
-            "description": "Activate LowMem at start; default true.",
-            "type": "boolean"
-          },
-          "lines": {
-            "description": "Tail lines for durable output; default 80, max 400.",
-            "type": "number"
-          },
-          "cursor": {
-            "description": "Byte cursor returned by a prior tail/follow call.",
-            "type": "string"
-          },
-          "approved": {
-            "description": "Required true for start/send/kill because those mutate background process state.",
-            "type": "boolean"
-          },
-          "force": {
-            "description": "Required true with approved=true to kill a SilentSession.",
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "side_effects": [
-        "process_control",
-        "process_control"
-      ],
-      "examples": [
-        {
-          "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-          "arguments": {},
-          "human_invocation": "tmux list-sessions",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
-        }
-      ],
-      "deprecation": null
-    },
-    {
-      "command": "tmux send-keys",
-      "capability_id": "focusa.silent.sessions",
-      "summary": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "action": {
-            "description": "SilentSession action. list is default; kill/send/start/interrupt/restart require approved=true.",
-            "anyOf": [
-              {
-                "const": "list",
-                "type": "string"
-              },
-              {
-                "const": "start",
-                "type": "string"
-              },
-              {
-                "const": "reopen",
-                "type": "string"
-              },
-              {
-                "const": "tail",
-                "type": "string"
-              },
-              {
-                "const": "send",
-                "type": "string"
-              },
-              {
-                "const": "kill",
-                "type": "string"
-              },
-              {
-                "const": "health",
-                "type": "string"
-              },
-              {
-                "const": "interrupt",
-                "type": "string"
-              },
-              {
-                "const": "restart",
-                "type": "string"
-              }
-            ]
-          },
-          "session_name": {
-            "description": "SilentSession name or suffix. Names are normalized under focusa-silent-* prefix.",
-            "type": "string"
-          },
-          "root_dir": {
-            "description": "Working directory for a new SilentSession; defaults to current Pi cwd.",
-            "type": "string"
-          },
-          "command": {
-            "description": "Custom shell command for start or input line for send. Omit for default Focusa-governed Pi autopilot command.",
-            "type": "string"
-          },
-          "model": {
-            "description": "LLM model identifier. Required when using the default start command because implicit fallback is disabled.",
-            "type": "string"
-          },
-          "timeout_seconds": {
-            "minimum": 30,
-            "maximum": 3600,
-            "description": "Runtime timeout in seconds for the default start command.",
-            "type": "integer"
-          },
-          "mission": {
-            "description": "Mission prompt for default start command.",
-            "type": "string"
-          },
-          "work_item_id": {
-            "description": "Optional bead/work item id to anchor the SilentSession.",
-            "type": "string"
-          },
-          "lowmem": {
-            "description": "Activate LowMem at start; default true.",
-            "type": "boolean"
-          },
-          "lines": {
-            "description": "Tail lines for durable output; default 80, max 400.",
-            "type": "number"
-          },
-          "cursor": {
-            "description": "Byte cursor returned by a prior tail/follow call.",
-            "type": "string"
-          },
-          "approved": {
-            "description": "Required true for start/send/kill because those mutate background process state.",
-            "type": "boolean"
-          },
-          "force": {
-            "description": "Required true with approved=true to kill a SilentSession.",
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "side_effects": [
-        "process_control",
-        "process_control"
-      ],
-      "examples": [
-        {
-          "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-          "arguments": {},
-          "human_invocation": "tmux list-sessions",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
-        }
-      ],
-      "deprecation": null
-    },
-    {
-      "command": "tmux send-keys C-c",
-      "capability_id": "focusa.silent.sessions",
-      "summary": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "action": {
-            "description": "SilentSession action. list is default; kill/send/start/interrupt/restart require approved=true.",
-            "anyOf": [
-              {
-                "const": "list",
-                "type": "string"
-              },
-              {
-                "const": "start",
-                "type": "string"
-              },
-              {
-                "const": "reopen",
-                "type": "string"
-              },
-              {
-                "const": "tail",
-                "type": "string"
-              },
-              {
-                "const": "send",
-                "type": "string"
-              },
-              {
-                "const": "kill",
-                "type": "string"
-              },
-              {
-                "const": "health",
-                "type": "string"
-              },
-              {
-                "const": "interrupt",
-                "type": "string"
-              },
-              {
-                "const": "restart",
-                "type": "string"
-              }
-            ]
-          },
-          "session_name": {
-            "description": "SilentSession name or suffix. Names are normalized under focusa-silent-* prefix.",
-            "type": "string"
-          },
-          "root_dir": {
-            "description": "Working directory for a new SilentSession; defaults to current Pi cwd.",
-            "type": "string"
-          },
-          "command": {
-            "description": "Custom shell command for start or input line for send. Omit for default Focusa-governed Pi autopilot command.",
-            "type": "string"
-          },
-          "model": {
-            "description": "LLM model identifier. Required when using the default start command because implicit fallback is disabled.",
-            "type": "string"
-          },
-          "timeout_seconds": {
-            "minimum": 30,
-            "maximum": 3600,
-            "description": "Runtime timeout in seconds for the default start command.",
-            "type": "integer"
-          },
-          "mission": {
-            "description": "Mission prompt for default start command.",
-            "type": "string"
-          },
-          "work_item_id": {
-            "description": "Optional bead/work item id to anchor the SilentSession.",
-            "type": "string"
-          },
-          "lowmem": {
-            "description": "Activate LowMem at start; default true.",
-            "type": "boolean"
-          },
-          "lines": {
-            "description": "Tail lines for durable output; default 80, max 400.",
-            "type": "number"
-          },
-          "cursor": {
-            "description": "Byte cursor returned by a prior tail/follow call.",
-            "type": "string"
-          },
-          "approved": {
-            "description": "Required true for start/send/kill because those mutate background process state.",
-            "type": "boolean"
-          },
-          "force": {
-            "description": "Required true with approved=true to kill a SilentSession.",
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "side_effects": [
-        "process_control",
-        "process_control"
-      ],
-      "examples": [
-        {
-          "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-          "arguments": {},
-          "human_invocation": "tmux list-sessions",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
-        }
-      ],
-      "deprecation": null
-    },
-    {
-      "command": "tmux kill-session",
-      "capability_id": "focusa.silent.sessions",
-      "summary": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "action": {
-            "description": "SilentSession action. list is default; kill/send/start/interrupt/restart require approved=true.",
-            "anyOf": [
-              {
-                "const": "list",
-                "type": "string"
-              },
-              {
-                "const": "start",
-                "type": "string"
-              },
-              {
-                "const": "reopen",
-                "type": "string"
-              },
-              {
-                "const": "tail",
-                "type": "string"
-              },
-              {
-                "const": "send",
-                "type": "string"
-              },
-              {
-                "const": "kill",
-                "type": "string"
-              },
-              {
-                "const": "health",
-                "type": "string"
-              },
-              {
-                "const": "interrupt",
-                "type": "string"
-              },
-              {
-                "const": "restart",
-                "type": "string"
-              }
-            ]
-          },
-          "session_name": {
-            "description": "SilentSession name or suffix. Names are normalized under focusa-silent-* prefix.",
-            "type": "string"
-          },
-          "root_dir": {
-            "description": "Working directory for a new SilentSession; defaults to current Pi cwd.",
-            "type": "string"
-          },
-          "command": {
-            "description": "Custom shell command for start or input line for send. Omit for default Focusa-governed Pi autopilot command.",
-            "type": "string"
-          },
-          "model": {
-            "description": "LLM model identifier. Required when using the default start command because implicit fallback is disabled.",
-            "type": "string"
-          },
-          "timeout_seconds": {
-            "minimum": 30,
-            "maximum": 3600,
-            "description": "Runtime timeout in seconds for the default start command.",
-            "type": "integer"
-          },
-          "mission": {
-            "description": "Mission prompt for default start command.",
-            "type": "string"
-          },
-          "work_item_id": {
-            "description": "Optional bead/work item id to anchor the SilentSession.",
-            "type": "string"
-          },
-          "lowmem": {
-            "description": "Activate LowMem at start; default true.",
-            "type": "boolean"
-          },
-          "lines": {
-            "description": "Tail lines for durable output; default 80, max 400.",
-            "type": "number"
-          },
-          "cursor": {
-            "description": "Byte cursor returned by a prior tail/follow call.",
-            "type": "string"
-          },
-          "approved": {
-            "description": "Required true for start/send/kill because those mutate background process state.",
-            "type": "boolean"
-          },
-          "force": {
-            "description": "Required true with approved=true to kill a SilentSession.",
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "side_effects": [
-        "process_control",
-        "process_control"
-      ],
-      "examples": [
-        {
-          "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-          "arguments": {},
-          "human_invocation": "tmux list-sessions",
+          "human_invocation": "focusa silent",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
         }
       ],

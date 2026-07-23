@@ -1,79 +1,53 @@
 # `focusa_silent_sessions`
 
-Legacy/non-durable tmux compatibility wrapper for listing, starting, reopening, tailing, sending input to, or safely killing Pi-local Focusa SilentSessions. It is not the canonical Spec133 daemon-native control plane. Use it when Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Daemon-native Spec133 Silent Session facade for Pi. The tool is a thin API client; the daemon owns canonical state, authorization, lifecycle, model selection, process supervision, persistence, recovery, and completion truth.
 
-## When to use
+## Actions
 
-- Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.
-- Capability family: `work_loop`; namespace: `focusa.work_loop`.
-- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
+Native actions: `list`, `preflight`, `watch`, `pause`, `resume`, `config`, `receipt`, `capabilities`.
 
-## Parameters and strict input schema
+Legacy compatibility mappings:
 
-- `action` (optional; string | string | string | string | string | string | string | string | string): SilentSession action. list is default; kill/send/start/interrupt/restart require approved=true.
-- `session_name` (optional; string): SilentSession name or suffix. Names are normalized under focusa-silent-* prefix.
-- `root_dir` (optional; string): Working directory for a new SilentSession; defaults to current Pi cwd.
-- `command` (optional; string): Custom shell command for start or input line for send. Omit for default Focusa-governed Pi autopilot command.
-- `model` (optional; string): LLM model identifier. Required when using the default start command because implicit fallback is disabled.
-- `timeout_seconds` (optional; integer; min=30, max=3600): Runtime timeout in seconds for the default start command.
-- `mission` (optional; string): Mission prompt for default start command.
-- `work_item_id` (optional; string): Optional bead/work item id to anchor the SilentSession.
-- `lowmem` (optional; boolean): Activate LowMem at start; default true.
-- `lines` (optional; number): Tail lines for durable output; default 80, max 400.
-- `cursor` (optional; string): Byte cursor returned by a prior tail/follow call.
-- `approved` (optional; boolean): Required true for start/send/kill because those mutate background process state.
-- `force` (optional; boolean): Required true with approved=true to kill a SilentSession.
+| Legacy action      | Daemon behavior                |
+| ------------------ | ------------------------------ |
+| `start`            | exact session start route      |
+| `reopen`, `health` | canonical session projection   |
+| `tail`             | bounded cursor output page     |
+| `send`             | authenticated foreground input |
+| `interrupt`        | controlled interrupt           |
+| `restart`          | new exact run generation       |
+| `kill`             | authorized cancel              |
 
-Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_silent_sessions`.
+`session_name` remains only as an exact `session_id` alias. It is never normalized as a tmux name. `command` remains only as an input-text alias and is never executed by a shell.
 
-## Output
+## Exact-target rules
 
-Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
+Mutations require:
 
-## Example
+- `session_id`;
+- `run_id`;
+- `generation`;
+- durable `approval_id`;
+- `idempotency_key`.
 
-```json
-{}
-```
+Legacy `approved` and `force` booleans are compatibility hints only and never grant authority.
 
-Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md
+## Output and authority
 
-## Anti-examples
+Results use the daemon envelope and report `parity: full`, `authority: daemon`, canonical status, side effects, evidence/receipt references, and recovery guidance. Observation is bounded and cursor-based.
 
-- control mutations without writer/preflight authority
-- fresh direct questions that do not continue work
+## Removed ownership
 
-## Authority, permissions, and side effects
+The Pi extension does not:
 
-- Scope: `{"kind":"read","route_family":"auto"}`
-- Authority: `{"kind":"advisory_only"}`
-- Side effects: `process_control`, `process_control`
-- Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- create or control tmux sessions;
+- write `/tmp` registries or logs;
+- compose shell launch commands;
+- select or verify models;
+- supervise process trees;
+- claim canonical health or recovery;
+- infer mutation authority.
 
-## Failure and recovery
+## Recovery
 
-Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
-
-- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
-- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
-- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
-
-## Dependencies and workflow position
-
-- `focusa_work_loop_status` (likely_next)
-- `focusa_work_loop_checkpoint` (likely_next)
-- `focusa_resource_mode` (likely_next)
-
-Prerequisites: verified project_root plus continuity_id when project-bound.
-Likely next: `focusa_work_loop_status`, `focusa_work_loop_checkpoint`, `focusa_resource_mode`.
-
-## Skills, protocols, and source authority
-
-- Skills: `skill:focusa`, `skill:focusa-work-loop`
-- Runbooks: `runbook:work_loop`
-- Pi: `focusa_silent_sessions`; MCP: `focusa.silent.sessions`; OpenAI: `focusa_silent_sessions`.
-- CLI: `tmux list-sessions`, `tmux new-session`, `tmux attach-session`, `tmux capture-pane`, `tmux list-panes`, `tmux pipe-pane`, `tmux send-keys`, `tmux send-keys C-c`, `tmux kill-session`.
-- REST: Pi-local only.
-- Specification: contract registry.
-- Descriptor digest: `sha256:cc5070d4611a41b9d6b21cf348311d2029a489ed22f91bca8a845f3315e3117a`.
+Use `focusa_tool_doctor` when daemon access fails. Refresh the exact session/run generation after stale-target responses. For ambiguous mutation delivery, inspect canonical state before retrying with the same idempotency key.

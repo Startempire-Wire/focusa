@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:b9793d0eb515d53b607c447453c8c9ecc49eaf67327757cbe91eae5742f604bb`
+Registry digest: `sha256:9db6e128c917c53d3225ef9bf7541f652c0a5b6b984fcecfc45c2e175078cae6`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -875,11 +875,11 @@ Typed save/continue/rollover wrapper for moving long work between Pi sessions wi
 
 ## focusa_silent_sessions
 
-Legacy/non-durable tmux compatibility wrapper for listing, starting, reopening, tailing, sending input to, or safely killing Pi-local Focusa SilentSessions. It is not the canonical Spec133 daemon-native control plane. Use it when Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.silent.sessions`
 - Family: `work_loop`
-- Side effects: `process_control`, `process_control`
+- Side effects: `daemon_api_control`, `daemon_api_control`
 - Skills: `skill:focusa`, `skill:focusa-work-loop`
 - Dependencies/next: `focusa_work_loop_status`, `focusa_work_loop_checkpoint`, `focusa_resource_mode`
 - Documentation: `docs/focusa-tools/tools/focusa_silent_sessions.md`

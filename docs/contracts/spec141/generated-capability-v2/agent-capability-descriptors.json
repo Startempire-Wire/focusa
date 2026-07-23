@@ -32381,40 +32381,89 @@
         "mcp": "focusa.silent.sessions",
         "openai": "focusa_silent_sessions",
         "cli": [
-          "tmux list-sessions",
-          "tmux new-session",
-          "tmux attach-session",
-          "tmux capture-pane",
-          "tmux list-panes",
-          "tmux pipe-pane",
-          "tmux send-keys",
-          "tmux send-keys C-c",
-          "tmux kill-session"
+          "focusa silent"
         ],
-        "rest": []
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/silent-sessions"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/silent-sessions/preflight"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/silent-sessions/{session_id}"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/silent-sessions/{session_id}/output"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/silent-sessions/{session_id}/input"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/silent-sessions/{session_id}/start"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/silent-sessions/{session_id}/pause"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/silent-sessions/{session_id}/resume"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/silent-sessions/{session_id}/interrupt"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/silent-sessions/{session_id}/cancel"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/silent-sessions/{session_id}/restart"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/silent-sessions/{session_id}/config/preview"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/silent-sessions/{session_id}/receipts"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/silent-sessions/capabilities"
+          }
+        ]
       },
       "version": "2.0.0",
-      "title": "Focusa Silent Sessions (legacy tmux wrapper)",
-      "summary": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
-      "description": "Legacy/non-durable tmux compatibility wrapper for listing, starting, reopening, tailing, sending input to, or safely killing Pi-local Focusa SilentSessions. It is not the canonical Spec133 daemon-native control plane. Use it when Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "title": "Focusa Silent Sessions (daemon facade)",
+      "summary": "Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility.",
+      "description": "Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "work_loop",
       "namespace": "focusa.work_loop",
       "availability": {
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
+          "mcp",
+          "openai",
+          "rest",
           "cli"
         ],
-        "parity_status": "pi_only",
-        "exemptions": [
-          "pi_only"
-        ]
+        "parity_status": "full",
+        "exemptions": []
       },
       "input_schema": {
         "type": "object",
         "properties": {
           "action": {
-            "description": "SilentSession action. list is default; kill/send/start/interrupt/restart require approved=true.",
             "anyOf": [
               {
                 "const": "list",
@@ -32451,57 +32500,87 @@
               {
                 "const": "restart",
                 "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "const": "pause",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "config",
+                "type": "string"
+              },
+              {
+                "const": "receipt",
+                "type": "string"
+              },
+              {
+                "const": "capabilities",
+                "type": "string"
               }
             ]
           },
-          "session_name": {
-            "description": "SilentSession name or suffix. Names are normalized under focusa-silent-* prefix.",
+          "session_id": {
+            "description": "Exact durable Silent Session id.",
             "type": "string"
           },
-          "root_dir": {
-            "description": "Working directory for a new SilentSession; defaults to current Pi cwd.",
+          "session_name": {
+            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Exact current run id.",
+            "type": "string"
+          },
+          "generation": {
+            "minimum": 1,
+            "description": "Exact current run generation.",
+            "type": "integer"
+          },
+          "approval_id": {
+            "description": "Durable daemon approval id for mutations.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Mutation replay key.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Input or steering text.",
             "type": "string"
           },
           "command": {
-            "description": "Custom shell command for start or input line for send. Omit for default Focusa-governed Pi autopilot command.",
+            "description": "Legacy alias for text; never executed as a shell command.",
             "type": "string"
-          },
-          "model": {
-            "description": "LLM model identifier. Required when using the default start command because implicit fallback is disabled.",
-            "type": "string"
-          },
-          "timeout_seconds": {
-            "minimum": 30,
-            "maximum": 3600,
-            "description": "Runtime timeout in seconds for the default start command.",
-            "type": "integer"
-          },
-          "mission": {
-            "description": "Mission prompt for default start command.",
-            "type": "string"
-          },
-          "work_item_id": {
-            "description": "Optional bead/work item id to anchor the SilentSession.",
-            "type": "string"
-          },
-          "lowmem": {
-            "description": "Activate LowMem at start; default true.",
-            "type": "boolean"
-          },
-          "lines": {
-            "description": "Tail lines for durable output; default 80, max 400.",
-            "type": "number"
           },
           "cursor": {
-            "description": "Byte cursor returned by a prior tail/follow call.",
+            "description": "Opaque event/output cursor.",
             "type": "string"
           },
+          "channel": {
+            "description": "Output channel; defaults to stdout.",
+            "type": "string"
+          },
+          "config": {
+            "description": "Typed preflight/config request body."
+          },
           "approved": {
-            "description": "Required true for start/send/kill because those mutate background process state.",
+            "description": "Legacy compatibility hint only; never grants authority.",
             "type": "boolean"
           },
           "force": {
-            "description": "Required true with approved=true to kill a SilentSession.",
+            "description": "Legacy compatibility hint only; daemon policy decides force.",
             "type": "boolean"
           }
         },
@@ -32719,9 +32798,108 @@
         "route_family": "auto"
       },
       "authority": {
-        "kind": "advisory_only"
+        "kind": "mutation_authority"
       },
-      "permissions": [],
+      "permissions": [
+        {
+          "route": "GET /v1/silent-sessions",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/preflight",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/output",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/input",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/pause",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/resume",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/interrupt",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/cancel",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/restart",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/config/preview",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/receipts",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/capabilities",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        }
+      ],
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -32729,8 +32907,8 @@
         "openWorldHint": false
       },
       "side_effects": [
-        "process_control",
-        "process_control"
+        "daemon_api_control",
+        "daemon_api_control"
       ],
       "confirmation": {
         "required": false,
@@ -32756,9 +32934,9 @@
       },
       "examples": [
         {
-          "description": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
+          "description": "Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility.",
           "arguments": {},
-          "human_invocation": "tmux list-sessions",
+          "human_invocation": "focusa silent",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
         }
       ],
@@ -32820,10 +32998,10 @@
         "action": "work_loop.silent_session.control",
         "objects": [
           "SilentSession",
-          "WorkLoopStatus",
+          "SilentSessionRun",
           "ResourceMode"
         ],
-        "core_surface": "Legacy Pi-local tmux SilentSession compatibility wrapper with hardened built-in launch defaults"
+        "core_surface": "Daemon API facade; canonical authority, lifecycle, model, health, persistence and recovery remain server-side"
       },
       "evidence_requirements": [
         "stable evidence or receipt ref proving the mutation outcome"
@@ -32838,10 +33016,10 @@
         "spec141:focusa_silent_sessions"
       ],
       "prompt": {
-        "snippet": "Use only when an operator explicitly asks to manage legacy background tmux SilentSessions. Treat all output as non-canonical runtime observation; prefer daemon-native Spec133 APIs when available.",
+        "snippet": "Use as a thin daemon API client. Supply exact session_id/run_id/generation and durable approval/idempotency fields for mutations; the daemon remains canonical authority.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:cc5070d4611a41b9d6b21cf348311d2029a489ed22f91bca8a845f3315e3117a"
+      "descriptor_digest": "sha256:4aafc5b3c5a6db1fbb49b6eeea05d701199c4582efff013e8bd28fe73be7bf45"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -45986,5 +46164,5 @@
       "descriptor_digest": "sha256:ab9c9bbe2ed5cd1be3c2be60126fbc6114de34d72116a188fdd0b734de5b3e68"
     }
   ],
-  "registry_digest": "sha256:b9793d0eb515d53b607c447453c8c9ecc49eaf67327757cbe91eae5742f604bb"
+  "registry_digest": "sha256:9db6e128c917c53d3225ef9bf7541f652c0a5b6b984fcecfc45c2e175078cae6"
 }

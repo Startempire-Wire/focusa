@@ -1,6 +1,6 @@
 {
   "schema": "focusa.rest_agent_operation_projection.v2",
-  "registry_digest": "sha256:b9793d0eb515d53b607c447453c8c9ecc49eaf67327757cbe91eae5742f604bb",
+  "registry_digest": "sha256:9db6e128c917c53d3225ef9bf7541f652c0a5b6b984fcecfc45c2e175078cae6",
   "operations": [
     {
       "method": "POST",
@@ -25648,6 +25648,6194 @@
         }
       ],
       "docs_ref": "docs/focusa-tools/tools/focusa_session_transfer.md"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/silent-sessions",
+      "capability_id": "focusa.silent.sessions",
+      "operation_id": "focusa_silent_sessions",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "list",
+                "type": "string"
+              },
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "reopen",
+                "type": "string"
+              },
+              {
+                "const": "tail",
+                "type": "string"
+              },
+              {
+                "const": "send",
+                "type": "string"
+              },
+              {
+                "const": "kill",
+                "type": "string"
+              },
+              {
+                "const": "health",
+                "type": "string"
+              },
+              {
+                "const": "interrupt",
+                "type": "string"
+              },
+              {
+                "const": "restart",
+                "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "const": "pause",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "config",
+                "type": "string"
+              },
+              {
+                "const": "receipt",
+                "type": "string"
+              },
+              {
+                "const": "capabilities",
+                "type": "string"
+              }
+            ]
+          },
+          "session_id": {
+            "description": "Exact durable Silent Session id.",
+            "type": "string"
+          },
+          "session_name": {
+            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Exact current run id.",
+            "type": "string"
+          },
+          "generation": {
+            "minimum": 1,
+            "description": "Exact current run generation.",
+            "type": "integer"
+          },
+          "approval_id": {
+            "description": "Durable daemon approval id for mutations.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Mutation replay key.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Input or steering text.",
+            "type": "string"
+          },
+          "command": {
+            "description": "Legacy alias for text; never executed as a shell command.",
+            "type": "string"
+          },
+          "cursor": {
+            "description": "Opaque event/output cursor.",
+            "type": "string"
+          },
+          "channel": {
+            "description": "Output channel; defaults to stdout.",
+            "type": "string"
+          },
+          "config": {
+            "description": "Typed preflight/config request body."
+          },
+          "approved": {
+            "description": "Legacy compatibility hint only; never grants authority.",
+            "type": "boolean"
+          },
+          "force": {
+            "description": "Legacy compatibility hint only; daemon policy decides force.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "mutation_authority"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/silent-sessions",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/preflight",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/output",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/input",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/pause",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/resume",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/interrupt",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/cancel",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/restart",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/config/preview",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/receipts",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/capabilities",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/silent-sessions/preflight",
+      "capability_id": "focusa.silent.sessions",
+      "operation_id": "focusa_silent_sessions",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "list",
+                "type": "string"
+              },
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "reopen",
+                "type": "string"
+              },
+              {
+                "const": "tail",
+                "type": "string"
+              },
+              {
+                "const": "send",
+                "type": "string"
+              },
+              {
+                "const": "kill",
+                "type": "string"
+              },
+              {
+                "const": "health",
+                "type": "string"
+              },
+              {
+                "const": "interrupt",
+                "type": "string"
+              },
+              {
+                "const": "restart",
+                "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "const": "pause",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "config",
+                "type": "string"
+              },
+              {
+                "const": "receipt",
+                "type": "string"
+              },
+              {
+                "const": "capabilities",
+                "type": "string"
+              }
+            ]
+          },
+          "session_id": {
+            "description": "Exact durable Silent Session id.",
+            "type": "string"
+          },
+          "session_name": {
+            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Exact current run id.",
+            "type": "string"
+          },
+          "generation": {
+            "minimum": 1,
+            "description": "Exact current run generation.",
+            "type": "integer"
+          },
+          "approval_id": {
+            "description": "Durable daemon approval id for mutations.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Mutation replay key.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Input or steering text.",
+            "type": "string"
+          },
+          "command": {
+            "description": "Legacy alias for text; never executed as a shell command.",
+            "type": "string"
+          },
+          "cursor": {
+            "description": "Opaque event/output cursor.",
+            "type": "string"
+          },
+          "channel": {
+            "description": "Output channel; defaults to stdout.",
+            "type": "string"
+          },
+          "config": {
+            "description": "Typed preflight/config request body."
+          },
+          "approved": {
+            "description": "Legacy compatibility hint only; never grants authority.",
+            "type": "boolean"
+          },
+          "force": {
+            "description": "Legacy compatibility hint only; daemon policy decides force.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "mutation_authority"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/silent-sessions",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/preflight",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/output",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/input",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/pause",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/resume",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/interrupt",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/cancel",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/restart",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/config/preview",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/receipts",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/capabilities",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/silent-sessions/{session_id}",
+      "capability_id": "focusa.silent.sessions",
+      "operation_id": "focusa_silent_sessions",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "list",
+                "type": "string"
+              },
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "reopen",
+                "type": "string"
+              },
+              {
+                "const": "tail",
+                "type": "string"
+              },
+              {
+                "const": "send",
+                "type": "string"
+              },
+              {
+                "const": "kill",
+                "type": "string"
+              },
+              {
+                "const": "health",
+                "type": "string"
+              },
+              {
+                "const": "interrupt",
+                "type": "string"
+              },
+              {
+                "const": "restart",
+                "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "const": "pause",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "config",
+                "type": "string"
+              },
+              {
+                "const": "receipt",
+                "type": "string"
+              },
+              {
+                "const": "capabilities",
+                "type": "string"
+              }
+            ]
+          },
+          "session_id": {
+            "description": "Exact durable Silent Session id.",
+            "type": "string"
+          },
+          "session_name": {
+            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Exact current run id.",
+            "type": "string"
+          },
+          "generation": {
+            "minimum": 1,
+            "description": "Exact current run generation.",
+            "type": "integer"
+          },
+          "approval_id": {
+            "description": "Durable daemon approval id for mutations.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Mutation replay key.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Input or steering text.",
+            "type": "string"
+          },
+          "command": {
+            "description": "Legacy alias for text; never executed as a shell command.",
+            "type": "string"
+          },
+          "cursor": {
+            "description": "Opaque event/output cursor.",
+            "type": "string"
+          },
+          "channel": {
+            "description": "Output channel; defaults to stdout.",
+            "type": "string"
+          },
+          "config": {
+            "description": "Typed preflight/config request body."
+          },
+          "approved": {
+            "description": "Legacy compatibility hint only; never grants authority.",
+            "type": "boolean"
+          },
+          "force": {
+            "description": "Legacy compatibility hint only; daemon policy decides force.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "mutation_authority"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/silent-sessions",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/preflight",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/output",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/input",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/pause",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/resume",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/interrupt",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/cancel",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/restart",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/config/preview",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/receipts",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/capabilities",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/silent-sessions/{session_id}/output",
+      "capability_id": "focusa.silent.sessions",
+      "operation_id": "focusa_silent_sessions",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "list",
+                "type": "string"
+              },
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "reopen",
+                "type": "string"
+              },
+              {
+                "const": "tail",
+                "type": "string"
+              },
+              {
+                "const": "send",
+                "type": "string"
+              },
+              {
+                "const": "kill",
+                "type": "string"
+              },
+              {
+                "const": "health",
+                "type": "string"
+              },
+              {
+                "const": "interrupt",
+                "type": "string"
+              },
+              {
+                "const": "restart",
+                "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "const": "pause",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "config",
+                "type": "string"
+              },
+              {
+                "const": "receipt",
+                "type": "string"
+              },
+              {
+                "const": "capabilities",
+                "type": "string"
+              }
+            ]
+          },
+          "session_id": {
+            "description": "Exact durable Silent Session id.",
+            "type": "string"
+          },
+          "session_name": {
+            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Exact current run id.",
+            "type": "string"
+          },
+          "generation": {
+            "minimum": 1,
+            "description": "Exact current run generation.",
+            "type": "integer"
+          },
+          "approval_id": {
+            "description": "Durable daemon approval id for mutations.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Mutation replay key.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Input or steering text.",
+            "type": "string"
+          },
+          "command": {
+            "description": "Legacy alias for text; never executed as a shell command.",
+            "type": "string"
+          },
+          "cursor": {
+            "description": "Opaque event/output cursor.",
+            "type": "string"
+          },
+          "channel": {
+            "description": "Output channel; defaults to stdout.",
+            "type": "string"
+          },
+          "config": {
+            "description": "Typed preflight/config request body."
+          },
+          "approved": {
+            "description": "Legacy compatibility hint only; never grants authority.",
+            "type": "boolean"
+          },
+          "force": {
+            "description": "Legacy compatibility hint only; daemon policy decides force.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "mutation_authority"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/silent-sessions",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/preflight",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/output",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/input",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/pause",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/resume",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/interrupt",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/cancel",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/restart",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/config/preview",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/receipts",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/capabilities",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/silent-sessions/{session_id}/input",
+      "capability_id": "focusa.silent.sessions",
+      "operation_id": "focusa_silent_sessions",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "list",
+                "type": "string"
+              },
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "reopen",
+                "type": "string"
+              },
+              {
+                "const": "tail",
+                "type": "string"
+              },
+              {
+                "const": "send",
+                "type": "string"
+              },
+              {
+                "const": "kill",
+                "type": "string"
+              },
+              {
+                "const": "health",
+                "type": "string"
+              },
+              {
+                "const": "interrupt",
+                "type": "string"
+              },
+              {
+                "const": "restart",
+                "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "const": "pause",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "config",
+                "type": "string"
+              },
+              {
+                "const": "receipt",
+                "type": "string"
+              },
+              {
+                "const": "capabilities",
+                "type": "string"
+              }
+            ]
+          },
+          "session_id": {
+            "description": "Exact durable Silent Session id.",
+            "type": "string"
+          },
+          "session_name": {
+            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Exact current run id.",
+            "type": "string"
+          },
+          "generation": {
+            "minimum": 1,
+            "description": "Exact current run generation.",
+            "type": "integer"
+          },
+          "approval_id": {
+            "description": "Durable daemon approval id for mutations.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Mutation replay key.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Input or steering text.",
+            "type": "string"
+          },
+          "command": {
+            "description": "Legacy alias for text; never executed as a shell command.",
+            "type": "string"
+          },
+          "cursor": {
+            "description": "Opaque event/output cursor.",
+            "type": "string"
+          },
+          "channel": {
+            "description": "Output channel; defaults to stdout.",
+            "type": "string"
+          },
+          "config": {
+            "description": "Typed preflight/config request body."
+          },
+          "approved": {
+            "description": "Legacy compatibility hint only; never grants authority.",
+            "type": "boolean"
+          },
+          "force": {
+            "description": "Legacy compatibility hint only; daemon policy decides force.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "mutation_authority"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/silent-sessions",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/preflight",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/output",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/input",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/pause",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/resume",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/interrupt",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/cancel",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/restart",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/config/preview",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/receipts",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/capabilities",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/silent-sessions/{session_id}/start",
+      "capability_id": "focusa.silent.sessions",
+      "operation_id": "focusa_silent_sessions",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "list",
+                "type": "string"
+              },
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "reopen",
+                "type": "string"
+              },
+              {
+                "const": "tail",
+                "type": "string"
+              },
+              {
+                "const": "send",
+                "type": "string"
+              },
+              {
+                "const": "kill",
+                "type": "string"
+              },
+              {
+                "const": "health",
+                "type": "string"
+              },
+              {
+                "const": "interrupt",
+                "type": "string"
+              },
+              {
+                "const": "restart",
+                "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "const": "pause",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "config",
+                "type": "string"
+              },
+              {
+                "const": "receipt",
+                "type": "string"
+              },
+              {
+                "const": "capabilities",
+                "type": "string"
+              }
+            ]
+          },
+          "session_id": {
+            "description": "Exact durable Silent Session id.",
+            "type": "string"
+          },
+          "session_name": {
+            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Exact current run id.",
+            "type": "string"
+          },
+          "generation": {
+            "minimum": 1,
+            "description": "Exact current run generation.",
+            "type": "integer"
+          },
+          "approval_id": {
+            "description": "Durable daemon approval id for mutations.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Mutation replay key.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Input or steering text.",
+            "type": "string"
+          },
+          "command": {
+            "description": "Legacy alias for text; never executed as a shell command.",
+            "type": "string"
+          },
+          "cursor": {
+            "description": "Opaque event/output cursor.",
+            "type": "string"
+          },
+          "channel": {
+            "description": "Output channel; defaults to stdout.",
+            "type": "string"
+          },
+          "config": {
+            "description": "Typed preflight/config request body."
+          },
+          "approved": {
+            "description": "Legacy compatibility hint only; never grants authority.",
+            "type": "boolean"
+          },
+          "force": {
+            "description": "Legacy compatibility hint only; daemon policy decides force.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "mutation_authority"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/silent-sessions",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/preflight",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/output",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/input",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/pause",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/resume",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/interrupt",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/cancel",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/restart",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/config/preview",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/receipts",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/capabilities",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/silent-sessions/{session_id}/pause",
+      "capability_id": "focusa.silent.sessions",
+      "operation_id": "focusa_silent_sessions",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "list",
+                "type": "string"
+              },
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "reopen",
+                "type": "string"
+              },
+              {
+                "const": "tail",
+                "type": "string"
+              },
+              {
+                "const": "send",
+                "type": "string"
+              },
+              {
+                "const": "kill",
+                "type": "string"
+              },
+              {
+                "const": "health",
+                "type": "string"
+              },
+              {
+                "const": "interrupt",
+                "type": "string"
+              },
+              {
+                "const": "restart",
+                "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "const": "pause",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "config",
+                "type": "string"
+              },
+              {
+                "const": "receipt",
+                "type": "string"
+              },
+              {
+                "const": "capabilities",
+                "type": "string"
+              }
+            ]
+          },
+          "session_id": {
+            "description": "Exact durable Silent Session id.",
+            "type": "string"
+          },
+          "session_name": {
+            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Exact current run id.",
+            "type": "string"
+          },
+          "generation": {
+            "minimum": 1,
+            "description": "Exact current run generation.",
+            "type": "integer"
+          },
+          "approval_id": {
+            "description": "Durable daemon approval id for mutations.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Mutation replay key.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Input or steering text.",
+            "type": "string"
+          },
+          "command": {
+            "description": "Legacy alias for text; never executed as a shell command.",
+            "type": "string"
+          },
+          "cursor": {
+            "description": "Opaque event/output cursor.",
+            "type": "string"
+          },
+          "channel": {
+            "description": "Output channel; defaults to stdout.",
+            "type": "string"
+          },
+          "config": {
+            "description": "Typed preflight/config request body."
+          },
+          "approved": {
+            "description": "Legacy compatibility hint only; never grants authority.",
+            "type": "boolean"
+          },
+          "force": {
+            "description": "Legacy compatibility hint only; daemon policy decides force.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "mutation_authority"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/silent-sessions",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/preflight",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/output",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/input",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/pause",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/resume",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/interrupt",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/cancel",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/restart",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/config/preview",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/receipts",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/capabilities",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/silent-sessions/{session_id}/resume",
+      "capability_id": "focusa.silent.sessions",
+      "operation_id": "focusa_silent_sessions",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "list",
+                "type": "string"
+              },
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "reopen",
+                "type": "string"
+              },
+              {
+                "const": "tail",
+                "type": "string"
+              },
+              {
+                "const": "send",
+                "type": "string"
+              },
+              {
+                "const": "kill",
+                "type": "string"
+              },
+              {
+                "const": "health",
+                "type": "string"
+              },
+              {
+                "const": "interrupt",
+                "type": "string"
+              },
+              {
+                "const": "restart",
+                "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "const": "pause",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "config",
+                "type": "string"
+              },
+              {
+                "const": "receipt",
+                "type": "string"
+              },
+              {
+                "const": "capabilities",
+                "type": "string"
+              }
+            ]
+          },
+          "session_id": {
+            "description": "Exact durable Silent Session id.",
+            "type": "string"
+          },
+          "session_name": {
+            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Exact current run id.",
+            "type": "string"
+          },
+          "generation": {
+            "minimum": 1,
+            "description": "Exact current run generation.",
+            "type": "integer"
+          },
+          "approval_id": {
+            "description": "Durable daemon approval id for mutations.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Mutation replay key.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Input or steering text.",
+            "type": "string"
+          },
+          "command": {
+            "description": "Legacy alias for text; never executed as a shell command.",
+            "type": "string"
+          },
+          "cursor": {
+            "description": "Opaque event/output cursor.",
+            "type": "string"
+          },
+          "channel": {
+            "description": "Output channel; defaults to stdout.",
+            "type": "string"
+          },
+          "config": {
+            "description": "Typed preflight/config request body."
+          },
+          "approved": {
+            "description": "Legacy compatibility hint only; never grants authority.",
+            "type": "boolean"
+          },
+          "force": {
+            "description": "Legacy compatibility hint only; daemon policy decides force.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "mutation_authority"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/silent-sessions",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/preflight",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/output",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/input",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/pause",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/resume",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/interrupt",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/cancel",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/restart",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/config/preview",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/receipts",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/capabilities",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/silent-sessions/{session_id}/interrupt",
+      "capability_id": "focusa.silent.sessions",
+      "operation_id": "focusa_silent_sessions",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "list",
+                "type": "string"
+              },
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "reopen",
+                "type": "string"
+              },
+              {
+                "const": "tail",
+                "type": "string"
+              },
+              {
+                "const": "send",
+                "type": "string"
+              },
+              {
+                "const": "kill",
+                "type": "string"
+              },
+              {
+                "const": "health",
+                "type": "string"
+              },
+              {
+                "const": "interrupt",
+                "type": "string"
+              },
+              {
+                "const": "restart",
+                "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "const": "pause",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "config",
+                "type": "string"
+              },
+              {
+                "const": "receipt",
+                "type": "string"
+              },
+              {
+                "const": "capabilities",
+                "type": "string"
+              }
+            ]
+          },
+          "session_id": {
+            "description": "Exact durable Silent Session id.",
+            "type": "string"
+          },
+          "session_name": {
+            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Exact current run id.",
+            "type": "string"
+          },
+          "generation": {
+            "minimum": 1,
+            "description": "Exact current run generation.",
+            "type": "integer"
+          },
+          "approval_id": {
+            "description": "Durable daemon approval id for mutations.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Mutation replay key.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Input or steering text.",
+            "type": "string"
+          },
+          "command": {
+            "description": "Legacy alias for text; never executed as a shell command.",
+            "type": "string"
+          },
+          "cursor": {
+            "description": "Opaque event/output cursor.",
+            "type": "string"
+          },
+          "channel": {
+            "description": "Output channel; defaults to stdout.",
+            "type": "string"
+          },
+          "config": {
+            "description": "Typed preflight/config request body."
+          },
+          "approved": {
+            "description": "Legacy compatibility hint only; never grants authority.",
+            "type": "boolean"
+          },
+          "force": {
+            "description": "Legacy compatibility hint only; daemon policy decides force.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "mutation_authority"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/silent-sessions",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/preflight",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/output",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/input",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/pause",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/resume",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/interrupt",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/cancel",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/restart",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/config/preview",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/receipts",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/capabilities",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/silent-sessions/{session_id}/cancel",
+      "capability_id": "focusa.silent.sessions",
+      "operation_id": "focusa_silent_sessions",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "list",
+                "type": "string"
+              },
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "reopen",
+                "type": "string"
+              },
+              {
+                "const": "tail",
+                "type": "string"
+              },
+              {
+                "const": "send",
+                "type": "string"
+              },
+              {
+                "const": "kill",
+                "type": "string"
+              },
+              {
+                "const": "health",
+                "type": "string"
+              },
+              {
+                "const": "interrupt",
+                "type": "string"
+              },
+              {
+                "const": "restart",
+                "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "const": "pause",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "config",
+                "type": "string"
+              },
+              {
+                "const": "receipt",
+                "type": "string"
+              },
+              {
+                "const": "capabilities",
+                "type": "string"
+              }
+            ]
+          },
+          "session_id": {
+            "description": "Exact durable Silent Session id.",
+            "type": "string"
+          },
+          "session_name": {
+            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Exact current run id.",
+            "type": "string"
+          },
+          "generation": {
+            "minimum": 1,
+            "description": "Exact current run generation.",
+            "type": "integer"
+          },
+          "approval_id": {
+            "description": "Durable daemon approval id for mutations.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Mutation replay key.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Input or steering text.",
+            "type": "string"
+          },
+          "command": {
+            "description": "Legacy alias for text; never executed as a shell command.",
+            "type": "string"
+          },
+          "cursor": {
+            "description": "Opaque event/output cursor.",
+            "type": "string"
+          },
+          "channel": {
+            "description": "Output channel; defaults to stdout.",
+            "type": "string"
+          },
+          "config": {
+            "description": "Typed preflight/config request body."
+          },
+          "approved": {
+            "description": "Legacy compatibility hint only; never grants authority.",
+            "type": "boolean"
+          },
+          "force": {
+            "description": "Legacy compatibility hint only; daemon policy decides force.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "mutation_authority"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/silent-sessions",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/preflight",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/output",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/input",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/pause",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/resume",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/interrupt",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/cancel",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/restart",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/config/preview",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/receipts",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/capabilities",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/silent-sessions/{session_id}/restart",
+      "capability_id": "focusa.silent.sessions",
+      "operation_id": "focusa_silent_sessions",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "list",
+                "type": "string"
+              },
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "reopen",
+                "type": "string"
+              },
+              {
+                "const": "tail",
+                "type": "string"
+              },
+              {
+                "const": "send",
+                "type": "string"
+              },
+              {
+                "const": "kill",
+                "type": "string"
+              },
+              {
+                "const": "health",
+                "type": "string"
+              },
+              {
+                "const": "interrupt",
+                "type": "string"
+              },
+              {
+                "const": "restart",
+                "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "const": "pause",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "config",
+                "type": "string"
+              },
+              {
+                "const": "receipt",
+                "type": "string"
+              },
+              {
+                "const": "capabilities",
+                "type": "string"
+              }
+            ]
+          },
+          "session_id": {
+            "description": "Exact durable Silent Session id.",
+            "type": "string"
+          },
+          "session_name": {
+            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Exact current run id.",
+            "type": "string"
+          },
+          "generation": {
+            "minimum": 1,
+            "description": "Exact current run generation.",
+            "type": "integer"
+          },
+          "approval_id": {
+            "description": "Durable daemon approval id for mutations.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Mutation replay key.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Input or steering text.",
+            "type": "string"
+          },
+          "command": {
+            "description": "Legacy alias for text; never executed as a shell command.",
+            "type": "string"
+          },
+          "cursor": {
+            "description": "Opaque event/output cursor.",
+            "type": "string"
+          },
+          "channel": {
+            "description": "Output channel; defaults to stdout.",
+            "type": "string"
+          },
+          "config": {
+            "description": "Typed preflight/config request body."
+          },
+          "approved": {
+            "description": "Legacy compatibility hint only; never grants authority.",
+            "type": "boolean"
+          },
+          "force": {
+            "description": "Legacy compatibility hint only; daemon policy decides force.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "mutation_authority"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/silent-sessions",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/preflight",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/output",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/input",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/pause",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/resume",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/interrupt",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/cancel",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/restart",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/config/preview",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/receipts",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/capabilities",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/silent-sessions/{session_id}/config/preview",
+      "capability_id": "focusa.silent.sessions",
+      "operation_id": "focusa_silent_sessions",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "list",
+                "type": "string"
+              },
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "reopen",
+                "type": "string"
+              },
+              {
+                "const": "tail",
+                "type": "string"
+              },
+              {
+                "const": "send",
+                "type": "string"
+              },
+              {
+                "const": "kill",
+                "type": "string"
+              },
+              {
+                "const": "health",
+                "type": "string"
+              },
+              {
+                "const": "interrupt",
+                "type": "string"
+              },
+              {
+                "const": "restart",
+                "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "const": "pause",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "config",
+                "type": "string"
+              },
+              {
+                "const": "receipt",
+                "type": "string"
+              },
+              {
+                "const": "capabilities",
+                "type": "string"
+              }
+            ]
+          },
+          "session_id": {
+            "description": "Exact durable Silent Session id.",
+            "type": "string"
+          },
+          "session_name": {
+            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Exact current run id.",
+            "type": "string"
+          },
+          "generation": {
+            "minimum": 1,
+            "description": "Exact current run generation.",
+            "type": "integer"
+          },
+          "approval_id": {
+            "description": "Durable daemon approval id for mutations.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Mutation replay key.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Input or steering text.",
+            "type": "string"
+          },
+          "command": {
+            "description": "Legacy alias for text; never executed as a shell command.",
+            "type": "string"
+          },
+          "cursor": {
+            "description": "Opaque event/output cursor.",
+            "type": "string"
+          },
+          "channel": {
+            "description": "Output channel; defaults to stdout.",
+            "type": "string"
+          },
+          "config": {
+            "description": "Typed preflight/config request body."
+          },
+          "approved": {
+            "description": "Legacy compatibility hint only; never grants authority.",
+            "type": "boolean"
+          },
+          "force": {
+            "description": "Legacy compatibility hint only; daemon policy decides force.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "mutation_authority"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/silent-sessions",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/preflight",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/output",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/input",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/pause",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/resume",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/interrupt",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/cancel",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/restart",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/config/preview",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/receipts",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/capabilities",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/silent-sessions/{session_id}/receipts",
+      "capability_id": "focusa.silent.sessions",
+      "operation_id": "focusa_silent_sessions",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "list",
+                "type": "string"
+              },
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "reopen",
+                "type": "string"
+              },
+              {
+                "const": "tail",
+                "type": "string"
+              },
+              {
+                "const": "send",
+                "type": "string"
+              },
+              {
+                "const": "kill",
+                "type": "string"
+              },
+              {
+                "const": "health",
+                "type": "string"
+              },
+              {
+                "const": "interrupt",
+                "type": "string"
+              },
+              {
+                "const": "restart",
+                "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "const": "pause",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "config",
+                "type": "string"
+              },
+              {
+                "const": "receipt",
+                "type": "string"
+              },
+              {
+                "const": "capabilities",
+                "type": "string"
+              }
+            ]
+          },
+          "session_id": {
+            "description": "Exact durable Silent Session id.",
+            "type": "string"
+          },
+          "session_name": {
+            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Exact current run id.",
+            "type": "string"
+          },
+          "generation": {
+            "minimum": 1,
+            "description": "Exact current run generation.",
+            "type": "integer"
+          },
+          "approval_id": {
+            "description": "Durable daemon approval id for mutations.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Mutation replay key.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Input or steering text.",
+            "type": "string"
+          },
+          "command": {
+            "description": "Legacy alias for text; never executed as a shell command.",
+            "type": "string"
+          },
+          "cursor": {
+            "description": "Opaque event/output cursor.",
+            "type": "string"
+          },
+          "channel": {
+            "description": "Output channel; defaults to stdout.",
+            "type": "string"
+          },
+          "config": {
+            "description": "Typed preflight/config request body."
+          },
+          "approved": {
+            "description": "Legacy compatibility hint only; never grants authority.",
+            "type": "boolean"
+          },
+          "force": {
+            "description": "Legacy compatibility hint only; daemon policy decides force.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "mutation_authority"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/silent-sessions",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/preflight",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/output",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/input",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/pause",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/resume",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/interrupt",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/cancel",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/restart",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/config/preview",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/receipts",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/capabilities",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/silent-sessions/capabilities",
+      "capability_id": "focusa.silent.sessions",
+      "operation_id": "focusa_silent_sessions",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "list",
+                "type": "string"
+              },
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "reopen",
+                "type": "string"
+              },
+              {
+                "const": "tail",
+                "type": "string"
+              },
+              {
+                "const": "send",
+                "type": "string"
+              },
+              {
+                "const": "kill",
+                "type": "string"
+              },
+              {
+                "const": "health",
+                "type": "string"
+              },
+              {
+                "const": "interrupt",
+                "type": "string"
+              },
+              {
+                "const": "restart",
+                "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "const": "pause",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "config",
+                "type": "string"
+              },
+              {
+                "const": "receipt",
+                "type": "string"
+              },
+              {
+                "const": "capabilities",
+                "type": "string"
+              }
+            ]
+          },
+          "session_id": {
+            "description": "Exact durable Silent Session id.",
+            "type": "string"
+          },
+          "session_name": {
+            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Exact current run id.",
+            "type": "string"
+          },
+          "generation": {
+            "minimum": 1,
+            "description": "Exact current run generation.",
+            "type": "integer"
+          },
+          "approval_id": {
+            "description": "Durable daemon approval id for mutations.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Mutation replay key.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Input or steering text.",
+            "type": "string"
+          },
+          "command": {
+            "description": "Legacy alias for text; never executed as a shell command.",
+            "type": "string"
+          },
+          "cursor": {
+            "description": "Opaque event/output cursor.",
+            "type": "string"
+          },
+          "channel": {
+            "description": "Output channel; defaults to stdout.",
+            "type": "string"
+          },
+          "config": {
+            "description": "Typed preflight/config request body."
+          },
+          "approved": {
+            "description": "Legacy compatibility hint only; never grants authority.",
+            "type": "boolean"
+          },
+          "force": {
+            "description": "Legacy compatibility hint only; daemon policy decides force.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "mutation_authority"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/silent-sessions",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/preflight",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/output",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/input",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/start",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/pause",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/resume",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/interrupt",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/cancel",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/restart",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/silent-sessions/{session_id}/config/preview",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/{session_id}/receipts",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/silent-sessions/capabilities",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md"
     },
     {
       "method": "POST",

@@ -1,6 +1,6 @@
 {
   "schema": "focusa.openai_tool_projection.v2",
-  "registry_digest": "sha256:b9793d0eb515d53b607c447453c8c9ecc49eaf67327757cbe91eae5742f604bb",
+  "registry_digest": "sha256:9db6e128c917c53d3225ef9bf7541f652c0a5b6b984fcecfc45c2e175078cae6",
   "tools": [
     {
       "type": "function",
@@ -2952,6 +2952,140 @@
             },
             "receipt_commit": {
               "description": "Explicitly commit the preload receipt; defaults false.",
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_silent_sessions",
+        "description": "Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "anyOf": [
+                {
+                  "const": "list",
+                  "type": "string"
+                },
+                {
+                  "const": "start",
+                  "type": "string"
+                },
+                {
+                  "const": "reopen",
+                  "type": "string"
+                },
+                {
+                  "const": "tail",
+                  "type": "string"
+                },
+                {
+                  "const": "send",
+                  "type": "string"
+                },
+                {
+                  "const": "kill",
+                  "type": "string"
+                },
+                {
+                  "const": "health",
+                  "type": "string"
+                },
+                {
+                  "const": "interrupt",
+                  "type": "string"
+                },
+                {
+                  "const": "restart",
+                  "type": "string"
+                },
+                {
+                  "const": "preflight",
+                  "type": "string"
+                },
+                {
+                  "const": "watch",
+                  "type": "string"
+                },
+                {
+                  "const": "pause",
+                  "type": "string"
+                },
+                {
+                  "const": "resume",
+                  "type": "string"
+                },
+                {
+                  "const": "config",
+                  "type": "string"
+                },
+                {
+                  "const": "receipt",
+                  "type": "string"
+                },
+                {
+                  "const": "capabilities",
+                  "type": "string"
+                }
+              ]
+            },
+            "session_id": {
+              "description": "Exact durable Silent Session id.",
+              "type": "string"
+            },
+            "session_name": {
+              "description": "Legacy alias for exact session_id; no tmux normalization.",
+              "type": "string"
+            },
+            "run_id": {
+              "description": "Exact current run id.",
+              "type": "string"
+            },
+            "generation": {
+              "minimum": 1,
+              "description": "Exact current run generation.",
+              "type": "integer"
+            },
+            "approval_id": {
+              "description": "Durable daemon approval id for mutations.",
+              "type": "string"
+            },
+            "idempotency_key": {
+              "description": "Mutation replay key.",
+              "type": "string"
+            },
+            "text": {
+              "description": "Input or steering text.",
+              "type": "string"
+            },
+            "command": {
+              "description": "Legacy alias for text; never executed as a shell command.",
+              "type": "string"
+            },
+            "cursor": {
+              "description": "Opaque event/output cursor.",
+              "type": "string"
+            },
+            "channel": {
+              "description": "Output channel; defaults to stdout.",
+              "type": "string"
+            },
+            "config": {
+              "description": "Typed preflight/config request body."
+            },
+            "approved": {
+              "description": "Legacy compatibility hint only; never grants authority.",
+              "type": "boolean"
+            },
+            "force": {
+              "description": "Legacy compatibility hint only; daemon policy decides force.",
               "type": "boolean"
             }
           },
