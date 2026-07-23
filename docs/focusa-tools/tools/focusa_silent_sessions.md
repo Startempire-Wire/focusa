@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 ## Authority, permissions, and side effects
 
 - Scope: `{"kind":"read","route_family":"auto"}`
-- Authority: `{"kind":"mutation_authority"}`
+- Authority: `{"kind":"canonical","path":"daemon:/v1/silent-sessions"}`
 - Side effects: `daemon_api_control`, `daemon_api_control`
 - Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `false`.
 - Confirmation required: `false`; preview supported: `false`.
@@ -77,4 +77,4 @@ Likely next: `focusa_work_loop_status`, `focusa_work_loop_checkpoint`, `focusa_r
 - CLI: `focusa silent`.
 - REST: `GET /v1/silent-sessions`, `POST /v1/silent-sessions/preflight`, `GET /v1/silent-sessions/{session_id}`, `GET /v1/silent-sessions/{session_id}/output`, `POST /v1/silent-sessions/{session_id}/input`, `POST /v1/silent-sessions/{session_id}/start`, `POST /v1/silent-sessions/{session_id}/pause`, `POST /v1/silent-sessions/{session_id}/resume`, `POST /v1/silent-sessions/{session_id}/interrupt`, `POST /v1/silent-sessions/{session_id}/cancel`, `POST /v1/silent-sessions/{session_id}/restart`, `POST /v1/silent-sessions/{session_id}/config/preview`, `GET /v1/silent-sessions/{session_id}/receipts`, `GET /v1/silent-sessions/capabilities`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:4aafc5b3c5a6db1fbb49b6eeea05d701199c4582efff013e8bd28fe73be7bf45`.
+- Descriptor digest: `sha256:25211f3637fcd5f4fd15eee821df0f17448238a87bd0657c0b03b6631a0945e8`.
