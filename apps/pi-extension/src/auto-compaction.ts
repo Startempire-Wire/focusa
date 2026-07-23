@@ -719,11 +719,24 @@ export function registerAutoCompaction(
 
         const failedAttempts = consecutiveTransientFailures + 1;
         consecutiveTransientFailures = 0;
+        const recoveryInstruction = retryableFailure
+          ? ". Canonical checkpoint authority is preserved. Retry /compact after transport recovery; if hard context pressure remains, run /focusa-rollover before continuing."
+          : ".";
+        if (retryableFailure) {
+          failedEpoch.state = "rollover_required";
+          persist("rollover_required", {
+            reason: "provider_transport_retry_exhausted",
+            attempts: failedAttempts,
+            primary_error: message,
+            recovery_command: "/focusa-rollover",
+            canonical_checkpoint_preserved: true,
+          }, failedEpoch);
+        }
         setActiveEpoch(undefined);
         notifyOnce(
           ctx,
           `failed:${failedEpoch.contextKey}:${message}`,
-          `Focusa proactive compaction failed after ${failedAttempts} attempt(s): ${message}`,
+          `Focusa proactive compaction failed after ${failedAttempts} attempt(s): ${message}${recoveryInstruction}`,
           "error"
         );
         const failedRequest = activeRequest;

@@ -7,7 +7,7 @@ TMP="$(mktemp -d "${TMPDIR:-/tmp}/focusa-spec130a-runtime.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 
 cd "$PI_EXT"
-npx tsc -p tsconfig.json --noEmit false --outDir "$TMP/build"
+./node_modules/.bin/tsc -p tsconfig.json --noEmit false --outDir "$TMP/build"
 ln -s "$PI_EXT/node_modules" "$TMP/build/node_modules"
 
 cat >"$TMP/runtime.mjs" <<'EOF'
@@ -296,6 +296,22 @@ assert.equal(
   true,
 );
 await retried.handlers.get("session_shutdown")({ type: "session_shutdown" }, retried.ctx);
+
+const exhausted = harness(largeBranch, {
+  ...DEFAULT_PROACTIVE_COMPACTION_POLICY,
+  cooldownMs: 20,
+});
+await exhausted.handlers.get("agent_settled")({ type: "agent_settled" }, exhausted.ctx);
+exhausted.compactCalls[0].onError(new Error("Summarization failed: WebSocket error"));
+await new Promise((resolve) => setTimeout(resolve, 50));
+assert.equal(exhausted.compactCalls.length, 2);
+exhausted.compactCalls[1].onError(new Error("Summarization failed: WebSocket error"));
+const rollover = exhausted.events.find((entry) => entry.data.kind === "rollover_required");
+assert.equal(rollover.data.reason, "provider_transport_retry_exhausted");
+assert.equal(rollover.data.recovery_command, "/focusa-rollover");
+assert.equal(rollover.data.canonical_checkpoint_preserved, true);
+assert.equal(rollover.data.attempts, 2);
+await exhausted.handlers.get("session_shutdown")({ type: "session_shutdown" }, exhausted.ctx);
 
 console.log(
   JSON.stringify(

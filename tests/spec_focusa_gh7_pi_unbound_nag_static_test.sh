@@ -24,7 +24,8 @@ text = Path('apps/pi-extension/src/session.ts').read_text()
 assert 'if (pi.getFlag("--nag-suppress")) return;' in text
 assert 'if (markerExistsAtCwd(cwd)) return;' in text
 assert 'getAttachmentRuntime().vitalInfoPrompted[key]' in text
-assert 'queueUnboundProjectNag(pi, ctx, "session_start")' in text
+assert 'queueUnboundProjectNag(pi, ctx, "new_session_new_project")' in text
+assert text.index('sessionProjectClassification === "new_session_new_project"') < text.index('queueUnboundProjectNag(pi, ctx, "new_session_new_project")')
 assert 'sendUserMessage(' not in text
 assert 'deferLifecycleAdvisory(ctx, key, prompt, reason)' in text
 assert 'pi_lifecycle_advisory_deferred_to_next_turn' in text

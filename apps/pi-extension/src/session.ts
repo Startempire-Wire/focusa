@@ -312,7 +312,7 @@ function queueProjectIdentityBootstrapTurn(
   reason: string
 ): void {
   if (!getAttachmentRuntime().focusaAvailable || !vitalPromptSurfaceEnabled("project_root")) return;
-  if (!projectRootConfirmationRequired(proposedRoot)) return;
+  if (reason !== "session_project_mismatch" && !projectRootConfirmationRequired(proposedRoot)) return;
   const key = `project_identity_bootstrap:${getAttachmentRuntime().sessionFrameKey || "no-session"}:${normalizeProjectRoot(ctx?.cwd || proposedRoot || process.cwd())}`;
   if (getAttachmentRuntime().vitalInfoPrompted[key]) return;
   getAttachmentRuntime().vitalInfoPrompted[key] = Date.now();
@@ -925,7 +925,6 @@ export function registerSession(pi: ExtensionAPI) {
       return;
     }
     if (pi.getFlag("--wbm")) getAttachmentRuntime().wbmEnabled = true;
-    queueUnboundProjectNag(pi, ctx, "session_start");
 
     // Health check
     await checkFocusa();
@@ -1037,6 +1036,9 @@ export function registerSession(pi: ExtensionAPI) {
           explicitContinuationMetadata: sessionStartReason === "fork",
         });
     getAttachmentRuntime().sessionProjectClassification = sessionProjectClassification;
+    if (sessionProjectClassification === "new_session_new_project") {
+      queueUnboundProjectNag(pi, ctx, "new_session_new_project");
+    }
     const classifiedRoot = normalizeProjectRoot(ctx.cwd);
     getAttachmentRuntime().piSessionProjectRegistry[eventSessionId] = {
       project_root: classifiedRoot,
@@ -1062,7 +1064,9 @@ export function registerSession(pi: ExtensionAPI) {
         marker_exists: markerExistsAtCwd(ctx.cwd),
       },
     });
-    persistState();
+    if (sessionProjectClassification !== "session_project_mismatch") {
+      persistState();
+    }
 
     // §33.5: Always NULL out activeFrameId — force-push fresh Pi frame.
     // This prevents Wirebot/TEP frame state from leaking into Pi sessions.

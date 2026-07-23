@@ -242,6 +242,7 @@ jobs:
             beta_ad_hoc)
               echo "::warning::Building explicit pre-license, unnotarized beta. Tauri updater signatures remain mandatory."
               echo "FOCUSA_MACOS_RELEASE_MODE=beta_ad_hoc" >> "$GITHUB_ENV"
+              echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
               exit 0
               ;;
             production_notarized)

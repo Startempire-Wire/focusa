@@ -61,6 +61,8 @@ jobs:
         run: npm run build
       - name: Tauri package proof (non-release; updater signing proven separately)
         working-directory: apps/menubar
+        env:
+          APPLE_SIGNING_IDENTITY: '-'
         run: npm run tauri build -- --bundles app --config '{"bundle":{"createUpdaterArtifacts":false}}'
       - name: Validate macOS bundle
         run: |

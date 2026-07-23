@@ -130,3 +130,23 @@ Before Spec 130A proactive compaction can be closed, run an installed-runtime lo
 - provider token/cache telemetry and net-positive cost;
 - crash/resume preservation of authoritative continuation fields;
 - no duplicate warnings or retries across native/manual compaction races.
+
+## 2026-07-23 architecture reconciliation addendum
+
+A post-implementation audit against Specs 130/130A found and repaired three missed boundaries:
+
+1. the unbound-project advisory previously queued before session/project classification, so a valid resumed same-project session could recover and still receive a stale onboarding nag; advisory routing now occurs only after `new_session_new_project` classification;
+2. explicit `session_project_mismatch` could be suppressed when the current root was independently safe; mismatch now always produces one next-turn reconciliation advisory and does not persist replacement state over the older authoritative record;
+3. exhausted provider-transport recovery stopped after its single linked retry without an explicit hard-pressure route; it now persists `rollover_required`, preserves primary error/checkpoint authority, and directs `/focusa-rollover` before continued work.
+
+The strict contract gate was also reconciled with Pi 0.81 native-session semantics: restoration reads the current native session's entries and gates recovered state by normalized project-root authority rather than requiring a temporal attachment/session id to remain identical after resume.
+
+Proof:
+
+```text
+Linux: TypeScript check + ESLint + 28 Node tests + Spec130A runtime gate PASS
+Mac:   TypeScript check + ESLint + 28 Node tests + Spec130A runtime gate PASS
+Mac:   explicit APPLE_SIGNING_IDENTITY=- Tauri bundle strict codesign verification PASS
+```
+
+The Spec130A runtime harness now proves a two-attempt transport failure produces `rollover_required` with reason `provider_transport_retry_exhausted`, `recovery_command=/focusa-rollover`, `canonical_checkpoint_preserved=true`, and `attempts=2`.

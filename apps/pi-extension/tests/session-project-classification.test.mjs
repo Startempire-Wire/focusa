@@ -52,6 +52,11 @@ test("Pi 0.81 lifecycle consumes classification instead of obsolete post-switch 
   assert.match(source, /ctx\.sessionManager\.getSessionId\(\)/);
   assert.match(source, /pi_session_project_classified/);
   assert.match(source, /session_project_mismatch_blocked/);
+  assert.ok(
+    source.indexOf('sessionProjectClassification === "new_session_new_project"') <
+      source.indexOf('queueUnboundProjectNag(pi, ctx, "new_session_new_project")'),
+    "onboarding advisory must route only after session/project classification",
+  );
   assert.doesNotMatch(source, /pi\.on\("session_switch"/);
   assert.doesNotMatch(source, /pi\.on\("session_fork"/);
 });

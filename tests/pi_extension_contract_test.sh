@@ -72,10 +72,11 @@ else
 fi
 
 if rg -n 'focusa-wbm-state" \|\| e\.customType === "focusa-state"' "$SESSION_FILE" >/dev/null 2>&1 \
-  && rg -n 'String\(e\.data\.sessionId \|\| ""\) === eventSessionId' "$SESSION_FILE" >/dev/null 2>&1; then
-  log_pass "Pi session restore accepts only same-session resumable Focusa/WBM state"
+  && rg -n 'loadPersistedRecoveryState\(e\.data\)' "$SESSION_FILE" >/dev/null 2>&1 \
+  && rg -n 'normalizeProjectRoot\(candidateProjectRoot\) !== currentProjectRoot' "$SESSION_FILE" >/dev/null 2>&1; then
+  log_pass "Pi native-session restore accepts resumable Focusa/WBM state only within matching project authority"
 else
-  log_fail "Pi session restore missing same-session resumable WBM state support"
+  log_fail "Pi native-session restore missing project-scoped resumable WBM state support"
 fi
 
 if rg -n 'ensureToolTrajectoryClarity' "$TOOLS_FILE" >/dev/null 2>&1 \
