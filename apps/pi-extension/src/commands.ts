@@ -1042,6 +1042,14 @@ export function registerCommands(pi: ExtensionAPI) {
       const missionLine = snapshot.intent ? `\nMission: ${snapshot.intent}` : "";
       const focusLine = snapshot.currentFocus ? `\nFocus: ${snapshot.currentFocus}` : "";
       const updateNotifications = await focusaFetch("/update/notifications");
+      const silentSessionDashboard = await focusaFetch("/silent-sessions/dashboard?limit=20");
+      const silentSessions = Array.isArray(silentSessionDashboard?.data?.sessions)
+        ? silentSessionDashboard.data.sessions
+        : Array.isArray(silentSessionDashboard?.sessions)
+          ? silentSessionDashboard.sessions
+          : [];
+      const silentAttention = silentSessions.filter((session: any) => Boolean(session?.attention));
+      const silentLine = `\nSilent sessions: ${silentSessions.length} visible | attention=${silentAttention.length} | source=daemon`;
       const staleUpdateParts = Array.isArray(updateNotifications?.stale_parts)
         ? updateNotifications.stale_parts
         : [];
@@ -1059,6 +1067,7 @@ export function registerCommands(pi: ExtensionAPI) {
           objectiveLine +
           missionLine +
           focusLine +
+          silentLine +
           updateLine +
           `\n` +
           `Decisions: ${snapshot.decisions.length} | Constraints: ${snapshot.constraints.length} | Failures: ${snapshot.failures.length}` +

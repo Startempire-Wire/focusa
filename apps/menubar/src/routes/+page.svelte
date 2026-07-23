@@ -14,6 +14,7 @@
   import WorkpointPeek from '$lib/components/WorkpointPeek.svelte';
   import ProofPeek from '$lib/components/ProofPeek.svelte';
   import WorkLoopPeek from '$lib/components/WorkLoopPeek.svelte';
+  import SilentSessionsPeek from '$lib/components/SilentSessionsPeek.svelte';
   import { onMount } from 'svelte';
 
   import SyncPanel from '$lib/components/SyncPanel.svelte';
@@ -70,7 +71,7 @@
         metacogEvaluations: projectScopedPath('/v1/metacognition/evaluations/recent?limit=5', projectRoot, continuityId),
         snapshotsRecent: projectScopedPath('/v1/focus/snapshots/recent?limit=5', projectRoot, continuityId),
       };
-      const [health, doctor, contracts, focusFrame, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, workLoopCheckpoints, memoryTelemetry, events, tokenBudget, cacheMetadata, predictionsRecent, predictionsStats, metacogStatus, metacogEvaluations, snapshotsRecent, lineageHead, releaseProof, updateNotifications] = await Promise.all([
+      const [health, doctor, contracts, focusFrame, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, workLoopCheckpoints, memoryTelemetry, events, tokenBudget, cacheMetadata, predictionsRecent, predictionsStats, metacogStatus, metacogEvaluations, snapshotsRecent, lineageHead, releaseProof, updateNotifications, silentSessionDashboard] = await Promise.all([
         safe(() => fetchJson('/v1/health')),
         safe(() => fetchJson('/v1/doctor', 5000)),
         safe(() => fetchJson('/v1/ontology/tool-contracts')),
@@ -93,6 +94,7 @@
         safe(() => fetchJson('/v1/lineage/head')),
         safe(() => fetchJson('/v1/release/proof/status')),
         safe(() => fetchJson('/v1/update/notifications')),
+        safe(() => fetchJson('/v1/silent-sessions/dashboard?limit=20')),
       ]);
       const workpointPacket = workpointResume?.resume_packet ?? workpointResume?.packet ?? null;
       const normalizedWorkpointResume = workpointPacket
@@ -145,6 +147,7 @@
           summary: 'Release-proof endpoint unavailable; run focusa release prove --tag <tag> before publish.',
         },
         updateNotifications,
+        silentSessionDashboard,
       });
     } catch (e: any) {
       const msg = e?.message || 'Failed to connect';
@@ -240,6 +243,7 @@
     <ProofPeek />
   {:else if activeTab === 'workloop'}
     <WorkLoopPeek />
+    <SilentSessionsPeek />
   {:else if activeTab === 'gate'}
     <GatePanel />
   {:else if activeTab === 'sync'}
